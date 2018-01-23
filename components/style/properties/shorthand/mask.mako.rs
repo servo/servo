@@ -121,7 +121,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             use properties::longhands::mask_origin::single_value::computed_value::T as Origin;
             use properties::longhands::mask_clip::single_value::computed_value::T as Clip;
 
@@ -214,7 +214,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let len = self.mask_position_x.0.len();
             if len == 0 || self.mask_position_y.0.len() != len {
                 return Ok(());

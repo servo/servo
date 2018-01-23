@@ -23,8 +23,8 @@
 
     pub mod computed_value {
         use cssparser;
-        use std::fmt;
-        use style_traits::ToCss;
+        use std::fmt::{self, Write};
+        use style_traits::{CssWriter, ToCss};
         #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
@@ -62,7 +62,10 @@
         }
 
         impl ToCss for ContentItem {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
                 match *self {
                     ContentItem::String(ref s) => s.to_css(dest),
                     ContentItem::Counter(ref s, ref counter_style) => {
@@ -106,7 +109,10 @@
         }
 
         impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
                 match *self {
                     T::Normal => dest.write_str("normal"),
                     T::None => dest.write_str("none"),
@@ -232,8 +238,8 @@
 
 <%helpers:longhand name="counter-increment" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
-    use std::fmt;
-    use style_traits::ToCss;
+    use std::fmt::{self, Write};
+    use style_traits::{CssWriter, ToCss};
     use values::CustomIdent;
 
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
@@ -241,16 +247,17 @@
     pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
 
     pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
+        use std::fmt::{self, Write};
+        use style_traits::{CssWriter, ToCss};
         use values::CustomIdent;
 
         #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         pub struct T(pub Vec<(CustomIdent, i32)>);
 
         impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
             {
                 if self.0.is_empty() {
                     return dest.write_str("none")
@@ -292,10 +299,10 @@
         computed_value::T(Vec::new())
     }
 
-
     impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-            where W: fmt::Write,
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+        where
+            W: Write,
         {
             if self.0.is_empty() {
                 return dest.write_str("none");

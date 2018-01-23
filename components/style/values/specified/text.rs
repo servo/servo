@@ -8,8 +8,8 @@ use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
@@ -440,7 +440,10 @@ impl Parse for TextAlign {
 }
 
 impl ToCss for TextAlign {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             TextAlign::Keyword(key) => key.to_css(dest),
             #[cfg(feature = "gecko")]

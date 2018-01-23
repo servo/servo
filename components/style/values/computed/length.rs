@@ -6,9 +6,9 @@
 
 use app_units::Au;
 use ordered_float::NotNaN;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::ops::{Add, Neg};
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
@@ -203,7 +203,10 @@ impl From<LengthOrPercentageOrNone> for Option<CalcLengthOrPercentage> {
 }
 
 impl ToCss for CalcLengthOrPercentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         use num_traits::Zero;
 
         let (length, percentage) = match (self.length, self.percentage) {
@@ -738,7 +741,10 @@ impl CSSPixelLength {
 
 impl ToCss for CSSPixelLength {
     #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.0.to_css(dest)?;
         dest.write_str("px")
     }

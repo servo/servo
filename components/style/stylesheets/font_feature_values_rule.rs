@@ -18,7 +18,7 @@ use parser::{ParserContext, ParserErrorContext, Parse};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRuleType;
 use values::computed::font::FamilyName;
 
@@ -37,7 +37,10 @@ pub struct FFVDeclaration<T> {
 }
 
 impl<T: ToCss> ToCss for FFVDeclaration<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         serialize_identifier(&self.name.to_string(), dest)?;
         dest.write_str(": ")?;
         self.value.to_css(dest)?;
@@ -53,7 +56,7 @@ pub trait ToGeckoFontFeatureValues {
 }
 
 /// A @font-feature-values block declaration value that keeps one value.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub struct SingleValue(pub u32);
 
 impl Parse for SingleValue {
@@ -64,12 +67,6 @@ impl Parse for SingleValue {
             Token::Number { int_value: Some(v), .. } if v >= 0 => Ok(SingleValue(v as u32)),
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
-    }
-}
-
-impl ToCss for SingleValue {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
     }
 }
 
@@ -107,7 +104,10 @@ impl Parse for PairValues {
 }
 
 impl ToCss for PairValues {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.0.to_css(dest)?;
         if let Some(second) = self.1 {
             dest.write_char(' ')?;
@@ -159,7 +159,10 @@ impl Parse for VectorValues {
 }
 
 impl ToCss for VectorValues {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.0.iter();
         let first = iter.next();
         if let Some(first) = first {
@@ -286,7 +289,13 @@ macro_rules! font_feature_values_blocks {
             }
 
             /// Prints font family names.
-            pub fn font_family_to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            pub fn font_family_to_css<W>(
+                &self,
+                dest: &mut CssWriter<W>,
+            ) -> fmt::Result
+            where
+                W: Write,
+            {
                 let mut iter = self.family_names.iter();
                 iter.next().unwrap().to_css(dest)?;
                 for val in iter {
@@ -297,7 +306,10 @@ macro_rules! font_feature_values_blocks {
             }
 
             /// Prints inside of `@font-feature-values` block.
-            pub fn value_to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            pub fn value_to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
                 $(
                     if self.$ident.len() > 0 {
                         dest.write_str(concat!("@", $name, " {\n"))?;
@@ -350,9 +362,9 @@ macro_rules! font_feature_values_blocks {
         impl ToCssWithGuard for FontFeatureValuesRule {
             fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
                 dest.write_str("@font-feature-values ")?;
-                self.font_family_to_css(dest)?;
+                self.font_family_to_css(&mut CssWriter::new(dest))?;
                 dest.write_str(" {\n")?;
-                self.value_to_css(dest)?;
+                self.value_to_css(&mut CssWriter::new(dest))?;
                 dest.write_str("}")
             }
         }

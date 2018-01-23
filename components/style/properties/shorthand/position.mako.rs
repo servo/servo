@@ -119,7 +119,7 @@
   }
 
   impl<'a> ToCss for LonghandsToSerialize<'a>  {
-      fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+      fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
           if self.grid_row_gap == self.grid_column_gap {
             self.grid_row_gap.to_css(dest)
           } else {
@@ -163,7 +163,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_${kind}_start.to_css(dest)?;
             dest.write_str(" / ")?;
             self.grid_${kind}_end.to_css(dest)
@@ -224,7 +224,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_row_start.to_css(dest)?;
             let values = [&self.grid_column_start, &self.grid_row_end, &self.grid_column_end];
             for value in &values {
@@ -362,10 +362,14 @@
     }
 
     /// Serialization for `<grid-template>` shorthand (also used by `grid` shorthand).
-    pub fn serialize_grid_template<W>(template_rows: &GridTemplateComponent,
-                                      template_columns: &GridTemplateComponent,
-                                      template_areas: &Either<TemplateAreas, None_>,
-                                      dest: &mut W) -> fmt::Result where W: fmt::Write {
+    pub fn serialize_grid_template<W>(
+        template_rows: &GridTemplateComponent,
+        template_columns: &GridTemplateComponent,
+        template_areas: &Either<TemplateAreas, None_>,
+        dest: &mut CssWriter<W>,
+    ) -> fmt::Result
+    where
+        W: Write {
         match *template_areas {
             Either::Second(_none) => {
                 template_rows.to_css(dest)?;
@@ -451,7 +455,7 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         #[inline]
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             serialize_grid_template(self.grid_template_rows, self.grid_template_columns,
                                     self.grid_template_areas, dest)
         }
@@ -542,7 +546,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if *self.grid_template_areas != Either::Second(None_) ||
                (*self.grid_template_rows != GridTemplateComponent::None &&
                    *self.grid_template_columns != GridTemplateComponent::None) ||
@@ -635,7 +639,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.align_content.to_css(dest)?;
             if self.align_content != self.justify_content {
                 dest.write_str(" ")?;
@@ -670,7 +674,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.align_self == self.justify_self {
                 self.align_self.to_css(dest)
             } else {
@@ -713,7 +717,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.align_items.0 == self.justify_items.0 {
                 self.align_items.to_css(dest)
             } else {

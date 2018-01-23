@@ -6,8 +6,8 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
 #[cfg(feature = "gecko")]
 use values::CustomIdent;
@@ -114,7 +114,10 @@ impl Parse for ListStyleImage {
 pub struct Quotes(pub Box<[(Box<str>, Box<str>)]>);
 
 impl ToCss for Quotes {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.0.iter();
 
         match iter.next() {

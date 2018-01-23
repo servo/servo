@@ -9,8 +9,8 @@
 use cssparser::{Parser, Token, NumberOrPercentage, AngleOrNumber};
 use parser::ParserContext;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::{CSSInteger, CSSFloat};
 use values::computed;
@@ -89,7 +89,10 @@ impl ToCss for CalcLengthOrPercentage {
     ///
     /// FIXME(emilio): Should this simplify away zeros?
     #[allow(unused_assignments)]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         use num_traits::Zero;
 
         let mut first_value = true;

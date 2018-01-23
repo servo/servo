@@ -20,7 +20,8 @@ use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::ops::Range;
 use str::CssStringWriter;
-use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
+use style_traits::{StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 
 /// Parse a counter style name reference.
@@ -231,12 +232,12 @@ macro_rules! counter_style_descriptors {
         impl ToCssWithGuard for CounterStyleRuleData {
             fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
                 dest.write_str("@counter-style ")?;
-                self.name.to_css(dest)?;
+                self.name.to_css(&mut CssWriter::new(dest))?;
                 dest.write_str(" {\n")?;
                 $(
                     if let Some(ref value) = self.$ident {
                         dest.write_str(concat!("  ", $name, ": "))?;
-                        ToCss::to_css(value, dest)?;
+                        ToCss::to_css(value, &mut CssWriter::new(dest))?;
                         dest.write_str(";\n")?;
                     }
                 )+
@@ -362,7 +363,10 @@ impl Parse for System {
 }
 
 impl ToCss for System {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             System::Cyclic => dest.write_str("cyclic"),
             System::Numeric => dest.write_str("numeric"),
@@ -410,7 +414,10 @@ impl Parse for Symbol {
 }
 
 impl ToCss for Symbol {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             Symbol::String(ref s) => s.to_css(dest),
             Symbol::Ident(ref s) => serialize_identifier(s, dest),
@@ -477,7 +484,10 @@ fn parse_bound<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Option<i32>, ParseE
 }
 
 impl ToCss for Ranges {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.0.iter();
         if let Some(first) = iter.next() {
             range_to_css(first, dest)?;
@@ -492,14 +502,19 @@ impl ToCss for Ranges {
     }
 }
 
-fn range_to_css<W>(range: &Range<Option<i32>>, dest: &mut W) -> fmt::Result
-where W: fmt::Write {
+fn range_to_css<W>(range: &Range<Option<i32>>, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
     bound_to_css(range.start, dest)?;
     dest.write_char(' ')?;
     bound_to_css(range.end, dest)
 }
 
-fn bound_to_css<W>(range: Option<i32>, dest: &mut W) -> fmt::Result where W: fmt::Write {
+fn bound_to_css<W>(range: Option<i32>, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
     if let Some(finite) = range {
         finite.to_css(dest)
     } else {
@@ -556,7 +571,10 @@ impl Parse for Symbols {
 }
 
 impl ToCss for Symbols {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.0.iter();
         let first = iter.next().expect("expected at least one symbol");
         first.to_css(dest)?;

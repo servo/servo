@@ -19,7 +19,7 @@ use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
-use style_traits::{ToCss, ParseError};
+use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
@@ -201,7 +201,7 @@ impl FontSize {
 }
 
 impl ToCss for FontSize {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
         self.size.to_css(dest)
     }
 }
@@ -257,7 +257,7 @@ impl MallocSizeOf for FontFamily {
 }
 
 impl ToCss for FontFamily {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
         let mut iter = self.0.iter();
         iter.next().unwrap().to_css(dest)?;
         for family in iter {
@@ -279,7 +279,7 @@ pub struct FamilyName {
 }
 
 impl ToCss for FamilyName {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
         match self.syntax {
             FamilyNameSyntax::Quoted => {
                 dest.write_char('"')?;
@@ -488,7 +488,7 @@ impl SingleFontFamily {
 }
 
 impl ToCss for SingleFontFamily {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
         match *self {
             SingleFontFamily::FamilyName(ref name) => name.to_css(dest),
 
@@ -731,7 +731,7 @@ impl FontLanguageOverride {
 }
 
 impl ToCss for FontLanguageOverride {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
         use std::str;
 
         if self.0 == 0 {

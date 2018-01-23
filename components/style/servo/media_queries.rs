@@ -12,9 +12,9 @@ use media_queries::MediaType;
 use parser::ParserContext;
 use properties::ComputedValues;
 use selectors::parser::SelectorParseErrorKind;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
-use style_traits::{CSSPixel, DevicePixel, ToCss, ParseError};
+use style_traits::{CSSPixel, CssWriter, DevicePixel, ToCss, ParseError};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
 use values::computed::font::FontSize;
@@ -218,8 +218,9 @@ impl Expression {
 }
 
 impl ToCss for Expression {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         let (s, l) = match self.0 {
             ExpressionKind::Width(Range::Min(ref l)) => ("(min-width: ", l),

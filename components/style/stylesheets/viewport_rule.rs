@@ -27,7 +27,7 @@ use std::fmt::{self, Write};
 use std::iter::Enumerate;
 use std::str::Chars;
 use str::CssStringWriter;
-use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseErrorKind};
+use style_traits::{CssWriter, ParseError, PinchZoomFactor, StyleParseErrorKind, ToCss};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{StylesheetInDocument, Origin};
 use values::computed::{Context, ToComputedValue};
@@ -101,7 +101,10 @@ macro_rules! declare_viewport_descriptor_inner {
         }
 
         impl ToCss for ViewportDescriptor {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
                 match *self {
                     $(
                         ViewportDescriptor::$assigned_variant(ref val) => {
@@ -149,8 +152,9 @@ pub enum ViewportLength {
 }
 
 impl ToCss for ViewportLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         match *self {
             ViewportLength::Specified(ref length) => length.to_css(dest),
@@ -255,7 +259,10 @@ impl ViewportDescriptorDeclaration {
 }
 
 impl ToCss for ViewportDescriptorDeclaration {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.descriptor.to_css(dest)?;
         if self.important {
             dest.write_str(" !important")?;
@@ -524,10 +531,10 @@ impl ToCssWithGuard for ViewportRule {
     fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@viewport { ")?;
         let mut iter = self.declarations.iter();
-        iter.next().unwrap().to_css(dest)?;
+        iter.next().unwrap().to_css(&mut CssWriter::new(dest))?;
         for declaration in iter {
             dest.write_str(" ")?;
-            declaration.to_css(dest)?;
+            declaration.to_css(&mut CssWriter::new(dest))?;
         }
         dest.write_str(" }")
     }

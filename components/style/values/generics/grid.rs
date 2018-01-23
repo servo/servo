@@ -7,8 +7,9 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::{fmt, mem, usize};
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::{mem, usize};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{CSSFloat, CustomIdent};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
@@ -49,7 +50,10 @@ impl<Integer> ToCss for GridLine<Integer>
 where
     Integer: ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.is_auto() {
             return dest.write_str("auto")
         }
@@ -230,7 +234,10 @@ impl<L: PartialEq> TrackSize<L> {
 }
 
 impl<L: ToCss> ToCss for TrackSize<L> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             TrackSize::Breadth(ref breadth) => breadth.to_css(dest),
             TrackSize::Minmax(ref min, ref max) => {
@@ -315,10 +322,10 @@ pub fn concat_serialize_idents<W>(
     suffix: &str,
     slice: &[CustomIdent],
     sep: &str,
-    dest: &mut W,
+    dest: &mut CssWriter<W>,
 ) -> fmt::Result
 where
-    W: fmt::Write
+    W: Write,
 {
     if let Some((ref first, rest)) = slice.split_first() {
         dest.write_str(prefix)?;
@@ -385,7 +392,10 @@ pub struct TrackRepeat<L, I> {
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("repeat(")?;
         self.count.to_css(dest)?;
         dest.write_str(", ")?;
@@ -503,7 +513,10 @@ pub struct TrackList<LengthOrPercentage, Integer> {
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let auto_idx = match self.list_type {
             TrackListType::Auto(i) => i as usize,
             _ => usize::MAX,
@@ -614,7 +627,10 @@ impl Parse for LineNameList {
 }
 
 impl ToCss for LineNameList {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("subgrid")?;
         let fill_idx = self.fill_idx.map(|v| v as usize).unwrap_or(usize::MAX);
         for (i, names) in self.names.iter().enumerate() {

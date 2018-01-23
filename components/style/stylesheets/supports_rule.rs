@@ -18,7 +18,7 @@ use std::ffi::{CStr, CString};
 use std::fmt::{self, Write};
 use std::str;
 use str::CssStringWriter;
-use style_traits::{ToCss, ParseError};
+use style_traits::{CssWriter, ParseError, ToCss};
 use stylesheets::{CssRuleType, CssRules};
 
 /// An [`@supports`][supports] rule.
@@ -49,7 +49,7 @@ impl SupportsRule {
 impl ToCssWithGuard for SupportsRule {
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@supports ")?;
-        self.condition.to_css(dest)?;
+        self.condition.to_css(&mut CssWriter::new(dest))?;
         self.rules.read_with(guard).to_css_block(guard, dest)
     }
 }
@@ -219,8 +219,9 @@ pub fn parse_condition_or_declaration<'i, 't>(input: &mut Parser<'i, 't>)
 }
 
 impl ToCss for SupportsCondition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         match *self {
             SupportsCondition::Not(ref cond) => {
@@ -276,7 +277,10 @@ impl ToCss for SupportsCondition {
 pub struct Declaration(pub String);
 
 impl ToCss for Declaration {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str(&self.0)
     }
 }

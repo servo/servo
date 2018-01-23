@@ -34,7 +34,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             % for side in PHYSICAL_SIDES:
             let ${side} = &self.border_${side}_width;
             % endfor
@@ -113,7 +113,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             super::serialize_directional_border(
                 dest,
                 self.border_${to_rust_ident(side)}_width,
@@ -156,7 +156,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let all_equal = {
                 % for side in PHYSICAL_SIDES:
                   let border_${side}_width = self.border_${side}_width;
@@ -215,7 +215,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let LonghandsToSerialize {
                 border_top_left_radius: &BorderCornerRadius(ref tl),
                 border_top_right_radius: &BorderCornerRadius(ref tr),
@@ -315,7 +315,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.border_image_source.to_css(dest)?;
             dest.write_str(" ")?;
             self.border_image_slice.to_css(dest)?;

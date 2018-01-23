@@ -91,8 +91,11 @@ macro_rules! define_numbered_css_keyword_enum {
             }
         }
 
-        impl ::style_traits::values::ToCss for $name {
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
+        impl ::style_traits::ToCss for $name {
+            fn to_css<W>(
+                &self,
+                dest: &mut ::style_traits::CssWriter<W>,
+            ) -> ::std::fmt::Result
             where
                 W: ::std::fmt::Write,
             {

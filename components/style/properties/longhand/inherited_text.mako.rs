@@ -193,8 +193,8 @@ ${helpers.predefined_type(
                    animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
     use computed_values::writing_mode::T as WritingMode;
-    use std::fmt;
-    use style_traits::ToCss;
+    use std::fmt::{self, Write};
+    use style_traits::{CssWriter, ToCss};
     use unicode_segmentation::UnicodeSegmentation;
 
 
@@ -229,7 +229,7 @@ ${helpers.predefined_type(
     }
 
     impl ToCss for KeywordValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if let Some(fill) = self.fill() {
                 if fill {
                     dest.write_str("filled")?;
@@ -246,8 +246,12 @@ ${helpers.predefined_type(
             Ok(())
         }
     }
+
     impl ToCss for computed_value::KeywordValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+        where
+            W: Write,
+        {
             if self.fill {
                 dest.write_str("filled")?;
             } else {

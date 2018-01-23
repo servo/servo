@@ -11,7 +11,7 @@ use media_queries::MediaList;
 use shared_lock::{DeepCloneWithLock, DeepCloneParams, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use stylesheets::{StylesheetContents, StylesheetInDocument};
 use values::specified::url::SpecifiedUrl;
 
@@ -110,12 +110,12 @@ impl DeepCloneWithLock for ImportRule {
 impl ToCssWithGuard for ImportRule {
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@import ")?;
-        self.url.to_css(dest)?;
+        self.url.to_css(&mut CssWriter::new(dest))?;
 
         match self.stylesheet.media(guard) {
             Some(media) if !media.is_empty() => {
                 dest.write_str(" ")?;
-                media.to_css(dest)?;
+                media.to_css(&mut CssWriter::new(dest))?;
             }
             _ => {},
         };

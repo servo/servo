@@ -8,8 +8,8 @@ use Atom;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
-use std::fmt;
-use style_traits::{ParseError, ToCss, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::KeyframesName;
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
@@ -289,9 +289,9 @@ impl AnimationName {
 }
 
 impl ToCss for AnimationName {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         match self.0 {
             Some(ref name) => name.to_css(dest),
@@ -407,7 +407,10 @@ impl TouchAction {
 }
 
 impl ToCss for TouchAction {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             TouchAction::TOUCH_ACTION_NONE => dest.write_str("none"),
             TouchAction::TOUCH_ACTION_AUTO => dest.write_str("auto"),
@@ -497,7 +500,10 @@ bitflags! {
 }
 
 impl ToCss for Contain {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.is_empty() {
             return dest.write_str("none")
         }

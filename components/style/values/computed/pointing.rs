@@ -10,10 +10,10 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "gecko")]
-use std::fmt;
-use style_traits::ParseError;
+use std::fmt::{self, Write};
 #[cfg(feature = "gecko")]
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
+use style_traits::ParseError;
 use style_traits::cursor::CursorKind;
 
 /// The computed value for the `cursor` property.
@@ -80,8 +80,9 @@ impl Parse for Cursor {
 
 #[cfg(feature = "gecko")]
 impl ToCss for Cursor {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         for url in &*self.images {
             url.to_css(dest)?;
@@ -123,8 +124,9 @@ impl CursorImage {
 
 #[cfg(feature = "gecko")]
 impl ToCss for CursorImage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         self.url.to_css(dest)?;
         if let Some((x, y)) = self.hotspot {

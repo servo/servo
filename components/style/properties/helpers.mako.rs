@@ -82,8 +82,8 @@
                           need_animatable=need_animatable, **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
-        use std::fmt;
-        use style_traits::{Separator, ToCss};
+        use std::fmt::{self, Write};
+        use style_traits::{CssWriter, Separator, ToCss};
 
         pub mod single_value {
             #[allow(unused_imports)]
@@ -154,8 +154,9 @@
         }
 
         impl ToCss for computed_value::T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
             {
                 let mut iter = self.0.iter();
                 if let Some(val) = iter.next() {
@@ -180,8 +181,9 @@
         pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
         impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
             {
                 let mut iter = self.0.iter();
                 if let Some(val) = iter.next() {
@@ -682,11 +684,11 @@
         #[allow(unused_imports)]
         use selectors::parser::SelectorParseErrorKind;
         #[allow(unused_imports)]
-        use std::fmt;
+        use std::fmt::{self, Write};
         #[allow(unused_imports)]
         use style_traits::{ParseError, StyleParseErrorKind};
         #[allow(unused_imports)]
-        use style_traits::ToCss;
+        use style_traits::{CssWriter, ToCss};
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -806,7 +808,10 @@
         }
 
         impl<'a> ToCss for LonghandsToSerialize<'a> {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
                 let rect = Rect::new(
                     % for side in ["top", "right", "bottom", "left"]:
                     &self.${to_rust_ident(sub_property_pattern % side)},

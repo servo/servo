@@ -17,9 +17,9 @@ use smallvec::SmallVec;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
 use std::cmp;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::hash::Hash;
-use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use style_traits::{CssWriter, ToCss, StyleParseErrorKind, ParseError};
 
 /// A custom property name is just an `Atom`.
 ///
@@ -53,8 +53,9 @@ pub struct VariableValue {
 }
 
 impl ToCss for SpecifiedValue {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         dest.write_str(&self.css)
     }

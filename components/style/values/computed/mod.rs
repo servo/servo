@@ -15,11 +15,12 @@ use properties::{ComputedValues, LonghandId, StyleBuilder};
 use rule_cache::RuleCacheConditions;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
-use std::{f32, fmt};
 use std::cell::RefCell;
+use std::f32;
+use std::fmt::{self, Write};
 #[cfg(feature = "servo")]
 use std::sync::Arc;
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use style_traits::cursor::CursorKind;
 use super::{CSSFloat, CSSInteger};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
@@ -531,7 +532,10 @@ pub struct ClipRect {
 }
 
 impl ToCss for ClipRect {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("rect(")?;
         if let Some(top) = self.top {
             top.to_css(dest)?;
@@ -627,7 +631,10 @@ impl ComputedUrl {
 
 #[cfg(feature = "servo")]
 impl ToCss for ComputedUrl {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let string = match *self {
             ComputedUrl::Valid(ref url) => url.as_str(),
             ComputedUrl::Invalid(ref invalid_string) => invalid_string,

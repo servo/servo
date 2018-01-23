@@ -6,8 +6,8 @@
 
 use properties::animated_properties::RepeatableListAnimatable;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, ToComputedValue};
 use values::computed::length::LengthOrPercentageOrAuto;
@@ -96,9 +96,9 @@ impl BackgroundRepeat {
 }
 
 impl ToCss for BackgroundRepeat {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         match (self.0, self.1) {
             (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => dest.write_str("repeat-x"),
