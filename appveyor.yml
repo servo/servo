@@ -60,8 +60,8 @@ install:
 
 build_script:
   - mach clean-nightlies --keep 2 --force
-  - mach clean-cargo-cache --keep 2 --force
   - mach build -d -v
+  - mach clean-cargo-cache --keep 2 --force
   - mach test-unit
 
 test: off
