@@ -9,9 +9,8 @@ use context::{CascadeInputs, ElementCascadeInputs, StyleContext};
 use data::{ElementStyles, EagerPseudoStyles};
 use dom::TElement;
 use log::LogLevel::Trace;
-use matching::{CascadeVisitedMode, MatchMethods};
-use properties::{AnimationRules, CascadeFlags, ComputedValues};
-use properties::cascade;
+use matching::MatchMethods;
+use properties::{AnimationRules, ComputedValues};
 use properties::longhands::display::computed_value::T as Display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
@@ -161,7 +160,8 @@ where
             parent_style.map_or(false, |s| s.visited_style().is_some());
 
         let visited_rules =
-            if inside_link || self.element.is_link() {
+            if self.context.shared.visited_styles_enabled &&
+                (inside_link || self.element.is_link()) {
                 let visited_matching_results =
                     self.match_primary(VisitedHandlingMode::RelevantLinkVisited);
                 Some(visited_matching_results.rule_node)
@@ -291,29 +291,37 @@ where
         layout_parent_style: Option<&ComputedValues>,
         pseudo: Option<&PseudoElement>,
     ) -> ResolvedStyle {
-        let mut style_if_visited = None;
-        if parent_style.map_or(false, |s| s.visited_style().is_some()) ||
-            inputs.visited_rules.is_some() {
-            style_if_visited = Some(self.cascade_style(
-                inputs.visited_rules.as_ref().or(inputs.rules.as_ref()),
-                /* style_if_visited = */ None,
-                parent_style,
-                layout_parent_style,
-                CascadeVisitedMode::Visited,
-                pseudo,
-            ));
-        }
+        debug_assert!(
+            self.element.implemented_pseudo_element().is_none() || pseudo.is_none(),
+            "Pseudo-elements can't have other pseudos!"
+        );
+        debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
 
-        ResolvedStyle(
-            self.cascade_style(
-                inputs.rules.as_ref(),
-                style_if_visited,
-                parent_style,
-                layout_parent_style,
-                CascadeVisitedMode::Unvisited,
-                pseudo,
-            )
-        )
+        let implemented_pseudo = self.element.implemented_pseudo_element();
+        let pseudo = pseudo.or(implemented_pseudo.as_ref());
+
+        let mut conditions = Default::default();
+        let values = self.context.shared.stylist.cascade_style_and_visited(
+            Some(self.element),
+            pseudo,
+            inputs,
+            &self.context.shared.guards,
+            parent_style,
+            parent_style,
+            layout_parent_style,
+            &self.context.thread_local.font_metrics_provider,
+            Some(&self.context.thread_local.rule_cache),
+            &mut conditions,
+        );
+
+        self.context.thread_local.rule_cache.insert_if_possible(
+            &self.context.shared.guards,
+            &values,
+            pseudo,
+            &conditions
+        );
+
+        ResolvedStyle(values)
     }
 
     /// Cascade the element and pseudo-element styles with the default parents.
@@ -469,7 +477,7 @@ where
     ) -> Option<StrongRuleNode> {
         debug!("Match pseudo {:?} for {:?}, visited: {:?}",
                self.element, pseudo_element, visited_handling);
-        debug_assert!(pseudo_element.is_eager() || pseudo_element.is_lazy());
+        debug_assert!(pseudo_element.is_eager());
         debug_assert!(self.element.implemented_pseudo_element().is_none(),
                       "Element pseudos can't have any other pseudo.");
 
@@ -523,87 +531,5 @@ where
         );
 
         Some(rule_node)
-    }
-
-    fn cascade_style(
-        &mut self,
-        rules: Option<&StrongRuleNode>,
-        style_if_visited: Option<Arc<ComputedValues>>,
-        mut parent_style: Option<&ComputedValues>,
-        layout_parent_style: Option<&ComputedValues>,
-        cascade_visited: CascadeVisitedMode,
-        pseudo: Option<&PseudoElement>,
-    ) -> Arc<ComputedValues> {
-        debug_assert!(
-            self.element.implemented_pseudo_element().is_none() || pseudo.is_none(),
-            "Pseudo-elements can't have other pseudos!"
-        );
-        debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
-
-        let mut cascade_flags = CascadeFlags::empty();
-
-        if self.element.skip_root_and_item_based_display_fixup() ||
-           pseudo.map_or(false, |p| p.skip_item_based_display_fixup()) {
-            cascade_flags.insert(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
-        }
-
-        if pseudo.is_none() && self.element.is_link() {
-            cascade_flags.insert(CascadeFlags::IS_LINK);
-            if self.element.is_visited_link() &&
-                self.context.shared.visited_styles_enabled {
-                cascade_flags.insert(CascadeFlags::IS_VISITED_LINK);
-            }
-        }
-
-        if cascade_visited.visited_dependent_only() {
-            // If this element is a link, we want its visited style to inherit
-            // from the regular style of its parent, because only the
-            // visitedness of the relevant link should influence style.
-            if pseudo.is_some() || !self.element.is_link() {
-                parent_style = parent_style.map(|s| {
-                    s.visited_style().unwrap_or(s)
-                });
-            }
-            cascade_flags.insert(CascadeFlags::VISITED_DEPENDENT_ONLY);
-        }
-        if !self.element.is_native_anonymous() &&
-            pseudo.is_none() &&
-            self.element.is_root()
-        {
-            cascade_flags.insert(CascadeFlags::IS_ROOT_ELEMENT);
-        }
-
-        let implemented_pseudo = self.element.implemented_pseudo_element();
-        let pseudo = pseudo.or(implemented_pseudo.as_ref());
-
-        let mut conditions = Default::default();
-        let values =
-            cascade(
-                self.context.shared.stylist.device(),
-                pseudo,
-                rules.unwrap_or(self.context.shared.stylist.rule_tree().root()),
-                &self.context.shared.guards,
-                parent_style,
-                parent_style,
-                layout_parent_style,
-                style_if_visited,
-                &self.context.thread_local.font_metrics_provider,
-                cascade_flags,
-                self.context.shared.quirks_mode(),
-                Some(&self.context.thread_local.rule_cache),
-                &mut conditions,
-            );
-
-        self.context
-            .thread_local
-            .rule_cache
-            .insert_if_possible(
-                &self.context.shared.guards,
-                &values,
-                pseudo,
-                &conditions
-            );
-
-        values
     }
 }

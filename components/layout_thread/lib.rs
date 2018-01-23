@@ -1491,8 +1491,11 @@ impl LayoutThread {
                         self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
                         || {
-                            animation::recalc_style_for_animations(
-                                &layout_context, FlowRef::deref_mut(&mut root_flow), &animations)
+                            animation::recalc_style_for_animations::<ServoLayoutElement>(
+                                &layout_context,
+                                FlowRef::deref_mut(&mut root_flow),
+                                &animations,
+                            )
                         });
             }
             self.perform_post_style_recalc_layout_passes(&mut root_flow,
@@ -1522,14 +1525,16 @@ impl LayoutThread {
                 .as_mut()
                 .map(|nodes| &mut **nodes);
             // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_state(&self.constellation_chan,
-                                              &self.script_chan,
-                                              &mut *self.running_animations.write(),
-                                              &mut *self.expired_animations.write(),
-                                              newly_transitioning_nodes,
-                                              &self.new_animations_receiver,
-                                              self.id,
-                                              &self.timer);
+            animation::update_animation_state::<ServoLayoutElement>(
+                &self.constellation_chan,
+                &self.script_chan,
+                &mut *self.running_animations.write(),
+                &mut *self.expired_animations.write(),
+                newly_transitioning_nodes,
+                &self.new_animations_receiver,
+                self.id,
+                &self.timer,
+            );
         }
 
         profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
