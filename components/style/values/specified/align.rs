@@ -115,12 +115,12 @@ const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 /// Value of the `align-content` or `justify-content` property.
 ///
 /// <https://drafts.csswg.org/css-align/#content-distribution>
-///
-/// The 16-bit field stores the primary value in its lower 8 bits, and the optional fallback value
-/// in its upper 8 bits.  This matches the representation of these properties in Gecko.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct AlignJustifyContent(u16);
+pub struct AlignJustifyContent {
+    primary: AlignFlags,
+    fallback: AlignFlags,
+}
 
 /// Whether fallback is allowed in align-content / justify-content parsing.
 ///
@@ -136,7 +136,6 @@ pub enum FallbackAllowed {
     No,
 }
 
-
 impl AlignJustifyContent {
     /// The initial value 'normal'
     #[inline]
@@ -147,35 +146,34 @@ impl AlignJustifyContent {
     /// Construct a value with no fallback.
     #[inline]
     pub fn new(flags: AlignFlags) -> Self {
-        AlignJustifyContent(flags.bits() as u16)
+        Self::with_fallback(flags, AlignFlags::empty())
     }
 
     /// Construct a value including a fallback alignment.
     ///
     /// <https://drafts.csswg.org/css-align/#fallback-alignment>
     #[inline]
-    pub fn with_fallback(flags: AlignFlags, fallback: AlignFlags) -> Self {
-        AlignJustifyContent(flags.bits() as u16 | ((fallback.bits() as u16) << ALIGN_ALL_SHIFT))
+    pub fn with_fallback(primary: AlignFlags, fallback: AlignFlags) -> Self {
+        Self { primary, fallback }
     }
 
     /// The primary alignment
     #[inline]
     pub fn primary(self) -> AlignFlags {
-        AlignFlags::from_bits((self.0 & ALIGN_ALL_BITS) as u8)
-            .expect("AlignJustifyContent must contain valid flags")
+        self.primary
     }
 
     /// The fallback alignment
     #[inline]
     pub fn fallback(self) -> AlignFlags {
-        AlignFlags::from_bits((self.0 >> ALIGN_ALL_SHIFT) as u8)
-            .expect("AlignJustifyContent must contain valid flags")
+        self.fallback
     }
 
     /// Whether this value has extra flags.
     #[inline]
     pub fn has_extra_flags(self) -> bool {
-        self.primary().intersects(AlignFlags::FLAG_BITS) || self.fallback().intersects(AlignFlags::FLAG_BITS)
+        self.primary().intersects(AlignFlags::FLAG_BITS) ||
+        self.fallback().intersects(AlignFlags::FLAG_BITS)
     }
 
     /// Parse a value for align-content / justify-content, optionally allowing
@@ -268,10 +266,7 @@ impl Parse for AlignJustifySelf {
             return Ok(AlignJustifySelf(value))
         }
         // [ <overflow-position>? && <self-position> ]
-        if let Ok(value) = input.try(parse_overflow_self_position) {
-            return Ok(AlignJustifySelf(value))
-        }
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        Ok(AlignJustifySelf(parse_overflow_self_position(input)?))
     }
 }
 
@@ -306,10 +301,7 @@ impl Parse for AlignItems {
             return Ok(AlignItems(value))
         }
         // [ <overflow-position>? && <self-position> ]
-        if let Ok(value) = input.try(parse_overflow_self_position) {
-            return Ok(AlignItems(value))
-        }
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        Ok(AlignItems(parse_overflow_self_position(input)?))
     }
 }
 
@@ -355,30 +347,33 @@ impl Parse for JustifyItems {
             return Ok(JustifyItems(value))
         }
         // [ <overflow-position>? && <self-position> ]
-        if let Ok(value) = parse_overflow_self_position(input) {
-            return Ok(JustifyItems(value))
-        }
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        Ok(JustifyItems(parse_overflow_self_position(input)?))
     }
 }
 
 #[cfg(feature = "gecko")]
 impl From<u16> for AlignJustifyContent {
     fn from(bits: u16) -> AlignJustifyContent {
-        AlignJustifyContent(bits)
+        let primary =
+            AlignFlags::from_bits_truncate((bits & ALIGN_ALL_BITS) as u8);
+        let fallback =
+            AlignFlags::from_bits_truncate((bits >> ALIGN_ALL_SHIFT) as u8);
+        AlignJustifyContent::with_fallback(primary, fallback)
     }
 }
 
 #[cfg(feature = "gecko")]
 impl From<AlignJustifyContent> for u16 {
     fn from(v: AlignJustifyContent) -> u16 {
-        v.0
+        v.primary().bits() as u16 |
+        ((v.fallback().bits() as u16) << ALIGN_ALL_SHIFT)
     }
 }
 
 // auto | normal | stretch | <baseline-position>
-fn parse_auto_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>)
-                                              -> Result<AlignFlags, ParseError<'i>> {
+fn parse_auto_normal_stretch_baseline<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<AlignFlags, ParseError<'i>> {
     if let Ok(baseline) = input.try(parse_baseline) {
         return Ok(baseline);
     }
