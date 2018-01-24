@@ -6,8 +6,8 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::{ToCss, ParseError};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A CSS value made of four components, where its `ToCss` impl will try to
 /// serialize as few components as possible, like for example in `border-width`.
@@ -68,8 +68,9 @@ impl<T> Parse for Rect<T>
 impl<T> ToCss for Rect<T>
     where T: PartialEq + ToCss
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         self.0.to_css(dest)?;
         let same_vertical = self.0 == self.2;

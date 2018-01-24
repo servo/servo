@@ -16,8 +16,8 @@ use selectors::parser::SelectorParseErrorKind;
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::f32::consts::PI;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
 #[cfg(feature = "gecko")]
 use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
@@ -659,8 +659,13 @@ impl GenericsLineDirection for LineDirection {
         }
     }
 
-    fn to_css<W>(&self, dest: &mut W, compat_mode: CompatMode) -> fmt::Result
-        where W: fmt::Write
+    fn to_css<W>(
+        &self,
+        dest: &mut CssWriter<W>,
+        compat_mode: CompatMode,
+    ) -> fmt::Result
+    where
+        W: Write,
     {
         match *self {
             LineDirection::Angle(angle) => {

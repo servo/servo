@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="prefetch-src 'none'">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/content-security-policy/support/testharness-helper.js'></script>
+  <script src='/content-security-policy/support/prefetch-helper.js'></script>
+  <script>
+    async_test(t => {
+      let url = window.origin + '/content-security-policy/support/fail.png';
+      waitUntilCSPEventForURL(t, url)
+        .then(t.step_func_done(e => {
+          assert_equals(e.violatedDirective, 'prefetch-src');
+          assert_resource_not_downloaded(t, url);
+        }));
+
+      // Load a stylesheet that tries to trigger a prefetch:
+      let link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/content-security-policy/support/prefetch-subresource.css';
+      document.head.appendChild(link);
+    }, 'Prefetch via `Link` header succeeds when allowed by prefetch-src');
+  </script>
+</head>
+<body>
+</body>
+</html>
+
+

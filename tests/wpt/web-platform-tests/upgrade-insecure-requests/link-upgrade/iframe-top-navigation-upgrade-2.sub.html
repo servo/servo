@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>Upgrade Insecure Requests: top-frame navigation inside iframe (upgrade expected)</title>
+  </head>
+  <body>
+    <!--
+    This is a bit of a hack. UPGRADE doesn't upgrade the port number, so we
+    specify this non-existent URL ('http' over https port). If UPGRADE doesn't
+    work, it won't load. The expected behavior is that the url is upgraded and
+    the page loads.
+    -->
+    <iframe
+      sandbox="allow-scripts allow-top-navigation"
+      src="https://{{domains[www]}}:{{ports[https][0]}}/upgrade-insecure-requests/link-upgrade/resources/navigate-top-frame-upgrade.sub.html?url=http://{{domains[www]}}:{{ports[https][0]}}/upgrade-insecure-requests/link-upgrade/resources/post-message-to-opener.sub.html%3Fmessage=iframe-top-navigation-upgrade-2"
+    ></iframe>
+  </body>
+</html>

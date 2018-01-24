@@ -7,7 +7,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use style_traits::{CssWriter, ToCss, StyleParseErrorKind, ParseError};
 
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// span. for `<col span>` pres attr
@@ -21,7 +21,7 @@ impl Parse for XSpan {
 }
 
 impl ToCss for XSpan {
-    fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
         Ok(())
     }
 }

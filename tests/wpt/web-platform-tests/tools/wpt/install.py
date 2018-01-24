@@ -39,8 +39,3 @@ def install(name, component, destination):
     subclass = getattr(browser, name.title())
     sys.stdout.write('Now installing %s %s...\n' % (name, component))
     getattr(subclass(), method)(dest=destination)
-
-
-if __name__ == '__main__':
-    args = parser.parse_args()
-    run(None, **vars(args))

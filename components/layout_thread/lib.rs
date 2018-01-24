@@ -28,7 +28,6 @@ extern crate malloc_size_of;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
-extern crate nonzero;
 extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
@@ -108,7 +107,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::read_resource_file;
-use servo_geometry::max_rect;
+use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -705,12 +704,13 @@ impl LayoutThread {
                 rw_data.scroll_offsets.insert(state.scroll_root_id, state.scroll_offset);
 
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-                self.webrender_api.scroll_node_with_id(
-                    self.webrender_document,
+                let mut txn = webrender_api::Transaction::new();
+                txn.scroll_node_with_id(
                     webrender_api::LayoutPoint::from_untyped(&point),
                     state.scroll_root_id,
                     webrender_api::ScrollClamping::ToContentBounds
                 );
+                self.webrender_api.send_transaction(self.webrender_document, txn);
             }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
@@ -1042,17 +1042,17 @@ impl LayoutThread {
             // Observe notifications about rendered frames if needed right before
             // sending the display list to WebRender in order to set time related
             // Progressive Web Metrics.
-            self.paint_time_metrics.maybe_observe_paint_time(self, epoch, &display_list);
+            self.paint_time_metrics.maybe_observe_paint_time(self, epoch, &*display_list);
 
-            self.webrender_api.set_display_list(
-                self.webrender_document,
+            let mut txn = webrender_api::Transaction::new();
+            txn.set_display_list(
                 webrender_api::Epoch(epoch.0),
                 Some(get_root_flow_background_color(layout_root)),
                 viewport_size,
                 builder.finalize(),
-                true,
-                webrender_api::ResourceUpdates::new());
-            self.webrender_api.generate_frame(self.webrender_document, None);
+                true);
+            txn.generate_frame();
+            self.webrender_api.send_transaction(self.webrender_document, txn);
         });
     }
 
@@ -1467,7 +1467,7 @@ impl LayoutThread {
 
         if let Some(mut root_flow) = self.root_flow.borrow().clone() {
             let reflow_info = Reflow {
-                page_clip_rect: max_rect(),
+                page_clip_rect: Rect::max_rect(),
             };
 
             // Unwrap here should not panic since self.root_flow is only ever set to Some(_)
@@ -1491,8 +1491,11 @@ impl LayoutThread {
                         self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
                         || {
-                            animation::recalc_style_for_animations(
-                                &layout_context, FlowRef::deref_mut(&mut root_flow), &animations)
+                            animation::recalc_style_for_animations::<ServoLayoutElement>(
+                                &layout_context,
+                                FlowRef::deref_mut(&mut root_flow),
+                                &animations,
+                            )
                         });
             }
             self.perform_post_style_recalc_layout_passes(&mut root_flow,
@@ -1522,14 +1525,16 @@ impl LayoutThread {
                 .as_mut()
                 .map(|nodes| &mut **nodes);
             // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_state(&self.constellation_chan,
-                                              &self.script_chan,
-                                              &mut *self.running_animations.write(),
-                                              &mut *self.expired_animations.write(),
-                                              newly_transitioning_nodes,
-                                              &self.new_animations_receiver,
-                                              self.id,
-                                              &self.timer);
+            animation::update_animation_state::<ServoLayoutElement>(
+                &self.constellation_chan,
+                &self.script_chan,
+                &mut *self.running_animations.write(),
+                &mut *self.expired_animations.write(),
+                newly_transitioning_nodes,
+                &self.new_animations_receiver,
+                self.id,
+                &self.timer,
+            );
         }
 
         profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,

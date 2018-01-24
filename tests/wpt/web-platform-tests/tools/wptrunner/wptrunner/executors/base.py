@@ -13,7 +13,7 @@ here = os.path.split(__file__)[0]
 
 # Extra timeout to use after internal test timeout at which the harness
 # should force a timeout
-extra_timeout = 5 # seconds
+extra_timeout = 5  # seconds
 
 
 def executor_kwargs(test_type, server_config, cache_manager, **kwargs):
@@ -67,8 +67,8 @@ class TestharnessResultConverter(object):
                                       (result_url, test.url))
         harness_result = test.result_cls(self.harness_codes[status], message)
         return (harness_result,
-                [test.subtest_result_cls(name, self.test_codes[status], message, stack)
-                 for name, status, message, stack in subtest_results])
+                [test.subtest_result_cls(st_name, self.test_codes[st_status], st_message, st_stack)
+                 for st_name, st_status, st_message, st_stack in subtest_results])
 
 
 testharness_result_converter = TestharnessResultConverter()
@@ -124,7 +124,7 @@ class TestExecutor(object):
         self.debug_info = debug_info
         self.last_environment = {"protocol": "http",
                                  "prefs": {}}
-        self.protocol = None # This must be set in subclasses
+        self.protocol = None  # This must be set in subclasses
 
     @property
     def logger(self):

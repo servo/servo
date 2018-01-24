@@ -48,7 +48,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.overflow_x == self.overflow_y {
                 self.overflow_x.to_css(dest)
             } else {
@@ -83,7 +83,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.overflow_clip_box_block.to_css(dest)?;
 
             if self.overflow_clip_box_block != self.overflow_clip_box_inline {
@@ -203,7 +203,7 @@ macro_rules! try_parse_one {
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let property_len = self.transition_property.0.len();
 
             // There are two cases that we can do shorthand serialization:
@@ -327,7 +327,7 @@ macro_rules! try_parse_one {
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let len = self.animation_name.0.len();
             // There should be at least one declared value
             if len == 0 {
@@ -376,7 +376,7 @@ macro_rules! try_parse_one {
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         // Serializes into the single keyword value if both scroll-snap-type-x and scroll-snap-type-y are same.
         // Otherwise into an empty string. This is done to match Gecko's behaviour.
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.scroll_snap_type_x == self.scroll_snap_type_y {
                 self.scroll_snap_type_x.to_css(dest)
             } else {
@@ -406,7 +406,7 @@ macro_rules! try_parse_one {
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         // Serializes into the single keyword value if both overscroll-behavior-x and overscroll-behavior-y are same.
         // Otherwise into two values separated by a space.
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.overscroll_behavior_x.to_css(dest)?;
             if self.overscroll_behavior_y != self.overscroll_behavior_x {
                 dest.write_str(" ")?;

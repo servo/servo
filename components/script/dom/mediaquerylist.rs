@@ -83,9 +83,7 @@ impl MediaQueryList {
 impl MediaQueryListMethods for MediaQueryList {
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-media
     fn Media(&self) -> DOMString {
-        let mut s = String::new();
-        self.media_query_list.to_css(&mut s).unwrap();
-        DOMString::from_string(s)
+        self.media_query_list.to_css_string().into()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-matches

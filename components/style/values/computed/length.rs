@@ -6,9 +6,9 @@
 
 use app_units::Au;
 use ordered_float::NotNaN;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::ops::{Add, Neg};
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
@@ -92,15 +92,12 @@ impl CalcLengthOrPercentage {
 
     /// Returns a new `CalcLengthOrPercentage` with a specific clamping mode.
     #[inline]
-    pub fn with_clamping_mode(length: Length,
-                              percentage: Option<Percentage>,
-                              clamping_mode: AllowedNumericType)
-                              -> Self {
-        Self {
-            clamping_mode: clamping_mode,
-            length: length,
-            percentage: percentage,
-        }
+    pub fn with_clamping_mode(
+        length: Length,
+        percentage: Option<Percentage>,
+        clamping_mode: AllowedNumericType,
+    ) -> Self {
+        Self { clamping_mode, length, percentage, }
     }
 
     /// Returns this `calc()` as a `<length>`.
@@ -136,8 +133,9 @@ impl CalcLengthOrPercentage {
         self.to_pixel_length(container_len).map(Au::from)
     }
 
-    /// If there are special rules for computing percentages in a value (e.g. the height property),
-    /// they apply whenever a calc() expression contains percentages.
+    /// If there are special rules for computing percentages in a value (e.g.
+    /// the height property), they apply whenever a calc() expression contains
+    /// percentages.
     pub fn to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
         match (container_len, self.percentage) {
             (Some(len), Some(percent)) => {
@@ -205,7 +203,10 @@ impl From<LengthOrPercentageOrNone> for Option<CalcLengthOrPercentage> {
 }
 
 impl ToCss for CalcLengthOrPercentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         use num_traits::Zero;
 
         let (length, percentage) = match (self.length, self.percentage) {
@@ -226,9 +227,15 @@ impl ToCss for CalcLengthOrPercentage {
 
 impl specified::CalcLengthOrPercentage {
     /// Compute the value, zooming any absolute units by the zoom function.
-    fn to_computed_value_with_zoom<F>(&self, context: &Context, zoom_fn: F,
-                                      base_size: FontBaseSize) -> CalcLengthOrPercentage
-        where F: Fn(Length) -> Length {
+    fn to_computed_value_with_zoom<F>(
+        &self,
+        context: &Context,
+        zoom_fn: F,
+        base_size: FontBaseSize,
+    ) -> CalcLengthOrPercentage
+    where
+        F: Fn(Length) -> Length,
+    {
         use std::f32;
         let mut length = 0.;
 
@@ -263,7 +270,11 @@ impl specified::CalcLengthOrPercentage {
     }
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
-    pub fn to_computed_value_zoomed(&self, context: &Context, base_size: FontBaseSize) -> CalcLengthOrPercentage {
+    pub fn to_computed_value_zoomed(
+        &self,
+        context: &Context,
+        base_size: FontBaseSize,
+    ) -> CalcLengthOrPercentage {
         self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs.into()).0, base_size)
     }
 
@@ -730,7 +741,10 @@ impl CSSPixelLength {
 
 impl ToCss for CSSPixelLength {
     #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.0.to_css(dest)?;
         dest.write_str("px")
     }

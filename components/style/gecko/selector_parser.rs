@@ -16,7 +16,7 @@ use selectors::parser::{self as selector_parser, Selector, Visit, SelectorParseE
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use style_traits::{ParseError, StyleParseErrorKind, ToCss as ToCss_};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 
 pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
@@ -86,12 +86,12 @@ impl ToCss for NonTSPseudoClass {
                     }, )*
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
                         dest.write_str(":-moz-locale-dir(")?;
-                        dir.to_css(dest)?;
+                        dir.to_css(&mut CssWriter::new(dest))?;
                         return dest.write_char(')')
                     },
                     NonTSPseudoClass::Dir(ref dir) => {
                         dest.write_str(":dir(")?;
-                        dir.to_css(dest)?;
+                        dir.to_css(&mut CssWriter::new(dest))?;
                         return dest.write_char(')')
                     },
                     NonTSPseudoClass::MozAny(ref selectors) => {
@@ -332,7 +332,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         // NOTE(emilio): Slot assignment and such works per-document, but
         // getting a document around here is not trivial, and it's not worth
         // anyway to handle this in a per-doc basis.
-        unsafe { structs::nsContentUtils_sIsWebComponentsEnabled }
+        unsafe { structs::nsContentUtils_sIsShadowDOMEnabled }
     }
 
     fn pseudo_element_allows_single_colon(name: &str) -> bool {

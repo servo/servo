@@ -12478,6 +12478,11 @@
      {}
     ]
    ],
+   "mozilla/resources/http-cache-trickle.py": [
+    [
+     {}
+    ]
+   ],
    "mozilla/resources/http-cache.js": [
     [
      {}
@@ -32655,6 +32660,12 @@
      {}
     ]
    ],
+   "css/issue_18544_flow_list_crash.html": [
+    [
+     "/_mozilla/css/issue_18544_flow_list_crash.html",
+     {}
+    ]
+   ],
    "css/matchMedia.html": [
     [
      "/_mozilla/css/matchMedia.html",
@@ -33242,6 +33253,12 @@
    "mozilla/htmlspacechars.html": [
     [
      "/_mozilla/mozilla/htmlspacechars.html",
+     {}
+    ]
+   ],
+   "mozilla/http-cache-xhr.html": [
+    [
+     "/_mozilla/mozilla/http-cache-xhr.html",
      {}
     ]
    ],
@@ -63320,6 +63337,10 @@
    "863e3c8c5ffa1627a20f51e89b7eca884ea381dd",
    "reftest"
   ],
+  "css/issue_18544_flow_list_crash.html": [
+   "9e41b681e414db9bd5f3fc75210de12a6e660c28",
+   "testharness"
+  ],
   "css/jpeg_normal.html": [
    "4e9d02f232492b55f8e6b71046b392c4dc2c9fb6",
    "reftest"
@@ -66346,6 +66367,10 @@
   ],
   "mozilla/htmlspacechars.html": [
    "592f69ee432ba5bc7a2f2649e72e083d21393496",
+   "testharness"
+  ],
+  "mozilla/http-cache-xhr.html": [
+   "d4747fdc9ec6acc50718c13a668451987a44d219",
    "testharness"
   ],
   "mozilla/http-cache.html": [
@@ -72024,8 +72049,12 @@
    "78686147f85e4146e7fc58c1f67a613f65b099a2",
    "support"
   ],
+  "mozilla/resources/http-cache-trickle.py": [
+   "48f4e32ec2e1c1b6d47e89254045b398c1d84d40",
+   "support"
+  ],
   "mozilla/resources/http-cache.js": [
-   "c6b1ee9def26d4e12a1b93e551c225f82b4717c2",
+   "4bf71e1f328e778990eb756741a3be58f4f57ef6",
    "support"
   ],
   "mozilla/resources/iframe_contentDocument_inner.html": [

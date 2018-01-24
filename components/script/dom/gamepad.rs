@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::GamepadBinding;
 use dom::bindings::codegen::Bindings::GamepadBinding::GamepadMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
@@ -21,6 +20,7 @@ use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float64Array, CreateWith};
 use std::cell::Cell;
 use std::ptr;
+use std::ptr::NonNull;
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 
 #[dom_struct]
@@ -131,8 +131,8 @@ impl GamepadMethods for Gamepad {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
-    unsafe fn Axes(&self, _cx: *mut JSContext) -> NonNullJSObjectPtr {
-        NonNullJSObjectPtr::new_unchecked(self.axes.get())
+    unsafe fn Axes(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+        NonNull::new_unchecked(self.axes.get())
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons

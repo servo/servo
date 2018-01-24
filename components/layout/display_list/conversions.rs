@@ -7,6 +7,7 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use style::computed_values::image_rendering::T as ImageRendering;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
 use style::computed_values::transform_style::T as TransformStyle;
+use style::properties::longhands::border_image_repeat::RepeatKeyword;
 use style::values::RGBA;
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
@@ -148,5 +149,17 @@ impl ToLayout for Vector2D<Au> {
     type Type = wr::LayoutVector2D;
     fn to_layout(&self) -> Self::Type {
         wr::LayoutVector2D::new(self.x.to_f32_px(), self.y.to_f32_px())
+    }
+}
+
+impl ToLayout for RepeatKeyword {
+    type Type = wr::RepeatMode;
+    fn to_layout(&self) -> Self::Type {
+        match *self {
+            RepeatKeyword::Stretch => wr::RepeatMode::Stretch,
+            RepeatKeyword::Repeat => wr::RepeatMode::Repeat,
+            RepeatKeyword::Round => wr::RepeatMode::Round,
+            RepeatKeyword::Space => wr::RepeatMode::Space,
+        }
     }
 }

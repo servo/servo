@@ -12,9 +12,9 @@ use itoa;
 use parser::{ParserContext, Parse};
 #[cfg(feature = "gecko")]
 use properties::longhands::system_colors::SystemColor;
-use std::fmt;
-use std::io::Write;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind, ValueParseErrorKind};
+use std::fmt::{self, Write};
+use std::io::Write as IoWrite;
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss, ValueParseErrorKind};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use values::specified::calc::CalcNode;
@@ -187,7 +187,10 @@ impl Parse for Color {
 }
 
 impl ToCss for Color {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
             Color::Numeric { authored: Some(ref authored), .. } => dest.write_str(authored),

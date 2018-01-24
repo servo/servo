@@ -392,7 +392,7 @@ impl<'a> GlyphInfo<'a> {
 /// Simple glyphs are stored inline in the `entry_buffer`, detailed glyphs are
 /// stored as pointers into the `detail_store`.
 ///
-/// ~~~ignore
+/// ~~~ascii
 /// +- GlyphStore --------------------------------+
 /// |               +---+---+---+---+---+---+---+ |
 /// | entry_buffer: |   | s |   | s |   | s | s | |  d = detailed

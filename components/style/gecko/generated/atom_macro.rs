@@ -2216,8 +2216,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7preloadE"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms11prerenderedE"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms15mozpresentationE"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8preserveE"]
@@ -5180,8 +5178,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes15mozTreeCheckboxE"]
             pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes20mozTreeProgressmeterE"]
-            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes19mozTreeDropFeedbackE"]
             pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes21mozSVGMarkerAnonChildE"]
@@ -7391,8 +7387,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "?preload@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "?prerendered@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "?mozpresentation@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "?preserve@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -10355,8 +10349,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozTreeCheckbox@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozTreeProgressmeter@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozTreeDropFeedback@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -12566,8 +12558,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "\x01?preload@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "\x01?prerendered@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "\x01?mozpresentation@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "\x01?preserve@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -15530,8 +15520,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozTreeCheckbox@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozTreeProgressmeter@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozTreeDropFeedback@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -17744,8 +17732,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prefix as *mut _) } }};
 ("preload") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preload as *mut _) } }};
-("prerendered") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prerendered as *mut _) } }};
 ("mozpresentation") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpresentation as *mut _) } }};
 ("preserve") =>
@@ -20708,8 +20694,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeCellText as *mut _) } }};
 (":-moz-tree-checkbox") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeCheckbox as *mut _) } }};
-(":-moz-tree-progressmeter") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeProgressmeter as *mut _) } }};
 (":-moz-tree-drop-feedback") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeDropFeedback as *mut _) } }};
 (":-moz-svg-marker-anon-child") =>

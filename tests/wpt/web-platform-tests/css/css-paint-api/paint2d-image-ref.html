@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<canvas id="canvas" width="300" height="300"></canvas>
-
-<script>
-    var canvas = document.getElementById("canvas");
-    var ctx = canvas.getContext("2d");
-    var img = new Image;
-    img.src = "resources/html5.png";
-    img.onload = function() {
-        ctx.drawImage(img, 0, 0);
-    };
-</script>
+<html>
+<style>
+div {
+    width: 300px;
+    height: 300px;
+    background-image: url("./resources/html5.png");
+    background-repeat: no-repeat;
+    background-color: green;
+}
+</style>
+<body>
+<div></div>
+</body>
+</html>

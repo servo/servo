@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>TextTracks in a TextTrackList are kept in the correct order</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track kind="captions" src="resources/webvtt-file.vtt">
+</video>
+<script>
+test(function() {
+    var video = document.querySelector("video");
+
+    // Add a track with video.addTextTrack().
+    video.addTextTrack("descriptions", "Descriptions Track", "en");
+
+    // Add a track element with DOM API.
+    var trackElement = document.createElement("track");
+    trackElement.setAttribute("kind", "chapters");
+    video.appendChild(trackElement);
+
+    // Verify track order.
+    assert_equals(video.textTracks.length, 3);
+    assert_equals(video.textTracks[0].kind, "captions");
+    assert_equals(video.textTracks[1].kind, "chapters");
+    assert_equals(video.textTracks[2].kind, "descriptions");
+
+    // Verify the default parameters of the text track object
+    // returned by addTextTrack().
+    assert_equals(video.textTracks[2].mode, "hidden");
+    assert_not_equals(video.textTracks[2].cues, null);
+    assert_equals(video.textTracks[2].cues.length, 0);
+
+    // Add another track element, it should insert
+    // before the addTextTrack() track.
+    trackElement = document.createElement("track");
+    trackElement.setAttribute("kind", "metadata");
+    video.appendChild(trackElement);
+
+    assert_equals(video.textTracks.length, 4);
+    assert_equals(video.textTracks[0].kind, "captions");
+    assert_equals(video.textTracks[1].kind, "chapters");
+    assert_equals(video.textTracks[2].kind, "metadata");
+    assert_equals(video.textTracks[3].kind, "descriptions");
+});
+</script>

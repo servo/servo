@@ -38,6 +38,7 @@ TRAILING WHITESPACE: webaudio/*
 TRAILING WHITESPACE: WebIDL/*
 TRAILING WHITESPACE: webvtt/*
 TRAILING WHITESPACE: encoding/legacy*/*
+TRAILING WHITESPACE: server-timing/resources/parsing/*.sub.headers
 
 ## File types that should never be checked ##
 
@@ -230,8 +231,8 @@ SET TIMEOUT: websockets/*
 SET TIMEOUT: webstorage/eventTestHarness.js
 SET TIMEOUT: webvtt/*
 SET TIMEOUT: workers/*
-SET TIMEOUT: XMLHttpRequest/resources/init.htm
-SET TIMEOUT: XMLHttpRequest/resources/xmlhttprequest-timeout.js
+SET TIMEOUT: xhr/resources/init.htm
+SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/generate-callback.html

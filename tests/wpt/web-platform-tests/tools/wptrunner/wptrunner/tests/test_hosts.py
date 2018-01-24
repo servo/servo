@@ -42,15 +42,13 @@ class HostsTest(unittest.TestCase):
 192.168.1.1 another_host    another_alias
 ""","""127.0.0.1   localhost    alias
 192.168.1.1 another_host another_alias
-"""
-)
+""")
 
     def test_multiple_same_name(self):
         # The semantics are that we overwrite earlier entries with the same name
         self.do_test("""127.0.0.1    \tlocalhost  alias
 192.168.1.1 localhost    another_alias""","""192.168.1.1 localhost another_alias
-"""
-)
+""")
 
 if __name__ == "__main__":
     unittest.main()

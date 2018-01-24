@@ -42,9 +42,6 @@ extern crate domobject_derive;
 extern crate encoding_rs;
 extern crate euclid;
 extern crate fnv;
-#[allow(unused_extern_crates)]
-#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
-extern crate gecko_media;
 extern crate gleam;
 extern crate half;
 #[macro_use] extern crate html5ever;
@@ -71,7 +68,6 @@ extern crate mitochondria;
 extern crate mozjs as js;
 extern crate msg;
 extern crate net_traits;
-extern crate nonzero;
 extern crate num_traits;
 extern crate offscreen_gl_context;
 extern crate open;

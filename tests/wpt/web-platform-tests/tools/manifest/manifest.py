@@ -2,7 +2,7 @@ import json
 import os
 import re
 from collections import defaultdict
-from six import iteritems, itervalues, viewkeys
+from six import iteritems, itervalues, viewkeys, string_types
 
 from .item import ManualTest, WebdriverSpecTest, Stub, RefTestNode, RefTest, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
 from .log import get_logger
@@ -18,14 +18,6 @@ class ManifestError(Exception):
 
 class ManifestVersionMismatch(ManifestError):
     pass
-
-
-def sourcefile_items(args):
-    tests_root, url_base, rel_path, status = args
-    source_file = SourceFile(tests_root,
-                             rel_path,
-                             url_base)
-    return rel_path, source_file.manifest_items()
 
 
 class Manifest(object):
@@ -221,7 +213,7 @@ def load(tests_root, manifest):
     logger = get_logger()
 
     # "manifest" is a path or file-like object.
-    if isinstance(manifest, basestring):
+    if isinstance(manifest, string_types):
         if os.path.exists(manifest):
             logger.debug("Opening manifest at %s" % manifest)
         else:

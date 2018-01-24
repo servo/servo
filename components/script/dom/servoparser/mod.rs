@@ -13,6 +13,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use dom::bindings::settings_stack::is_execution_stack_empty;
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
@@ -101,6 +102,26 @@ enum LastChunkState {
     NotReceived,
 }
 
+pub struct ElementAttribute {
+    name: QualName,
+    value: DOMString
+}
+
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+pub enum ParsingAlgorithm {
+    Normal,
+    Fragment,
+}
+
+impl ElementAttribute {
+    pub fn new(name: QualName, value: DOMString) -> ElementAttribute {
+        ElementAttribute {
+            name: name,
+            value: value
+        }
+    }
+}
+
 impl ServoParser {
     pub fn parser_is_not_active(&self) -> bool {
         self.can_write() || self.tokenizer.try_borrow_mut().is_ok()
@@ -114,7 +135,7 @@ impl ServoParser {
                              ParserKind::Normal)
         } else {
             ServoParser::new(document,
-                             Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
+                             Tokenizer::Html(self::html::Tokenizer::new(document, url, None, ParsingAlgorithm::Normal)),
                              LastChunkState::NotReceived,
                              ParserKind::Normal)
         };
@@ -160,7 +181,8 @@ impl ServoParser {
         let parser = ServoParser::new(&document,
                                       Tokenizer::Html(self::html::Tokenizer::new(&document,
                                                                                  url,
-                                                                                 Some(fragment_context))),
+                                                                                 Some(fragment_context),
+                                                                                 ParsingAlgorithm::Fragment)),
                                       LastChunkState::Received,
                                       ParserKind::Normal);
         parser.parse_string_chunk(String::from(input));
@@ -173,10 +195,17 @@ impl ServoParser {
     }
 
     pub fn parse_html_script_input(document: &Document, url: ServoUrl, type_: &str) {
-        let parser = ServoParser::new(document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
-                                      LastChunkState::NotReceived,
-                                      ParserKind::ScriptCreated);
+        let parser = ServoParser::new(
+            document,
+            Tokenizer::Html(self::html::Tokenizer::new(
+                document,
+                url,
+                None,
+                ParsingAlgorithm::Normal,
+            )),
+            LastChunkState::NotReceived,
+            ParserKind::ScriptCreated,
+        );
         document.set_current_parser(Some(&parser));
         if !type_.eq_ignore_ascii_case("text/html") {
             parser.parse_string_chunk("<pre>\n".to_owned());
@@ -748,6 +777,7 @@ pub struct Sink {
     document: Dom<Document>,
     current_line: u64,
     script: MutNullableDom<HTMLScriptElement>,
+    parsing_algorithm: ParsingAlgorithm,
 }
 
 impl Sink {
@@ -795,21 +825,18 @@ impl TreeSink for Sink {
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
             -> Dom<Node> {
-        let is = attrs.iter()
-                      .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
-                      .map(|attr| LocalName::from(&*attr.value));
-
-        let elem = Element::create(name,
-                                   is,
-                                   &*self.document,
-                                   ElementCreator::ParserCreated(self.current_line),
-                                   CustomElementCreationMode::Synchronous);
-
-        for attr in attrs {
-            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
-        }
-
-        Dom::from_ref(elem.upcast())
+        let attrs = attrs
+            .into_iter()
+            .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
+            .collect();
+        let element = create_element_for_token(
+            name,
+            attrs,
+            &*self.document,
+            ElementCreator::ParserCreated(self.current_line),
+            self.parsing_algorithm,
+        );
+        Dom::from_ref(element.upcast())
     }
 
     fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
@@ -949,4 +976,65 @@ impl TreeSink for Sink {
         let node = DomRoot::from_ref(&**node);
         vtable_for(&node).pop();
     }
+}
+
+/// https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
+fn create_element_for_token(
+    name: QualName,
+    attrs: Vec<ElementAttribute>,
+    document: &Document,
+    creator: ElementCreator,
+    parsing_algorithm: ParsingAlgorithm,
+) -> DomRoot<Element> {
+    // Step 3.
+    let is = attrs.iter()
+        .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+        .map(|attr| LocalName::from(&*attr.value));
+
+    // Step 4.
+    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
+
+    // Step 5.
+    let will_execute_script = definition.is_some() && parsing_algorithm != ParsingAlgorithm::Fragment;
+
+    // Step 6.
+    if will_execute_script {
+        // Step 6.1.
+        document.increment_throw_on_dynamic_markup_insertion_counter();
+        // Step 6.2
+        if is_execution_stack_empty() {
+            document.window().upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+        }
+        // Step 6.3
+        ScriptThread::push_new_element_queue()
+    }
+
+    // Step 7.
+    let creation_mode = if will_execute_script {
+        CustomElementCreationMode::Synchronous
+    } else {
+        CustomElementCreationMode::Asynchronous
+    };
+    let element = Element::create(name, is, document, creator, creation_mode);
+
+    // Step 8.
+    for attr in attrs {
+        element.set_attribute_from_parser(attr.name, attr.value, None);
+    }
+
+    // Step 9.
+    if will_execute_script {
+        // Steps 9.1 - 9.2.
+        ScriptThread::pop_current_element_queue();
+        // Step 9.3.
+        document.decrement_throw_on_dynamic_markup_insertion_counter();
+    }
+
+    // TODO: Step 10.
+    // TODO: Step 11.
+
+    // Step 12 is handled in `associate_with_form`.
+
+    // Step 13.
+    element
 }

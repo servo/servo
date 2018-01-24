@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="100" height="100">
+  <style>
+    path {
+      stroke: lime;
+    }
+  </style>
+  <g id="container">
+    <path transform="translate(60,40)" d="m 0 0 l 3 -4 z" />
+    <path transform="translate(40,60)" d="m 0 0 l -9 11" />
+  </g>
+</svg>

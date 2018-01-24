@@ -43,7 +43,7 @@ use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
-use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, max_rect};
+use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
 use std::fmt;
 use std::iter::Zip;
 use std::slice::IterMut;
@@ -552,11 +552,13 @@ pub trait MutableOwnedFlowUtils {
     /// Sets the flow as the containing block for all absolute descendants that have been marked
     /// as having reached their containing block. This is needed in order to handle cases like:
     ///
-    ///     <div>
-    ///         <span style="position: relative">
-    ///             <span style="position: absolute; ..."></span>
-    ///         </span>
-    ///     </div>
+    /// ```html
+    /// <div>
+    ///     <span style="position: relative">
+    ///         <span style="position: absolute; ..."></span>
+    ///     </span>
+    /// </div>
+    /// ```
     fn take_applicable_absolute_descendants(&mut self,
                                             absolute_descendants: &mut AbsoluteDescendants);
 }
@@ -742,12 +744,14 @@ pub struct AbsoluteDescendantInfo {
     /// Whether the absolute descendant has reached its containing block. This exists so that we
     /// can handle cases like the following:
     ///
-    ///     <div>
-    ///         <span id=a style="position: absolute; ...">foo</span>
-    ///         <span style="position: relative">
-    ///             <span id=b style="position: absolute; ...">bar</span>
-    ///         </span>
-    ///     </div>
+    /// ```html
+    /// <div>
+    ///     <span id=a style="position: absolute; ...">foo</span>
+    ///     <span style="position: relative">
+    ///         <span id=b style="position: absolute; ...">bar</span>
+    ///     </span>
+    /// </div>
+    /// ```
     ///
     /// When we go to create the `InlineFlow` for the outer `div`, our absolute descendants will
     /// be `a` and `b`. At this point, we need a way to distinguish between the two, because the
@@ -1062,7 +1066,7 @@ impl BaseFlow {
             absolute_cb: ContainingBlockLink::new(),
             early_absolute_position_info: EarlyAbsolutePositionInfo::new(writing_mode),
             late_absolute_position_info: LateAbsolutePositionInfo::new(),
-            clip: max_rect(),
+            clip: MaxRect::max_rect(),
             flags: flags,
             writing_mode: writing_mode,
             thread_id: 0,
@@ -1343,11 +1347,13 @@ impl MutableOwnedFlowUtils for FlowRef {
     /// Sets the flow as the containing block for all absolute descendants that have been marked
     /// as having reached their containing block. This is needed in order to handle cases like:
     ///
-    ///     <div>
-    ///         <span style="position: relative">
-    ///             <span style="position: absolute; ..."></span>
-    ///         </span>
-    ///     </div>
+    /// ```html
+    /// <div>
+    ///     <span style="position: relative">
+    ///         <span style="position: absolute; ..."></span>
+    ///     </span>
+    /// </div>
+    /// ```
     fn take_applicable_absolute_descendants(&mut self,
                                             absolute_descendants: &mut AbsoluteDescendants) {
         let mut applicable_absolute_descendants = AbsoluteDescendants::new();

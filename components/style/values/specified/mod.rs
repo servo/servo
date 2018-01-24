@@ -13,8 +13,8 @@ use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::f32;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{Context, ToComputedValue};
@@ -57,8 +57,12 @@ pub use self::outline::OutlineStyle;
 pub use self::rect::LengthOrNumberRect;
 pub use self::percentage::Percentage;
 pub use self::position::{Position, PositionComponent, GridAutoFlow, GridTemplateAreas};
+pub use self::pointing::Cursor;
+#[cfg(feature = "gecko")]
+pub use self::pointing::CursorImage;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
+pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine};
 pub use self::text::{TextAlign, TextAlignKeyword, TextOverflow, WordSpacing};
@@ -89,6 +93,7 @@ pub mod length;
 pub mod list;
 pub mod outline;
 pub mod percentage;
+pub mod pointing;
 pub mod position;
 pub mod rect;
 pub mod source_size_list;
@@ -245,8 +250,9 @@ impl ToComputedValue for Number {
 }
 
 impl ToCss for Number {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         if self.calc_clamping_mode.is_some() {
             dest.write_str("calc(")?;
@@ -471,8 +477,9 @@ impl ToComputedValue for Integer {
 }
 
 impl ToCss for Integer {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         if self.was_calc {
             dest.write_str("calc(")?;
@@ -555,7 +562,10 @@ pub struct ClipRect {
 
 
 impl ToCss for ClipRect {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("rect(")?;
 
         if let Some(ref top) = self.top {
@@ -800,7 +810,10 @@ impl Attr {
 }
 
 impl ToCss for Attr {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("attr(")?;
         if let Some(ref ns) = self.namespace {
             serialize_identifier(&ns.0.to_string(), dest)?;

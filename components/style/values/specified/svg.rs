@@ -6,8 +6,10 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseErrorKind, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CommaWithSpace, CssWriter, ParseError, Separator};
+use style_traits::{StyleParseErrorKind, ToCss};
+use values::CustomIdent;
 use values::generics::svg as generic;
 use values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::specified::{Number, Opacity, SpecifiedUrl};
@@ -236,7 +238,10 @@ impl Parse for SVGPaintOrder {
 }
 
 impl ToCss for SVGPaintOrder {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.0 == 0 {
             return dest.write_str("normal")
         }
@@ -258,5 +263,21 @@ impl ToCss for SVGPaintOrder {
             self.order_at(pos).to_css(dest)?;
         }
         Ok(())
+    }
+}
+
+/// Specified MozContextProperties value.
+/// Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-context-properties)
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct MozContextProperties(pub CustomIdent);
+
+impl Parse for MozContextProperties {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<MozContextProperties, ParseError<'i>> {
+        let location = input.current_source_location();
+        let i = input.expect_ident()?;
+        Ok(MozContextProperties(CustomIdent::from_ident(location, i, &["all", "none", "auto"])?))
     }
 }

@@ -68,7 +68,7 @@ matrix:
       python: "2.7"
       env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
-        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=sauce:safari:10.0 PLATFORM='macOS 10.12'
+        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=sauce:safari:11.0 PLATFORM='macOS 10.12'
     - os: linux
       python: "2.7"
       env:
@@ -87,7 +87,7 @@ matrix:
         apt:
           packages:
             - libnss3-tools
-      env: JOB=wpt_integration TOXENV=py27 SCRIPT=tools/ci/ci_wpt.sh
+      env: JOB=wpt_integration TOXENV=py27,py27-flake8 SCRIPT=tools/ci/ci_wpt.sh
   exclude:
     - env:  # exclude empty env from the top-level above
   allow_failures:
@@ -100,7 +100,7 @@ matrix:
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=sauce:MicrosoftEdge:14.14393 PLATFORM='Windows 10'
     - env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
-        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=sauce:safari:10.0 PLATFORM='macOS 10.12'
+        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=sauce:safari:11.0 PLATFORM='macOS 10.12'
 script:
   - ./tools/ci/run.sh
 cache:

@@ -151,9 +151,14 @@
     }
 
     impl<'a> LonghandsToSerialize<'a> {
-        fn to_css_for<W>(&self,
-                         serialize_for: SerializeFor,
-                         dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css_for<W>(
+            &self,
+            serialize_for: SerializeFor,
+            dest: &mut CssWriter<W>,
+        ) -> fmt::Result
+        where
+            W: Write,
+        {
             % if product == "gecko":
                 match self.check_system() {
                     CheckSystemResult::AllSystem(sys) => return sys.to_css(dest),
@@ -226,7 +231,7 @@
             }
 
             /// Serialize the shorthand value for canvas font attribute.
-            pub fn to_css_for_canvas<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            pub fn to_css_for_canvas<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
                 self.to_css_for(SerializeFor::Canvas, dest)
             }
         % endif
@@ -234,7 +239,7 @@
 
     // This may be a bit off, unsure, possibly needs changes
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.to_css_for(SerializeFor::Normal, dest)
         }
     }
@@ -309,7 +314,7 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         #[allow(unused_assignments)]
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
 
             let has_none_ligatures =
             % if product == "gecko":

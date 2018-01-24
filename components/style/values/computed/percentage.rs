@@ -5,7 +5,7 @@
 //! Computed percentages.
 
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use values::{CSSFloat, serialize_percentage};
 
 /// A computed percentage.
@@ -35,7 +35,7 @@ impl Percentage {
 }
 
 impl ToCss for Percentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: fmt::Write,
     {

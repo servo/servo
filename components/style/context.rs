@@ -203,7 +203,7 @@ impl<'a> SharedStyleContext<'a> {
 /// within the `CurrentElementInfo`. At the end of the cascade, they are folded
 /// down into the main `ComputedValues` to reduce memory usage per element while
 /// still remaining accessible.
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct CascadeInputs {
     /// The rule node representing the ordered list of rules matched for this
     /// node.
@@ -223,15 +223,6 @@ impl CascadeInputs {
             rules: style.rules.clone(),
             visited_rules: style.visited_style().and_then(|v| v.rules.clone()),
         }
-    }
-}
-
-// We manually implement Debug for CascadeInputs so that we can avoid the
-// verbose stringification of ComputedValues for normal logging.
-impl fmt::Debug for CascadeInputs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "CascadeInputs {{ rules: {:?}, visited_rules: {:?}, .. }}",
-               self.rules, self.visited_rules)
     }
 }
 

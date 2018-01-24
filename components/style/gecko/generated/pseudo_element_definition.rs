@@ -159,8 +159,6 @@ pub enum PseudoElement {
         MozTreeCellText(Box<[Atom]>),
         /// :-moz-tree-checkbox
         MozTreeCheckbox(Box<[Atom]>),
-        /// :-moz-tree-progressmeter
-        MozTreeProgressmeter(Box<[Atom]>),
         /// :-moz-tree-drop-feedback
         MozTreeDropFeedback(Box<[Atom]>),
         /// :-moz-svg-marker-anon-child
@@ -186,10 +184,10 @@ pub const EAGER_PSEUDO_COUNT: usize = 4;
 pub const SIMPLE_PSEUDO_COUNT: usize = 71;
 
 /// The number of tree pseudo-elements.
-pub const TREE_PSEUDO_COUNT: usize = 12;
+pub const TREE_PSEUDO_COUNT: usize = 11;
 
 /// The number of all pseudo-elements.
-pub const PSEUDO_COUNT: usize = 83;
+pub const PSEUDO_COUNT: usize = 82;
 
 /// The list of eager pseudos.
 pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
@@ -283,7 +281,6 @@ impl PseudoElement {
                 PseudoElement::MozTreeImage(..) => atom!(":-moz-tree-image"),
                 PseudoElement::MozTreeCellText(..) => atom!(":-moz-tree-cell-text"),
                 PseudoElement::MozTreeCheckbox(..) => atom!(":-moz-tree-checkbox"),
-                PseudoElement::MozTreeProgressmeter(..) => atom!(":-moz-tree-progressmeter"),
                 PseudoElement::MozTreeDropFeedback(..) => atom!(":-moz-tree-drop-feedback"),
                 PseudoElement::MozSVGMarkerAnonChild => atom!(":-moz-svg-marker-anon-child"),
                 PseudoElement::MozSVGOuterSVGAnonChild => atom!(":-moz-svg-outer-svg-anon-child"),
@@ -373,12 +370,11 @@ impl PseudoElement {
             PseudoElement::MozTreeImage(..) => 74,
             PseudoElement::MozTreeCellText(..) => 75,
             PseudoElement::MozTreeCheckbox(..) => 76,
-            PseudoElement::MozTreeProgressmeter(..) => 77,
-            PseudoElement::MozTreeDropFeedback(..) => 78,
-            PseudoElement::MozSVGMarkerAnonChild => 79,
-            PseudoElement::MozSVGOuterSVGAnonChild => 80,
-            PseudoElement::MozSVGForeignContent => 81,
-            PseudoElement::MozSVGText => 82,
+            PseudoElement::MozTreeDropFeedback(..) => 77,
+            PseudoElement::MozSVGMarkerAnonChild => 78,
+            PseudoElement::MozSVGOuterSVGAnonChild => 79,
+            PseudoElement::MozSVGForeignContent => 80,
+            PseudoElement::MozSVGText => 81,
         }
     }
 
@@ -387,7 +383,6 @@ impl PseudoElement {
     /// FIXME(emilio): Integer generics can't come soon enough.
     pub fn pseudo_none_array<T>() -> [Option<T>; PSEUDO_COUNT] {
         [
-            None,
             None,
             None,
             None,
@@ -529,7 +524,6 @@ impl PseudoElement {
                     PseudoElement::MozTreeImage(..) => true,
                     PseudoElement::MozTreeCellText(..) => true,
                     PseudoElement::MozTreeCheckbox(..) => true,
-                    PseudoElement::MozTreeProgressmeter(..) => true,
                     PseudoElement::MozTreeDropFeedback(..) => true,
                     PseudoElement::MozSVGMarkerAnonChild => true,
                     PseudoElement::MozSVGOuterSVGAnonChild => true,
@@ -560,7 +554,6 @@ impl PseudoElement {
             PseudoElement::MozTreeImage(..) => true,
             PseudoElement::MozTreeCellText(..) => true,
             PseudoElement::MozTreeCheckbox(..) => true,
-            PseudoElement::MozTreeProgressmeter(..) => true,
             PseudoElement::MozTreeDropFeedback(..) => true,
             _ => false,
         }
@@ -723,8 +716,6 @@ impl PseudoElement {
                 PseudoElement::MozTreeCellText(..) =>
                     0,
                 PseudoElement::MozTreeCheckbox(..) =>
-                    0,
-                PseudoElement::MozTreeProgressmeter(..) =>
                     0,
                 PseudoElement::MozTreeDropFeedback(..) =>
                     0,
@@ -905,7 +896,6 @@ impl PseudoElement {
                     PseudoElement::MozTreeImage(..) => CSSPseudoElementType::XULTree,
                     PseudoElement::MozTreeCellText(..) => CSSPseudoElementType::XULTree,
                     PseudoElement::MozTreeCheckbox(..) => CSSPseudoElementType::XULTree,
-                    PseudoElement::MozTreeProgressmeter(..) => CSSPseudoElementType::XULTree,
                     PseudoElement::MozTreeDropFeedback(..) => CSSPseudoElementType::XULTree,
                     PseudoElement::MozSVGMarkerAnonChild => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::MozSVGOuterSVGAnonChild => CSSPseudoElementType_InheritingAnonBox,
@@ -933,7 +923,6 @@ impl PseudoElement {
             PseudoElement::MozTreeImage(ref args) => Some(args),
             PseudoElement::MozTreeCellText(ref args) => Some(args),
             PseudoElement::MozTreeCheckbox(ref args) => Some(args),
-            PseudoElement::MozTreeProgressmeter(ref args) => Some(args),
             PseudoElement::MozTreeDropFeedback(ref args) => Some(args),
             _ => None,
         }
@@ -1153,7 +1142,6 @@ impl PseudoElement {
                 // We cannot generate PseudoElement::MozTreeImage(..) from just an atom.
                 // We cannot generate PseudoElement::MozTreeCellText(..) from just an atom.
                 // We cannot generate PseudoElement::MozTreeCheckbox(..) from just an atom.
-                // We cannot generate PseudoElement::MozTreeProgressmeter(..) from just an atom.
                 // We cannot generate PseudoElement::MozTreeDropFeedback(..) from just an atom.
                 if atom == &atom!(":-moz-svg-marker-anon-child") {
                     return Some(PseudoElement::MozSVGMarkerAnonChild);
@@ -1309,7 +1297,6 @@ impl PseudoElement {
                 // We cannot generate PseudoElement::MozTreeImage(..) from just an atom.
                 // We cannot generate PseudoElement::MozTreeCellText(..) from just an atom.
                 // We cannot generate PseudoElement::MozTreeCheckbox(..) from just an atom.
-                // We cannot generate PseudoElement::MozTreeProgressmeter(..) from just an atom.
                 // We cannot generate PseudoElement::MozTreeDropFeedback(..) from just an atom.
                 if atom == &atom!(":-moz-svg-marker-anon-child") {
                     return Some(PseudoElement::MozSVGMarkerAnonChild);
@@ -1358,9 +1345,6 @@ impl PseudoElement {
                 }
                 if atom == &atom!(":-moz-tree-checkbox") {
                     return Some(PseudoElement::MozTreeCheckbox(args));
-                }
-                if atom == &atom!(":-moz-tree-progressmeter") {
-                    return Some(PseudoElement::MozTreeProgressmeter(args));
                 }
                 if atom == &atom!(":-moz-tree-drop-feedback") {
                     return Some(PseudoElement::MozTreeDropFeedback(args));
@@ -1780,9 +1764,6 @@ impl PseudoElement {
             if tree_part.eq_ignore_ascii_case("checkbox") {
                 return Some(PseudoElement::MozTreeCheckbox(args));
             }
-            if tree_part.eq_ignore_ascii_case("progressmeter") {
-                return Some(PseudoElement::MozTreeProgressmeter(args));
-            }
             if tree_part.eq_ignore_ascii_case("drop-feedback") {
                 return Some(PseudoElement::MozTreeDropFeedback(args));
             }
@@ -1871,7 +1852,6 @@ impl ToCss for PseudoElement {
                 PseudoElement::MozTreeImage(..) => dest.write_str(":-moz-tree-image")?,
                 PseudoElement::MozTreeCellText(..) => dest.write_str(":-moz-tree-cell-text")?,
                 PseudoElement::MozTreeCheckbox(..) => dest.write_str(":-moz-tree-checkbox")?,
-                PseudoElement::MozTreeProgressmeter(..) => dest.write_str(":-moz-tree-progressmeter")?,
                 PseudoElement::MozTreeDropFeedback(..) => dest.write_str(":-moz-tree-drop-feedback")?,
                 PseudoElement::MozSVGMarkerAnonChild => dest.write_str(":-moz-svg-marker-anon-child")?,
                 PseudoElement::MozSVGOuterSVGAnonChild => dest.write_str(":-moz-svg-outer-svg-anon-child")?,

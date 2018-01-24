@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::error::{Fallible, Error};
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
@@ -16,6 +15,7 @@ use js::rust::Runtime;
 use js::typedarray::{Uint8ClampedArray, CreateWith};
 use std::default::Default;
 use std::ptr;
+use std::ptr::NonNull;
 use std::vec::Vec;
 
 #[dom_struct]
@@ -159,8 +159,7 @@ impl ImageDataMethods for ImageData {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    unsafe fn Data(&self, _: *mut JSContext) -> NonNullJSObjectPtr {
-        assert!(!self.data.get().is_null());
-        NonNullJSObjectPtr::new_unchecked(self.data.get())
+    unsafe fn Data(&self, _: *mut JSContext) -> NonNull<JSObject> {
+        NonNull::new(self.data.get()).expect("got a null pointer")
     }
 }

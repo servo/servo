@@ -4,6 +4,7 @@ output/*
 .cache/*
 page_load_test/tp5n/*
 page_load_test/tp5n.zip
+servo-warc-tests/*
 venv/*
 
 __pycache__/

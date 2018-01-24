@@ -22,7 +22,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.marker_start == self.marker_mid && self.marker_mid == self.marker_end {
                 self.marker_start.to_css(dest)
             } else {

@@ -36,7 +36,6 @@ use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
 use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use nonzero::NonZero;
 use range::Range;
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
@@ -59,11 +58,11 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use std::ptr::NonNull;
 use std::sync::atomic::Ordering;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
-use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
@@ -77,7 +76,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocke
 use style::str::is_whitespace;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr = data.ptr.get() as *mut StyleData;
+    let ptr = data.ptr.as_ptr() as *mut StyleData;
     let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
     let _ = Box::from_raw(non_opaque);
 }
@@ -230,7 +229,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
             let ptr: *mut StyleAndLayoutData =
                 Box::into_raw(Box::new(StyleAndLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
-                ptr: NonZero::new_unchecked(ptr as *mut StyleData),
+                ptr: NonNull::new_unchecked(ptr as *mut StyleData),
             };
             self.init_style_and_layout_data(opaque);
         };
@@ -451,12 +450,12 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
-                &(*(d.ptr.get() as *mut StyleData)).element_data
+                &(*(d.ptr.as_ptr() as *mut StyleData)).element_data
             })
         }
     }
 
-    fn skip_root_and_item_based_display_fixup(&self) -> bool {
+    fn skip_item_display_fixup(&self) -> bool {
         false
     }
 
@@ -576,7 +575,7 @@ impl<'le> ServoLayoutElement<'le> {
 
     fn get_style_data(&self) -> Option<&StyleData> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| &*(d.ptr.get() as *mut StyleData))
+            self.get_style_and_layout_data().map(|d| &*(d.ptr.as_ptr() as *mut StyleData))
         }
     }
 
@@ -714,7 +713,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         &self,
         pseudo_class: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: VisitedHandlingMode,
         _: &mut F,
     ) -> bool
     where
@@ -804,7 +802,7 @@ pub struct ServoThreadSafeLayoutNode<'ln> {
 
     /// The pseudo-element type, with (optionally)
     /// a specified display value to override the stylesheet.
-    pseudo: PseudoElementType<Option<display::T>>,
+    pseudo: PseudoElementType,
 }
 
 impl<'a> PartialEq for ServoThreadSafeLayoutNode<'a> {
@@ -862,6 +860,7 @@ impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
 impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteNode = ServoLayoutNode<'ln>;
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
+    type ConcreteElement = ServoLayoutElement<'ln>;
     type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<Self>;
 
     fn opaque(&self) -> OpaqueNode {
@@ -994,7 +993,7 @@ impl<ConcreteNode> ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
                     unsafe { parent.dangerous_first_child() }
                 })
             },
-            PseudoElementType::DetailsContent(_) | PseudoElementType::DetailsSummary(_) => {
+            PseudoElementType::DetailsContent | PseudoElementType::DetailsSummary => {
                 unsafe { parent.dangerous_first_child() }
             },
             _ => None,
@@ -1012,9 +1011,9 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
     fn next(&mut self) -> Option<ConcreteNode> {
         use ::selectors::Element;
         match self.parent_node.get_pseudo_element_type() {
-            PseudoElementType::Before(_) | PseudoElementType::After(_) => None,
+            PseudoElementType::Before | PseudoElementType::After => None,
 
-            PseudoElementType::DetailsSummary(_) => {
+            PseudoElementType::DetailsSummary => {
                 let mut current_node = self.current_node.clone();
                 loop {
                     let next_node = if let Some(ref node) = current_node {
@@ -1034,7 +1033,7 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 }
             }
 
-            PseudoElementType::DetailsContent(_) => {
+            PseudoElementType::DetailsContent => {
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
@@ -1053,7 +1052,7 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let node = self.current_node.clone();
                 if let Some(ref node) = node {
                     self.current_node = match node.get_pseudo_element_type() {
-                        PseudoElementType::Before(_) => {
+                        PseudoElementType::Before => {
                             self.parent_node.get_details_summary_pseudo()
                                 .or_else(|| unsafe { self.parent_node.dangerous_first_child() })
                                 .or_else(|| self.parent_node.get_after_pseudo())
@@ -1061,11 +1060,9 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                         PseudoElementType::Normal => {
                             unsafe { node.dangerous_next_sibling() }.or_else(|| self.parent_node.get_after_pseudo())
                         },
-                        PseudoElementType::DetailsSummary(_) => self.parent_node.get_details_content_pseudo(),
-                        PseudoElementType::DetailsContent(_) => self.parent_node.get_after_pseudo(),
-                        PseudoElementType::After(_) => {
-                            None
-                        },
+                        PseudoElementType::DetailsSummary => self.parent_node.get_details_content_pseudo(),
+                        PseudoElementType::DetailsContent => self.parent_node.get_after_pseudo(),
+                        PseudoElementType::After => None,
                     };
                 }
                 node
@@ -1083,11 +1080,12 @@ pub struct ServoThreadSafeLayoutElement<'le> {
 
     /// The pseudo-element type, with (optionally)
     /// a specified display value to override the stylesheet.
-    pseudo: PseudoElementType<Option<display::T>>,
+    pseudo: PseudoElementType,
 }
 
 impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
     type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'le>;
+    type ConcreteElement = ServoLayoutElement<'le>;
 
     fn as_node(&self) -> ServoThreadSafeLayoutNode<'le> {
         ServoThreadSafeLayoutNode {
@@ -1096,15 +1094,14 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         }
     }
 
-    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>> {
+    fn get_pseudo_element_type(&self) -> PseudoElementType {
         self.pseudo
     }
 
-    fn with_pseudo(&self,
-                   pseudo: PseudoElementType<Option<display::T>>) -> Self {
+    fn with_pseudo(&self, pseudo: PseudoElementType) -> Self {
         ServoThreadSafeLayoutElement {
             element: self.element.clone(),
-            pseudo: pseudo,
+            pseudo,
         }
     }
 
@@ -1225,7 +1222,6 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         &self,
         _: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: VisitedHandlingMode,
         _: &mut F,
     ) -> bool
     where

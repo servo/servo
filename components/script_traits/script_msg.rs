@@ -25,7 +25,7 @@ use net_traits::storage_thread::StorageType;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 
 /// Messages from the layout to the constellation.
@@ -39,7 +39,7 @@ pub enum LayoutMsg {
     /// the time when the frame with the given ID (epoch) is painted.
     PendingPaintMetric(PipelineId, Epoch),
     /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursor(Cursor),
+    SetCursor(CursorKind),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
 }

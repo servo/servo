@@ -14,16 +14,16 @@ interface Navigator {
 };
 </pre>
 <!--
-  The reason of the failure of requestKeyboardLock test looks like a code defect in
+  The reason of the failure of keyboardLock test looks like a code defect in
   idlharness.js. media-capabilities/idlharness.html is also impacted by this
   issue. See https://codereview.chromium.org/2805763004/#ps620001, which
   includes a potential fix.
-  TODO(zijiehe): Submit the fix.
+  TODO(joedow): Submit the fix.
 -->
 <pre id="idl" style="display: none">
 partial interface Navigator {
-  [SecureContext] Promise<void> requestKeyboardLock(optional sequence<DOMString> keyCodes = []);
-  [SecureContext] void cancelKeyboardLock();
+  [SecureContext] Promise<void> keyboardLock(optional sequence<DOMString> keyCodes = []);
+  [SecureContext] void keyboardUnlock();
 };
 </pre>
 <script>

@@ -16,7 +16,7 @@ class Encoder(json.JSONEncoder):
             return [self.default(x) for x in obj]
         elif isinstance(obj, webdriver.Element):
             return {webdriver.Element.identifier: obj.id}
-        return super(ProtocolEncoder, self).default(obj)
+        return super(Encoder, self).default(obj)
 
 
 class Decoder(json.JSONDecoder):

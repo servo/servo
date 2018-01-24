@@ -31,7 +31,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use stylist::{StyleRuleCascadeData, Stylist};
+use stylist::{CascadeData, Stylist};
 use traversal_flags::TraversalFlags;
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
@@ -680,7 +680,7 @@ pub trait TElement
     /// Whether we should skip any root- or item-based display property
     /// blockification on this element.  (This function exists so that Gecko
     /// native anonymous content can opt out of this style fixup.)
-    fn skip_root_and_item_based_display_fixup(&self) -> bool;
+    fn skip_item_display_fixup(&self) -> bool;
 
     /// Sets selector flags, which indicate what kinds of selectors may have
     /// matched on this element and therefore what kind of work may need to
@@ -772,12 +772,12 @@ pub trait TElement
     fn each_applicable_non_document_style_rule_data<'a, F>(&self, mut f: F) -> bool
     where
         Self: 'a,
-        F: FnMut(AtomicRef<'a, StyleRuleCascadeData>, QuirksMode),
+        F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
     {
         let cut_off_inheritance = self.each_xbl_stylist(|stylist| {
             let quirks_mode = stylist.quirks_mode();
             f(
-                AtomicRef::map(stylist, |stylist| stylist.normal_author_cascade_data()),
+                AtomicRef::map(stylist, |stylist| stylist.author_cascade_data()),
                 quirks_mode,
             )
         });
@@ -786,12 +786,10 @@ pub trait TElement
         while let Some(slot) = current {
             slot.each_xbl_stylist(|stylist| {
                 let quirks_mode = stylist.quirks_mode();
-                if stylist.slotted_author_cascade_data().is_some() {
-                    f(
-                        AtomicRef::map(stylist, |stylist| stylist.slotted_author_cascade_data().unwrap()),
-                        quirks_mode,
-                    )
-                }
+                f(
+                    AtomicRef::map(stylist, |stylist| stylist.author_cascade_data()),
+                    quirks_mode,
+                )
             });
 
             current = slot.assigned_slot();

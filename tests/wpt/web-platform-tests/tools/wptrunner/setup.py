@@ -53,13 +53,12 @@ setup(name=PACKAGE_NAME,
                                   "config.json",
                                   "wptrunner.default.ini",
                                   "browsers/server-locations.txt",
-                                  "browsers/b2g_setup/*",
                                   "browsers/sauce_setup/*",
                                   "prefs/*"]},
       include_package_data=True,
       data_files=[("requirements", requirements_files)],
       install_requires=deps
-     )
+      )
 
 if "install" in sys.argv:
     path = os.path.relpath(os.path.join(sys.prefix, "requirements"), os.curdir)

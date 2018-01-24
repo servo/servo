@@ -353,7 +353,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                 self.dom_outputs.insert(pipeline_id, DOMToTextureData {
                     context_id, texture_id, document_id, size
                 });
-                self.webrender_api.enable_frame_output(document_id, pipeline_id, true);
+                let mut txn = webrender_api::Transaction::new();
+                txn.enable_frame_output(pipeline_id, true);
+                self.webrender_api.send_transaction(document_id, txn);
             },
             DOMToTextureCommand::Lock(pipeline_id, gl_sync, sender) => {
                 let contexts = &self.contexts;
@@ -376,7 +378,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                 if let Some((pipeline_id, document_id)) = self.dom_outputs.iter()
                                                                           .find(|&(_, v)| v.texture_id == texture_id)
                                                                           .map(|(k, v)| (*k, v.document_id)) {
-                    self.webrender_api.enable_frame_output(document_id, pipeline_id, false);
+                    let mut txn = webrender_api::Transaction::new();
+                    txn.enable_frame_output(pipeline_id, false);
+                    self.webrender_api.send_transaction(document_id, txn);
                     self.dom_outputs.remove(&pipeline_id);
                 }
             },

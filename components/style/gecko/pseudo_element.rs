@@ -10,7 +10,7 @@
 
 use cssparser::{ToCss, serialize_identifier};
 use gecko_bindings::structs::{self, CSSPseudoElementType};
-use properties::{ComputedValues, PropertyFlags};
+use properties::{CascadeFlags, ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
@@ -49,6 +49,15 @@ impl PseudoElement {
         }
 
         PseudoElementCascadeType::Lazy
+    }
+
+    /// The CascadeFlags needed to cascade this pseudo-element.
+    ///
+    /// This is only needed to support the broken INHERIT_ALL pseudo mode for
+    /// Servo.
+    #[inline]
+    pub fn cascade_flags(&self) -> CascadeFlags {
+        CascadeFlags::empty()
     }
 
     /// Whether the pseudo-element should inherit from the default computed
@@ -128,7 +137,7 @@ impl PseudoElement {
     /// Whether this pseudo-element skips flex/grid container display-based
     /// fixup.
     #[inline]
-    pub fn skip_item_based_display_fixup(&self) -> bool {
+    pub fn skip_item_display_fixup(&self) -> bool {
         (self.flags() & structs::CSS_PSEUDO_ELEMENT_IS_FLEX_OR_GRID_ITEM) == 0
     }
 

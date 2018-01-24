@@ -6,12 +6,12 @@
 
 use parser::ParserContext;
 use servo_url::ServoUrl;
-use std::fmt;
+use std::fmt::{self, Write};
 // Note: We use std::sync::Arc rather than servo_arc::Arc here because the
 // nonzero optimization is important in keeping the size of SpecifiedUrl below
 // the threshold.
 use std::sync::Arc;
-use style_traits::{ToCss, ParseError};
+use style_traits::{CssWriter, ParseError, ToCss};
 use values::computed::{Context, ToComputedValue, ComputedUrl};
 
 /// A specified url() value for servo.
@@ -111,7 +111,10 @@ impl PartialEq for SpecifiedUrl {
 }
 
 impl ToCss for SpecifiedUrl {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let string = match self.original {
             Some(ref original) => &**original,
             None => match self.resolved {

@@ -24,7 +24,7 @@ setup(function() {
     var idl_array = new IdlArray();
 
     var request = new XMLHttpRequest();
-    request.open("GET", "WebCryptoAPI.idl");
+    request.open("GET", "../interfaces/WebCryptoAPI.idl");
     request.send();
     request.onload = function() {
         var idls = request.responseText;

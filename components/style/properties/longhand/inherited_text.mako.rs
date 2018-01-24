@@ -132,68 +132,6 @@ ${helpers.predefined_type("word-spacing",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
 
-<%helpers:longhand name="-servo-text-decorations-in-effect"
-                   derived_from="display text-decoration"
-                   products="servo"
-                   animation_value_type="none"
-                   spec="Nonstandard (Internal property used by Servo)">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
-    pub struct SpecifiedValue {
-        pub underline: bool,
-        pub overline: bool,
-        pub line_through: bool,
-    }
-
-    trivial_to_computed_value!(SpecifiedValue);
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
-            // Web compat doesn't matter here.
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue::default()
-    }
-
-    fn derive(context: &Context) -> computed_value::T {
-        // Start with no declarations if this is an atomic inline-level box; otherwise, start with the
-        // declarations in effect and add in the text decorations that this block specifies.
-        let mut result = match context.style().get_box().clone_display() {
-            super::display::computed_value::T::InlineBlock |
-            super::display::computed_value::T::InlineTable => get_initial_value(),
-            _ => context.builder.get_parent_inheritedtext().clone__servo_text_decorations_in_effect()
-        };
-
-        result.underline |= context.style().get_text().has_underline();
-        result.overline |= context.style().get_text().has_overline();
-        result.line_through |= context.style().get_text().has_line_through();
-
-        result
-    }
-
-    #[inline]
-    pub fn derive_from_text_decoration(context: &mut Context) {
-        let derived = derive(context);
-        context.builder.set__servo_text_decorations_in_effect(derived);
-    }
-
-    #[inline]
-    pub fn derive_from_display(context: &mut Context) {
-        let derived = derive(context);
-        context.builder.set__servo_text_decorations_in_effect(derived);
-    }
-</%helpers:longhand>
-
 <%helpers:single_keyword_computed name="white-space"
                                   values="normal pre nowrap pre-wrap pre-line"
                                   extra_gecko_values="-moz-pre-space"
@@ -255,8 +193,8 @@ ${helpers.predefined_type(
                    animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
     use computed_values::writing_mode::T as WritingMode;
-    use std::fmt;
-    use style_traits::ToCss;
+    use std::fmt::{self, Write};
+    use style_traits::{CssWriter, ToCss};
     use unicode_segmentation::UnicodeSegmentation;
 
 
@@ -291,7 +229,7 @@ ${helpers.predefined_type(
     }
 
     impl ToCss for KeywordValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if let Some(fill) = self.fill() {
                 if fill {
                     dest.write_str("filled")?;
@@ -308,8 +246,12 @@ ${helpers.predefined_type(
             Ok(())
         }
     }
+
     impl ToCss for computed_value::KeywordValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+        where
+            W: Write,
+        {
             if self.fill {
                 dest.write_str("filled")?;
             } else {

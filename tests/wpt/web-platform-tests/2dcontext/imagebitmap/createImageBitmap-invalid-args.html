@@ -1,23 +1,9 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script src="common.js"></script>
 <script>
-
-function makeCanvas() {
-  return new Promise(resolve => {
-    let canvas = document.createElement('canvas');
-    canvas.setAttribute('width', '10');
-    canvas.setAttribute('height', '10');
-    resolve(canvas);
-  });
-}
-
-function makeOffscreenCanvas() {
-  return new Promise(resolve => {
-    let canvas = new OffscreenCanvas(10, 10);
-    resolve(canvas);
-  });
-}
 
 function makeOversizedCanvas() {
 
@@ -36,46 +22,6 @@ function makeOversizedOffscreenCanvas() {
   });
 }
 
-function makeVideo() {
-  return new Promise(resolve => {
-    let video = document.createElement('video');
-    video.addEventListener('canplaythrough', resolve.bind(undefined, video), false);
-    video.src = '/media/A4.ogv';
-  });
-}
-
-function makeImage() {
-  return makeCanvas().then(canvas => {
-    let image = new Image();
-    image.src = canvas.toDataURL();
-    return new Promise(resolve => {
-      image.onload = resolve.bind(undefined, image);
-    });
-  });
-}
-
-function makeImageData() {
-  return makeCanvas().then(canvas => {
-    return new Promise(function(resolve, reject) {
-      resolve(canvas.getContext('2d').getImageData(0, 0, 10, 10));
-    });
-  });
-}
-
-function makeImageBitmap() {
-  return makeCanvas().then(canvas => {
-    return createImageBitmap(canvas);
-  });
-}
-
-function makeBlob() {
-  return makeCanvas().then(canvas => {
-    return new Promise(resolve => {
-      canvas.toBlob(resolve);
-    });
-  });
-}
-
 function makeInvalidBlob() {
   return new Promise(resolve => {
     resolve(new Blob()); // Blob with no data cannot be decoded.
@@ -85,33 +31,23 @@ function makeInvalidBlob() {
 function makeBrokenImage() {
   return new Promise(resolve => {
     const image = new Image();
-    image.src = "data,x";
+    image.src = "data:,x";
     image.onerror = () => resolve(image);
   });
 }
 
 function makeAvailableButBrokenImage() {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const image = new Image();
     image.src = "/images/broken.png";
     image.onload = () => resolve(image);
+    image.onerror = reject;
   });
 }
 
-imageSourceTypes = [
-  { name: 'HTMLImageElement',  factory: makeImage },
-  { name: 'HTMLVideoElement',  factory: makeVideo },
-  { name: 'HTMLCanvasElement', factory: makeCanvas },
-  { name: 'OffscreenCanvas',   factory: makeOffscreenCanvas },
-  { name: 'ImageData',         factory: makeImageData },
-  { name: 'ImageBitmap',       factory: makeImageBitmap },
-  { name: 'Blob',              factory: makeBlob },
-];
-
 testCases = [
   {
-    description: 'createImageBitmap with a <sourceType> source and sw set to ' +
-        '0 rejects with a RangeError.',
+    description: 'createImageBitmap with a <sourceType> source and sw set to 0',
     promiseTestFunction:
       (source, t) => {
         return promise_rejects(t, new RangeError(),
@@ -119,8 +55,7 @@ testCases = [
       }
   },
   {
-    description: 'createImageBitmap with a <sourceType> source and sh set to ' +
-        '0 rejects with a RangeError.',
+    description: 'createImageBitmap with a <sourceType> source and sh set to 0',
     promiseTestFunction:
       (source, t) => {
         return promise_rejects(t, new RangeError(),
@@ -130,10 +65,11 @@ testCases = [
   {
     // This case is not explicitly documented in the specification for
     // createImageBitmap, but it is expected that internal failures cause
+    // InvalidStateError.
     //
+    // Note: https://bugs.chromium.org/p/chromium/issues/detail?id=799025
     description: 'createImageBitmap with a <sourceType> source and oversized ' +
-        '(unallocatable) crop region rejects with an InvalidStateError ' +
-        'DOMException.',
+        '(unallocatable) crop region',
     promiseTestFunction:
       (source, t) => {
         return promise_rejects(t, new DOMException('', 'InvalidStateError'),
@@ -157,55 +93,61 @@ imageSourceTypes.forEach(imageSourceType => {
 
 promise_test( t => {
   return promise_rejects(t, new TypeError(), createImageBitmap(undefined));
-}, "createImageBitmap with undefined image source rejects with a TypeError.");
+}, "createImageBitmap with undefined image source.");
 
 promise_test( t => {
   return promise_rejects(t, new TypeError(), createImageBitmap(null));
-}, "createImageBitmap with null image source rejects with a TypeError.");
+}, "createImageBitmap with null image source.");
 
 promise_test( t => {
   return promise_rejects(t, "InvalidStateError",
     createImageBitmap(new Image()));
-}, "createImageBitmap with empty image source rejects with a InvalidStateError.");
+}, "createImageBitmap with empty image source.");
 
 promise_test( t => {
   return promise_rejects(t, "InvalidStateError",
     createImageBitmap(document.createElement('video')));
-}, "createImageBitmap with empty video source rejects with a InvalidStateError.");
+}, "createImageBitmap with empty video source.");
 
 promise_test( t => {
   return makeOversizedCanvas().then(canvas => {
     return promise_rejects(t, "InvalidStateError",
         createImageBitmap(canvas));
   });
-}, "createImageBitmap with an oversized canvas source rejects with a RangeError.");
+}, "createImageBitmap with an oversized canvas source.");
 
 promise_test( t => {
   return makeOversizedOffscreenCanvas().then(offscreenCanvas => {
     return promise_rejects(t, "InvalidStateError",
         createImageBitmap(offscreenCanvas));
   });
-}, "createImageBitmap with an invalid OffscreenCanvas source rejects with a RangeError.");
+}, "createImageBitmap with an invalid OffscreenCanvas source.");
 
 promise_test( t => {
   return makeInvalidBlob().then(blob => {
     return promise_rejects(t, "InvalidStateError",
         createImageBitmap(blob));
   });
-}, "createImageBitmap with an undecodable blob source rejects with an InvalidStateError.");
+}, "createImageBitmap with an undecodable blob source.");
 
 promise_test( t => {
   return makeBrokenImage().then(image => {
     return promise_rejects(t, "InvalidStateError",
         createImageBitmap(image));
   });
-}, "createImageBitmap with a broken image source rejects with an InvalidStateError.");
+}, "createImageBitmap with a broken image source.");
 
 promise_test( t => {
   return makeAvailableButBrokenImage().then(image => {
     return promise_rejects(t, "InvalidStateError",
         createImageBitmap(image));
   });
-}, "createImageBitmap with an available but undecodable image source rejects with an InvalidStateError.");
+}, "createImageBitmap with an available but undecodable image source.");
 
+promise_test( t => {
+  return makeImageBitmap().then(bitmap => {
+    bitmap.close()
+    return promise_rejects(t, "InvalidStateError", createImageBitmap(bitmap));
+  });
+}, "createImageBitmap with a closed ImageBitmap.");
 </script>

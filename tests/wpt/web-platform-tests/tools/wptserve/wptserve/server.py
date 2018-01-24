@@ -110,14 +110,15 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
     # Ensure that we don't hang on shutdown waiting for requests
     daemon_threads = True
 
-    def __init__(self, server_address, RequestHandlerClass, router, rewriter, bind_hostname,
+    def __init__(self, server_address, request_handler_cls,
+                 router, rewriter, bind_hostname,
                  config=None, use_ssl=False, key_file=None, certificate=None,
                  encrypt_after_connect=False, latency=None, **kwargs):
         """Server for HTTP(s) Requests
 
         :param server_address: tuple of (server_name, port)
 
-        :param RequestHandlerClass: BaseHTTPRequestHandler-like class to use for
+        :param request_handler_cls: BaseHTTPRequestHandler-like class to use for
                                     handling requests.
 
         :param router: Router instance to use for matching requests to handler
@@ -161,7 +162,7 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             hostname_port = ("",server_address[1])
 
         #super doesn't work here because BaseHTTPServer.HTTPServer is old-style
-        BaseHTTPServer.HTTPServer.__init__(self, hostname_port, RequestHandlerClass, **kwargs)
+        BaseHTTPServer.HTTPServer.__init__(self, hostname_port, request_handler_cls, **kwargs)
 
         if config is not None:
             Server.config = config

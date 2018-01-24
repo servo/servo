@@ -1285,15 +1285,11 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn skip_root_and_item_based_display_fixup(&self) -> bool {
-        if !self.is_native_anonymous() {
-            return false;
-        }
-
-        if let Some(p) = self.implemented_pseudo_element() {
-            return p.skip_item_based_display_fixup();
-        }
-
+    fn skip_item_display_fixup(&self) -> bool {
+        debug_assert!(
+            self.implemented_pseudo_element().is_none(),
+            "Just don't call me if I'm a pseudo, you should know the answer already"
+        );
         self.is_root_of_native_anonymous_subtree()
     }
 
@@ -1997,7 +1993,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         &self,
         pseudo_class: &NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        visited_handling: VisitedHandlingMode,
         flags_setter: &mut F,
     ) -> bool
     where
@@ -2057,10 +2052,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             },
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Link => {
-                self.is_link() && visited_handling.matches_unvisited()
+                self.is_link() && context.visited_handling().matches_unvisited()
             }
             NonTSPseudoClass::Visited => {
-                self.is_link() && visited_handling.matches_visited()
+                self.is_link() && context.visited_handling().matches_visited()
             }
             NonTSPseudoClass::MozFirstNode => {
                 flags_setter(self, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
@@ -2112,19 +2107,18 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozWindowInactive => {
                 let state_bit = DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE;
                 if context.extra_data.document_state.intersects(state_bit) {
-                    return true;
+                    return !context.in_negation();
                 }
 
                 self.document_state().contains(state_bit)
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
-                context.nesting_level += 1;
-                let result = sels.iter().any(|s| {
-                    matches_complex_selector(s.iter(), self, context, flags_setter)
-                });
-                context.nesting_level -= 1;
-                result
+                context.nest(|context| {
+                    sels.iter().any(|s| {
+                        matches_complex_selector(s.iter(), self, context, flags_setter)
+                    })
+                })
             }
             NonTSPseudoClass::Lang(ref lang_arg) => {
                 self.match_element_lang(None, lang_arg)
@@ -2134,7 +2128,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 if context.extra_data.document_state.intersects(state_bit) {
                     // NOTE(emilio): We could still return false for
                     // Direction::Other(..), but we don't bother.
-                    return true;
+                    return !context.in_negation();
                 }
 
                 let doc_is_rtl = self.document_state().contains(state_bit);
@@ -2191,7 +2185,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.may_have_class() {
             return false;

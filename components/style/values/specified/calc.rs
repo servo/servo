@@ -9,8 +9,8 @@
 use cssparser::{Parser, Token, NumberOrPercentage, AngleOrNumber};
 use parser::ParserContext;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::{CSSInteger, CSSFloat};
 use values::computed;
@@ -64,9 +64,10 @@ pub enum CalcUnit {
 
 /// A struct to hold a simplified `<length>` or `<percentage>` expression.
 ///
-/// In some cases, e.g. DOMMatrix, we support calc(), but reject all the relative lengths, and
-/// to_computed_pixel_length_without_context() handles this case. Therefore, if you want to add a
-/// new field, please make sure this function work properly.
+/// In some cases, e.g. DOMMatrix, we support calc(), but reject all the
+/// relative lengths, and to_computed_pixel_length_without_context() handles
+/// this case. Therefore, if you want to add a new field, please make sure this
+/// function work properly.
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
@@ -88,7 +89,10 @@ impl ToCss for CalcLengthOrPercentage {
     ///
     /// FIXME(emilio): Should this simplify away zeros?
     #[allow(unused_assignments)]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         use num_traits::Zero;
 
         let mut first_value = true;

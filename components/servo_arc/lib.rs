@@ -83,6 +83,7 @@ const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 /// that this is all a temporary hack, this restriction is fine for now.
 ///
 /// [1]: https://github.com/rust-lang/rust/issues/27730
+// FIXME: remove this and use std::ptr::NonNull when Firefox requires Rust 1.25+
 pub struct NonZeroPtrMut<T: ?Sized + 'static>(&'static mut T);
 impl<T: ?Sized> NonZeroPtrMut<T> {
     pub fn new(ptr: *mut T) -> Self {

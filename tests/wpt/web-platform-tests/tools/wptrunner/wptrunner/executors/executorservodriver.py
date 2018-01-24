@@ -43,7 +43,7 @@ class ServoWebDriverProtocol(Protocol):
             self.session = webdriver.Session(self.host, self.port,
                 extension=webdriver.servo.ServoCommandExtensions)
             self.session.start()
-        except:
+        except Exception:
             self.logger.warning(
                 "Connecting with WebDriver failed:\n%s" % traceback.format_exc())
         else:
@@ -60,7 +60,7 @@ class ServoWebDriverProtocol(Protocol):
         self.logger.debug("Hanging up on WebDriver session")
         try:
             self.session.end()
-        except:
+        except Exception:
             pass
 
     def is_alive(self):

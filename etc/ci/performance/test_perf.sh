@@ -26,13 +26,27 @@ else
     echo "Found existing test cases, skipping download and unzip."
 fi
 
+WARC_DIR="./servo-warc-tests"
+WARC_REPO="git@github.com:servo/servo-warc-tests.git"
+
+# Clone the warc tests if they don't exist
+if [[ ! -d ${WARC_DIR} ]]; then
+    git clone ${WARC_REPO}
+fi
+
+# Make sure we're running with an up-to-date warc test repo
+git -C ${WARC_DIR} pull
+
 virtualenv venv --python="$(which python3)"
 PS1="" source venv/bin/activate
 # `PS1` must be defined before activating virtualenv
-pip install "boto3>=1.4.0"
+pip install \
+    "boto3>=1.4.0" \
+    git+https://github.com/ikreymer/pywb.git
 
 mkdir -p servo
 mkdir -p output # Test result will be saved to output/perf-<timestamp>.json
 ./git_log_to_json.sh > servo/revision.json
 
 ./test_all.sh --servo ${*}
+SERVO_DIR="../../.." ${WARC_DIR}/run-warc-tests.sh

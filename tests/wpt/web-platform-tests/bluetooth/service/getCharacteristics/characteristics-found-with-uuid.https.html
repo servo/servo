@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Find characteristics with UUID in service.';
+let device, fake_peripheral;
+
+bluetooth_test(() => getDiscoveredHealthThermometerDevice()
+    .then(_ => ({device, fake_peripheral} = _ ))
+    // Setup a device with two measurement intervals.
+    .then(() =>
+      fake_peripheral.setNextGATTConnectionResponse({code: HCI_SUCCESS}))
+    .then(() => device.gatt.connect())
+    .then(() => fake_peripheral.addFakeService({uuid: 'health_thermometer'}))
+    .then(fake_health_thermometer => Promise.all([
+        fake_health_thermometer.addFakeCharacteristic({
+          uuid: 'measurement_interval',
+          properties: ['read', 'write', 'indicate']}),
+        fake_health_thermometer.addFakeCharacteristic({
+          uuid: 'measurement_interval',
+          properties: ['read', 'write', 'indicate']}),
+        fake_health_thermometer.addFakeCharacteristic({
+          uuid: 'temperature_measurement',
+          properties: ['indicate']})
+    ]))
+    .then(() =>
+      fake_peripheral.setNextGATTDiscoveryResponse({code: HCI_SUCCESS}))
+    .then(() => device.gatt.getPrimaryService('health_thermometer'))
+    // Actual test starts.
+    .then(service => Promise.all([
+        service.getCharacteristics(measurement_interval.alias),
+        service.getCharacteristics(measurement_interval.name),
+        service.getCharacteristics(measurement_interval.uuid)]))
+    .then(characteristics_arrays => characteristics_arrays.forEach(
+        characteristics => {
+          assert_equals(characteristics.length, 2);
+          assert_equals(characteristics[0].uuid, measurement_interval.uuid);
+          assert_equals(characteristics[1].uuid, measurement_interval.uuid);
+    })), test_desc);
+</script>

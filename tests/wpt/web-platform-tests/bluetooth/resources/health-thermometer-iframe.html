@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script>
+let device;
+
+function requestDeviceWithOptionsAndConnect(options) {
+  return navigator.bluetooth.requestDevice(options)
+      .then(device => device.gatt.connect());
+}
+
+window.onmessage = messageEvent => {
+  switch (messageEvent.data.type) {
+    case 'RequestAndConnect':
+      requestDeviceWithOptionsAndConnect(messageEvent.data.options)
+          .then(gatt => {
+            device = gatt.device;
+            parent.postMessage('Connected', '*');
+          }).catch(err => {
+            parent.postMessage(`FAIL: ${err}`, '*');
+          });
+      break;
+    case 'DiscoverServices':
+      requestDeviceWithOptionsAndConnect(messageEvent.data.options)
+          .then(gatt => gatt.getPrimaryServices())
+          .then(() => parent.postMessage('DiscoveryComplete', '*'))
+          .catch(err => {
+            parent.postMessage(`FAIL: ${err}`, '*');
+          });
+      break;
+    default:
+      parent.postMessage(`FAIL: Bad message type: ${messageEvent.data.type}`,
+                         '*');
+  }
+};
+</script>

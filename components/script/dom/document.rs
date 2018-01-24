@@ -21,7 +21,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::{FrameRequestCallback, Scro
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -96,7 +95,7 @@ use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSRuntime};
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
@@ -125,6 +124,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::once;
 use std::mem;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
@@ -364,6 +364,8 @@ pub struct Document {
     tti_window: DomRefCell<InteractiveWindow>,
     /// RAII canceller for Fetch
     canceller: FetchCanceller,
+    /// https://html.spec.whatwg.org/multipage/#throw-on-dynamic-markup-insertion-counter
+    throw_on_dynamic_markup_insertion_counter: Cell<u64>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1894,7 +1896,12 @@ impl Document {
 
     pub fn can_invoke_script(&self) -> bool {
         match self.get_current_parser() {
-            Some(parser) => parser.parser_is_not_active(),
+            Some(parser) => {
+                // It is safe to run script if the parser is not actively parsing,
+                // or if it is impossible to interact with the token stream.
+                parser.parser_is_not_active() ||
+                self.throw_on_dynamic_markup_insertion_counter.get() > 0
+            }
             None => true,
         }
     }
@@ -2052,6 +2059,16 @@ impl Document {
     fn send_to_constellation(&self, msg: ScriptMsg) {
         let global_scope = self.window.upcast::<GlobalScope>();
         global_scope.script_to_constellation_chan().send(msg).unwrap();
+    }
+
+    pub fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
+        let counter = self.throw_on_dynamic_markup_insertion_counter.get();
+        self.throw_on_dynamic_markup_insertion_counter.set(counter + 1);
+    }
+
+    pub fn decrement_throw_on_dynamic_markup_insertion_counter(&self) {
+        let counter = self.throw_on_dynamic_markup_insertion_counter.get();
+        self.throw_on_dynamic_markup_insertion_counter.set(counter - 1);
     }
 }
 
@@ -2294,6 +2311,7 @@ impl Document {
             interactive_time: DomRefCell::new(interactive_time),
             tti_window: DomRefCell::new(InteractiveWindow::new()),
             canceller: canceller,
+            throw_on_dynamic_markup_insertion_counter: Cell::new(0),
         }
     }
 
@@ -3536,7 +3554,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNullJSObjectPtr> {
+    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
@@ -3593,7 +3611,7 @@ impl DocumentMethods for Document {
                 if elements.peek().is_none() {
                     // TODO: Step 2.
                     // Step 3.
-                    return Some(NonNullJSObjectPtr::new_unchecked(first.reflector().get_jsobject().get()));
+                    return Some(NonNull::new_unchecked(first.reflector().get_jsobject().get()));
                 }
             } else {
                 return None;
@@ -3604,7 +3622,7 @@ impl DocumentMethods for Document {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, Box::new(filter));
-        Some(NonNullJSObjectPtr::new_unchecked(collection.reflector().get_jsobject().get()))
+        Some(NonNull::new_unchecked(collection.reflector().get_jsobject().get()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -3717,7 +3735,9 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
+            return Err(Error::InvalidState);
+        }
 
         if !self.is_active() {
             // Step 3.
@@ -3863,7 +3883,10 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
+            return Err(Error::InvalidState);
+        }
+
         if !self.is_active() {
             // Step 3.
             return Ok(());
@@ -3910,7 +3933,9 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
+            return Err(Error::InvalidState);
+        }
 
         let parser = match self.get_current_parser() {
             Some(ref parser) if parser.is_script_created() => DomRoot::from_ref(&**parser),

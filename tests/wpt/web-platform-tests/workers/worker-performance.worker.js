@@ -16,6 +16,7 @@ test(function testPerformanceNow () {
 }, "Can use performance.now in workers");
 
 test(function testPerformanceMark () {
+    while (performance.now() == start) { }
     performance.mark("mark1");
      // Stall the minimum amount of time to ensure the marks are separate
     var now = performance.now();
