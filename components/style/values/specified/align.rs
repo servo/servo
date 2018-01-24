@@ -117,7 +117,7 @@ const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 /// <https://drafts.csswg.org/css-align/#content-distribution>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct AlignJustifyContent {
+pub struct ContentDistribution {
     primary: AlignFlags,
     fallback: AlignFlags,
 }
@@ -136,7 +136,7 @@ pub enum FallbackAllowed {
     No,
 }
 
-impl AlignJustifyContent {
+impl ContentDistribution {
     /// The initial value 'normal'
     #[inline]
     pub fn normal() -> Self {
@@ -184,32 +184,32 @@ impl AlignJustifyContent {
     ) -> Result<Self, ParseError<'i>> {
         // normal | <baseline-position>
         if let Ok(value) = input.try(|input| parse_normal_or_baseline(input)) {
-            return Ok(AlignJustifyContent::new(value))
+            return Ok(ContentDistribution::new(value))
         }
 
         // <content-distribution> followed by optional <*-position>
         if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
             if fallback_allowed == FallbackAllowed::Yes {
                 if let Ok(fallback) = input.try(|input| parse_overflow_content_position(input)) {
-                    return Ok(AlignJustifyContent::with_fallback(value, fallback))
+                    return Ok(ContentDistribution::with_fallback(value, fallback))
                 }
             }
-            return Ok(AlignJustifyContent::new(value))
+            return Ok(ContentDistribution::new(value))
         }
 
         // <*-position> followed by optional <content-distribution>
         let fallback = parse_overflow_content_position(input)?;
         if fallback_allowed == FallbackAllowed::Yes {
             if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
-                return Ok(AlignJustifyContent::with_fallback(value, fallback))
+                return Ok(ContentDistribution::with_fallback(value, fallback))
             }
         }
 
-        Ok(AlignJustifyContent::new(fallback))
+        Ok(ContentDistribution::new(fallback))
     }
 }
 
-impl ToCss for AlignJustifyContent {
+impl ToCss for ContentDistribution {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
@@ -227,7 +227,7 @@ impl ToCss for AlignJustifyContent {
 }
 
 
-impl Parse for AlignJustifyContent {
+impl Parse for ContentDistribution {
     // normal | <baseline-position> |
     // [ <content-distribution> || [ <overflow-position>? && <content-position> ] ]
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -352,19 +352,19 @@ impl Parse for JustifyItems {
 }
 
 #[cfg(feature = "gecko")]
-impl From<u16> for AlignJustifyContent {
-    fn from(bits: u16) -> AlignJustifyContent {
+impl From<u16> for ContentDistribution {
+    fn from(bits: u16) -> ContentDistribution {
         let primary =
             AlignFlags::from_bits_truncate((bits & ALIGN_ALL_BITS) as u8);
         let fallback =
             AlignFlags::from_bits_truncate((bits >> ALIGN_ALL_SHIFT) as u8);
-        AlignJustifyContent::with_fallback(primary, fallback)
+        ContentDistribution::with_fallback(primary, fallback)
     }
 }
 
 #[cfg(feature = "gecko")]
-impl From<AlignJustifyContent> for u16 {
-    fn from(v: AlignJustifyContent) -> u16 {
+impl From<ContentDistribution> for u16 {
+    fn from(v: ContentDistribution) -> u16 {
         v.primary().bits() as u16 |
         ((v.fallback().bits() as u16) << ALIGN_ALL_SHIFT)
     }

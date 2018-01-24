@@ -26590,8 +26590,8 @@ pub mod root {
         pub static mut nsCSSProps_kAutoCompletionAlignItems: [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
-        #[link_name = "\u{1}_ZN10nsCSSProps34kAutoCompletionAlignJustifyContentE"]
-        pub static mut nsCSSProps_kAutoCompletionAlignJustifyContent:
+        #[link_name = "\u{1}_ZN10nsCSSProps34kAutoCompletionContentDistributionE"]
+        pub static mut nsCSSProps_kAutoCompletionContentDistribution:
             [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
