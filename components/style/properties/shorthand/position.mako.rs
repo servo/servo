@@ -653,16 +653,16 @@
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
                     products="gecko">
-    use values::specified::align::AlignJustifySelf;
+    use values::specified::align::SelfAlignment;
     use parser::Parse;
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        let align = AlignJustifySelf::parse(context, input)?;
+        let align = SelfAlignment::parse(context, input)?;
         if align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
+        let justify = input.try(|input| SelfAlignment::parse(context, input)).unwrap_or(align.clone());
         if justify.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }

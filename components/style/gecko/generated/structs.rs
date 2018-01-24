@@ -26581,8 +26581,8 @@ pub mod root {
         pub static mut nsCSSProps_kAlignContentPosition: [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
-        #[link_name = "\u{1}_ZN10nsCSSProps31kAutoCompletionAlignJustifySelfE"]
-        pub static mut nsCSSProps_kAutoCompletionAlignJustifySelf:
+        #[link_name = "\u{1}_ZN10nsCSSProps31kAutoCompletionSelfAlignmentE"]
+        pub static mut nsCSSProps_kAutoCompletionSelfAlignment:
             [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {

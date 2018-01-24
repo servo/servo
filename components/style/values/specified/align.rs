@@ -240,13 +240,13 @@ impl Parse for ContentDistribution {
 /// <https://drafts.csswg.org/css-align/#self-alignment>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
-pub struct AlignJustifySelf(pub AlignFlags);
+pub struct SelfAlignment(pub AlignFlags);
 
-impl AlignJustifySelf {
+impl SelfAlignment {
     /// The initial value 'auto'
     #[inline]
     pub fn auto() -> Self {
-        AlignJustifySelf(AlignFlags::AUTO)
+        SelfAlignment(AlignFlags::AUTO)
     }
 
     /// Whether this value has extra flags.
@@ -257,16 +257,16 @@ impl AlignJustifySelf {
 }
 
 
-impl Parse for AlignJustifySelf {
+impl Parse for SelfAlignment {
     // auto | normal | stretch | <baseline-position> |
     // [ <overflow-position>? && <self-position> ]
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         // auto | normal | stretch | <baseline-position>
         if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
-            return Ok(AlignJustifySelf(value))
+            return Ok(SelfAlignment(value))
         }
         // [ <overflow-position>? && <self-position> ]
-        Ok(AlignJustifySelf(parse_overflow_self_position(input)?))
+        Ok(SelfAlignment(parse_overflow_self_position(input)?))
     }
 }
 
