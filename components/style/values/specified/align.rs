@@ -18,8 +18,7 @@ bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
     ///
     /// These constants match Gecko's `NS_STYLE_ALIGN_*` constants.
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(ToComputedValue)]
+    #[derive(MallocSizeOf, ToComputedValue)]
     pub struct AlignFlags: u8 {
         // Enumeration stored in the lower 5 bits:
         /// 'auto'
@@ -151,12 +150,16 @@ impl ContentDistribution {
 
     /// Returns whether this value is valid for both axis directions.
     pub fn is_valid_on_both_axes(&self) -> bool {
-        if self.primary.intersects(AlignFlags::BASELINE | AlignFlags::LAST_BASELINE) {
+        if self.primary.contains(AlignFlags::BASELINE) ||
+            self.primary.contains(AlignFlags::LAST_BASELINE)
+        {
             // <baseline-position> is only allowed on the block axis.
             return false;
         }
 
-        if self.primary.intersects(AlignFlags::LEFT | AlignFlags::RIGHT) {
+        if self.primary.contains(AlignFlags::LEFT) ||
+            self.primary.contains(AlignFlags::RIGHT)
+        {
             // left | right are only allowed on the inline axis.
             return false;
         }
@@ -281,11 +284,8 @@ impl From<JustifyContent> for u16 {
     }
 }
 
-/// Value of the `align-self` or `justify-self` property.
-///
 /// <https://drafts.csswg.org/css-align/#self-alignment>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct SelfAlignment(pub AlignFlags);
 
 impl SelfAlignment {
@@ -295,31 +295,109 @@ impl SelfAlignment {
         SelfAlignment(AlignFlags::AUTO)
     }
 
+    /// Returns whether this value is valid for both axis directions.
+    pub fn is_valid_on_both_axes(&self) -> bool {
+        if self.0.contains(AlignFlags::BASELINE) ||
+            self.0.contains(AlignFlags::LAST_BASELINE)
+        {
+            // <baseline-position> is only allowed on the block axis.
+            return false;
+        }
+
+        if self.0.contains(AlignFlags::LEFT) ||
+            self.0.contains(AlignFlags::RIGHT)
+        {
+            // left | right are only allowed on the inline axis.
+            return false;
+        }
+
+        true
+    }
+
     /// Whether this value has extra flags.
     #[inline]
     pub fn has_extra_flags(self) -> bool {
         self.0.intersects(AlignFlags::FLAG_BITS)
     }
-}
 
-impl Parse for SelfAlignment {
-    // auto | normal | stretch | <baseline-position> |
-    // [ <overflow-position>? && <self-position> ]
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // auto | normal | stretch | <baseline-position>
-        if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
+    /// Parse a self-alignment value on one of the axis.
+    pub fn parse<'i, 't>(
+        input: &mut Parser<'i, 't>,
+        axis: AxisDirection,
+    ) -> Result<Self, ParseError<'i>> {
+        // <baseline-position>, only on the block axis.
+        if axis == AxisDirection::Block {
+            if let Ok(value) = input.try(parse_baseline) {
+                return Ok(SelfAlignment(value));
+            }
+        }
+
+        // auto | normal | stretch
+        if let Ok(value) = input.try(parse_auto_normal_stretch) {
             return Ok(SelfAlignment(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        Ok(SelfAlignment(parse_overflow_self_position(input)?))
+
+        // <overflow-position>? <self-position>
+        let overflow_position =
+            input.try(parse_overflow_position)
+            .unwrap_or(AlignFlags::empty());
+        let self_position = parse_self_position(input, axis)?;
+        Ok(SelfAlignment(overflow_position | self_position))
+    }
+}
+
+/// The specified value of the align-self property.
+///
+/// <https://drafts.csswg.org/css-align/#propdef-align-self>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct AlignSelf(pub SelfAlignment);
+
+impl Parse for AlignSelf {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(AlignSelf(SelfAlignment::parse(input, AxisDirection::Block)?))
+    }
+}
+
+impl From<u8> for AlignSelf {
+    fn from(bits: u8) -> Self {
+        AlignSelf(SelfAlignment(AlignFlags::from_bits_truncate(bits)))
+    }
+}
+
+impl From<AlignSelf> for u8 {
+    fn from(align: AlignSelf) -> u8 {
+        (align.0).0.bits()
+    }
+}
+
+/// The specified value of the justify-self property.
+///
+/// <https://drafts.csswg.org/css-align/#propdef-justify-self>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct JustifySelf(pub SelfAlignment);
+
+impl Parse for JustifySelf {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(JustifySelf(SelfAlignment::parse(input, AxisDirection::Inline)?))
+    }
+}
+
+impl From<u8> for JustifySelf {
+    fn from(bits: u8) -> Self {
+        JustifySelf(SelfAlignment(AlignFlags::from_bits_truncate(bits)))
+    }
+}
+
+impl From<JustifySelf> for u8 {
+    fn from(justify: JustifySelf) -> u8 {
+        (justify.0).0.bits()
     }
 }
 
 /// Value of the `align-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#self-alignment>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct AlignItems(pub AlignFlags);
 
 impl AlignItems {
@@ -339,22 +417,28 @@ impl AlignItems {
 
 impl Parse for AlignItems {
     // normal | stretch | <baseline-position> |
-    // [ <overflow-position>? && <self-position> ]
+    // <overflow-position>? <self-position>
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // normal | stretch | <baseline-position>
-        if let Ok(value) = input.try(parse_normal_stretch_baseline) {
+        // <baseline-position>
+        if let Ok(baseline) = input.try(parse_baseline) {
+            return Ok(AlignItems(baseline));
+        }
+
+        // normal | stretch
+        if let Ok(value) = input.try(parse_normal_stretch) {
             return Ok(AlignItems(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        Ok(AlignItems(parse_overflow_self_position(input)?))
+        // <overflow-position>? <self-position>
+        let overflow = input.try(parse_overflow_position).unwrap_or(AlignFlags::empty());
+        let self_position = parse_self_position(input, AxisDirection::Block)?;
+        Ok(AlignItems(self_position | overflow))
     }
 }
 
 /// Value of the `justify-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#justify-items-property>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
 pub struct JustifyItems(pub AlignFlags);
 
 impl JustifyItems {
@@ -377,33 +461,49 @@ impl JustifyItems {
     }
 }
 
-
 impl Parse for JustifyItems {
-    // auto | normal | stretch | <baseline-position> |
-    // [ <overflow-position>? && <self-position> ]
-    // [ legacy && [ left | right | center ] ]
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // auto | normal | stretch | <baseline-position>
-        if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
+        // <baseline-position>
+        //
+        // It's weird that this accepts <baseline-position>, but not the
+        // justify-self / justify-content properties...
+        if let Ok(baseline) = input.try(parse_baseline) {
+            return Ok(JustifyItems(baseline));
+        }
+
+        // auto | normal | stretch
+        //
+        // FIXME(emilio): auto is no longer a keyword in the current spec, and
+        // has been renamed to legacy, but that needs different changes because
+        // right now it's the initial value for both style systems, and has that
+        // weird behavior of "inheriting" into descendants.
+        //
+        // Fix this in both.
+        //
+        // See also:
+        //   https://bugs.webkit.org/show_bug.cgi?id=172711
+        //   https://bugs.chromium.org/p/chromium/issues/detail?id=726148
+        //
+        if let Ok(value) = input.try(parse_auto_normal_stretch) {
             return Ok(JustifyItems(value))
         }
-        // [ legacy && [ left | right | center ] ]
+
+        // [ legacy || [ left | right | center ] ]
         if let Ok(value) = input.try(parse_legacy) {
             return Ok(JustifyItems(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        Ok(JustifyItems(parse_overflow_self_position(input)?))
+
+        // <overflow-position>? <self-position>
+        let overflow = input.try(parse_overflow_position).unwrap_or(AlignFlags::empty());
+        let self_position = parse_self_position(input, AxisDirection::Inline)?;
+        Ok(JustifyItems(overflow | self_position))
     }
 }
 
-// auto | normal | stretch | <baseline-position>
-fn parse_auto_normal_stretch_baseline<'i, 't>(
+// auto | normal | stretch
+fn parse_auto_normal_stretch<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<AlignFlags, ParseError<'i>> {
-    if let Ok(baseline) = input.try(parse_baseline) {
-        return Ok(baseline);
-    }
-
     try_match_ident_ignore_ascii_case! { input,
         "auto" => Ok(AlignFlags::AUTO),
         "normal" => Ok(AlignFlags::NORMAL),
@@ -412,11 +512,7 @@ fn parse_auto_normal_stretch_baseline<'i, 't>(
 }
 
 // normal | stretch | <baseline-position>
-fn parse_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    if let Ok(baseline) = input.try(parse_baseline) {
-        return Ok(baseline);
-    }
-
+fn parse_normal_stretch<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
         "normal" => Ok(AlignFlags::NORMAL),
         "stretch" => Ok(AlignFlags::STRETCH),
@@ -448,41 +544,6 @@ fn parse_content_distribution<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Alig
     }
 }
 
-// [ <overflow-position>? && <content-position> ]
-fn parse_overflow_content_position<'i, 't>(
-    input: &mut Parser<'i, 't>,
-    axis: AxisDirection,
-) -> Result<AlignFlags, ParseError<'i>> {
-    // <content-position> followed by optional <overflow-position>
-    if let Ok(mut content) = input.try(|input| parse_content_position(input, axis)) {
-        if let Ok(overflow) = input.try(parse_overflow_position) {
-            content |= overflow;
-        }
-        return Ok(content)
-    }
-
-    // <overflow-position> followed by required <content-position>
-    let overflow = parse_overflow_position(input)?;
-    let content = parse_content_position(input, axis)?;
-    Ok(overflow | content)
-}
-
-// <content-position>
-fn parse_content_position<'i, 't>(
-    input: &mut Parser<'i, 't>,
-    axis: AxisDirection,
-) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input,
-        "start" => Ok(AlignFlags::START),
-        "end" => Ok(AlignFlags::END),
-        "flex-start" => Ok(AlignFlags::FLEX_START),
-        "flex-end" => Ok(AlignFlags::FLEX_END),
-        "center" => Ok(AlignFlags::CENTER),
-        "left" if axis == AxisDirection::Inline => Ok(AlignFlags::LEFT),
-        "right" if axis == AxisDirection::Inline => Ok(AlignFlags::RIGHT),
-    }
-}
-
 // <overflow-position>
 fn parse_overflow_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
@@ -491,37 +552,22 @@ fn parse_overflow_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFl
     }
 }
 
-// [ <overflow-position>? && <self-position> ]
-fn parse_overflow_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    // <self-position> followed by optional <overflow-position>
-    if let Ok(mut self_position) = input.try(parse_self_position) {
-        if let Ok(overflow) = input.try(parse_overflow_position) {
-            self_position |= overflow;
-        }
-        return Ok(self_position)
-    }
-    // <overflow-position> followed by required <self-position>
-    if let Ok(overflow) = parse_overflow_position(input) {
-        if let Ok(self_position) = parse_self_position(input) {
-            return Ok(overflow | self_position)
-        }
-    }
-    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-}
-
-// <self-position>
-fn parse_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input,
-        "start" => Ok(AlignFlags::START),
-        "end" => Ok(AlignFlags::END),
-        "flex-start" => Ok(AlignFlags::FLEX_START),
-        "flex-end" => Ok(AlignFlags::FLEX_END),
-        "center" => Ok(AlignFlags::CENTER),
-        "left" => Ok(AlignFlags::LEFT),
-        "right" => Ok(AlignFlags::RIGHT),
-        "self-start" => Ok(AlignFlags::SELF_START),
-        "self-end" => Ok(AlignFlags::SELF_END),
-    }
+// <self-position> | left | right in the inline axis.
+fn parse_self_position<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    axis: AxisDirection,
+) -> Result<AlignFlags, ParseError<'i>> {
+    Ok(try_match_ident_ignore_ascii_case! { input,
+        "start" => AlignFlags::START,
+        "end" => AlignFlags::END,
+        "flex-start" => AlignFlags::FLEX_START,
+        "flex-end" => AlignFlags::FLEX_END,
+        "center" => AlignFlags::CENTER,
+        "self-start" => AlignFlags::SELF_START,
+        "self-end" => AlignFlags::SELF_END,
+        "left" if axis == AxisDirection::Inline => AlignFlags::LEFT,
+        "right" if axis == AxisDirection::Inline => AlignFlags::RIGHT,
+    })
 }
 
 // [ legacy && [ left | right | center ] ]

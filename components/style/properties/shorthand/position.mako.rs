@@ -664,35 +664,43 @@
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
                     products="gecko">
-    use values::specified::align::SelfAlignment;
-    use parser::Parse;
+    use values::specified::align::{AlignSelf, JustifySelf, SelfAlignment, AxisDirection};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-        let align = SelfAlignment::parse(context, input)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify = input.try(|input| SelfAlignment::parse(context, input)).unwrap_or(align.clone());
-        if justify.has_extra_flags() {
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let align = SelfAlignment::parse(input, AxisDirection::Block)?;
+        let justify = input.try(|input| SelfAlignment::parse(input, AxisDirection::Inline));
+
+        let justify = match justify {
+            Ok(v) => v,
+            Err(err) => {
+                if !align.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+                align
+            }
+        };
+
+        if justify.has_extra_flags() || align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_self: align,
-            justify_self: justify,
+            align_self: AlignSelf(align),
+            justify_self: JustifySelf(justify),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if self.align_self == self.justify_self {
-                self.align_self.to_css(dest)
-            } else {
-                self.align_self.to_css(dest)?;
+            self.align_self.to_css(dest)?;
+            if self.align_self.0 != self.justify_self.0 {
                 dest.write_str(" ")?;
-                self.justify_self.to_css(dest)
+                self.justify_self.to_css(dest)?;
             }
+            Ok(())
         }
     }
 </%helpers:shorthand>
