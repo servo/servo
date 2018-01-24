@@ -105,11 +105,6 @@ impl ToCss for AlignFlags {
     }
 }
 
-/// Mask for a single AlignFlags value.
-const ALIGN_ALL_BITS: u16 = structs::NS_STYLE_ALIGN_ALL_BITS as u16;
-/// Number of bits to shift a fallback alignment.
-const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
-
 /// An axis direction, either inline (for the `justify` properties) or block,
 /// (for the `align` properties).
 #[derive(Clone, Copy, PartialEq)]
@@ -120,28 +115,15 @@ pub enum AxisDirection {
     Inline,
 }
 
-/// Whether fallback is allowed in align-content / justify-content parsing.
-///
-/// This is used for the place-content shorthand, until the resolutions from [1]
-/// are specified.
-///
-/// [1]: https://github.com/w3c/csswg-drafts/issues/1002
-#[derive(Clone, Copy, PartialEq)]
-pub enum FallbackAllowed {
-    /// Allow fallback alignment.
-    Yes,
-    /// Don't allow fallback alignment.
-    No,
-}
-
 /// Shared value for the `align-content` and `justify-content` properties.
 ///
 /// <https://drafts.csswg.org/css-align/#content-distribution>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct ContentDistribution {
     primary: AlignFlags,
-    fallback: AlignFlags,
+    // FIXME(https://github.com/w3c/csswg-drafts/issues/1002): This will need to
+    // accept fallback alignment, eventually.
 }
 
 impl ContentDistribution {
@@ -151,43 +133,30 @@ impl ContentDistribution {
         Self::new(AlignFlags::NORMAL)
     }
 
-    /// Construct a value with no fallback.
+    /// The initial value 'normal'
     #[inline]
-    pub fn new(flags: AlignFlags) -> Self {
-        Self::with_fallback(flags, AlignFlags::empty())
-    }
-
-    /// Construct a value including a fallback alignment.
-    ///
-    /// <https://drafts.csswg.org/css-align/#fallback-alignment>
-    #[inline]
-    pub fn with_fallback(primary: AlignFlags, fallback: AlignFlags) -> Self {
-        Self { primary, fallback }
+    pub fn new(primary: AlignFlags) -> Self {
+        Self { primary }
     }
 
     fn from_bits(bits: u16) -> Self {
-        let primary =
-            AlignFlags::from_bits_truncate((bits & ALIGN_ALL_BITS) as u8);
-        let fallback =
-            AlignFlags::from_bits_truncate((bits >> ALIGN_ALL_SHIFT) as u8);
-        Self::with_fallback(primary, fallback)
+        Self {
+            primary: AlignFlags::from_bits_truncate(bits as u8)
+        }
     }
 
     fn as_bits(&self) -> u16 {
-        self.primary.bits() as u16 |
-        ((self.fallback.bits() as u16) << ALIGN_ALL_SHIFT)
+        self.primary.bits() as u16
     }
 
     /// Returns whether this value is valid for both axis directions.
     pub fn is_valid_on_both_axes(&self) -> bool {
-        if self.primary.intersects(AlignFlags::BASELINE | AlignFlags::LAST_BASELINE) ||
-            self.fallback.intersects(AlignFlags::BASELINE | AlignFlags::LAST_BASELINE) {
+        if self.primary.intersects(AlignFlags::BASELINE | AlignFlags::LAST_BASELINE) {
             // <baseline-position> is only allowed on the block axis.
             return false;
         }
 
-        if self.primary.intersects(AlignFlags::LEFT | AlignFlags::RIGHT) ||
-            self.fallback.intersects(AlignFlags::LEFT | AlignFlags::RIGHT) {
+        if self.primary.intersects(AlignFlags::LEFT | AlignFlags::RIGHT) {
             // left | right are only allowed on the inline axis.
             return false;
         }
@@ -201,24 +170,15 @@ impl ContentDistribution {
         self.primary
     }
 
-    /// The fallback alignment
-    #[inline]
-    pub fn fallback(self) -> AlignFlags {
-        self.fallback
-    }
-
     /// Whether this value has extra flags.
     #[inline]
     pub fn has_extra_flags(self) -> bool {
-        self.primary().intersects(AlignFlags::FLAG_BITS) ||
-        self.fallback().intersects(AlignFlags::FLAG_BITS)
+        self.primary().intersects(AlignFlags::FLAG_BITS)
     }
 
-    /// Parse a value for align-content / justify-content, optionally allowing
-    /// fallback.
+    /// Parse a value for align-content / justify-content.
     pub fn parse<'i, 't>(
         input: &mut Parser<'i, 't>,
-        fallback_allowed: FallbackAllowed,
         axis: AxisDirection,
     ) -> Result<Self, ParseError<'i>> {
         // Try to parse normal first
@@ -233,42 +193,27 @@ impl ContentDistribution {
             }
         }
 
-        // <content-distribution> followed by optional <*-position>
-        if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
-            if fallback_allowed == FallbackAllowed::Yes {
-                if let Ok(fallback) = input.try(|input| parse_overflow_content_position(input, axis)) {
-                    return Ok(ContentDistribution::with_fallback(value, fallback))
-                }
-            }
-            return Ok(ContentDistribution::new(value))
+        // <content-distribution>
+        if let Ok(value) = input.try(parse_content_distribution) {
+            return Ok(ContentDistribution::new(value));
         }
 
-        // <*-position> followed by optional <content-distribution>
-        let fallback = parse_overflow_content_position(input, axis)?;
-        if fallback_allowed == FallbackAllowed::Yes {
-            if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
-                return Ok(ContentDistribution::with_fallback(value, fallback))
-            }
-        }
+        // <overflow-position>? <content-position>
+        let overflow_position =
+            input.try(parse_overflow_position)
+            .unwrap_or(AlignFlags::empty());
 
-        Ok(ContentDistribution::new(fallback))
-    }
-}
+        let content_position = try_match_ident_ignore_ascii_case! { input,
+            "start" => AlignFlags::START,
+            "end" => AlignFlags::END,
+            "flex-start" => AlignFlags::FLEX_START,
+            "flex-end" => AlignFlags::FLEX_END,
+            "center" => AlignFlags::CENTER,
+            "left" if axis == AxisDirection::Inline => AlignFlags::LEFT,
+            "right" if axis == AxisDirection::Inline => AlignFlags::RIGHT,
+        };
 
-impl ToCss for ContentDistribution {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.primary().to_css(dest)?;
-        match self.fallback() {
-            AlignFlags::AUTO => {}
-            fallback => {
-                dest.write_str(" ")?;
-                fallback.to_css(dest)?;
-            }
-        }
-        Ok(())
+        Ok(ContentDistribution::new(content_position | overflow_position))
     }
 }
 
@@ -285,7 +230,6 @@ impl Parse for AlignContent {
     ) -> Result<Self, ParseError<'i>> {
         Ok(AlignContent(ContentDistribution::parse(
             input,
-            FallbackAllowed::Yes,
             AxisDirection::Block,
         )?))
     }
@@ -318,7 +262,6 @@ impl Parse for JustifyContent {
     ) -> Result<Self, ParseError<'i>> {
         Ok(JustifyContent(ContentDistribution::parse(
             input,
-            FallbackAllowed::Yes,
             AxisDirection::Inline,
         )?))
     }

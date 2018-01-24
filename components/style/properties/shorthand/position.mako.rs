@@ -615,25 +615,17 @@
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko">
-    use values::specified::align::{AlignContent, JustifyContent, ContentDistribution, FallbackAllowed, AxisDirection};
+    use values::specified::align::{AlignContent, JustifyContent, ContentDistribution, AxisDirection};
 
     pub fn parse_value<'i, 't>(
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         let align_content =
-            ContentDistribution::parse(
-                input,
-                FallbackAllowed::No,
-                AxisDirection::Inline,
-            )?;
+            ContentDistribution::parse(input, AxisDirection::Block)?;
 
         let justify_content = input.try(|input| {
-            ContentDistribution::parse(
-                input,
-                FallbackAllowed::No,
-                AxisDirection::Block,
-            )
+            ContentDistribution::parse(input, AxisDirection::Inline)
         });
 
         let justify_content = match justify_content {
