@@ -32,7 +32,7 @@ use super::specified;
 pub use app_units::Au;
 pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::align::{AlignItems, ContentDistribution, SelfAlignment, JustifyItems};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};

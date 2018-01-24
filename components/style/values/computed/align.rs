@@ -11,7 +11,7 @@ use style_traits::{CssWriter, ToCss};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
 
-pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf};
+pub use super::specified::{AlignItems, ContentDistribution, SelfAlignment};
 
 /// The computed value for the `justify-items` property.
 ///
