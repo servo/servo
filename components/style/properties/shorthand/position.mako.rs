@@ -634,11 +634,19 @@
                 FallbackAllowed::No,
                 AxisDirection::Block,
             )
-        }).unwrap_or(align_content);
+        });
 
-        // NOTE(emilio): align-content parsing is more restrictive than
-        // justify-content parsing, so no need to do any extra check here for
-        // that.
+        let justify_content = match justify_content {
+            Ok(v) => v,
+            Err(err) => {
+                if !align_content.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+
+                align_content
+            }
+        };
+
         if align_content.has_extra_flags() || justify_content.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
