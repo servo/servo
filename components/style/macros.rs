@@ -53,19 +53,16 @@ macro_rules! trivial_to_computed_value {
 /// FIXME(emilio): The fact that `UnexpectedIdent` is a `SelectorParseError`
 /// doesn't make a lot of sense to me.
 macro_rules! try_match_ident_ignore_ascii_case {
-    ($input:expr, $( $match_body:tt )*) => {
+    ($input:expr, $( $match_body:tt )*) => {{
         let location = $input.current_source_location();
         let ident = $input.expect_ident_cloned()?;
-        (match_ignore_ascii_case! { &ident,
+        match_ignore_ascii_case! { &ident,
             $( $match_body )*
-            _ => Err(()),
-        })
-        .map_err(|()| {
-            location.new_custom_error(
+            _ => return Err(location.new_custom_error(
                 ::selectors::parser::SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-            )
-        })
-    }
+            ))
+        }
+    }}
 }
 
 macro_rules! define_numbered_css_keyword_enum {

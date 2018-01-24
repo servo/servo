@@ -293,8 +293,9 @@ impl Parse for TextDecorationLine {
         }
 
         loop {
-            let result: Result<_, ParseError> = input.try(|input| {
-                try_match_ident_ignore_ascii_case! { input,
+            let result = input.try(|input| {
+                let ident = input.expect_ident().map_err(|_| ())?;
+                match_ignore_ascii_case! { ident,
                     "underline" => {
                         if result.contains(TextDecorationLine::UNDERLINE) {
                             Err(())
@@ -327,6 +328,7 @@ impl Parse for TextDecorationLine {
                             Ok(())
                         }
                     }
+                    _ => Err(()),
                 }
             });
             if result.is_err() {
