@@ -75,7 +75,14 @@ impl ToCss for AlignFlags {
     where
         W: Write,
     {
-        let s = match *self & !AlignFlags::FLAG_BITS {
+        match *self & AlignFlags::FLAG_BITS {
+            AlignFlags::LEGACY => dest.write_str("legacy ")?,
+            AlignFlags::SAFE => dest.write_str("safe ")?,
+            // Don't serialize "unsafe", since it's the default.
+            _ => {}
+        }
+
+        dest.write_str(match *self & !AlignFlags::FLAG_BITS {
             AlignFlags::AUTO => "auto",
             AlignFlags::NORMAL => "normal",
             AlignFlags::START => "start",
@@ -94,16 +101,7 @@ impl ToCss for AlignFlags {
             AlignFlags::SPACE_AROUND => "space-around",
             AlignFlags::SPACE_EVENLY => "space-evenly",
             _ => unreachable!()
-        };
-        dest.write_str(s)?;
-
-        match *self & AlignFlags::FLAG_BITS {
-            AlignFlags::LEGACY => { dest.write_str(" legacy")?; }
-            AlignFlags::SAFE => { dest.write_str(" safe")?; }
-            AlignFlags::UNSAFE => { dest.write_str(" unsafe")?; }
-            _ => {}
-        }
-        Ok(())
+        })
     }
 }
 
