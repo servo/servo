@@ -178,6 +178,23 @@ impl ContentDistribution {
         ((self.fallback.bits() as u16) << ALIGN_ALL_SHIFT)
     }
 
+    /// Returns whether this value is valid for both axis directions.
+    pub fn is_valid_on_both_axes(&self) -> bool {
+        if self.primary.intersects(AlignFlags::BASELINE | AlignFlags::LAST_BASELINE) ||
+            self.fallback.intersects(AlignFlags::BASELINE | AlignFlags::LAST_BASELINE) {
+            // <baseline-position> is only allowed on the block axis.
+            return false;
+        }
+
+        if self.primary.intersects(AlignFlags::LEFT | AlignFlags::RIGHT) ||
+            self.fallback.intersects(AlignFlags::LEFT | AlignFlags::RIGHT) {
+            // left | right are only allowed on the inline axis.
+            return false;
+        }
+
+        true
+    }
+
     /// The primary alignment
     #[inline]
     pub fn primary(self) -> AlignFlags {
@@ -202,17 +219,24 @@ impl ContentDistribution {
     pub fn parse<'i, 't>(
         input: &mut Parser<'i, 't>,
         fallback_allowed: FallbackAllowed,
-        _axis: AxisDirection,
+        axis: AxisDirection,
     ) -> Result<Self, ParseError<'i>> {
-        // normal | <baseline-position>
-        if let Ok(value) = input.try(|input| parse_normal_or_baseline(input)) {
-            return Ok(ContentDistribution::new(value))
+        // Try to parse normal first
+        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+            return Ok(ContentDistribution::normal());
+        }
+
+        // Parse <baseline-position>, but only on the block axis.
+        if axis == AxisDirection::Block {
+            if let Ok(value) = input.try(parse_baseline) {
+                return Ok(ContentDistribution::new(value));
+            }
         }
 
         // <content-distribution> followed by optional <*-position>
         if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
             if fallback_allowed == FallbackAllowed::Yes {
-                if let Ok(fallback) = input.try(|input| parse_overflow_content_position(input)) {
+                if let Ok(fallback) = input.try(|input| parse_overflow_content_position(input, axis)) {
                     return Ok(ContentDistribution::with_fallback(value, fallback))
                 }
             }
@@ -220,7 +244,7 @@ impl ContentDistribution {
         }
 
         // <*-position> followed by optional <content-distribution>
-        let fallback = parse_overflow_content_position(input)?;
+        let fallback = parse_overflow_content_position(input, axis)?;
         if fallback_allowed == FallbackAllowed::Yes {
             if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
                 return Ok(ContentDistribution::with_fallback(value, fallback))
@@ -334,7 +358,6 @@ impl SelfAlignment {
         self.0.intersects(AlignFlags::FLAG_BITS)
     }
 }
-
 
 impl Parse for SelfAlignment {
     // auto | normal | stretch | <baseline-position> |
@@ -457,19 +480,8 @@ fn parse_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<A
     }
 }
 
-// normal | <baseline-position>
-fn parse_normal_or_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    if let Ok(baseline) = input.try(parse_baseline) {
-        return Ok(baseline);
-    }
-
-    input.expect_ident_matching("normal")?;
-    Ok(AlignFlags::NORMAL)
-}
-
 // <baseline-position>
 fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    // FIXME: remove clone() when lifetimes are non-lexical
     try_match_ident_ignore_ascii_case! { input,
         "baseline" => Ok(AlignFlags::BASELINE),
         "first" => {
@@ -494,33 +506,37 @@ fn parse_content_distribution<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Alig
 }
 
 // [ <overflow-position>? && <content-position> ]
-fn parse_overflow_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
+fn parse_overflow_content_position<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    axis: AxisDirection,
+) -> Result<AlignFlags, ParseError<'i>> {
     // <content-position> followed by optional <overflow-position>
-    if let Ok(mut content) = input.try(parse_content_position) {
+    if let Ok(mut content) = input.try(|input| parse_content_position(input, axis)) {
         if let Ok(overflow) = input.try(parse_overflow_position) {
             content |= overflow;
         }
         return Ok(content)
     }
+
     // <overflow-position> followed by required <content-position>
-    if let Ok(overflow) = parse_overflow_position(input) {
-        if let Ok(content) = parse_content_position(input) {
-            return Ok(overflow | content)
-        }
-    }
-    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    let overflow = parse_overflow_position(input)?;
+    let content = parse_content_position(input, axis)?;
+    Ok(overflow | content)
 }
 
 // <content-position>
-fn parse_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
+fn parse_content_position<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    axis: AxisDirection,
+) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
         "start" => Ok(AlignFlags::START),
         "end" => Ok(AlignFlags::END),
         "flex-start" => Ok(AlignFlags::FLEX_START),
         "flex-end" => Ok(AlignFlags::FLEX_END),
         "center" => Ok(AlignFlags::CENTER),
-        "left" => Ok(AlignFlags::LEFT),
-        "right" => Ok(AlignFlags::RIGHT),
+        "left" if axis == AxisDirection::Inline => Ok(AlignFlags::LEFT),
+        "right" if axis == AxisDirection::Inline => Ok(AlignFlags::RIGHT),
     }
 }
 
