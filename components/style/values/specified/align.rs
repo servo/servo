@@ -112,14 +112,14 @@ const ALIGN_ALL_BITS: u16 = structs::NS_STYLE_ALIGN_ALL_BITS as u16;
 /// Number of bits to shift a fallback alignment.
 const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 
-/// Value of the `align-content` or `justify-content` property.
-///
-/// <https://drafts.csswg.org/css-align/#content-distribution>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct ContentDistribution {
-    primary: AlignFlags,
-    fallback: AlignFlags,
+/// An axis direction, either inline (for the `justify` properties) or block,
+/// (for the `align` properties).
+#[derive(Clone, Copy, PartialEq)]
+pub enum AxisDirection {
+    /// Block direction.
+    Block,
+    /// Inline direction.
+    Inline,
 }
 
 /// Whether fallback is allowed in align-content / justify-content parsing.
@@ -134,6 +134,16 @@ pub enum FallbackAllowed {
     Yes,
     /// Don't allow fallback alignment.
     No,
+}
+
+/// Shared value for the `align-content` and `justify-content` properties.
+///
+/// <https://drafts.csswg.org/css-align/#content-distribution>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+pub struct ContentDistribution {
+    primary: AlignFlags,
+    fallback: AlignFlags,
 }
 
 impl ContentDistribution {
@@ -157,6 +167,19 @@ impl ContentDistribution {
         Self { primary, fallback }
     }
 
+    fn from_bits(bits: u16) -> Self {
+        let primary =
+            AlignFlags::from_bits_truncate((bits & ALIGN_ALL_BITS) as u8);
+        let fallback =
+            AlignFlags::from_bits_truncate((bits >> ALIGN_ALL_SHIFT) as u8);
+        Self::with_fallback(primary, fallback)
+    }
+
+    fn as_bits(&self) -> u16 {
+        self.primary.bits() as u16 |
+        ((self.fallback.bits() as u16) << ALIGN_ALL_SHIFT)
+    }
+
     /// The primary alignment
     #[inline]
     pub fn primary(self) -> AlignFlags {
@@ -178,9 +201,10 @@ impl ContentDistribution {
 
     /// Parse a value for align-content / justify-content, optionally allowing
     /// fallback.
-    pub fn parse_with_fallback<'i, 't>(
+    pub fn parse<'i, 't>(
         input: &mut Parser<'i, 't>,
         fallback_allowed: FallbackAllowed,
+        _axis: AxisDirection,
     ) -> Result<Self, ParseError<'i>> {
         // normal | <baseline-position>
         if let Ok(value) = input.try(|input| parse_normal_or_baseline(input)) {
@@ -226,12 +250,69 @@ impl ToCss for ContentDistribution {
     }
 }
 
+/// Value for the `align-content` property.
+///
+/// <https://drafts.csswg.org/css-align/#propdef-align-content>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct AlignContent(pub ContentDistribution);
 
-impl Parse for ContentDistribution {
-    // normal | <baseline-position> |
-    // [ <content-distribution> || [ <overflow-position>? && <content-position> ] ]
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_with_fallback(input, FallbackAllowed::Yes)
+impl Parse for AlignContent {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(AlignContent(ContentDistribution::parse(
+            input,
+            FallbackAllowed::Yes,
+            AxisDirection::Block,
+        )?))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u16> for AlignContent {
+    fn from(bits: u16) -> Self {
+        AlignContent(ContentDistribution::from_bits(bits))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<AlignContent> for u16 {
+    fn from(v: AlignContent) -> u16 {
+        v.0.as_bits()
+    }
+}
+
+/// Value for the `justify-content` property.
+///
+/// <https://drafts.csswg.org/css-align/#propdef-align-content>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct JustifyContent(pub ContentDistribution);
+
+impl Parse for JustifyContent {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(JustifyContent(ContentDistribution::parse(
+            input,
+            FallbackAllowed::Yes,
+            AxisDirection::Inline,
+        )?))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u16> for JustifyContent {
+    fn from(bits: u16) -> Self {
+        JustifyContent(ContentDistribution::from_bits(bits))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<JustifyContent> for u16 {
+    fn from(v: JustifyContent) -> u16 {
+        v.0.as_bits()
     }
 }
 
@@ -348,25 +429,6 @@ impl Parse for JustifyItems {
         }
         // [ <overflow-position>? && <self-position> ]
         Ok(JustifyItems(parse_overflow_self_position(input)?))
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<u16> for ContentDistribution {
-    fn from(bits: u16) -> ContentDistribution {
-        let primary =
-            AlignFlags::from_bits_truncate((bits & ALIGN_ALL_BITS) as u8);
-        let fallback =
-            AlignFlags::from_bits_truncate((bits >> ALIGN_ALL_SHIFT) as u8);
-        ContentDistribution::with_fallback(primary, fallback)
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<ContentDistribution> for u16 {
-    fn from(v: ContentDistribution) -> u16 {
-        v.primary().bits() as u16 |
-        ((v.fallback().bits() as u16) << ALIGN_ALL_SHIFT)
     }
 }
 
