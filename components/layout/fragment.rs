@@ -717,13 +717,15 @@ impl Fragment {
     }
 
     /// Transforms this fragment using the given `SplitInfo`, preserving all the other data.
-    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<TextRun>)
-                                     -> Fragment {
+    ///
+    /// If this is the first half of a split, `first` is true
+    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<TextRun>,
+                                     first: bool) -> Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
         // Preserve the insertion point if it is in this fragment's range or it is at line end.
-        let (flags, insertion_point) = match self.specific {
+        let (mut flags, insertion_point) = match self.specific {
             SpecificFragmentInfo::ScannedText(ref info) => {
                 match info.insertion_point {
                     Some(index) if split.range.contains(index) => (info.flags, info.insertion_point),
@@ -734,6 +736,11 @@ impl Fragment {
             },
             _ => (ScannedTextFlags::empty(), None)
         };
+
+        if !first {
+            flags.set(ScannedTextFlags::SUPPRESS_LINE_BREAK_BEFORE, false);
+        }
+
         let info = Box::new(ScannedTextFragmentInfo::new(
             text_run,
             split.range,
