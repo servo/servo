@@ -615,33 +615,44 @@
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko">
-    use values::specified::align::{ContentDistribution, FallbackAllowed};
+    use values::specified::align::{AlignContent, JustifyContent, ContentDistribution, FallbackAllowed, AxisDirection};
 
     pub fn parse_value<'i, 't>(
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        let align = ContentDistribution::parse_with_fallback(input, FallbackAllowed::No)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify =
-            input.try(|input| ContentDistribution::parse_with_fallback(input, FallbackAllowed::No))
-                .unwrap_or(align);
-        if justify.has_extra_flags() {
+        let align_content =
+            ContentDistribution::parse(
+                input,
+                FallbackAllowed::No,
+                AxisDirection::Inline,
+            )?;
+
+        let justify_content = input.try(|input| {
+            ContentDistribution::parse(
+                input,
+                FallbackAllowed::No,
+                AxisDirection::Block,
+            )
+        }).unwrap_or(align_content);
+
+        // NOTE(emilio): align-content parsing is more restrictive than
+        // justify-content parsing, so no need to do any extra check here for
+        // that.
+        if align_content.has_extra_flags() || justify_content.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_content: align,
-            justify_content: justify,
+            align_content: AlignContent(align_content),
+            justify_content: JustifyContent(justify_content),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.align_content.to_css(dest)?;
-            if self.align_content != self.justify_content {
+            if self.align_content.0 != self.justify_content.0 {
                 dest.write_str(" ")?;
                 self.justify_content.to_css(dest)?;
             }
