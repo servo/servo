@@ -12,6 +12,7 @@ use values::computed::{Context, ToComputedValue};
 use values::specified;
 
 pub use super::specified::{AlignContent, JustifyContent, AlignItems, SelfAlignment};
+pub use super::specified::{AlignSelf, JustifySelf};
 
 /// The computed value for the `justify-items` property.
 ///

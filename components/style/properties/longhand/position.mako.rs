@@ -138,15 +138,15 @@ ${helpers.predefined_type("flex-shrink", "NonNegativeNumber",
                              animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="align-self",
-                              type="SelfAlignment",
-                              initial_value="specified::SelfAlignment::auto()",
+                              type="AlignSelf",
+                              initial_value="specified::AlignSelf(specified::SelfAlignment::auto())",
                               spec="https://drafts.csswg.org/css-align/#align-self-property",
                               extra_prefixes="webkit",
                               animation_value_type="discrete")}
 
     ${helpers.predefined_type(name="justify-self",
-                              type="SelfAlignment",
-                              initial_value="specified::SelfAlignment::auto()",
+                              type="JustifySelf",
+                              initial_value="specified::JustifySelf(specified::SelfAlignment::auto())",
                               spec="https://drafts.csswg.org/css-align/#justify-self-property",
                               animation_value_type="discrete")}
 
