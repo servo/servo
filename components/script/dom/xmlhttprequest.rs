@@ -1205,7 +1205,7 @@ impl XMLHttpRequest {
             };
             let last = true;
             let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, last);
-            assert!(read == bytes.len());
+            assert_eq!(read, bytes.len());
             unsafe {
                 utf16.set_len(written)
             }
