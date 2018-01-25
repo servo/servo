@@ -247,7 +247,7 @@ impl FontHandleMethods for FontHandle {
             return None;
         }
 
-        assert!(glyphs[0] != 0); // FIXME: error handling
+        assert_ne!(glyphs[0], 0); // FIXME: error handling
         return Some(glyphs[0] as GlyphId);
     }
 
