@@ -224,7 +224,7 @@ impl WebGLShader {
 
 impl Drop for WebGLShader {
     fn drop(&mut self) {
-        assert!(self.attached_counter.get() == 0);
+        assert_eq!(self.attached_counter.get(), 0);
         self.delete();
     }
 }
