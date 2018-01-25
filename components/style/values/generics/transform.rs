@@ -669,7 +669,7 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     }
 }
 
-#[derive(Animate, ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// A value of the `Rotate` property
 ///
@@ -683,7 +683,7 @@ pub enum Rotate<Number, Angle> {
     Rotate3D(Number, Number, Number, Angle),
 }
 
-#[derive(Animate, ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// A value of the `Scale` property
 ///
@@ -699,7 +699,7 @@ pub enum Scale<Number> {
     Scale3D(Number, Number, Number),
 }
 
-#[derive(Animate, ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// A value of the `Translate` property
 ///
