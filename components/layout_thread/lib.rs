@@ -1194,8 +1194,6 @@ impl LayoutThread {
                 debug!("Doc sheets changed, flushing author sheets too");
                 self.stylist.force_stylesheet_origins_dirty(Origin::Author.into());
             }
-
-            self.stylist.flush(&guards, Some(element));
         }
 
         if viewport_size_changed {
@@ -1245,6 +1243,8 @@ impl LayoutThread {
             style_data.damage = restyle.damage;
             debug!("Noting restyle for {:?}: {:?}", el, style_data);
         }
+
+        self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
         let mut layout_context =

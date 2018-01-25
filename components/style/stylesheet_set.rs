@@ -7,6 +7,7 @@
 use dom::TElement;
 use invalidation::stylesheets::StylesheetInvalidationSet;
 use media_queries::Device;
+use selector_parser::SnapshotMap;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
 use stylesheets::{Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
@@ -502,6 +503,7 @@ where
     pub fn flush<'a, E>(
         &'a mut self,
         document_element: Option<E>,
+        snapshots: Option<&SnapshotMap>,
     ) -> StylesheetFlusher<'a, S>
     where
         E: TElement,
@@ -510,7 +512,9 @@ where
 
         debug!("StylesheetSet::flush");
 
-        let had_invalidations = self.invalidations.flush(document_element);
+        let had_invalidations =
+            self.invalidations.flush(document_element, snapshots);
+
         let origins_dirty =
             mem::replace(&mut self.origins_dirty, OriginSet::empty());
 

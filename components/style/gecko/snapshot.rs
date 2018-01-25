@@ -193,7 +193,8 @@ impl ElementSnapshot for GeckoElementSnapshot {
 
     #[inline]
     fn each_class<F>(&self, callback: F)
-        where F: FnMut(&Atom)
+    where
+        F: FnMut(&Atom)
     {
         if !self.has_any(Flags::MaybeClass) {
             return;
