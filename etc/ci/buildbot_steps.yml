@@ -1,8 +1,6 @@
 env:
   RUSTFLAGS: -Dwarnings
   CARGO_INCREMENTAL: "0"
-  CCACHE: sccache
-  RUSTC_WRAPPER: sccache
   SCCACHE_IDLE_TIMEOUT: "600"
 
 mac-rel-wpt1:
