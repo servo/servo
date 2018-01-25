@@ -685,6 +685,22 @@ pub enum Rotate<Number, Angle> {
 
 #[derive(Animate, ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// A value of the `Scale` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Scale<Number> {
+    /// 'none'
+    None,
+    /// '<number>'
+    ScaleX(Number),
+    /// '<number>{2}'
+    Scale(Number, Number),
+    /// '<number>{3}'
+    Scale3D(Number, Number, Number),
+}
+
+#[derive(Animate, ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// A value of the `Translate` property
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>

@@ -3064,7 +3064,8 @@ fn static_assert() {
                           overscroll-behavior-x overscroll-behavior-y
                           overflow-clip-box-inline overflow-clip-box-block
                           perspective-origin -moz-binding will-change
-                          shape-outside contain touch-action translate""" %>
+                          shape-outside contain touch-action translate
+                          scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -3491,6 +3492,7 @@ fn static_assert() {
 
     ${impl_individual_transform('rotate', 'Rotate', 'mSpecifiedRotate')}
     ${impl_individual_transform('translate', 'Translate', 'mSpecifiedTranslate')}
+    ${impl_individual_transform('scale', 'Scale', 'mSpecifiedScale')}
 
     pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_AppendWillChange, Gecko_ClearWillChange};
