@@ -71,7 +71,7 @@ pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextAlign, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin, Rotate};
+pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin, Rotate, Translate};
 pub use self::ui::MozForceBrokenImageIcon;
 
 #[cfg(feature = "gecko")]

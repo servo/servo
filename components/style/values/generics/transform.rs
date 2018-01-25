@@ -682,3 +682,19 @@ pub enum Rotate<Number, Angle> {
     /// '<number>{3} <angle>'
     Rotate3D(Number, Number, Number, Angle),
 }
+
+#[derive(Animate, ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// A value of the `Translate` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Translate<LengthOrPercentage, Length> {
+    /// 'none'
+    None,
+    /// '<length-percentage>'
+    TranslateX(LengthOrPercentage),
+    /// '<length-percentage> <length-percentage>'
+    Translate(LengthOrPercentage, LengthOrPercentage),
+    /// '<length-percentage> <length-percentage> <length>'
+    Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+}

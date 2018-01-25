@@ -15,6 +15,7 @@ use values::generics::transform::{Transform as GenericTransform, TransformOperat
 use values::generics::transform::Rotate as GenericRotate;
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
+use values::generics::transform::Translate as GenericTranslate;
 
 /// A single operation in a computed CSS `transform`
 pub type TransformOperation = GenericTransformOperation<
@@ -315,6 +316,31 @@ impl Rotate {
             GenericTransformOperation::Rotate3D(rx, ry, rz, angle) =>
                 GenericRotate::Rotate3D(rx, ry, rz, angle),
             _ => unreachable!("Found unexpected value for rotate property"),
+        }
+    }
+}
+
+/// A computed CSS `translate`
+pub type Translate = GenericTranslate<LengthOrPercentage, Length>;
+
+impl Translate {
+    /// Convert TransformOperation to Translate.
+    pub fn to_transform_operation(&self) -> Option<TransformOperation> {
+        match *self {
+            GenericTranslate::None => None,
+            GenericTranslate::TranslateX(tx) => Some(GenericTransformOperation::TranslateX(tx)),
+            GenericTranslate::Translate(tx, ty) => Some(GenericTransformOperation::Translate(tx, Some(ty))),
+            GenericTranslate::Translate3D(tx, ty, tz) => Some(GenericTransformOperation::Translate3D(tx, ty, tz)),
+        }
+    }
+
+    /// Convert Translate to TransformOperation.
+    pub fn from_transform_operation(operation: &TransformOperation) -> Translate {
+        match *operation {
+            GenericTransformOperation::TranslateX(tx) => GenericTranslate::TranslateX(tx),
+            GenericTransformOperation::Translate(tx, Some(ty)) => GenericTranslate::Translate(tx, ty),
+            GenericTransformOperation::Translate3D(tx, ty, tz) => GenericTranslate::Translate3D(tx, ty, tz),
+            _ => unreachable!("Found unexpected value for translate"),
         }
     }
 }

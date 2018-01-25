@@ -16,6 +16,7 @@ use values::generics::transform::{StepPosition, TimingFunction as GenericTimingF
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
 use values::generics::transform::Rotate as GenericRotate;
 use values::generics::transform::TransformOperation as GenericTransformOperation;
+use values::generics::transform::Translate as GenericTranslate;
 use values::specified::{self, Angle, Number, Length, Integer};
 use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
 use values::specified::position::{Side, X, Y};
@@ -536,3 +537,30 @@ impl Parse for Rotate {
     }
 }
 
+/// A specified CSS `translate`
+pub type Translate = GenericTranslate<LengthOrPercentage, Length>;
+
+impl Parse for Translate {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GenericTranslate::None);
+        }
+
+        let tx = specified::LengthOrPercentage::parse(context, input)?;
+        if let Ok(ty) = input.try(|i| specified::LengthOrPercentage::parse(context, i)) {
+            if let Ok(tz) = input.try(|i| specified::Length::parse(context, i)) {
+                // 'translate: <length-percentage> <length-percentage> <length>'
+                return Ok(GenericTranslate::Translate3D(tx, ty, tz));
+            }
+
+            // translate: <length-percentage> <length-percentage>'
+            return Ok(GenericTranslate::Translate(tx, ty));
+        }
+
+        // 'translate: <length-percentage> '
+        Ok(GenericTranslate::TranslateX(tx))
+    }
+}

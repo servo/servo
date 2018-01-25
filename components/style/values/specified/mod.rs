@@ -67,7 +67,7 @@ pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine};
 pub use self::text::{TextAlign, TextAlignKeyword, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOrigin, Rotate};
+pub use self::transform::{TimingFunction, Transform, TransformOrigin, Rotate, Translate};
 pub use self::ui::MozForceBrokenImageIcon;
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
