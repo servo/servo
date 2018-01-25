@@ -529,7 +529,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         where I: Iterator<Item=T> + ExactSizeIterator
     {
         use ::std::mem::size_of;
-        assert!(size_of::<T>() != 0, "Need to think about ZST");
+        assert_ne!(size_of::<T>(), 0, "Need to think about ZST");
 
         // Compute the required size for the allocation.
         let num_items = items.len();
