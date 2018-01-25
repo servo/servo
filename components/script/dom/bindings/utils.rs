@@ -115,7 +115,7 @@ unsafe impl Sync for DOMJSClass {}
 /// Fails if `global` is not a DOM global object.
 pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
     unsafe {
-        assert!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
+        assert_ne!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL), 0);
         JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as *mut ProtoOrIfaceArray
     }
 }
