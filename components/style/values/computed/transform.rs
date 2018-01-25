@@ -12,6 +12,7 @@ use values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Perce
 use values::computed::{LengthOrNumber, LengthOrPercentageOrNumber};
 use values::generics::transform::{self, Matrix as GenericMatrix, Matrix3D as GenericMatrix3D};
 use values::generics::transform::{Transform as GenericTransform, TransformOperation as GenericTransformOperation};
+use values::generics::transform::Rotate as GenericRotate;
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
 
@@ -291,5 +292,29 @@ impl ToAnimatedZero for Transform {
             .iter()
             .map(|op| op.to_animated_zero())
             .collect::<Result<Vec<_>, _>>()?))
+    }
+}
+
+/// A computed CSS `rotate`
+pub type Rotate = GenericRotate<Number, Angle>;
+
+impl Rotate {
+    /// Convert TransformOperation to Rotate.
+    pub fn to_transform_operation(&self) -> Option<TransformOperation> {
+        match *self {
+            GenericRotate::None => None,
+            GenericRotate::Rotate(angle) => Some(GenericTransformOperation::Rotate(angle)),
+            GenericRotate::Rotate3D(rx, ry, rz, angle) => Some(GenericTransformOperation::Rotate3D(rx, ry, rz, angle)),
+        }
+    }
+
+    /// Convert Rotate to TransformOperation.
+    pub fn from_transform_operation(operation: &TransformOperation) -> Rotate {
+        match *operation {
+            GenericTransformOperation::Rotate(angle) => GenericRotate::Rotate(angle),
+            GenericTransformOperation::Rotate3D(rx, ry, rz, angle) =>
+                GenericRotate::Rotate3D(rx, ry, rz, angle),
+            _ => unreachable!("Found unexpected value for rotate property"),
+        }
     }
 }

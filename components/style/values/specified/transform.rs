@@ -14,6 +14,7 @@ use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{Matrix3D, Transform as GenericTransform};
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, Matrix};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
+use values::generics::transform::Rotate as GenericRotate;
 use values::generics::transform::TransformOperation as GenericTransformOperation;
 use values::specified::{self, Angle, Number, Length, Integer};
 use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
@@ -508,3 +509,30 @@ impl ToComputedValue for TimingFunction {
         }
     }
 }
+
+/// A specified CSS `rotate`
+pub type Rotate = GenericRotate<Number, Angle>;
+
+impl Parse for Rotate {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GenericRotate::None);
+        }
+
+        if let Some(rx) = input.try(|i| Number::parse(context, i)).ok() {
+            // 'rotate: <number>{3} <angle>'
+            let ry = Number::parse(context, input)?;
+            let rz = Number::parse(context, input)?;
+            let angle = specified::Angle::parse(context, input)?;
+            return Ok(GenericRotate::Rotate3D(rx, ry, rz, angle));
+        }
+
+        // 'rotate: <angle>'
+        let angle = specified::Angle::parse(context, input)?;
+        Ok(GenericRotate::Rotate(angle))
+    }
+}
+
