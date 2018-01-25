@@ -3887,6 +3887,18 @@
      {}
     ]
    ],
+   "css/list_item_marker_around_float.html": [
+    [
+     "/_mozilla/css/list_item_marker_around_float.html",
+     [
+      [
+       "/_mozilla/css/list_item_marker_around_float_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/list_item_overflow.html": [
     [
      "/_mozilla/css/list_item_overflow.html",
@@ -9534,6 +9546,11 @@
     ]
    ],
    "css/link_style_order_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/list_item_marker_around_float_ref.html": [
     [
      {}
     ]
@@ -63571,6 +63588,14 @@
   ],
   "css/link_style_order_ref.html": [
    "958f9315c950502cdadb2297e1ab77e197774113",
+   "support"
+  ],
+  "css/list_item_marker_around_float.html": [
+   "1023fced99e1181fadce849978c4e111da8ad4aa",
+   "reftest"
+  ],
+  "css/list_item_marker_around_float_ref.html": [
+   "1c13844df9055d73a8421ca3f8398cb4c289c44e",
    "support"
   ],
   "css/list_item_overflow.html": [

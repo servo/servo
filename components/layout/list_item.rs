@@ -63,6 +63,56 @@ impl ListItemFlow {
 
         this
     }
+
+    /// Assign inline size and position for the marker. This is done during the `assign_block_size`
+    /// traversal because floats will impact the marker position. Therefore we need to have already
+    /// called `assign_block_size` on the list item's block flow, in order to know which floats
+    /// impact the position.
+    ///
+    /// Per CSS 2.1 § 12.5.1, the marker position is not precisely specified, but it must be on the
+    /// left side of the content (for ltr direction). However, flowing the marker around floats
+    /// matches the rendering of Gecko and Blink.
+    fn assign_marker_inline_sizes(&mut self, layout_context: &LayoutContext) {
+        let base = &self.block_flow.base;
+        let available_rect = base.floats.available_rect(
+            -base.position.size.block,
+            base.position.size.block,
+            base.block_container_inline_size);
+        let mut marker_inline_start = available_rect.unwrap_or(self.block_flow.fragment.border_box).start.i;
+
+        for marker in self.marker_fragments.iter_mut().rev() {
+            let container_block_size =
+                self.block_flow.explicit_block_containing_size(layout_context.shared_context());
+            marker.assign_replaced_inline_size_if_necessary(base.block_container_inline_size, container_block_size);
+
+            // Do this now. There's no need to do this in bubble-widths, since markers do not
+            // contribute to the inline size of this flow.
+            let intrinsic_inline_sizes = marker.compute_intrinsic_inline_sizes();
+
+            marker.border_box.size.inline =
+                intrinsic_inline_sizes.content_intrinsic_sizes.preferred_inline_size;
+            marker_inline_start = marker_inline_start - marker.border_box.size.inline;
+            marker.border_box.start.i = marker_inline_start;
+        }
+    }
+
+    fn assign_marker_block_sizes(&mut self, layout_context: &LayoutContext) {
+        // FIXME(pcwalton): Do this during flow construction, like `InlineFlow` does?
+        let marker_line_metrics = with_thread_local_font_context(layout_context, |font_context| {
+            InlineFlow::minimum_line_metrics_for_fragments(&self.marker_fragments,
+                                                           font_context,
+                                                           &*self.block_flow.fragment.style)
+        });
+
+        for marker in &mut self.marker_fragments {
+            marker.assign_replaced_block_size_if_necessary();
+            let marker_inline_metrics = marker.aligned_inline_metrics(layout_context,
+                                                                      &marker_line_metrics,
+                                                                      Some(&marker_line_metrics));
+            marker.border_box.start.b = marker_line_metrics.space_above_baseline -
+                marker_inline_metrics.ascent;
+        }
+    }
 }
 
 impl Flow for ListItemFlow {
@@ -85,44 +135,12 @@ impl Flow for ListItemFlow {
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         self.block_flow.assign_inline_sizes(layout_context);
-
-        let mut marker_inline_start = self.block_flow.fragment.border_box.start.i;
-
-        for marker in self.marker_fragments.iter_mut().rev() {
-            let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-            let container_block_size =
-                self.block_flow.explicit_block_containing_size(layout_context.shared_context());
-            marker.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
-
-            // Do this now. There's no need to do this in bubble-widths, since markers do not
-            // contribute to the inline size of this flow.
-            let intrinsic_inline_sizes = marker.compute_intrinsic_inline_sizes();
-
-            marker.border_box.size.inline =
-                intrinsic_inline_sizes.content_intrinsic_sizes.preferred_inline_size;
-            marker_inline_start = marker_inline_start - marker.border_box.size.inline;
-            marker.border_box.start.i = marker_inline_start;
-        }
     }
 
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         self.block_flow.assign_block_size(layout_context);
-
-        // FIXME(pcwalton): Do this during flow construction, like `InlineFlow` does?
-        let marker_line_metrics = with_thread_local_font_context(layout_context, |font_context| {
-            InlineFlow::minimum_line_metrics_for_fragments(&self.marker_fragments,
-                                                           font_context,
-                                                           &*self.block_flow.fragment.style)
-        });
-
-        for marker in &mut self.marker_fragments {
-            marker.assign_replaced_block_size_if_necessary();
-            let marker_inline_metrics = marker.aligned_inline_metrics(layout_context,
-                                                                      &marker_line_metrics,
-                                                                      Some(&marker_line_metrics));
-            marker.border_box.start.b = marker_line_metrics.space_above_baseline -
-                marker_inline_metrics.ascent;
-        }
+        self.assign_marker_inline_sizes(layout_context);
+        self.assign_marker_block_sizes(layout_context);
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
