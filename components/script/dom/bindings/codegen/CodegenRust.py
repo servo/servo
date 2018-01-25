@@ -6529,8 +6529,7 @@ class CGNativeMember(ClassMethod):
 
 
 class CGCallback(CGClass):
-    def __init__(self, idlObject, descriptorProvider, baseName, methods,
-                 getters=[], setters=[]):
+    def __init__(self, idlObject, descriptorProvider, baseName, methods):
         self.baseName = baseName
         self._deps = idlObject.getDeps()
         name = idlObject.identifier.name
@@ -6549,7 +6548,7 @@ class CGCallback(CGClass):
         CGClass.__init__(self, name,
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
-                         methods=realMethods + getters + setters,
+                         methods=realMethods,
                          decorators="#[derive(JSTraceable, PartialEq)]\n#[allow_unrooted_interior]")
 
     def getConstructors(self):
@@ -6672,16 +6671,13 @@ class CGCallbackInterface(CGCallback):
     def __init__(self, descriptor):
         iface = descriptor.interface
         attrs = [m for m in iface.members if m.isAttr() and not m.isStatic()]
-        getters = [CallbackGetter(a, descriptor) for a in attrs]
-        setters = [CallbackSetter(a, descriptor) for a in attrs
-                   if not a.readonly]
+        assert not attrs
         methods = [m for m in iface.members
                    if m.isMethod() and not m.isStatic() and not m.isIdentifierLess()]
         methods = [CallbackOperation(m, sig, descriptor) for m in methods
                    for sig in m.signatures()]
         assert not iface.isJSImplemented() or not iface.ctor()
-        CGCallback.__init__(self, iface, descriptor, "CallbackInterface",
-                            methods, getters=getters, setters=setters)
+        CGCallback.__init__(self, iface, descriptor, "CallbackInterface", methods)
 
 
 class FakeMember():
@@ -6996,59 +6992,6 @@ class CallbackOperation(CallbackOperationBase):
                                        jsName,
                                        MakeNativeName(descriptor.binaryNameFor(jsName)),
                                        descriptor, descriptor.interface.isSingleOperationInterface())
-
-
-class CallbackGetter(CallbackMember):
-    def __init__(self, attr, descriptor):
-        self.ensureASCIIName(attr)
-        self.attrName = attr.identifier.name
-        CallbackMember.__init__(self,
-                                (attr.type, []),
-                                callbackGetterName(attr),
-                                descriptor,
-                                needThisHandling=False)
-
-    def getRvalDecl(self):
-        return "Dom::Rooted<Dom::Value> rval(cx, JS::UndefinedValue());\n"
-
-    def getCall(self):
-        replacements = {
-            "attrName": self.attrName
-        }
-        return string.Template(
-            'if (!JS_GetProperty(cx, mCallback, "${attrName}", &rval)) {\n'
-            '    return Err(JSFailed);\n'
-            '}\n').substitute(replacements)
-
-
-class CallbackSetter(CallbackMember):
-    def __init__(self, attr, descriptor):
-        self.ensureASCIIName(attr)
-        self.attrName = attr.identifier.name
-        CallbackMember.__init__(self,
-                                (BuiltinTypes[IDLBuiltinType.Types.void],
-                                 [FakeArgument(attr.type, attr)]),
-                                callbackSetterName(attr),
-                                descriptor,
-                                needThisHandling=False)
-
-    def getRvalDecl(self):
-        # We don't need an rval
-        return ""
-
-    def getCall(self):
-        replacements = {
-            "attrName": self.attrName,
-            "argv": "argv.handleAt(0)",
-        }
-        return string.Template(
-            'MOZ_ASSERT(argv.length() == 1);\n'
-            'if (!JS_SetProperty(cx, mCallback, "${attrName}", ${argv})) {\n'
-            '    return Err(JSFailed);\n'
-            '}\n').substitute(replacements)
-
-    def getArgcDecl(self):
-        return None
 
 
 class CGIterableMethodGenerator(CGGeneric):
