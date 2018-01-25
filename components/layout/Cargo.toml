@@ -48,6 +48,8 @@ style_traits = {path = "../style_traits"}
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+xi-unicode = "0.1.0"
 
 [dev-dependencies]
 size_of_test = {path = "../size_of_test"}
+
