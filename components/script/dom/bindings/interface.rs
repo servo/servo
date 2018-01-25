@@ -234,7 +234,7 @@ pub unsafe fn create_named_constructors(
     rooted!(in(cx) let mut constructor = ptr::null_mut::<JSObject>());
 
     for &(native, name, arity) in named_constructors {
-        assert!(*name.last().unwrap() == b'\0');
+        assert_eq!(*name.last().unwrap(), b'\0');
 
         let fun = JS_NewFunction(cx,
                                  Some(native),
@@ -324,7 +324,7 @@ pub unsafe fn define_on_global_object(
         global: HandleObject,
         name: &[u8],
         obj: HandleObject) {
-    assert!(*name.last().unwrap() == b'\0');
+    assert_eq!(*name.last().unwrap(), b'\0');
     assert!(JS_DefineProperty1(cx,
                                global,
                                name.as_ptr() as *const libc::c_char,
@@ -429,7 +429,7 @@ unsafe fn create_unscopable_object(
     rval.set(JS_NewPlainObject(cx));
     assert!(!rval.ptr.is_null());
     for &name in names {
-        assert!(*name.last().unwrap() == b'\0');
+        assert_eq!(*name.last().unwrap(), b'\0');
         assert!(JS_DefineProperty(
             cx, rval.handle(), name.as_ptr() as *const libc::c_char, TrueHandleValue,
             JSPROP_READONLY, None, None));
@@ -437,7 +437,7 @@ unsafe fn create_unscopable_object(
 }
 
 unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
-    assert!(*name.last().unwrap() == b'\0');
+    assert_eq!(*name.last().unwrap(), b'\0');
     rooted!(in(cx) let name = JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
     assert!(!name.is_null());
     assert!(JS_DefineProperty2(cx,
