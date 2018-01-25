@@ -109,12 +109,12 @@ macro_rules! assert_decl_eq {
     ($d:expr, $origin:ident, $expected:ident: $value:expr) => {{
         assert_eq!($d.origin, Origin::$origin);
         assert_eq!($d.descriptor, ViewportDescriptor::$expected($value));
-        assert!($d.important == false, "descriptor should not be !important");
+        assert_eq!($d.important, false, "descriptor should not be !important");
     }};
     ($d:expr, $origin:ident, $expected:ident: $value:expr, !important) => {{
         assert_eq!($d.origin, Origin::$origin);
         assert_eq!($d.descriptor, ViewportDescriptor::$expected($value));
-        assert!($d.important == true, "descriptor should be !important");
+        assert_eq!($d.important, true, "descriptor should be !important");
     }};
 }
 
