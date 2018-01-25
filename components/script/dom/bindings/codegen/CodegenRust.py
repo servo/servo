@@ -4549,7 +4549,7 @@ class ClassConstructor(ClassItem):
                 "});\n"
                 "// Note: callback cannot be moved after calling init.\n"
                 "match Rc::get_mut(&mut ret) {\n"
-                "    Some(ref mut callback) => unsafe { callback.parent.init(%s, %s) },\n"
+                "    Some(ref mut callback) => callback.parent.init(%s, %s),\n"
                 "    None => unreachable!(),\n"
                 "};\n"
                 "ret") % (cgClass.name, '\n'.join(initializers),
@@ -4564,7 +4564,7 @@ class ClassConstructor(ClassItem):
         body = ' {\n' + body + '}'
 
         return string.Template("""\
-pub fn ${decorators}new(${args}) -> Rc<${className}>${body}
+pub unsafe fn ${decorators}new(${args}) -> Rc<${className}>${body}
 """).substitute({'decorators': self.getDecorators(True),
                  'className': cgClass.getNameString(),
                  'args': args,
