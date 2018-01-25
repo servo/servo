@@ -585,7 +585,7 @@ impl HttpCache {
     /// Freshening Stored Responses upon Validation.
     /// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
     pub fn refresh(&mut self, request: &Request, response: Response, done_chan: &mut DoneChannel) -> Option<Response> {
-        assert!(response.status == Some(StatusCode::NotModified));
+        assert_eq!(response.status, Some(StatusCode::NotModified));
         let entry_key = CacheKey::new(request.clone());
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
