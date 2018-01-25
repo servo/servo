@@ -87,7 +87,7 @@ fn create_svg_element(name: QualName,
                       prefix: Option<Prefix>,
                       document: &Document)
                       -> DomRoot<Element> {
-    assert!(name.ns == ns!(svg));
+    assert_eq!(name.ns, ns!(svg));
 
     macro_rules! make(
         ($ctor:ident) => ({
@@ -119,7 +119,7 @@ fn create_html_element(name: QualName,
                        creator: ElementCreator,
                        mode: CustomElementCreationMode)
                        -> DomRoot<Element> {
-    assert!(name.ns == ns!(html));
+    assert_eq!(name.ns, ns!(html));
 
     // Step 4
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
