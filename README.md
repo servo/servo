@@ -119,7 +119,7 @@ sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel M
 #### On Arch Linux
 
 ``` sh
-sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu pkg-config
+sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu pkg-config ttf-fira-sans
 ```
 #### On Gentoo Linux
 
