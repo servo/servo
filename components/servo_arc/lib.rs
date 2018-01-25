@@ -987,6 +987,6 @@ mod tests {
             let _ = x == x;
             Arc::from_thin(x.clone());
         }
-        assert!(canary.load(Acquire) == 1);
+        assert_eq!(canary.load(Acquire), 1);
     }
 }
