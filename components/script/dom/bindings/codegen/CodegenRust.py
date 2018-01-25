@@ -4417,7 +4417,7 @@ class ClassMethod(ClassItem):
     def __init__(self, name, returnType, args, inline=False, static=False,
                  virtual=False, const=False, bodyInHeader=False,
                  templateArgs=None, visibility='public', body=None,
-                 breakAfterReturnDecl="\n",
+                 breakAfterReturnDecl="\n", unsafe=False,
                  breakAfterSelf="\n", override=False):
         """
         override indicates whether to flag the method as MOZ_OVERRIDE
@@ -4436,6 +4436,7 @@ class ClassMethod(ClassItem):
         self.breakAfterReturnDecl = breakAfterReturnDecl
         self.breakAfterSelf = breakAfterSelf
         self.override = override
+        self.unsafe = unsafe
         ClassItem.__init__(self, name, visibility)
 
     def getDecorators(self, declaring):
@@ -4468,7 +4469,7 @@ class ClassMethod(ClassItem):
 
         return string.Template(
             "${decorators}%s"
-            "${visibility}fn ${name}${templateClause}(${args})${returnType}${const}${override}${body}%s" %
+            "${visibility}${unsafe}fn ${name}${templateClause}(${args})${returnType}${const}${override}${body}%s" %
             (self.breakAfterReturnDecl, self.breakAfterSelf)
         ).substitute({
             'templateClause': templateClause,
@@ -4479,7 +4480,8 @@ class ClassMethod(ClassItem):
             'override': ' MOZ_OVERRIDE' if self.override else '',
             'args': args,
             'body': body,
-            'visibility': self.visibility + ' ' if self.visibility != 'priv' else ''
+            'visibility': self.visibility + ' ' if self.visibility != 'priv' else '',
+            'unsafe': "unsafe " if self.unsafe else "",
         })
 
     def define(self, cgClass):
@@ -6495,7 +6497,8 @@ def return_type(descriptorProvider, rettype, infallible):
 
 class CGNativeMember(ClassMethod):
     def __init__(self, descriptorProvider, member, name, signature, extendedAttrs,
-                 breakAfter=True, passJSBitsAsNeeded=True, visibility="public"):
+                 breakAfter=True, passJSBitsAsNeeded=True, visibility="public",
+                 unsafe=False):
         """
         If passJSBitsAsNeeded is false, we don't automatically pass in a
         JSContext* or a JSObject* based on the return and argument types.
@@ -6514,6 +6517,7 @@ class CGNativeMember(ClassMethod):
                              const=(not member.isStatic() and member.isAttr() and
                                     not signature[0].isVoid()),
                              breakAfterSelf=breakAfterSelf,
+                             unsafe=unsafe,
                              visibility=visibility)
 
     def getReturnType(self, type):
@@ -6598,14 +6602,14 @@ class CGCallback(CGClass):
             "if thisObjJS.is_null() {\n"
             "    return Err(JSFailed);\n"
             "}\n"
-            "return ${methodName}(${callArgs});").substitute({
+            "unsafe { ${methodName}(${callArgs}) }").substitute({
                 "callArgs": ", ".join(argnamesWithThis),
                 "methodName": 'self.' + method.name,
             })
         bodyWithoutThis = string.Template(
             setupCall +
             "rooted!(in(s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
-            "return ${methodName}(${callArgs});").substitute({
+            "unsafe { ${methodName}(${callArgs}) }").substitute({
                 "callArgs": ", ".join(argnamesWithoutThis),
                 "methodName": 'self.' + method.name,
             })
@@ -6728,6 +6732,7 @@ class CallbackMember(CGNativeMember):
                                 name, (self.retvalType, args),
                                 extendedAttrs={},
                                 passJSBitsAsNeeded=False,
+                                unsafe=needThisHandling,
                                 visibility=visibility)
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
@@ -6761,10 +6766,7 @@ class CallbackMember(CGNativeMember):
             "${convertArgs}"
             "${doCall}"
             "${returnResult}").substitute(replacements)
-        return CGWrapper(CGIndenter(CGList([
-            CGGeneric(pre),
-            CGGeneric(body),
-        ], "\n"), 4), pre="unsafe {\n", post="\n}").define()
+        return pre + "\n" + body
 
     def getResultConversion(self):
         replacements = {
