@@ -390,6 +390,14 @@ ${helpers.predefined_type("transform", "Transform",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           spec="https://drafts.csswg.org/css-transforms/#propdef-transform")}
 
+${helpers.predefined_type("rotate", "Rotate",
+                          "generics::transform::Rotate::None",
+                          animation_value_type="ComputedValue",
+                          boxed=True,
+                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+                          gecko_pref="layout.css.individual-transform.enabled",
+                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms")}
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",

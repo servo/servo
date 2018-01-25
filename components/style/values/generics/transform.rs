@@ -668,3 +668,17 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
         (vector.x, vector.y, vector.z, angle)
     }
 }
+
+#[derive(Animate, ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// A value of the `Rotate` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Rotate<Number, Angle> {
+    /// 'none'
+    None,
+    /// '<angle>'
+    Rotate(Angle),
+    /// '<number>{3} <angle>'
+    Rotate3D(Number, Number, Number, Angle),
+}
