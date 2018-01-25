@@ -195,7 +195,7 @@ impl Attr {
             ScriptThread::enqueue_callback_reaction(owner, reaction, None);
         }
 
-        assert!(Some(owner) == self.owner().r());
+        assert_eq!(Some(owner), self.owner().r());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
