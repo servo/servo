@@ -15,6 +15,7 @@ use values::generics::transform::{Matrix3D, Transform as GenericTransform};
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, Matrix};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
 use values::generics::transform::Rotate as GenericRotate;
+use values::generics::transform::Scale as GenericScale;
 use values::generics::transform::TransformOperation as GenericTransformOperation;
 use values::generics::transform::Translate as GenericTranslate;
 use values::specified::{self, Angle, Number, Length, Integer};
@@ -562,5 +563,33 @@ impl Parse for Translate {
 
         // 'translate: <length-percentage> '
         Ok(GenericTranslate::TranslateX(tx))
+    }
+}
+
+/// A specified CSS `scale`
+pub type Scale = GenericScale<Number>;
+
+impl Parse for Scale {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GenericScale::None);
+        }
+
+        let sx = Number::parse(context, input)?;
+        if let Some(sy) = input.try(|i| Number::parse(context, i)).ok() {
+            if let Some(sz) = input.try(|i| Number::parse(context, i)).ok() {
+                // 'scale: <number> <number> <number>'
+                return Ok(GenericScale::Scale3D(sx, sy, sz));
+            }
+
+            // 'scale: <number> <number>'
+            return Ok(GenericScale::Scale(sx, sy));
+        }
+
+        // 'scale: <number>'
+        Ok(GenericScale::ScaleX(sx))
     }
 }
