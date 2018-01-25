@@ -398,6 +398,14 @@ ${helpers.predefined_type("rotate", "Rotate",
                           gecko_pref="layout.css.individual-transform.enabled",
                           spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms")}
 
+${helpers.predefined_type("scale", "Scale",
+                          "generics::transform::Scale::None",
+                          animation_value_type="ComputedValue",
+                          boxed=True,
+                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+                          gecko_pref="layout.css.individual-transform.enabled",
+                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms")}
+
 ${helpers.predefined_type("translate", "Translate",
                           "generics::transform::Translate::None",
                           animation_value_type="ComputedValue",
