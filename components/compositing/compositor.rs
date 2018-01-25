@@ -495,6 +495,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::IsReadyToSaveImageReply(is_ready), ShutdownState::NotShuttingDown) => {
+                // TODO: We cannot change this to `assert_eq` because `ReadyState` doesn't
+                //       derive `Debug`
                 assert!(self.ready_to_save_state == ReadyState::WaitingForConstellationReply);
                 if is_ready {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
