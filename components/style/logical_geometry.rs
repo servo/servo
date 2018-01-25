@@ -265,12 +265,12 @@ impl DebugWritingMode {
 impl DebugWritingMode {
     #[inline]
     fn check(&self, other: WritingMode) {
-        assert!(self.mode == other)
+        assert_eq!(self.mode, other)
     }
 
     #[inline]
     fn check_debug(&self, other: DebugWritingMode) {
-        assert!(self.mode == other.mode)
+        assert_eq!(self.mode, other.mode)
     }
 
     #[inline]
