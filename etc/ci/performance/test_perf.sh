@@ -31,11 +31,11 @@ WARC_REPO="git@github.com:servo/servo-warc-tests.git"
 
 # Clone the warc tests if they don't exist
 if [[ ! -d ${WARC_DIR} ]]; then
-    git clone ${WARC_REPO}
+    git clone --progress ${WARC_REPO}
 fi
 
 # Make sure we're running with an up-to-date warc test repo
-git -C ${WARC_DIR} pull
+git -C ${WARC_DIR} pull --progress
 
 virtualenv venv --python="$(which python3)"
 PS1="" source venv/bin/activate
