@@ -72,6 +72,9 @@ mac-nightly:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly mac
+  - ./etc/ci/update-wpt-checkout fetch-and-update-expectations
+  - ./etc/ci/update-wpt-checkout open-pr
+  - ./etc/ci/update-wpt-checkout cleanup
 
 linux-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
