@@ -8,6 +8,7 @@ use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
+use dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
@@ -52,7 +53,7 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use style::str::split_commas;
-use textinput::{Direction, Selection, SelectionDirection, TextInput};
+use textinput::{Direction, SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 
@@ -188,7 +189,6 @@ pub struct HTMLInputElement {
     input_type: Cell<InputType>,
     checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
-    value_changed: Cell<bool>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
@@ -244,7 +244,6 @@ impl HTMLInputElement {
             input_type: Cell::new(Default::default()),
             placeholder: DomRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
-            value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
@@ -374,7 +373,7 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
         match (*self.unsafe_get()).input_type() {
             InputType::Password => {
                 let text = get_raw_textinput_value(self);
-                let sel = textinput.get_absolute_selection_range();
+                let sel = textinput.sorted_selection_offsets_range();
 
                 // Translate indices from the raw value to indices in the replacement value.
                 let char_start = text[.. sel.start].chars().count();
@@ -383,7 +382,7 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char .. char_end * bytes_per_char)
             }
-            input_type if input_type.is_textual() => Some(textinput.get_absolute_selection_range()),
+            input_type if input_type.is_textual() => Some(textinput.sorted_selection_offsets_range()),
             _ => None
         }
     }
@@ -416,6 +415,35 @@ impl TextControl for HTMLInputElement {
 
             _ => false
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-input-apply
+    //
+    // Defines input types to which the select() IDL method applies. These are a superset of the
+    // types for which selection_api_applies() returns true.
+    //
+    // Types omitted which could theoretically be included if they were
+    // rendered as a text control: file
+    fn has_selectable_text(&self) -> bool {
+        match self.input_type() {
+            InputType::Text | InputType::Search | InputType::Url
+            | InputType::Tel | InputType::Password | InputType::Email
+            | InputType::Date | InputType::Month | InputType::Week
+            | InputType::Time | InputType::DatetimeLocal | InputType::Number
+            | InputType::Color => {
+                true
+            }
+
+            InputType::Button | InputType::Checkbox | InputType::File
+            | InputType::Hidden | InputType::Image | InputType::Radio
+            | InputType::Range | InputType::Reset | InputType::Submit => {
+                false
+            }
+        }
+    }
+
+    fn set_dirty_value_flag(&self, value: bool) {
+        self.value_dirty.set(value)
     }
 }
 
@@ -538,8 +566,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 self.sanitize_value();
                 // Step 5.
                 if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut()
-                        .adjust_horizontal_to_limit(Direction::Forward, Selection::NotSelected);
+                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward);
                 }
             }
             ValueMode::Default |
@@ -557,7 +584,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
         }
 
-        self.value_changed.set(true);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -687,6 +713,11 @@ impl HTMLInputElementMethods for HTMLInputElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    fn Select(&self) {
+        self.dom_select(); // defined in TextControl trait
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn GetSelectionStart(&self) -> Option<u32> {
         self.get_dom_selection_start()
@@ -720,6 +751,19 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         self.set_dom_selection_range(start, end, direction)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
+        // defined in TextControl trait
+        self.set_dom_range_text(replacement, None, None, Default::default())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    fn SetRangeText_(&self, replacement: DOMString, start: u32, end: u32,
+                     selection_mode: SelectionMode) -> ErrorResult {
+        // defined in TextControl trait
+        self.set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 
     // Select the files based on filepaths passed in,
@@ -902,7 +946,6 @@ impl HTMLInputElement {
         self.SetValue(self.DefaultValue())
             .expect("Failed to reset input value to default.");
         self.value_dirty.set(false);
-        self.value_changed.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -1116,6 +1159,8 @@ impl VirtualMethods for HTMLInputElement {
 
                         // https://html.spec.whatwg.org/multipage/#input-type-change
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
+                        let previously_selectable = self.selection_api_applies();
+
                         self.input_type.set(new_type);
 
                         if new_type.is_textual() {
@@ -1167,6 +1212,11 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Step 6
                         self.sanitize_value();
+
+                        // Steps 7-9
+                        if !previously_selectable && self.selection_api_applies() {
+                            self.textinput.borrow_mut().clear_selection_to_limit(Direction::Backward);
+                        }
                     },
                     AttributeMutation::Removed => {
                         if self.input_type() == InputType::Radio {
@@ -1184,7 +1234,7 @@ impl VirtualMethods for HTMLInputElement {
 
                 self.update_placeholder_shown_state();
             },
-            &local_name!("value") if !self.value_changed.get() => {
+            &local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
                     value.map_or(DOMString::new(), DOMString::from));
@@ -1327,7 +1377,7 @@ impl VirtualMethods for HTMLInputElement {
                                                      keyevent.MetaKey());
                         },
                         DispatchInput => {
-                            self.value_changed.set(true);
+                            self.value_dirty.set(true);
                             self.update_placeholder_shown_state();
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                             event.mark_as_handled();

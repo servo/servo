@@ -48,12 +48,19 @@ impl From<SelectionDirection> for DOMString {
     }
 }
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
     /// 0-based column number in UTF-8 bytes
     pub index: usize,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub struct SelectionState {
+    start: TextPoint,
+    end: TextPoint,
+    direction: SelectionDirection,
 }
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
@@ -63,8 +70,9 @@ pub struct TextInput<T: ClipboardProvider> {
     lines: Vec<DOMString>,
     /// Current cursor input point
     pub edit_point: TextPoint,
-    /// Beginning of selection range with edit_point as end that can span multiple lines.
-    pub selection_begin: Option<TextPoint>,
+    /// The current selection goes from the selection_origin until the edit_point. Note that the
+    /// selection_origin may be after the edit_point, in the case of a backward selection.
+    pub selection_origin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
     #[ignore_malloc_size_of = "Can't easily measure this generic type"]
@@ -156,7 +164,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
-            selection_begin: None,
+            selection_origin: None,
             multiline: lines == Lines::Multiple,
             clipboard_provider: clipboard_provider,
             max_length: max_length,
@@ -169,7 +177,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Remove a character at the current editing point
     pub fn delete_char(&mut self, dir: Direction) {
-        if self.selection_begin.is_none() || self.selection_begin == Some(self.edit_point) {
+        if self.selection_origin.is_none() || self.selection_origin == Some(self.edit_point) {
             self.adjust_horizontal_by_one(dir, Selection::Selected);
         }
         self.replace_selection(DOMString::new());
@@ -182,46 +190,93 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Insert a string at the current editing point
     pub fn insert_string<S: Into<String>>(&mut self, s: S) {
-        if self.selection_begin.is_none() {
-            self.selection_begin = Some(self.edit_point);
+        if self.selection_origin.is_none() {
+            self.selection_origin = Some(self.edit_point);
         }
         self.replace_selection(DOMString::from(s.into()));
     }
 
-    pub fn get_sorted_selection(&self) -> Option<(TextPoint, TextPoint)> {
-        self.selection_begin.map(|begin| {
-            let end = self.edit_point;
-
-            if begin.line < end.line || (begin.line == end.line && begin.index < end.index) {
-                (begin, end)
-            } else {
-                (end, begin)
-            }
-        })
+    /// The selection origin, or the edit point if there is no selection. Note that the selection
+    /// origin may be after the edit point, in the case of a backward selection.
+    pub fn selection_origin_or_edit_point(&self) -> TextPoint {
+        self.selection_origin.unwrap_or(self.edit_point)
     }
 
-    // Check that the selection is valid.
-    fn assert_ok_selection(&self) {
-        if let Some(begin) = self.selection_begin {
-            debug_assert!(begin.line < self.lines.len());
-            debug_assert!(begin.index <= self.lines[begin.line].len());
+    /// The start of the selection (or the edit point, if there is no selection). Always less than
+    /// or equal to selection_end(), regardless of the selection direction.
+    pub fn selection_start(&self) -> TextPoint {
+        match self.selection_direction {
+            SelectionDirection::None | SelectionDirection::Forward => self.selection_origin_or_edit_point(),
+            SelectionDirection::Backward => self.edit_point,
         }
-        debug_assert!(self.edit_point.line < self.lines.len());
-        debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len());
+    }
+
+    /// The UTF-8 byte offset of the selection_start()
+    pub fn selection_start_offset(&self) -> usize {
+        self.text_point_to_offset(&self.selection_start())
+    }
+
+    /// The end of the selection (or the edit point, if there is no selection). Always greater
+    /// than or equal to selection_start(), regardless of the selection direction.
+    pub fn selection_end(&self) -> TextPoint {
+        match self.selection_direction {
+            SelectionDirection::None | SelectionDirection::Forward => self.edit_point,
+            SelectionDirection::Backward => self.selection_origin_or_edit_point(),
+        }
+    }
+
+    /// The UTF-8 byte offset of the selection_end()
+    pub fn selection_end_offset(&self) -> usize {
+        self.text_point_to_offset(&self.selection_end())
+    }
+
+    /// Whether or not there is an active selection (the selection may be zero-length)
+    #[inline]
+    pub fn has_selection(&self) -> bool {
+        self.selection_origin.is_some()
+    }
+
+    /// Returns a tuple of (start, end) giving the bounds of the current selection. start is always
+    /// less than or equal to end.
+    pub fn sorted_selection_bounds(&self) -> (TextPoint, TextPoint) {
+        (self.selection_start(), self.selection_end())
     }
 
     /// Return the selection range as UTF-8 byte offsets from the start of the content.
     ///
-    /// If there is no selection, returns an empty range at the insertion point.
-    pub fn get_absolute_selection_range(&self) -> Range<usize> {
-        match self.get_sorted_selection() {
-            Some((begin, end)) => self.get_absolute_point_for_text_point(&begin) ..
-                                  self.get_absolute_point_for_text_point(&end),
-            None => {
-                let insertion_point = self.get_absolute_insertion_point();
-                insertion_point .. insertion_point
+    /// If there is no selection, returns an empty range at the edit point.
+    pub fn sorted_selection_offsets_range(&self) -> Range<usize> {
+        self.selection_start_offset() .. self.selection_end_offset()
+    }
+
+    /// The state of the current selection. Can be used to compare whether selection state has changed.
+    pub fn selection_state(&self) -> SelectionState {
+        SelectionState {
+            start: self.selection_start(),
+            end: self.selection_end(),
+            direction: self.selection_direction,
+        }
+    }
+
+    // Check that the selection is valid.
+    fn assert_ok_selection(&self) {
+        if let Some(begin) = self.selection_origin {
+            debug_assert!(begin.line < self.lines.len());
+            debug_assert!(begin.index <= self.lines[begin.line].len());
+
+            match self.selection_direction {
+                SelectionDirection::None | SelectionDirection::Forward => {
+                    debug_assert!(begin <= self.edit_point)
+                },
+
+                SelectionDirection::Backward => {
+                    debug_assert!(self.edit_point <= begin)
+                },
             }
         }
+
+        debug_assert!(self.edit_point.line < self.lines.len());
+        debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len());
     }
 
     pub fn get_selection_text(&self) -> Option<String> {
@@ -242,78 +297,83 @@ impl<T: ClipboardProvider> TextInput<T> {
     ///
     /// The accumulator `acc` can be mutated by the callback, and will be returned at the end.
     fn fold_selection_slices<B, F: FnMut(&mut B, &str)>(&self, mut acc: B, mut f: F) -> B {
-        match self.get_sorted_selection() {
-            Some((begin, end)) if begin.line == end.line => {
-                f(&mut acc, &self.lines[begin.line][begin.index..end.index])
-            }
-            Some((begin, end)) => {
-                f(&mut acc, &self.lines[begin.line][begin.index..]);
-                for line in &self.lines[begin.line + 1 .. end.line] {
+        if self.has_selection() {
+            let (start, end) = self.sorted_selection_bounds();
+
+            if start.line == end.line {
+                f(&mut acc, &self.lines[start.line][start.index..end.index])
+            } else {
+                f(&mut acc, &self.lines[start.line][start.index..]);
+                for line in &self.lines[start.line + 1 .. end.line] {
                     f(&mut acc, "\n");
                     f(&mut acc, line);
                 }
                 f(&mut acc, "\n");
                 f(&mut acc, &self.lines[end.line][..end.index])
             }
-            None => {}
         }
+
         acc
     }
 
     pub fn replace_selection(&mut self, insert: DOMString) {
-        if let Some((begin, end)) = self.get_sorted_selection() {
-            let allowed_to_insert_count = if let Some(max_length) = self.max_length {
-                let len_after_selection_replaced = self.utf16_len() - self.selection_utf16_len();
-                if len_after_selection_replaced >= max_length {
-                    // If, after deleting the selection, the len is still greater than the max
-                    // length, then don't delete/insert anything
-                    return
-                }
-
-                max_length - len_after_selection_replaced
-            } else {
-                usize::MAX
-            };
-
-            let last_char_index = len_of_first_n_code_units(&*insert, allowed_to_insert_count);
-            let chars_to_insert = &insert[..last_char_index];
-
-            self.clear_selection();
-
-            let new_lines = {
-                let prefix = &self.lines[begin.line][..begin.index];
-                let suffix = &self.lines[end.line][end.index..];
-                let lines_prefix = &self.lines[..begin.line];
-                let lines_suffix = &self.lines[end.line + 1..];
-
-                let mut insert_lines = if self.multiline {
-                    chars_to_insert.split('\n').map(|s| DOMString::from(s)).collect()
-                } else {
-                    vec!(DOMString::from(chars_to_insert))
-                };
-
-                // FIXME(ajeffrey): effecient append for DOMStrings
-                let mut new_line = prefix.to_owned();
-
-                new_line.push_str(&insert_lines[0]);
-                insert_lines[0] = DOMString::from(new_line);
-
-                let last_insert_lines_index = insert_lines.len() - 1;
-                self.edit_point.index = insert_lines[last_insert_lines_index].len();
-                self.edit_point.line = begin.line + last_insert_lines_index;
-
-                // FIXME(ajeffrey): effecient append for DOMStrings
-                insert_lines[last_insert_lines_index].push_str(suffix);
-
-                let mut new_lines = vec!();
-                new_lines.extend_from_slice(lines_prefix);
-                new_lines.extend_from_slice(&insert_lines);
-                new_lines.extend_from_slice(lines_suffix);
-                new_lines
-            };
-
-            self.lines = new_lines;
+        if !self.has_selection() {
+            return
         }
+
+        let (start, end) = self.sorted_selection_bounds();
+
+        let allowed_to_insert_count = if let Some(max_length) = self.max_length {
+            let len_after_selection_replaced = self.utf16_len() - self.selection_utf16_len();
+            if len_after_selection_replaced >= max_length {
+                // If, after deleting the selection, the len is still greater than the max
+                // length, then don't delete/insert anything
+                return
+            }
+
+            max_length - len_after_selection_replaced
+        } else {
+            usize::MAX
+        };
+
+        let last_char_index = len_of_first_n_code_units(&*insert, allowed_to_insert_count);
+        let chars_to_insert = &insert[..last_char_index];
+
+        self.clear_selection();
+
+        let new_lines = {
+            let prefix = &self.lines[start.line][..start.index];
+            let suffix = &self.lines[end.line][end.index..];
+            let lines_prefix = &self.lines[..start.line];
+            let lines_suffix = &self.lines[end.line + 1..];
+
+            let mut insert_lines = if self.multiline {
+                chars_to_insert.split('\n').map(|s| DOMString::from(s)).collect()
+            } else {
+                vec!(DOMString::from(chars_to_insert))
+            };
+
+            // FIXME(ajeffrey): effecient append for DOMStrings
+            let mut new_line = prefix.to_owned();
+
+            new_line.push_str(&insert_lines[0]);
+            insert_lines[0] = DOMString::from(new_line);
+
+            let last_insert_lines_index = insert_lines.len() - 1;
+            self.edit_point.index = insert_lines[last_insert_lines_index].len();
+            self.edit_point.line = start.line + last_insert_lines_index;
+
+            // FIXME(ajeffrey): effecient append for DOMStrings
+            insert_lines[last_insert_lines_index].push_str(suffix);
+
+            let mut new_lines = vec!();
+            new_lines.extend_from_slice(lines_prefix);
+            new_lines.extend_from_slice(&insert_lines);
+            new_lines.extend_from_slice(lines_suffix);
+            new_lines
+        };
+
+        self.lines = new_lines;
         self.assert_ok_selection();
     }
 
@@ -330,8 +390,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         if select == Selection::Selected {
-            if self.selection_begin.is_none() {
-                self.selection_begin = Some(self.edit_point);
+            if self.selection_origin.is_none() {
+                self.selection_origin = Some(self.edit_point);
             }
         } else {
             self.clear_selection();
@@ -398,14 +458,19 @@ impl<T: ClipboardProvider> TextInput<T> {
     fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection)
                                               -> bool {
         if select == Selection::Selected {
-            if self.selection_begin.is_none() {
-                self.selection_begin = Some(self.edit_point);
+            if self.selection_origin.is_none() {
+                self.selection_origin = Some(self.edit_point);
             }
+
+            self.selection_direction = match adjust {
+                Direction::Backward => SelectionDirection::Backward,
+                Direction::Forward => SelectionDirection::Forward,
+            };
         } else {
-            if let Some((begin, end)) = self.get_sorted_selection() {
+            if self.has_selection() {
                 self.edit_point = match adjust {
-                    Direction::Backward => begin,
-                    Direction::Forward => end,
+                    Direction::Backward => self.selection_start(),
+                    Direction::Forward => self.selection_end(),
                 };
                 self.clear_selection();
                 return true
@@ -451,7 +516,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Select all text in the input control.
     pub fn select_all(&mut self) {
-        self.selection_begin = Some(TextPoint {
+        self.selection_origin = Some(TextPoint {
             line: 0,
             index: 0,
         });
@@ -463,7 +528,14 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Remove the current selection.
     pub fn clear_selection(&mut self) {
-        self.selection_begin = None;
+        self.selection_origin = None;
+        self.selection_direction = SelectionDirection::None;
+    }
+
+    /// Remove the current selection and set the edit point to the end of the content.
+    pub fn clear_selection_to_limit(&mut self, direction: Direction) {
+        self.clear_selection();
+        self.adjust_horizontal_to_limit(direction, Selection::NotSelected);
     }
 
     pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
@@ -780,17 +852,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         };
         self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
         self.edit_point.index = min(self.edit_point.index, self.current_line_length());
-        self.selection_begin = None;
+        self.selection_origin = None;
         self.assert_ok_selection();
     }
 
-    /// Get the insertion point as a byte offset from the start of the content.
-    pub fn get_absolute_insertion_point(&self) -> usize {
-        self.get_absolute_point_for_text_point(&self.edit_point)
-    }
-
     /// Convert a TextPoint into a byte offset from the start of the content.
-    pub fn get_absolute_point_for_text_point(&self, text_point: &TextPoint) -> usize {
+    fn text_point_to_offset(&self, text_point: &TextPoint) -> usize {
         self.lines.iter().enumerate().fold(0, |acc, (i, val)| {
             if i < text_point.line {
                 acc + val.len() + 1 // +1 for the \n
@@ -801,7 +868,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Convert a byte offset from the start of the content into a TextPoint.
-    pub fn get_text_point_for_absolute_point(&self, abs_point: usize) -> TextPoint {
+    fn offset_to_text_point(&self, abs_point: usize) -> TextPoint {
         let mut index = abs_point;
         let mut line = 0;
 
@@ -842,26 +909,15 @@ impl<T: ClipboardProvider> TextInput<T> {
         match direction {
             SelectionDirection::None |
             SelectionDirection::Forward => {
-                self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
-                self.edit_point = self.get_text_point_for_absolute_point(end);
+                self.selection_origin = Some(self.offset_to_text_point(start));
+                self.edit_point = self.offset_to_text_point(end);
             },
             SelectionDirection::Backward => {
-                self.selection_begin = Some(self.get_text_point_for_absolute_point(end));
-                self.edit_point = self.get_text_point_for_absolute_point(start);
+                self.selection_origin = Some(self.offset_to_text_point(end));
+                self.edit_point = self.offset_to_text_point(start);
             }
         }
         self.assert_ok_selection();
-    }
-
-    pub fn get_selection_start(&self) -> u32 {
-        let selection_start = match self.selection_begin {
-            Some(selection_begin_point) => {
-                self.get_absolute_point_for_text_point(&selection_begin_point)
-            },
-            None => self.get_absolute_insertion_point()
-        };
-
-        selection_start as u32
     }
 
     pub fn set_edit_point_index(&mut self, index: usize) {
