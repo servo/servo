@@ -206,7 +206,7 @@ unsafe impl<T: JSTraceable> JSTraceable for UnsafeCell<T> {
 
 unsafe impl<T: JSTraceable> JSTraceable for DomRefCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        (*self).borrow_for_gc_trace().trace(trc)
+        (*self).borrow().trace(trc)
     }
 }
 
