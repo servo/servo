@@ -114,7 +114,7 @@ pub fn begin_trace(flow_root: FlowRef) {
 /// file can then be viewed with an external tool.
 pub fn end_trace(generation: u32) {
     let mut thread_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
-    assert!(thread_state.scope_stack.len() == 1);
+    assert_eq!(thread_state.scope_stack.len(), 1);
     let mut root_scope = thread_state.scope_stack.pop().unwrap();
     root_scope.post = to_value(&thread_state.flow_root.base()).unwrap();
 

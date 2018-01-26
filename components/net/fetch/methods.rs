@@ -442,7 +442,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
             // We should still send the body across as a chunk
             target.process_response_chunk(vec.clone());
         } else {
-            assert!(*body == ResponseBody::Empty)
+            assert_eq!(*body, ResponseBody::Empty)
         }
     }
 }

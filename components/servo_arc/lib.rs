@@ -529,7 +529,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         where I: Iterator<Item=T> + ExactSizeIterator
     {
         use ::std::mem::size_of;
-        assert!(size_of::<T>() != 0, "Need to think about ZST");
+        assert_ne!(size_of::<T>(), 0, "Need to think about ZST");
 
         // Compute the required size for the allocation.
         let num_items = items.len();
@@ -718,7 +718,7 @@ impl<H: 'static, T: 'static> Arc<HeaderSliceWithLength<H, [T]>> {
     /// is not modified.
     #[inline]
     pub fn into_thin(a: Self) -> ThinArc<H, T> {
-        assert!(a.header.length == a.slice.len(),
+        assert_eq!(a.header.length, a.slice.len(),
                 "Length needs to be correct for ThinArc to work");
         let fat_ptr: *mut ArcInner<HeaderSliceWithLength<H, [T]>> = a.ptr();
         mem::forget(a);
@@ -987,6 +987,6 @@ mod tests {
             let _ = x == x;
             Arc::from_thin(x.clone());
         }
-        assert!(canary.load(Acquire) == 1);
+        assert_eq!(canary.load(Acquire), 1);
     }
 }

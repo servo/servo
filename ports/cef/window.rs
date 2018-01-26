@@ -564,7 +564,7 @@ pub fn app_wakeup() {
 #[cfg(target_os="linux")]
 pub fn init_window() {
     unsafe {
-        assert!(XInitThreads() != 0);
+        assert_ne!(XInitThreads(), 0);
         DISPLAY = XOpenDisplay(ptr::null()) as *mut c_void;
     }
 }

@@ -75,12 +75,12 @@ fn test_meta_viewport<F>(meta: &str, callback: F)
 
 macro_rules! assert_decl_len {
     ($declarations:ident == 1) => {
-        assert!($declarations.len() == 1,
+        assert_eq!($declarations.len(), 1,
                 "expected 1 declaration; have {}: {:?})",
                 $declarations.len(), $declarations)
     };
     ($declarations:ident == $len:expr) => {
-        assert!($declarations.len() == $len,
+        assert_eq!($declarations.len(), $len,
                 "expected {} declarations; have {}: {:?})",
                 $len, $declarations.len(), $declarations)
     }
@@ -109,12 +109,12 @@ macro_rules! assert_decl_eq {
     ($d:expr, $origin:ident, $expected:ident: $value:expr) => {{
         assert_eq!($d.origin, Origin::$origin);
         assert_eq!($d.descriptor, ViewportDescriptor::$expected($value));
-        assert!($d.important == false, "descriptor should not be !important");
+        assert_eq!($d.important, false, "descriptor should not be !important");
     }};
     ($d:expr, $origin:ident, $expected:ident: $value:expr, !important) => {{
         assert_eq!($d.origin, Origin::$origin);
         assert_eq!($d.descriptor, ViewportDescriptor::$expected($value));
-        assert!($d.important == true, "descriptor should be !important");
+        assert_eq!($d.important, true, "descriptor should be !important");
     }};
 }
 

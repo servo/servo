@@ -92,7 +92,7 @@ fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
     list.push(HstsEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, Some(0)).unwrap());
 
-    assert!(list.is_host_secure("mozilla.org") == false)
+    assert_eq!(list.is_host_secure("mozilla.org"), false)
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_a
     list.push(HstsEntry::new("servo.mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
-    assert!(list.entries_map.get("mozilla.org").unwrap().len() == 1)
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 1)
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
     list.push(HstsEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
-    assert!(list.entries_map.get("mozilla.org").unwrap().len() == 1)
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 1)
 }
 
 #[test]

@@ -138,7 +138,7 @@ impl HeadlessContext {
                                                     gl::UNSIGNED_BYTE,
                                                     width as i32,
                                                     height as i32);
-            assert!(ret != 0);
+            assert_ne!(ret, 0);
         };
 
         HeadlessContext {

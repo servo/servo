@@ -44,13 +44,13 @@ fn test_path_match() {
 
 #[test]
 fn test_default_path() {
-    assert!(&*Cookie::default_path("/foo/bar/baz/") == "/foo/bar/baz");
-    assert!(&*Cookie::default_path("/foo/bar/baz") == "/foo/bar");
-    assert!(&*Cookie::default_path("/foo/") == "/foo");
-    assert!(&*Cookie::default_path("/foo") == "/");
-    assert!(&*Cookie::default_path("/") == "/");
-    assert!(&*Cookie::default_path("") == "/");
-    assert!(&*Cookie::default_path("foo") == "/");
+    assert_eq!(&*Cookie::default_path("/foo/bar/baz/"), "/foo/bar/baz");
+    assert_eq!(&*Cookie::default_path("/foo/bar/baz"), "/foo/bar");
+    assert_eq!(&*Cookie::default_path("/foo/"), "/foo");
+    assert_eq!(&*Cookie::default_path("/foo"), "/");
+    assert_eq!(&*Cookie::default_path("/"), "/");
+    assert_eq!(&*Cookie::default_path(""), "/");
+    assert_eq!(&*Cookie::default_path("foo"), "/");
 }
 
 #[test]
@@ -69,7 +69,7 @@ fn fn_cookie_constructor() {
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
     assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_some());
     let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
-    assert!(&**cookie.cookie.domain().as_ref().unwrap() == "example.com");
+    assert_eq!(&**cookie.cookie.domain().as_ref().unwrap(), "example.com");
 
     // cookie public domains test
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  gov.ac").unwrap();
@@ -88,11 +88,11 @@ fn fn_cookie_constructor() {
 
     let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
     let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
-    assert!(cookie.cookie.value() == "bar");
-    assert!(cookie.cookie.name() == "baz");
+    assert_eq!(cookie.cookie.value(), "bar");
+    assert_eq!(cookie.cookie.name(), "baz");
     assert!(cookie.cookie.secure());
-    assert!(&cookie.cookie.path().as_ref().unwrap()[..] == "/foo/bar/");
-    assert!(&cookie.cookie.domain().as_ref().unwrap()[..] == "example.com");
+    assert_eq!(&cookie.cookie.path().as_ref().unwrap()[..], "/foo/bar/");
+    assert_eq!(&cookie.cookie.domain().as_ref().unwrap()[..], "example.com");
     assert!(cookie.host_only);
 
     let u = &ServoUrl::parse("http://example.com/foobar").unwrap();
@@ -192,11 +192,11 @@ fn test_sort_order() {
     let b = Cookie::new_wrapped(b, url, CookieSource::HTTP).unwrap();
 
     assert!(b.cookie.path().as_ref().unwrap().len() > a.cookie.path().as_ref().unwrap().len());
-    assert!(CookieStorage::cookie_comparator(&a, &b) == Ordering::Greater);
-    assert!(CookieStorage::cookie_comparator(&b, &a) == Ordering::Less);
-    assert!(CookieStorage::cookie_comparator(&a, &a_prime) == Ordering::Less);
-    assert!(CookieStorage::cookie_comparator(&a_prime, &a) == Ordering::Greater);
-    assert!(CookieStorage::cookie_comparator(&a, &a) == Ordering::Equal);
+    assert_eq!(CookieStorage::cookie_comparator(&a, &b), Ordering::Greater);
+    assert_eq!(CookieStorage::cookie_comparator(&b, &a), Ordering::Less);
+    assert_eq!(CookieStorage::cookie_comparator(&a, &a_prime), Ordering::Less);
+    assert_eq!(CookieStorage::cookie_comparator(&a_prime, &a), Ordering::Greater);
+    assert_eq!(CookieStorage::cookie_comparator(&a, &a), Ordering::Equal);
 }
 
 fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str: &str)

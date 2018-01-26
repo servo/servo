@@ -230,7 +230,7 @@ impl ToComputedValue for TextOverflow {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         if computed.sides_are_logical {
-            assert!(computed.first == TextOverflowSide::Clip);
+            assert_eq!(computed.first, TextOverflowSide::Clip);
             TextOverflow {
                 first: computed.second.clone(),
                 second: None,
