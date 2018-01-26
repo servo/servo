@@ -26,8 +26,10 @@ else
     echo "Found existing test cases, skipping download and unzip."
 fi
 
+# We use the https URL for the repo so the clone works even if
+# github.com isn't in ssh's known hosts.
 WARC_DIR="./servo-warc-tests"
-WARC_REPO="git@github.com:servo/servo-warc-tests.git"
+WARC_REPO="https://github.com/servo/servo-warc-tests.git"
 
 # Clone the warc tests if they don't exist
 if [[ ! -d ${WARC_DIR} ]]; then
