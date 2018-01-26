@@ -218,7 +218,7 @@ impl Font {
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
     fn shape_text_fast(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         let mut prev_glyph_id = None;
-        for (i, byte) in text.bytes().enumerate() {
+        for (i, byte) in text.to_uppercase().bytes().enumerate() {
             let character = byte as char;
             let glyph_id = match self.glyph_index(character) {
                 Some(id) => id,
@@ -260,10 +260,6 @@ impl Font {
 
     #[inline]
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
-        let codepoint = match self.variant {
-            font_variant_caps::T::SmallCaps => codepoint.to_uppercase().next().unwrap(), //FIXME: #5938
-            font_variant_caps::T::Normal => codepoint,
-        };
         self.handle.glyph_index(codepoint)
     }
 
