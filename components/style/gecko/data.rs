@@ -15,6 +15,7 @@ use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use malloc_size_of::MallocSizeOfOps;
 use media_queries::{Device, MediaList};
 use properties::ComputedValues;
+use selector_parser::SnapshotMap;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -202,6 +203,7 @@ impl PerDocumentStyleDataImpl {
         &mut self,
         guard: &SharedRwLockReadGuard,
         document_element: Option<E>,
+        snapshots: Option<&SnapshotMap>,
     ) -> bool
     where
         E: TElement,
@@ -209,6 +211,7 @@ impl PerDocumentStyleDataImpl {
         self.stylist.flush(
             &StylesheetGuards::same(guard),
             document_element,
+            snapshots,
         )
     }
 

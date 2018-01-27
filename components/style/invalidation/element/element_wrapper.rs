@@ -71,7 +71,8 @@ pub struct ElementWrapper<'a, E>
 }
 
 impl<'a, E> ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     /// Trivially constructs an `ElementWrapper`.
     pub fn new(el: E, snapshot_map: &'a SnapshotMap) -> Self {

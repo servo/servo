@@ -2009,6 +2009,13 @@ extern "C" {
     pub fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
+    pub fn Servo_InvalidateStyleForDocStateChanges(
+        root: RawGeckoElementBorrowed,
+        sets: *const nsTArray<RawServoStyleSetBorrowed>,
+        aStatesChanged: u64,
+    );
+}
+extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(
         loader: *mut Loader,
         gecko_stylesheet: *mut ServoStyleSheet,
@@ -2112,6 +2119,7 @@ extern "C" {
     pub fn Servo_StyleSet_FlushStyleSheets(
         set: RawServoStyleSetBorrowed,
         doc_elem: RawGeckoElementBorrowedOrNull,
+        snapshots: *const ServoElementSnapshotTable,
     );
 }
 extern "C" {
