@@ -96,40 +96,52 @@ mac-rel-intermittent:
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-dev:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./mach test-tidy --no-progress --all
-  - ./mach test-tidy --no-progress --self-test
-  - ./mach build --dev
-  - ./mach test-unit
-  - ./mach package --dev
-  - ./mach build-cef
-  - ./mach build --dev --no-default-features --features default-except-unstable
-  - ./mach build-geckolib
-  - ./mach test-stylo
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-  - bash ./etc/ci/check_no_panic.sh
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+    - ./mach clean-nightlies --keep 3 --force
+    - ./mach clean-cargo-cache --keep 3 --force
+    - ./mach test-tidy --no-progress --all
+    - ./mach test-tidy --no-progress --self-test
+    - ./mach build --dev
+    - ./mach test-unit
+    - ./mach package --dev
+    - ./mach build-cef
+    - ./mach build --dev --no-default-features --features default-except-unstable
+    - ./mach build-geckolib
+    - ./mach test-stylo
+    - bash ./etc/ci/lockfile_changed.sh
+    - bash ./etc/ci/manifest_changed.sh
+    - bash ./etc/ci/check_no_panic.sh
 
 linux-rel-wpt:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./mach build --release --with-debug-assertions
-  - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+    - ./mach clean-nightlies --keep 3 --force
+    - ./mach clean-cargo-cache --keep 3 --force
+    - ./mach build --release --with-debug-assertions
+    - ./mach test-wpt-failure
+    - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+    - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+    - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
 
 linux-rel-css:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./mach build --release --with-debug-assertions
-  - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-  - ./mach build-geckolib --release
-  - ./mach test-stylo --release
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+    - ./mach clean-nightlies --keep 3 --force
+    - ./mach clean-cargo-cache --keep 3 --force
+    - ./mach build --release --with-debug-assertions
+    - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+    - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+    - ./mach build-geckolib --release
+    - ./mach test-stylo --release
+    - bash ./etc/ci/lockfile_changed.sh
+    - bash ./etc/ci/manifest_changed.sh
 
 linux-nightly:
   - ./mach clean-nightlies --keep 3 --force
