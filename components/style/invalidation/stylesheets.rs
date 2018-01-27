@@ -10,7 +10,7 @@
 use Atom;
 use CaseSensitivityExt;
 use LocalName as SelectorLocalName;
-use dom::{TElement, TNode};
+use dom::{TDocument, TElement, TNode};
 use fnv::FnvHashSet;
 use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::restyle_hints::RestyleHint;
@@ -45,15 +45,15 @@ impl Invalidation {
         matches!(*self, Invalidation::ID(..) | Invalidation::Class(..))
     }
 
-    fn matches<E>(&self, element: E, snapshot: Option<&Snapshot>) -> bool
+    fn matches<E>(
+        &self,
+        element: E,
+        snapshot: Option<&Snapshot>,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool
     where
         E: TElement,
     {
-        // FIXME This should look at the quirks mode of the document to
-        // determine case sensitivity.
-        //
-        // FIXME(emilio): Actually write a test and fix this.
-        let case_sensitivity = CaseSensitivity::CaseSensitive;
         match *self {
             Invalidation::Class(ref class) => {
                 if element.has_class(class, case_sensitivity) {
@@ -222,7 +222,9 @@ impl StylesheetInvalidationSet {
             return false;
         }
 
-        self.process_invalidations_in_subtree(element, snapshots)
+        let case_sensitivity =
+            element.as_node().owner_doc().quirks_mode().classes_and_ids_case_sensitivity();
+        self.process_invalidations_in_subtree(element, snapshots, case_sensitivity)
     }
 
     /// Process style invalidations in a given subtree. This traverses the
@@ -235,6 +237,7 @@ impl StylesheetInvalidationSet {
         &self,
         element: E,
         snapshots: Option<&SnapshotMap>,
+        case_sensitivity: CaseSensitivity,
     ) -> bool
     where
         E: TElement,
@@ -258,7 +261,7 @@ impl StylesheetInvalidationSet {
         let element_wrapper = snapshots.map(|s| ElementWrapper::new(element, s));
         let snapshot = element_wrapper.as_ref().and_then(|e| e.snapshot());
         for invalidation in &self.invalid_scopes {
-            if invalidation.matches(element, snapshot) {
+            if invalidation.matches(element, snapshot, case_sensitivity) {
                 debug!("process_invalidations_in_subtree: {:?} matched subtree {:?}",
                        element, invalidation);
                 data.hint.insert(RestyleHint::restyle_subtree());
@@ -270,7 +273,7 @@ impl StylesheetInvalidationSet {
 
         if !data.hint.contains(RestyleHint::RESTYLE_SELF) {
             for invalidation in &self.invalid_elements {
-                if invalidation.matches(element, snapshot) {
+                if invalidation.matches(element, snapshot, case_sensitivity) {
                     debug!("process_invalidations_in_subtree: {:?} matched self {:?}",
                            element, invalidation);
                     data.hint.insert(RestyleHint::RESTYLE_SELF);
@@ -289,7 +292,7 @@ impl StylesheetInvalidationSet {
             };
 
             any_children_invalid |=
-                self.process_invalidations_in_subtree(child, snapshots);
+                self.process_invalidations_in_subtree(child, snapshots, case_sensitivity);
         }
 
         if any_children_invalid {
