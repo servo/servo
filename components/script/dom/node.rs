@@ -82,6 +82,7 @@ use std::mem;
 use std::ops::Range;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
 use style::thread_state;
@@ -617,6 +618,10 @@ impl Node {
 
     pub fn client_rect(&self) -> Rect<i32> {
         window_from_node(self).client_rect_query(self.to_trusted_node_address())
+    }
+
+    pub fn style(&self) -> Option<Arc<ComputedValues>> {
+        window_from_node(self).style_query(self.to_trusted_node_address())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth

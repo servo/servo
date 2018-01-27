@@ -216,6 +216,12 @@ impl Display {
             other => other,
         }
     }
+
+    /// Returns true if the value is `None`
+    #[inline]
+    pub fn is_none(&self) -> bool {
+        *self == Display::None
+    }
 }
 
 /// A specified value for the `vertical-align` property.

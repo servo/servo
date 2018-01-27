@@ -5,7 +5,9 @@
 use app_units::Au;
 use euclid::{Point2D, Rect};
 use script_traits::UntrustedNodeAddress;
-use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
+use servo_arc::Arc;
+use style::properties::ComputedValues;
+use style::properties::longhands::overflow_x;
 use webrender_api::ClipId;
 
 /// Synchronous messages that script can send to layout.
@@ -23,8 +25,6 @@ pub trait LayoutRPC {
     fn content_boxes(&self) -> ContentBoxesResponse;
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
-    /// Requests the overflow-x and overflow-y of this node. Used by `scrollTop` etc.
-    fn node_overflow(&self) -> NodeOverflowResponse;
     /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
     fn node_scroll_area(&self) -> NodeGeometryResponse;
     /// Requests the scroll root id of this node. Used by APIs such as `scrollTop`
@@ -32,8 +32,9 @@ pub trait LayoutRPC {
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
-    /// Query layout for the resolve values of the margin properties for an element.
-    fn margin_style(&self) -> MarginStyleResponse;
+    /// Requests the styles for an element. Contains a `None` value if the element is in a `display:
+    /// none` subtree.
+    fn style(&self) -> StyleResponse;
     fn text_index(&self) -> TextIndexResponse;
     /// Requests the list of nodes from the given point.
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
@@ -70,23 +71,7 @@ impl OffsetParentResponse {
 }
 
 #[derive(Clone)]
-pub struct MarginStyleResponse {
-    pub top: margin_top::computed_value::T,
-    pub right: margin_right::computed_value::T,
-    pub bottom: margin_bottom::computed_value::T,
-    pub left: margin_left::computed_value::T,
-}
-
-impl MarginStyleResponse {
-    pub fn empty() -> MarginStyleResponse {
-        MarginStyleResponse {
-            top: margin_top::computed_value::T::Auto,
-            right: margin_right::computed_value::T::Auto,
-            bottom: margin_bottom::computed_value::T::Auto,
-            left: margin_left::computed_value::T::Auto,
-        }
-    }
-}
+pub struct StyleResponse(pub Option<Arc<ComputedValues>>);
 
 #[derive(Clone)]
 pub struct TextIndexResponse(pub Option<usize>);
