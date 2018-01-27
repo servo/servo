@@ -16,9 +16,9 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
-use script_layout_interface::rpc::{NodeOverflowResponse, NodeScrollRootIdResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, TextIndexResponse};
+use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollRootIdResponse};
+use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
+use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -59,9 +59,6 @@ pub struct LayoutThreadData {
     /// A queued response for the scroll root id for a given node.
     pub scroll_root_id_response: Option<ClipId>,
 
-    /// A pair of overflow property in x and y
-    pub overflow_response: NodeOverflowResponse,
-
     /// A queued response for the scroll {top, left, width, height} of a node in pixels.
     pub scroll_area_response: Rect<i32>,
 
@@ -71,8 +68,8 @@ pub struct LayoutThreadData {
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
 
-    /// A queued response for the offset parent/rect of a node.
-    pub margin_style_response: MarginStyleResponse,
+    /// A queued response for the style of a node.
+    pub style_response: StyleResponse,
 
     /// Scroll offsets of scrolling regions.
     pub scroll_offsets: ScrollOffsetMap,
@@ -128,10 +125,6 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn node_overflow(&self) -> NodeOverflowResponse {
-        NodeOverflowResponse(self.0.lock().unwrap().overflow_response.0)
-    }
-
     fn node_scroll_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
             client_rect: self.0.lock().unwrap().scroll_area_response
@@ -157,10 +150,10 @@ impl LayoutRPC for LayoutRPCImpl {
         rw_data.offset_parent_response.clone()
     }
 
-    fn margin_style(&self) -> MarginStyleResponse {
+    fn style(&self) -> StyleResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
-        rw_data.margin_style_response.clone()
+        rw_data.style_response.clone()
     }
 
     fn text_index(&self) -> TextIndexResponse {
@@ -863,24 +856,10 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
     }
 }
 
-pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOverflowResponse {
-    let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.as_element().unwrap().resolved_style();
-    let style_box = style.get_box();
+pub fn process_style_query<N: LayoutNode>(requested_node: N)
+        -> StyleResponse {
+    let element = requested_node.as_element().unwrap();
+    let data = element.borrow_data();
 
-    NodeOverflowResponse(Some(Point2D::new(style_box.overflow_x, style_box.overflow_y)))
-}
-
-pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)
-        -> MarginStyleResponse {
-    let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.as_element().unwrap().resolved_style();
-    let margin = style.get_margin();
-
-    MarginStyleResponse {
-        top: margin.margin_top,
-        right: margin.margin_right,
-        bottom: margin.margin_bottom,
-        left: margin.margin_left,
-    }
+    StyleResponse(data.map(|d| d.styles.primary().clone()))
 }

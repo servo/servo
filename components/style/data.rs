@@ -11,7 +11,6 @@ use invalidation::element::restyle_hints::RestyleHint;
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocSizeOfOps;
 use properties::ComputedValues;
-use properties::longhands::display::computed_value::T as Display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use selectors::NthIndexCache;
@@ -169,7 +168,7 @@ impl ElementStyles {
 
     /// Whether this element `display` value is `none`.
     pub fn is_display_none(&self) -> bool {
-        self.primary().get_box().clone_display() == Display::None
+        self.primary().get_box().clone_display().is_none()
     }
 
     #[cfg(feature = "gecko")]
