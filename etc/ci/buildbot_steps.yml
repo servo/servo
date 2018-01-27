@@ -87,7 +87,7 @@ linux-rel-nogate:
   - ./mach clean-cargo-cache --keep 3 --force
   - ./mach build --release
   - python ./etc/ci/chaos_monkey_test.py
-  - RUSTFLAGS= bash ./etc/ci/mutation_test.sh
+  - env RUSTFLAGS= bash ./etc/ci/mutation_test.sh
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
