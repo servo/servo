@@ -2206,6 +2206,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
+    fn is_html_slot_element(&self) -> bool {
+        self.is_html_element() &&
+        self.get_local_name().as_ptr() == local_name!("slot").as_ptr()
+    }
+
+    #[inline]
     fn ignores_nth_child_selectors(&self) -> bool {
         self.is_root_of_anonymous_subtree()
     }
