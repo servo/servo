@@ -107,7 +107,8 @@ use style::context::QuirksMode;
 use style::dom_apis;
 use style::element_state::ElementState;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::properties::{ComputedValues, Importance, PropertyDeclaration};
+use style::properties::{PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::longhands::{overflow_x, overflow_y};
 use style::rule_tree::CascadeLevel;
@@ -347,13 +348,18 @@ impl Element {
         }
     }
 
+    /// style will be `None` for elements in a `display: none` subtree. otherwise, the element has a
+    /// layout box iff it doesn't have `display: none`.
+    fn style(&self) -> Option<Arc<ComputedValues>> {
+        window_from_node(self).style_query(
+            self.upcast::<Node>().to_trusted_node_address()
+        )
+    }
+
     // https://drafts.csswg.org/cssom-view/#css-layout-box
     fn has_css_layout_box(&self) -> bool {
-        let style = self.upcast::<Node>().style();
-
-        // style will be None for elements in a display: none subtree. otherwise, the element has a
-        // layout box iff it doesn't have display: none.
-        style.map_or(false, |s| !s.get_box().clone_display().is_none())
+        self.style()
+            .map_or(false, |s| !s.get_box().clone_display().is_none())
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
@@ -380,9 +386,7 @@ impl Element {
 
     /// Computed value of overflow-x or overflow-y is "visible"
     fn has_any_visible_overflow(&self) -> bool {
-        let style = self.upcast::<Node>().style();
-
-        style.map_or(false, |s| {
+        self.style().map_or(false, |s| {
             let box_ = s.get_box();
 
             box_.clone_overflow_x() == overflow_x::computed_value::T::Visible ||
@@ -392,9 +396,7 @@ impl Element {
 
     /// Computed value of overflow-x or overflow-y is "hidden"
     fn has_any_hidden_overflow(&self) -> bool {
-        let style = self.upcast::<Node>().style();
-
-        style.map_or(false, |s| {
+        self.style().map_or(false, |s| {
             let box_ = s.get_box();
 
             box_.clone_overflow_x() == overflow_x::computed_value::T::Hidden ||
