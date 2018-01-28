@@ -72,8 +72,7 @@ use script_layout_interface::{TrustedNodeAddress, PendingImageState};
 use script_layout_interface::message::{Msg, Reflow, ReflowGoal, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
-use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
+use script_layout_interface::rpc::{NodeScrollRootIdResponse, ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, Runtime};
 use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use script_thread::{ScriptThread, SendableMainThreadScriptChan};
@@ -82,6 +81,7 @@ use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEven
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
+use servo_arc;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -102,8 +102,7 @@ use std::sync::mpsc::{Sender, channel};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
-use style::properties::PropertyId;
-use style::properties::longhands::overflow_x;
+use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
@@ -1403,16 +1402,6 @@ impl Window {
         self.layout_rpc.node_scroll_area().client_rect
     }
 
-    pub fn overflow_query(&self,
-                          node: TrustedNodeAddress) -> Point2D<overflow_x::computed_value::T> {
-        // NB: This is only called if the document is fully active, and the only
-        // reason to bail out from a query is if there's no viewport, so this
-        // *must* issue a reflow.
-        assert!(self.reflow(ReflowGoal::NodeOverflowQuery(node), ReflowReason::Query));
-
-        self.layout_rpc.node_overflow().0.unwrap()
-    }
-
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
         if let Some(scroll_offset) = self.scroll_offsets
                                          .borrow()
@@ -1477,11 +1466,11 @@ impl Window {
         (element, response.rect)
     }
 
-    pub fn margin_style_query(&self, node: TrustedNodeAddress) -> MarginStyleResponse {
-        if !self.reflow(ReflowGoal::MarginStyleQuery(node), ReflowReason::Query) {
-            return MarginStyleResponse::empty();
+    pub fn style_query(&self, node: TrustedNodeAddress) -> Option<servo_arc::Arc<ComputedValues>> {
+        if !self.reflow(ReflowGoal::StyleQuery(node), ReflowReason::Query) {
+            return None
         }
-        self.layout_rpc.margin_style()
+        self.layout_rpc.style().0
     }
 
     pub fn text_index_query(
@@ -1898,12 +1887,11 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowGoal::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
         ReflowGoal::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
-        ReflowGoal::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowGoal::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
         ReflowGoal::NodeScrollRootIdQuery(_n) => "\tNodeScrollRootIdQuery",
         ReflowGoal::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowGoal::OffsetParentQuery(_n) => "\tOffsetParentQuery",
-        ReflowGoal::MarginStyleQuery(_n) => "\tMarginStyleQuery",
+        ReflowGoal::StyleQuery(_n) => "\tStyleQuery",
         ReflowGoal::TextIndexQuery(..) => "\tTextIndexQuery",
         ReflowGoal::TickAnimations => "\tTickAnimations",
     });

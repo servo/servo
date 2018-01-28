@@ -75,9 +75,9 @@ use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleD
 use layout::layout_debug;
 use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
-use layout::query::{process_margin_style_query, process_node_overflow_request, process_resolved_style_request};
 use layout::query::{process_node_geometry_request, process_node_scroll_area_request};
-use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
+use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query, process_resolved_style_request};
+use layout::query::process_style_query;
 use layout::sequential;
 use layout::traversal::{ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows};
 use layout::wrapper::LayoutNodeLayoutData;
@@ -94,7 +94,7 @@ use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, NodesFromPointQueryType, Reflow};
 use script_layout_interface::message::{ReflowComplete, ReflowGoal, ScriptReflow};
-use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
+use script_layout_interface::rpc::{LayoutRPC, StyleResponse, OffsetParentResponse};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
@@ -519,10 +519,9 @@ impl LayoutThread {
                     client_rect_response: Rect::zero(),
                     scroll_root_id_response: None,
                     scroll_area_response: Rect::zero(),
-                    overflow_response: NodeOverflowResponse(None),
                     resolved_style_response: String::new(),
                     offset_parent_response: OffsetParentResponse::empty(),
-                    margin_style_response: MarginStyleResponse::empty(),
+                    style_response: StyleResponse(None),
                     scroll_offsets: HashMap::new(),
                     text_index_response: TextIndexResponse(None),
                     nodes_from_point_response: vec![],
@@ -1092,9 +1091,6 @@ impl LayoutThread {
                     ReflowGoal::NodeScrollGeometryQuery(_) => {
                         rw_data.scroll_area_response = Rect::zero();
                     },
-                    ReflowGoal::NodeOverflowQuery(_) => {
-                        rw_data.overflow_response = NodeOverflowResponse(None);
-                    },
                     ReflowGoal::NodeScrollRootIdQuery(_) => {
                         rw_data.scroll_root_id_response = None;
                     },
@@ -1104,8 +1100,8 @@ impl LayoutThread {
                     ReflowGoal::OffsetParentQuery(_) => {
                         rw_data.offset_parent_response = OffsetParentResponse::empty();
                     },
-                    ReflowGoal::MarginStyleQuery(_) => {
-                        rw_data.margin_style_response = MarginStyleResponse::empty();
+                    ReflowGoal::StyleQuery(_) => {
+                        rw_data.style_response = StyleResponse(None);
                     },
                     ReflowGoal::TextIndexQuery(..) => {
                         rw_data.text_index_response = TextIndexResponse(None);
@@ -1379,10 +1375,6 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.scroll_area_response = process_node_scroll_area_request(node, root_flow);
             },
-            ReflowGoal::NodeOverflowQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.overflow_response = process_node_overflow_request(node);
-            },
             ReflowGoal::NodeScrollRootIdQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.scroll_root_id_response = Some(process_node_scroll_root_id_request(self.id,
@@ -1401,9 +1393,9 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
             },
-            ReflowGoal::MarginStyleQuery(node) => {
+            ReflowGoal::StyleQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.margin_style_response = process_margin_style_query(node);
+                rw_data.style_response = process_style_query(node);
             },
             ReflowGoal::NodesFromPointQuery(client_point, ref reflow_goal) => {
                 let mut flags = match reflow_goal {
