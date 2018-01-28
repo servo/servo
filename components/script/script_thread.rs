@@ -1476,6 +1476,8 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_title(&*documents, pipeline_id, reply),
             WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>
                 webdriver_handlers::handle_execute_async_script(&*documents, pipeline_id, script, reply),
+            WebDriverScriptCommand::Testing(msg, reply) =>
+                webdriver_handlers::handle_testing(&*documents, pipeline_id, msg, reply),
         }
     }
 

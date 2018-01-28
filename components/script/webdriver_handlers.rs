@@ -108,6 +108,22 @@ pub fn handle_execute_async_script(documents: &Documents,
     window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
+pub fn handle_testing(documents: &Documents,
+                                   pipeline: PipelineId,
+                                   msg: String,
+                                   reply: IpcSender<String>) {
+    use dom::document::Document;
+    use std::ops::Deref;
+    use dom::bindings::str::DOMString;
+
+    reply.send(documents.find_document(pipeline).and_then(|document| {
+        let doc: &Document = document.deref();
+        let elemPtr = doc.GetElementById(DOMString::from_string(msg)).unwrap();
+        elemPtr.deref().SetInnerHTML(DOMString::from_string("Bonjour!".to_string())).unwrap();
+        Some("Ok".to_string())
+    }).unwrap()).unwrap();
+}
+
 pub fn handle_get_browsing_context_id(documents: &Documents,
                                       pipeline: PipelineId,
                                       webdriver_frame_id: WebDriverFrameId,
