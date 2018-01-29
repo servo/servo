@@ -18,7 +18,6 @@ use app_units::Au;
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D, TypedRect, SideOffsets2D};
 use euclid::num::{One, Zero};
 use gfx_traits::{self, StackingContextId};
-use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
@@ -122,29 +121,6 @@ impl DisplayList {
         }
 
         None
-    }
-
-    pub fn print(&self) {
-        let mut print_tree = PrintTree::new("Display List".to_owned());
-        self.print_with_tree(&mut print_tree);
-    }
-
-    pub fn print_with_tree(&self, print_tree: &mut PrintTree) {
-        print_tree.new_level("ClipScrollNodes".to_owned());
-        for node in &self.clip_scroll_nodes {
-            print_tree.add_item(format!("{:?}", node));
-        }
-        print_tree.end_level();
-
-        print_tree.new_level("Items".to_owned());
-        for item in &self.list {
-            print_tree.add_item(format!("{:?} StackingContext: {:?} {:?}",
-                item,
-                item.base().stacking_context_id,
-                item.clipping_and_scrolling())
-            );
-        }
-        print_tree.end_level();
     }
 }
 
