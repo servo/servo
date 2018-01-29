@@ -916,8 +916,12 @@ impl LayoutElementHelpers for LayoutDom<Element> {
 }
 
 impl Element {
+    pub fn is_html_element(&self) -> bool {
+        self.namespace == ns!(html)
+    }
+
     pub fn html_element_in_html_document(&self) -> bool {
-        self.namespace == ns!(html) && self.upcast::<Node>().is_in_html_doc()
+        self.is_html_element() && self.upcast::<Node>().is_in_html_doc()
     }
 
     pub fn local_name(&self) -> &LocalName {
@@ -2712,6 +2716,10 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     fn is_html_element_in_html_document(&self) -> bool {
         self.html_element_in_html_document()
+    }
+
+    fn is_html_slot_element(&self) -> bool {
+        self.is_html_element() && self.local_name() == &local_name!("slot")
     }
 }
 

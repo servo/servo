@@ -295,6 +295,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.is_html_element_in_html_document()
     }
 
+    fn is_html_slot_element(&self) -> bool {
+        self.element.is_html_slot_element()
+    }
+
     fn get_local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
         self.element.get_local_name()
     }

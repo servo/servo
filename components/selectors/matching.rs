@@ -416,6 +416,7 @@ where
             element.parent_element()
         }
         Combinator::SlotAssignment => {
+            debug_assert!(element.assigned_slot().map_or(true, |s| s.is_html_slot_element()));
             element.assigned_slot()
         }
         Combinator::PseudoElement => {
@@ -631,6 +632,8 @@ where
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
             context.shared.nest(|context| {
+                // <slots> are never flattened tree slottables.
+                !element.is_html_slot_element() &&
                 element.assigned_slot().is_some() &&
                 matches_complex_selector(
                     selector.iter(),

@@ -419,12 +419,6 @@ pub trait TElement
     /// Return whether this element is an element in the HTML namespace.
     fn is_html_element(&self) -> bool;
 
-    /// Returns whether this element is a <html:slot> element.
-    fn is_html_slot_element(&self) -> bool {
-        self.get_local_name() == &*local_name!("slot") &&
-        self.is_html_element()
-    }
-
     /// Return the list of slotted nodes of this node.
     fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
         &[]
