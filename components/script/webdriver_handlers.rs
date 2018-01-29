@@ -115,11 +115,25 @@ pub fn handle_testing(documents: &Documents,
     use dom::document::Document;
     use std::ops::Deref;
     use dom::bindings::str::DOMString;
+    use dom::bindings::codegen::UnionTypes::NodeOrString;
+    use dom::eventtarget::EventTarget;
 
     reply.send(documents.find_document(pipeline).and_then(|document| {
         let doc: &Document = document.deref();
         let elemPtr = doc.GetElementById(DOMString::from_string(msg)).unwrap();
         elemPtr.deref().SetInnerHTML(DOMString::from_string("Bonjour!".to_string())).unwrap();
+        elemPtr.deref().SetAttribute(DOMString::from_string("style".to_string()),
+                                     DOMString::from_string("background-color: #eee; border: 1px solid black".to_string())).unwrap();
+        elemPtr.deref().Append(vec![NodeOrString::String(
+            DOMString::from_string("My child".to_string()))]).unwrap();
+        let node: &EventTarget = elemPtr.deref().upcast::<EventTarget>();
+        node.set_event_handler_uncompiled(ServoUrl::parse("file://Users/jmichaud/workspace2/servo-gui/app_resources/index.html").unwrap(), 0,
+                                          "click",
+                                          DOMString::from_string("alert('I am special')".to_string())
+        );
+//        elemPtr.deref().SetAttribute(DOMString::from_string("onclick".to_string()),
+//                                     DOMString::from_string("alert('fuck')".to_string())).unwrap();
+
         Some("Ok".to_string())
     }).unwrap()).unwrap();
 }
