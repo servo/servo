@@ -15,6 +15,8 @@ BRANCH_NAME="wpt_update_${CURRENT_DATE}"
 
 export GIT_AUTHOR_NAME="WPT Sync Bot"
 export GIT_AUTHOR_EMAIL="josh+wptsync@joshmatthews.net"
+export GIT_COMMITTER_NAME="${GIT_AUTHOR_NAME}"
+export GIT_COMMITTER_EMAIL="${GIT_AUTHOR_EMAIL}"
 
 # Retrieve the HEAD commit and extract its hash
 function latest_git_commit() {
@@ -39,7 +41,7 @@ function unsafe_pull_from_upstream() {
     fi
 
     # Update the manifest to include the new changes.
-    ./mach update-manifest || return 3
+    ./mach update-manifest --release || return 3
 
     # Amend the existing commit with the new changes from updating the manifest.
     git commit -a --amend --no-edit || return 4
@@ -57,7 +59,7 @@ function cleanup() {
 # Build Servo and run the full WPT testsuite, saving the results to a log file.
 function unsafe_run_tests() {
     # Run the full testsuite and record the new test results.
-    ./mach test-wpt --release --processes 24 --log-raw "${1}" \
+    ./mach test-wpt --release --processes 12 --log-raw "${1}" \
            --always-succeed || return 1
 }
 
