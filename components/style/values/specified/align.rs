@@ -69,6 +69,14 @@ bitflags! {
     }
 }
 
+impl AlignFlags {
+    /// Returns the enumeration value stored in the lower 5 bits.
+    #[inline]
+    fn value(&self) -> Self {
+        *self & !AlignFlags::FLAG_BITS
+    }
+}
+
 impl ToCss for AlignFlags {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -81,7 +89,7 @@ impl ToCss for AlignFlags {
             _ => {}
         }
 
-        dest.write_str(match *self & !AlignFlags::FLAG_BITS {
+        dest.write_str(match self.value() {
             AlignFlags::AUTO => "auto",
             AlignFlags::NORMAL => "normal",
             AlignFlags::START => "start",
@@ -150,21 +158,17 @@ impl ContentDistribution {
 
     /// Returns whether this value is valid for both axis directions.
     pub fn is_valid_on_both_axes(&self) -> bool {
-        if self.primary.contains(AlignFlags::BASELINE) ||
-            self.primary.contains(AlignFlags::LAST_BASELINE)
-        {
+        match self.primary.value() {
             // <baseline-position> is only allowed on the block axis.
-            return false;
-        }
+            AlignFlags::BASELINE |
+            AlignFlags::LAST_BASELINE => false,
 
-        if self.primary.contains(AlignFlags::LEFT) ||
-            self.primary.contains(AlignFlags::RIGHT)
-        {
             // left | right are only allowed on the inline axis.
-            return false;
-        }
+            AlignFlags::LEFT |
+            AlignFlags::RIGHT => false,
 
-        true
+            _ => true,
+        }
     }
 
     /// The primary alignment
@@ -297,21 +301,17 @@ impl SelfAlignment {
 
     /// Returns whether this value is valid for both axis directions.
     pub fn is_valid_on_both_axes(&self) -> bool {
-        if self.0.contains(AlignFlags::BASELINE) ||
-            self.0.contains(AlignFlags::LAST_BASELINE)
-        {
+        match self.0.value() {
             // <baseline-position> is only allowed on the block axis.
-            return false;
-        }
+            AlignFlags::BASELINE |
+            AlignFlags::LAST_BASELINE => false,
 
-        if self.0.contains(AlignFlags::LEFT) ||
-            self.0.contains(AlignFlags::RIGHT)
-        {
             // left | right are only allowed on the inline axis.
-            return false;
-        }
+            AlignFlags::LEFT |
+            AlignFlags::RIGHT => false,
 
-        true
+            _ => true,
+        }
     }
 
     /// Whether this value has extra flags.
