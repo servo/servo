@@ -615,33 +615,44 @@
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko">
-    use values::specified::align::{ContentDistribution, FallbackAllowed};
+    use values::specified::align::{AlignContent, JustifyContent, ContentDistribution, AxisDirection};
 
     pub fn parse_value<'i, 't>(
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        let align = ContentDistribution::parse_with_fallback(input, FallbackAllowed::No)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify =
-            input.try(|input| ContentDistribution::parse_with_fallback(input, FallbackAllowed::No))
-                .unwrap_or(align);
-        if justify.has_extra_flags() {
+        let align_content =
+            ContentDistribution::parse(input, AxisDirection::Block)?;
+
+        let justify_content = input.try(|input| {
+            ContentDistribution::parse(input, AxisDirection::Inline)
+        });
+
+        let justify_content = match justify_content {
+            Ok(v) => v,
+            Err(err) => {
+                if !align_content.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+
+                align_content
+            }
+        };
+
+        if align_content.has_extra_flags() || justify_content.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_content: align,
-            justify_content: justify,
+            align_content: AlignContent(align_content),
+            justify_content: JustifyContent(justify_content),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.align_content.to_css(dest)?;
-            if self.align_content != self.justify_content {
+            if self.align_content.0 != self.justify_content.0 {
                 dest.write_str(" ")?;
                 self.justify_content.to_css(dest)?;
             }
@@ -653,35 +664,43 @@
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
                     products="gecko">
-    use values::specified::align::SelfAlignment;
-    use parser::Parse;
+    use values::specified::align::{AlignSelf, JustifySelf, SelfAlignment, AxisDirection};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-        let align = SelfAlignment::parse(context, input)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify = input.try(|input| SelfAlignment::parse(context, input)).unwrap_or(align.clone());
-        if justify.has_extra_flags() {
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let align = SelfAlignment::parse(input, AxisDirection::Block)?;
+        let justify = input.try(|input| SelfAlignment::parse(input, AxisDirection::Inline));
+
+        let justify = match justify {
+            Ok(v) => v,
+            Err(err) => {
+                if !align.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+                align
+            }
+        };
+
+        if justify.has_extra_flags() || align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_self: align,
-            justify_self: justify,
+            align_self: AlignSelf(align),
+            justify_self: JustifySelf(justify),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if self.align_self == self.justify_self {
-                self.align_self.to_css(dest)
-            } else {
-                self.align_self.to_css(dest)?;
+            self.align_self.to_css(dest)?;
+            if self.align_self.0 != self.justify_self.0 {
                 dest.write_str(" ")?;
-                self.justify_self.to_css(dest)
+                self.justify_self.to_css(dest)?;
             }
+            Ok(())
         }
     }
 </%helpers:shorthand>

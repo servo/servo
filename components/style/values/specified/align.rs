@@ -18,8 +18,7 @@ bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
     ///
     /// These constants match Gecko's `NS_STYLE_ALIGN_*` constants.
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(ToComputedValue)]
+    #[derive(MallocSizeOf, ToComputedValue)]
     pub struct AlignFlags: u8 {
         // Enumeration stored in the lower 5 bits:
         /// 'auto'
@@ -70,12 +69,27 @@ bitflags! {
     }
 }
 
+impl AlignFlags {
+    /// Returns the enumeration value stored in the lower 5 bits.
+    #[inline]
+    fn value(&self) -> Self {
+        *self & !AlignFlags::FLAG_BITS
+    }
+}
+
 impl ToCss for AlignFlags {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
-        let s = match *self & !AlignFlags::FLAG_BITS {
+        match *self & AlignFlags::FLAG_BITS {
+            AlignFlags::LEGACY => dest.write_str("legacy ")?,
+            AlignFlags::SAFE => dest.write_str("safe ")?,
+            // Don't serialize "unsafe", since it's the default.
+            _ => {}
+        }
+
+        dest.write_str(match self.value() {
             AlignFlags::AUTO => "auto",
             AlignFlags::NORMAL => "normal",
             AlignFlags::START => "start",
@@ -94,46 +108,29 @@ impl ToCss for AlignFlags {
             AlignFlags::SPACE_AROUND => "space-around",
             AlignFlags::SPACE_EVENLY => "space-evenly",
             _ => unreachable!()
-        };
-        dest.write_str(s)?;
-
-        match *self & AlignFlags::FLAG_BITS {
-            AlignFlags::LEGACY => { dest.write_str(" legacy")?; }
-            AlignFlags::SAFE => { dest.write_str(" safe")?; }
-            AlignFlags::UNSAFE => { dest.write_str(" unsafe")?; }
-            _ => {}
-        }
-        Ok(())
+        })
     }
 }
 
-/// Mask for a single AlignFlags value.
-const ALIGN_ALL_BITS: u16 = structs::NS_STYLE_ALIGN_ALL_BITS as u16;
-/// Number of bits to shift a fallback alignment.
-const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
+/// An axis direction, either inline (for the `justify` properties) or block,
+/// (for the `align` properties).
+#[derive(Clone, Copy, PartialEq)]
+pub enum AxisDirection {
+    /// Block direction.
+    Block,
+    /// Inline direction.
+    Inline,
+}
 
-/// Value of the `align-content` or `justify-content` property.
+/// Shared value for the `align-content` and `justify-content` properties.
 ///
 /// <https://drafts.csswg.org/css-align/#content-distribution>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct ContentDistribution {
     primary: AlignFlags,
-    fallback: AlignFlags,
-}
-
-/// Whether fallback is allowed in align-content / justify-content parsing.
-///
-/// This is used for the place-content shorthand, until the resolutions from [1]
-/// are specified.
-///
-/// [1]: https://github.com/w3c/csswg-drafts/issues/1002
-#[derive(Clone, Copy, PartialEq)]
-pub enum FallbackAllowed {
-    /// Allow fallback alignment.
-    Yes,
-    /// Don't allow fallback alignment.
-    No,
+    // FIXME(https://github.com/w3c/csswg-drafts/issues/1002): This will need to
+    // accept fallback alignment, eventually.
 }
 
 impl ContentDistribution {
@@ -143,18 +140,35 @@ impl ContentDistribution {
         Self::new(AlignFlags::NORMAL)
     }
 
-    /// Construct a value with no fallback.
+    /// The initial value 'normal'
     #[inline]
-    pub fn new(flags: AlignFlags) -> Self {
-        Self::with_fallback(flags, AlignFlags::empty())
+    pub fn new(primary: AlignFlags) -> Self {
+        Self { primary }
     }
 
-    /// Construct a value including a fallback alignment.
-    ///
-    /// <https://drafts.csswg.org/css-align/#fallback-alignment>
-    #[inline]
-    pub fn with_fallback(primary: AlignFlags, fallback: AlignFlags) -> Self {
-        Self { primary, fallback }
+    fn from_bits(bits: u16) -> Self {
+        Self {
+            primary: AlignFlags::from_bits_truncate(bits as u8)
+        }
+    }
+
+    fn as_bits(&self) -> u16 {
+        self.primary.bits() as u16
+    }
+
+    /// Returns whether this value is valid for both axis directions.
+    pub fn is_valid_on_both_axes(&self) -> bool {
+        match self.primary.value() {
+            // <baseline-position> is only allowed on the block axis.
+            AlignFlags::BASELINE |
+            AlignFlags::LAST_BASELINE => false,
+
+            // left | right are only allowed on the inline axis.
+            AlignFlags::LEFT |
+            AlignFlags::RIGHT => false,
+
+            _ => true,
+        }
     }
 
     /// The primary alignment
@@ -163,83 +177,119 @@ impl ContentDistribution {
         self.primary
     }
 
-    /// The fallback alignment
-    #[inline]
-    pub fn fallback(self) -> AlignFlags {
-        self.fallback
-    }
-
     /// Whether this value has extra flags.
     #[inline]
     pub fn has_extra_flags(self) -> bool {
-        self.primary().intersects(AlignFlags::FLAG_BITS) ||
-        self.fallback().intersects(AlignFlags::FLAG_BITS)
+        self.primary().intersects(AlignFlags::FLAG_BITS)
     }
 
-    /// Parse a value for align-content / justify-content, optionally allowing
-    /// fallback.
-    pub fn parse_with_fallback<'i, 't>(
+    /// Parse a value for align-content / justify-content.
+    pub fn parse<'i, 't>(
         input: &mut Parser<'i, 't>,
-        fallback_allowed: FallbackAllowed,
+        axis: AxisDirection,
     ) -> Result<Self, ParseError<'i>> {
-        // normal | <baseline-position>
-        if let Ok(value) = input.try(|input| parse_normal_or_baseline(input)) {
-            return Ok(ContentDistribution::new(value))
+        // Try to parse normal first
+        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+            return Ok(ContentDistribution::normal());
         }
 
-        // <content-distribution> followed by optional <*-position>
-        if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
-            if fallback_allowed == FallbackAllowed::Yes {
-                if let Ok(fallback) = input.try(|input| parse_overflow_content_position(input)) {
-                    return Ok(ContentDistribution::with_fallback(value, fallback))
-                }
-            }
-            return Ok(ContentDistribution::new(value))
-        }
-
-        // <*-position> followed by optional <content-distribution>
-        let fallback = parse_overflow_content_position(input)?;
-        if fallback_allowed == FallbackAllowed::Yes {
-            if let Ok(value) = input.try(|input| parse_content_distribution(input)) {
-                return Ok(ContentDistribution::with_fallback(value, fallback))
+        // Parse <baseline-position>, but only on the block axis.
+        if axis == AxisDirection::Block {
+            if let Ok(value) = input.try(parse_baseline) {
+                return Ok(ContentDistribution::new(value));
             }
         }
 
-        Ok(ContentDistribution::new(fallback))
-    }
-}
-
-impl ToCss for ContentDistribution {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.primary().to_css(dest)?;
-        match self.fallback() {
-            AlignFlags::AUTO => {}
-            fallback => {
-                dest.write_str(" ")?;
-                fallback.to_css(dest)?;
-            }
+        // <content-distribution>
+        if let Ok(value) = input.try(parse_content_distribution) {
+            return Ok(ContentDistribution::new(value));
         }
-        Ok(())
+
+        // <overflow-position>? <content-position>
+        let overflow_position =
+            input.try(parse_overflow_position)
+            .unwrap_or(AlignFlags::empty());
+
+        let content_position = try_match_ident_ignore_ascii_case! { input,
+            "start" => AlignFlags::START,
+            "end" => AlignFlags::END,
+            "flex-start" => AlignFlags::FLEX_START,
+            "flex-end" => AlignFlags::FLEX_END,
+            "center" => AlignFlags::CENTER,
+            "left" if axis == AxisDirection::Inline => AlignFlags::LEFT,
+            "right" if axis == AxisDirection::Inline => AlignFlags::RIGHT,
+        };
+
+        Ok(ContentDistribution::new(content_position | overflow_position))
     }
 }
 
-
-impl Parse for ContentDistribution {
-    // normal | <baseline-position> |
-    // [ <content-distribution> || [ <overflow-position>? && <content-position> ] ]
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_with_fallback(input, FallbackAllowed::Yes)
-    }
-}
-
-/// Value of the `align-self` or `justify-self` property.
+/// Value for the `align-content` property.
 ///
+/// <https://drafts.csswg.org/css-align/#propdef-align-content>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct AlignContent(pub ContentDistribution);
+
+impl Parse for AlignContent {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(AlignContent(ContentDistribution::parse(
+            input,
+            AxisDirection::Block,
+        )?))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u16> for AlignContent {
+    fn from(bits: u16) -> Self {
+        AlignContent(ContentDistribution::from_bits(bits))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<AlignContent> for u16 {
+    fn from(v: AlignContent) -> u16 {
+        v.0.as_bits()
+    }
+}
+
+/// Value for the `justify-content` property.
+///
+/// <https://drafts.csswg.org/css-align/#propdef-align-content>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct JustifyContent(pub ContentDistribution);
+
+impl Parse for JustifyContent {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(JustifyContent(ContentDistribution::parse(
+            input,
+            AxisDirection::Inline,
+        )?))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u16> for JustifyContent {
+    fn from(bits: u16) -> Self {
+        JustifyContent(ContentDistribution::from_bits(bits))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<JustifyContent> for u16 {
+    fn from(v: JustifyContent) -> u16 {
+        v.0.as_bits()
+    }
+}
+
 /// <https://drafts.csswg.org/css-align/#self-alignment>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct SelfAlignment(pub AlignFlags);
 
 impl SelfAlignment {
@@ -249,32 +299,105 @@ impl SelfAlignment {
         SelfAlignment(AlignFlags::AUTO)
     }
 
+    /// Returns whether this value is valid for both axis directions.
+    pub fn is_valid_on_both_axes(&self) -> bool {
+        match self.0.value() {
+            // <baseline-position> is only allowed on the block axis.
+            AlignFlags::BASELINE |
+            AlignFlags::LAST_BASELINE => false,
+
+            // left | right are only allowed on the inline axis.
+            AlignFlags::LEFT |
+            AlignFlags::RIGHT => false,
+
+            _ => true,
+        }
+    }
+
     /// Whether this value has extra flags.
     #[inline]
     pub fn has_extra_flags(self) -> bool {
         self.0.intersects(AlignFlags::FLAG_BITS)
     }
-}
 
+    /// Parse a self-alignment value on one of the axis.
+    pub fn parse<'i, 't>(
+        input: &mut Parser<'i, 't>,
+        axis: AxisDirection,
+    ) -> Result<Self, ParseError<'i>> {
+        // <baseline-position>, only on the block axis.
+        if axis == AxisDirection::Block {
+            if let Ok(value) = input.try(parse_baseline) {
+                return Ok(SelfAlignment(value));
+            }
+        }
 
-impl Parse for SelfAlignment {
-    // auto | normal | stretch | <baseline-position> |
-    // [ <overflow-position>? && <self-position> ]
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // auto | normal | stretch | <baseline-position>
-        if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
+        // auto | normal | stretch
+        if let Ok(value) = input.try(parse_auto_normal_stretch) {
             return Ok(SelfAlignment(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        Ok(SelfAlignment(parse_overflow_self_position(input)?))
+
+        // <overflow-position>? <self-position>
+        let overflow_position =
+            input.try(parse_overflow_position)
+            .unwrap_or(AlignFlags::empty());
+        let self_position = parse_self_position(input, axis)?;
+        Ok(SelfAlignment(overflow_position | self_position))
+    }
+}
+
+/// The specified value of the align-self property.
+///
+/// <https://drafts.csswg.org/css-align/#propdef-align-self>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct AlignSelf(pub SelfAlignment);
+
+impl Parse for AlignSelf {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(AlignSelf(SelfAlignment::parse(input, AxisDirection::Block)?))
+    }
+}
+
+impl From<u8> for AlignSelf {
+    fn from(bits: u8) -> Self {
+        AlignSelf(SelfAlignment(AlignFlags::from_bits_truncate(bits)))
+    }
+}
+
+impl From<AlignSelf> for u8 {
+    fn from(align: AlignSelf) -> u8 {
+        (align.0).0.bits()
+    }
+}
+
+/// The specified value of the justify-self property.
+///
+/// <https://drafts.csswg.org/css-align/#propdef-justify-self>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct JustifySelf(pub SelfAlignment);
+
+impl Parse for JustifySelf {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(JustifySelf(SelfAlignment::parse(input, AxisDirection::Inline)?))
+    }
+}
+
+impl From<u8> for JustifySelf {
+    fn from(bits: u8) -> Self {
+        JustifySelf(SelfAlignment(AlignFlags::from_bits_truncate(bits)))
+    }
+}
+
+impl From<JustifySelf> for u8 {
+    fn from(justify: JustifySelf) -> u8 {
+        (justify.0).0.bits()
     }
 }
 
 /// Value of the `align-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#self-alignment>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct AlignItems(pub AlignFlags);
 
 impl AlignItems {
@@ -294,22 +417,28 @@ impl AlignItems {
 
 impl Parse for AlignItems {
     // normal | stretch | <baseline-position> |
-    // [ <overflow-position>? && <self-position> ]
+    // <overflow-position>? <self-position>
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // normal | stretch | <baseline-position>
-        if let Ok(value) = input.try(parse_normal_stretch_baseline) {
+        // <baseline-position>
+        if let Ok(baseline) = input.try(parse_baseline) {
+            return Ok(AlignItems(baseline));
+        }
+
+        // normal | stretch
+        if let Ok(value) = input.try(parse_normal_stretch) {
             return Ok(AlignItems(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        Ok(AlignItems(parse_overflow_self_position(input)?))
+        // <overflow-position>? <self-position>
+        let overflow = input.try(parse_overflow_position).unwrap_or(AlignFlags::empty());
+        let self_position = parse_self_position(input, AxisDirection::Block)?;
+        Ok(AlignItems(self_position | overflow))
     }
 }
 
 /// Value of the `justify-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#justify-items-property>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
 pub struct JustifyItems(pub AlignFlags);
 
 impl JustifyItems {
@@ -332,52 +461,49 @@ impl JustifyItems {
     }
 }
 
-
 impl Parse for JustifyItems {
-    // auto | normal | stretch | <baseline-position> |
-    // [ <overflow-position>? && <self-position> ]
-    // [ legacy && [ left | right | center ] ]
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // auto | normal | stretch | <baseline-position>
-        if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
+        // <baseline-position>
+        //
+        // It's weird that this accepts <baseline-position>, but not the
+        // justify-self / justify-content properties...
+        if let Ok(baseline) = input.try(parse_baseline) {
+            return Ok(JustifyItems(baseline));
+        }
+
+        // auto | normal | stretch
+        //
+        // FIXME(emilio): auto is no longer a keyword in the current spec, and
+        // has been renamed to legacy, but that needs different changes because
+        // right now it's the initial value for both style systems, and has that
+        // weird behavior of "inheriting" into descendants.
+        //
+        // Fix this in both.
+        //
+        // See also:
+        //   https://bugs.webkit.org/show_bug.cgi?id=172711
+        //   https://bugs.chromium.org/p/chromium/issues/detail?id=726148
+        //
+        if let Ok(value) = input.try(parse_auto_normal_stretch) {
             return Ok(JustifyItems(value))
         }
-        // [ legacy && [ left | right | center ] ]
+
+        // [ legacy || [ left | right | center ] ]
         if let Ok(value) = input.try(parse_legacy) {
             return Ok(JustifyItems(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        Ok(JustifyItems(parse_overflow_self_position(input)?))
+
+        // <overflow-position>? <self-position>
+        let overflow = input.try(parse_overflow_position).unwrap_or(AlignFlags::empty());
+        let self_position = parse_self_position(input, AxisDirection::Inline)?;
+        Ok(JustifyItems(overflow | self_position))
     }
 }
 
-#[cfg(feature = "gecko")]
-impl From<u16> for ContentDistribution {
-    fn from(bits: u16) -> ContentDistribution {
-        let primary =
-            AlignFlags::from_bits_truncate((bits & ALIGN_ALL_BITS) as u8);
-        let fallback =
-            AlignFlags::from_bits_truncate((bits >> ALIGN_ALL_SHIFT) as u8);
-        ContentDistribution::with_fallback(primary, fallback)
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<ContentDistribution> for u16 {
-    fn from(v: ContentDistribution) -> u16 {
-        v.primary().bits() as u16 |
-        ((v.fallback().bits() as u16) << ALIGN_ALL_SHIFT)
-    }
-}
-
-// auto | normal | stretch | <baseline-position>
-fn parse_auto_normal_stretch_baseline<'i, 't>(
+// auto | normal | stretch
+fn parse_auto_normal_stretch<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<AlignFlags, ParseError<'i>> {
-    if let Ok(baseline) = input.try(parse_baseline) {
-        return Ok(baseline);
-    }
-
     try_match_ident_ignore_ascii_case! { input,
         "auto" => Ok(AlignFlags::AUTO),
         "normal" => Ok(AlignFlags::NORMAL),
@@ -386,30 +512,15 @@ fn parse_auto_normal_stretch_baseline<'i, 't>(
 }
 
 // normal | stretch | <baseline-position>
-fn parse_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    if let Ok(baseline) = input.try(parse_baseline) {
-        return Ok(baseline);
-    }
-
+fn parse_normal_stretch<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
         "normal" => Ok(AlignFlags::NORMAL),
         "stretch" => Ok(AlignFlags::STRETCH),
     }
 }
 
-// normal | <baseline-position>
-fn parse_normal_or_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    if let Ok(baseline) = input.try(parse_baseline) {
-        return Ok(baseline);
-    }
-
-    input.expect_ident_matching("normal")?;
-    Ok(AlignFlags::NORMAL)
-}
-
 // <baseline-position>
 fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    // FIXME: remove clone() when lifetimes are non-lexical
     try_match_ident_ignore_ascii_case! { input,
         "baseline" => Ok(AlignFlags::BASELINE),
         "first" => {
@@ -433,37 +544,6 @@ fn parse_content_distribution<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Alig
     }
 }
 
-// [ <overflow-position>? && <content-position> ]
-fn parse_overflow_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    // <content-position> followed by optional <overflow-position>
-    if let Ok(mut content) = input.try(parse_content_position) {
-        if let Ok(overflow) = input.try(parse_overflow_position) {
-            content |= overflow;
-        }
-        return Ok(content)
-    }
-    // <overflow-position> followed by required <content-position>
-    if let Ok(overflow) = parse_overflow_position(input) {
-        if let Ok(content) = parse_content_position(input) {
-            return Ok(overflow | content)
-        }
-    }
-    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-}
-
-// <content-position>
-fn parse_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input,
-        "start" => Ok(AlignFlags::START),
-        "end" => Ok(AlignFlags::END),
-        "flex-start" => Ok(AlignFlags::FLEX_START),
-        "flex-end" => Ok(AlignFlags::FLEX_END),
-        "center" => Ok(AlignFlags::CENTER),
-        "left" => Ok(AlignFlags::LEFT),
-        "right" => Ok(AlignFlags::RIGHT),
-    }
-}
-
 // <overflow-position>
 fn parse_overflow_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
@@ -472,37 +552,22 @@ fn parse_overflow_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFl
     }
 }
 
-// [ <overflow-position>? && <self-position> ]
-fn parse_overflow_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    // <self-position> followed by optional <overflow-position>
-    if let Ok(mut self_position) = input.try(parse_self_position) {
-        if let Ok(overflow) = input.try(parse_overflow_position) {
-            self_position |= overflow;
-        }
-        return Ok(self_position)
-    }
-    // <overflow-position> followed by required <self-position>
-    if let Ok(overflow) = parse_overflow_position(input) {
-        if let Ok(self_position) = parse_self_position(input) {
-            return Ok(overflow | self_position)
-        }
-    }
-    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-}
-
-// <self-position>
-fn parse_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input,
-        "start" => Ok(AlignFlags::START),
-        "end" => Ok(AlignFlags::END),
-        "flex-start" => Ok(AlignFlags::FLEX_START),
-        "flex-end" => Ok(AlignFlags::FLEX_END),
-        "center" => Ok(AlignFlags::CENTER),
-        "left" => Ok(AlignFlags::LEFT),
-        "right" => Ok(AlignFlags::RIGHT),
-        "self-start" => Ok(AlignFlags::SELF_START),
-        "self-end" => Ok(AlignFlags::SELF_END),
-    }
+// <self-position> | left | right in the inline axis.
+fn parse_self_position<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    axis: AxisDirection,
+) -> Result<AlignFlags, ParseError<'i>> {
+    Ok(try_match_ident_ignore_ascii_case! { input,
+        "start" => AlignFlags::START,
+        "end" => AlignFlags::END,
+        "flex-start" => AlignFlags::FLEX_START,
+        "flex-end" => AlignFlags::FLEX_END,
+        "center" => AlignFlags::CENTER,
+        "self-start" => AlignFlags::SELF_START,
+        "self-end" => AlignFlags::SELF_END,
+        "left" if axis == AxisDirection::Inline => AlignFlags::LEFT,
+        "right" if axis == AxisDirection::Inline => AlignFlags::RIGHT,
+    })
 }
 
 // [ legacy && [ left | right | center ] ]
