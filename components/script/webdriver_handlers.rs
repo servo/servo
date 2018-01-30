@@ -36,6 +36,8 @@ use script_thread::Documents;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_traits::webdriver_msg::WebDriverCookieError;
 use servo_url::ServoUrl;
+use std::rc::Rc;
+use dom::eventtarget::RustEventHandler;
 
 fn find_node_by_unique_id(documents: &Documents,
                           pipeline: PipelineId,
@@ -127,12 +129,9 @@ pub fn handle_testing(documents: &Documents,
         elemPtr.deref().Append(vec![NodeOrString::String(
             DOMString::from_string("My child".to_string()))]).unwrap();
         let node: &EventTarget = elemPtr.deref().upcast::<EventTarget>();
-        node.set_event_handler_uncompiled(ServoUrl::parse("file://Users/jmichaud/workspace2/servo-gui/app_resources/index.html").unwrap(), 0,
-                                          "click",
-                                          DOMString::from_string("alert('I am special')".to_string())
-        );
-//        elemPtr.deref().SetAttribute(DOMString::from_string("onclick".to_string()),
-//                                     DOMString::from_string("alert('fuck')".to_string())).unwrap();
+        node.add_event_handler_rust("click", RustEventHandler {
+            handler: Rc::new(|| println!("I am rust code!!!!!"))
+        });
 
         Some("Ok".to_string())
     }).unwrap()).unwrap();

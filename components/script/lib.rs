@@ -13,7 +13,6 @@
 #![feature(splice)]
 #![feature(string_retain)]
 
-#![deny(unsafe_code)]
 #![allow(non_snake_case)]
 
 #![doc = "The script crate contains all matters DOM."]

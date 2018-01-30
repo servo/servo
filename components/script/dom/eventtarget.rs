@@ -25,6 +25,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
@@ -34,7 +35,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment, JSFunction};
+use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment, JSFunction, JSTracer};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
 use servo_atoms::Atom;
@@ -48,6 +49,26 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::rc::Rc;
+
+#[derive(Clone, MallocSizeOf)]
+pub struct RustEventHandler {
+    #[ignore_malloc_size_of = "Rc"]
+    pub handler: Rc<Fn() -> ()>
+}
+
+impl PartialEq for RustEventHandler {
+    fn eq(&self, other: &RustEventHandler) -> bool {
+        Rc::ptr_eq(&self.handler, &other.handler)
+    }
+
+    fn ne(&self, other: &RustEventHandler) -> bool {
+        !self.eq(other)
+    }
+}
+
+unsafe impl JSTraceable for RustEventHandler {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {}
+}
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CommonEventHandler {
@@ -123,6 +144,7 @@ impl InlineEventListener {
 enum EventListenerType {
     Additive(#[ignore_malloc_size_of = "Rc"] Rc<EventListener>),
     Inline(InlineEventListener),
+    Rust(RustEventHandler),
 }
 
 impl EventListenerType {
@@ -132,6 +154,8 @@ impl EventListenerType {
             &mut EventListenerType::Inline(ref mut inline) =>
                 inline.get_compiled_handler(owner, ty)
                       .map(CompiledEventListener::Handler),
+            &mut EventListenerType::Rust(ref f) =>
+                Some(CompiledEventListener::Rust(f.clone())),
             &mut EventListenerType::Additive(ref listener) =>
                 Some(CompiledEventListener::Listener(listener.clone())),
         }
@@ -143,6 +167,7 @@ impl EventListenerType {
 pub enum CompiledEventListener {
     Listener(Rc<EventListener>),
     Handler(CommonEventHandler),
+    Rust(RustEventHandler),
 }
 
 impl CompiledEventListener {
@@ -222,7 +247,10 @@ impl CompiledEventListener {
                         }
                     }
                 }
-            }
+            },
+            CompiledEventListener::Rust(RustEventHandler { handler: ref f }) => {
+                let _ = f();
+            },
         }
     }
 }
@@ -389,6 +417,15 @@ impl EventTarget {
         };
         self.set_inline_event_listener(Atom::from(ty),
                                        Some(InlineEventListener::Uncompiled(handler)));
+    }
+
+    pub fn add_event_handler_rust(&self,
+                                        ty: &str,
+                                        source: RustEventHandler) {
+        self.add_event_listener_entry(DOMString::from_string(ty.to_string()), EventListenerEntry {
+            phase: ListenerPhase::Capturing,
+            listener: EventListenerType::Rust(source),
+        }, None);
     }
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
@@ -596,6 +633,33 @@ impl EventTarget {
         event.fire(self);
         event
     }
+
+    fn add_event_listener_entry(
+        &self,
+        ty: DOMString,
+        listener: EventListenerEntry,
+        options: Option<AddEventListenerOptions>,
+    ) {
+        let mut handlers = self.handlers.borrow_mut();
+        let entry = match handlers.entry(Atom::from(ty)) {
+            Occupied(entry) => entry.into_mut(),
+            Vacant(entry) => entry.insert(EventListeners(vec!())),
+        };
+
+        let phase = if options.is_some() && options.unwrap().parent.capture {
+            ListenerPhase::Capturing
+        } else {
+            ListenerPhase::Bubbling
+        };
+        let new_entry = EventListenerEntry {
+            phase,
+            listener: listener.listener
+        };
+        if !entry.contains(&new_entry) {
+            entry.push(new_entry);
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
     pub fn add_event_listener(
         &self,
@@ -607,24 +671,10 @@ impl EventTarget {
             Some(l) => l,
             None => return,
         };
-        let mut handlers = self.handlers.borrow_mut();
-        let entry = match handlers.entry(Atom::from(ty)) {
-            Occupied(entry) => entry.into_mut(),
-            Vacant(entry) => entry.insert(EventListeners(vec!())),
-        };
-
-        let phase = if options.parent.capture {
-            ListenerPhase::Capturing
-        } else {
-            ListenerPhase::Bubbling
-        };
-        let new_entry = EventListenerEntry {
-            phase: phase,
+        self.add_event_listener_entry(ty, EventListenerEntry {
+            phase: ListenerPhase::Capturing,
             listener: EventListenerType::Additive(listener)
-        };
-        if !entry.contains(&new_entry) {
-            entry.push(new_entry);
-        }
+        }, Some(options))
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
