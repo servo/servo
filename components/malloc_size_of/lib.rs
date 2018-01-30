@@ -714,9 +714,12 @@ impl MallocSizeOf for url::Host {
         }
     }
 }
-
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::BorderRadius);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::BorderStyle);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::BorderWidths);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
 #[cfg(feature = "servo")]
@@ -728,7 +731,11 @@ malloc_size_of_is_0!(webrender_api::ColorF);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ExtendMode);
 #[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::FilterOp);
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::GradientStop);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::ImageBorder);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ImageKey);
 #[cfg(feature = "servo")]

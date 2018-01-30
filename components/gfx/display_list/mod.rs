@@ -29,14 +29,13 @@ use std::collections::HashMap;
 use std::f32;
 use std::fmt;
 use std::sync::Arc;
-use style::values::computed::Filter;
-use style_traits::cursor::CursorKind;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_api::{BoxShadowClipMode, ClipId, ColorF, ExtendMode, GradientStop, ImageKey};
-use webrender_api::{ImageRendering, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};
-use webrender_api::{LineStyle, LocalClip, MixBlendMode, NormalBorder, RepeatMode, ScrollPolicy};
-use webrender_api::{ScrollSensitivity, StickyOffsetBounds, TransformStyle};
+use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipId, ColorF, ExtendMode};
+use webrender_api::{FilterOp, GradientStop, ImageBorder, ImageKey, ImageRendering, LayoutPoint};
+use webrender_api::{LayoutRect, LayoutSize, LayoutVector2D, LineStyle, LocalClip, MixBlendMode};
+use webrender_api::{NormalBorder, ScrollPolicy, ScrollSensitivity, StickyOffsetBounds};
+use webrender_api::TransformStyle;
 
 pub use style::dom::OpaqueNode;
 
@@ -204,7 +203,7 @@ pub struct StackingContext {
     pub z_index: i32,
 
     /// CSS filters to be applied to this stacking context (including opacity).
-    pub filters: Vec<Filter>,
+    pub filters: Vec<FilterOp>,
 
     /// The blend mode with which this stacking context blends with its backdrop.
     pub mix_blend_mode: MixBlendMode,
@@ -233,7 +232,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               filters: Vec<Filter>,
+               filters: Vec<FilterOp>,
                mix_blend_mode: MixBlendMode,
                transform: Option<Transform3D<f32>>,
                transform_style: TransformStyle,
@@ -370,7 +369,7 @@ pub struct ClipScrollNode {
     pub clip: ClippingRegion,
 
     /// The rect of the contents that can be scrolled inside of the scroll root.
-    pub content_rect: Rect<Au>,
+    pub content_rect: LayoutRect,
 
     /// The type of this ClipScrollNode.
     pub node_type: ClipScrollNodeType,
@@ -419,7 +418,7 @@ pub struct BaseDisplayItem {
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: &Rect<Au>,
+    pub fn new(bounds: Rect<Au>,
                metadata: DisplayItemMetadata,
                local_clip: LocalClip,
                section: DisplayListSection,
@@ -427,12 +426,12 @@ impl BaseDisplayItem {
                clipping_and_scrolling: ClippingAndScrolling)
                -> BaseDisplayItem {
         BaseDisplayItem {
-            bounds: *bounds,
-            metadata: metadata,
-            local_clip: local_clip,
-            section: section,
-            stacking_context_id: stacking_context_id,
-            clipping_and_scrolling: clipping_and_scrolling,
+            bounds,
+            metadata,
+            local_clip,
+            section,
+            stacking_context_id,
+            clipping_and_scrolling,
         }
     }
 
@@ -646,7 +645,7 @@ pub struct DisplayItemMetadata {
     pub node: OpaqueNode,
     /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
     /// this display item is ineligible for pointer events (`pointer-events: none`).
-    pub pointing: Option<CursorKind>,
+    pub pointing: Option<u16>,
 }
 
 /// Paints a solid color.
@@ -789,28 +788,6 @@ pub struct RadialGradientDisplayItem {
     pub tile_spacing: LayoutSize,
 }
 
-/// A border that is made of image segments.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct ImageBorder {
-    /// The image this border uses, border-image-source.
-    pub image: WebRenderImageInfo,
-
-    /// How to slice the image, as per border-image-slice.
-    pub slice: SideOffsets2D<u32>,
-
-    /// Outsets for the border, as per border-image-outset.
-    pub outset: SideOffsets2D<f32>,
-
-    /// If fill is true, draw the center patch of the image.
-    pub fill: bool,
-
-    /// How to repeat or stretch horizontal edges (border-image-repeat).
-    pub repeat_horizontal: RepeatMode,
-
-    /// How to repeat or stretch vertical edges (border-image-repeat).
-    pub repeat_vertical: RepeatMode,
-}
-
 /// A border that is made of linear gradient
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct GradientBorder {
@@ -847,7 +824,7 @@ pub struct BorderDisplayItem {
     pub base: BaseDisplayItem,
 
     /// Border widths.
-    pub border_widths: SideOffsets2D<Au>,
+    pub border_widths: BorderWidths,
 
     /// Details for specific border type
     pub details: BorderDetails,
@@ -949,7 +926,7 @@ pub struct BoxShadowDisplayItem {
     pub spread_radius: f32,
 
     /// The border radius of this shadow.
-    pub border_radius: BorderRadii<Au>,
+    pub border_radius: BorderRadius,
 
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,

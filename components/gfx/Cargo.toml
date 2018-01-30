@@ -40,7 +40,6 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 smallvec = "0.6"
 style = {path = "../style"}
-style_traits = {path = "../style_traits"}
 time = "0.1.12"
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
