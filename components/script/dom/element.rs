@@ -321,6 +321,10 @@ impl Element {
         *self.is.borrow_mut() = Some(is);
     }
 
+    pub fn get_id(&self) -> Ref<Option<Atom>> {
+        self.id_attribute.borrow()
+    }
+
     pub fn get_is(&self) -> Option<LocalName> {
         self.is.borrow().clone()
     }
