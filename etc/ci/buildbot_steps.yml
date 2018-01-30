@@ -2,7 +2,7 @@ env:
   RUST_BACKTRACE: '1'
   RUSTFLAGS: -Dwarnings
   CARGO_INCREMENTAL: "0"
-  SCCACHE_IDLE_TIMEOUT: "600"
+  SCCACHE_IDLE_TIMEOUT: "1200"
 
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
