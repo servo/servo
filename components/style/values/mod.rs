@@ -198,7 +198,7 @@ impl ToCss for KeyframesName {
 // A type for possible values for min- and max- flavors of width,
 // height, block-size, and inline-size.
 define_css_keyword_enum!(ExtremumLength:
-                         "-moz-max-content" => MaxContent,
-                         "-moz-min-content" => MinContent,
-                         "-moz-fit-content" => FitContent,
-                         "-moz-available" => FillAvailable);
+                         "-moz-max-content" => MozMaxContent,
+                         "-moz-min-content" => MozMinContent,
+                         "-moz-fit-content" => MozFitContent,
+                         "-moz-available" => MozAvailable);
