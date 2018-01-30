@@ -320,25 +320,34 @@ impl Parse for AnimationName {
     }
 }
 
-define_css_keyword_enum! { ScrollSnapType:
-    "none" => None,
-    "mandatory" => Mandatory,
-    "proximity" => Proximity,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum ScrollSnapType {
+    None,
+    Mandatory,
+    Proximity,
 }
-add_impls_for_keyword_enum!(ScrollSnapType);
 
-define_css_keyword_enum! { OverscrollBehavior:
-    "auto" => Auto,
-    "contain" => Contain,
-    "none" => None,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum OverscrollBehavior {
+    Auto,
+    Contain,
+    None,
 }
-add_impls_for_keyword_enum!(OverscrollBehavior);
 
-define_css_keyword_enum! { OverflowClipBox:
-    "padding-box" => PaddingBox,
-    "content-box" => ContentBox,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum OverflowClipBox {
+    PaddingBox,
+    ContentBox,
 }
-add_impls_for_keyword_enum!(OverflowClipBox);
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// Provides a rendering hint to the user agent,

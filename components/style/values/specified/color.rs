@@ -47,12 +47,13 @@ pub enum Color {
 
 #[cfg(feature = "gecko")]
 mod gecko {
-    define_css_keyword_enum! { SpecialColorKeyword:
-        "-moz-default-color" => MozDefaultColor,
-        "-moz-default-background-color" => MozDefaultBackgroundColor,
-        "-moz-hyperlinktext" => MozHyperlinktext,
-        "-moz-activehyperlinktext" => MozActiveHyperlinktext,
-        "-moz-visitedhyperlinktext" => MozVisitedHyperlinktext,
+    #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss)]
+    pub enum SpecialColorKeyword {
+        MozDefaultColor,
+        MozDefaultBackgroundColor,
+        MozHyperlinktext,
+        MozActiveHyperlinktext,
+        MozVisitedHyperlinktext,
     }
 }
 

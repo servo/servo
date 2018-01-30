@@ -65,28 +65,6 @@ macro_rules! try_match_ident_ignore_ascii_case {
     }}
 }
 
-/// A macro for implementing `ToComputedValue`, and `Parse` traits for
-/// the enums defined using `define_css_keyword_enum` macro.
-///
-/// NOTE: We should either move `Parse` trait to `style_traits`
-/// or `define_css_keyword_enum` macro to this crate, but that
-/// may involve significant cleanup in both the crates.
-macro_rules! add_impls_for_keyword_enum {
-    ($name:ident) => {
-        impl $crate::parser::Parse for $name {
-            #[inline]
-            fn parse<'i, 't>(
-                _context: &$crate::parser::ParserContext,
-                input: &mut ::cssparser::Parser<'i, 't>,
-            ) -> Result<Self, ::style_traits::ParseError<'i>> {
-                $name::parse(input)
-            }
-        }
-
-        trivial_to_computed_value!($name);
-    };
-}
-
 macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]

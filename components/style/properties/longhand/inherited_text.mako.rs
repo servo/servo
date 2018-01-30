@@ -279,12 +279,14 @@ ${helpers.predefined_type(
         }
     }
 
-    define_css_keyword_enum!(ShapeKeyword:
-                             "dot" => Dot,
-                             "circle" => Circle,
-                             "double-circle" => DoubleCircle,
-                             "triangle" => Triangle,
-                             "sesame" => Sesame);
+    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+    pub enum ShapeKeyword {
+        Dot,
+        Circle,
+        DoubleCircle,
+        Triangle,
+        Sesame,
+    }
 
     impl ShapeKeyword {
         pub fn char(&self, fill: bool) -> &str {
@@ -381,14 +383,19 @@ ${helpers.predefined_type(
 
 <%helpers:longhand name="text-emphasis-position" animation_value_type="discrete" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
-    define_css_keyword_enum!(HorizontalWritingModeValue:
-                             "over" => Over,
-                             "under" => Under);
-    add_impls_for_keyword_enum!(VerticalWritingModeValue);
-    define_css_keyword_enum!(VerticalWritingModeValue:
-                             "right" => Right,
-                             "left" => Left);
-    add_impls_for_keyword_enum!(HorizontalWritingModeValue);
+    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+    #[derive(ToComputedValue, ToCss)]
+    pub enum HorizontalWritingModeValue {
+        Over,
+        Under,
+    }
+
+    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+    #[derive(ToComputedValue, ToCss)]
+    pub enum VerticalWritingModeValue {
+        Right,
+        Left,
+    }
 
     #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
     pub struct SpecifiedValue(pub HorizontalWritingModeValue, pub VerticalWritingModeValue);
