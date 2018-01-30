@@ -46,7 +46,7 @@
   //getter WindowProxy (unsigned long index);
 
   // https://github.com/servo/servo/issues/14453
-  // getter object (DOMString name);
+  getter object (DOMString name);
 
   // the user agent
   readonly attribute Navigator navigator;
