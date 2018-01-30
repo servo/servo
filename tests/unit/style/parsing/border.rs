@@ -168,16 +168,16 @@ fn border_image_outset_should_return_length_on_length_zero() {
 fn test_border_style() {
     use style::values::specified::BorderStyle;
 
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"none"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"hidden"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"solid"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"double"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"dotted"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"dashed"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"groove"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"ridge"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"inset"#);
-    assert_roundtrip_with_context!(BorderStyle::parse, r#"outset"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"none"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"hidden"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"solid"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"double"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"dotted"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"dashed"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"groove"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"ridge"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"inset"#);
+    assert_roundtrip_with_context!(<BorderStyle as Parse>::parse, r#"outset"#);
 }
 
 #[test]

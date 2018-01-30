@@ -32,13 +32,16 @@
         ignored_when_colors_disabled=True,
     )}
 
-    ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
-                              "specified::BorderStyle::None",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
-                              spec=maybe_logical_spec(side, "style"),
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              animation_value_type="discrete" if not is_logical else "none",
-                              logical=is_logical)}
+    ${helpers.predefined_type(
+        "border-%s-style" % side_name, "BorderStyle",
+        "specified::BorderStyle::None",
+        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
+        spec=maybe_logical_spec(side, "style"),
+        flags="APPLIES_TO_FIRST_LETTER",
+        animation_value_type="discrete" if not is_logical else "none",
+        logical=is_logical,
+        needs_context=False,
+    )}
 
     ${helpers.predefined_type("border-%s-width" % side_name,
                               "BorderSideWidth",
