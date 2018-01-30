@@ -707,9 +707,9 @@ pub mod basic_shape {
                 }
                 StyleBasicShapeType::Polygon => {
                     let fill_rule = if other.mFillRule == StyleFillRule::Evenodd {
-                        FillRule::EvenOdd
+                        FillRule::Evenodd
                     } else {
-                        FillRule::NonZero
+                        FillRule::Nonzero
                     };
                     let mut coords = Vec::with_capacity(other.mCoordinates.len() / 2);
                     for i in 0..(other.mCoordinates.len() / 2) {

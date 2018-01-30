@@ -5099,7 +5099,7 @@ fn static_assert() {
                             coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
                             coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
                         }
-                        shape.mFillRule = if poly.fill == FillRule::EvenOdd {
+                        shape.mFillRule = if poly.fill == FillRule::Evenodd {
                             StyleFillRule::Evenodd
                         } else {
                             StyleFillRule::Nonzero

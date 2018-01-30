@@ -118,8 +118,8 @@ pub struct Polygon<LengthOrPercentage> {
 // https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
 // says that it can also be `inherit`
 define_css_keyword_enum!(FillRule:
-    "nonzero" => NonZero,
-    "evenodd" => EvenOdd
+    "nonzero" => Nonzero,
+    "evenodd" => Evenodd
 );
 add_impls_for_keyword_enum!(FillRule);
 
@@ -239,5 +239,5 @@ impl<L: ToCss> ToCss for Polygon<L> {
 
 impl Default for FillRule {
     #[inline]
-    fn default() -> Self { FillRule::NonZero }
+    fn default() -> Self { FillRule::Nonzero }
 }
