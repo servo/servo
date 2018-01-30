@@ -7,27 +7,28 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, ToCss};
 use values::CustomIdent;
-use values::computed::{Context, CounterReset as ComputedValue, ToComputedValue};
+use values::generics::counters::CounterIntegerList;
 use values::specified::Integer;
 
-/// A specified value for the `counter-reset` property.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
-pub struct CounterReset(pub Vec<(CustomIdent, super::Integer)>);
+/// A specified value for the `counter-increment` and `counter-reset` property.
+type SpecifiedIntegerList = CounterIntegerList<Integer>;
 
-impl Parse for CounterReset {
-     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<CounterReset, ParseError<'i>> {
+impl SpecifiedIntegerList {
+    fn parse_with_default<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        default_value: i32
+    ) -> Result<SpecifiedIntegerList, ParseError<'i>> {
         use cssparser::Token;
         use style_traits::StyleParseErrorKind;
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(CounterReset(Vec::new()))
+            return Ok(CounterIntegerList::new(Vec::new()))
         }
 
-        let mut counters: Vec<(CustomIdent, super::Integer)> = Vec::new();
+        let mut counters: Vec<(CustomIdent, Integer)> = Vec::new();
         loop {
             let location = input.current_source_location();
             let counter_name = match input.next() {
@@ -35,53 +36,84 @@ impl Parse for CounterReset {
                 Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
             };
+
             let counter_delta = input.try(|input| Integer::parse(context, input))
-                                     .unwrap_or(Integer::new(0));
+                                     .unwrap_or(Integer::new(default_value));
             counters.push((counter_name, counter_delta))
         }
 
         if !counters.is_empty() {
-            Ok(CounterReset(counters))
+            Ok(CounterIntegerList::new(counters))
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
 
-impl ToComputedValue for CounterReset {
-    type ComputedValue = ComputedValue;
+/// A specified value for the `counter-increment` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CounterIncrement(SpecifiedIntegerList);
 
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        ComputedValue(self.0.iter().map(|&(ref name, ref value)| {
-            (name.clone(), value.to_computed_value(context))
-        }).collect::<Vec<_>>())
+impl CounterIncrement {
+    /// Returns a new specified `counter-increment` object with the given values.
+    pub fn new(vec: Vec<(CustomIdent, Integer)>) -> CounterIncrement {
+        CounterIncrement(SpecifiedIntegerList::new(vec))
     }
 
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        CounterReset(computed.0.iter().map(|&(ref name, ref value)| {
-            (name.clone(), Integer::from_computed_value(&value))
-        }).collect::<Vec<_>>())
+    /// Returns a clone of the values of the specified `counter-increment` object.
+    pub fn get_values(&self) -> Vec<(CustomIdent, Integer)> {
+        self.0.get_values()
+    }
+}
+
+impl Parse for CounterIncrement {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<CounterIncrement, ParseError<'i>> {
+        Ok(CounterIncrement(SpecifiedIntegerList::parse_with_default(context, input, 1)?))
+    }
+}
+
+impl ToCss for CounterIncrement {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+                where W: fmt::Write,
+    {
+        self.0.to_css(dest)
+    }
+}
+
+/// A specified value for the `counter-reset` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CounterReset(SpecifiedIntegerList);
+
+impl CounterReset {
+    /// Returns a new specified `counter-reset` object with the given values.
+    pub fn new(vec: Vec<(CustomIdent, Integer)>) -> CounterReset {
+        CounterReset(SpecifiedIntegerList::new(vec))
+    }
+
+    /// Returns a clone of the values of the specified `counter-reset` object.
+    pub fn get_values(&self) -> Vec<(CustomIdent, Integer)> {
+        self.0.get_values()
+    }
+}
+
+impl Parse for CounterReset {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<CounterReset, ParseError<'i>> {
+        Ok(CounterReset(SpecifiedIntegerList::parse_with_default(context, input, 0)?))
     }
 }
 
 impl ToCss for CounterReset {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
                 where W: fmt::Write,
     {
-        if self.0.is_empty() {
-            return dest.write_str("none")
-        }
-
-        let mut first = true;
-        for &(ref name, value) in &self.0 {
-            if !first {
-                dest.write_str(" ")?;
-            }
-            first = false;
-            name.to_css(dest)?;
-            dest.write_str(" ")?;
-            value.to_css(dest)?;
-        }
-        Ok(())
+        self.0.to_css(dest)
     }
 }
