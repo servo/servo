@@ -10,14 +10,20 @@ use euclid::TypedSize2D;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt::{self, Write};
 
-define_css_keyword_enum!(UserZoom:
-                         "zoom" => Zoom,
-                         "fixed" => Fixed);
+define_css_keyword_enum! {
+    pub enum UserZoom {
+        Zoom = "zoom",
+        Fixed = "fixed",
+    }
+}
 
-define_css_keyword_enum!(Orientation:
-                         "auto" => Auto,
-                         "portrait" => Portrait,
-                         "landscape" => Landscape);
+define_css_keyword_enum! {
+    pub enum Orientation {
+        Auto = "auto",
+        Portrait = "portrait",
+        Landscape = "landscape",
+    }
+}
 
 /// A set of viewport descriptors:
 ///
