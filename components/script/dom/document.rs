@@ -401,6 +401,56 @@ pub struct Document {
     csp_list: DomRefCell<Option<CspList>>,
 }
 
+// https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
+fn filter_by_name(name: &Atom, element: &Element) -> bool {
+    // TODO: Handle <embed>, <iframe> and <object>.
+    if element.is::<HTMLFormElement>() || element.is::<HTMLImageElement>() {
+        if let Some(attr) = element.get_attribute(&ns!(), &local_name!("name")) {
+            if attr.value().as_atom() == name {
+                return true;
+            }
+        }
+    }
+
+    if element.is::<HTMLImageElement>() &&
+        element.get_id().as_ref().map_or(false, |id| id == name)
+    {
+        return true;
+    }
+
+    false
+}
+
+/// The filter for the named getter HTMLCollection that must be returned from
+/// the document.
+#[derive(JSTraceable, MallocSizeOf)]
+struct NamedGetterFilter {
+    name: Atom,
+}
+
+impl CollectionFilter for NamedGetterFilter {
+    fn filter(&self, elem: &Element, _root: &Node) -> bool {
+        filter_by_name(&self.name, elem)
+    }
+}
+
+/// The filter for the named getter HTMLCollection that must be returned from
+/// the window (not the document).
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct WindowNamedGetterFilter {
+    pub name: Atom,
+}
+
+impl CollectionFilter for WindowNamedGetterFilter {
+    fn filter(&self, element: &Element, _: &Node) -> bool {
+        if filter_by_name(&self.name, element) {
+            return true;
+        }
+
+        element.get_id().as_ref().map_or(false, |id| id == &self.name)
+    }
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
@@ -4341,12 +4391,15 @@ impl DocumentMethods for Document {
             }
         }
         let name = Atom::from(name);
+        let filter = NamedGetterFilter { name };
+
         let root = self.upcast::<Node>();
         unsafe {
             // Step 1.
             let mut elements = root
                 .traverse_preorder(ShadowIncluding::No)
-                .filter(|node| filter_by_name(&name, &node))
+                .filter_map(DomRoot::downcast::<Element>)
+                .filter(|element| filter.filter(&element, &root))
                 .peekable();
             if let Some(first) = elements.next() {
                 if elements.peek().is_none() {
@@ -4361,7 +4414,6 @@ impl DocumentMethods for Document {
             }
         }
         // Step 4.
-        let filter = NamedElementFilter { name: name };
         let collection = HTMLCollection::create(self.window(), root, Box::new(filter));
         unsafe {
             Some(NonNull::new_unchecked(
@@ -4373,6 +4425,12 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
+        //
+        // We really need a HashMap from name to element, much like `id_map` for
+        // this.
+        //
+        // Chances are that if you implement this, you can also implement most
+        // of Window::SupportedPropertyNames.
         vec![]
     }
 

@@ -32,19 +32,20 @@ use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::crypto::Crypto;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, Document};
+use crate::dom::document::{AnimationFrameCallback, Document, WindowNamedGetterFilter};
 use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
+use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::navigator::Navigator;
-use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, NodeDamage};
+use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, NodeDamage, ShadowIncluding};
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
@@ -111,6 +112,7 @@ use script_traits::{
 };
 use script_traits::{TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
+use servo_atoms::Atom;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
@@ -123,6 +125,7 @@ use std::env;
 use std::fs;
 use std::io::{stderr, stdout, Write};
 use std::mem;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -1071,6 +1074,56 @@ impl WindowMethods for Window {
             pseudo,
             CSSModificationAccess::Readonly,
         )
+    }
+
+    // https://html.spec.whatwg.org/multipage/window-object.html#named-access-on-the-window-object
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273).
+        //
+        // See also Document::SupportedPropertyNames.
+        vec![]
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    fn NamedGetter(
+        &self,
+        cx: JSContext,
+        name: DOMString,
+    ) -> Option<NonNull<JSObject>> {
+        // TODO: Return child windows, like iframes and such. When this is
+        // fixed, please implement IndexedGetter properly too.
+        let document = self.Document();
+        if !document.is_html_document() {
+            return None;
+        }
+
+        // TODO(emilio): There is a missing fast-path here for when we know
+        // there aren't any named items with a given `name`. In that case, we
+        // can return `document.get_element_by_id(name)` (unless there are many
+        // of those elements), which is much faster.
+        let name = Atom::from(name);
+
+        let filter = WindowNamedGetterFilter { name };
+
+        let root = document.upcast();
+        {
+            let mut named_elements = document.upcast::<Node>()
+                .traverse_preorder(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+                .filter(|element| filter.filter(&element, &root));
+
+            let first_element = named_elements.next()?;
+            if named_elements.next().is_none() {
+                return Some(NonNull::new_unchecked(
+                    first_element.reflector().get_jsobject().get()
+                ));
+            }
+        }
+
+        let collection =
+            HTMLCollection::create(self, root, Box::new(filter));
+        Some(NonNull::new_unchecked(collection.reflector().get_jsobject().get()))
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
@@ -2051,6 +2104,12 @@ impl Window {
         // If we didn't have a clip rect, the previous display doesn't need rebuilding
         // because it was built for infinite clip (MaxRect::amax_rect()).
         had_clip_rect
+    }
+
+    // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<DomRoot<Window>> {
+        // TODO: When this is fixed, also implement NamedGetter properly.
+        None
     }
 
     pub fn suspend(&self) {
