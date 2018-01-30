@@ -67,13 +67,17 @@ impl ToCss for UrlSource {
 /// A font-display value for a @font-face rule.
 /// The font-display descriptor determines how a font face is displayed based
 /// on whether and when it is downloaded and ready to use.
-define_css_keyword_enum!(FontDisplay:
-                         "auto" => Auto,
-                         "block" => Block,
-                         "swap" => Swap,
-                         "fallback" => Fallback,
-                         "optional" => Optional);
-add_impls_for_keyword_enum!(FontDisplay);
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum FontDisplay {
+    Auto,
+    Block,
+    Swap,
+    Fallback,
+    Optional,
+}
 
 /// A font-weight value for a @font-face rule.
 /// The font-weight CSS property specifies the weight or boldness of the font.

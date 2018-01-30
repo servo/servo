@@ -25,8 +25,6 @@
 
 #![deny(missing_docs)]
 
-#![recursion_limit = "500"]  // For define_css_keyword_enum! in -moz-appearance
-
 extern crate app_units;
 extern crate arrayvec;
 extern crate atomic_refcell;
@@ -72,7 +70,6 @@ extern crate smallbitvec;
 extern crate smallvec;
 #[macro_use]
 extern crate style_derive;
-#[macro_use]
 extern crate style_traits;
 extern crate time;
 extern crate uluru;
