@@ -12,7 +12,7 @@ use canvas_traits::canvas::CanvasMsg;
 use context::{LayoutContext, with_thread_local_font_context};
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use floats::ClearType;
-use flow::{self, ImmutableFlowUtils};
+use flow::{GetBaseFlow, ImmutableFlowUtils};
 use flow_ref::FlowRef;
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -138,7 +138,7 @@ pub struct Fragment {
     pub restyle_damage: RestyleDamage,
 
     /// The pseudo-element that this fragment represents.
-    pub pseudo: PseudoElementType<()>,
+    pub pseudo: PseudoElementType,
 
     /// Various flags for this fragment.
     pub flags: FragmentFlags,
@@ -232,7 +232,7 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::InlineBlock(ref info) => &info.flow_ref,
             };
 
-        flow::base(&**flow).restyle_damage
+        flow.base().restyle_damage
     }
 
     pub fn get_type(&self) -> &'static str {
@@ -421,77 +421,6 @@ impl ImageFragmentInfo {
             metadata: metadata,
         }
     }
-
-    pub fn tile_image_round(position: &mut Au,
-                            size: &mut Au,
-                            absolute_anchor_origin: Au,
-                            image_size: &mut Au) {
-        if *size == Au(0) || *image_size == Au(0) {
-            *position = Au(0);
-            *size =Au(0);
-            return;
-        }
-
-        let number_of_tiles = (size.to_f32_px() / image_size.to_f32_px()).round().max(1.0);
-        *image_size = *size / (number_of_tiles as i32);
-        ImageFragmentInfo::tile_image(position, size, absolute_anchor_origin, *image_size);
-    }
-
-    pub fn tile_image_spaced(position: &mut Au,
-                             size: &mut Au,
-                             tile_spacing: &mut Au,
-                             absolute_anchor_origin: Au,
-                             image_size: Au) {
-        if *size == Au(0) || image_size == Au(0) {
-            *position = Au(0);
-            *size = Au(0);
-            *tile_spacing = Au(0);
-            return;
-        }
-
-        // Per the spec, if the space available is not enough for two images, just tile as
-        // normal but only display a single tile.
-        if image_size * 2 >= *size {
-            ImageFragmentInfo::tile_image(position,
-                                          size,
-                                          absolute_anchor_origin,
-                                          image_size);
-            *tile_spacing = Au(0);
-            *size = image_size;
-            return;
-        }
-
-        // Take the box size, remove room for two tiles on the edges, and then calculate how many
-        // other tiles fit in between them.
-        let size_remaining = *size - (image_size * 2);
-        let num_middle_tiles = (size_remaining.to_f32_px() / image_size.to_f32_px()).floor() as i32;
-
-        // Allocate the remaining space as padding between tiles. background-position is ignored
-        // as per the spec, so the position is just the box origin. We are also ignoring
-        // background-attachment here, which seems unspecced when combined with
-        // background-repeat: space.
-        let space_for_middle_tiles = image_size * num_middle_tiles;
-        *tile_spacing = (size_remaining - space_for_middle_tiles) / (num_middle_tiles + 1);
-    }
-
-    /// Tile an image
-    pub fn tile_image(position: &mut Au,
-                      size: &mut Au,
-                      absolute_anchor_origin: Au,
-                      image_size: Au) {
-        // Avoid division by zero below!
-        if image_size == Au(0) {
-            return
-        }
-
-        let delta_pixels = absolute_anchor_origin - *position;
-        let image_size_px = image_size.to_f32_px();
-        let tile_count = ((delta_pixels.to_f32_px() + image_size_px - 1.0) / image_size_px).floor();
-        let offset = image_size * (tile_count as i32);
-        let new_position = absolute_anchor_origin - offset;
-        *size = *position - new_position + *size;
-        *position = new_position;
-    }
 }
 
 /// A fragment that represents an inline frame (iframe). This stores the frame ID so that the
@@ -550,6 +479,11 @@ bitflags! {
 
         /// Is this fragment selected?
         const SELECTED = 0x02;
+
+        /// Suppress line breaking between this and the previous fragment
+        ///
+        /// This handles cases like Foo<span>bar</span>
+        const SUPPRESS_LINE_BREAK_BEFORE = 0x04;
     }
 }
 
@@ -693,7 +627,7 @@ impl Fragment {
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
             inline_context: None,
-            pseudo: node.get_pseudo_element_type().strip(),
+            pseudo: node.get_pseudo_element_type(),
             flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::root(),
@@ -702,7 +636,7 @@ impl Fragment {
 
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
-                                      pseudo: PseudoElementType<()>,
+                                      pseudo: PseudoElementType,
                                       style: ServoArc<ComputedValues>,
                                       selected_style: ServoArc<ComputedValues>,
                                       mut restyle_damage: RestyleDamage,
@@ -783,13 +717,15 @@ impl Fragment {
     }
 
     /// Transforms this fragment using the given `SplitInfo`, preserving all the other data.
-    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<TextRun>)
-                                     -> Fragment {
+    ///
+    /// If this is the first half of a split, `first` is true
+    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<TextRun>,
+                                     first: bool) -> Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
         // Preserve the insertion point if it is in this fragment's range or it is at line end.
-        let (flags, insertion_point) = match self.specific {
+        let (mut flags, insertion_point) = match self.specific {
             SpecificFragmentInfo::ScannedText(ref info) => {
                 match info.insertion_point {
                     Some(index) if split.range.contains(index) => (info.flags, info.insertion_point),
@@ -800,6 +736,11 @@ impl Fragment {
             },
             _ => (ScannedTextFlags::empty(), None)
         };
+
+        if !first {
+            flags.set(ScannedTextFlags::SUPPRESS_LINE_BREAK_BEFORE, false);
+        }
+
         let info = Box::new(ScannedTextFragmentInfo::new(
             text_run,
             split.range,
@@ -1492,6 +1433,14 @@ impl Fragment {
         }
     }
 
+    pub fn suppress_line_break_before(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref st) =>
+                st.flags.contains(ScannedTextFlags::SUPPRESS_LINE_BREAK_BEFORE),
+            _ => false,
+        }
+    }
+
     /// Computes the intrinsic inline-sizes of this fragment.
     pub fn compute_intrinsic_inline_sizes(&mut self) -> IntrinsicISizesContribution {
         let mut result = self.style_specified_intrinsic_inline_size();
@@ -1692,6 +1641,16 @@ impl Fragment {
         }
     }
 
+    /// Does this fragment start on a glyph run boundary?
+    pub fn is_on_glyph_run_boundary(&self) -> bool {
+        let text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment_info)
+                => text_fragment_info,
+            _   => return true,
+        };
+        text_fragment_info.run.on_glyph_run_boundary(text_fragment_info.range.begin())
+    }
+
     /// Truncates this fragment to the given `max_inline_size`, using a character-based breaking
     /// strategy. The resulting fragment will have `SpecificFragmentInfo::TruncatedFragment`,
     /// preserving the original fragment for use in incremental reflow.
@@ -1750,22 +1709,17 @@ impl Fragment {
 
         let character_breaking_strategy =
             text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
-        match self.calculate_split_position_using_breaking_strategy(character_breaking_strategy,
-                                                                    max_inline_size,
-                                                                    SplitOptions::empty()) {
-            None => None,
-            Some(split_info) => {
-                match split_info.inline_start {
-                    None => None,
-                    Some(split) => {
-                        Some(TruncationResult {
-                            split: split,
-                            text_run: split_info.text_run.clone(),
-                        })
-                    }
-                }
-            }
-        }
+
+        let split_info = self.calculate_split_position_using_breaking_strategy(
+                character_breaking_strategy,
+                max_inline_size,
+                SplitOptions::empty())?;
+
+        let split = split_info.inline_start?;
+        Some(TruncationResult {
+            split: split,
+            text_run: split_info.text_run.clone(),
+        })
     }
 
     /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
@@ -2617,11 +2571,11 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&block_flow.base().overflow);
             }
             SpecificFragmentInfo::InlineAbsolute(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&block_flow.base().overflow);
             }
             _ => (),
         }
@@ -2963,24 +2917,24 @@ impl Fragment {
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let border_padding_string = if !self.border_padding.is_zero() {
-            format!(" border_padding={:?}", self.border_padding)
+            format!("\nborder_padding={:?}", self.border_padding)
         } else {
             "".to_owned()
         };
 
         let margin_string = if !self.margin.is_zero() {
-            format!(" margin={:?}", self.margin)
+            format!("\nmargin={:?}", self.margin)
         } else {
             "".to_owned()
         };
 
         let damage_string = if self.restyle_damage != RestyleDamage::empty() {
-            format!(" damage={:?}", self.restyle_damage)
+            format!("\ndamage={:?}", self.restyle_damage)
         } else {
             "".to_owned()
         };
 
-        write!(f, "{}({}) [{:?}] border_box={:?}{}{}{}",
+        write!(f, "\n{}({}) [{:?}]\nborder_box={:?}{}{}{}",
             self.specific.get_type(),
             self.debug_id,
             self.specific,

@@ -167,6 +167,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
+    @CommandArgument('--very-verbose', '-vv',
+                     action='store_true',
+                     help='Print very verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandArgument('--with-debug-assertions',
@@ -174,8 +177,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Enable debug assertions in release')
     def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, verbose=False, debug_mozjs=False, params=None,
-              with_debug_assertions=False):
+              features=None, android=None, verbose=False, very_verbose=False,
+              debug_mozjs=False, params=None, with_debug_assertions=False):
 
         opts = params or []
         opts += ["--manifest-path", self.servo_manifest()]
@@ -223,11 +226,20 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+        if very_verbose:
+            opts += ["-vv"]
 
         if android:
             target = self.config["android"]["target"]
 
         if target:
+            if self.config["tools"]["use-rustup"]:
+                # 'rustup target add' fails if the toolchain is not installed at all.
+                self.call_rustup_run(["rustc", "--version"])
+
+                check_call(["rustup" + BIN_SUFFIX, "target", "add",
+                            "--toolchain", self.toolchain(), target])
+
             opts += ["--target", target]
             if not android:
                 android = self.handle_android_target(target)
@@ -335,10 +347,7 @@ class MachCommands(CommandBase):
                 os.makedirs(aar_out_dir)
             env["AAR_OUT_DIR"] = aar_out_dir
 
-        cargo_binary = "cargo" + BIN_SUFFIX
-
-        status = call(
-            [cargo_binary, "build"] + opts, env=env, verbose=verbose)
+        status = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Do some additional things if the build succeeded
@@ -425,9 +434,9 @@ class MachCommands(CommandBase):
             # Unlike RUSTFLAGS, these are only passed in the final rustc invocation
             # so that `./mach build` followed by `./mach build-cef` both build
             # common dependencies with the same flags.
-            opts += ["--", "-C", "link-args=-Xlinker -undefined -Xlinker dynamic_lookup"]
+            opts += ["--", "-Clink-args=-Xlinker -undefined -Xlinker dynamic_lookup"]
 
-        ret = call(["cargo", "rustc"] + opts, env=env, verbose=verbose)
+        ret = self.call_rustup_run(["cargo", "rustc"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -450,7 +459,7 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build in release mode')
     def build_geckolib(self, jobs=None, verbose=False, release=False):
-        self.set_use_stable_rust()
+        self.set_use_geckolib_toolchain()
         self.ensure_bootstrapped()
         self.ensure_clobbered()
 
@@ -470,7 +479,7 @@ class MachCommands(CommandBase):
             opts += ["--features", ' '.join(features)]
 
         build_start = time()
-        ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
+        ret = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value

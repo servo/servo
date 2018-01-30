@@ -5,7 +5,7 @@ blessings == 1.6
 mach == 0.6.0
 mozdebug == 0.1
 mozinfo == 0.8
-mozlog == 3.5
+mozlog == 3.6
 setuptools == 18.5
 toml == 0.9.2
 
@@ -15,6 +15,7 @@ pep8 == 1.5.7
 pyflakes == 0.8.1
 
 # For buildbot checking
+voluptuous == 0.10.5
 PyYAML == 3.12
 
 # For test-webidl

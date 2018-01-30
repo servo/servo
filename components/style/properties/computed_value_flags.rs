@@ -62,6 +62,11 @@ bitflags! {
 
         /// A flag to mark a style which is a visited style.
         const IS_STYLE_IF_VISITED = 1 << 9;
+
+        /// Whether the style or any of the ancestors has a multicol style.
+        ///
+        /// Only used in Servo.
+        const CAN_BE_FRAGMENTED = 1 << 10;
     }
 }
 

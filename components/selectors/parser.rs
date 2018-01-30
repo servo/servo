@@ -19,7 +19,7 @@ use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display, Debug, Write};
 use std::iter::Rev;
 use std::slice;
-use visitor::SelectorVisitor;
+pub use visitor::{Visit, SelectorVisitor};
 
 /// A trait that represents a pseudo-element.
 pub trait PseudoElement : Sized + ToCss {
@@ -55,6 +55,7 @@ pub enum SelectorParseErrorKind<'i> {
     EmptySelector,
     DanglingCombinator,
     NonSimpleSelectorInNegation,
+    NonCompoundSelector,
     UnexpectedTokenInAttributeSelector(Token<'i>),
     PseudoElementExpectedColon(Token<'i>),
     PseudoElementExpectedIdent(Token<'i>),
@@ -83,18 +84,19 @@ macro_rules! with_all_bounds {
         /// are parameterized on SelectorImpl. See
         /// <https://github.com/rust-lang/rust/issues/26925>
         pub trait SelectorImpl: Clone + Sized + 'static {
+            type ExtraMatchingData: Sized + Default + 'static;
             type AttrValue: $($InSelector)*;
-            type Identifier: $($InSelector)* + PrecomputedHash;
-            type ClassName: $($InSelector)* + PrecomputedHash;
-            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName> + PrecomputedHash;
-            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl> + PrecomputedHash;
+            type Identifier: $($InSelector)*;
+            type ClassName: $($InSelector)*;
+            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName>;
+            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl>;
             type NamespacePrefix: $($InSelector)* + Default;
             type BorrowedNamespaceUrl: ?Sized + Eq;
             type BorrowedLocalName: ?Sized + Eq;
 
             /// non tree-structural pseudo-classes
             /// (see: https://drafts.csswg.org/selectors/#structural-pseudos)
-            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + SelectorMethods<Impl = Self>;
+            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss;
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + PseudoElement<Impl = Self>;
@@ -127,8 +129,13 @@ pub trait Parser<'i> {
 
     /// Whether the name is a pseudo-element that can be specified with
     /// the single colon syntax in addition to the double-colon syntax.
-    fn is_pseudo_element_allows_single_colon(name: &CowRcStr<'i>) -> bool {
+    fn pseudo_element_allows_single_colon(name: &str) -> bool {
         is_css2_pseudo_element(name)
+    }
+
+    /// Whether to parse the `::slotted()` pseudo-element.
+    fn parse_slotted(&self) -> bool {
+        false
     }
 
     /// This function can return an "Err" pseudo-element in order to support CSS2.1
@@ -209,6 +216,41 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     }
 }
 
+/// Parses one compound selector suitable for nested stuff like ::-moz-any, etc.
+fn parse_inner_compound_selector<'i, 't, P, Impl>(
+    parser: &P,
+    input: &mut CssParser<'i, 't>,
+) -> Result<Selector<Impl>, ParseError<'i, P::Error>>
+where
+    P: Parser<'i, Impl=Impl>,
+    Impl: SelectorImpl,
+{
+    let location = input.current_source_location();
+    let selector = Selector::parse(parser, input)?;
+    // Ensure they're actually all compound selectors.
+    if selector.iter_raw_match_order().any(|s| s.is_combinator()) {
+        return Err(location.new_custom_error(
+            SelectorParseErrorKind::NonCompoundSelector
+        ))
+    }
+
+    Ok(selector)
+}
+
+/// Parse a comma separated list of compound selectors.
+pub fn parse_compound_selector_list<'i, 't, P, Impl>(
+    parser: &P,
+    input: &mut CssParser<'i, 't>,
+) -> Result<Box<[Selector<Impl>]>, ParseError<'i, P::Error>>
+where
+    P: Parser<'i, Impl=Impl>,
+    Impl: SelectorImpl,
+{
+    input.parse_comma_separated(|input| {
+        parse_inner_compound_selector(parser, input)
+    }).map(|selectors| selectors.into_boxed_slice())
+}
+
 /// Ancestor hashes for the bloom filter. We precompute these and store them
 /// inline with selectors to optimize cache performance during matching.
 /// This matters a lot.
@@ -224,7 +266,7 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
 /// off the upper bits) at the expense of making the fourth somewhat more
 /// complicated to assemble, because we often bail out before checking all the
 /// hashes.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AncestorHashes {
     pub packed_hashes: [u32; 3],
 }
@@ -233,14 +275,24 @@ impl AncestorHashes {
     pub fn new<Impl: SelectorImpl>(
         selector: &Selector<Impl>,
         quirks_mode: QuirksMode,
-    ) -> Self {
+    ) -> Self
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         Self::from_iter(selector.iter(), quirks_mode)
     }
 
     fn from_iter<Impl: SelectorImpl>(
         iter: SelectorIter<Impl>,
         quirks_mode: QuirksMode,
-    ) -> Self {
+    ) -> Self
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         // Compute ancestor hashes for the bloom filter.
         let mut hashes = [0u32; 4];
         let mut hash_iter = AncestorIter::new(iter)
@@ -274,15 +326,7 @@ impl AncestorHashes {
     }
 }
 
-pub trait SelectorMethods {
-    type Impl: SelectorImpl;
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Self::Impl>;
-}
-
-impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
+impl<Impl: SelectorImpl> Visit for Selector<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -312,7 +356,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
+impl<Impl: SelectorImpl> Visit for Component<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -325,6 +369,13 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
         }
 
         match *self {
+            Slotted(ref selectors) => {
+                for selector in selectors.iter() {
+                    if !selector.visit(visitor) {
+                        return false;
+                    }
+                }
+            }
             Negation(ref negated) => {
                 for component in negated.iter() {
                     if !component.visit(visitor) {
@@ -397,14 +448,22 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 pub struct Selector<Impl: SelectorImpl>(ThinArc<SpecificityAndFlags, Component<Impl>>);
 
 impl<Impl: SelectorImpl> Selector<Impl> {
+    #[inline]
     pub fn specificity(&self) -> u32 {
         self.0.header.header.specificity()
     }
 
+    #[inline]
     pub fn has_pseudo_element(&self) -> bool {
         self.0.header.header.has_pseudo_element()
     }
 
+    #[inline]
+    pub fn is_slotted(&self) -> bool {
+        self.0.header.header.is_slotted()
+    }
+
+    #[inline]
     pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
         if !self.has_pseudo_element() {
             return None
@@ -550,13 +609,12 @@ impl<'a, Impl: SelectorImpl> Iterator for SelectorIter<'a, Impl> {
     fn next(&mut self) -> Option<Self::Item> {
         debug_assert!(self.next_combinator.is_none(),
                       "You should call next_sequence!");
-        match self.iter.next() {
-            None => None,
-            Some(&Component::Combinator(c)) => {
+        match *self.iter.next()? {
+            Component::Combinator(c) => {
                 self.next_combinator = Some(c);
                 None
             },
-            Some(x) => Some(x),
+            ref x => Some(x),
         }
     }
 }
@@ -630,15 +688,20 @@ pub enum Combinator {
     /// combinator for this, we will need to fix up the way hashes are computed
     /// for revalidation selectors.
     PseudoElement,
+    /// Another combinator used for ::slotted(), which represent the jump from
+    /// a node to its assigned slot.
+    SlotAssignment,
 }
 
 impl Combinator {
     /// Returns true if this combinator is a child or descendant combinator.
     #[inline]
     pub fn is_ancestor(&self) -> bool {
-        matches!(*self, Combinator::Child |
-                        Combinator::Descendant |
-                        Combinator::PseudoElement)
+        matches!(*self,
+                 Combinator::Child |
+                 Combinator::Descendant |
+                 Combinator::PseudoElement |
+                 Combinator::SlotAssignment)
     }
 
     /// Returns true if this combinator is a pseudo-element combinator.
@@ -688,16 +751,16 @@ pub enum Component<Impl: SelectorImpl> {
     // Use a Box in the less common cases with more data to keep size_of::<Component>() small.
     AttributeOther(Box<AttrSelectorWithNamespace<Impl>>),
 
-    // Pseudo-classes
-    //
-    // CSS3 Negation only takes a simple simple selector, but we still need to
-    // treat it as a compound selector because it might be a type selector which
-    // we represent as a namespace and a localname.
-    //
-    // Note: if/when we upgrade this to CSS4, which supports combinators, we
-    // need to think about how this should interact with visit_complex_selector,
-    // and what the consumers of those APIs should do about the presence of
-    // combinators in negation.
+    /// Pseudo-classes
+    ///
+    /// CSS3 Negation only takes a simple simple selector, but we still need to
+    /// treat it as a compound selector because it might be a type selector
+    /// which we represent as a namespace and a localname.
+    ///
+    /// Note: if/when we upgrade this to CSS4, which supports combinators, we
+    /// need to think about how this should interact with
+    /// visit_complex_selector, and what the consumers of those APIs should do
+    /// about the presence of combinators in negation.
     Negation(Box<[Component<Impl>]>),
     FirstChild, LastChild, OnlyChild,
     Root,
@@ -711,12 +774,28 @@ pub enum Component<Impl: SelectorImpl> {
     LastOfType,
     OnlyOfType,
     NonTSPseudoClass(Impl::NonTSPseudoClass),
+    /// The ::slotted() pseudo-element (which isn't actually a pseudo-element,
+    /// and probably should be a pseudo-class):
+    ///
+    /// https://drafts.csswg.org/css-scoping/#slotted-pseudo
+    ///
+    /// The selector here is a compound selector, that is, no combinators.
+    ///
+    /// NOTE(emilio): This should support a list of selectors, but as of this
+    /// writing no other browser does, and that allows them to put ::slotted()
+    /// in the rule hash, so we do that too.
+    Slotted(Selector<Impl>),
     PseudoElement(Impl::PseudoElement),
 }
 
 impl<Impl: SelectorImpl> Component<Impl> {
     /// Compute the ancestor hash to check against the bloom filter.
-    fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32> {
+    fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32>
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         match *self {
             Component::LocalName(LocalName { ref name, ref lower_name }) => {
                 // Only insert the local-name into the filter if it's all
@@ -840,13 +919,15 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                 let mut perform_step_2 = true;
                 if first_non_namespace == compound.len() - 1 {
                     match (combinators.peek(), &compound[first_non_namespace]) {
-                        // We have to be careful here, because if there is a pseudo
-                        // element "combinator" there isn't really just the one
-                        // simple selector. Technically this compound selector
-                        // contains the pseudo element selector as
-                        // well--Combinator::PseudoElement doesn't exist in the
+                        // We have to be careful here, because if there is a
+                        // pseudo element "combinator" there isn't really just
+                        // the one simple selector. Technically this compound
+                        // selector contains the pseudo element selector as well
+                        // -- Combinator::PseudoElement, just like
+                        // Combinator::SlotAssignment, don't exist in the
                         // spec.
-                        (Some(&&Component::Combinator(Combinator::PseudoElement)), _) => (),
+                        (Some(&&Component::Combinator(Combinator::PseudoElement)), _) |
+                        (Some(&&Component::Combinator(Combinator::SlotAssignment)), _) => (),
                         (_, &Component::ExplicitUniversalType) => {
                             // Iterate over everything so we serialize the namespace
                             // too.
@@ -914,6 +995,7 @@ impl ToCss for Combinator {
             Combinator::NextSibling => dest.write_str(" + "),
             Combinator::LaterSibling => dest.write_str(" ~ "),
             Combinator::PseudoElement => Ok(()),
+            Combinator::SlotAssignment => Ok(()),
         }
     }
 }
@@ -941,6 +1023,11 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
         match *self {
             Combinator(ref c) => {
                 c.to_css(dest)
+            }
+            Slotted(ref selector) => {
+                dest.write_str("::slotted(")?;
+                selector.to_css(dest)?;
+                dest.write_char(')')
             }
             PseudoElement(ref p) => {
                 p.to_css(dest)
@@ -1092,10 +1179,14 @@ where
     let mut builder = SelectorBuilder::default();
 
     let mut has_pseudo_element;
+    let mut slotted;
     'outer_loop: loop {
         // Parse a sequence of simple selectors.
-        has_pseudo_element = match parse_compound_selector(parser, input, &mut builder)? {
-            Some(has_pseudo_element) => has_pseudo_element,
+        match parse_compound_selector(parser, input, &mut builder)? {
+            Some((has_pseudo, slot)) => {
+                has_pseudo_element = has_pseudo;
+                slotted = slot;
+            }
             None => {
                 return Err(input.new_custom_error(if builder.has_combinators() {
                     SelectorParseErrorKind::DanglingCombinator
@@ -1104,7 +1195,8 @@ where
                 }))
             }
         };
-        if has_pseudo_element {
+
+        if has_pseudo_element || slotted {
             break;
         }
 
@@ -1142,7 +1234,7 @@ where
         builder.push_combinator(combinator);
     }
 
-    Ok(Selector(builder.build(has_pseudo_element)))
+    Ok(Selector(builder.build(has_pseudo_element, slotted)))
 }
 
 impl<Impl: SelectorImpl> Selector<Impl> {
@@ -1235,6 +1327,7 @@ where
 enum SimpleSelectorParseResult<Impl: SelectorImpl> {
     SimpleSelector(Component<Impl>),
     PseudoElement(Impl::PseudoElement),
+    SlottedPseudo(Selector<Impl>),
 }
 
 #[derive(Debug)]
@@ -1547,7 +1640,8 @@ where
             None => {
                 return Err(input.new_custom_error(SelectorParseErrorKind::EmptyNegation));
             },
-            Some(SimpleSelectorParseResult::PseudoElement(_)) => {
+            Some(SimpleSelectorParseResult::PseudoElement(_)) |
+            Some(SimpleSelectorParseResult::SlottedPseudo(_)) => {
                 return Err(input.new_custom_error(SelectorParseErrorKind::NonSimpleSelectorInNegation));
             }
         }
@@ -1564,12 +1658,13 @@ where
 /// `Err(())` means invalid selector.
 /// `Ok(None)` is an empty selector
 ///
-/// The boolean represent whether a pseudo-element has been parsed.
+/// The booleans represent whether a pseudo-element has been parsed, and whether
+/// ::slotted() has been parsed, respectively.
 fn parse_compound_selector<'i, 't, P, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
     builder: &mut SelectorBuilder<Impl>,
-) -> Result<Option<bool>, ParseError<'i, P::Error>>
+) -> Result<Option<(bool, bool)>, ParseError<'i, P::Error>>
 where
     P: Parser<'i, Impl=Impl>,
     Impl: SelectorImpl,
@@ -1577,6 +1672,7 @@ where
     input.skip_whitespace();
 
     let mut empty = true;
+    let mut slot = false;
     if !parse_type_selector(parser, input, builder)? {
         if let Some(url) = parser.default_namespace() {
             // If there was no explicit type selector, but there is a
@@ -1590,13 +1686,18 @@ where
 
     let mut pseudo = false;
     loop {
-        match parse_one_simple_selector(parser, input, /* inside_negation = */ false)? {
-            None => break,
-            Some(SimpleSelectorParseResult::SimpleSelector(s)) => {
+        let parse_result =
+            match parse_one_simple_selector(parser, input, /* inside_negation = */ false)? {
+                None => break,
+                Some(result) => result,
+            };
+
+        match parse_result {
+            SimpleSelectorParseResult::SimpleSelector(s) => {
                 builder.push_simple_selector(s);
                 empty = false
             }
-            Some(SimpleSelectorParseResult::PseudoElement(p)) => {
+            SimpleSelectorParseResult::PseudoElement(p) => {
                 // Try to parse state to its right. There are only 3 allowable
                 // state selectors that can go on pseudo-elements.
                 let mut state_selectors = SmallVec::<[Component<Impl>; 3]>::new();
@@ -1645,13 +1746,25 @@ where
                 empty = false;
                 break
             }
+            SimpleSelectorParseResult::SlottedPseudo(selector) => {
+                empty = false;
+                slot = true;
+                if !builder.is_empty() {
+                    builder.push_combinator(Combinator::SlotAssignment);
+                }
+                builder.push_simple_selector(Component::Slotted(selector));
+                // FIXME(emilio): ::slotted() should support ::before and
+                // ::after after it, so we shouldn't break, but we shouldn't
+                // push more type selectors either.
+                break;
+            }
         }
     }
     if empty {
         // An empty selector is invalid.
         Ok(None)
     } else {
-        Ok(Some(pseudo))
+        Ok(Some((pseudo, slot)))
     }
 }
 
@@ -1701,7 +1814,7 @@ where
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
 /// can be specified with the single colon syntax (in addition to the
 /// double-colon syntax, which can be used for all pseudo-elements).
-pub fn is_css2_pseudo_element<'i>(name: &CowRcStr<'i>) -> bool {
+pub fn is_css2_pseudo_element(name: &str) -> bool {
     // ** Do not add to this list! **
     match_ignore_ascii_case! { name,
         "before" | "after" | "first-line" | "first-letter" => true,
@@ -1760,16 +1873,35 @@ where
                 )),
             };
             let is_pseudo_element = !is_single_colon ||
-                P::is_pseudo_element_allows_single_colon(&name);
+                P::pseudo_element_allows_single_colon(&name);
             if is_pseudo_element {
-                let pseudo_element = if is_functional {
-                    input.parse_nested_block(|input| {
-                        P::parse_functional_pseudo_element(parser, name, input)
-                    })?
+                let parse_result = if is_functional {
+                    if P::parse_slotted(parser) && name.eq_ignore_ascii_case("slotted") {
+                        SimpleSelectorParseResult::SlottedPseudo(
+                            input.parse_nested_block(|input| {
+                                parse_inner_compound_selector(
+                                    parser,
+                                    input,
+                                )
+                            })?
+                        )
+                    } else {
+                        SimpleSelectorParseResult::PseudoElement(
+                            input.parse_nested_block(|input| {
+                                P::parse_functional_pseudo_element(
+                                    parser,
+                                    name,
+                                    input,
+                                )
+                            })?
+                        )
+                    }
                 } else {
-                    P::parse_pseudo_element(parser, location, name)?
+                    SimpleSelectorParseResult::PseudoElement(
+                        P::parse_pseudo_element(parser, location, name)?
+                    )
                 };
-                Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo_element)))
+                Ok(Some(parse_result))
             } else {
                 let pseudo_class = if is_functional {
                     input.parse_nested_block(|input| {
@@ -1872,7 +2004,7 @@ pub mod tests {
         }
     }
 
-    impl SelectorMethods for PseudoClass {
+    impl Visit for PseudoClass {
         type Impl = DummySelectorImpl;
 
         fn visit<V>(&self, _visitor: &mut V) -> bool
@@ -1902,6 +2034,7 @@ pub mod tests {
     }
 
     impl SelectorImpl for DummySelectorImpl {
+        type ExtraMatchingData = ();
         type AttrValue = DummyAtom;
         type Identifier = DummyAtom;
         type ClassName = DummyAtom;
@@ -1941,15 +2074,13 @@ pub mod tests {
         }
     }
 
-    impl PrecomputedHash for DummyAtom {
-        fn precomputed_hash(&self) -> u32 {
-            return 0
-        }
-    }
-
     impl<'i> Parser<'i> for DummyParser {
         type Impl = DummySelectorImpl;
         type Error = SelectorParseErrorKind<'i>;
+
+        fn parse_slotted(&self) -> bool {
+            true
+        }
 
         fn parse_non_ts_pseudo_class(
             &self,
@@ -2057,9 +2188,9 @@ pub mod tests {
 
     #[test]
     fn test_parsing() {
-        assert!(parse("").is_err()) ;
-        assert!(parse(":lang(4)").is_err()) ;
-        assert!(parse(":lang(en US)").is_err()) ;
+        assert!(parse("").is_err());
+        assert!(parse(":lang(4)").is_err());
+        assert!(parse(":lang(en US)").is_err());
         assert_eq!(parse("EeÉ"), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(
                 Component::LocalName(LocalName {
@@ -2366,6 +2497,19 @@ pub mod tests {
                 ].into_boxed_slice()
             )), specificity(0, 0, 0))
         ))));
+
+        assert!(parse("::slotted()").is_err());
+        assert!(parse("::slotted(div)").is_ok());
+        assert!(parse("::slotted(div).foo").is_err());
+        assert!(parse("::slotted(div + bar)").is_err());
+        assert!(parse("::slotted(div) + foo").is_err());
+        assert!(parse("div ::slotted(div)").is_ok());
+        assert!(parse("div + slot::slotted(div)").is_ok());
+        assert!(parse("div + slot::slotted(div.foo)").is_ok());
+        assert!(parse("slot::slotted(div,foo)::first-line").is_err());
+        // TODO
+        assert!(parse("::slotted(div)::before").is_err());
+        assert!(parse("slot::slotted(div,foo)").is_err());
     }
 
     #[test]

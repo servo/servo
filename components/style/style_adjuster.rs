@@ -6,6 +6,7 @@
 //! a computed style needs in order for it to adhere to the CSS spec.
 
 use app_units::Au;
+use dom::TElement;
 use properties::{self, CascadeFlags, ComputedValues, StyleBuilder};
 use properties::longhands::display::computed_value::T as Display;
 use properties::longhands::float::computed_value::T as Float;
@@ -50,13 +51,30 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// Whether we should skip any item-based display property blockification on
+    /// this element.
+    fn skip_item_display_fixup<E>(&self, element: Option<E>) -> bool
+    where
+        E: TElement,
+    {
+        if let Some(pseudo) = self.style.pseudo {
+            return pseudo.skip_item_display_fixup();
+        }
+
+        element.map_or(false, |e| e.skip_item_display_fixup())
+    }
+
+
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// <https://drafts.csswg.org/css2/visuren.html#dis-pos-flo>
-    fn blockify_if_necessary(
+    fn blockify_if_necessary<E>(
         &mut self,
         layout_parent_style: &ComputedValues,
-        flags: CascadeFlags,
-    ) {
+        element: Option<E>,
+    )
+    where
+        E: TElement,
+    {
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -66,8 +84,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             }
         }
 
-        if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
-            blockify_if!(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
+        let is_root = self.style.pseudo.is_none() && element.map_or(false, |e| e.is_root());
+        blockify_if!(is_root);
+        if !self.skip_item_display_fixup(element) {
             blockify_if!(layout_parent_style.get_box().clone_display().is_item_container());
         }
 
@@ -81,8 +100,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         let display = self.style.get_box().clone_display();
-        let blockified_display =
-            display.equivalent_block_display(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
+        let blockified_display = display.equivalent_block_display(is_root);
         if display != blockified_display {
             self.style.mutate_box().set_adjusted_display(
                 blockified_display,
@@ -103,6 +121,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if self.style.inherited_flags().contains(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE) ||
             self.style.is_pseudo_element() {
             self.style.flags.insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
+        }
+
+        #[cfg(feature = "servo")]
+        {
+            if self.style.inherited_flags().contains(ComputedValueFlags::CAN_BE_FRAGMENTED) ||
+                self.style.get_parent_column().is_multicol()
+            {
+                self.style.flags.insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
+            }
         }
     }
 
@@ -184,7 +211,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if our_writing_mode != parent_writing_mode &&
            self.style.get_box().clone_display() == Display::Inline {
-            self.style.mutate_box().set_display(Display::InlineBlock);
+            // TODO(emilio): Figure out if we can just set the adjusted display
+            // on Gecko too and unify this code path.
+            if cfg!(feature = "servo") {
+                self.style.mutate_box().set_adjusted_display(
+                    Display::InlineBlock,
+                    false,
+                );
+            } else {
+                self.style.mutate_box().set_display(Display::InlineBlock);
+            }
         }
     }
 
@@ -320,12 +356,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Native anonymous content converts display:contents into display:inline.
     #[cfg(feature = "gecko")]
-    fn adjust_for_prohibited_display_contents(&mut self, flags: CascadeFlags) {
-        use properties::CascadeFlags;
-
+    fn adjust_for_prohibited_display_contents(&mut self) {
         // TODO: We should probably convert display:contents into display:none
         // in some cases too: https://drafts.csswg.org/css-display/#unbox
-        if !flags.contains(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS) ||
+        //
+        // FIXME(emilio): ::before and ::after should support display: contents,
+        // see bug 1418138.
+        if self.style.pseudo.is_none() ||
            self.style.get_box().clone_display() != Display::Contents {
             return;
         }
@@ -343,12 +380,12 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_fieldset_content(
         &mut self,
         layout_parent_style: &ComputedValues,
-        flags: CascadeFlags,
     ) {
-        use properties::CascadeFlags;
-        if !flags.contains(CascadeFlags::IS_FIELDSET_CONTENT) {
-            return;
+        match self.style.pseudo {
+            Some(ref p) if p.is_fieldset_content() => {},
+            _ => return,
         }
+
         debug_assert_eq!(self.style.get_box().clone_display(), Display::Block);
         // TODO We actually want style from parent rather than layout
         // parent, so that this fixup doesn't happen incorrectly when
@@ -401,6 +438,21 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// Computes the used text decoration for Servo.
+    ///
+    /// FIXME(emilio): This is a layout tree concept, should move away from
+    /// style, since otherwise we're going to have the same subtle bugs WebKit
+    /// and Blink have with this very same thing.
+    #[cfg(feature = "servo")]
+    fn adjust_for_text_decorations_in_effect(&mut self) {
+        use values::computed::text::TextDecorationsInEffect;
+
+        let decorations_in_effect = TextDecorationsInEffect::from_style(&self.style);
+        if self.style.get_inheritedtext().text_decorations_in_effect != decorations_in_effect {
+            self.style.mutate_inheritedtext().text_decorations_in_effect = decorations_in_effect;
+        }
+    }
+
     #[cfg(feature = "gecko")]
     fn should_suppress_linebreak(
         &self,
@@ -443,12 +495,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// * suppress border and padding for ruby level containers,
     /// * correct unicode-bidi.
     #[cfg(feature = "gecko")]
-    fn adjust_for_ruby(
+    fn adjust_for_ruby<E>(
         &mut self,
         layout_parent_style: &ComputedValues,
-        flags: CascadeFlags,
-    ) {
-        use properties::CascadeFlags;
+        element: Option<E>,
+    )
+    where
+        E: TElement,
+    {
         use properties::computed_value_flags::ComputedValueFlags;
         use properties::longhands::unicode_bidi::computed_value::T as UnicodeBidi;
 
@@ -457,10 +511,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if self.should_suppress_linebreak(layout_parent_style) {
             self.style.flags.insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
-            if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
+            if !self.skip_item_display_fixup(element) {
                 let inline_display = self_display.inlinify();
                 if self_display != inline_display {
-                    self.style.mutate_box().set_display(inline_display);
+                    self.style.mutate_box().set_adjusted_display(inline_display, false);
                 }
             }
         }
@@ -497,16 +551,22 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// FIXME(emilio): This isn't technically a style adjustment thingie, could
     /// it move somewhere else?
-    fn adjust_for_visited(&mut self, flags: CascadeFlags) {
-        use properties::CascadeFlags;
+    fn adjust_for_visited<E>(&mut self, element: Option<E>)
+    where
+        E: TElement,
+    {
         use properties::computed_value_flags::ComputedValueFlags;
 
         if !self.style.has_visited_style() {
             return;
         }
 
-        let relevant_link_visited = if flags.contains(CascadeFlags::IS_LINK) {
-            flags.contains(CascadeFlags::IS_VISITED_LINK)
+        let is_link_element =
+            self.style.pseudo.is_none() &&
+            element.map_or(false, |e| e.is_link());
+
+        let relevant_link_visited = if is_link_element {
+            element.unwrap().is_visited_link()
         } else {
             self.style.inherited_flags().contains(ComputedValueFlags::IS_RELEVANT_LINK_VISITED)
         };
@@ -552,19 +612,52 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// When comparing to Gecko, this is similar to the work done by
     /// `nsStyleContext::ApplyStyleFixups`, plus some parts of
     /// `nsStyleSet::GetContext`.
-    pub fn adjust(
+    pub fn adjust<E>(
         &mut self,
         layout_parent_style: &ComputedValues,
+        element: Option<E>,
         flags: CascadeFlags,
-    ) {
-        self.adjust_for_visited(flags);
+    )
+    where
+        E: TElement,
+    {
+        if cfg!(debug_assertions) {
+            if element.and_then(|e| e.implemented_pseudo_element()).is_some() {
+                // It'd be nice to assert `self.style.pseudo == Some(&pseudo)`,
+                // but we do resolve ::-moz-list pseudos on ::before / ::after
+                // content, sigh.
+                debug_assert!(
+                    self.style.pseudo.is_some(),
+                    "Someone really messed up"
+                );
+            }
+        }
+        // FIXME(emilio): The apply_declarations callsite in Servo's
+        // animation, and the font stuff for Gecko
+        // (Stylist::compute_for_declarations) should pass an element to
+        // cascade(), then we can make this assertion hold everywhere.
+        // debug_assert!(
+        //     element.is_some() || self.style.pseudo.is_some(),
+        //     "Should always have an element around for non-pseudo styles"
+        // );
+
+        // Don't adjust visited styles, visited-dependent properties aren't
+        // affected by these adjustments and it'd be just wasted work anyway.
+        //
+        // It also doesn't make much sense to adjust them, since we don't
+        // cascade most properties anyway, and they wouldn't be looked up.
+        if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) {
+            return;
+        }
+
+        self.adjust_for_visited(element);
         #[cfg(feature = "gecko")]
         {
-            self.adjust_for_prohibited_display_contents(flags);
-            self.adjust_for_fieldset_content(layout_parent_style, flags);
+            self.adjust_for_prohibited_display_contents();
+            self.adjust_for_fieldset_content(layout_parent_style);
         }
         self.adjust_for_top_layer();
-        self.blockify_if_necessary(layout_parent_style, flags);
+        self.blockify_if_necessary(layout_parent_style, element);
         self.adjust_for_position();
         self.adjust_for_overflow();
         #[cfg(feature = "gecko")]
@@ -584,7 +677,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_text_decoration_lines(layout_parent_style);
         #[cfg(feature = "gecko")]
         {
-            self.adjust_for_ruby(layout_parent_style, flags);
+            self.adjust_for_ruby(layout_parent_style, element);
+        }
+        #[cfg(feature = "servo")]
+        {
+            self.adjust_for_text_decorations_in_effect();
         }
         self.set_bits();
     }

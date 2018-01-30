@@ -3887,6 +3887,18 @@
      {}
     ]
    ],
+   "css/list_item_marker_around_float.html": [
+    [
+     "/_mozilla/css/list_item_marker_around_float.html",
+     [
+      [
+       "/_mozilla/css/list_item_marker_around_float_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/list_item_overflow.html": [
     [
      "/_mozilla/css/list_item_overflow.html",
@@ -7804,6 +7816,18 @@
      ],
      {}
     ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_paint_worklet_timeout.html",
+     [
+      [
+       "/_mozilla/mozilla/worklets/test_paint_worklet_timeout_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
    ]
   },
   "reftest_node": {
@@ -9522,6 +9546,11 @@
     ]
    ],
    "css/link_style_order_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/list_item_marker_around_float_ref.html": [
     [
      {}
     ]
@@ -12697,6 +12726,16 @@
     ]
    ],
    "mozilla/worklets/test_paint_worklet_size_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
     [
      {}
     ]
@@ -32633,6 +32672,12 @@
      {}
     ]
    ],
+   "css/issue_18544_flow_list_crash.html": [
+    [
+     "/_mozilla/css/issue_18544_flow_list_crash.html",
+     {}
+    ]
+   ],
    "css/matchMedia.html": [
     [
      "/_mozilla/css/matchMedia.html",
@@ -32842,6 +32887,12 @@
    "mozilla/cross-origin-objects/cross-origin-postMessage.html": [
     [
      "/_mozilla/mozilla/cross-origin-objects/cross-origin-postMessage.html",
+     {}
+    ]
+   ],
+   "mozilla/custom_auto_rooter.html": [
+    [
+     "/_mozilla/mozilla/custom_auto_rooter.html",
      {}
     ]
    ],
@@ -33214,6 +33265,12 @@
    "mozilla/htmlspacechars.html": [
     [
      "/_mozilla/mozilla/htmlspacechars.html",
+     {}
+    ]
+   ],
+   "mozilla/http-cache-xhr.html": [
+    [
+     "/_mozilla/mozilla/http-cache-xhr.html",
      {}
     ]
    ],
@@ -40192,6 +40249,12 @@
    "mozilla/window_performance.html": [
     [
      "/_mozilla/mozilla/window_performance.html",
+     {}
+    ]
+   ],
+   "mozilla/window_performance_topLevelDomComplete.html": [
+    [
+     "/_mozilla/mozilla/window_performance_topLevelDomComplete.html",
      {}
     ]
    ],
@@ -59939,7 +60002,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "28c20b33fcbd818a46005dcbf53473f8b8346c89",
+   "3e30a95c5b79cc3752c21739da62f47b37c025e5",
    "support"
   ],
   "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
@@ -63286,6 +63349,10 @@
    "863e3c8c5ffa1627a20f51e89b7eca884ea381dd",
    "reftest"
   ],
+  "css/issue_18544_flow_list_crash.html": [
+   "9e41b681e414db9bd5f3fc75210de12a6e660c28",
+   "testharness"
+  ],
   "css/jpeg_normal.html": [
    "4e9d02f232492b55f8e6b71046b392c4dc2c9fb6",
    "reftest"
@@ -63516,6 +63583,14 @@
   ],
   "css/link_style_order_ref.html": [
    "958f9315c950502cdadb2297e1ab77e197774113",
+   "support"
+  ],
+  "css/list_item_marker_around_float.html": [
+   "1023fced99e1181fadce849978c4e111da8ad4aa",
+   "reftest"
+  ],
+  "css/list_item_marker_around_float_ref.html": [
+   "1c13844df9055d73a8421ca3f8398cb4c289c44e",
    "support"
   ],
   "css/list_item_overflow.html": [
@@ -66030,6 +66105,10 @@
    "67d8cdd3e3a1656ba315fcbf6dae7236680bac16",
    "reftest"
   ],
+  "mozilla/custom_auto_rooter.html": [
+   "3466095fb0846b848c948dd1596764fff456fa9b",
+   "testharness"
+  ],
   "mozilla/deep_serialization_succeeds.html": [
    "cb3d201d577c17d19babf1f6c04ba882fa42048e",
    "testharness"
@@ -66310,8 +66389,12 @@
    "592f69ee432ba5bc7a2f2649e72e083d21393496",
    "testharness"
   ],
+  "mozilla/http-cache-xhr.html": [
+   "56c44d5100ec2b5a585192e4ec319bb133123c93",
+   "testharness"
+  ],
   "mozilla/http-cache.html": [
-   "33827dc9bdb0efcbcae4f730086693be315cfc14",
+   "929fdc40e9a193d0ead4c95e2d21d030d27d4bf0",
    "testharness"
   ],
   "mozilla/iframe-unblock-onload.html": [
@@ -66387,7 +66470,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "ad914ab4c7a794b251c03f7b0f50aaef1ea78df0",
+   "365c76c771b3d79a671b04047923f5644efb9b93",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -72342,6 +72425,10 @@
    "f03283e68b82d972ad21f674243070643ef89489",
    "testharness"
   ],
+  "mozilla/window_performance_topLevelDomComplete.html": [
+   "4b953e63ffa6bf4ed1bc9a2baaea457d46502b9d",
+   "testharness"
+  ],
   "mozilla/window_requestAnimationFrame.html": [
    "86310f3e4b88cce70ef92b56e4f65f034999096e",
    "testharness"
@@ -72420,6 +72507,18 @@
   ],
   "mozilla/worklets/test_paint_worklet_size_ref.html": [
    "7c92e508e08d7d146354a5be7fa256ccbd465dde",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.html": [
+   "dde3d2d6359d39282cf8dfdfabebed735c7815a8",
+   "reftest"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.js": [
+   "3e4ff24fc85ad2956b741ff1785cecfb9641d792",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
+   "193529394981b09b56404678124f6b08ff230a74",
    "support"
   ],
   "mozilla/worklets/test_worklet.html": [

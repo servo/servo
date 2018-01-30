@@ -7,6 +7,7 @@
 use dom::TElement;
 use invalidation::stylesheets::StylesheetInvalidationSet;
 use media_queries::Device;
+use selector_parser::SnapshotMap;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
 use stylesheets::{Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
@@ -80,10 +81,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.current.is_none() {
-                let next_origin = match self.origins.next() {
-                    Some(o) => o,
-                    None => return None,
-                };
+                let next_origin = self.origins.next()?;
 
                 self.current =
                     Some((next_origin, self.collections.borrow_for_origin(&next_origin).iter()));
@@ -136,6 +134,7 @@ where
 }
 
 /// The type of rebuild that we need to do for a given stylesheet.
+#[derive(Clone, Copy, Debug)]
 pub enum SheetRebuildKind {
     /// A full rebuild, of both cascade data and invalidation data.
     Full,
@@ -238,10 +237,7 @@ where
         use std::mem;
 
         loop {
-            let potential_sheet = match self.iter.next() {
-                Some(s) => s,
-                None => return None,
-            };
+            let potential_sheet = self.iter.next()?;
 
             let dirty = mem::replace(&mut potential_sheet.dirty, false);
             if dirty {
@@ -507,6 +503,7 @@ where
     pub fn flush<'a, E>(
         &'a mut self,
         document_element: Option<E>,
+        snapshots: Option<&SnapshotMap>,
     ) -> StylesheetFlusher<'a, S>
     where
         E: TElement,
@@ -515,7 +512,9 @@ where
 
         debug!("StylesheetSet::flush");
 
-        let had_invalidations = self.invalidations.flush(document_element);
+        let had_invalidations =
+            self.invalidations.flush(document_element, snapshots);
+
         let origins_dirty =
             mem::replace(&mut self.origins_dirty, OriginSet::empty());
 

@@ -71,7 +71,7 @@ def generate_placeholder(testcase):
         return [timings]
 
 
-def run_gecko_test(testcase, url, timeout, is_async):
+def run_gecko_test(testcase, url, date, timeout, is_async):
     with create_gecko_session() as driver:
         driver.set_page_load_timeout(timeout)
         try:

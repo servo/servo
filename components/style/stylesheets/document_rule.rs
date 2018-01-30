@@ -13,8 +13,9 @@ use media_queries::Device;
 use parser::{Parse, ParserContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use str::CssStringWriter;
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRules;
 use values::specified::url::SpecifiedUrl;
 
@@ -40,10 +41,9 @@ impl DocumentRule {
 }
 
 impl ToCssWithGuard for DocumentRule {
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@-moz-document ")?;
-        self.condition.to_css(dest)?;
+        self.condition.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" {")?;
         for rule in self.rules.read_with(guard).0.iter() {
             dest.write_str(" ")?;
@@ -101,11 +101,11 @@ macro_rules! parse_quoted_or_unquoted_string {
             let start = input.position();
             input.parse_entirely(|input| {
                 let location = input.current_source_location();
-                match input.next() {
-                    Ok(&Token::QuotedString(ref value)) =>
-                        Ok($url_matching_function(value.as_ref().to_owned())),
-                    Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
-                    Err(e) => Err(e.into()),
+                match *input.next()? {
+                    Token::QuotedString(ref value) => {
+                        Ok($url_matching_function(value.as_ref().to_owned()))
+                    },
+                    ref t => Err(location.new_unexpected_token_error(t.clone())),
                 }
             }).or_else(|_: ParseError| {
                 while let Ok(_) = input.next() {}
@@ -167,8 +167,10 @@ impl UrlMatchingFunction {
 }
 
 impl ToCss for UrlMatchingFunction {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             UrlMatchingFunction::Url(ref url) => {
                 url.to_css(dest)
@@ -219,8 +221,10 @@ impl DocumentCondition {
 }
 
 impl ToCss for DocumentCondition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.0.iter();
         let first = iter.next()
             .expect("Empty DocumentCondition, should contain at least one URL matching function");

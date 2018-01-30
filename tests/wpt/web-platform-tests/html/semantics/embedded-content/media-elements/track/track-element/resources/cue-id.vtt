@@ -1,0 +1,18 @@
+WEBVTT
+Random text is accepted for cue identifiers.
+
+random_id
+00:00:00.000 --> 00:00:30.500
+Bear is Coming!!!!!
+
+another random identifier
+00:00:31.000 --> 00:01:00.500
+I said Bear is coming!!!!
+
+identifier--too
+00:01:01.000 --> 00:02:00.500
+I said Bear is coming now!!!!
+
+identifier--too
+00:02:01.000 --> 00:03:00.500
+Duplicate identifier

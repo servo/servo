@@ -10,10 +10,10 @@ use ServoArc;
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
+use display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
 use floats::FloatKind;
-use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
+use flow::{Flow, FlowClass, OpaqueFlow, FragmentationContext, GetBaseFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{min, max};
@@ -159,7 +159,7 @@ impl Flow for MulticolFlow {
         });
 
         // Before layout, everything is in a single "column"
-        assert!(self.block_flow.base.children.len() == 1);
+        assert_eq!(self.block_flow.base.children.len(), 1);
         let mut column = self.block_flow.base.children.pop_front_arc().unwrap();
 
         // Pretend there is no children for this:
@@ -180,7 +180,7 @@ impl Flow for MulticolFlow {
         let pitch = LogicalSize::new(self.block_flow.base.writing_mode, self.column_pitch, Au(0));
         let pitch = pitch.to_physical(self.block_flow.base.writing_mode);
         for (i, child) in self.block_flow.base.children.iter_mut().enumerate() {
-            let point = &mut mut_base(child).stacking_relative_position;
+            let point = &mut child.mut_base().stacking_relative_position;
             *point = *point + Vector2D::new(pitch.width * i as i32, pitch.height * i as i32);
         }
     }

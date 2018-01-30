@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGTextContentElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGTextContentElement.
+
+  var textContentElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  textContentElement.setAttribute("lengthAdjust", "spacing");
+
+  // Check initial 'lengthAdjust' value.
+  assert_true(textContentElement.lengthAdjust instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(textContentElement.lengthAdjust.baseVal), "number");
+  assert_equals(textContentElement.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACING);
+
+  // Switch to 'spacingAndGlyphs'.
+  textContentElement.lengthAdjust.baseVal = SVGTextContentElement.LENGTHADJUST_SPACINGANDGLYPHS;
+  assert_equals(textContentElement.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACINGANDGLYPHS);
+  assert_equals(textContentElement.getAttribute('lengthAdjust'), "spacingAndGlyphs");
+
+  // Try setting invalid values.
+  assert_throws(new TypeError(), function() { textContentElement.lengthAdjust.baseVal = 3; });
+  assert_equals(textContentElement.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACINGANDGLYPHS);
+  assert_equals(textContentElement.getAttribute('lengthAdjust'), "spacingAndGlyphs");
+
+  assert_throws(new TypeError(), function() { textContentElement.lengthAdjust.baseVal = -1; });
+  assert_equals(textContentElement.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACINGANDGLYPHS);
+  assert_equals(textContentElement.getAttribute('lengthAdjust'), "spacingAndGlyphs");
+
+  assert_throws(new TypeError(), function() { textContentElement.lengthAdjust.baseVal = 0; });
+  assert_equals(textContentElement.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACINGANDGLYPHS);
+  assert_equals(textContentElement.getAttribute('lengthAdjust'), "spacingAndGlyphs");
+
+  // Switch to 'spacing'.
+  textContentElement.lengthAdjust.baseVal = SVGTextContentElement.LENGTHADJUST_SPACING;
+  assert_equals(textContentElement.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACING);
+  assert_equals(textContentElement.getAttribute('lengthAdjust'), "spacing");
+});
+</script>

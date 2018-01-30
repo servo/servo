@@ -29,7 +29,7 @@ use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObject;
 use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
-use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext};
+use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
@@ -121,7 +121,8 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Steps 10.3, 10.4
-    fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
+    #[allow(unsafe_code)]
+    unsafe fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
         let cx = self.window.get_cx();
 
         // Step 4
@@ -164,20 +165,21 @@ impl CustomElementRegistry {
 /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
 /// Step 10.4
 #[allow(unsafe_code)]
-fn get_callback(cx: *mut JSContext, prototype: HandleObject, name: &[u8]) -> Fallible<Option<Rc<Function>>> {
+unsafe fn get_callback(
+    cx: *mut JSContext,
+    prototype: HandleObject,
+    name: &[u8],
+) -> Fallible<Option<Rc<Function>>> {
     rooted!(in(cx) let mut callback = UndefinedValue());
 
     // Step 10.4.1
-    if unsafe { !JS_GetProperty(cx,
-                                prototype,
-                                name.as_ptr() as *const _,
-                                callback.handle_mut()) } {
+    if !JS_GetProperty(cx, prototype, name.as_ptr() as *const _, callback.handle_mut()) {
         return Err(Error::JSFailed);
     }
 
     // Step 10.4.2
     if !callback.is_undefined() {
-        if !callback.is_object() || unsafe { !IsCallable(callback.to_object()) } {
+        if !callback.is_object() || !IsCallable(callback.to_object()) {
             return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
         }
         Ok(Some(Function::new(cx, callback.to_object())))
@@ -265,7 +267,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         rooted!(in(cx) let proto_object = prototype.to_object());
         let callbacks = {
             let _ac = JSAutoCompartment::new(cx, proto_object.get());
-            match self.get_callbacks(proto_object.handle()) {
+            match unsafe { self.get_callbacks(proto_object.handle()) } {
                 Ok(callbacks) => callbacks,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -436,7 +438,7 @@ impl CustomElementDefinition {
         let cx = window.get_cx();
         // Step 2
         rooted!(in(cx) let constructor = ObjectValue(self.constructor.callback()));
-        rooted!(in(cx) let mut element = ptr::null_mut());
+        rooted!(in(cx) let mut element = ptr::null_mut::<JSObject>());
         {
             // Go into the constructor's compartment
             let _ac = JSAutoCompartment::new(cx, self.constructor.callback());
@@ -545,7 +547,7 @@ fn run_upgrade_constructor(constructor: &Rc<Function>, element: &Element) -> Err
     rooted!(in(cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(cx) let mut element_val = UndefinedValue());
     unsafe { element.to_jsval(cx, element_val.handle_mut()); }
-    rooted!(in(cx) let mut construct_result = ptr::null_mut());
+    rooted!(in(cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Go into the constructor's compartment
         let _ac = JSAutoCompartment::new(cx, constructor.callback());

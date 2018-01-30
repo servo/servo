@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS-fonts: first available font and the ex unit</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-3/#first-available-font">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#first-available-font">
+<link rel="match" href="first-available-font-001-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="Fonts that do not include the U+0020 character are not considered the first available font (used to determine the ex unit), even when at the start of the font list.">
+<style>
+/* Two arbitrary fonts with different metrics */
+@font-face {
+  font-family: 'A-no-space';
+  font-style: normal;
+  font-weight: 400;
+  src:  url(support/Revalia.woff) format('woff');
+  unicode-range: U+0061; /* Not including U+0020, so it cannot be the first available font*/
+}
+@font-face {
+  font-family: 'B';
+  font-style: normal;
+  font-weight: 400;
+  src: url(support/AD.woff) format('woff');
+}
+
+div {
+  width: 1ex;
+  height: 0.5ex;
+
+  font-size: 200px;
+  background: blue;
+  position: absolute;
+}
+#t1 { font-family: 'B', sans-serif; margin-top: 0.5ex; } /* half a square, shifted down */
+#t2 { font-family: 'A-no-space', 'B', monospace; } /* Should use B as the first available font, and therefore be the same size as t1 */
+
+/* Both elements are using different generic fallback fonts, so that they end up being sized differently if web-fonts fail to load. */
+
+</style>
+
+<p>Test passes if there is <strong>a blue square</strong> below.
+
+<div id=t1></div>
+<div id=t2></div>

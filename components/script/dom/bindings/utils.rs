@@ -115,7 +115,7 @@ unsafe impl Sync for DOMJSClass {}
 /// Fails if `global` is not a DOM global object.
 pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
     unsafe {
-        assert!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
+        assert_ne!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL), 0);
         JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as *mut ProtoOrIfaceArray
     }
 }
@@ -134,7 +134,7 @@ pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
                                         found: *mut bool,
                                         vp: MutableHandleValue)
                                         -> bool {
-    rooted!(in(cx) let mut proto = ptr::null_mut());
+    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
     if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
         *found = false;
         return true;
@@ -287,7 +287,7 @@ pub unsafe fn has_property_on_prototype(cx: *mut JSContext,
                                         id: HandleId,
                                         found: &mut bool)
                                         -> bool {
-    rooted!(in(cx) let mut proto = ptr::null_mut());
+    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
     if !JS_GetPrototype(cx, proxy, proto.handle_mut()) {
         return false;
     }

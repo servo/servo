@@ -4,6 +4,8 @@ import error
 import protocol
 import transport
 
+from six import string_types
+
 from mozlog import get_default_logger
 
 logger = get_default_logger()
@@ -42,7 +44,7 @@ class Timeouts(object):
     def _set(self, key, secs):
         body = {key: secs * 1000}
         timeouts = self.session.send_session_command("POST", "timeouts", body)
-        return timeouts[key]
+        return None
 
     @property
     def script(self):
@@ -313,7 +315,7 @@ class Cookies(object):
         cookie = {"name": name,
                   "value": None}
 
-        if isinstance(name, (str, unicode)):
+        if isinstance(name, string_types):
             cookie["value"] = value
         elif hasattr(value, "value"):
             cookie["value"] = value.value
@@ -370,8 +372,8 @@ class Session(object):
         self.actions = Actions(self)
 
     def __eq__(self, other):
-        return (self.session_id is not None and isinstance(other, Session)
-                and self.session_Id == other.session_id)
+        return (self.session_id is not None and isinstance(other, Session) and
+                self.session_id == other.session_id)
 
     def __enter__(self):
         self.start()
@@ -509,6 +511,11 @@ class Session(object):
 
     @property
     @command
+    def source(self):
+        return self.send_session_command("GET", "source")
+
+    @property
+    @command
     def window_handle(self):
         return self.send_session_command("GET", "window")
 
@@ -626,8 +633,8 @@ class Element(object):
         self.session._element_cache[self.id] = self
 
     def __eq__(self, other):
-        return isinstance(other, Element) and self.id == other.id \
-                and self.session == other.session
+        return (isinstance(other, Element) and self.id == other.id and
+                self.session == other.session)
 
     @classmethod
     def from_json(cls, json, session):

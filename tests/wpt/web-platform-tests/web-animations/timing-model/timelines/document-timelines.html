@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
 <title>Document timelines</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#document-timelines">
+<link rel="help" href="https://drafts.csswg.org/web-animations/#document-timelines">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -9,7 +9,7 @@
 <script>
 'use strict';
 
-async_test(function(t) {
+async_test(t => {
   assert_true(document.timeline.currentTime > 0,
     'The current time is initially is positive');
   // document.timeline.currentTime should be set even before document
@@ -25,8 +25,8 @@ async_test(function(t) {
   // We can't just compare document.timeline.currentTime to
   // window.performance.now() because currentTime is only updated on a sample
   // so we use requestAnimationFrame instead.
-  window.requestAnimationFrame(function(rafTime) {
-    t.step(function() {
+  window.requestAnimationFrame(rafTime => {
+    t.step(() => {
       assert_equals(document.timeline.currentTime, rafTime,
                     'The current time matches requestAnimationFrame time');
     });

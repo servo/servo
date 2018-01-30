@@ -18,7 +18,7 @@ use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordData
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, ComputedUrl, Gradient, Image};
-use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
+use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage, TextAlign};
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
@@ -141,7 +141,7 @@ impl Angle {
             nsCSSUnit::eCSSUnit_Grad => Angle::Grad(value),
             nsCSSUnit::eCSSUnit_Radian => Angle::Rad(value),
             nsCSSUnit::eCSSUnit_Turn => Angle::Turn(value),
-            _ => panic!("Unexpected unit {:?} for angle", unit),
+            _ => panic!("Unexpected unit for angle"),
         }
     }
 }
@@ -415,7 +415,7 @@ impl nsStyleImage {
                 let atom = Gecko_GetImageElement(self);
                 Some(GenericImage::Element(Atom::from(atom)))
             },
-            x => panic!("Unexpected image type {:?}", x)
+            _ => panic!("Unexpected image type")
         }
     }
 
@@ -503,7 +503,7 @@ impl nsStyleImage {
                         // FIXME: We should support ShapeExtent::Contain and ShapeExtent::Cover.
                         // But we can't choose those yet since Gecko does not support both values.
                         // https://bugzilla.mozilla.org/show_bug.cgi?id=1217664
-                        x => panic!("Found unexpected gecko_size: {:?}", x),
+                        _ => panic!("Found unexpected gecko_size"),
                     }
                 };
 
@@ -539,7 +539,7 @@ impl nsStyleImage {
                         };
                         EndingShape::Ellipse(length_percentage_keyword)
                     },
-                    x => panic!("Found unexpected mShape: {:?}", x),
+                    _ => panic!("Found unexpected mShape"),
                 };
 
                 let position = match (horizontal_style, vertical_style) {
@@ -842,7 +842,7 @@ pub mod basic_shape {
                 FillBox => GeometryBox::FillBox,
                 StrokeBox => GeometryBox::StrokeBox,
                 ViewBox => GeometryBox::ViewBox,
-                other => panic!("Unexpected StyleGeometryBox::{:?} while converting to GeometryBox", other),
+                _ => panic!("Unexpected StyleGeometryBox while converting to GeometryBox"),
             }
         }
     }
@@ -855,7 +855,7 @@ pub mod basic_shape {
                 PaddingBox => ShapeBox::PaddingBox,
                 BorderBox => ShapeBox::BorderBox,
                 MarginBox => ShapeBox::MarginBox,
-                other => panic!("Unexpected StyleGeometryBox::{:?} while converting to ShapeBox", other),
+                _ => panic!("Unexpected StyleGeometryBox while converting to ShapeBox"),
             }
         }
     }
@@ -991,6 +991,26 @@ impl<L> VerticalAlign<L> {
                 VerticalAlign::MozMiddleWithBaseline
             },
             _ => panic!("unexpected enumerated value for vertical-align"),
+        }
+    }
+}
+
+impl TextAlign {
+    /// Obtain a specified value from a Gecko keyword value
+    ///
+    /// Intended for use with presentation attributes, not style structs
+    pub fn from_gecko_keyword(kw: u32) -> Self {
+        match kw  {
+            structs::NS_STYLE_TEXT_ALIGN_LEFT => TextAlign::Left,
+            structs::NS_STYLE_TEXT_ALIGN_RIGHT => TextAlign::Right,
+            structs::NS_STYLE_TEXT_ALIGN_CENTER => TextAlign::Center,
+            structs::NS_STYLE_TEXT_ALIGN_JUSTIFY => TextAlign::Justify,
+            structs::NS_STYLE_TEXT_ALIGN_MOZ_LEFT => TextAlign::MozLeft,
+            structs::NS_STYLE_TEXT_ALIGN_MOZ_RIGHT => TextAlign::MozRight,
+            structs::NS_STYLE_TEXT_ALIGN_MOZ_CENTER => TextAlign::MozCenter,
+            structs::NS_STYLE_TEXT_ALIGN_CHAR => TextAlign::Char,
+            structs::NS_STYLE_TEXT_ALIGN_END => TextAlign::End,
+            _ => panic!("Found unexpected value in style struct for text-align property"),
         }
     }
 }

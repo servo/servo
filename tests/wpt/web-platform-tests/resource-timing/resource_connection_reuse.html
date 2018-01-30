@@ -11,12 +11,12 @@
 <script src="resources/webperftestharnessextension.js"></script>
 <script>
 setup({explicit_done: true});
-var iframe;
-var d;
-var body;
+let iframe;
+let d;
+let body;
 
-// explicitly test the namespace before we start testing
-test_namespace("getEntriesByType");
+// Explicitly test the namespace before we start testing.
+test_namespace('getEntriesByType');
 
 function setup_iframe() {
     iframe = document.getElementById('frameContext');
@@ -30,17 +30,17 @@ function onload_test() {
       done();
       return;
     }
-    var context = new PerformanceContext(iframe.contentWindow.performance);
-    var entries = context.getEntriesByType('resource');
+    const context = new PerformanceContext(iframe.contentWindow.performance);
+    const entries = context.getEntriesByType('resource');
 
-    // when a persistent connection is used, follow-on resources should be included as PerformanceResourceTiming objects
+    // When a persistent connection is used, follow-on resources should be included as PerformanceResourceTiming objects.
     test_equals(entries.length, 2, 'There should be 2 PerformanceEntries');
 
     if (entries.length >= 2) {
-        // when a persistent connection is used, for the resource that reuses the socket, connectStart and connectEnd should have the same value as fetchStart
-        var entry = entries[1];
-        test_equals(entry.fetchStart, entry.connectStart, "connectStart and fetchStart should be the same");
-        test_equals(entry.fetchStart, entry.connectEnd, "connectEnd and fetchStart should be the same");
+        // When a persistent connection is used, for the resource that reuses the socket, connectStart and connectEnd should have the same value as fetchStart.
+        const entry = entries[1];
+        test_equals(entry.fetchStart, entry.connectStart, 'connectStart and fetchStart should be the same');
+        test_equals(entry.fetchStart, entry.connectEnd, 'connectEnd and fetchStart should be the same');
     }
 
     done();

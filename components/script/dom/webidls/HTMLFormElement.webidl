@@ -35,3 +35,11 @@ interface HTMLFormElement : HTMLElement {
   //boolean checkValidity();
   //boolean reportValidity();
 };
+
+// https://html.spec.whatwg.org/multipage/#selectionmode
+enum SelectionMode {
+  "preserve", // default
+  "select",
+  "start",
+  "end"
+};

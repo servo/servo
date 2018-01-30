@@ -1,0 +1,276 @@
+<!DOCTYPE html><html class=split lang=en-US-x-hixie><script src=/link-fixup.js defer=""></script><meta charset=utf-8><meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name=viewport><title>HTML Standard</title><meta content=#3c790a name=theme-color><link rel=stylesheet href=https://resources.whatwg.org/standard.css><link rel=icon href=https://resources.whatwg.org/logo.svg><script>
+   function toggleStatus(div) {
+     div.parentNode.classList.toggle('wrapped');
+   }
+  </script><style>
+   .status { min-height: 0.6em; font: 1em sans-serif; width: 9em; padding: 0.3em; position: absolute; z-index: 8; right: 0.3em; background: #EEE; color: black; box-shadow: 0 0 3px #999; overflow: hidden; margin: -2em 0 0 0; border-collapse: initial; border-spacing: initial; }
+   .status:hover { z-index: 9; }
+   .status:focus-within { z-index: 9; }
+   .status.wrapped > :not(input) { display: none; }
+   .status > input { position: absolute; left: 0; top: 0; width: 1em; height: 1em; border: none; background: transparent; padding: 0; margin: 0; }
+   .status > p { font-size: 0.6em; margin: 0; padding: 0; }
+   .status > p + p { padding-top: 0.5em; }
+   .status > p > strong { margin-left: 1.5em; }
+   .status > .support { display: block; }
+   .status > .support > span { padding: 0.2em 0; display: block; display: table; }
+   .status > .support > span.partial { color: #666666; filter: grayscale(50%); }
+   .status > .support > span.no { color: #CCCCCC; filter: grayscale(100%); }
+   .status > .support > span.no::before { opacity: 0.5; }
+   .status > .support > span:first-of-type { padding-top: 0.5em; }
+   .status > .support > span > span { padding: 0 0.5em; display: table-cell; vertical-align: top; }
+   .status > .support > span > span:first-child { width: 100%; }
+   .status > .support > span > span:last-child { width: 100%; white-space: pre; padding: 0; }
+   .status > .support > span::before { content: ' '; display: table-cell; min-width: 1.5em; height: 1.5em; background: no-repeat center center; background-size: contain; text-align: right; font-size: 0.75em; font-weight: bold; }
+   .status > .support > .and_chr::before { background-image: url(https://resources.whatwg.org/browser-logos/chrome.svg); }
+   .status > .support > .and_ff::before { background-image: url(https://resources.whatwg.org/browser-logos/firefox.png); }
+   .status > .support > .and_uc::before { background-image: url(https://resources.whatwg.org/browser-logos/uc.png); } /* UC Browser for Android */
+   .status > .support > .android::before { background-image: url(https://resources.whatwg.org/browser-logos/android.svg); }
+   .status > .support > .bb::before { background-image: url(https://resources.whatwg.org/browser-logos/bb.jpg); } /* Blackberry Browser */
+   .status > .support > .chrome::before { background-image: url(https://resources.whatwg.org/browser-logos/chrome.svg); }
+   .status > .support > .edge::before { background-image: url(https://resources.whatwg.org/browser-logos/edge.svg); }
+   .status > .support > .firefox::before { background-image: url(https://resources.whatwg.org/browser-logos/firefox.png); }
+   .status > .support > .ie::before { background-image: url(https://resources.whatwg.org/browser-logos/ie.png); }
+   .status > .support > .ie_mob::before { background-image: url(https://resources.whatwg.org/browser-logos/ie-mobile.svg); }
+   .status > .support > .ios_saf::before { background-image: url(https://resources.whatwg.org/browser-logos/safari-ios.svg); }
+   .status > .support > .op_mini::before { background-image: url(https://resources.whatwg.org/browser-logos/opera-mini.png); }
+   .status > .support > .op_mob::before { background-image: url(https://resources.whatwg.org/browser-logos/opera.png); }
+   .status > .support > .opera::before { background-image: url(https://resources.whatwg.org/browser-logos/opera.png); }
+   .status > .support > .safari::before { background-image: url(https://resources.whatwg.org/browser-logos/safari.png); }
+   .status > .support > .samsung::before { background-image: url(https://resources.whatwg.org/browser-logos/samsung.png); }
+   .status > .caniuse { text-align: right; font-style: italic; width: 100%; }
+   .status > .caniuse + p { margin-top: 0.5em; border-top: 1px solid silver; }
+
+   @media (max-width: 767px) {
+     .status { right: -9em; }
+   }
+  </style><style>
+   [hidden] { display: none; }
+
+   .bad, .bad *:not(.X\58X) { color: gray; border-color: gray; background: transparent; }
+
+   .fingerprint { position: absolute; right: 0; z-index: 5; }
+   @media (max-width: 767px) {
+     .fingerprint { max-width: 35px; }
+   }
+
+   .applies .yes, .yesno .yes { background: yellow; }
+   .yesno .yes, .yesno .no { text-align: center; }
+
+   .applies thead th > * { display: block; }
+   .applies thead code { display: block; }
+   .applies td { text-align: center; }
+
+   .matrix, .matrix td { border: hidden; text-align: right; }
+   .matrix { margin-left: 2em; }
+
+   .vertical-summary-table tr > th[rowspan="2"]:first-child + th,
+   .vertical-summary-table tr > td[rowspan="2"]:first-child + td { border-bottom: hidden; }
+
+   .dice-example { border-collapse: collapse; border-style: hidden solid solid hidden; border-width: thin; margin-left: 3em; }
+   .dice-example caption { width: 30em; font-size: smaller; font-style: italic; padding: 0.75em 0; text-align: left; }
+   .dice-example td, .dice-example th { border: solid thin; width: 1.35em; height: 1.05em; text-align: center; padding: 0; }
+
+   td.eg { border-width: thin; text-align: center; }
+
+   #table-example-1 { border: solid thin; border-collapse: collapse; margin-left: 3em; }
+   #table-example-1 caption { padding-bottom: 0.5em; }
+   #table-example-1 thead, #table-example-1 tbody { border: none; }
+   #table-example-1 th, #table-example-1 td { border: solid thin; }
+   #table-example-1 th { font-weight: normal; }
+   #table-example-1 td { border-style: none solid; vertical-align: top; }
+   #table-example-1 th { padding: 0.5em; vertical-align: middle; text-align: center; }
+   #table-example-1 tbody tr:first-child td { padding-top: 0.5em; }
+   #table-example-1 tbody tr:last-child td { padding-bottom: 1.5em; }
+   #table-example-1 tbody td:first-child { padding-left: 2.5em; padding-right: 0; width: 9em; }
+   #table-example-1 tbody td:first-child::after { content: leader(". "); }
+   #table-example-1 tbody td { padding-left: 2em; padding-right: 2em; }
+   #table-example-1 tbody td:first-child + td { width: 10em; }
+   #table-example-1 tbody td:first-child + td ~ td { width: 2.5em; }
+   #table-example-1 tbody td:first-child + td + td + td ~ td { width: 1.25em; }
+
+   .apple-table-examples { border: none; border-collapse: separate; border-spacing: 1.5em 0em; width: 40em; margin-left: 3em; }
+   .apple-table-examples * { font-family: "Times", serif; }
+   .apple-table-examples td, .apple-table-examples th { border: none; white-space: nowrap; padding-top: 0; padding-bottom: 0; }
+   .apple-table-examples tbody th:first-child { border-left: none; width: 100%; }
+   .apple-table-examples thead th:first-child ~ th { font-size: smaller; font-weight: bolder; border-bottom: solid 2px; text-align: center; }
+   .apple-table-examples tbody th::after, .apple-table-examples tfoot th::after { content: leader(". ") }
+   .apple-table-examples tbody th, .apple-table-examples tfoot th { font: inherit; text-align: left; }
+   .apple-table-examples td { text-align: right; vertical-align: top; }
+   .apple-table-examples.e1 tbody tr:last-child td { border-bottom: solid 1px; }
+   .apple-table-examples.e1 tbody + tbody tr:last-child td { border-bottom: double 3px; }
+   .apple-table-examples.e2 th[scope=row] { padding-left: 1em; }
+   .apple-table-examples sup { line-height: 0; }
+
+   .three-column-nowrap tr > td:first-child,
+   .three-column-nowrap tr > td:first-child + td,
+   .three-column-nowrap tr > td:first-child + td + td { white-space: nowrap; }
+
+   .details-example img { vertical-align: top; }
+
+   .parse-error-table td > p:first-child { margin-top: 0; }
+
+   #named-character-references-table {
+     white-space: nowrap;
+     font-size: 0.6em;
+     column-width: 30em;
+     column-gap: 1em;
+     -moz-column-width: 30em;
+     -moz-column-gap: 1em;
+     -webkit-column-width: 30em;
+     -webkit-column-gap: 1em;
+   }
+   #named-character-references-table > table > tbody > tr > td:first-child + td,
+   #named-character-references-table > table > tbody > tr > td:last-child { text-align: center; }
+   #named-character-references-table > table > tbody > tr > td:last-child:hover > span { position: absolute; top: auto; left: auto; margin-left: 0.5em; line-height: 1.2; font-size: 5em; border: outset; padding: 0.25em 0.5em; background: white; width: 1.25em; height: auto; text-align: center; }
+   #named-character-references-table > table > tbody > tr#entity-CounterClockwiseContourIntegral > td:first-child { font-size: 0.5em; }
+
+   .glyph.control { color: red; }
+
+   #table-example-1 * { font-family: "Essays1743", serif; line-height: 1.01em; }
+   @font-face {
+     font-family: 'Essays1743';
+     src: url('/fonts/Essays1743.ttf');
+   }
+   @font-face {
+     font-family: 'Essays1743';
+     font-weight: bold;
+     src: url('/fonts/Essays1743-Bold.ttf');
+   }
+   @font-face {
+     font-family: 'Essays1743';
+     font-style: italic;
+     src: url('/fonts/Essays1743-Italic.ttf');
+   }
+   @font-face {
+     font-family: 'Essays1743';
+     font-style: italic;
+     font-weight: bold;
+     src: url('/fonts/Essays1743-BoldItalic.ttf');
+   }
+
+   @media (max-width: 767px) {
+     #abstractimg { width: 100%; }
+   }
+   #abstractimg, #abstractimg text { font: inherit; }
+   #abstractimg rect { fill: #424242; }
+   #abstractimg text { fill: #ffffff; font-size: 18px }
+   #abstractimg .top { word-spacing: 50px; text-anchor: middle; }
+   #abstractimg .left, #abstractimg .bottom { word-spacing: 12px; }
+   #abstractimg .right { font-size: 25px; }
+  </style><body>
+  
+  <script async="" src=/html-dfn.js></script>
+  <script data-file-issue-url=https://github.com/whatwg/html/issues/new src=https://resources.whatwg.org/file-issue.js async=""></script>
+  <header id=head class="head with-buttons">
+   <a href=https://whatwg.org/ class=logo><img alt=WHATWG src=https://resources.whatwg.org/logo.svg width=100 height=100></a>
+   <h1 class=allcaps>HTML</h1><h2 id=living-standard class="no-num no-toc">Living Standard — Last Updated <span class=pubdate>9 December 2017</span></h2>
+   
+   
+
+   
+  </header>
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+  <nav><a href=imagebitmap-and-animations.html>← 8.8 Images</a> — <a href=./>Table of Contents</a> — <a href=server-sent-events.html>9.2 Server-sent events →</a></nav><ol class=toc><li id=toc-comms><a href=comms.html#comms><span class=secno>9</span> Communication</a><ol><li><a href=comms.html#the-messageevent-interface><span class=secno>9.1</span> The <code>MessageEvent</code> interface</a></ol></ol><h2 id=comms><span class=secno>9</span> Communication<a href=#comms class=self-link></a></h2>
+
+  <h3 id=the-messageevent-interface><span class=secno>9.1</span> The <code id=the-messageevent-interface:messageevent><a href=#messageevent>MessageEvent</a></code> interface<a href=#the-messageevent-interface class=self-link></a></h3>
+
+  <p>Messages in <a id=the-messageevent-interface:server-sent-events href=server-sent-events.html#server-sent-events>server-sent events</a>, <a id=the-messageevent-interface:network href=web-sockets.html#network>Web sockets</a>, <a id=the-messageevent-interface:web-messaging href=web-messaging.html#web-messaging>cross-document
+  messaging</a>, <a id=the-messageevent-interface:channel-messaging href=web-messaging.html#channel-messaging>channel messaging</a>, and <a id=the-messageevent-interface:broadcasting-to-other-browsing-contexts href=web-messaging.html#broadcasting-to-other-browsing-contexts>broadcast channels</a> use the
+  <code id=the-messageevent-interface:messageevent-2><a href=#messageevent>MessageEvent</a></code> interface for their <code id=the-messageevent-interface:event-message><a href=indices.html#event-message>message</a></code>
+  events:</p>
+
+  <pre class=idl>[Constructor(DOMString type, optional <a href=#messageeventinit id=the-messageevent-interface:messageeventinit>MessageEventInit</a> eventInitDict), Exposed=(Window,Worker,AudioWorklet)]
+interface <dfn id=messageevent>MessageEvent</dfn> : <a id=the-messageevent-interface:event href=https://dom.spec.whatwg.org/#interface-event data-x-internal=event>Event</a> {
+  readonly attribute any <a href=#dom-messageevent-data id=the-messageevent-interface:dom-messageevent-data>data</a>;
+  readonly attribute USVString <a href=#dom-messageevent-origin id=the-messageevent-interface:dom-messageevent-origin>origin</a>;
+  readonly attribute DOMString <a href=#dom-messageevent-lasteventid id=the-messageevent-interface:dom-messageevent-lasteventid>lastEventId</a>;
+  readonly attribute <a href=#messageeventsource id=the-messageevent-interface:messageeventsource>MessageEventSource</a>? <a href=#dom-messageevent-source id=the-messageevent-interface:dom-messageevent-source>source</a>;
+  readonly attribute FrozenArray&lt;<a id=the-messageevent-interface:messageport href=web-messaging.html#messageport>MessagePort</a>> <a href=#dom-messageevent-ports id=the-messageevent-interface:dom-messageevent-ports>ports</a>;
+
+  void <a href=#dom-messageevent-initmessageevent id=the-messageevent-interface:dom-messageevent-initmessageevent>initMessageEvent</a>(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false, optional any data = null, optional USVString origin = "", optional DOMString lastEventId = "", optional <a href=#messageeventsource id=the-messageevent-interface:messageeventsource-2>MessageEventSource</a>? source = null, optional sequence&lt;<a id=the-messageevent-interface:messageport-2 href=web-messaging.html#messageport>MessagePort</a>> ports = []);
+};
+
+dictionary <dfn id=messageeventinit>MessageEventInit</dfn> : <a id=the-messageevent-interface:eventinit href=https://dom.spec.whatwg.org/#dictdef-eventinit data-x-internal=eventinit>EventInit</a> {
+  any data = null;
+  USVString origin = "";
+  DOMString lastEventId = "";
+  <a href=#messageeventsource id=the-messageevent-interface:messageeventsource-3>MessageEventSource</a>? source = null;
+  sequence&lt;<a id=the-messageevent-interface:messageport-3 href=web-messaging.html#messageport>MessagePort</a>> ports = [];
+};
+
+typedef (<a id=the-messageevent-interface:windowproxy href=window-object.html#windowproxy>WindowProxy</a> or <a id=the-messageevent-interface:messageport-4 href=web-messaging.html#messageport>MessagePort</a> or <a id=the-messageevent-interface:serviceworker href=https://w3c.github.io/ServiceWorker/#serviceworker data-x-internal=serviceworker>ServiceWorker</a>) <dfn id=messageeventsource>MessageEventSource</dfn>;</pre>
+
+  <dl class=domintro><dt><var>event</var> . <code id=dom-messageevent-data-dev><a href=#dom-messageevent-data>data</a></code><dd>
+
+    <p>Returns the data of the message.</p>
+
+   <dt><var>event</var> . <code id=dom-messageevent-origin-dev><a href=#dom-messageevent-origin>origin</a></code><dd>
+
+    <p>Returns the origin of the message, for <a id=the-messageevent-interface:server-sent-events-2 href=server-sent-events.html#server-sent-events>server-sent events</a> and
+    <a id=the-messageevent-interface:web-messaging-2 href=web-messaging.html#web-messaging>cross-document messaging</a>.</p>
+
+   <dt><var>event</var> . <code id=dom-messageevent-lasteventid-dev><a href=#dom-messageevent-lasteventid>lastEventId</a></code><dd>
+
+    <p>Returns the <a href=server-sent-events.html#concept-event-stream-last-event-id id=the-messageevent-interface:concept-event-stream-last-event-id>last event ID string</a>, for
+    <a id=the-messageevent-interface:server-sent-events-3 href=server-sent-events.html#server-sent-events>server-sent events</a>.</p>
+
+   <dt><var>event</var> . <code id=dom-messageevent-source-dev><a href=#dom-messageevent-source>source</a></code><dd>
+
+    <p>Returns the <code id=the-messageevent-interface:windowproxy-2><a href=window-object.html#windowproxy>WindowProxy</a></code> of the source window, for <a id=the-messageevent-interface:web-messaging-3 href=web-messaging.html#web-messaging>cross-document
+    messaging</a>, and the <code id=the-messageevent-interface:messageport-5><a href=web-messaging.html#messageport>MessagePort</a></code> being attached, in the <code id=the-messageevent-interface:event-workerglobalscope-connect><a href=indices.html#event-workerglobalscope-connect>connect</a></code> event fired at
+    <code id=the-messageevent-interface:sharedworkerglobalscope><a href=workers.html#sharedworkerglobalscope>SharedWorkerGlobalScope</a></code> objects.</p>
+
+   <dt><var>event</var> . <code id=dom-messageevent-ports-dev><a href=#dom-messageevent-ports>ports</a></code><dd>
+
+    <p>Returns the <code id=the-messageevent-interface:messageport-6><a href=web-messaging.html#messageport>MessagePort</a></code> array sent with the message, for <a id=the-messageevent-interface:web-messaging-4 href=web-messaging.html#web-messaging>cross-document
+    messaging</a> and <a id=the-messageevent-interface:channel-messaging-2 href=web-messaging.html#channel-messaging>channel messaging</a>.</p>
+
+   </dl>
+
+  
+
+  <p>The <dfn id=dom-messageevent-data><code>data</code></dfn> attribute must return the value
+  it was initialized to. It represents the message being sent.</p>
+
+  <p>The <dfn id=dom-messageevent-origin><code>origin</code></dfn> attribute must return the
+  value it was initialized to. It represents, in <a id=the-messageevent-interface:server-sent-events-4 href=server-sent-events.html#server-sent-events>server-sent events</a> and
+  <a id=the-messageevent-interface:web-messaging-5 href=web-messaging.html#web-messaging>cross-document messaging</a>, the <a id=the-messageevent-interface:concept-origin href=origin.html#concept-origin>origin</a> of the document that sent the
+  message (typically the scheme, hostname, and port of the document, but not its path or <a href=https://url.spec.whatwg.org/#concept-url-fragment id=the-messageevent-interface:concept-url-fragment data-x-internal=concept-url-fragment>fragment</a>).</p>
+
+  <p>The <dfn id=dom-messageevent-lasteventid><code>lastEventId</code></dfn> attribute must
+  return the value it was initialized to. It represents, in <a id=the-messageevent-interface:server-sent-events-5 href=server-sent-events.html#server-sent-events>server-sent events</a>, the
+  <a href=server-sent-events.html#concept-event-stream-last-event-id id=the-messageevent-interface:concept-event-stream-last-event-id-2>last event ID string</a> of the event
+  source.</p>
+
+  <p>The <dfn id=dom-messageevent-source><code>source</code></dfn> attribute must return the
+  value it was initialized to. It represents, in <a id=the-messageevent-interface:web-messaging-6 href=web-messaging.html#web-messaging>cross-document messaging</a>, the
+  <code id=the-messageevent-interface:windowproxy-3><a href=window-object.html#windowproxy>WindowProxy</a></code> of the <a id=the-messageevent-interface:browsing-context href=browsers.html#browsing-context>browsing context</a> of the <code id=the-messageevent-interface:window><a href=window-object.html#window>Window</a></code> object
+  from which the message came; and in the <code id=the-messageevent-interface:event-workerglobalscope-connect-2><a href=indices.html#event-workerglobalscope-connect>connect</a></code> events used by <a href=workers.html#sharedworkerglobalscope id=the-messageevent-interface:sharedworkerglobalscope-2>shared workers</a>, the newly connecting
+  <code id=the-messageevent-interface:messageport-7><a href=web-messaging.html#messageport>MessagePort</a></code>.</p>
+
+  <p>The <dfn id=dom-messageevent-ports><code>ports</code></dfn> attribute must return the
+  value it was initialized to. It represents, in <a id=the-messageevent-interface:web-messaging-7 href=web-messaging.html#web-messaging>cross-document messaging</a> and
+  <a id=the-messageevent-interface:channel-messaging-3 href=web-messaging.html#channel-messaging>channel messaging</a>, the <code id=the-messageevent-interface:messageport-8><a href=web-messaging.html#messageport>MessagePort</a></code> array being sent.</p>
+
+  
+  <p>The <dfn id=dom-messageevent-initmessageevent><code>initMessageEvent()</code></dfn>
+  method must initialize the event in a manner analogous to the similarly-named <code id=the-messageevent-interface:dom-event-initevent><a data-x-internal=dom-event-initevent href=https://dom.spec.whatwg.org/#dom-event-initevent>initEvent()</a></code> method. <a href=references.html#refsDOM>[DOM]</a></p>
+
+  
+
+  <p class=note>Various APIs (e.g., <code id=the-messageevent-interface:websocket><a href=web-sockets.html#websocket>WebSocket</a></code>, <code id=the-messageevent-interface:eventsource><a href=server-sent-events.html#eventsource>EventSource</a></code>) use the
+  <code id=the-messageevent-interface:messageevent-3><a href=#messageevent>MessageEvent</a></code> interface for their <code id=the-messageevent-interface:event-message-2><a href=indices.html#event-message>message</a></code> event
+  without using the <code id=the-messageevent-interface:messageport-9><a href=web-messaging.html#messageport>MessagePort</a></code> API.</p>
+
+
+  <nav><a href=imagebitmap-and-animations.html>← 8.8 Images</a> — <a href=./>Table of Contents</a> — <a href=server-sent-events.html>9.2 Server-sent events →</a></nav>

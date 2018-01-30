@@ -34,16 +34,6 @@ use webrender_api;
 // Helper functions.
 // ======================================================================
 
-fn convert_format(format: PixelFormat) -> webrender_api::ImageFormat {
-    match format {
-        PixelFormat::K8 | PixelFormat::KA8 => {
-            panic!("Not support by webrender yet");
-        }
-        PixelFormat::RGB8 => webrender_api::ImageFormat::RGB8,
-        PixelFormat::BGRA8 => webrender_api::ImageFormat::BGRA8,
-    }
-}
-
 fn decode_bytes_sync(key: LoadKey, bytes: &[u8]) -> DecoderMsg {
     let image = load_from_memory(bytes);
     DecoderMsg {
@@ -63,19 +53,35 @@ fn get_placeholder_image(webrender_api: &webrender_api::RenderApi, path: &PathBu
 
 fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut Image) {
     if image.id.is_some() { return; }
-    let format = convert_format(image.format);
     let mut bytes = Vec::new();
-    bytes.extend_from_slice(&*image.bytes);
-    if format == webrender_api::ImageFormat::BGRA8 {
-        premultiply(bytes.as_mut_slice());
-    }
+    let is_opaque = match image.format {
+        PixelFormat::BGRA8 => {
+            bytes.extend_from_slice(&*image.bytes);
+            premultiply(bytes.as_mut_slice())
+        }
+        PixelFormat::RGB8 => {
+            for bgr in image.bytes.chunks(3) {
+                bytes.extend_from_slice(&[
+                    bgr[2],
+                    bgr[1],
+                    bgr[0],
+                    0xff
+                ]);
+            }
+
+            true
+        }
+        PixelFormat::K8 | PixelFormat::KA8 => {
+            panic!("Not support by webrender yet");
+        }
+    };
     let descriptor = webrender_api::ImageDescriptor {
         width: image.width,
         height: image.height,
         stride: None,
-        format: format,
+        format: webrender_api::ImageFormat::BGRA8,
         offset: 0,
-        is_opaque: is_image_opaque(format, &bytes),
+        is_opaque,
     };
     let data = webrender_api::ImageData::new(bytes);
     let image_key = webrender_api.generate_image_key();
@@ -85,28 +91,10 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
     image.id = Some(image_key);
 }
 
-// TODO(gw): This is a port of the old is_image_opaque code from WR.
-//           Consider using SIMD to speed this up if it shows in profiles.
-fn is_image_opaque(format: webrender_api::ImageFormat, bytes: &[u8]) -> bool {
-    match format {
-        webrender_api::ImageFormat::BGRA8 => {
-            let mut is_opaque = true;
-            for i in 0..(bytes.len() / 4) {
-                if bytes[i * 4 + 3] != 255 {
-                    is_opaque = false;
-                    break;
-                }
-            }
-            is_opaque
-        }
-        webrender_api::ImageFormat::RGB8 => true,
-        webrender_api::ImageFormat::RG8 => true,
-        webrender_api::ImageFormat::A8 => false,
-        webrender_api::ImageFormat::Invalid | webrender_api::ImageFormat::RGBAF32 => unreachable!(),
-    }
-}
-
-fn premultiply(data: &mut [u8]) {
+// Returns true if the image was found to be
+// completely opaque.
+fn premultiply(data: &mut [u8]) -> bool {
+    let mut is_opaque = true;
     let length = data.len();
 
     let mut i = 0;
@@ -121,7 +109,10 @@ fn premultiply(data: &mut [u8]) {
         data[i + 2] = (r * a / 255) as u8;
 
         i += 4;
+        is_opaque = is_opaque && a == 255;
     }
+
+    is_opaque
 }
 
 // ======================================================================

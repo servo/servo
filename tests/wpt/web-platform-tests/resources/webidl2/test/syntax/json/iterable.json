@@ -10,7 +10,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "long"
                 },
@@ -32,7 +31,6 @@
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
-                        "array": false,
                         "union": false,
                         "idlType": "short"
                     },
@@ -40,11 +38,38 @@
                         "sequence": false,
                         "generic": null,
                         "nullable": true,
-                        "array": false,
                         "union": false,
                         "idlType": "double"
                     }
                 ],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "IterableThree",
+        "partial": false,
+        "members": [
+            {
+                "type": "iterable",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "union": false,
+                    "idlType": "long",
+                    "extAttrs": [
+                        {
+                            "name": "XAttr",
+                            "arguments": null,
+                            "type": "extended-attribute",
+                            "rhs": null
+                        }
+                    ]
+                },
                 "extAttrs": []
             }
         ],

@@ -69,8 +69,8 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                              animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="justify-content",
-                              type="AlignJustifyContent",
-                              initial_value="specified::AlignJustifyContent::normal()",
+                              type="JustifyContent",
+                              initial_value="specified::JustifyContent(specified::ContentDistribution::normal())",
                               spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
                               extra_prefixes="webkit",
                               animation_value_type="discrete")}
@@ -90,8 +90,8 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                              animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="align-content",
-                              type="AlignJustifyContent",
-                              initial_value="specified::AlignJustifyContent::normal()",
+                              type="AlignContent",
+                              initial_value="specified::AlignContent(specified::ContentDistribution::normal())",
                               spec="https://drafts.csswg.org/css-align/#propdef-align-content",
                               extra_prefixes="webkit",
                               animation_value_type="discrete")}
@@ -138,20 +138,20 @@ ${helpers.predefined_type("flex-shrink", "NonNegativeNumber",
                              animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="align-self",
-                              type="AlignJustifySelf",
-                              initial_value="specified::AlignJustifySelf::auto()",
+                              type="AlignSelf",
+                              initial_value="specified::AlignSelf(specified::SelfAlignment::auto())",
                               spec="https://drafts.csswg.org/css-align/#align-self-property",
                               extra_prefixes="webkit",
                               animation_value_type="discrete")}
 
     ${helpers.predefined_type(name="justify-self",
-                              type="AlignJustifySelf",
-                              initial_value="specified::AlignJustifySelf::auto()",
+                              type="JustifySelf",
+                              initial_value="specified::JustifySelf(specified::SelfAlignment::auto())",
                               spec="https://drafts.csswg.org/css-align/#justify-self-property",
                               animation_value_type="discrete")}
 
     #[cfg(feature = "gecko")]
-    impl_align_conversions!(::values::specified::align::AlignJustifySelf);
+    impl_align_conversions!(::values::specified::align::SelfAlignment);
 % endif
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
@@ -247,7 +247,7 @@ ${helpers.predefined_type("object-position",
                           "Position",
                           "computed::Position::zero()",
                           products="gecko",
-                          boxed="True",
+                          boxed=True,
                           spec="https://drafts.csswg.org/css-images-3/#the-object-position",
                           animation_value_type="ComputedValue")}
 
@@ -257,7 +257,6 @@ ${helpers.predefined_type("object-position",
                               "computed::NonNegativeLengthOrPercentage::zero()",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
                               animation_value_type="NonNegativeLengthOrPercentage",
-                              gecko_pref="layout.css.grid.enabled",
                               products="gecko")}
 
     % for range in ["start", "end"]:
@@ -267,7 +266,6 @@ ${helpers.predefined_type("object-position",
                                   animation_value_type="discrete",
                                   spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
                                   products="gecko",
-                                  gecko_pref="layout.css.grid.enabled",
                                   boxed=True)}
     % endfor
 
@@ -279,7 +277,6 @@ ${helpers.predefined_type("object-position",
                               animation_value_type="discrete",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
                               products="gecko",
-                              gecko_pref="layout.css.grid.enabled",
                               boxed=True)}
 
     ${helpers.predefined_type("grid-template-%ss" % kind,
@@ -288,7 +285,6 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
-                              gecko_pref="layout.css.grid.enabled",
                               animation_value_type="discrete")}
 
 % endfor
@@ -298,7 +294,6 @@ ${helpers.predefined_type("grid-auto-flow",
                           initial_value="computed::GridAutoFlow::row()",
                           products="gecko",
                           animation_value_type="discrete",
-                          gecko_pref="layout.css.grid.enabled",
                           spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow")}
 
 ${helpers.predefined_type("grid-template-areas",
@@ -306,6 +301,5 @@ ${helpers.predefined_type("grid-template-areas",
                           initial_value="computed::GridTemplateAreas::none()",
                           products="gecko",
                           animation_value_type="discrete",
-                          gecko_pref="layout.css.grid.enabled",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas")}

@@ -18,7 +18,6 @@ INDENT TABS: pointerlock/*
 INDENT TABS: shadow-dom/*
 INDENT TABS: svg/import/*
 INDENT TABS: tools/*
-INDENT TABS: touch-events/*
 INDENT TABS: web-animations/*
 INDENT TABS: webaudio/*
 INDENT TABS: webvtt/*
@@ -39,6 +38,7 @@ TRAILING WHITESPACE: webaudio/*
 TRAILING WHITESPACE: WebIDL/*
 TRAILING WHITESPACE: webvtt/*
 TRAILING WHITESPACE: encoding/legacy*/*
+TRAILING WHITESPACE: server-timing/resources/parsing/*.sub.headers
 
 ## File types that should never be checked ##
 
@@ -70,17 +70,20 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.wasm
 
 ## Documentation ##
 
-W3C-TEST.ORG:README.md
-W3C-TEST.ORG:*/README.md
-W3C-TEST.ORG:docs/*
+W3C-TEST.ORG: README.md
+W3C-TEST.ORG: */README.md
+W3C-TEST.ORG: docs/*
 SET TIMEOUT: docs/*
+WEB-PLATFORM.TEST:README.md
+WEB-PLATFORM.TEST:*/README.md
+WEB-PLATFORM.TEST:docs/*
 
 ## Helper scripts ##
 
-W3C-TEST.ORG:tools/*
-PRINT STATEMENT:tools/*
-W3C-TEST.ORG:*/tools/*
-PRINT STATEMENT:*/tools/*
+W3C-TEST.ORG: tools/*
+PRINT STATEMENT: tools/*
+W3C-TEST.ORG: */tools/*
+PRINT STATEMENT: */tools/*
 
 ## Deliberate copies of Ahem ##
 # The allowed copy
@@ -92,42 +95,49 @@ AHEM COPY: css/fonts/ahem-extra/AHEM_*.TTF
 # https://github.com/w3c/web-platform-tests/issues/7437
 AHEM COPY: css/vendor-imports/mozilla/mozilla-central-reftests/*/Ahem.ttf
 
-### Test exclusions ##
+## Test exclusions ##
 
-CR AT EOL:WebIDL/valid/idl/documentation-dos.widl
-CR AT EOL:cors/resources/cors-headers.asis
-CR AT EOL:html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
-INDENT TABS:html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
-CR AT EOL:webvtt/parsing/file-parsing/tests/support/newlines.vtt
-PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.svg
-PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xhtml
-PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.svg
-PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xhtml
+# Intentional use of CRLF
+CR AT EOL: WebIDL/valid/idl/documentation-dos.widl
+CR AT EOL: cors/resources/cors-headers.asis
+CR AT EOL: html/form-elements/the-textarea-element/multiline-placeholder-cr.html
+CR AT EOL: html/form-elements/the-textarea-element/multiline-placeholder-crlf.html
+CR AT EOL: html/input/the-placeholder-attribute/multiline-cr.html
+CR AT EOL: html/input/the-placeholder-attribute/multiline-crlf.html
+CR AT EOL: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
+CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt
+
+# Intentional use of tabs
+INDENT TABS: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
 
 # Test generation files containing print statements
-PRINT STATEMENT:dom/nodes/Document-createElement-namespace-tests/generate.py
-PRINT STATEMENT:encrypted-media/polyfill/make-polyfill-tests.py
+PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
+PRINT STATEMENT: encrypted-media/polyfill/make-polyfill-tests.py
 
 # semi-legitimate use of console.*
-CONSOLE:console/*
-CONSOLE:streams/resources/test-utils.js
-CONSOLE:service-workers/service-worker/resources/navigation-redirect-other-origin.html
-CONSOLE:service-workers/service-worker/navigation-redirect.https.html
-CONSOLE:service-workers/service-worker/resources/clients-get-other-origin.html
+CONSOLE: console/*
+CONSOLE: resources/check-layout-th.js
+CONSOLE: resources/chromium/*
+CONSOLE: resources/idlharness.js
+CONSOLE: streams/resources/test-utils.js
+CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-origin.html
+CONSOLE: service-workers/service-worker/navigation-redirect.https.html
+CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html
 
 # use of console in a public library - annotation-model ensures
 # it is not actually used
-CONSOLE:annotation-model/scripts/ajv.min.js
-CONSOLE:annotation-model/scripts/showdown.min.js
+CONSOLE: annotation-model/scripts/ajv.min.js
+CONSOLE: annotation-model/scripts/showdown.min.js
 CR AT EOL: annotation-model/scripts/showdown.min.js
 
-# Lint doesn't know about sub.svg I guess
-PARSE-FAILED:content-security-policy/svg/including.sub.svg
-
-#Helper files that aren't valid XML
-PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xml
-PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
-PARSE-FAILED:acid/acid3/empty.xml
+# Helper files that aren't valid XML
+PARSE-FAILED: acid/acid3/empty.xml
+PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/empty.svg
+PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/empty.xhtml
+PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/empty.xml
+PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/minimal_html.svg
+PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/minimal_html.xhtml
+PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
 
 # setTimeout usage (should probably mostly be fixed)
 SET TIMEOUT: *-manual.*
@@ -143,7 +153,6 @@ SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-002.html
 SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-003.html
 SET TIMEOUT: css/selectors/selector-read-write-type-change-002.html
 SET TIMEOUT: css/selectors/selector-required-type-change-002.html
-SET TIMEOUT: css/css-fonts/font-display/font-display.html
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
@@ -155,6 +164,7 @@ SET TIMEOUT: html/browsers/browsing-the-web/scroll-to-fragid/*
 SET TIMEOUT: html/browsers/browsing-the-web/unloading-documents/*
 SET TIMEOUT: html/browsers/history/the-history-interface/*
 SET TIMEOUT: html/browsers/history/the-location-interface/*
+SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/*
 SET TIMEOUT: html/browsers/offline/*
 SET TIMEOUT: html/browsers/the-window-object/*
 SET TIMEOUT: html/dom/dynamic-markup-insertion/opening-the-input-stream/*
@@ -221,8 +231,12 @@ SET TIMEOUT: websockets/*
 SET TIMEOUT: webstorage/eventTestHarness.js
 SET TIMEOUT: webvtt/*
 SET TIMEOUT: workers/*
-SET TIMEOUT: XMLHttpRequest/resources/init.htm
-SET TIMEOUT: XMLHttpRequest/resources/xmlhttprequest-timeout.js
+SET TIMEOUT: xhr/resources/init.htm
+SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
+
+# generate_tests implementation and sample usage
+GENERATE_TESTS: resources/test/tests/generate-callback.html
+GENERATE_TESTS: resources/testharness.js
 
 # generate_tests usage (should be got rid of)
 GENERATE_TESTS: 2dcontext/drawing-images-to-the-canvas/*
@@ -294,29 +308,42 @@ GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/w
 GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html
 
 # Intentional use of setTimeout
-SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/navigation-in-onload_form-submission-2.tentative.html
+SET TIMEOUT: css/css-fonts/font-display/font-display.html
+SET TIMEOUT: css/css-fonts/font-display/font-display-change.html
+SET TIMEOUT: css/css-fonts/font-display/font-display-change-ref.html
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
+SET TIMEOUT: resources/chromium/*
+SET TIMEOUT: resources/test/tests/add_cleanup.html
+SET TIMEOUT: resources/test/tests/api-tests-1.html
+SET TIMEOUT: resources/test/tests/worker.js
+SET TIMEOUT: resources/testharness.js
 
 # setTimeout use in reftests
 SET TIMEOUT: acid/acid3/test.html
 
 # Travis
-W3C-TEST.ORG:.travis.yml
+W3C-TEST.ORG: .travis.yml
+WEB-PLATFORM.TEST: .travis.yml
 
-# Git submodules are not currently scanned
-*:tools/*
-*:resources/*
-*:css/tools/apiclient/*
-*:css/tools/w3ctestlib/*
+# Config
+WEB-PLATFORM.TEST: config.default.json
+WEB-PLATFORM.TEST: resources/test/config.test.json
+
+# Third party code
+*: css/tools/apiclient/*
+*: css/tools/w3ctestlib/*
+*: resources/webidl2/*
+*: tools/*
 
 # Build system virtualenv
-*:css/tools/_virtualenv/*
+*: css/tools/_virtualenv/*
 
 
 ## Third party data files
 TRAILING WHITESPACE: css/css-writing-modes/tools/generators/ucd/Blocks.txt
+TRAILING WHITESPACE: resources/chromium/*
 
 
 ## Test generation files
@@ -447,14 +474,6 @@ CONSOLE: css/cssom/index-002.html
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-002.html
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-003.html
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-004.html
-TRAILING WHITESPACE: css/css-color/lab-004.html
-TRAILING WHITESPACE: css/css-color/lab-005.html
-TRAILING WHITESPACE: css/css-color/lab-006.html
-TRAILING WHITESPACE: css/css-color/lab-007.html
-TRAILING WHITESPACE: css/css-color/lch-004.html
-TRAILING WHITESPACE: css/css-color/lch-005.html
-TRAILING WHITESPACE: css/css-color/lch-006.html
-TRAILING WHITESPACE: css/css-color/lch-007.html
 TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.fea
 TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-assigned-node-with-before-after.html
 TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-assigned-node-with-rules.html
@@ -925,18 +944,38 @@ MISSING-LINK: css/cssom-view/scrolling-quirks-vs-nonquirks.html
 MISSING-LINK: css/cssom-view/scrollingElement.html
 MISSING-LINK: css/cssom-view/scrollIntoView-shadow.html
 MISSING-LINK: css/cssom-view/scrollIntoView-smooth.html
+MISSING-LINK: css/cssom-view/scrollTop-display-change.html
 CSS-COLLIDING-TEST-NAME: css/cssom-view/interfaces.html
 CSS-COLLIDING-TEST-NAME: css/cssom/interfaces.html
 
 # TODO https://github.com/w3c/web-platform-tests/issues/5770
 MISSING-LINK: css/geometry/*.worker.js
 
-WEBIDL2.JS:.gitmodules
+WEBIDL2.JS: .gitmodules
 
 # Manual test that uses console.logs for feedback
-CONSOLE:payment-request/payment-request-response-id.html
+CONSOLE: payment-request/payment-request-response-id.html
 
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
-# Test that uses the same names as the WebKit/Blink testing APIs
-LAYOUTTESTS APIS: html/browsers/history/the-session-history-of-browsing-contexts/navigation-in-onload_form-submission-2.tentative.html
+
+# Existing use of WEB-PLATFORM.TEST
+WEB-PLATFORM.TEST: clear-site-data/support/test_utils.sub.js
+WEB-PLATFORM.TEST: content-security-policy/base-uri/report-uri-does-not-respect-base-uri.sub.html
+WEB-PLATFORM.TEST: content-security-policy/generic/generic-0_8.sub.html
+WEB-PLATFORM.TEST: content-security-policy/generic/generic-0_8_1.sub.html
+WEB-PLATFORM.TEST: content-security-policy/nonce-hiding/script-nonces-hidden-meta.tentative.html
+WEB-PLATFORM.TEST: content-security-policy/nonce-hiding/svgscript-nonces-hidden-meta.tentative.html
+WEB-PLATFORM.TEST: fetch/api/request/request-structure.html
+WEB-PLATFORM.TEST: html/browsers/origin/relaxing-the-same-origin-restriction/document_domain_setter.html
+WEB-PLATFORM.TEST: html/semantics/embedded-content/the-iframe-element/cross_origin_parentage.html
+WEB-PLATFORM.TEST: html/semantics/forms/the-label-element/label-attributes.html
+WEB-PLATFORM.TEST: longtask-timing/longtask-in-childiframe-crossorigin.html
+WEB-PLATFORM.TEST: longtask-timing/longtask-in-sibling-iframe-crossorigin.html
+WEB-PLATFORM.TEST: navigation-timing/nav2_test_attributes_values.html
+WEB-PLATFORM.TEST: navigation-timing/nav2_test_instance_accessors.html
+WEB-PLATFORM.TEST: service-workers/service-worker/update-bytecheck.https.html
+WEB-PLATFORM.TEST: webdriver/tests/cookies/add_cookie.py
+WEB-PLATFORM.TEST: webdriver/tests/cookies/get_named_cookie.py
+WEB-PLATFORM.TEST: webrtc/RTCPeerConnection-getIdentityAssertion.html
+WEB-PLATFORM.TEST: webrtc/identity-helper.js

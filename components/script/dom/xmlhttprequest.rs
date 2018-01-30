@@ -14,7 +14,6 @@ use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -67,6 +66,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
 use std::ptr;
+use std::ptr::NonNull;
 use std::slice;
 use std::str;
 use std::sync::{Arc, Mutex};
@@ -75,7 +75,7 @@ use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Position;
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -849,7 +849,7 @@ pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
-        assert!(self.ready_state.get() != rs);
+        assert_ne!(self.ready_state.get(), rs);
         self.ready_state.set(rs);
         let event = Event::new(&self.global(),
                                atom!("readystatechange"),
@@ -1120,19 +1120,19 @@ impl XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#arraybuffer-response
     #[allow(unsafe_code)]
-    unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         // Step 1
         let created = self.response_arraybuffer.get();
-        if !created.is_null() {
-            return Some(NonNullJSObjectPtr::new_unchecked(created));
+        if let Some(nonnull) = NonNull::new(created) {
+            return Some(nonnull)
         }
 
         // Step 2
         let bytes = self.response.borrow();
-        rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+        rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
         ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut()).ok().and_then(|()| {
             self.response_arraybuffer.set(array_buffer.get());
-            Some(NonNullJSObjectPtr::new_unchecked(array_buffer.get()))
+            Some(NonNull::new_unchecked(array_buffer.get()))
         })
     }
 
@@ -1205,7 +1205,7 @@ impl XMLHttpRequest {
             };
             let last = true;
             let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, last);
-            assert!(read == bytes.len());
+            assert_eq!(read, bytes.len());
             unsafe {
                 utf16.set_len(written)
             }

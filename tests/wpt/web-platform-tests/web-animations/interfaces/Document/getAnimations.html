@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>document.getAnimations tests</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#dom-document-getanimations">
+<title>Document.getAnimations</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-document-getanimations">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -9,20 +9,20 @@
 <div id="log"></div>
 <div id="target"></div>
 <script>
-"use strict";
+'use strict';
 
-var gKeyFrames = { 'marginLeft': ['100px', '200px'] };
+const gKeyFrames = { 'marginLeft': ['100px', '200px'] };
 
-test(function(t) {
+test(t => {
   assert_equals(document.getAnimations().length, 0,
                 'getAnimations returns an empty sequence for a document ' +
                 'with no animations');
 }, 'Test document.getAnimations for non-animated content');
 
-test(function(t) {
-  var div = createDiv(t);
-  var anim1 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
-  var anim2 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const anim1 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+  const anim2 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   assert_equals(document.getAnimations().length, 2,
                 'getAnimation returns running animations');
 
@@ -32,18 +32,18 @@ test(function(t) {
                 'getAnimation only returns running animations');
 }, 'Test document.getAnimations for script-generated animations')
 
-test(function(t) {
-  var div = createDiv(t);
-  var anim1 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
-  var anim2 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const anim1 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+  const anim2 = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   assert_array_equals(document.getAnimations(),
                       [ anim1, anim2 ],
                       'getAnimations() returns running animations');
 }, 'Test the order of document.getAnimations with script generated animations')
 
-test(function(t) {
-  var effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
-  var anim = new Animation(effect, document.timeline);
+test(t => {
+  const effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
+  const anim = new Animation(effect, document.timeline);
   anim.play();
 
   assert_equals(document.getAnimations().length, 0,

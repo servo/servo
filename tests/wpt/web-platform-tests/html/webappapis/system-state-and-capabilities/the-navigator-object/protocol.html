@@ -58,12 +58,12 @@ test(function () {
 }, 'an empty url argument should throw SYNTAX_ERR');
 
 test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://%s.com', 'foo') } );
-}, '%s instead of domain name should throw SYNTAX_ERR');
+  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://%s.com', 'foo') } );
+}, '%s instead of domain name should throw SECURITY_ERR');
 
 test(function () {
-  assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://%s.example.com', 'foo') } );
-}, '%s instead of subdomain name should throw SYNTAX_ERR');
+  assert_throws('SECURITY_ERR', function () { navigator.registerProtocolHandler('mailto', 'http://%s.example.com', 'foo') } );
+}, '%s instead of subdomain name should throw SECURITY_ERR');
 
 test(function () {
   assert_throws('SYNTAX_ERR', function () { navigator.registerProtocolHandler('mailto', location.href + '', 'foo') } );

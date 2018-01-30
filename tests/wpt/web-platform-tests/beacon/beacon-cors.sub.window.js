@@ -38,4 +38,30 @@
     runTests(sampleTests);
 });
 
+// Now test a cross-origin request that doesn't use a safelisted Content-Type and ensure
+// we are applying the proper restrictions. Since a non-safelisted Content-Type request
+// header is used there should be a preflight/options request and we should only succeed
+// send the payload if the proper CORS headers are used.
+{
+    // Implement the self.buildId extension to identify the parameterized
+    // test in the report.
+    self.buildId = function (baseId) {
+        return `${baseId}-PREFLIGHT-ALLOW`;
+    };
+
+    // Implement the self.buildBaseUrl and self.buildTargetUrl extensions
+    // to change the target URL to use a cross-origin domain name.
+    self.buildBaseUrl = function (baseUrl) {
+        return "http://{{domains[www]}}:{{ports[http][0]}}";
+    };
+
+    // Implement the self.buildTargetUrl extension to append a directive
+    // to the handler, that it should return CORS headers for the preflight we expect.
+    self.buildTargetUrl = function (targetUrl) {
+        return `${targetUrl}&origin=http://{{host}}:{{ports[http][0]}}&credentials=true&preflightExpected=true`;
+    }
+
+    runTests(preflightTests);
+}
+
 done();

@@ -7,8 +7,8 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ParseError, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::{CSSFloat, serialize_percentage};
 use values::computed::{Context, ToComputedValue};
@@ -29,8 +29,9 @@ pub struct Percentage {
 
 
 impl ToCss for Percentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         if self.calc_clamping_mode.is_some() {
             dest.write_str("calc(")?;

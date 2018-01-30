@@ -6,7 +6,7 @@
 
 use {Atom, LocalName, Namespace};
 use context::QuirksMode;
-use element_state::ElementState;
+use element_state::{DocumentState, ElementState};
 use fallible::FallibleVec;
 use hashglobe::FailedAllocationError;
 use selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapEntry};
@@ -15,7 +15,7 @@ use selector_parser::Direction;
 use selector_parser::SelectorImpl;
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
-use selectors::parser::{Selector, SelectorIter, SelectorMethods};
+use selectors::parser::{Selector, SelectorIter, Visit};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 
@@ -63,6 +63,25 @@ pub struct Dependency {
     pub selector_offset: usize,
 }
 
+/// The kind of elements down the tree this dependency may affect.
+#[derive(Debug, Eq, PartialEq)]
+pub enum DependencyInvalidationKind {
+    /// This dependency may affect the element that changed itself.
+    Element,
+    /// This dependency affects the style of the element itself, and also the
+    /// style of its descendants.
+    ///
+    /// TODO(emilio): Each time this feels more of a hack for eager pseudos...
+    ElementAndDescendants,
+    /// This dependency may affect descendants down the tree.
+    Descendants,
+    /// This dependency may affect siblings to the right of the element that
+    /// changed.
+    Siblings,
+    /// This dependency may affect slotted elements of the element that changed.
+    SlottedElements,
+}
+
 impl Dependency {
     /// Returns the combinator to the right of the partial selector this
     /// dependency represents.
@@ -76,28 +95,19 @@ impl Dependency {
         Some(self.selector.combinator_at_match_order(self.selector_offset - 1))
     }
 
-    /// Whether this dependency affects the style of the element.
-    ///
-    /// NOTE(emilio): pseudo-elements need to be here to account for eager
-    /// pseudos, since they just grab the style from the originating element.
-    ///
-    /// TODO(emilio): We could look at the selector itself to see if it's an
-    /// eager pseudo, and return false here if not.
-    pub fn affects_self(&self) -> bool {
-        matches!(self.combinator(), None | Some(Combinator::PseudoElement))
-    }
-
-    /// Whether this dependency may affect style of any of our descendants.
-    pub fn affects_descendants(&self) -> bool {
-        matches!(self.combinator(), Some(Combinator::PseudoElement) |
-                                    Some(Combinator::Child) |
-                                    Some(Combinator::Descendant))
-    }
-
-    /// Whether this dependency may affect style of any of our later siblings.
-    pub fn affects_later_siblings(&self) -> bool {
-        matches!(self.combinator(), Some(Combinator::NextSibling) |
-                                    Some(Combinator::LaterSibling))
+    /// The kind of invalidation that this would generate.
+    pub fn invalidation_kind(&self) -> DependencyInvalidationKind {
+        match self.combinator() {
+            None => DependencyInvalidationKind::Element,
+            Some(Combinator::Child) |
+            Some(Combinator::Descendant) => DependencyInvalidationKind::Descendants,
+            Some(Combinator::LaterSibling) |
+            Some(Combinator::NextSibling) => DependencyInvalidationKind::Siblings,
+            // TODO(emilio): We could look at the selector itself to see if it's
+            // an eager pseudo, and return only Descendants here if not.
+            Some(Combinator::PseudoElement) => DependencyInvalidationKind::ElementAndDescendants,
+            Some(Combinator::SlotAssignment) => DependencyInvalidationKind::SlottedElements,
+        }
     }
 }
 
@@ -123,6 +133,19 @@ impl SelectorMapEntry for StateDependency {
     }
 }
 
+/// The same, but for document state selectors.
+#[derive(Clone, Debug, MallocSizeOf)]
+pub struct DocumentStateDependency {
+    /// The selector that is affected. We don't need to track an offset, since
+    /// when it changes it changes for the whole document anyway.
+    #[cfg_attr(feature = "gecko",
+               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
+    pub selector: Selector<SelectorImpl>,
+    /// The state this dependency is affected by.
+    pub state: DocumentState,
+}
+
 /// A map where we store invalidations.
 ///
 /// This is slightly different to a SelectorMap, in the sense of that the same
@@ -141,6 +164,8 @@ pub struct InvalidationMap {
     pub id_to_selector: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[Dependency; 1]>>,
     /// A map of all the state dependencies.
     pub state_affecting_selectors: SelectorMap<StateDependency>,
+    /// A list of document state dependencies in the rules we represent.
+    pub document_state_selectors: Vec<DocumentStateDependency>,
     /// A map of other attribute affecting selectors.
     pub other_attribute_affecting_selectors: SelectorMap<Dependency>,
     /// Whether there are attribute rules of the form `[class~="foo"]` that may
@@ -162,6 +187,7 @@ impl InvalidationMap {
             class_to_selector: MaybeCaseInsensitiveHashMap::new(),
             id_to_selector: MaybeCaseInsensitiveHashMap::new(),
             state_affecting_selectors: SelectorMap::new(),
+            document_state_selectors: Vec::new(),
             other_attribute_affecting_selectors: SelectorMap::new(),
             has_class_attribute_selectors: false,
             has_id_attribute_selectors: false,
@@ -171,6 +197,7 @@ impl InvalidationMap {
     /// Returns the number of dependencies stored in the invalidation map.
     pub fn len(&self) -> usize {
         self.state_affecting_selectors.len() +
+        self.document_state_selectors.len() +
         self.other_attribute_affecting_selectors.len() +
         self.id_to_selector.iter().fold(0, |accum, (_, ref v)| {
             accum + v.len()
@@ -185,7 +212,7 @@ impl InvalidationMap {
     pub fn note_selector(
         &mut self,
         selector: &Selector<SelectorImpl>,
-        quirks_mode: QuirksMode
+        quirks_mode: QuirksMode,
     ) -> Result<(), FailedAllocationError> {
         self.collect_invalidations_for(selector, quirks_mode)
     }
@@ -195,6 +222,7 @@ impl InvalidationMap {
         self.class_to_selector.clear();
         self.id_to_selector.clear();
         self.state_affecting_selectors.clear();
+        self.document_state_selectors.clear();
         self.other_attribute_affecting_selectors.clear();
         self.has_id_attribute_selectors = false;
         self.has_class_attribute_selectors = false;
@@ -212,6 +240,8 @@ impl InvalidationMap {
         let mut combinator;
         let mut index = 0;
 
+        let mut document_state = DocumentState::empty();
+
         loop {
             let sequence_start = index;
 
@@ -219,6 +249,7 @@ impl InvalidationMap {
                 classes: SmallVec::new(),
                 ids: SmallVec::new(),
                 state: ElementState::empty(),
+                document_state: &mut document_state,
                 other_attributes: false,
                 has_id_attribute_selectors: false,
                 has_class_attribute_selectors: false,
@@ -287,14 +318,27 @@ impl InvalidationMap {
             index += 1; // Account for the combinator.
         }
 
+        if !document_state.is_empty() {
+            self.document_state_selectors.try_push(DocumentStateDependency {
+                state: document_state,
+                selector: selector.clone(),
+            })?;
+        }
+
         Ok(())
     }
 }
 
 /// A struct that collects invalidations for a given compound selector.
-struct CompoundSelectorDependencyCollector {
+struct CompoundSelectorDependencyCollector<'a> {
     /// The state this compound selector is affected by.
     state: ElementState,
+
+    /// The document this _complex_ selector is affected by.
+    ///
+    /// We don't need to track state per compound selector, since it's global
+    /// state and it changes for everything.
+    document_state: &'a mut DocumentState,
 
     /// The classes this compound selector is affected by.
     ///
@@ -320,7 +364,7 @@ struct CompoundSelectorDependencyCollector {
     has_class_attribute_selectors: bool,
 }
 
-impl SelectorVisitor for CompoundSelectorDependencyCollector {
+impl<'a> SelectorVisitor for CompoundSelectorDependencyCollector<'a> {
     type Impl = SelectorImpl;
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
@@ -343,6 +387,7 @@ impl SelectorVisitor for CompoundSelectorDependencyCollector {
                     }
                     _ => pc.state_flag(),
                 };
+                *self.document_state |= pc.document_state_flag();
             }
             _ => {}
         }

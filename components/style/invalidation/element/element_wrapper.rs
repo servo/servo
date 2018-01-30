@@ -12,7 +12,6 @@ use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, S
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
-use selectors::matching::RelevantLinkStatus;
 use std::cell::Cell;
 use std::fmt;
 
@@ -72,7 +71,8 @@ pub struct ElementWrapper<'a, E>
 }
 
 impl<'a, E> ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     /// Trivially constructs an `ElementWrapper`.
     pub fn new(el: E, snapshot_map: &'a SnapshotMap) -> Self {
@@ -127,10 +127,7 @@ impl<'a, E> ElementWrapper<'a, E>
             if lang.is_some() {
                 return lang;
             }
-            match current.parent_element() {
-                Some(parent) => current = parent,
-                None => return None,
-            }
+            current = current.parent_element()?;
         }
     }
 }
@@ -153,7 +150,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         &self,
         pseudo_class: &NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        relevant_link: &RelevantLinkStatus,
         _setter: &mut F,
     ) -> bool
     where
@@ -165,12 +161,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             #[cfg(feature = "gecko")]
             NonTSPseudoClass::MozAny(ref selectors) => {
                 use selectors::matching::matches_complex_selector;
-                context.nesting_level += 1;
-                let result = selectors.iter().any(|s| {
-                    matches_complex_selector(s.iter(), self, context, _setter)
+                return context.nest(|context| {
+                    selectors.iter().any(|s| {
+                        matches_complex_selector(s.iter(), self, context, _setter)
+                    })
                 });
-                context.nesting_level -= 1;
-                return result
             }
 
             // :dir is implemented in terms of state flags, but which state flag
@@ -196,14 +191,16 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 return state.contains(selector_flag);
             }
 
-            // For :link and :visited, we don't actually want to test the element
-            // state directly.  Instead, we use the `relevant_link` to determine if
-            // they match.
+            // For :link and :visited, we don't actually want to test the
+            // element state directly.
+            //
+            // Instead, we use the `visited_handling` to determine if they
+            // match.
             NonTSPseudoClass::Link => {
-                return relevant_link.is_unvisited(self, context);
+                return self.is_link() && context.visited_handling().matches_unvisited()
             }
             NonTSPseudoClass::Visited => {
-                return relevant_link.is_visited(self, context);
+                return self.is_link() && context.visited_handling().matches_visited()
             }
 
             #[cfg(feature = "gecko")]
@@ -238,7 +235,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             return self.element.match_non_ts_pseudo_class(
                 pseudo_class,
                 context,
-                relevant_link,
                 &mut |_, _| {},
             )
         }
@@ -248,7 +244,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 self.element.match_non_ts_pseudo_class(
                     pseudo_class,
                     context,
-                    relevant_link,
                     &mut |_, _| {},
                 )
             }
@@ -300,6 +295,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.is_html_element_in_html_document()
     }
 
+    fn is_html_slot_element(&self) -> bool {
+        self.element.is_html_slot_element()
+    }
+
     fn get_local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
         self.element.get_local_name()
     }
@@ -349,6 +348,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         self.element.pseudo_element_originating_element()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+    }
+
+    fn assigned_slot(&self) -> Option<Self> {
+        self.element.assigned_slot()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 

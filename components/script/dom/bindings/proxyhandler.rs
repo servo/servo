@@ -32,7 +32,7 @@ pub unsafe extern "C" fn shadow_check_callback(cx: *mut JSContext,
                                                -> DOMProxyShadowsResult {
     // TODO: support OverrideBuiltins when #12978 is fixed.
 
-    rooted!(in(cx) let mut expando = ptr::null_mut());
+    rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
     get_expando_object(object, expando.handle_mut());
     if !expando.get().is_null() {
         let mut has_own = false;
@@ -73,7 +73,7 @@ pub unsafe extern "C" fn get_property_descriptor(cx: *mut JSContext,
         return true;
     }
 
-    rooted!(in(cx) let mut proto = ptr::null_mut());
+    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
     if !GetObjectProto(cx, proxy, proto.handle_mut()) {
         // FIXME(#11868) Should assign to desc.obj, desc.get() is a copy.
         desc.get().obj = ptr::null_mut();
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn define_property(cx: *mut JSContext,
         return true;
     }
 
-    rooted!(in(cx) let mut expando = ptr::null_mut());
+    rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
     ensure_expando_object(cx, proxy, expando.handle_mut());
     JS_DefinePropertyById(cx, expando.handle(), id, desc, result)
 }
@@ -106,7 +106,7 @@ pub unsafe extern "C" fn delete(cx: *mut JSContext,
                                 id: HandleId,
                                 bp: *mut ObjectOpResult)
                                 -> bool {
-    rooted!(in(cx) let mut expando = ptr::null_mut());
+    rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
     get_expando_object(proxy, expando.handle_mut());
     if expando.is_null() {
         (*bp).code_ = 0 /* OkCode */;

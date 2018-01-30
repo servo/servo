@@ -1,0 +1,19 @@
+WEBVTT
+Valid cue size with alignment settings.
+
+1
+00:00:00.000 --> 00:00:30.500 size:100% align:start
+Bear is Coming!!!!!
+Box for the cue is 100% of the video viewport width
+and because of the start align, all text is left aligned on the video viewport.
+
+2
+00:00:31.000 --> 00:01:00.500 size:10% align:end
+I said Bear is coming!!!!
+Box for the cue is 10% of the video viewport width, which will mean that automatic line wrapping will happen
+and the text is aligned to the end.
+
+3
+00:01:01.000 --> 00:02:00.500 size:0% align:middle
+I said Bear is coming now!!!!
+Cue text box size of 0 is acceptable, even if not visible.

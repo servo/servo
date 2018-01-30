@@ -7,10 +7,10 @@
 import argparse
 import csv
 from datetime import datetime, date
-import httplib2
 import json
 from math import floor
 import os
+from urllib.request import urlopen, HTTPError
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 
@@ -55,8 +55,6 @@ def main():
                         help="print every HTTP request")
     args = parser.parse_args()
 
-    http = httplib2.Http()
-
     os.makedirs(args.cache_dir, exist_ok=True)
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -64,29 +62,21 @@ def main():
     # Note: this isn't cached
     if args.verbose:
         print("Downloading index {}.".format(args.index_url))
-    (index_headers, index_data) = http.request(args.index_url, "GET", headers={'cache-control': 'no-cache'})
-    if args.verbose:
-        print("Response {}.".format(index_headers))
-    index = json.loads(index_data.decode('utf-8'))
+    with urlopen(args.index_url) as response:
+        index = json.loads(response.read().decode('utf-8'))
 
     builds = []
 
-    for builder in index["builders"]:
+    for builder in sorted(index["builders"]):
         # The most recent build is at offset -1
         # Fetch it to find out the build number
         # Note: this isn't cached
         recent_build_url = args.build_url.format(builder, -1)
         if args.verbose:
             print("Downloading recent build {}.".format(recent_build_url))
-        (recent_build_headers, recent_build_data) = http.request(
-            recent_build_url,
-            "GET",
-            headers={'cache-control': 'no-cache'}
-        )
-        if args.verbose:
-            print("Respose {}.".format(recent_build_headers))
-        recent_build = json.loads(recent_build_data.decode('utf-8'))
-        recent_build_number = recent_build["number"]
+        with urlopen(recent_build_url) as response:
+            recent_build = json.loads(response.read().decode('utf-8'))
+            recent_build_number = recent_build["number"]
 
         # Download each build, and convert to CSV
         for build_number in range(0, recent_build_number):
@@ -104,25 +94,17 @@ def main():
                 build_url = args.build_url.format(builder, build_number)
                 if args.verbose:
                     print("Downloading build {}.".format(build_url))
-                (build_headers, build_data) = http.request(
-                    build_url,
-                    "GET",
-                    headers={'cache-control': 'no=cache'}
-                )
-                if args.verbose:
-                    print("Response {}.".format(build_headers))
+                try:
+                    with urlopen(build_url) as response:
+                        build = json.loads(response.read().decode('utf-8'))
+                except HTTPError as e:
+                    if e.code == 404:
+                        build = {}
+                    else:
+                        raise
 
-                # Only parse the JSON if we got back a 200 response.
-                if build_headers.status == 200:
-                    build = json.loads(build_data.decode('utf-8'))
-                    # Don't cache current builds.
-                    if build.get('currentStep'):
-                        continue
-
-                elif build_headers.status == 404:
-                    build = {}
-
-                else:
+                # Don't cache current builds.
+                if build.get('currentStep'):
                     continue
 
                 with open(cache_json, 'w+') as f:

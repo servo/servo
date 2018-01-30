@@ -23,14 +23,11 @@ phf_codegen = "0.7.18"
 phf_shared = "0.7.18"
 serde_json = "1.0"
 
-[target.'cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
-gecko-media = {git = "https://github.com/servo/gecko-media.git"}
-
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 audio-video-metadata = "0.1.4"
 base64 = "0.6"
 bitflags = "1.0"
@@ -39,13 +36,14 @@ byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = "0.10"
+chrono = "0.4"
 cssparser = "0.23.0"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 encoding_rs = "0.7"
-euclid = "0.15"
+euclid = "0.16"
 fnv = "1.0"
 gleam = "0.4"
 half = "1.0"
@@ -64,12 +62,11 @@ metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.2.1"
 mime_guess = "1.8.0"
-mozjs = { version = "0.1.8", features = ["promises"]}
+mozjs = { version = "0.1.10", features = ["promises"]}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-nonzero = {path = "../nonzero"}
 num-traits = "0.1.32"
-offscreen_gl_context = { version = "0.13", features = ["serde"] }
+offscreen_gl_context = { version = "0.14", features = ["serde"] }
 open = "1.1.1"
 parking_lot = "0.4"
 phf = "0.7.18"

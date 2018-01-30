@@ -60,40 +60,52 @@ def main(request, response):
         # with the unique session id, in order to retrieve a range of results
         # later knowing the index range.
         test_idx = request.GET.first("tidx")
-
-        test_data_key = build_stash_key(session_id, test_idx)
         test_data = { "id": test_id, "error": None }
 
-        payload = ""
-        if "Content-Type" in request.headers and \
-           "form-data" in request.headers["Content-Type"]:
-            if "payload" in request.POST:
-                # The payload was sent as a FormData.
-                payload = request.POST.first("payload")
+        # Only store the actual POST requests, not any preflight/OPTIONS requests we may get.
+        if request.method == "POST":
+            test_data_key = build_stash_key(session_id, test_idx)
+
+            payload = ""
+            if "Content-Type" in request.headers and \
+               "form-data" in request.headers["Content-Type"]:
+                if "payload" in request.POST:
+                    # The payload was sent as a FormData.
+                    payload = request.POST.first("payload")
+                else:
+                    # A FormData was sent with an empty payload.
+                    pass
             else:
-                # A FormData was sent with an empty payload.
-                pass
-        else:
-            # The payload was sent as either a string, Blob, or BufferSource.
-            payload = request.body
+                # The payload was sent as either a string, Blob, or BufferSource.
+                payload = request.body
 
-        payload_parts = filter(None, payload.split(":"))
-        if len(payload_parts) > 0:
-            payload_size = int(payload_parts[0])
+            payload_parts = filter(None, payload.split(":"))
+            if len(payload_parts) > 0:
+                payload_size = int(payload_parts[0])
 
-            # Confirm the payload size sent matches with the number of characters sent.
-            if payload_size != len(payload_parts[1]):
-                test_data["error"] = "expected %d characters but got %d" % (payload_size, len(payload_parts[1]))
+                # Confirm the payload size sent matches with the number of characters sent.
+                if payload_size != len(payload_parts[1]):
+                    test_data["error"] = "expected %d characters but got %d" % (payload_size, len(payload_parts[1]))
+                else:
+                    # Confirm the payload contains the correct characters.
+                    for i in range(0, payload_size):
+                        if payload_parts[1][i] != "*":
+                            test_data["error"] = "expected '*' at index %d but got '%s''" % (i, payload_parts[1][i])
+                            break
+
+            # Store the result in the stash so that it can be retrieved
+            # later with a 'stat' command.
+            request.server.stash.put(test_data_key, test_data)
+        elif request.method == "OPTIONS":
+            # If we expect a preflight, then add the cors headers we expect, otherwise log an error as we shouldn't
+            # send a preflight for all requests.
+            if "preflightExpected" in request.GET:
+                response.headers.set("Access-Control-Allow-Headers", "content-type")
+                response.headers.set("Access-Control-Allow-Methods", "POST")
             else:
-                # Confirm the payload contains the correct characters.
-                for i in range(0, payload_size):
-                    if payload_parts[1][i] != "*":
-                        test_data["error"] = "expected '*' at index %d but got '%s''" % (i, payload_parts[1][i])
-                        break
-
-        # Store the result in the stash so that it can be retrieved
-        # later with a 'stat' command.
-        request.server.stash.put(test_data_key, test_data)
+                test_data_key = build_stash_key(session_id, test_idx)
+                test_data["error"] = "Preflight not expected."
+                request.server.stash.put(test_data_key, test_data)
     elif command == "stat":
         test_idx_min = int(request.GET.first("tidx_min"))
         test_idx_max = int(request.GET.first("tidx_max"))

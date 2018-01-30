@@ -8,16 +8,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "any"
                 },
@@ -31,7 +28,6 @@
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "unsigned long"
                         },
@@ -45,7 +41,9 @@
         "extAttrs": [
             {
                 "name": "NoInterfaceObject",
-                "arguments": null
+                "arguments": null,
+                "type": "extended-attribute",
+                "rhs": null
             }
         ]
     }

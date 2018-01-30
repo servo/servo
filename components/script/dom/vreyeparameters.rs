@@ -5,7 +5,6 @@
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::globalscope::GlobalScope;
@@ -15,6 +14,7 @@ use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
 use std::default::Default;
 use std::ptr;
+use std::ptr::NonNull;
 use webvr_traits::WebVREyeParameters;
 
 #[dom_struct]
@@ -43,7 +43,7 @@ impl VREyeParameters {
         let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
 
         let cx = global.get_cx();
-        rooted!(in (cx) let mut array = ptr::null_mut());
+        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
             let _ = Float32Array::create(cx, CreateWith::Slice(&parameters.offset), array.handle_mut());
         }
@@ -60,8 +60,8 @@ impl VREyeParameters {
 impl VREyeParametersMethods for VREyeParameters {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vreyeparameters-offset
-    unsafe fn Offset(&self, _cx: *mut JSContext) -> NonNullJSObjectPtr {
-        NonNullJSObjectPtr::new_unchecked(self.offset.get())
+    unsafe fn Offset(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+        NonNull::new_unchecked(self.offset.get())
     }
 
     // https://w3c.github.io/webvr/#dom-vreyeparameters-fieldofview

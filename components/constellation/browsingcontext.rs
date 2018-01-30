@@ -167,10 +167,7 @@ impl<'a> Iterator for FullyActiveBrowsingContextsIterator<'a> {
     type Item = &'a BrowsingContext;
     fn next(&mut self) -> Option<&'a BrowsingContext> {
         loop {
-            let browsing_context_id = match self.stack.pop() {
-                Some(browsing_context_id) => browsing_context_id,
-                None => return None,
-            };
+            let browsing_context_id = self.stack.pop()?;
             let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
                 Some(browsing_context) => browsing_context,
                 None => {
@@ -212,10 +209,7 @@ impl<'a> Iterator for AllBrowsingContextsIterator<'a> {
     fn next(&mut self) -> Option<&'a BrowsingContext> {
         let pipelines = self.pipelines;
         loop {
-            let browsing_context_id = match self.stack.pop() {
-                Some(browsing_context_id) => browsing_context_id,
-                None => return None,
-            };
+            let browsing_context_id = self.stack.pop()?;
             let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
                 Some(browsing_context) => browsing_context,
                 None => {

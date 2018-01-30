@@ -9,14 +9,16 @@ publish = false
 [lib]
 name = "gfx"
 path = "lib.rs"
+test = false
+doctest = false
 
 [features]
 unstable = ["simd"]
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 bitflags = "1.0"
-euclid = "0.15"
+euclid = "0.16"
 fnv = "1.0"
 fontsan = {git = "https://github.com/servo/fontsan"}
 gfx_traits = {path = "../gfx_traits"}
@@ -38,7 +40,6 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 smallvec = "0.6"
 style = {path = "../style"}
-style_traits = {path = "../style_traits"}
 time = "0.1.12"
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
@@ -47,9 +48,9 @@ xi-unicode = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
-core-foundation = "0.4"
-core-graphics = "0.12.2"
-core-text = "8.0"
+core-foundation = "0.5"
+core-graphics = "0.13"
+core-text = "9.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.3"

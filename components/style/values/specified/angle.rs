@@ -7,8 +7,8 @@
 use cssparser::{Parser, Token};
 use parser::{ParserContext, Parse};
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ToCss, ParseError};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
 use values::computed::angle::Angle as ComputedAngle;
@@ -27,7 +27,10 @@ pub struct Angle {
 }
 
 impl ToCss for Angle {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.was_calc {
             dest.write_str("calc(")?;
         }

@@ -9,8 +9,8 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list_builder::{StackingContextCollectionFlags, StackingContextCollectionState};
+use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -131,9 +131,7 @@ impl Flow for TableRowGroupFlow {
         let content_inline_size = containing_block_inline_size;
 
         let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
-        let inline_size_computer = InternalTable {
-            border_collapse: border_collapse,
-        };
+        let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       shared_context,
                                                       containing_block_inline_size);

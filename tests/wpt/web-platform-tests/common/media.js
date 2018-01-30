@@ -33,3 +33,14 @@ function getAudioURI(base)
 
     return base + extension;
 }
+
+function getMediaContentType(url) {
+    var extension = new URL(url, location).pathname.split(".").pop();
+    var map = {
+        "mp4": "video/mp4",
+        "ogv": "video/ogg",
+        "mp3": "audio/mp3",
+        "oga": "audio/ogg",
+    };
+    return map[extension];
+}

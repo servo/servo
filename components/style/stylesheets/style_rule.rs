@@ -12,8 +12,8 @@ use selector_parser::SelectorImpl;
 use selectors::SelectorList;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 
 /// A style rule, with selectors and declarations.
 #[derive(Debug)]
@@ -67,9 +67,7 @@ impl StyleRule {
 
 impl ToCssWithGuard for StyleRule {
     /// https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         use cssparser::ToCss;
 
         // Step 1

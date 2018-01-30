@@ -66,10 +66,10 @@ done();"""
 names = ["AES-CTR", "AES-CBC", "AES-GCM", "AES-KW", "HMAC", "RSASSA-PKCS1-v1_5",
          "RSA-PSS", "RSA-OAEP", "ECDSA", "ECDH"]
 
-for filename_pattern, template in [("test_successes_%s.html", successes_html),
-                                   ("test_failures_%s.html", failures_html),
-                                   ("successes_%s.worker.js", successes_worker),
-                                   ("failures_%s.worker.js", failures_worker)]:
+for filename_pattern, template in [("test_successes_%s.https.html", successes_html),
+                                   ("test_failures_%s.https.html", failures_html),
+                                   ("successes_%s.https.worker.js", successes_worker),
+                                   ("failures_%s.https.worker.js", failures_worker)]:
     for name in names:
         path = os.path.join(here, os.pardir, "generateKey", filename_pattern % name)
         with open(path, "w") as f:

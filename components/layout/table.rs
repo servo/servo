@@ -10,11 +10,10 @@ use app_units::Au;
 use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState};
+use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list::{DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::Point2D;
-use flow;
-use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
+use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
@@ -364,9 +363,7 @@ impl Flow for TableFlow {
             }
         }
 
-        let inline_size_computer = InternalTable {
-            border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
-        };
+        let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       shared_context,
                                                       containing_block_inline_size);
@@ -541,22 +538,18 @@ impl fmt::Debug for TableFlow {
 
 /// Table, TableRowGroup, TableRow, TableCell types.
 /// Their inline-sizes are calculated in the same way and do not have margins.
-pub struct InternalTable {
-    pub border_collapse: border_collapse::T,
-}
+pub struct InternalTable;
 
 impl ISizeAndMarginsComputer for InternalTable {
-    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
-        block.fragment.compute_border_and_padding(containing_block_inline_size)
-    }
-
     /// Compute the used value of inline-size, taking care of min-inline-size and max-inline-size.
     ///
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
-    fn compute_used_inline_size(&self,
-                                block: &mut BlockFlow,
-                                shared_context: &SharedStyleContext,
-                                parent_flow_inline_size: Au) {
+    fn compute_used_inline_size(
+        &self,
+        block: &mut BlockFlow,
+        shared_context: &SharedStyleContext,
+        parent_flow_inline_size: Au
+    ) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
                                                                    shared_context);
@@ -758,12 +751,12 @@ impl TableLikeFlow for BlockFlow {
                 }
 
                 // At this point, `current_block_offset` is at the border edge of the child.
-                flow::mut_base(kid).position.start.b = current_block_offset;
+                kid.mut_base().position.start.b = current_block_offset;
 
                 // Move past the child's border box. Do not use the `translate_including_floats`
                 // function here because the child has already translated floats past its border
                 // box.
-                let kid_base = flow::mut_base(kid);
+                let kid_base = kid.mut_base();
                 current_block_offset = current_block_offset + kid_base.position.size.block;
             }
 
@@ -802,7 +795,7 @@ impl TableLikeFlow for BlockFlow {
             // Write in the size of the relative containing block for children. (This information
             // is also needed to handle RTL.)
             for kid in self.base.child_iter_mut() {
-                flow::mut_base(kid).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                kid.mut_base().early_absolute_position_info = EarlyAbsolutePositionInfo {
                     relative_containing_block_size: self.fragment.content_box().size,
                     relative_containing_block_mode: self.fragment.style().writing_mode,
                 };
@@ -862,7 +855,7 @@ impl<'a> Iterator for TableRowIterator<'a> {
         match self.kids.next() {
             Some(kid) => {
                 if kid.is_table_rowgroup() {
-                    self.grandkids = Some(flow::mut_base(kid).child_iter_mut());
+                    self.grandkids = Some(kid.mut_base().child_iter_mut());
                     self.next()
                 } else if kid.is_table_row() {
                     Some(kid.as_mut_table_row())

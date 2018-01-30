@@ -31,7 +31,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use stylist::Stylist;
+use stylist::{CascadeData, Stylist};
 use traversal_flags::TraversalFlags;
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
@@ -78,14 +78,10 @@ where
 
     fn next(&mut self) -> Option<N> {
         loop {
-            match self.0.next() {
-                Some(n) => {
-                    // Filter out nodes that layout should ignore.
-                    if n.is_text_node() || n.is_element() {
-                        return Some(n)
-                    }
-                }
-                None => return None,
+            let n = self.0.next()?;
+            // Filter out nodes that layout should ignore.
+            if n.is_text_node() || n.is_element() {
+                return Some(n)
             }
         }
     }
@@ -100,13 +96,9 @@ where
     type Item = N;
 
     fn next(&mut self) -> Option<N> {
-        match self.0.take() {
-            Some(n) => {
-                self.0 = n.next_sibling();
-                Some(n)
-            }
-            None => None,
-        }
+        let n = self.0.take()?;
+        self.0 = n.next_sibling();
+        Some(n)
     }
 }
 
@@ -124,11 +116,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<N> {
-        let prev = match self.previous.take() {
-            None => return None,
-            Some(n) => n,
-        };
-
+        let prev = self.previous.take()?;
         self.previous = prev.next_in_preorder(Some(self.scope));
         self.previous
     }
@@ -251,13 +239,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Get this node as a document, if it's one.
     fn as_document(&self) -> Option<Self::ConcreteDocument>;
-
-    /// Whether this node can be fragmented. This is used for multicol, and only
-    /// for Servo.
-    fn can_be_fragmented(&self) -> bool;
-
-    /// Set whether this node can be fragmented.
-    unsafe fn set_can_be_fragmented(&self, value: bool);
 }
 
 /// Wrapper to output the subtree rather than the single node when formatting
@@ -434,6 +415,14 @@ pub trait TElement
     where
         F: FnMut(Self),
     {}
+
+    /// Return whether this element is an element in the HTML namespace.
+    fn is_html_element(&self) -> bool;
+
+    /// Return the list of slotted nodes of this node.
+    fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
+        &[]
+    }
 
     /// For a given NAC element, return the closest non-NAC ancestor, which is
     /// guaranteed to exist.
@@ -685,7 +674,7 @@ pub trait TElement
     /// Whether we should skip any root- or item-based display property
     /// blockification on this element.  (This function exists so that Gecko
     /// native anonymous content can opt out of this style fixup.)
-    fn skip_root_and_item_based_display_fixup(&self) -> bool;
+    fn skip_item_display_fixup(&self) -> bool;
 
     /// Sets selector flags, which indicate what kinds of selectors may have
     /// matched on this element and therefore what kind of work may need to
@@ -751,18 +740,9 @@ pub trait TElement
     /// element-backed pseudo-element, in which case we return the originating
     /// element.
     fn rule_hash_target(&self) -> Self {
-        if let Some(pseudo) = self.implemented_pseudo_element() {
-            match self.closest_non_native_anonymous_ancestor() {
-                Some(e) => e,
-                None => {
-                    panic!(
-                        "Trying to collect rules for a detached pseudo-element: \
-                        {:?} {:?}",
-                        pseudo,
-                        self,
-                    )
-                }
-            }
+        if self.implemented_pseudo_element().is_some() {
+            self.closest_non_native_anonymous_ancestor()
+                .expect("Trying to collect rules for a detached pseudo-element")
         } else {
             *self
         }
@@ -777,6 +757,39 @@ pub trait TElement
         F: FnMut(AtomicRef<'a, Stylist>),
     {
         false
+    }
+
+    /// Executes the callback for each applicable style rule data which isn't
+    /// the main document's data (which stores UA / author rules).
+    ///
+    /// Returns whether normal document author rules should apply.
+    fn each_applicable_non_document_style_rule_data<'a, F>(&self, mut f: F) -> bool
+    where
+        Self: 'a,
+        F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
+    {
+        let cut_off_inheritance = self.each_xbl_stylist(|stylist| {
+            let quirks_mode = stylist.quirks_mode();
+            f(
+                AtomicRef::map(stylist, |stylist| stylist.author_cascade_data()),
+                quirks_mode,
+            )
+        });
+
+        let mut current = self.assigned_slot();
+        while let Some(slot) = current {
+            slot.each_xbl_stylist(|stylist| {
+                let quirks_mode = stylist.quirks_mode();
+                f(
+                    AtomicRef::map(stylist, |stylist| stylist.author_cascade_data()),
+                    quirks_mode,
+                )
+            });
+
+            current = slot.assigned_slot();
+        }
+
+        cut_off_inheritance
     }
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a FnvHashMap.

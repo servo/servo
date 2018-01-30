@@ -89,10 +89,7 @@ impl Iterator for OriginSetIterator {
 
     fn next(&mut self) -> Option<Origin> {
         loop {
-            let origin = match Origin::from_index(self.cur) {
-                Some(origin) => origin,
-                None => return None,
-            };
+            let origin = Origin::from_index(self.cur)?;
 
             self.cur += 1;
 
@@ -184,10 +181,7 @@ impl<'a, T> Iterator for PerOriginIter<'a, T> where T: 'a {
     type Item = (&'a T, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let origin = match Origin::from_index(self.cur) {
-            Some(origin) => origin,
-            None => return None,
-        };
+        let origin = Origin::from_index(self.cur)?;
 
         self.cur += if self.rev { -1 } else { 1 };
 
@@ -211,10 +205,7 @@ impl<'a, T> Iterator for PerOriginIterMut<'a, T> where T: 'a {
     type Item = (&'a mut T, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let origin = match Origin::from_index(self.cur) {
-            Some(origin) => origin,
-            None => return None,
-        };
+        let origin = Origin::from_index(self.cur)?;
 
         self.cur += 1;
 

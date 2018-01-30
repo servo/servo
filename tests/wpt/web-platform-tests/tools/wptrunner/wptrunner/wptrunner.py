@@ -38,6 +38,7 @@ def setup_logging(*args, **kwargs):
     global logger
     logger = wptlogging.setup(*args, **kwargs)
 
+
 def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, **kwargs):
     if run_info_extras is None:
         run_info_extras = {}
@@ -67,8 +68,10 @@ def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, *
                                         chunk_type=kwargs["chunk_type"],
                                         total_chunks=kwargs["total_chunks"],
                                         chunk_number=kwargs["this_chunk"],
-                                        include_https=ssl_env.ssl_enabled)
+                                        include_https=ssl_env.ssl_enabled,
+                                        skip_timeout=kwargs["skip_timeout"])
     return run_info, test_loader
+
 
 def list_test_groups(test_paths, product, **kwargs):
     env.do_delayed_imports(logger, test_paths)
@@ -198,7 +201,7 @@ def run_tests(config, test_paths, product, **kwargs):
                     logger.info("Repetition %i / %i" % (repeat_count, repeat))
 
                 unexpected_count = 0
-                logger.suite_start(test_loader.test_ids, run_info)
+                logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info)
                 for test_type in kwargs["test_types"]:
                     logger.info("Running %s tests" % test_type)
 
@@ -217,10 +220,9 @@ def run_tests(config, test_paths, product, **kwargs):
                                                         ssl_env=ssl_env,
                                                         **kwargs)
 
-
                     executor_cls = executor_classes.get(test_type)
                     executor_kwargs = get_executor_kwargs(test_type,
-                                                          test_environment.external_config,
+                                                          test_environment.config,
                                                           test_environment.cache_manager,
                                                           run_info,
                                                           **kwargs)
@@ -305,7 +307,8 @@ def main():
         return start(**kwargs)
     except Exception:
         if kwargs["pdb"]:
-            import pdb, traceback
+            import pdb
+            import traceback
             print traceback.format_exc()
             pdb.post_mortem()
         else:

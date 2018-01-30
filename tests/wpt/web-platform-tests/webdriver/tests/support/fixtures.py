@@ -8,6 +8,7 @@ import mozlog
 
 from tests.support.asserts import assert_error
 from tests.support.http_request import HTTPRequest
+from tests.support.wait import wait
 from tests.support import merge_dictionaries
 
 default_host = "http://127.0.0.1"
@@ -254,10 +255,31 @@ def create_dialog(session):
         session.send_session_command("POST",
                                      "execute/async",
                                      {"script": spawn, "args": []})
+        wait(session,
+             lambda s: s.send_session_command("GET", "alert/text") == text,
+             "modal has not appeared",
+             timeout=15,
+             ignored_exceptions=webdriver.NoSuchAlertException)
 
     return create_dialog
+
 
 def clear_all_cookies(session):
     """Removes all cookies associated with the current active document"""
     session.transport.send("DELETE", "session/%s/cookie" % session.session_id)
 
+
+def is_element_in_viewport(session, element):
+    """Check if element is outside of the viewport"""
+    return session.execute_script("""
+        let el = arguments[0];
+
+        let rect = el.getBoundingClientRect();
+        let viewport = {
+          height: window.innerHeight || document.documentElement.clientHeight,
+          width: window.innerWidth || document.documentElement.clientWidth,
+        };
+
+        return !(rect.right < 0 || rect.bottom < 0 ||
+            rect.left > viewport.width || rect.top > viewport.height)
+    """, args=(element,))

@@ -828,6 +828,8 @@ impl MallocSizeOf for RuleNode {
     }
 }
 
+// FIXME: use std::ptr::NonNull when Firefox requires Rust 1.25+
+
 #[derive(Clone)]
 struct WeakRuleNode {
     p: NonZeroPtrMut<RuleNode>,
@@ -864,7 +866,8 @@ impl StrongRuleNode {
         WeakRuleNode::from_ptr(self.ptr())
     }
 
-    fn parent(&self) -> Option<&StrongRuleNode> {
+    /// Get the parent rule node of this rule node.
+    pub fn parent(&self) -> Option<&StrongRuleNode> {
         self.get().parent.as_ref()
     }
 

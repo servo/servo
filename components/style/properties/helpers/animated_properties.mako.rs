@@ -12,6 +12,7 @@ use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 use itertools::{EitherOrBoth, Itertools};
+use num_traits::Zero;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
@@ -26,9 +27,9 @@ use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::cmp;
-use std::fmt;
+use std::fmt::{self, Write};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
-use style_traits::{ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, ToCss};
 use super::ComputedValues;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
@@ -93,7 +94,10 @@ pub enum TransitionProperty {
 }
 
 impl ToCss for TransitionProperty {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             TransitionProperty::All => dest.write_str("all"),
             TransitionProperty::Shorthand(ref id) => dest.write_str(id.name()),
@@ -177,7 +181,7 @@ impl From<nsCSSPropertyID> for TransitionProperty {
             % endfor
             nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
             _ => {
-                panic!("non-convertible nsCSSPropertyID::{:?}", property)
+                panic!("non-convertible nsCSSPropertyID")
             }
         }
     }
@@ -262,7 +266,7 @@ impl AnimatedProperty {
             % for prop in data.longhands:
                 % if prop.animatable:
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
-                        // https://w3c.github.io/web-animations/#discrete-animation-type
+                        // https://drafts.csswg.org/web-animations/#discrete-animation-type
                         % if prop.animation_value_type == "discrete":
                             let value = if progress < 0.5 { from.clone() } else { to.clone() };
                         % else:
@@ -551,7 +555,7 @@ impl Animate for AnimationValue {
             % endif
             % endfor
             _ => {
-                panic!("Unexpected AnimationValue::animate call, got: {:?}, {:?}", self, other);
+                panic!("Unexpected AnimationValue::animate call");
             }
         };
         Ok(value)
@@ -581,11 +585,7 @@ impl ComputeSquaredDistance for AnimationValue {
             % endif
             % endfor
             _ => {
-                panic!(
-                    "computed values should be of the same property, got: {:?}, {:?}",
-                    self,
-                    other
-                );
+                panic!("computed values should be of the same property");
             },
         }
     }
@@ -1042,12 +1042,21 @@ impl Animate for ComputedTransformOperation {
                 ))
             },
             (
+                &TransformOperation::Skew(ref fx, None),
+                &TransformOperation::Skew(ref tx, None),
+            ) => {
+                Ok(TransformOperation::Skew(
+                    fx.animate(tx, procedure)?,
+                    None,
+                ))
+            },
+            (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
             ) => {
                 Ok(TransformOperation::Skew(
                     fx.animate(tx, procedure)?,
-                    fy.animate(ty, procedure)?,
+                    Some(fy.unwrap_or(Angle::zero()).animate(&ty.unwrap_or(Angle::zero()), procedure)?)
                 ))
             },
             (
@@ -1077,12 +1086,21 @@ impl Animate for ComputedTransformOperation {
                 ))
             },
             (
+                &TransformOperation::Translate(ref fx, None),
+                &TransformOperation::Translate(ref tx, None),
+            ) => {
+                Ok(TransformOperation::Translate(
+                    fx.animate(tx, procedure)?,
+                    None
+                ))
+            },
+            (
                 &TransformOperation::Translate(ref fx, ref fy),
                 &TransformOperation::Translate(ref tx, ref ty),
             ) => {
                 Ok(TransformOperation::Translate(
                     fx.animate(tx, procedure)?,
-                    fy.animate(ty, procedure)?
+                    Some(fy.unwrap_or(*fx).animate(&ty.unwrap_or(*tx), procedure)?)
                 ))
             },
             (
@@ -1141,6 +1159,24 @@ impl Animate for ComputedTransformOperation {
             ) => {
                 Ok(TransformOperation::ScaleZ(
                     animate_multiplicative_factor(*f, *t, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::Scale(ref f, None),
+                &TransformOperation::Scale(ref t, None),
+            ) => {
+                Ok(TransformOperation::Scale(
+                    animate_multiplicative_factor(*f, *t, procedure)?,
+                    None
+                ))
+            },
+            (
+                &TransformOperation::Scale(ref fx, ref fy),
+                &TransformOperation::Scale(ref tx, ref ty),
+            ) => {
+                Ok(TransformOperation::Scale(
+                    animate_multiplicative_factor(*fx, *tx, procedure)?,
+                    Some(animate_multiplicative_factor(fy.unwrap_or(*fx), ty.unwrap_or(*tx), procedure)?),
                 ))
             },
             (
@@ -2833,7 +2869,7 @@ impl ComputeSquaredDistance for AnimatedFilterList {
 ///
 ///   border-top-color, border-color, border-top, border
 ///
-/// [property-order] https://w3c.github.io/web-animations/#calculating-computed-keyframes
+/// [property-order] https://drafts.csswg.org/web-animations/#calculating-computed-keyframes
 #[cfg(feature = "gecko")]
 pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Ordering {
     match (a.as_shorthand(), b.as_shorthand()) {

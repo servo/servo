@@ -8,7 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Fork of Arc for Servo. This has the following advantages over std::Arc:
+//! Fork of Arc for Servo. This has the following advantages over std::sync::Arc:
 //!
 //! * We don't waste storage on the weak reference count.
 //! * We don't do extra RMU operations to handle the possibility of weak references.
@@ -83,6 +83,7 @@ const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 /// that this is all a temporary hack, this restriction is fine for now.
 ///
 /// [1]: https://github.com/rust-lang/rust/issues/27730
+// FIXME: remove this and use std::ptr::NonNull when Firefox requires Rust 1.25+
 pub struct NonZeroPtrMut<T: ?Sized + 'static>(&'static mut T);
 impl<T: ?Sized> NonZeroPtrMut<T> {
     pub fn new(ptr: *mut T) -> Self {
@@ -528,7 +529,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         where I: Iterator<Item=T> + ExactSizeIterator
     {
         use ::std::mem::size_of;
-        assert!(size_of::<T>() != 0, "Need to think about ZST");
+        assert_ne!(size_of::<T>(), 0, "Need to think about ZST");
 
         // Compute the required size for the allocation.
         let num_items = items.len();
@@ -717,7 +718,7 @@ impl<H: 'static, T: 'static> Arc<HeaderSliceWithLength<H, [T]>> {
     /// is not modified.
     #[inline]
     pub fn into_thin(a: Self) -> ThinArc<H, T> {
-        assert!(a.header.length == a.slice.len(),
+        assert_eq!(a.header.length, a.slice.len(),
                 "Length needs to be correct for ThinArc to work");
         let fat_ptr: *mut ArcInner<HeaderSliceWithLength<H, [T]>> = a.ptr();
         mem::forget(a);
@@ -986,6 +987,6 @@ mod tests {
             let _ = x == x;
             Arc::from_thin(x.clone());
         }
-        assert!(canary.load(Acquire) == 1);
+        assert_eq!(canary.load(Acquire), 1);
     }
 }

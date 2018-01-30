@@ -120,6 +120,13 @@ def start_runner(runner_command_queue, runner_result_queue,
                  executor_browser_cls, executor_browser_kwargs,
                  stop_flag):
     """Launch a TestRunner in a new process"""
+    def log(level, msg):
+        runner_result_queue.put(("log", (level, {"message": msg})))
+
+    def handle_error(e):
+        log("critical", traceback.format_exc())
+        stop_flag.set()
+
     try:
         browser = executor_browser_cls(**executor_browser_kwargs)
         executor = executor_cls(browser, **executor_kwargs)
@@ -128,10 +135,10 @@ def start_runner(runner_command_queue, runner_result_queue,
                 runner.run()
             except KeyboardInterrupt:
                 stop_flag.set()
-    except Exception:
-        runner_result_queue.put(("log", ("critical", {"message": traceback.format_exc()})))
-        print >> sys.stderr, traceback.format_exc()
-        stop_flag.set()
+            except Exception as e:
+                handle_error(e)
+    except Exception as e:
+        handle_error(e)
     finally:
         runner_command_queue = None
         runner_result_queue = None
@@ -188,7 +195,7 @@ class BrowserManager(object):
             self.logger.debug("Starting browser with settings %r" % self.browser_settings)
             self.browser.start(**self.browser_settings)
             self.browser_pid = self.browser.pid()
-        except:
+        except Exception:
             self.logger.warning("Failure during init %s" % traceback.format_exc())
             if self.init_timer is not None:
                 self.init_timer.cancel()
@@ -389,6 +396,7 @@ class TestRunnerManager(threading.Thread):
         }
         try:
             command, data = self.command_queue.get(True, 1)
+            self.logger.debug("Got command: %r" % command)
         except IOError:
             self.logger.error("Got IOError from poll")
             return RunnerManagerState.restarting(0)
@@ -558,7 +566,7 @@ class TestRunnerManager(threading.Thread):
         expected = test.expected()
         status = file_result.status if file_result.status != "EXTERNAL-TIMEOUT" else "TIMEOUT"
 
-        if file_result.status in  ("TIMEOUT", "EXTERNAL-TIMEOUT"):
+        if file_result.status in ("TIMEOUT", "EXTERNAL-TIMEOUT"):
             if self.browser.check_for_crashes():
                 status = "CRASH"
 
@@ -577,8 +585,8 @@ class TestRunnerManager(threading.Thread):
 
         restart_before_next = (test.restart_after or
                                file_result.status in ("CRASH", "EXTERNAL-TIMEOUT") or
-                               ((subtest_unexpected or is_unexpected)
-                                and self.restart_on_unexpected))
+                               ((subtest_unexpected or is_unexpected) and
+                                self.restart_on_unexpected))
 
         if (self.pause_after_test or
             (self.pause_on_unexpected and (subtest_unexpected or is_unexpected))):
@@ -676,7 +684,18 @@ class TestRunnerManager(threading.Thread):
             self.browser.cleanup()
         while True:
             try:
-                self.logger.warning(" ".join(map(repr, self.command_queue.get_nowait())))
+                cmd, data = self.command_queue.get_nowait()
+            except Empty:
+                break
+            else:
+                if cmd == "log":
+                    self.log(*data)
+                else:
+                    self.logger.warning("%r: %r" % (cmd, data))
+        while True:
+            try:
+                cmd, data = self.remote_queue.get_nowait()
+                self.logger.warning("%r: %r" % (cmd, data))
             except Empty:
                 break
 

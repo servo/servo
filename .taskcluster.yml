@@ -1,0 +1,37 @@
+version: 0
+metadata:
+  name: servo
+  description: >-
+    A modern, high-performance browser engine designed for both application
+    and embedded use.
+  owner: '{{ event.head.user.email }}'
+  source: '{{ event.head.repo.url }}'
+tasks:
+  - provisionerId: '{{ taskcluster.docker.provisionerId }}'
+    workerType: '{{ taskcluster.docker.workerType }}'
+    extra:
+      github:
+        events:
+          - pull_request.opened
+          - pull_request.reopened
+          - pull_request.synchronize
+    payload:
+      maxRunTime: 3600
+      image: 'servobrowser/servo-linux-dev:servo-linux-build-deps-2017-06-30'
+      command:
+        - /bin/bash
+        - '--login'
+        - '-c'
+        - '-x'
+        - >-
+          git clone {{event.head.repo.url}} servo &&
+          cd servo &&
+          git config advice.detachedHead false &&
+          git checkout {{event.head.sha}} &&
+          etc/ci/taskcluster-test.sh
+    metadata:
+      name: linux-tests
+      description: Run Linux tests.
+      owner: '{{ event.head.user.email }}'
+      source: '{{ event.head.repo.url }}'
+allowPullRequests: public

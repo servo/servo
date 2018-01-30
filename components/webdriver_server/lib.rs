@@ -832,7 +832,7 @@ impl Handler {
         };
 
         // The compositor always sends RGB pixels.
-        assert!(img.format == PixelFormat::RGB8, "Unexpected screenshot pixel format");
+        assert_eq!(img.format, PixelFormat::RGB8, "Unexpected screenshot pixel format");
         let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
 
         let mut png_data = Vec::new();

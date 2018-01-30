@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>TextTrack's activeCues are indexed and updated during video playback</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/cues-overlapping.vtt" kind="subtitles" default>
+    <script>
+    async_test(function(t) {
+        var video = document.querySelector("video");
+        var track = document.querySelector("track");
+        track.onload = t.step_func(function() {
+            assert_equals(track.track.cues.length, 3);
+            video.src = getVideoURI("/media/test");
+            video.currentTime = 0.5;
+        });
+
+        var seekedCount = 0;
+        video.onseeked = t.step_func(function() {
+            ++seekedCount;
+
+            assert_equals(video.currentTime, seekedCount * 0.5);
+            assert_equals(track.track.activeCues.length, seekedCount - 1);
+            video.currentTime = (seekedCount + 1) * 0.5;
+
+            if (seekedCount == 4)
+                t.done();
+        });
+    });
+    </script>
+</video>

@@ -19,11 +19,6 @@
 <pre id='untested_idl' style='display:none'>
 typedef double DOMHighResTimeStamp;
 
-interface Window {
-    [Replaceable]
-    readonly attribute Performance performance;
-};
-
 [Exposed=(Window,Worker)]
 interface Performance {
 };
@@ -140,7 +135,8 @@ partial interface Performance {
   idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
   idl_array.add_idls(document.getElementById("idl").textContent);
 
-  idl_array.add_objects({PerformanceNavigation: ["window.performance.navigation"],
+  idl_array.add_objects({Performance: ["window.performance"],
+                         PerformanceNavigation: ["window.performance.navigation"],
                          PerformanceTiming: ["window.performance.timing"],
                          PerformanceNavigationTiming: ["window.performance.getEntriesByType('navigation')[0]"] });
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::{TypedPoint2D, TypedVector2D};
-use euclid::ScaleFactor;
+use euclid::TypedScale;
 use script_traits::{EventResult, TouchId};
 use self::TouchState::*;
 use style_traits::DevicePixel;
@@ -124,7 +124,7 @@ impl TouchHandler {
                 let (d1, c1) = self.pinch_distance_and_center();
 
                 let magnification = d1 / d0;
-                let scroll_delta = c1 - c0 * ScaleFactor::new(magnification);
+                let scroll_delta = c1 - c0 * TypedScale::new(magnification);
 
                 TouchAction::Zoom(magnification, scroll_delta)
             }

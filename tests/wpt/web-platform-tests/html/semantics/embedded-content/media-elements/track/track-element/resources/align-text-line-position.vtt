@@ -1,0 +1,28 @@
+WEBVTT
+Cues with valid alignment, line and text position settings.
+
+1
+00:00:00.000 --> 00:00:15.000  position:10% align:start line:0%
+Bear is Coming!!!!!
+Positioning on the top of the viewport at 10% horizontally,
+start aligned.
+
+00:00:15.500 --> 00:00:30.500 line:0 align:start
+Bear is Coming!!!!!
+This is line 0, middle aligned, first character at 50% width.
+
+2
+00:00:31.000 --> 00:00:45.500 position:80% line:80%
+I said Bear is coming!!!!
+Middle aligned, middle of cue's character is at 80% width and 80% height.
+
+00:00:46.000 --> 00:01:00.500 line:5 align:end position:30%
+I said Bear is coming!!!!
+This is line 6 from the top of the video viewport,
+end aligned with last character at 30% of viewport width.
+
+3
+00:01:01.000 --> 00:01:30.000 line:-3 align:middle position:60%
+I said Bear is coming now!!!!
+Positioning on line 3 from the viewport bottom, middle aligned,
+with middle character of cue at 60% width.

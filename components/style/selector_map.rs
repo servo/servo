@@ -106,6 +106,13 @@ pub struct SelectorMap<T: 'static> {
     pub count: usize,
 }
 
+impl<T: 'static> Default for SelectorMap<T> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // FIXME(Manishearth) the 'static bound can be removed when
 // our HashMap fork (hashglobe) is able to use NonZero,
 // or when stdlib gets fallible collections
@@ -148,11 +155,10 @@ impl SelectorMap<Rule> {
     /// Sort the Rules at the end to maintain cascading order.
     pub fn get_all_matching_rules<E, F>(
         &self,
-        element: &E,
-        rule_hash_target: &E,
+        element: E,
+        rule_hash_target: E,
         matching_rules_list: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
-        quirks_mode: QuirksMode,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
     )
@@ -164,45 +170,56 @@ impl SelectorMap<Rule> {
             return
         }
 
-        // At the end, we're going to sort the rules that we added, so remember where we began.
+        let quirks_mode = context.quirks_mode();
+
+        // At the end, we're going to sort the rules that we added, so remember
+        // where we began.
         let init_len = matching_rules_list.len();
         if let Some(id) = rule_hash_target.get_id() {
             if let Some(rules) = self.id_hash.get(&id, quirks_mode) {
-                SelectorMap::get_matching_rules(element,
-                                                rules,
-                                                matching_rules_list,
-                                                context,
-                                                flags_setter,
-                                                cascade_level)
+                SelectorMap::get_matching_rules(
+                    element,
+                    rules,
+                    matching_rules_list,
+                    context,
+                    flags_setter,
+                    cascade_level,
+                )
             }
         }
 
         rule_hash_target.each_class(|class| {
             if let Some(rules) = self.class_hash.get(&class, quirks_mode) {
-                SelectorMap::get_matching_rules(element,
-                                                rules,
-                                                matching_rules_list,
-                                                context,
-                                                flags_setter,
-                                                cascade_level)
+                SelectorMap::get_matching_rules(
+                    element,
+                    rules,
+                    matching_rules_list,
+                    context,
+                    flags_setter,
+                    cascade_level,
+                )
             }
         });
 
         if let Some(rules) = self.local_name_hash.get(rule_hash_target.get_local_name()) {
-            SelectorMap::get_matching_rules(element,
-                                            rules,
-                                            matching_rules_list,
-                                            context,
-                                            flags_setter,
-                                            cascade_level)
+            SelectorMap::get_matching_rules(
+                element,
+                rules,
+                matching_rules_list,
+                context,
+                flags_setter,
+                cascade_level,
+            )
         }
 
-        SelectorMap::get_matching_rules(element,
-                                        &self.other,
-                                        matching_rules_list,
-                                        context,
-                                        flags_setter,
-                                        cascade_level);
+        SelectorMap::get_matching_rules(
+            element,
+            &self.other,
+            matching_rules_list,
+            context,
+            flags_setter,
+            cascade_level,
+        );
 
         // Sort only the rules we just added.
         matching_rules_list[init_len..].sort_unstable_by_key(|block| (block.specificity, block.source_order()));
@@ -210,7 +227,7 @@ impl SelectorMap<Rule> {
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
     fn get_matching_rules<E, F>(
-        element: &E,
+        element: E,
         rules: &[Rule],
         matching_rules: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
@@ -225,7 +242,7 @@ impl SelectorMap<Rule> {
             if matches_selector(&rule.selector,
                                 0,
                                 Some(&rule.hashes),
-                                element,
+                                &element,
                                 context,
                                 flags_setter) {
                 matching_rules.push(
@@ -240,7 +257,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     pub fn insert(
         &mut self,
         entry: T,
-        quirks_mode: QuirksMode
+        quirks_mode: QuirksMode,
     ) -> Result<(), FailedAllocationError> {
         self.count += 1;
 
@@ -415,6 +432,31 @@ fn specific_bucket_for<'a>(
                 lower_name: &selector.lower_name,
             }
         }
+        // ::slotted(..) isn't a normal pseudo-element, so we can insert it on
+        // the rule hash normally without much problem. For example, in a
+        // selector like:
+        //
+        //   div::slotted(span)::before
+        //
+        // It looks like:
+        //
+        //  [
+        //    LocalName(div),
+        //    Combinator(SlotAssignment),
+        //    Slotted(span),
+        //    Combinator::PseudoElement,
+        //    PseudoElement(::before),
+        //  ]
+        //
+        // So inserting `span` in the rule hash makes sense since we want to
+        // match the slotted <span>.
+        //
+        // FIXME(emilio, bug 1426516): The line below causes valgrind failures
+        // and it's probably a false positive, we should uncomment whenever
+        // jseward is back to confirm / whitelist it.
+        //
+        // Meanwhile taking the code path below is slower, but still correct.
+        // Component::Slotted(ref selector) => find_bucket(selector.iter()),
         _ => Bucket::Universal
     }
 }

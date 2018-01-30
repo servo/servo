@@ -1,0 +1,6 @@
+[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+interface ProximitySensor : Sensor {
+  readonly attribute double? distance;
+  readonly attribute double? max;
+  readonly attribute boolean? near;
+};

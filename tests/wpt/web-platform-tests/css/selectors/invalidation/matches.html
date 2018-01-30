@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Selectors Invalidation: :any-link</title>
+    <link rel="author" title="Victoria Su" href="mailto:victoriaytsu@google.com">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+    <meta name="assert" content="This tests that the :matches() selector is effective">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      .b {
+        color: rgb(255, 255, 0); /* yellow */
+      }
+      /*Simple selector arguments */
+      .a :matches(.b, .c) {
+        color: rgb(255, 0, 0); /* red */
+      }
+      /*Compound selector arguments */
+      .a :matches(.c#d, .e) {
+        color: rgb(0, 255, 0); /* green */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="a1">
+      <div class="b" id="b1">
+        Red
+      </div>
+      <div class="c" id="c1">
+        Red
+      </div>
+      <div class="c" id="d">
+        Green
+      </div>
+      <div class="e" id="e1">
+        Green
+      </div>
+      <div class="f" id="f1">
+        Blue
+      </div>
+    </div>
+    <script>
+      document.body.offsetTop;
+
+      test(() => {
+        assert_equals(getComputedStyle(b1).color, "rgb(255, 255, 0)");
+        assert_equals(getComputedStyle(c1).color, "rgb(0, 0, 0)");
+        assert_equals(getComputedStyle(d).color, "rgb(0, 0, 0)");
+        assert_equals(getComputedStyle(e1).color, "rgb(0, 0, 0)");
+        assert_equals(getComputedStyle(f1).color, "rgb(0, 0, 0)");
+      }, "Preconditions.");
+
+      test(() => {
+        a1.className = "a";
+        assert_equals(getComputedStyle(b1).color, "rgb(255, 0, 0)");
+        assert_equals(getComputedStyle(c1).color, "rgb(255, 0, 0)");
+      }, "Invalidate :matches() for simple selector arguments.");
+
+      test(() => {
+        a1.className = "a";
+        assert_equals(getComputedStyle(d).color, "rgb(0, 255, 0)");
+      }, "Invalidate :matches() for compound selector arguments.");
+
+    </script>
+  </body>
+</html>

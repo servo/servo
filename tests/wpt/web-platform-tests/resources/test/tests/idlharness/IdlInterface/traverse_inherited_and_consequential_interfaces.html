@@ -37,7 +37,7 @@
         });
         assert_array_equals(interfaces, ["A"]);
     }, 'should return an array that includes itself.');
-    
+
     test(function() {
         var context = new IdlArray();
         context.add_idls("interface A { }; A implements B;");
@@ -49,7 +49,7 @@
         context.add_idls("interface A { };");
         assert_throws(new TypeError(), _ => context.members["A"].traverse_inherited_and_consequential_interfaces());
     }, "should throw if not passed a callback");
-    
+
     test(function() {
         var context = new IdlArray();
         context.add_idls(document.getElementById('fragments').textContent);
@@ -62,4 +62,3 @@
 </script>
 </body>
 </html>
-

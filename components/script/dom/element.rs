@@ -89,7 +89,7 @@ use script_layout_interface::message::ReflowGoal;
 use script_thread::ScriptThread;
 use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -107,7 +107,8 @@ use style::context::QuirksMode;
 use style::dom_apis;
 use style::element_state::ElementState;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::properties::{ComputedValues, Importance, PropertyDeclaration};
+use style::properties::{PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::longhands::{overflow_x, overflow_y};
 use style::rule_tree::CascadeLevel;
@@ -347,27 +348,30 @@ impl Element {
         }
     }
 
+    /// style will be `None` for elements in a `display: none` subtree. otherwise, the element has a
+    /// layout box iff it doesn't have `display: none`.
+    fn style(&self) -> Option<Arc<ComputedValues>> {
+        window_from_node(self).style_query(
+            self.upcast::<Node>().to_trusted_node_address()
+        )
+    }
+
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    // Elements that have a computed value of the display property
-    // that is table-column or table-column-group
-    // FIXME: Currently, it is assumed to be true always
     fn has_css_layout_box(&self) -> bool {
-        true
+        self.style()
+            .map_or(false, |s| !s.get_box().clone_display().is_none())
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
     fn potentially_scrollable(&self) -> bool {
-        self.has_css_layout_box() &&
-        !self.overflow_x_is_visible() &&
-        !self.overflow_y_is_visible()
+        self.has_css_layout_box() && !self.has_any_visible_overflow()
     }
 
     // https://drafts.csswg.org/cssom-view/#scrolling-box
     fn has_scrolling_box(&self) -> bool {
         // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
         //       self.has_scrolling_mechanism()
-        self.overflow_x_is_hidden() ||
-        self.overflow_y_is_hidden()
+        self.has_any_hidden_overflow()
     }
 
     fn has_overflow(&self) -> bool {
@@ -375,32 +379,29 @@ impl Element {
         self.ScrollWidth() > self.ClientWidth()
     }
 
-    // used value of overflow-x is "visible"
-    fn overflow_x_is_visible(&self) -> bool {
-        let window = window_from_node(self);
-        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.x == overflow_x::computed_value::T::Visible
+    // TODO: Once #19183 is closed (overflow-x/y types moved out of mako), then we could implement
+    //       a more generic `fn has_some_overflow(&self, overflow: Overflow)` rather than have
+    //       these two `has_any_{visible,hidden}_overflow` methods which are very structurally
+    //       similar.
+
+    /// Computed value of overflow-x or overflow-y is "visible"
+    fn has_any_visible_overflow(&self) -> bool {
+        self.style().map_or(false, |s| {
+            let box_ = s.get_box();
+
+            box_.clone_overflow_x() == overflow_x::computed_value::T::Visible ||
+                box_.clone_overflow_y() == overflow_y::computed_value::T::Visible
+        })
     }
 
-    // used value of overflow-y is "visible"
-    fn overflow_y_is_visible(&self) -> bool {
-        let window = window_from_node(self);
-        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.y == overflow_y::computed_value::T::Visible
-    }
+    /// Computed value of overflow-x or overflow-y is "hidden"
+    fn has_any_hidden_overflow(&self) -> bool {
+        self.style().map_or(false, |s| {
+            let box_ = s.get_box();
 
-    // used value of overflow-x is "hidden"
-    fn overflow_x_is_hidden(&self) -> bool {
-        let window = window_from_node(self);
-        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.x == overflow_x::computed_value::T::Hidden
-    }
-
-    // used value of overflow-y is "hidden"
-    fn overflow_y_is_hidden(&self) -> bool {
-        let window = window_from_node(self);
-        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.y == overflow_y::computed_value::T::Hidden
+            box_.clone_overflow_x() == overflow_x::computed_value::T::Hidden ||
+                box_.clone_overflow_y() == overflow_y::computed_value::T::Hidden
+        })
     }
 }
 
@@ -915,8 +916,12 @@ impl LayoutElementHelpers for LayoutDom<Element> {
 }
 
 impl Element {
+    pub fn is_html_element(&self) -> bool {
+        self.namespace == ns!(html)
+    }
+
     pub fn html_element_in_html_document(&self) -> bool {
-        self.namespace == ns!(html) && self.upcast::<Node>().is_in_html_doc()
+        self.is_html_element() && self.upcast::<Node>().is_in_html_doc()
     }
 
     pub fn local_name(&self) -> &LocalName {
@@ -2635,7 +2640,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         &self,
         pseudo_class: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: &RelevantLinkStatus,
         _: &mut F,
     ) -> bool
     where
@@ -2712,6 +2716,10 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     fn is_html_element_in_html_document(&self) -> bool {
         self.html_element_in_html_document()
+    }
+
+    fn is_html_slot_element(&self) -> bool {
+        self.is_html_element() && self.local_name() == &local_name!("slot")
     }
 }
 

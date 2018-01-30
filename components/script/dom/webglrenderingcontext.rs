@@ -17,7 +17,6 @@ use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasE
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
@@ -57,6 +56,7 @@ use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
 use std::iter::FromIterator;
+use std::ptr::NonNull;
 use webrender_api;
 
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
@@ -1389,7 +1389,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     unsafe fn GetExtension(&self, _cx: *mut JSContext, name: DOMString)
-                    -> Option<NonNullJSObjectPtr> {
+                    -> Option<NonNull<JSObject>> {
         self.extension_manager.init_once(|| {
             self.get_gl_extensions()
         });

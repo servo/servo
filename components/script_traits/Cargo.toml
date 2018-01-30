@@ -14,7 +14,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
 cookie = "0.10"
 devtools_traits = {path = "../devtools_traits"}
-euclid = "0.15"
+euclid = "0.16"
 gfx_traits = {path = "../gfx_traits"}
 hyper = "0.10"
 hyper_serde = "0.8"

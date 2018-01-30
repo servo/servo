@@ -24,7 +24,7 @@ use dom::workletglobalscope::WorkletGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
-use euclid::ScaleFactor;
+use euclid::TypedScale;
 use euclid::TypedSize2D;
 use ipc_channel::ipc;
 use js::jsapi::Call;
@@ -35,6 +35,7 @@ use js::jsapi::Heap;
 use js::jsapi::IsCallable;
 use js::jsapi::IsConstructor;
 use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
 use js::jsapi::JS_NewArrayObject;
@@ -45,9 +46,10 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
-use script_traits::DrawAPaintImageResult;
+use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::Painter;
 use servo_atoms::Atom;
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -58,6 +60,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
+use std::thread;
+use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
@@ -79,7 +83,7 @@ pub struct PaintWorkletGlobalScope {
     /// The most recent size the worklet was drawn at
     cached_size: Cell<TypedSize2D<f32, CSSPixel>>,
     /// The most recent device pixel ratio the worklet was drawn at
-    cached_device_pixel_ratio: Cell<ScaleFactor<f32, CSSPixel, DevicePixel>>,
+    cached_device_pixel_ratio: Cell<TypedScale<f32, CSSPixel, DevicePixel>>,
     /// The most recent properties the worklet was drawn at
     cached_properties: DomRefCell<Vec<(Atom, String)>>,
     /// The most recent arguments the worklet was drawn at
@@ -104,7 +108,7 @@ impl PaintWorkletGlobalScope {
             paint_class_instances: Default::default(),
             cached_name: DomRefCell::new(Atom::from("")),
             cached_size: Cell::new(TypedSize2D::zero()),
-            cached_device_pixel_ratio: Cell::new(ScaleFactor::new(1.0)),
+            cached_device_pixel_ratio: Cell::new(TypedScale::new(1.0)),
             cached_properties: Default::default(),
             cached_arguments: Default::default(),
             cached_result: DomRefCell::new(DrawAPaintImageResult {
@@ -173,7 +177,7 @@ impl PaintWorkletGlobalScope {
     fn draw_a_paint_image(&self,
                           name: &Atom,
                           size_in_px: TypedSize2D<f32, CSSPixel>,
-                          device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                          device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                           properties: &StylePropertyMapReadOnly,
                           arguments: &[String])
                           -> DrawAPaintImageResult
@@ -193,7 +197,7 @@ impl PaintWorkletGlobalScope {
                                name: &Atom,
                                size_in_px: TypedSize2D<f32, CSSPixel>,
                                size_in_dpx: TypedSize2D<u32, DevicePixel>,
-                               device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                               device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                                properties: &StylePropertyMapReadOnly,
                                arguments: &[String])
                                -> DrawAPaintImageResult
@@ -237,7 +241,7 @@ impl PaintWorkletGlobalScope {
             Entry::Vacant(entry) => {
                 // Step 5.2-5.3
                 let args = HandleValueArray::new();
-                rooted!(in(cx) let mut result = null_mut());
+                rooted!(in(cx) let mut result = null_mut::<JSObject>());
                 unsafe { Construct1(cx, class_constructor.handle(), &args, result.handle_mut()); }
                 paint_instance.set(ObjectValue(result.get()));
                 if unsafe { JS_IsExceptionPending(cx) } {
@@ -340,10 +344,10 @@ impl PaintWorkletGlobalScope {
         impl Painter for WorkletPainter {
             fn draw_a_paint_image(&self,
                                   size: TypedSize2D<f32, CSSPixel>,
-                                  device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                                  device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                                   properties: Vec<(Atom, String)>,
                                   arguments: Vec<String>)
-                                  -> DrawAPaintImageResult {
+                                  -> Result<DrawAPaintImageResult, PaintWorkletError> {
                 let name = self.name.clone();
                 let (sender, receiver) = mpsc::channel();
                 let task = PaintWorkletTask::DrawAPaintImage(name,
@@ -354,13 +358,74 @@ impl PaintWorkletGlobalScope {
                                                              sender);
                 self.executor.lock().expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
-                receiver.recv().expect("Worklet thread died?")
+
+                let timeout = PREFS.get("dom.worklet.timeout_ms")
+                                   .as_u64()
+                                   .unwrap_or(10u64);
+
+                let timeout_duration = Duration::from_millis(timeout);
+                receiver.recv_timeout(timeout_duration)
+                        .map_err(|e| PaintWorkletError::from(e))
             }
         }
         Box::new(WorkletPainter {
             name: name,
             executor: Mutex::new(self.worklet_global.executor()),
         })
+    }
+}
+
+/// Tasks which can be peformed by a paint worklet
+pub enum PaintWorkletTask {
+    DrawAPaintImage(Atom,
+                    TypedSize2D<f32, CSSPixel>,
+                    TypedScale<f32, CSSPixel, DevicePixel>,
+                    Vec<(Atom, String)>,
+                    Vec<String>,
+                    Sender<DrawAPaintImageResult>),
+    SpeculativelyDrawAPaintImage(Atom,
+                                 Vec<(Atom, String)>,
+                                 Vec<String>),
+}
+
+/// A paint definition
+/// <https://drafts.css-houdini.org/css-paint-api/#paint-definition>
+/// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
+/// which can't be moved.
+#[derive(JSTraceable, MallocSizeOf)]
+#[must_root]
+struct PaintDefinition {
+    class_constructor: Heap<JSVal>,
+    paint_function: Heap<JSVal>,
+    constructor_valid_flag: Cell<bool>,
+    context_alpha_flag: bool,
+    // TODO: this should be a list of CSS syntaxes.
+    input_arguments_len: usize,
+    // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
+    // but to avoid having the primary worklet thread create a new renering context,
+    // we recycle them.
+    context: Dom<PaintRenderingContext2D>,
+}
+
+impl PaintDefinition {
+    fn new(class_constructor: HandleValue,
+           paint_function: HandleValue,
+           alpha: bool,
+           input_arguments_len: usize,
+           context: &PaintRenderingContext2D)
+           -> Box<PaintDefinition>
+    {
+        let result = Box::new(PaintDefinition {
+            class_constructor: Heap::default(),
+            paint_function: Heap::default(),
+            constructor_valid_flag: Cell::new(true),
+            context_alpha_flag: alpha,
+            input_arguments_len: input_arguments_len,
+            context: Dom::from_ref(context),
+        });
+        result.class_constructor.set(class_constructor.get());
+        result.paint_function.set(paint_function.get());
+        result
     }
 }
 
@@ -445,58 +510,14 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
 
         Ok(())
     }
-}
 
-/// Tasks which can be peformed by a paint worklet
-pub enum PaintWorkletTask {
-    DrawAPaintImage(Atom,
-                    TypedSize2D<f32, CSSPixel>,
-                    ScaleFactor<f32, CSSPixel, DevicePixel>,
-                    Vec<(Atom, String)>,
-                    Vec<String>,
-                    Sender<DrawAPaintImageResult>),
-    SpeculativelyDrawAPaintImage(Atom,
-                                 Vec<(Atom, String)>,
-                                 Vec<String>),
-}
-
-/// A paint definition
-/// <https://drafts.css-houdini.org/css-paint-api/#paint-definition>
-/// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
-/// which can't be moved.
-#[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
-struct PaintDefinition {
-    class_constructor: Heap<JSVal>,
-    paint_function: Heap<JSVal>,
-    constructor_valid_flag: Cell<bool>,
-    context_alpha_flag: bool,
-    // TODO: this should be a list of CSS syntaxes.
-    input_arguments_len: usize,
-    // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
-    // but to avoid having the primary worklet thread create a new renering context,
-    // we recycle them.
-    context: Dom<PaintRenderingContext2D>,
-}
-
-impl PaintDefinition {
-    fn new(class_constructor: HandleValue,
-           paint_function: HandleValue,
-           alpha: bool,
-           input_arguments_len: usize,
-           context: &PaintRenderingContext2D)
-           -> Box<PaintDefinition>
-    {
-        let result = Box::new(PaintDefinition {
-            class_constructor: Heap::default(),
-            paint_function: Heap::default(),
-            constructor_valid_flag: Cell::new(true),
-            context_alpha_flag: alpha,
-            input_arguments_len: input_arguments_len,
-            context: Dom::from_ref(context),
-        });
-        result.class_constructor.set(class_constructor.get());
-        result.paint_function.set(paint_function.get());
-        result
+    /// This is a blocking sleep function available in the paint worklet
+    /// global scope behind the dom.worklet.enabled +
+    /// dom.worklet.blockingsleep.enabled prefs. It is to be used only for
+    /// testing, e.g., timeouts, where otherwise one would need busy waiting
+    /// to make sure a certain timeout is triggered.
+    /// check-tidy: no specs after this line
+    fn Sleep(&self, ms: u64) {
+        thread::sleep(Duration::from_millis(ms));
     }
 }

@@ -48,7 +48,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.overflow_x == self.overflow_y {
                 self.overflow_x.to_css(dest)
             } else {
@@ -83,7 +83,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.overflow_clip_box_block.to_css(dest)?;
 
             if self.overflow_clip_box_block != self.overflow_clip_box_inline {
@@ -97,18 +97,10 @@
 </%helpers:shorthand>
 
 macro_rules! try_parse_one {
-    ($input: expr, $var: ident, $prop_module: ident) => {
-        if $var.is_none() {
-            if let Ok(value) = $input.try($prop_module::SingleSpecifiedValue::parse) {
-                $var = Some(value);
-                continue;
-            }
-        }
-    };
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
             if let Ok(value) = $input.try(|i| {
-                $prop_module::SingleSpecifiedValue::parse($context, i)
+                $prop_module::single_value::parse($context, i)
             }) {
                 $var = Some(value);
                 continue;
@@ -122,7 +114,6 @@ macro_rules! try_parse_one {
                                     transition-timing-function
                                     transition-delay"
                     spec="https://drafts.csswg.org/css-transitions/#propdef-transition">
-    use parser::Parse;
     % for prop in "delay duration property timing_function".split():
     use properties::longhands::transition_${prop};
     % endfor
@@ -212,7 +203,7 @@ macro_rules! try_parse_one {
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let property_len = self.transition_property.0.len();
 
             // There are two cases that we can do shorthand serialization:
@@ -265,7 +256,6 @@ macro_rules! try_parse_one {
         props = "name duration timing_function delay iteration_count \
                  direction fill_mode play_state".split()
     %>
-    use parser::Parse;
     % for prop in props:
     use properties::longhands::animation_${prop};
     % endfor
@@ -296,9 +286,9 @@ macro_rules! try_parse_one {
                 try_parse_one!(context, input, timing_function, animation_timing_function);
                 try_parse_one!(context, input, delay, animation_delay);
                 try_parse_one!(context, input, iteration_count, animation_iteration_count);
-                try_parse_one!(input, direction, animation_direction);
-                try_parse_one!(input, fill_mode, animation_fill_mode);
-                try_parse_one!(input, play_state, animation_play_state);
+                try_parse_one!(context, input, direction, animation_direction);
+                try_parse_one!(context, input, fill_mode, animation_fill_mode);
+                try_parse_one!(context, input, play_state, animation_play_state);
                 try_parse_one!(context, input, name, animation_name);
 
                 parsed -= 1;
@@ -337,7 +327,7 @@ macro_rules! try_parse_one {
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let len = self.animation_name.0.len();
             // There should be at least one declared value
             if len == 0 {
@@ -386,7 +376,7 @@ macro_rules! try_parse_one {
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         // Serializes into the single keyword value if both scroll-snap-type-x and scroll-snap-type-y are same.
         // Otherwise into an empty string. This is done to match Gecko's behaviour.
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.scroll_snap_type_x == self.scroll_snap_type_y {
                 self.scroll_snap_type_x.to_css(dest)
             } else {
@@ -416,7 +406,7 @@ macro_rules! try_parse_one {
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         // Serializes into the single keyword value if both overscroll-behavior-x and overscroll-behavior-y are same.
         // Otherwise into two values separated by a space.
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.overscroll_behavior_x.to_css(dest)?;
             if self.overscroll_behavior_y != self.overscroll_behavior_x {
                 dest.write_str(" ")?;

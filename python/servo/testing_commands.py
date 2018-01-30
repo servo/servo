@@ -34,7 +34,7 @@ from mach.decorators import (
 
 from servo.command_base import (
     BuildNotFound, CommandBase,
-    call, cd, check_call, set_osmesa_env,
+    call, check_call, set_osmesa_env,
 )
 from servo.util import host_triple
 
@@ -171,9 +171,11 @@ class MachCommands(CommandBase):
              category='testing')
     @CommandArgument('--base', default=None,
                      help="the base URL for testcases")
+    @CommandArgument('--date', default=None,
+                     help="the datestamp for the data")
     @CommandArgument('--submit', '-a', default=False, action="store_true",
                      help="submit the data to perfherder")
-    def test_perf(self, base=None, submit=False):
+    def test_perf(self, base=None, date=None, submit=False):
         self.set_software_rendering_env(True)
 
         self.ensure_bootstrapped()
@@ -181,6 +183,8 @@ class MachCommands(CommandBase):
         cmd = ["bash", "test_perf.sh"]
         if base:
             cmd += ["--base", base]
+        if date:
+            cmd += ["--date", date]
         if submit:
             cmd += ["--submit"]
         return call(cmd,
@@ -227,35 +231,32 @@ class MachCommands(CommandBase):
             else:
                 test_patterns.append(test)
 
-        in_crate_packages = []
-
-        # Since the selectors tests have no corresponding selectors_tests crate in tests/unit,
-        # we need to treat them separately from those that do.
-        try:
-            packages.remove('selectors')
-            in_crate_packages += ["selectors"]
-        except KeyError:
-            pass
-
+        self_contained_tests = [
+            "gfx",
+            "layout",
+            "msg",
+            "net",
+            "net_traits",
+            "selectors",
+            "servo_config",
+            "servo_remutex",
+        ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
-            in_crate_packages += ["selectors"]
+            packages |= set(self_contained_tests)
 
-        # Since the selectors tests have no corresponding selectors_tests crate in tests/unit,
-        # we need to treat them separately from those that do.
-        try:
-            packages.remove('selectors')
-            in_crate_packages += ["selectors"]
-        except KeyError:
-            pass
+        in_crate_packages = []
+        for crate in self_contained_tests:
+            try:
+                packages.remove(crate)
+                in_crate_packages += [crate]
+            except KeyError:
+                pass
 
         packages.discard('stylo')
 
-        env = self.build_env()
+        env = self.build_env(test_unit=True)
         env["RUST_BACKTRACE"] = "1"
-
-        # Work around https://github.com/rust-lang/cargo/issues/4790
-        del env["RUSTDOCFLAGS"]
 
         if "msvc" in host_triple():
             # on MSVC, we need some DLLs in the path. They were copied
@@ -263,8 +264,8 @@ class MachCommands(CommandBase):
             env["PATH"] = "%s%s%s" % (path.dirname(self.get_binary_path(False, False)), os.pathsep, env["PATH"])
 
         features = self.servo_features()
-        if len(packages) > 0:
-            args = ["cargo", "bench" if bench else "test"]
+        if len(packages) > 0 or len(in_crate_packages) > 0:
+            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.servo_manifest()]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
@@ -277,7 +278,7 @@ class MachCommands(CommandBase):
             if nocapture:
                 args += ["--", "--nocapture"]
 
-            err = call(args, env=env, cwd=self.servo_crate())
+            err = self.call_rustup_run(args, env=env)
             if err is not 0:
                 return err
 
@@ -289,17 +290,19 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
     def test_stylo(self, release=False, test_name=None):
-        self.set_use_stable_rust()
+        self.set_use_geckolib_toolchain()
         self.ensure_bootstrapped()
 
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
-        args = (["cargo", "test", "-p", "stylo_tests"] +
-                (["--release"] if release else []) + (test_name or []))
-        with cd(path.join("ports", "geckolib")):
-            return call(args, env=env)
+        args = (
+            ["cargo", "test", "--manifest-path", self.geckolib_manifest(), "-p", "stylo_tests"] +
+            (["--release"] if release else []) +
+            (test_name or [])
+        )
+        return self.call_rustup_run(args, env=env)
 
     @Command('test-content',
              description='Run the content tests',
@@ -869,7 +872,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
     def update_net_cookies(self):
         cache_dir = path.join(self.config["tools"]["cache-dir"], "tests")
         run_file = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
-                                          "tests", "unit", "net",
+                                          "components", "net", "tests",
                                           "cookie_http_state_utils.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)

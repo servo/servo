@@ -41,7 +41,7 @@ pub mod webdriver_msg;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use euclid::{Size2D, Length, Point2D, Vector2D, Rect, ScaleFactor, TypedSize2D};
+use euclid::{Size2D, Length, Point2D, Vector2D, Rect, TypedScale, TypedSize2D};
 use gfx_traits::Epoch;
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -68,7 +68,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_api::{ClipId, DevicePixel, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -732,7 +732,7 @@ pub struct WindowSizeData {
     pub initial_viewport: TypedSize2D<f32, CSSPixel>,
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+    pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
 }
 
 /// The type of window size change.
@@ -807,7 +807,7 @@ pub enum ConstellationMsg {
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
-    SetCursor(Cursor),
+    SetCursor(CursorKind),
 }
 
 /// Resources required by workerglobalscopes
@@ -866,10 +866,10 @@ pub trait Painter: SpeculativePainter {
     /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn draw_a_paint_image(&self,
                           size: TypedSize2D<f32, CSSPixel>,
-                          zoom: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                          zoom: TypedScale<f32, CSSPixel, DevicePixel>,
                           properties: Vec<(Atom, String)>,
                           arguments: Vec<String>)
-                          -> DrawAPaintImageResult;
+                          -> Result<DrawAPaintImageResult, PaintWorkletError>;
 }
 
 impl fmt::Debug for Painter {

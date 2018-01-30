@@ -8,6 +8,7 @@ use nth_index_cache::NthIndexCacheInner;
 use parser::{AncestorHashes, Combinator, Component, LocalName};
 use parser::{Selector, SelectorImpl, SelectorIter, SelectorList};
 use std::borrow::Borrow;
+use std::iter;
 use tree::Element;
 
 pub use context::*;
@@ -59,7 +60,7 @@ impl ElementSelectorFlags {
 /// Holds per-compound-selector data.
 struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     shared: &'a mut MatchingContext<'b, Impl>,
-    matches_hover_and_active_quirk: bool,
+    matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk,
 }
 
 #[inline(always)]
@@ -71,21 +72,28 @@ pub fn matches_selector_list<E>(
 where
     E: Element
 {
-    selector_list.0.iter().any(|selector| {
-        matches_selector(selector,
-                         0,
-                         None,
-                         element,
-                         context,
-                         &mut |_, _| {})
-    })
+    // This is pretty much any(..) but manually inlined because the compiler
+    // refuses to do so from querySelector / querySelectorAll.
+    for selector in &selector_list.0 {
+        let matches = matches_selector(
+            selector,
+            0,
+            None,
+            element,
+            context,
+            &mut |_, _| {},
+        );
+
+        if matches {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[inline(always)]
-fn may_match<E>(hashes: &AncestorHashes, bf: &BloomFilter) -> bool
-where
-    E: Element,
-{
+fn may_match(hashes: &AncestorHashes, bf: &BloomFilter) -> bool {
     // Check the first three hashes. Note that we can check for zero before
     // masking off the high bits, since if any of the first three hashes is
     // zero the fourth will be as well. We also take care to avoid the
@@ -110,124 +118,6 @@ where
     // and check it against the filter if it exists.
     let fourth = hashes.fourth_hash();
     fourth == 0 || bf.might_contain_hash(fourth)
-}
-
-/// Tracks whether we are currently looking for relevant links for a given
-/// complex selector. A "relevant link" is the element being matched if it is a
-/// link or the nearest ancestor link.
-///
-/// `matches_complex_selector` creates a new instance of this for each complex
-/// selector we try to match for an element. This is done because `is_visited`
-/// and `is_unvisited` are based on relevant link state of only the current
-/// complex selector being matched (not the global relevant link status for all
-/// selectors in `MatchingContext`).
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RelevantLinkStatus {
-    /// Looking for a possible relevant link.  This is the initial mode when
-    /// matching a selector.
-    Looking,
-    /// Not looking for a relevant link.  We transition to this mode if we
-    /// encounter a sibiling combinator (since only ancestor combinators are
-    /// allowed for this purpose).
-    NotLooking,
-    /// Found a relevant link for the element being matched.
-    Found,
-}
-
-impl Default for RelevantLinkStatus {
-    fn default() -> Self {
-        RelevantLinkStatus::NotLooking
-    }
-}
-
-impl RelevantLinkStatus {
-    /// If we found the relevant link for this element, record that in the
-    /// overall matching context for the element as a whole and stop looking for
-    /// addtional links.
-    fn examine_potential_link<E>(
-        &self,
-        element: &E,
-        context: &mut MatchingContext<E::Impl>,
-    ) -> RelevantLinkStatus
-    where
-        E: Element,
-    {
-        // If a relevant link was previously found, we no longer want to look
-        // for links.  Only the nearest ancestor link is considered relevant.
-        if *self != RelevantLinkStatus::Looking {
-            return RelevantLinkStatus::NotLooking
-        }
-
-        if !element.is_link() {
-            return *self
-        }
-
-        // We found a relevant link. Record this in the `MatchingContext`,
-        // where we track whether one was found for _any_ selector (meaning
-        // this field might already be true from a previous selector).
-        context.relevant_link_found = true;
-        // Also return `Found` to update the relevant link status for _this_
-        // specific selector's matching process.
-        RelevantLinkStatus::Found
-    }
-
-    /// Returns whether an element is considered visited for the purposes of
-    /// matching.  This is true only if the element is a link, an relevant link
-    /// exists for the element, and the visited handling mode is set to accept
-    /// relevant links as visited.
-    pub fn is_visited<E>(
-        &self,
-        element: &E,
-        context: &MatchingContext<E::Impl>,
-    ) -> bool
-    where
-        E: Element,
-    {
-        if !element.is_link() {
-            return false
-        }
-
-        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
-            return true;
-        }
-
-        // Non-relevant links are always unvisited.
-        if *self != RelevantLinkStatus::Found {
-            return false
-        }
-
-        context.visited_handling == VisitedHandlingMode::RelevantLinkVisited
-    }
-
-    /// Returns whether an element is considered unvisited for the purposes of
-    /// matching.  Assuming the element is a link, this is always true for
-    /// non-relevant links, since only relevant links can potentially be treated
-    /// as visited.  If this is a relevant link, then is it unvisited if the
-    /// visited handling mode is set to treat all links as unvisted (including
-    /// relevant links).
-    pub fn is_unvisited<E>(
-        &self,
-        element: &E,
-        context: &MatchingContext<E::Impl>
-    ) -> bool
-    where
-        E: Element,
-    {
-        if !element.is_link() {
-            return false
-        }
-
-        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
-            return true;
-        }
-
-        // Non-relevant links are always unvisited.
-        if *self != RelevantLinkStatus::Found {
-            return true
-        }
-
-        context.visited_handling == VisitedHandlingMode::AllLinksUnvisited
-    }
 }
 
 /// A result of selector matching, includes 3 failure types,
@@ -280,6 +170,15 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
+/// Whether the :hover and :active quirk applies.
+///
+/// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum MatchesHoverAndActiveQuirk {
+    Yes,
+    No,
+}
+
 /// Matches a selector, fast-rejecting against a bloom filter.
 ///
 /// We accept an offset to allow consumers to represent and match against
@@ -304,7 +203,7 @@ where
     // Use the bloom filter to fast-reject.
     if let Some(hashes) = hashes {
         if let Some(filter) = context.bloom_filter {
-            if !may_match::<E>(hashes, filter) {
+            if !may_match(hashes, filter) {
                 return false;
             }
         }
@@ -332,7 +231,7 @@ pub enum CompoundSelectorMatchingResult {
 ///
 /// NOTE(emilio): This doesn't allow to match in the leftmost sequence of the
 /// complex selector, but it happens to be the case we don't need it.
-pub fn matches_compound_selector<E>(
+pub fn matches_compound_selector_from<E>(
     selector: &Selector<E::Impl>,
     mut from_offset: usize,
     context: &mut MatchingContext<E::Impl>,
@@ -347,7 +246,7 @@ where
 
     let mut local_context = LocalMatchingContext {
         shared: context,
-        matches_hover_and_active_quirk: false,
+        matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
     };
 
     for component in selector.iter_raw_parse_order_from(from_offset) {
@@ -362,7 +261,6 @@ where
             component,
             element,
             &mut local_context,
-            &RelevantLinkStatus::NotLooking,
             &mut |_, _| {}) {
             return CompoundSelectorMatchingResult::NotMatched;
         }
@@ -387,8 +285,8 @@ where
 {
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
-    if context.matching_mode == MatchingMode::ForStatelessPseudoElement &&
-        context.nesting_level == 0 {
+    if context.matching_mode() == MatchingMode::ForStatelessPseudoElement &&
+        !context.is_nested() {
         // Consume the pseudo.
         match *iter.next().unwrap() {
             Component::PseudoElement(ref pseudo) => {
@@ -424,7 +322,6 @@ where
         iter,
         element,
         context,
-        &mut RelevantLinkStatus::Looking,
         flags_setter,
         Rightmost::Yes,
     );
@@ -440,23 +337,23 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
     selector_iter: &SelectorIter<Impl>,
     context: &MatchingContext<Impl>,
     rightmost: Rightmost,
-) -> bool {
+) -> MatchesHoverAndActiveQuirk {
     if context.quirks_mode() != QuirksMode::Quirks {
-        return false;
+        return MatchesHoverAndActiveQuirk::No;
     }
 
-    if context.nesting_level != 0 {
-        return false;
+    if context.is_nested() {
+        return MatchesHoverAndActiveQuirk::No;
     }
 
     // This compound selector had a pseudo-element to the right that we
     // intentionally skipped.
-    if matches!(rightmost, Rightmost::Yes) &&
-        context.matching_mode == MatchingMode::ForStatelessPseudoElement {
-        return false;
+    if rightmost == Rightmost::Yes &&
+        context.matching_mode() == MatchingMode::ForStatelessPseudoElement {
+        return MatchesHoverAndActiveQuirk::No;
     }
 
-    selector_iter.clone().all(|simple| {
+    let all_match = selector_iter.clone().all(|simple| {
         match *simple {
             Component::LocalName(_) |
             Component::AttributeInNoNamespaceExists { .. } |
@@ -482,9 +379,16 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
             },
             _ => true,
         }
-    })
+    });
+
+    if all_match {
+        MatchesHoverAndActiveQuirk::Yes
+    } else {
+        MatchesHoverAndActiveQuirk::No
+    }
 }
 
+#[derive(Clone, Copy, PartialEq)]
 enum Rightmost {
     Yes,
     No,
@@ -508,7 +412,12 @@ where
             if element.blocks_ancestor_combinators() {
                 return None;
             }
+
             element.parent_element()
+        }
+        Combinator::SlotAssignment => {
+            debug_assert!(element.assigned_slot().map_or(true, |s| s.is_html_slot_element()));
+            element.assigned_slot()
         }
         Combinator::PseudoElement => {
             element.pseudo_element_originating_element()
@@ -520,7 +429,6 @@ fn matches_complex_selector_internal<E, F>(
     mut selector_iter: SelectorIter<E::Impl>,
     element: &E,
     context: &mut MatchingContext<E::Impl>,
-    relevant_link: &mut RelevantLinkStatus,
     flags_setter: &mut F,
     rightmost: Rightmost,
 ) -> SelectorMatchingResult
@@ -528,37 +436,22 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    *relevant_link = relevant_link.examine_potential_link(element, context);
+    debug!("Matching complex selector {:?} for {:?}", selector_iter, element);
 
-    debug!("Matching complex selector {:?} for {:?}, relevant link {:?}",
-           selector_iter, element, relevant_link);
-
-
-    let matches_all_simple_selectors = {
-        let matches_hover_and_active_quirk =
-            matches_hover_and_active_quirk(&selector_iter, context, rightmost);
-        let mut local_context =
-            LocalMatchingContext {
-                shared: context,
-                matches_hover_and_active_quirk,
-            };
-        selector_iter.all(|simple| {
-            matches_simple_selector(
-                simple,
-                element,
-                &mut local_context,
-                &relevant_link,
-                flags_setter,
-            )
-        })
-    };
+    let matches_compound_selector = matches_compound_selector(
+        &mut selector_iter,
+        element,
+        context,
+        flags_setter,
+        rightmost
+    );
 
     let combinator = selector_iter.next_sequence();
     if combinator.map_or(false, |c| c.is_sibling()) {
         flags_setter(element, ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS);
     }
 
-    if !matches_all_simple_selectors {
+    if !matches_compound_selector {
         return SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling;
     }
 
@@ -570,13 +463,11 @@ where
     let candidate_not_found = match combinator {
         Combinator::NextSibling |
         Combinator::LaterSibling => {
-            // Only ancestor combinators are allowed while looking for
-            // relevant links, so switch to not looking.
-            *relevant_link = RelevantLinkStatus::NotLooking;
             SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant
         }
         Combinator::Child |
         Combinator::Descendant |
+        Combinator::SlotAssignment |
         Combinator::PseudoElement => {
             SelectorMatchingResult::NotMatchedGlobally
         }
@@ -584,19 +475,30 @@ where
 
     let mut next_element = next_element_for_combinator(element, combinator);
 
+    // Stop matching :visited as soon as we find a link, or a combinator for
+    // something that isn't an ancestor.
+    let mut visited_handling = if element.is_link() || combinator.is_sibling() {
+        VisitedHandlingMode::AllLinksUnvisited
+    } else {
+        context.visited_handling()
+    };
+
     loop {
         let element = match next_element {
             None => return candidate_not_found,
             Some(next_element) => next_element,
         };
-        let result = matches_complex_selector_internal(
-            selector_iter.clone(),
-            &element,
-            context,
-            relevant_link,
-            flags_setter,
-            Rightmost::No,
-        );
+
+        let result =
+            context.with_visited_handling_mode(visited_handling, |context| {
+                matches_complex_selector_internal(
+                    selector_iter.clone(),
+                    &element,
+                    context,
+                    flags_setter,
+                    Rightmost::No,
+                )
+            });
 
         match (result, combinator) {
             // Return the status immediately.
@@ -630,31 +532,122 @@ where
             _ => {},
         }
 
+        if element.is_link() || combinator.is_sibling() {
+            visited_handling = VisitedHandlingMode::AllLinksUnvisited;
+        }
+
         next_element = next_element_for_combinator(&element, combinator);
     }
 }
 
-/// Determines whether the given element matches the given single selector.
 #[inline]
+fn matches_local_name<E>(
+    element: &E,
+    local_name: &LocalName<E::Impl>
+) -> bool
+where
+    E: Element,
+{
+    let name = select_name(
+        element.is_html_element_in_html_document(),
+        &local_name.name,
+        &local_name.lower_name
+    ).borrow();
+    element.get_local_name() == name
+}
+
+/// Determines whether the given element matches the given compound selector.
+#[inline]
+fn matches_compound_selector<E, F>(
+    selector_iter: &mut SelectorIter<E::Impl>,
+    element: &E,
+    context: &mut MatchingContext<E::Impl>,
+    flags_setter: &mut F,
+    rightmost: Rightmost,
+) -> bool
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
+{
+    let matches_hover_and_active_quirk =
+        matches_hover_and_active_quirk(&selector_iter, context, rightmost);
+
+    // Handle some common cases first.
+    // We may want to get rid of this at some point if we can make the
+    // generic case fast enough.
+    let mut selector = selector_iter.next();
+    if let Some(&Component::LocalName(ref local_name)) = selector {
+        if !matches_local_name(element, local_name) {
+            return false;
+        }
+        selector = selector_iter.next();
+    }
+    let class_and_id_case_sensitivity = context.classes_and_ids_case_sensitivity();
+    if let Some(&Component::ID(ref id)) = selector {
+        if !element.has_id(id, class_and_id_case_sensitivity) {
+            return false;
+        }
+        selector = selector_iter.next();
+    }
+    while let Some(&Component::Class(ref class)) = selector {
+        if !element.has_class(class, class_and_id_case_sensitivity) {
+            return false;
+        }
+        selector = selector_iter.next();
+    }
+    let selector = match selector {
+        Some(s) => s,
+        None => return true,
+    };
+
+    let mut local_context =
+        LocalMatchingContext {
+            shared: context,
+            matches_hover_and_active_quirk,
+        };
+    iter::once(selector).chain(selector_iter).all(|simple| {
+        matches_simple_selector(
+            simple,
+            element,
+            &mut local_context,
+            flags_setter,
+        )
+    })
+}
+
+/// Determines whether the given element matches the given single selector.
 fn matches_simple_selector<E, F>(
     selector: &Component<E::Impl>,
     element: &E,
     context: &mut LocalMatchingContext<E::Impl>,
-    relevant_link: &RelevantLinkStatus,
     flags_setter: &mut F,
 ) -> bool
 where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
+    debug_assert!(context.shared.is_nested() || !context.shared.in_negation());
+
     match *selector {
         Component::Combinator(_) => unreachable!(),
+        Component::Slotted(ref selector) => {
+            context.shared.nest(|context| {
+                // <slots> are never flattened tree slottables.
+                !element.is_html_slot_element() &&
+                element.assigned_slot().is_some() &&
+                matches_complex_selector(
+                    selector.iter(),
+                    element,
+                    context,
+                    flags_setter,
+                )
+            })
+        }
         Component::PseudoElement(ref pseudo) => {
             element.match_pseudo_element(pseudo, context.shared)
         }
-        Component::LocalName(LocalName { ref name, ref lower_name }) => {
-            let is_html = element.is_html_element_in_html_document();
-            element.get_local_name() == select_name(is_html, name, lower_name).borrow()
+        Component::LocalName(ref local_name) => {
+            matches_local_name(element, local_name)
         }
         Component::ExplicitUniversalType |
         Component::ExplicitAnyNamespace => {
@@ -729,14 +722,19 @@ where
             )
         }
         Component::NonTSPseudoClass(ref pc) => {
-            if context.matches_hover_and_active_quirk &&
-               context.shared.nesting_level == 0 &&
+            if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
+               !context.shared.is_nested() &&
                E::Impl::is_active_or_hover(pc) &&
-               !element.is_link() {
+               !element.is_link()
+            {
                 return false;
             }
 
-            element.match_non_ts_pseudo_class(pc, &mut context.shared, relevant_link, flags_setter)
+            element.match_non_ts_pseudo_class(
+                pc,
+                &mut context.shared,
+                flags_setter
+            )
         }
         Component::FirstChild => {
             matches_first_child(element, flags_setter)
@@ -784,18 +782,20 @@ where
             matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            context.shared.nesting_level += 1;
-            let result = !negated.iter().all(|ss| {
-                matches_simple_selector(
-                    ss,
-                    element,
-                    context,
-                    relevant_link,
-                    flags_setter,
-                )
-            });
-            context.shared.nesting_level -= 1;
-            result
+            context.shared.nest_for_negation(|context| {
+                let mut local_context = LocalMatchingContext {
+                    matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
+                    shared: context,
+                };
+                !negated.iter().all(|ss| {
+                    matches_simple_selector(
+                        ss,
+                        element,
+                        &mut local_context,
+                        flags_setter,
+                    )
+                })
+            })
         }
     }
 }

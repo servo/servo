@@ -9,7 +9,7 @@ const cases = [
   ["parse error", "../syntaxerror.js", new SyntaxError],
   ["bad module specifier", "does-not-start-with-dot.js", new TypeError, { differentErrorObjects: true }],
   ["bad module specifier in a dependency", "../bad-module-specifier.js", new TypeError],
-  ["instantiation error", "../instantiation-error-1.js", new SyntaxError],
+  ["instantiation error", "../instantiation-error-1.js", new SyntaxError, { differentErrorObjects: true }],
   ["evaluation error", "../throw-error.js", new Error]
 ];
 

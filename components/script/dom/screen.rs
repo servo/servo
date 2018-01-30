@@ -39,14 +39,14 @@ impl Screen {
         let (send, recv) = ipc::channel::<(Size2D<u32>)>().unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
-        recv.recv().unwrap_or((Size2D::zero()))
+        recv.recv().unwrap_or(Size2D::zero())
     }
 
     fn screen_avail_size(&self) -> Size2D<u32> {
         let (send, recv) = ipc::channel::<(Size2D<u32>)>().unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
-        recv.recv().unwrap_or((Size2D::zero()))
+        recv.recv().unwrap_or(Size2D::zero())
     }
 }
 

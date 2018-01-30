@@ -45,7 +45,6 @@
   "js.mem.gc.incremental.slice_ms": 10,
   "js.mem.gc.low_frequency_heap_growth": 150,
   "js.mem.gc.per_compartment.enabled": true,
-  "js.mem.gc.refresh_frame_slices.enabled": true,
   "js.mem.gc.zeal.frequency": 100,
   "js.mem.gc.zeal.level": 0,
   "js.mem.high_water_mark": 128,

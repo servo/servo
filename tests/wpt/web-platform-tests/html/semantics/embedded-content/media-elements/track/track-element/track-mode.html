@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>TextTrack mode attribute</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/captions-fast.vtt" default>
+    <script>
+    async_test(function(t) {
+        var video = document.querySelector("video");
+        var track = document.querySelector("track");
+        track.onload = t.step_func(trackLoaded);
+
+        var cueCount = 0;
+        var textTrack;
+        function trackLoaded() {
+            textTrack = track.track;
+            // Test default attribute value.
+            assert_equals(textTrack.mode, "showing");
+            assert_equals(video.textTracks[0].mode, "showing");
+            // Set to bogus value, should return default.
+            var value = "bogus";
+            textTrack.mode = value;
+            assert_equals(textTrack.mode, "showing");
+            assert_equals(video.textTracks[0].mode, "showing");
+
+            // Set to numeric value (no longer supported), should return default.
+            textTrack.mode = 2;
+            assert_equals(textTrack.mode, "showing");
+            assert_equals(video.textTracks[0].mode, "showing");
+
+            // Set to known values.
+            setModeAndCheck("disabled");
+
+            video.src = getVideoURI("/media/test");
+            video.play();
+            // Wait for end of first cue (no events should fire while track is disabled).
+            t.step_timeout(testHiddenAndShowing, 400);
+        }
+
+        track.oncuechange = t.step_func(function(event) {
+            cueCount++;
+            if (cueCount == textTrack.cues.length)
+                t.done();
+        });
+
+        function setModeAndCheck(value) {
+            textTrack.mode =  value;
+            assert_equals(textTrack.mode, value);
+            assert_equals(video.textTracks[0].mode, value);
+            if (value == "disabled")
+                assert_equals(textTrack.cues, null);
+        }
+
+        function testHiddenAndShowing() {
+            setModeAndCheck("hidden");
+            setModeAndCheck("showing");
+        }
+    });
+    </script>
+</video>

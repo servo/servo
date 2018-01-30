@@ -42,8 +42,11 @@ def mutation_test(file_name, tests):
             if mutated_line != -1:
                 logging.info("Mutated {0} at line {1}".format(file_name, mutated_line))
                 logging.info("compiling mutant {0}:{1}".format(file_name, mutated_line))
-                if subprocess.call('python mach build --release', shell=True, stdout=DEVNULL):
+                test_command = "python mach build --release"
+                if subprocess.call(test_command, shell=True, stdout=DEVNULL):
                     logging.error("Compilation Failed: Unexpected error")
+                    logging.error("Failed: while running `{0}`".format(test_command))
+                    subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
                     status = Status.UNEXPECTED
                 else:
                     for test in tests:

@@ -149,8 +149,10 @@ pub trait Parse : Sized {
     /// Parse a value of this type.
     ///
     /// Returns an error on failure.
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>>;
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>>;
 }
 
 impl<T> Parse for Vec<T>

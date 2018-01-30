@@ -31,7 +31,7 @@
         return receiver.connectionList.then(list => {
           connections = list.connections;
           if (action === 'close') {
-            assert_true(connections.length === number - 1 && connections.includes(connection),
+            assert_true(connections.length === number - 1 && !connections.includes(connection),
               'A closed presentation connection is removed from the set of presentation controllers.');
           } else if (action === 'connect') {
             assert_true(connections.length === number + 1 && connections.includes(connection),

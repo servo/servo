@@ -2,7 +2,9 @@ version: 1.0.{build}
 
 environment:
   CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
+  CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
+  RUSTFLAGS: -Dwarnings
   # The appveyor image we use has a pretty huge set of things installed... we make the
   # initial PATH something sane so we know what to expect
   PATH: "C:\\windows\\system32;\
@@ -36,9 +38,18 @@ branches:
     - master
 
 cache:
+  - C:\Users\appveyor\.rustup -> rust-toolchain
+  - C:\Users\appveyor\.cargo -> rust-toolchain
   - .servo -> rust-toolchain
-  - .cargo -> rust-toolchain
   - .ccache
+
+install:
+  - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain none
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - rustup -V
+  - mach rustc --version
+  - mach cargo --version
 
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:
@@ -48,6 +59,8 @@ cache:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
-  - mach build -d -v && mach test-unit
+  - mach clean-nightlies --keep 2 --force
+  - mach build -d -v
+  - mach test-unit
 
 test: off

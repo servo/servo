@@ -9,7 +9,7 @@
 <div id=log></div>
 
 <div style="display:none">
-    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[天気の良い日]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
     <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
 </div>
 
@@ -23,7 +23,7 @@
     var PORT = location.port !== "" ? ":" + location.port : "";
     var TARGET1 = document.querySelectorAll("iframe")[0];
     var TARGET2 = document.querySelectorAll("iframe")[1];
-    var XORIGIN = "{{location[scheme]}}://{{domains[www]}}" + PORT;
+    var XORIGIN = "{{location[scheme]}}://{{domains[天気の良い日]}}" + PORT;
     var SORIGIN = "{{location[scheme]}}://{{host}}" + PORT;
     var ExpectedResult = ["#1", XORIGIN, "#2", SORIGIN];
     var ActualResult = [];

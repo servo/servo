@@ -1,0 +1,30 @@
+WEBVTT
+Invalid positioning values (all settings are ignored).
+
+1
+00:00:00.000 --> 00:00:15.000 line:-0%
+Bear is Coming!!!!!
+Negative percentages are not allowed.
+Line position is ignored.
+
+2
+00:00:31.000 --> 00:00:45.500 line:+50%
+I said Bear is coming!!!!
+Non-numbers are not allowed.
+Line position is ignored.
+
+00:00:46.000 --> 00:01:00.500 line:+5
+I said Bear is coming!!!!
+Plus sign is not allowed.
+Line position is ignored.
+
+3
+00:01:01.000 --> 00:01:30.000 line:10%0%
+I said Bear is coming now!!!!
+Doesn't parse into a percentage.
+Line position is ignored.
+
+00:01:31.000 --> 00:02:00.500 line:-10l
+I said Bear is coming now!!!!
+Doesn't parse into a number.
+Line position is ignored.

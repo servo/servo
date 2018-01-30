@@ -5,8 +5,9 @@
 use properties::{parse, parse_input};
 use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
+use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
-use style::values::{CustomIdent, RGBA, Auto};
+use style::values::{CustomIdent, RGBA};
 use style::values::generics::flex::FlexBasis;
 use style::values::specified::{BorderStyle, BorderSideWidth, Color};
 use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -14,6 +15,18 @@ use style::values::specified::NoCalcLength;
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
 use stylesheets::block_from;
+
+trait ToCssString {
+    fn to_css_string(&self) -> String;
+}
+
+impl ToCssString for PropertyDeclarationBlock {
+    fn to_css_string(&self) -> String {
+        let mut css = String::new();
+        self.to_css(&mut css).unwrap();
+        css
+    }
+}
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
@@ -511,7 +524,7 @@ mod shorthand_serialization {
     }
 
     mod outline {
-        use style::values::Either;
+        use style::values::specified::outline::OutlineStyle;
         use super::*;
 
         #[test]
@@ -519,7 +532,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = Either::Second(BorderStyle::Solid);
+            let style = OutlineStyle::Other(BorderStyle::Solid);
             let color = RGBA::new(255, 0, 0, 255).into();
 
             properties.push(PropertyDeclaration::OutlineWidth(width));
@@ -535,7 +548,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = Either::First(Auto);
+            let style = OutlineStyle::Auto;
             let color = RGBA::new(255, 0, 0, 255).into();
             properties.push(PropertyDeclaration::OutlineWidth(width));
             properties.push(PropertyDeclaration::OutlineStyle(style));

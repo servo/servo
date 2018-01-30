@@ -16,8 +16,8 @@ use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 #[allow(unused_imports)]
 use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{SingleFontFamily, FontFamilyList, FamilyName};
@@ -144,7 +144,10 @@ pub enum FontSize {
 }
 
 impl ToCss for FontSize {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             FontSize::Length(ref lop) => lop.to_css(dest),
             FontSize::Keyword(info) => info.kw.to_css(dest),
@@ -243,7 +246,10 @@ impl MallocSizeOf for FontFamily {
 }
 
 impl ToCss for FontFamily {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             FontFamily::Values(ref v) => {
                 let mut iter = v.iter();
@@ -408,7 +414,10 @@ impl Default for KeywordSize {
 }
 
 impl ToCss for KeywordSize {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str(match *self {
             KeywordSize::XXSmall => "xx-small",
             KeywordSize::XSmall => "x-small",
@@ -593,15 +602,25 @@ impl FontSize {
                 // Extract the ratio/offset and compose it
                 if (calc.em.is_some() || calc.percentage.is_some()) && parent.keyword_info.is_some() {
                     let ratio = calc.em.unwrap_or(0.) + calc.percentage.map_or(0., |pc| pc.0);
-                    // Compute it, but shave off the font-relative part (em, %)
-                    // This will mean that other font-relative units like ex and ch will be computed against
-                    // the old font even when the font changes. There's no particular "right answer" for what
-                    // to do here -- Gecko recascades as if the font had changed, we instead track the changes
-                    // and reapply, which means that we carry over old computed ex/ch values whilst Gecko
-                    // recomputes new ones. This is enough of an edge case to not really matter.
-                    let abs = calc.to_computed_value_zoomed(context, FontBaseSize::Custom(Au(0).into()))
-                                  .length_component().into();
-                    info = parent.keyword_info.map(|i| i.compose(ratio, abs));
+                    // Compute it, but shave off the font-relative part (em, %).
+                    //
+                    // This will mean that other font-relative units like ex and
+                    // ch will be computed against the old parent font even when
+                    // the font changes.
+                    //
+                    // There's no particular "right answer" for what to do here,
+                    // Gecko recascades as if the font had changed, we instead
+                    // track the changes and reapply, which means that we carry
+                    // over old computed ex/ch values whilst Gecko recomputes
+                    // new ones.
+                    //
+                    // This is enough of an edge case to not really matter.
+                    let abs = calc.to_computed_value_zoomed(
+                        context,
+                        FontBaseSize::InheritedStyleButStripEmUnits,
+                    ).length_component();
+
+                    info = parent.keyword_info.map(|i| i.compose(ratio, abs.into()));
                 }
                 let calc = calc.to_computed_value_zoomed(context, base_size);
                 calc.to_used_value(Some(base_size.resolve(context))).unwrap().into()
@@ -814,7 +833,10 @@ impl VariantAlternatesList {
 }
 
 impl ToCss for VariantAlternatesList {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.0.is_empty() {
             return dest.write_str("normal");
         }
@@ -1021,7 +1043,10 @@ impl VariantEastAsian {
 }
 
 impl ToCss for VariantEastAsian {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.is_empty() {
             return dest.write_str("normal")
         }
@@ -1255,7 +1280,10 @@ impl VariantLigatures {
 }
 
 impl ToCss for VariantLigatures {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.is_empty() {
             return dest.write_str("normal")
         }
@@ -1496,7 +1524,10 @@ impl VariantNumeric {
 }
 
 impl ToCss for VariantNumeric {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.is_empty() {
             return dest.write_str("normal")
         }
@@ -1791,7 +1822,10 @@ impl Parse for FontSynthesis {
 }
 
 impl ToCss for FontSynthesis {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.weight && self.style {
             dest.write_str("weight style")
         } else if self.style {
@@ -1943,7 +1977,10 @@ impl Parse for XTextZoom {
 }
 
 impl ToCss for XTextZoom {
-    fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         Ok(())
     }
 }
@@ -1971,7 +2008,10 @@ impl Parse for XLang {
 }
 
 impl ToCss for XLang {
-    fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         Ok(())
     }
 }

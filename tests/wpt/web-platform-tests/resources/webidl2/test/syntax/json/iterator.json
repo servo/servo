@@ -8,16 +8,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Session"
                 },
@@ -31,7 +28,6 @@
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },
@@ -50,7 +46,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "unsigned long"
                 },
@@ -61,16 +56,13 @@
                 "type": "iterator",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Session"
                 },
@@ -95,7 +87,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -115,16 +106,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Session2"
                 },
@@ -138,7 +126,6 @@
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },
@@ -157,7 +144,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "unsigned long"
                 },
@@ -168,16 +154,13 @@
                 "type": "iterator",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Session2"
                 },
@@ -203,7 +186,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -229,7 +211,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "unsigned long"
                 },
@@ -249,16 +230,13 @@
                 "type": "iterator",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Node"
                 },
@@ -278,16 +256,13 @@
                 "type": "iterator",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Node"
                 },

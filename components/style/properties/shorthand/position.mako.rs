@@ -103,7 +103,6 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="grid-gap" sub_properties="grid-row-gap grid-column-gap"
-                    gecko_pref="layout.css.grid.enabled"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-gap"
                     products="gecko">
   use properties::longhands::{grid_row_gap, grid_column_gap};
@@ -120,7 +119,7 @@
   }
 
   impl<'a> ToCss for LonghandsToSerialize<'a>  {
-      fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+      fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
           if self.grid_row_gap == self.grid_column_gap {
             self.grid_row_gap.to_css(dest)
           } else {
@@ -135,7 +134,6 @@
 
 % for kind in ["row", "column"]:
 <%helpers:shorthand name="grid-${kind}" sub_properties="grid-${kind}-start grid-${kind}-end"
-                    gecko_pref="layout.css.grid.enabled"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-${kind}"
                     products="gecko">
     use values::specified::GridLine;
@@ -165,7 +163,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_${kind}_start.to_css(dest)?;
             dest.write_str(" / ")?;
             self.grid_${kind}_end.to_css(dest)
@@ -175,7 +173,6 @@
 % endfor
 
 <%helpers:shorthand name="grid-area"
-                    gecko_pref="layout.css.grid.enabled"
                     sub_properties="grid-row-start grid-row-end grid-column-start grid-column-end"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-area"
                     products="gecko">
@@ -227,7 +224,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.grid_row_start.to_css(dest)?;
             let values = [&self.grid_column_start, &self.grid_row_end, &self.grid_column_end];
             for value in &values {
@@ -241,7 +238,6 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="grid-template"
-                    gecko_pref="layout.css.grid.enabled"
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
                     products="gecko">
@@ -366,10 +362,14 @@
     }
 
     /// Serialization for `<grid-template>` shorthand (also used by `grid` shorthand).
-    pub fn serialize_grid_template<W>(template_rows: &GridTemplateComponent,
-                                      template_columns: &GridTemplateComponent,
-                                      template_areas: &Either<TemplateAreas, None_>,
-                                      dest: &mut W) -> fmt::Result where W: fmt::Write {
+    pub fn serialize_grid_template<W>(
+        template_rows: &GridTemplateComponent,
+        template_columns: &GridTemplateComponent,
+        template_areas: &Either<TemplateAreas, None_>,
+        dest: &mut CssWriter<W>,
+    ) -> fmt::Result
+    where
+        W: Write {
         match *template_areas {
             Either::Second(_none) => {
                 template_rows.to_css(dest)?;
@@ -455,7 +455,7 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         #[inline]
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             serialize_grid_template(self.grid_template_rows, self.grid_template_columns,
                                     self.grid_template_areas, dest)
         }
@@ -463,7 +463,6 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="grid"
-                    gecko_pref="layout.css.grid.enabled"
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas
                                     grid-auto-rows grid-auto-columns grid-auto-flow"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
@@ -547,7 +546,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if *self.grid_template_areas != Either::Second(None_) ||
                (*self.grid_template_rows != GridTemplateComponent::None &&
                    *self.grid_template_columns != GridTemplateComponent::None) ||
@@ -616,31 +615,44 @@
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko">
-    use properties::longhands::align_content;
-    use properties::longhands::justify_content;
+    use values::specified::align::{AlignContent, JustifyContent, ContentDistribution, AxisDirection};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-        let align = align_content::parse(context, input)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify = input.try(|input| justify_content::parse(context, input))
-                           .unwrap_or(justify_content::SpecifiedValue::from(align));
-        if justify.has_extra_flags() {
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let align_content =
+            ContentDistribution::parse(input, AxisDirection::Block)?;
+
+        let justify_content = input.try(|input| {
+            ContentDistribution::parse(input, AxisDirection::Inline)
+        });
+
+        let justify_content = match justify_content {
+            Ok(v) => v,
+            Err(err) => {
+                if !align_content.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+
+                align_content
+            }
+        };
+
+        if align_content.has_extra_flags() || justify_content.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_content: align,
-            justify_content: justify,
+            align_content: AlignContent(align_content),
+            justify_content: JustifyContent(justify_content),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.align_content.to_css(dest)?;
-            if self.align_content != self.justify_content {
+            if self.align_content.0 != self.justify_content.0 {
                 dest.write_str(" ")?;
                 self.justify_content.to_css(dest)?;
             }
@@ -652,35 +664,43 @@
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
                     products="gecko">
-    use values::specified::align::AlignJustifySelf;
-    use parser::Parse;
+    use values::specified::align::{AlignSelf, JustifySelf, SelfAlignment, AxisDirection};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-        let align = AlignJustifySelf::parse(context, input)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
-        if justify.has_extra_flags() {
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let align = SelfAlignment::parse(input, AxisDirection::Block)?;
+        let justify = input.try(|input| SelfAlignment::parse(input, AxisDirection::Inline));
+
+        let justify = match justify {
+            Ok(v) => v,
+            Err(err) => {
+                if !align.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+                align
+            }
+        };
+
+        if justify.has_extra_flags() || align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_self: align,
-            justify_self: justify,
+            align_self: AlignSelf(align),
+            justify_self: JustifySelf(justify),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.align_self == self.justify_self {
-                self.align_self.to_css(dest)
-            } else {
-                self.align_self.to_css(dest)?;
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            self.align_self.to_css(dest)?;
+            if self.align_self.0 != self.justify_self.0 {
                 dest.write_str(" ")?;
-                self.justify_self.to_css(dest)
+                self.justify_self.to_css(dest)?;
             }
+            Ok(())
         }
     }
 </%helpers:shorthand>
@@ -716,7 +736,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if self.align_items.0 == self.justify_items.0 {
                 self.align_items.to_css(dest)
             } else {

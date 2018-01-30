@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGFilterElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGFilterElement.
+
+  var filterElement = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+  filterElement.setAttribute("filterUnits", "userSpaceOnUse");
+  filterElement.setAttribute("primitiveUnits", "userSpaceOnUse");
+
+  // filterUnits
+  // Check initial 'filterUnits' value.
+  assert_true(filterElement.filterUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(filterElement.filterUnits.baseVal), "number");
+  assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  filterElement.filterUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws(new TypeError(), function() { filterElement.filterUnits.baseVal = 3; });
+  assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
+
+  assert_throws(new TypeError(), function() { filterElement.filterUnits.baseVal = -1; });
+  assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
+
+  assert_throws(new TypeError(), function() { filterElement.filterUnits.baseVal = 0; });
+  assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('filterUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  filterElement.filterUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(filterElement.filterUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(filterElement.getAttribute('filterUnits'), "userSpaceOnUse");
+
+  // primitiveUnits
+  // Check initial 'primitiveUnits' value.
+  assert_true(filterElement.primitiveUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(filterElement.primitiveUnits.baseVal), "number");
+  assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  filterElement.primitiveUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws(new TypeError(), function() { filterElement.primitiveUnits.baseVal = 3; });
+  assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
+
+  assert_throws(new TypeError(), function() { filterElement.primitiveUnits.baseVal = -1; });
+  assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
+
+  assert_throws(new TypeError(), function() { filterElement.primitiveUnits.baseVal = 0; });
+  assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(filterElement.getAttribute('primitiveUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  filterElement.primitiveUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(filterElement.primitiveUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(filterElement.getAttribute('primitiveUnits'), "userSpaceOnUse");
+});
+</script>

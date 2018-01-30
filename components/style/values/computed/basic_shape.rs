@@ -7,8 +7,8 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::computed::{LengthOrPercentage, ComputedUrl, Image};
 use values::generics::basic_shape::{BasicShape as GenericBasicShape};
 use values::generics::basic_shape::{Circle as GenericCircle, ClippingShape as GenericClippingShape};
@@ -37,7 +37,10 @@ pub type Ellipse = GenericEllipse<LengthOrPercentage, LengthOrPercentage, Length
 pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 
 impl ToCss for Circle {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("circle(")?;
         self.radius.to_css(dest)?;
         dest.write_str(" at ")?;
@@ -47,7 +50,10 @@ impl ToCss for Circle {
 }
 
 impl ToCss for Ellipse {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("ellipse(")?;
         if (self.semiaxis_x, self.semiaxis_y) != Default::default() {
             self.semiaxis_x.to_css(dest)?;

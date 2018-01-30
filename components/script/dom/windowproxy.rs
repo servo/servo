@@ -106,7 +106,7 @@ impl WindowProxy {
             let cx = window.get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
-            assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+            assert_ne!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL), 0);
             let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
 
             // Create a new window proxy.
@@ -163,7 +163,7 @@ impl WindowProxy {
             let window = DissimilarOriginWindow::new(global_to_clone_from, &*window_proxy);
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
-            assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+            assert_ne!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL), 0);
             let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
 
             // Create a new window proxy.
@@ -230,7 +230,7 @@ impl WindowProxy {
             let window_jsobject = window.reflector().get_jsobject();
             let old_js_proxy = self.reflector.get_jsobject();
             assert!(!window_jsobject.get().is_null());
-            assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+            assert_ne!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL), 0);
             let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
 
             // The old window proxy no longer owns this browsing context.

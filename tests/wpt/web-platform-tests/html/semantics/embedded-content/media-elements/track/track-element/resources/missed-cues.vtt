@@ -1,0 +1,31 @@
+WEBVTT
+Events should be triggered for missed (skipped) cues during normal playback.
+
+1
+00:00:00.000 --> 00:00:01.500 align:start position:20%
+Bear is Coming!!!!!
+And what kind of a bear it is - just have look.
+
+2
+00:00:02.000 --> 00:00:02.500 align:start position:20%
+I said Bear is coming!!!!
+
+3
+00:00:05.500 --> 00:00:05.501 align:start position:20%
+I said Bear is coming now!!!!
+
+4
+00:00:05.700 --> 00:00:05.701 align:start position:20%
+This is the second missed cue in the test.
+
+5
+00:00:05.800 --> 00:00:05.800 align:start position:20%
+Third missed cue - zero-length cue.
+
+6
+00:00:05.850 --> 00:00:05.851 align:start position:20%
+Fourth missed cue.
+
+7
+00:00:05.950 --> 00:00:01.100
+Negative length cue. Should be treated correctly.

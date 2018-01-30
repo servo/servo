@@ -73,7 +73,7 @@
         assert_false(idl.is_json_type(typeFrom("sequence<DOMException>")));
         assert_true(idl.is_json_type(typeFrom("sequence<DOMString>")));
     }, 'should handle sequences according to their inner types');
-    
+
     test(function() {
         var idl = new IdlArray();
         assert_false(idl.is_json_type(typeFrom("FrozenArray<DOMException>")));
@@ -192,4 +192,3 @@
 </script>
 </body>
 </html>
-

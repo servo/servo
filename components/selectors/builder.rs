@@ -98,11 +98,19 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
 
     /// Consumes the builder, producing a Selector.
     #[inline(always)]
-    pub fn build(&mut self, parsed_pseudo: bool) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
+    pub fn build(
+        &mut self,
+        parsed_pseudo: bool,
+        parsed_slotted: bool,
+    ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
         // Compute the specificity and flags.
         let mut spec = SpecificityAndFlags(specificity(self.simple_selectors.iter()));
         if parsed_pseudo {
             spec.0 |= HAS_PSEUDO_BIT;
+        }
+
+        if parsed_slotted {
+            spec.0 |= HAS_SLOTTED_BIT;
         }
 
         self.build_with_specificity_and_flags(spec)
@@ -188,17 +196,27 @@ fn split_from_end<T>(s: &[T], at: usize) -> (&[T], &[T]) {
 }
 
 pub const HAS_PSEUDO_BIT: u32 = 1 << 30;
+pub const HAS_SLOTTED_BIT: u32 = 1 << 31;
 
+/// We use ten bits for each specificity kind (id, class, element), and the two
+/// high bits for the pseudo and slotted flags.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SpecificityAndFlags(pub u32);
 
 impl SpecificityAndFlags {
+    #[inline]
     pub fn specificity(&self) -> u32 {
-        self.0 & !HAS_PSEUDO_BIT
+        self.0 & !(HAS_PSEUDO_BIT | HAS_SLOTTED_BIT)
     }
 
+    #[inline]
     pub fn has_pseudo_element(&self) -> bool {
         (self.0 & HAS_PSEUDO_BIT) != 0
+    }
+
+    #[inline]
+    pub fn is_slotted(&self) -> bool {
+        (self.0 & HAS_SLOTTED_BIT) != 0
     }
 }
 
@@ -264,12 +282,23 @@ fn complex_selector_specificity<Impl>(mut iter: slice::Iter<Component<Impl>>)
                                       -> Specificity
     where Impl: SelectorImpl
 {
-    fn simple_selector_specificity<Impl>(simple_selector: &Component<Impl>,
-                                         specificity: &mut Specificity)
-        where Impl: SelectorImpl
+    fn simple_selector_specificity<Impl>(
+        simple_selector: &Component<Impl>,
+        specificity: &mut Specificity,
+    )
+    where
+        Impl: SelectorImpl
     {
         match *simple_selector {
             Component::Combinator(..) => unreachable!(),
+            // FIXME(emilio): Spec doesn't define any particular specificity for
+            // ::slotted(), so apply the general rule for pseudos per:
+            //
+            // https://github.com/w3c/csswg-drafts/issues/1915
+            //
+            // Though other engines compute it dynamically, so maybe we should
+            // do that instead, eventually.
+            Component::Slotted(..) |
             Component::PseudoElement(..) |
             Component::LocalName(..) => {
                 specificity.element_selectors += 1

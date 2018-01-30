@@ -204,6 +204,9 @@ mod bindings {
 
             // Disable rust unions, because we replace some types inside of
             // them.
+            //
+            // FIXME(emilio, bug 1432153): Make the bindings rustfmt'd on
+            // automation.
             let mut builder = Builder::default()
                 .rustfmt_bindings(false)
                 .rust_target(RustTarget::Stable_1_0);

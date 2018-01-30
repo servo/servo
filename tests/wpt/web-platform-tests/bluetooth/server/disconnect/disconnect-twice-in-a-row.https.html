@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Calling disconnect twice in a row still results in ' +
+  '\'connected\' being false.';
+let device, fake_peripheral;
+
+// TODO(569716): Test that the disconnect signal was sent to the device.
+bluetooth_test(() => getDiscoveredHealthThermometerDevice()
+    .then(_ => ({device, fake_peripheral} = _))
+    .then(() => fake_peripheral.setNextGATTConnectionResponse({
+      code: HCI_SUCCESS,
+    }))
+    .then(() => device.gatt.connect())
+    .then(gattServer => {
+      gattServer.disconnect();
+      assert_false(gattServer.connected);
+      gattServer.disconnect();
+      assert_false(gattServer.connected);
+    }), test_desc);
+</script>

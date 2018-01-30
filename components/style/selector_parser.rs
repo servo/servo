@@ -9,7 +9,7 @@
 use cssparser::{Parser as CssParser, ParserInput};
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug, Write};
-use style_traits::{ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, ToCss};
 use stylesheets::{Origin, Namespaces, UrlExtraData};
 
 /// A convenient alias for the type that represents an attribute value used for
@@ -183,11 +183,25 @@ pub enum Direction {
     /// right-to-left semantic directionality
     Rtl,
     /// Some other provided directionality value
+    ///
+    /// TODO(emilio): If we atomize we can then unbox in NonTSPseudoClass.
     Other(Box<str>),
 }
 
+impl Direction {
+    /// Parse a direction value.
+    pub fn parse<'i, 't>(parser: &mut CssParser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let ident = parser.expect_ident()?;
+        Ok(match_ignore_ascii_case! { &ident,
+            "rtl" => Direction::Rtl,
+            "ltr" => Direction::Ltr,
+            _ => Direction::Other(Box::from(ident.as_ref())),
+        })
+    }
+}
+
 impl ToCss for Direction {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
         let dir_str = match *self {
             Direction::Rtl => "rtl",
             Direction::Ltr => "ltr",

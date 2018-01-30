@@ -15,12 +15,13 @@ use properties::{ComputedValues, LonghandId, StyleBuilder};
 use rule_cache::RuleCacheConditions;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
-use std::{f32, fmt};
 use std::cell::RefCell;
+use std::f32;
+use std::fmt::{self, Write};
 #[cfg(feature = "servo")]
 use std::sync::Arc;
-use style_traits::ToCss;
-use style_traits::cursor::Cursor;
+use style_traits::{CssWriter, ToCss};
+use style_traits::cursor::CursorKind;
 use super::{CSSFloat, CSSInteger};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
@@ -31,7 +32,9 @@ use super::specified;
 pub use app_units::Au;
 pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::align::{AlignItems, AlignContent, JustifyContent, SelfAlignment, JustifyItems};
+#[cfg(feature = "gecko")]
+pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
@@ -40,13 +43,14 @@ pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVa
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
-pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior};
-pub use self::box_::{OverflowClipBox, ScrollSnapType, VerticalAlign};
+pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior, Contain};
+pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::counters::CounterReset;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
+pub use self::inherited_box::{Orientation, ImageOrientation};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
@@ -55,11 +59,20 @@ pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPercentage};
+pub use self::list::{ListStyleImage, Quotes};
+#[cfg(feature = "gecko")]
+pub use self::list::ListStyleType;
+pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
 pub use self::position::{Position, GridAutoFlow, GridTemplateAreas};
-pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
+pub use self::pointing::Cursor;
+#[cfg(feature = "gecko")]
+pub use self::pointing::CursorImage;
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
+pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
+pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextAlign, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin};
 pub use self::ui::MozForceBrokenImageIcon;
@@ -78,10 +91,14 @@ pub mod effects;
 pub mod flex;
 pub mod font;
 pub mod image;
+pub mod inherited_box;
 #[cfg(feature = "gecko")]
 pub mod gecko;
 pub mod length;
+pub mod list;
+pub mod outline;
 pub mod percentage;
+pub mod pointing;
 pub mod position;
 pub mod rect;
 pub mod svg;
@@ -396,9 +413,10 @@ trivial_to_computed_value!(u16);
 trivial_to_computed_value!(u32);
 trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(BorderStyle);
-trivial_to_computed_value!(Cursor);
+trivial_to_computed_value!(CursorKind);
 trivial_to_computed_value!(Namespace);
 trivial_to_computed_value!(String);
+trivial_to_computed_value!(Box<str>);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
@@ -518,7 +536,10 @@ pub struct ClipRect {
 }
 
 impl ToCss for ClipRect {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("rect(")?;
         if let Some(top) = self.top {
             top.to_css(dest)?;
@@ -614,7 +635,10 @@ impl ComputedUrl {
 
 #[cfg(feature = "servo")]
 impl ToCss for ComputedUrl {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let string = match *self {
             ComputedUrl::Valid(ref url) => url.as_str(),
             ComputedUrl::Invalid(ref invalid_string) => invalid_string,

@@ -8,8 +8,8 @@ use app_units::AU_PER_PX;
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{CssStringWriter, Parser, RGBA, Token, BasicParseErrorKind};
-use euclid::ScaleFactor;
 use euclid::Size2D;
+use euclid::TypedScale;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
@@ -24,7 +24,7 @@ use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
-use style_traits::{CSSPixel, DevicePixel};
+use style_traits::{CSSPixel, CssWriter, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::Origin;
@@ -187,12 +187,12 @@ impl Device {
     }
 
     /// Returns the device pixel ratio.
-    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
         let override_dppx = self.pres_context().mOverrideDPPX;
-        if override_dppx > 0.0 { return ScaleFactor::new(override_dppx); }
+        if override_dppx > 0.0 { return TypedScale::new(override_dppx); }
         let au_per_dpx = self.pres_context().mCurAppUnitsPerDevPixel as f32;
         let au_per_px = AU_PER_PX as f32;
-        ScaleFactor::new(au_per_px / au_per_dpx)
+        TypedScale::new(au_per_px / au_per_dpx)
     }
 
     /// Returns whether document colors are enabled.
@@ -236,7 +236,7 @@ pub struct Expression {
 }
 
 impl ToCss for Expression {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
         where W: fmt::Write,
     {
         dest.write_str("(")?;
@@ -408,7 +408,7 @@ impl MediaExpressionValue {
 }
 
 impl MediaExpressionValue {
-    fn to_css<W>(&self, dest: &mut W, for_expr: &Expression) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>, for_expr: &Expression) -> fmt::Result
         where W: fmt::Write,
     {
         match *self {
@@ -684,9 +684,11 @@ impl Expression {
     pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
         let mut css_value = nsCSSValue::null();
         unsafe {
-            (self.feature.mGetter.unwrap())(device.pres_context,
-                                            self.feature,
-                                            &mut css_value)
+            (self.feature.mGetter.unwrap())(
+                device.pres_context().mDocument.raw::<structs::nsIDocument>(),
+                self.feature,
+                &mut css_value,
+            )
         };
 
         let value = match MediaExpressionValue::from_css_value(self, &css_value) {

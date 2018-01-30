@@ -106,7 +106,7 @@ impl PerformanceObserverMethods for PerformanceObserver {
         // step 2
         // There must be at least one valid entry type.
         if entry_types.is_empty() {
-            return Err((Error::Type("entryTypes cannot be empty".to_string())));
+            return Err(Error::Type("entryTypes cannot be empty".to_string()));
         }
 
         // step 3-4-5

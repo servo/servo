@@ -8,6 +8,8 @@ publish = false
 [lib]
 name = "net_traits"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 cookie = "0.10"

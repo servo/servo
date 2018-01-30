@@ -11,6 +11,10 @@ functions are applied to the response from left to right. For example::
 This would serve bytes 1 to 199, inclusive, of foo.txt with the HTTP status
 code 404.
 
+.. note::
+   If you write directly to the response socket using ResponseWriter,
+   or when using the asis handler, only the trickle pipe will affect the response.
+
 There are several built-in pipe functions, and it is possible to add
 more using the `@pipe` decorator on a function, if required.
 

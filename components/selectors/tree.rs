@@ -6,7 +6,7 @@
 //! between layout and style.
 
 use attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use matching::{ElementSelectorFlags, MatchingContext};
 use parser::SelectorImpl;
 use servo_arc::NonZeroPtrMut;
 use std::fmt::Debug;
@@ -14,7 +14,7 @@ use std::fmt::Debug;
 /// Opaque representation of an Element, for identity comparisons. We use
 /// NonZeroPtrMut to get the NonZero optimization.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct OpaqueElement(pub NonZeroPtrMut<()>);
+pub struct OpaqueElement(NonZeroPtrMut<()>);
 
 impl OpaqueElement {
     /// Creates a new OpaqueElement from an arbitrarily-typed pointer.
@@ -68,7 +68,6 @@ pub trait Element: Sized + Clone + Debug {
         &self,
         pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        relevant_link: &RelevantLinkStatus,
         flags_setter: &mut F,
     ) -> bool
     where
@@ -82,6 +81,16 @@ pub trait Element: Sized + Clone + Debug {
 
     /// Whether this element is a `link`.
     fn is_link(&self) -> bool;
+
+    /// Returns whether the element is an HTML <slot> element.
+    fn is_html_slot_element(&self) -> bool;
+
+    /// Returns the assigned <slot> element this element is assigned to.
+    ///
+    /// Necessary for the `::slotted` pseudo-class.
+    fn assigned_slot(&self) -> Option<Self> {
+        None
+    }
 
     fn has_id(&self,
               id: &<Self::Impl as SelectorImpl>::Identifier,

@@ -10,8 +10,8 @@ use Atom;
 use cssparser::serialize_identifier;
 use custom_properties;
 use servo_arc::Arc;
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 /// An [image].
 ///
@@ -143,7 +143,10 @@ pub struct PaintWorklet {
 trivial_to_computed_value!(PaintWorklet);
 
 impl ToCss for PaintWorklet {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("paint(")?;
         serialize_identifier(&*self.name.to_string(), dest)?;
         for argument in &self.arguments {
@@ -169,28 +172,23 @@ pub struct MozImageRect<NumberOrPercentage, MozImageRectUrl> {
 }
 
 impl<G, R, U> fmt::Debug for Image<G, R, U>
-    where G: fmt::Debug, R: fmt::Debug, U: fmt::Debug + ToCss
+where
+    G: ToCss,
+    R: ToCss,
+    U: ToCss,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Image::Url(ref url) => url.to_css(f),
-            Image::Gradient(ref grad) => grad.fmt(f),
-            Image::Rect(ref rect) => rect.fmt(f),
-            #[cfg(feature = "servo")]
-            Image::PaintWorklet(ref paint_worklet) => paint_worklet.fmt(f),
-            Image::Element(ref selector) => {
-                f.write_str("-moz-element(#")?;
-                serialize_identifier(&selector.to_string(), f)?;
-                f.write_str(")")
-            },
-        }
+        self.to_css(&mut CssWriter::new(f))
     }
 }
 
 impl<G, R, U> ToCss for Image<G, R, U>
     where G: ToCss, R: ToCss, U: ToCss
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
@@ -209,7 +207,10 @@ impl<G, R, U> ToCss for Image<G, R, U>
 impl<D, L, LoP, P, C, A> ToCss for Gradient<D, L, LoP, P, C, A>
     where D: LineDirection, L: ToCss, LoP: ToCss, P: ToCss, C: ToCss, A: ToCss
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match self.compat_mode {
             CompatMode::WebKit => dest.write_str("-webkit-")?,
             CompatMode::Moz => dest.write_str("-moz-")?,
@@ -283,17 +284,17 @@ pub trait LineDirection {
     fn points_downwards(&self, compat_mode: CompatMode) -> bool;
 
     /// Serialises this direction according to the compatibility mode.
-    fn to_css<W>(&self, dest: &mut W, compat_mode: CompatMode) -> fmt::Result
-        where W: fmt::Write;
+    fn to_css<W>(&self, dest: &mut CssWriter<W>, compat_mode: CompatMode) -> fmt::Result
+        where W: Write;
 }
 
 impl<L> ToCss for Circle<L>
 where
     L: ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         match *self {
             Circle::Extent(ShapeExtent::FarthestCorner) |

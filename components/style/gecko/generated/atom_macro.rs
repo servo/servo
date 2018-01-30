@@ -2216,8 +2216,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7preloadE"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms11prerenderedE"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms15mozpresentationE"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8preserveE"]
@@ -2276,8 +2274,6 @@ cfg_if! {
             pub static nsGkAtoms_rect: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms9rectangleE"]
             pub static nsGkAtoms_rectangle: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms3refE"]
-            pub static nsGkAtoms_ref: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7refreshE"]
             pub static nsGkAtoms_refresh: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms3relE"]
@@ -2312,8 +2308,6 @@ cfg_if! {
             pub static nsGkAtoms_resizer: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms10resolutionE"]
             pub static nsGkAtoms_resolution: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms8resourceE"]
-            pub static nsGkAtoms_resource: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms9resourcesE"]
             pub static nsGkAtoms_resources: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6resultE"]
@@ -2486,14 +2480,6 @@ cfg_if! {
             pub static nsGkAtoms_sorthints: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms10sortLockedE"]
             pub static nsGkAtoms_sortLocked: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms12sortResourceE"]
-            pub static nsGkAtoms_sortResource: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms13sortResource2E"]
-            pub static nsGkAtoms_sortResource2: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms14sortSeparatorsE"]
-            pub static nsGkAtoms_sortSeparators: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms15sortStaticsLastE"]
-            pub static nsGkAtoms_sortStaticsLast: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6sourceE"]
             pub static nsGkAtoms_source: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5spaceE"]
@@ -4374,8 +4360,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms19forcemessagemanagerE"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms16isPreloadBrowserE"]
-            pub static nsGkAtoms_isPreloadBrowser: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms14preloadedStateE"]
+            pub static nsGkAtoms_preloadedState: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms24scrollbar_start_backwardE"]
             pub static nsGkAtoms_scrollbar_start_backward: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms23scrollbar_start_forwardE"]
@@ -5192,8 +5178,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes15mozTreeCheckboxE"]
             pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes20mozTreeProgressmeterE"]
-            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes19mozTreeDropFeedbackE"]
             pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes21mozSVGMarkerAnonChildE"]
@@ -7403,8 +7387,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "?preload@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "?prerendered@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "?mozpresentation@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "?preserve@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -7463,8 +7445,6 @@ cfg_if! {
             pub static nsGkAtoms_rect: *mut nsStaticAtom;
             #[link_name = "?rectangle@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_rectangle: *mut nsStaticAtom;
-            #[link_name = "?ref@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_ref: *mut nsStaticAtom;
             #[link_name = "?refresh@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_refresh: *mut nsStaticAtom;
             #[link_name = "?rel@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -7499,8 +7479,6 @@ cfg_if! {
             pub static nsGkAtoms_resizer: *mut nsStaticAtom;
             #[link_name = "?resolution@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_resolution: *mut nsStaticAtom;
-            #[link_name = "?resource@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_resource: *mut nsStaticAtom;
             #[link_name = "?resources@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_resources: *mut nsStaticAtom;
             #[link_name = "?result@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -7673,14 +7651,6 @@ cfg_if! {
             pub static nsGkAtoms_sorthints: *mut nsStaticAtom;
             #[link_name = "?sortLocked@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_sortLocked: *mut nsStaticAtom;
-            #[link_name = "?sortResource@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_sortResource: *mut nsStaticAtom;
-            #[link_name = "?sortResource2@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_sortResource2: *mut nsStaticAtom;
-            #[link_name = "?sortSeparators@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_sortSeparators: *mut nsStaticAtom;
-            #[link_name = "?sortStaticsLast@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_sortStaticsLast: *mut nsStaticAtom;
             #[link_name = "?source@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_source: *mut nsStaticAtom;
             #[link_name = "?space@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -9561,8 +9531,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsStaticAtom;
             #[link_name = "?forcemessagemanager@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsStaticAtom;
-            #[link_name = "?isPreloadBrowser@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_isPreloadBrowser: *mut nsStaticAtom;
+            #[link_name = "?preloadedState@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_preloadedState: *mut nsStaticAtom;
             #[link_name = "?scrollbar_start_backward@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_scrollbar_start_backward: *mut nsStaticAtom;
             #[link_name = "?scrollbar_start_forward@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -10379,8 +10349,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozTreeCheckbox@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozTreeProgressmeter@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozTreeDropFeedback@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -12590,8 +12558,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "\x01?preload@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "\x01?prerendered@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "\x01?mozpresentation@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "\x01?preserve@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -12650,8 +12616,6 @@ cfg_if! {
             pub static nsGkAtoms_rect: *mut nsStaticAtom;
             #[link_name = "\x01?rectangle@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_rectangle: *mut nsStaticAtom;
-            #[link_name = "\x01?ref@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_ref: *mut nsStaticAtom;
             #[link_name = "\x01?refresh@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_refresh: *mut nsStaticAtom;
             #[link_name = "\x01?rel@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -12686,8 +12650,6 @@ cfg_if! {
             pub static nsGkAtoms_resizer: *mut nsStaticAtom;
             #[link_name = "\x01?resolution@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_resolution: *mut nsStaticAtom;
-            #[link_name = "\x01?resource@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_resource: *mut nsStaticAtom;
             #[link_name = "\x01?resources@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_resources: *mut nsStaticAtom;
             #[link_name = "\x01?result@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -12860,14 +12822,6 @@ cfg_if! {
             pub static nsGkAtoms_sorthints: *mut nsStaticAtom;
             #[link_name = "\x01?sortLocked@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_sortLocked: *mut nsStaticAtom;
-            #[link_name = "\x01?sortResource@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_sortResource: *mut nsStaticAtom;
-            #[link_name = "\x01?sortResource2@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_sortResource2: *mut nsStaticAtom;
-            #[link_name = "\x01?sortSeparators@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_sortSeparators: *mut nsStaticAtom;
-            #[link_name = "\x01?sortStaticsLast@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_sortStaticsLast: *mut nsStaticAtom;
             #[link_name = "\x01?source@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_source: *mut nsStaticAtom;
             #[link_name = "\x01?space@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -14748,8 +14702,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsStaticAtom;
             #[link_name = "\x01?forcemessagemanager@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsStaticAtom;
-            #[link_name = "\x01?isPreloadBrowser@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_isPreloadBrowser: *mut nsStaticAtom;
+            #[link_name = "\x01?preloadedState@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_preloadedState: *mut nsStaticAtom;
             #[link_name = "\x01?scrollbar_start_backward@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_scrollbar_start_backward: *mut nsStaticAtom;
             #[link_name = "\x01?scrollbar_start_forward@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -15566,8 +15520,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozTreeCheckbox@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozTreeProgressmeter@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozTreeDropFeedback@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -17780,8 +17732,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prefix as *mut _) } }};
 ("preload") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preload as *mut _) } }};
-("prerendered") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prerendered as *mut _) } }};
 ("mozpresentation") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpresentation as *mut _) } }};
 ("preserve") =>
@@ -17840,8 +17790,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rect as *mut _) } }};
 ("rectangle") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rectangle as *mut _) } }};
-("ref") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ref as *mut _) } }};
 ("refresh") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refresh as *mut _) } }};
 ("rel") =>
@@ -17876,8 +17824,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resizer as *mut _) } }};
 ("resolution") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resolution as *mut _) } }};
-("resource") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resource as *mut _) } }};
 ("resources") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resources as *mut _) } }};
 ("result") =>
@@ -18050,14 +17996,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sorthints as *mut _) } }};
 ("sortLocked") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortLocked as *mut _) } }};
-("sortResource") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortResource as *mut _) } }};
-("sortResource2") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortResource2 as *mut _) } }};
-("sortSeparators") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortSeparators as *mut _) } }};
-("sortStaticsLast") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortStaticsLast as *mut _) } }};
 ("source") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_source as *mut _) } }};
 ("space") =>
@@ -19938,8 +19876,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AsyncScrollLayerCreationFailed as *mut _) } }};
 ("forcemessagemanager") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forcemessagemanager as *mut _) } }};
-("isPreloadBrowser") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_isPreloadBrowser as *mut _) } }};
+("preloadedState") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preloadedState as *mut _) } }};
 ("scrollbar-start-backward") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_start_backward as *mut _) } }};
 ("scrollbar-start-forward") =>
@@ -20756,8 +20694,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeCellText as *mut _) } }};
 (":-moz-tree-checkbox") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeCheckbox as *mut _) } }};
-(":-moz-tree-progressmeter") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeProgressmeter as *mut _) } }};
 (":-moz-tree-drop-feedback") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeDropFeedback as *mut _) } }};
 (":-moz-svg-marker-anon-child") =>

@@ -353,7 +353,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                 self.dom_outputs.insert(pipeline_id, DOMToTextureData {
                     context_id, texture_id, document_id, size
                 });
-                self.webrender_api.enable_frame_output(document_id, pipeline_id, true);
+                let mut txn = webrender_api::Transaction::new();
+                txn.enable_frame_output(pipeline_id, true);
+                self.webrender_api.send_transaction(document_id, txn);
             },
             DOMToTextureCommand::Lock(pipeline_id, gl_sync, sender) => {
                 let contexts = &self.contexts;
@@ -376,7 +378,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                 if let Some((pipeline_id, document_id)) = self.dom_outputs.iter()
                                                                           .find(|&(_, v)| v.texture_id == texture_id)
                                                                           .map(|(k, v)| (*k, v.document_id)) {
-                    self.webrender_api.enable_frame_output(document_id, pipeline_id, false);
+                    let mut txn = webrender_api::Transaction::new();
+                    txn.enable_frame_output(pipeline_id, false);
+                    self.webrender_api.send_transaction(document_id, txn);
                     self.dom_outputs.remove(&pipeline_id);
                 }
             },
@@ -487,7 +491,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             width: size.width as u32,
             height: size.height as u32,
             stride: None,
-            format: if alpha { webrender_api::ImageFormat::BGRA8 } else { webrender_api::ImageFormat::RGB8 },
+            format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
             is_opaque: !alpha,
         }
@@ -498,7 +502,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         let data = webrender_api::ExternalImageData {
             id: webrender_api::ExternalImageId(context_id.0 as u64),
             channel_index: 0,
-            image_type: webrender_api::ExternalImageType::Texture2DHandle,
+            image_type: webrender_api::ExternalImageType::TextureHandle(
+                webrender_api::TextureTarget::Default,
+            ),
         };
         webrender_api::ImageData::External(data)
     }
@@ -608,10 +614,12 @@ impl<T: WebGLExternalImageApi> webrender::ExternalImageHandler for WebGLExternal
         let (texture_id, size) = self.handler.lock(ctx_id);
 
         webrender::ExternalImage {
-            u0: 0.0,
-            u1: size.width as f32,
-            v1: 0.0,
-            v0: size.height as f32,
+            uv: webrender_api::TexelRect::new(
+                0.0,
+                size.height as f32,
+                size.width as f32,
+                0.0,
+            ),
             source: webrender::ExternalImageSource::NativeTexture(texture_id),
         }
 
@@ -880,7 +888,7 @@ impl WebGLImpl {
         // TODO: update test expectations in order to enable debug assertions
         //if cfg!(debug_assertions) {
             let error = ctx.gl().get_error();
-            assert!(error == gl::NO_ERROR, "Unexpected WebGL error: 0x{:x} ({})", error, error);
+            assert_eq!(error, gl::NO_ERROR, "Unexpected WebGL error: 0x{:x} ({})", error, error);
         //}
     }
 

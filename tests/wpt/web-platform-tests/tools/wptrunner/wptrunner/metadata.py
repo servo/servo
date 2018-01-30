@@ -355,7 +355,7 @@ def load_expected(test_manifest, metadata_path, test_path, tests, property_order
 
     # Remove expected data for tests that no longer exist
     for test in expected_manifest.iterchildren():
-        if not test.id in tests_by_id:
+        if test.id not in tests_by_id:
             test.remove()
 
     # Add tests that don't have expected data

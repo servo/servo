@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Declared StylePropertyMap tests</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#declared-stylepropertymap-objects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<style>
+#target { width: 100px; height: 100px; background: red; }
+</style>
+<body>
+<div id="target">
+<script>
+'use strict';
+
+test(() => {
+  let rule = document.styleSheets[0].rules[0];
+  rule.attributeStyleMap.set('width', CSS.px(200));
+  assert_equals(getComputedStyle(target).width, '200px')
+  rule.attributeStyleMap.set('width', CSS.px(150));
+  assert_equals(getComputedStyle(target).width, '150px')
+});
+</script>
+</body>

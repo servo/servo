@@ -8,7 +8,7 @@ use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent};
 use compositing::windowing::{WebRenderDebugOption, WindowEvent, WindowMethods};
-use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, ScaleFactor, TypedSize2D};
+use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -42,7 +42,7 @@ use std::rc::Rc;
 use std::thread;
 use std::time;
 use style_traits::DevicePixel;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 #[cfg(target_os = "windows")]
 use user32;
 use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
@@ -138,7 +138,7 @@ impl HeadlessContext {
                                                     gl::UNSIGNED_BYTE,
                                                     width as i32,
                                                     height as i32);
-            assert!(ret != 0);
+            assert_ne!(ret, 0);
         };
 
         HeadlessContext {
@@ -210,15 +210,15 @@ pub struct Window {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
-    ScaleFactor::new(1.0)
+fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+    TypedScale::new(1.0)
 }
 
 #[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        ScaleFactor::new(ppi as f32 / 96.0)
+        TypedScale::new(ppi as f32 / 96.0)
 }
 
 
@@ -1124,22 +1124,22 @@ impl WindowMethods for Window {
     }
 
     #[cfg(not(target_os = "windows"))]
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
-                ScaleFactor::new(window.hidpi_factor())
+                TypedScale::new(window.hidpi_factor())
             }
             WindowKind::Headless(..) => {
-                ScaleFactor::new(1.0)
+                TypedScale::new(1.0)
             }
         }
     }
 
     #[cfg(target_os = "windows")]
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        ScaleFactor::new(ppi as f32 / 96.0)
+        TypedScale::new(ppi as f32 / 96.0)
     }
 
     fn set_page_title(&self, _: BrowserId, title: Option<String>) {
@@ -1190,47 +1190,48 @@ impl WindowMethods for Window {
     }
 
     /// Has no effect on Android.
-    fn set_cursor(&self, c: Cursor) {
+    fn set_cursor(&self, cursor: CursorKind) {
         match self.kind {
             WindowKind::Window(ref window) => {
                 use glutin::MouseCursor;
 
-                let glutin_cursor = match c {
-                    Cursor::None => MouseCursor::NoneCursor,
-                    Cursor::Default => MouseCursor::Default,
-                    Cursor::Pointer => MouseCursor::Hand,
-                    Cursor::ContextMenu => MouseCursor::ContextMenu,
-                    Cursor::Help => MouseCursor::Help,
-                    Cursor::Progress => MouseCursor::Progress,
-                    Cursor::Wait => MouseCursor::Wait,
-                    Cursor::Cell => MouseCursor::Cell,
-                    Cursor::Crosshair => MouseCursor::Crosshair,
-                    Cursor::Text => MouseCursor::Text,
-                    Cursor::VerticalText => MouseCursor::VerticalText,
-                    Cursor::Alias => MouseCursor::Alias,
-                    Cursor::Copy => MouseCursor::Copy,
-                    Cursor::Move => MouseCursor::Move,
-                    Cursor::NoDrop => MouseCursor::NoDrop,
-                    Cursor::NotAllowed => MouseCursor::NotAllowed,
-                    Cursor::Grab => MouseCursor::Grab,
-                    Cursor::Grabbing => MouseCursor::Grabbing,
-                    Cursor::EResize => MouseCursor::EResize,
-                    Cursor::NResize => MouseCursor::NResize,
-                    Cursor::NeResize => MouseCursor::NeResize,
-                    Cursor::NwResize => MouseCursor::NwResize,
-                    Cursor::SResize => MouseCursor::SResize,
-                    Cursor::SeResize => MouseCursor::SeResize,
-                    Cursor::SwResize => MouseCursor::SwResize,
-                    Cursor::WResize => MouseCursor::WResize,
-                    Cursor::EwResize => MouseCursor::EwResize,
-                    Cursor::NsResize => MouseCursor::NsResize,
-                    Cursor::NeswResize => MouseCursor::NeswResize,
-                    Cursor::NwseResize => MouseCursor::NwseResize,
-                    Cursor::ColResize => MouseCursor::ColResize,
-                    Cursor::RowResize => MouseCursor::RowResize,
-                    Cursor::AllScroll => MouseCursor::AllScroll,
-                    Cursor::ZoomIn => MouseCursor::ZoomIn,
-                    Cursor::ZoomOut => MouseCursor::ZoomOut,
+                let glutin_cursor = match cursor {
+                    CursorKind::Auto => MouseCursor::Default,
+                    CursorKind::None => MouseCursor::NoneCursor,
+                    CursorKind::Default => MouseCursor::Default,
+                    CursorKind::Pointer => MouseCursor::Hand,
+                    CursorKind::ContextMenu => MouseCursor::ContextMenu,
+                    CursorKind::Help => MouseCursor::Help,
+                    CursorKind::Progress => MouseCursor::Progress,
+                    CursorKind::Wait => MouseCursor::Wait,
+                    CursorKind::Cell => MouseCursor::Cell,
+                    CursorKind::Crosshair => MouseCursor::Crosshair,
+                    CursorKind::Text => MouseCursor::Text,
+                    CursorKind::VerticalText => MouseCursor::VerticalText,
+                    CursorKind::Alias => MouseCursor::Alias,
+                    CursorKind::Copy => MouseCursor::Copy,
+                    CursorKind::Move => MouseCursor::Move,
+                    CursorKind::NoDrop => MouseCursor::NoDrop,
+                    CursorKind::NotAllowed => MouseCursor::NotAllowed,
+                    CursorKind::Grab => MouseCursor::Grab,
+                    CursorKind::Grabbing => MouseCursor::Grabbing,
+                    CursorKind::EResize => MouseCursor::EResize,
+                    CursorKind::NResize => MouseCursor::NResize,
+                    CursorKind::NeResize => MouseCursor::NeResize,
+                    CursorKind::NwResize => MouseCursor::NwResize,
+                    CursorKind::SResize => MouseCursor::SResize,
+                    CursorKind::SeResize => MouseCursor::SeResize,
+                    CursorKind::SwResize => MouseCursor::SwResize,
+                    CursorKind::WResize => MouseCursor::WResize,
+                    CursorKind::EwResize => MouseCursor::EwResize,
+                    CursorKind::NsResize => MouseCursor::NsResize,
+                    CursorKind::NeswResize => MouseCursor::NeswResize,
+                    CursorKind::NwseResize => MouseCursor::NwseResize,
+                    CursorKind::ColResize => MouseCursor::ColResize,
+                    CursorKind::RowResize => MouseCursor::RowResize,
+                    CursorKind::AllScroll => MouseCursor::AllScroll,
+                    CursorKind::ZoomIn => MouseCursor::ZoomIn,
+                    CursorKind::ZoomOut => MouseCursor::ZoomOut,
                 };
                 window.set_cursor(glutin_cursor);
             }

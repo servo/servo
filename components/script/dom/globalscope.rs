@@ -610,6 +610,6 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 unsafe fn global_scope_from_global(global: *mut JSObject) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
     let clasp = get_object_class(global);
-    assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+    assert_ne!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)), 0);
     root_from_object(global).unwrap()
 }

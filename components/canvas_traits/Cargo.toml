@@ -11,13 +11,13 @@ path = "lib.rs"
 
 [dependencies]
 cssparser = "0.23.0"
-euclid = "0.15"
+euclid = "0.16"
 ipc-channel = "0.9"
 lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 nonzero = {path = "../nonzero"}
-offscreen_gl_context = { version = "0.13", features = ["serde"] }
+offscreen_gl_context = { version = "0.14", features = ["serde"] }
 serde = "1.0"
 servo_config = {path = "../config"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

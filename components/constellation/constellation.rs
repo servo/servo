@@ -106,10 +106,8 @@ use compositing::compositor_thread::{CompositorProxy, EmbedderMsg, EmbedderProxy
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
-use euclid::{Size2D, TypedSize2D, ScaleFactor};
+use euclid::{Size2D, TypedSize2D, TypedScale};
 use event_loop::EventLoop;
-#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
-use gecko_media::GeckoMedia;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::{Error as IpcError};
@@ -154,7 +152,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style_traits::CSSPixel;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use webrender_api;
@@ -596,9 +594,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 mem_profiler_chan: state.mem_profiler_chan,
                 window_size: WindowSizeData {
                     initial_viewport: opts::get().initial_window_size.to_f32() *
-                        ScaleFactor::new(1.0),
+                        TypedScale::new(1.0),
                     device_pixel_ratio:
-                        ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
+                        TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
                 },
                 phantom: PhantomData,
                 clipboard_ctx: if state.supports_clipboard {
@@ -1483,16 +1481,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         debug!("Asking compositor to complete shutdown.");
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
-
-        #[cfg(all(
-            any(target_os = "macos", target_os = "linux"),
-            not(any(target_arch = "arm", target_arch = "aarch64")),
-        ))]
-        {
-            if let Err(()) = GeckoMedia::shutdown() {
-                warn!("Media stack shutdown failed.");
-            }
-        }
     }
 
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
@@ -1818,7 +1806,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.compositor_proxy.send(ToCompositorMsg::PendingPaintMetric(pipeline_id, epoch))
     }
 
-    fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
+    fn handle_set_cursor_msg(&mut self, cursor: CursorKind) {
         self.embedder_proxy.send(EmbedderMsg::SetCursor(cursor))
     }
 

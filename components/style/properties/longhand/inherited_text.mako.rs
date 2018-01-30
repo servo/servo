@@ -111,165 +111,12 @@ ${helpers.single_keyword("text-align-last",
 // TODO make this a shorthand and implement text-align-last/text-align-all
 //
 // FIXME(emilio): This can't really be that complicated.
-<%helpers:longhand name="text-align" animation_value_type="discrete"
-                   flags="APPLIES_TO_PLACEHOLDER"
-                   spec="https://drafts.csswg.org/css-text/#propdef-text-align">
-    pub use self::computed_value::TextAlign;
-
-    pub mod computed_value {
-        pub use self::TextAlign as T;
-
-        macro_rules! define_text_align {
-            ( $( $name: ident ( $string: expr ) => $discriminant: expr, )+ ) => {
-                define_css_keyword_enum! { TextAlign:
-                    $(
-                        $string => $name,
-                    )+
-                }
-
-                impl TextAlign {
-                    pub fn to_u32(self) -> u32 {
-                        match self {
-                            $(
-                                T::$name => $discriminant,
-                            )+
-                        }
-                    }
-                    pub fn from_u32(discriminant: u32) -> Option<T> {
-                        match discriminant {
-                            $(
-                                $discriminant => Some(T::$name),
-                            )+
-                            _ => None
-                        }
-                    }
-                }
-            }
-        }
-        // FIXME(emilio): Why reinventing the world?
-        define_text_align! {
-            Start("start") => 0,
-            End("end") => 1,
-            Left("left") => 2,
-            Right("right") => 3,
-            Center("center") => 4,
-            Justify("justify") => 5,
-            % if product == "servo":
-            ServoCenter("-servo-center") => 6,
-            ServoLeft("-servo-left") => 7,
-            ServoRight("-servo-right") => 8,
-            % else:
-            MozCenter("-moz-center") => 6,
-            MozLeft("-moz-left") => 7,
-            MozRight("-moz-right") => 8,
-            Char("char") => 10,
-            % endif
-        }
-
-        ${helpers.gecko_keyword_conversion(Keyword('text-align',
-                                                   """left right center justify -moz-left -moz-right
-                                                    -moz-center char end""",
-                                                    gecko_strip_moz_prefix=False), type="T")}
-    }
-
-    #[inline] pub fn get_initial_value() -> TextAlign {
-        TextAlign::Start
-    }
-
-
-    % if product == "gecko":
-        use std::fmt;
-        use style_traits::ToCss;
-
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-        pub enum SpecifiedValue {
-            Keyword(TextAlign),
-            MatchParent,
-            MozCenterOrInherit,
-        }
-        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<SpecifiedValue, ParseError<'i>> {
-            // MozCenterOrInherit cannot be parsed, only set directly on th elements
-            if let Ok(key) = input.try(TextAlign::parse) {
-                Ok(SpecifiedValue::Keyword(key))
-            } else {
-                input.expect_ident_matching("match-parent")?;
-                Ok(SpecifiedValue::MatchParent)
-            }
-        }
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    SpecifiedValue::Keyword(key) => key.to_css(dest),
-                    SpecifiedValue::MatchParent => dest.write_str("match-parent"),
-                    SpecifiedValue::MozCenterOrInherit => Ok(()),
-                }
-            }
-        }
-
-        impl SpecifiedValue {
-            pub fn from_gecko_keyword(kw: u32) -> Self {
-                use gecko_bindings::structs::NS_STYLE_TEXT_ALIGN_MATCH_PARENT;
-                if kw == NS_STYLE_TEXT_ALIGN_MATCH_PARENT {
-                    SpecifiedValue::MatchParent
-                } else {
-                    SpecifiedValue::Keyword(computed_value::T::from_gecko_keyword(kw))
-                }
-            }
-        }
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = TextAlign;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> TextAlign {
-                match *self {
-                    SpecifiedValue::Keyword(key) => key,
-                    SpecifiedValue::MatchParent => {
-                        // on the root <html> element we should still respect the dir
-                        // but the parent dir of that element is LTR even if it's <html dir=rtl>
-                        // and will only be RTL if certain prefs have been set.
-                        // In that case, the default behavior here will set it to left,
-                        // but we want to set it to right -- instead set it to the default (`start`),
-                        // which will do the right thing in this case (but not the general case)
-                        if context.is_root_element {
-                            return get_initial_value();
-                        }
-                        let parent = context.builder.get_parent_inheritedtext().clone_text_align();
-                        let ltr = context.builder.inherited_writing_mode().is_bidi_ltr();
-                        match (parent, ltr) {
-                            (TextAlign::Start, true) => TextAlign::Left,
-                            (TextAlign::Start, false) => TextAlign::Right,
-                            (TextAlign::End, true) => TextAlign::Right,
-                            (TextAlign::End, false) => TextAlign::Left,
-                            _ => parent
-                        }
-                    }
-                    SpecifiedValue::MozCenterOrInherit => {
-                        let parent = context.builder.get_parent_inheritedtext().clone_text_align();
-                        if parent == TextAlign::Start {
-                            TextAlign::Center
-                        } else {
-                            parent
-                        }
-                    }
-                }
-            }
-
-            #[inline]
-            fn from_computed_value(computed: &computed_value::T) -> Self {
-                SpecifiedValue::Keyword(*computed)
-            }
-        }
-    % else:
-        pub use self::computed_value::T as SpecifiedValue;
-        add_impls_for_keyword_enum!(SpecifiedValue);
-        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<SpecifiedValue, ParseError<'i>> {
-            computed_value::T::parse(input)
-        }
-    % endif
-</%helpers:longhand>
+${helpers.predefined_type("text-align",
+                          "TextAlign",
+                          "computed::TextAlign::start()",
+                          animation_value_type="discrete",
+                          flags="APPLIES_TO_PLACEHOLDER",
+                          spec="https://drafts.csswg.org/css-text/#propdef-text-align")}
 
 ${helpers.predefined_type("letter-spacing",
                           "LetterSpacing",
@@ -284,68 +131,6 @@ ${helpers.predefined_type("word-spacing",
                           animation_value_type="ComputedValue",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
-
-<%helpers:longhand name="-servo-text-decorations-in-effect"
-                   derived_from="display text-decoration"
-                   products="servo"
-                   animation_value_type="none"
-                   spec="Nonstandard (Internal property used by Servo)">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
-    pub struct SpecifiedValue {
-        pub underline: bool,
-        pub overline: bool,
-        pub line_through: bool,
-    }
-
-    trivial_to_computed_value!(SpecifiedValue);
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
-            // Web compat doesn't matter here.
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue::default()
-    }
-
-    fn derive(context: &Context) -> computed_value::T {
-        // Start with no declarations if this is an atomic inline-level box; otherwise, start with the
-        // declarations in effect and add in the text decorations that this block specifies.
-        let mut result = match context.style().get_box().clone_display() {
-            super::display::computed_value::T::InlineBlock |
-            super::display::computed_value::T::InlineTable => get_initial_value(),
-            _ => context.builder.get_parent_inheritedtext().clone__servo_text_decorations_in_effect()
-        };
-
-        result.underline |= context.style().get_text().has_underline();
-        result.overline |= context.style().get_text().has_overline();
-        result.line_through |= context.style().get_text().has_line_through();
-
-        result
-    }
-
-    #[inline]
-    pub fn derive_from_text_decoration(context: &mut Context) {
-        let derived = derive(context);
-        context.builder.set__servo_text_decorations_in_effect(derived);
-    }
-
-    #[inline]
-    pub fn derive_from_display(context: &mut Context) {
-        let derived = derive(context);
-        context.builder.set__servo_text_decorations_in_effect(derived);
-    }
-</%helpers:longhand>
 
 <%helpers:single_keyword_computed name="white-space"
                                   values="normal pre nowrap pre-wrap pre-line"
@@ -408,8 +193,8 @@ ${helpers.predefined_type(
                    animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
     use computed_values::writing_mode::T as WritingMode;
-    use std::fmt;
-    use style_traits::ToCss;
+    use std::fmt::{self, Write};
+    use style_traits::{CssWriter, ToCss};
     use unicode_segmentation::UnicodeSegmentation;
 
 
@@ -444,7 +229,7 @@ ${helpers.predefined_type(
     }
 
     impl ToCss for KeywordValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             if let Some(fill) = self.fill() {
                 if fill {
                     dest.write_str("filled")?;
@@ -461,8 +246,12 @@ ${helpers.predefined_type(
             Ok(())
         }
     }
+
     impl ToCss for computed_value::KeywordValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+        where
+            W: Write,
+        {
             if self.fill {
                 dest.write_str("filled")?;
             } else {

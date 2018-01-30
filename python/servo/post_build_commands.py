@@ -14,8 +14,6 @@ import os.path as path
 import subprocess
 from shutil import copytree, rmtree, copy2
 
-from mach.registrar import Registrar
-
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -24,7 +22,7 @@ from mach.decorators import (
 
 from servo.command_base import (
     CommandBase,
-    call, check_call,
+    check_call, check_output, BIN_SUFFIX,
     is_linux, is_windows, is_macosx, set_osmesa_env,
     get_browserhtml_path,
 )
@@ -211,10 +209,14 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     def doc(self, params):
+        env = os.environ.copy()
+        env["RUSTUP_TOOLCHAIN"] = self.toolchain()
+        rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
+        assert path.basename(path.dirname(rustc_path)) == "bin"
+        toolchain_path = path.dirname(path.dirname(rustc_path))
+        rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
+
         self.ensure_bootstrapped()
-        if not path.exists(path.join(self.config["tools"]["rust-root"], "doc")):
-            Registrar.dispatch("bootstrap-rust-docs", context=self.context)
-        rust_docs = path.join(self.config["tools"]["rust-root"], "doc")
         docs = path.join(self.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
@@ -234,8 +236,10 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        return call(["cargo", "doc"] + params,
-                    env=self.build_env(), cwd=self.servo_crate())
+        return self.call_rustup_run(
+            ["cargo", "doc", "--manifest-path", self.servo_manifest()] + params,
+            env=self.build_env()
+        )
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

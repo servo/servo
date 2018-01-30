@@ -8,12 +8,14 @@
 #![deny(unsafe_code)]
 
 use Atom;
+use CaseSensitivityExt;
 use LocalName as SelectorLocalName;
 use dom::{TElement, TNode};
 use fnv::FnvHashSet;
+use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::restyle_hints::RestyleHint;
 use media_queries::Device;
-use selector_parser::SelectorImpl;
+use selector_parser::{SelectorImpl, Snapshot, SnapshotMap};
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, LocalName, Selector};
 use shared_lock::SharedRwLockReadGuard;
@@ -43,21 +45,40 @@ impl Invalidation {
         matches!(*self, Invalidation::ID(..) | Invalidation::Class(..))
     }
 
-    fn matches<E>(&self, element: E) -> bool
-        where E: TElement,
+    fn matches<E>(&self, element: E, snapshot: Option<&Snapshot>) -> bool
+    where
+        E: TElement,
     {
+        // FIXME This should look at the quirks mode of the document to
+        // determine case sensitivity.
+        //
+        // FIXME(emilio): Actually write a test and fix this.
+        let case_sensitivity = CaseSensitivity::CaseSensitive;
         match *self {
             Invalidation::Class(ref class) => {
-                // FIXME This should look at the quirks mode of the document to
-                // determine case sensitivity.
-                element.has_class(class, CaseSensitivity::CaseSensitive)
+                if element.has_class(class, case_sensitivity) {
+                    return true;
+                }
+
+                if let Some(snapshot) = snapshot {
+                    if snapshot.has_class(class, case_sensitivity) {
+                        return true;
+                    }
+                }
             }
             Invalidation::ID(ref id) => {
-                match element.get_id() {
-                    // FIXME This should look at the quirks mode of the document
-                    // to determine case sensitivity.
-                    Some(element_id) => element_id == *id,
-                    None => false,
+                if let Some(ref element_id) = element.get_id() {
+                    if case_sensitivity.eq_atom(element_id, id) {
+                        return true;
+                    }
+                }
+
+                if let Some(snapshot) = snapshot {
+                    if let Some(ref old_id) = snapshot.id_attr() {
+                        if case_sensitivity.eq_atom(old_id, id) {
+                            return true;
+                        }
+                    }
                 }
             }
             Invalidation::LocalName { ref name, ref lower_name } => {
@@ -65,9 +86,11 @@ impl Invalidation {
                 // of testing against both names, but it's probably not worth
                 // it.
                 let local_name = element.get_local_name();
-                *local_name == **name || *local_name == **lower_name
+                return *local_name == **name || *local_name == **lower_name
             }
         }
+
+        false
     }
 }
 
@@ -145,11 +168,17 @@ impl StylesheetInvalidationSet {
     /// `document_element` is provided.
     ///
     /// Returns true if any invalidations ocurred.
-    pub fn flush<E>(&mut self, document_element: Option<E>) -> bool
-        where E: TElement,
+    pub fn flush<E>(
+        &mut self,
+        document_element: Option<E>,
+        snapshots: Option<&SnapshotMap>,
+    ) -> bool
+    where
+        E: TElement,
     {
+        debug!("Stylist::flush({:?}, snapshots: {})", document_element, snapshots.is_some());
         let have_invalidations = match document_element {
-            Some(e) => self.process_invalidations(e),
+            Some(e) => self.process_invalidations(e, snapshots),
             None => false,
         };
         self.clear();
@@ -163,9 +192,17 @@ impl StylesheetInvalidationSet {
         self.fully_invalid = false;
     }
 
-    fn process_invalidations<E>(&self, element: E) -> bool
-        where E: TElement,
+    fn process_invalidations<E>(&self, element: E, snapshots: Option<&SnapshotMap>) -> bool
+    where
+        E: TElement,
     {
+        debug!(
+           "Stylist::process_invalidations({:?}, {:?}, {:?})",
+           element,
+           self.invalid_scopes,
+           self.invalid_elements,
+        );
+
         {
             let mut data = match element.mutate_data() {
                 Some(data) => data,
@@ -185,7 +222,7 @@ impl StylesheetInvalidationSet {
             return false;
         }
 
-        self.process_invalidations_in_subtree(element)
+        self.process_invalidations_in_subtree(element, snapshots)
     }
 
     /// Process style invalidations in a given subtree. This traverses the
@@ -194,9 +231,15 @@ impl StylesheetInvalidationSet {
     ///
     /// Returns whether it invalidated at least one element's style.
     #[allow(unsafe_code)]
-    fn process_invalidations_in_subtree<E>(&self, element: E) -> bool
-        where E: TElement,
+    fn process_invalidations_in_subtree<E>(
+        &self,
+        element: E,
+        snapshots: Option<&SnapshotMap>,
+    ) -> bool
+    where
+        E: TElement,
     {
+        debug!("process_invalidations_in_subtree({:?})", element);
         let mut data = match element.mutate_data() {
             Some(data) => data,
             None => return false,
@@ -212,8 +255,10 @@ impl StylesheetInvalidationSet {
             return false;
         }
 
+        let element_wrapper = snapshots.map(|s| ElementWrapper::new(element, s));
+        let snapshot = element_wrapper.as_ref().and_then(|e| e.snapshot());
         for invalidation in &self.invalid_scopes {
-            if invalidation.matches(element) {
+            if invalidation.matches(element, snapshot) {
                 debug!("process_invalidations_in_subtree: {:?} matched subtree {:?}",
                        element, invalidation);
                 data.hint.insert(RestyleHint::restyle_subtree());
@@ -225,7 +270,7 @@ impl StylesheetInvalidationSet {
 
         if !data.hint.contains(RestyleHint::RESTYLE_SELF) {
             for invalidation in &self.invalid_elements {
-                if invalidation.matches(element) {
+                if invalidation.matches(element, snapshot) {
                     debug!("process_invalidations_in_subtree: {:?} matched self {:?}",
                            element, invalidation);
                     data.hint.insert(RestyleHint::RESTYLE_SELF);
@@ -243,7 +288,8 @@ impl StylesheetInvalidationSet {
                 None => continue,
             };
 
-            any_children_invalid |= self.process_invalidations_in_subtree(child);
+            any_children_invalid |=
+                self.process_invalidations_in_subtree(child, snapshots);
         }
 
         if any_children_invalid {

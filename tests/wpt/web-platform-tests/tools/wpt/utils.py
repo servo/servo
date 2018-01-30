@@ -27,7 +27,7 @@ class Kwargs(dict):
                 value = value()
             if not value:
                 if err_fn is not None:
-                    return err_fn(kwargs, "Failed to find %s" % desc)
+                    return err_fn(self, "Failed to find %s" % desc)
                 else:
                     return
             self[name] = value

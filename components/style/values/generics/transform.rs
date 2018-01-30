@@ -5,10 +5,10 @@
 //! Generic types for CSS values that are related to transformations.
 
 use app_units::Au;
-use euclid::{Radians, Rect, Transform3D};
+use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::{computed, CSSFloat};
 use values::computed::length::Length as ComputedLength;
 use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
@@ -30,7 +30,8 @@ pub struct Matrix<T, U = T> {
 
 #[allow(missing_docs)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[css(comma, function = "matrix3d")]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct Matrix3D<T, U = T, V = T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,
     pub m21: T, pub m22: T, pub m23: T, pub m24: T,
@@ -136,9 +137,9 @@ where
     Integer: ToCss,
     Number: ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         match *self {
             TimingFunction::Keyword(keyword) => keyword.to_css(dest),
@@ -191,7 +192,7 @@ impl TimingKeyword {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// A single operation in the list of a `transform` value
 pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
     /// Represents a 2D 2x3 matrix.
@@ -200,31 +201,37 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     /// For `moz-transform`.
     PrefixedMatrix(Matrix<Number, LoPoNumber>),
     /// Represents a 3D 4x4 matrix.
-    #[allow(missing_docs)]
     Matrix3D(Matrix3D<Number>),
     /// Represents a 3D 4x4 matrix with percentage and length values.
     /// For `moz-transform`.
-    #[allow(missing_docs)]
     PrefixedMatrix3D(Matrix3D<Number, LoPoNumber, LengthOrNumber>),
     /// A 2D skew.
     ///
     /// If the second angle is not provided it is assumed zero.
     ///
     /// Syntax can be skew(angle) or skew(angle, angle)
+    #[css(comma, function)]
     Skew(Angle, Option<Angle>),
     /// skewX(angle)
+    #[css(function = "skewX")]
     SkewX(Angle),
     /// skewY(angle)
+    #[css(function = "skewY")]
     SkewY(Angle),
     /// translate(x, y) or translate(x)
+    #[css(comma, function)]
     Translate(LengthOrPercentage, Option<LengthOrPercentage>),
     /// translateX(x)
+    #[css(function = "translateX")]
     TranslateX(LengthOrPercentage),
     /// translateY(y)
+    #[css(function = "translateY")]
     TranslateY(LengthOrPercentage),
     /// translateZ(z)
+    #[css(function = "translateZ")]
     TranslateZ(Length),
     /// translate3d(x, y, z)
+    #[css(comma, function = "translate3d")]
     Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
     /// A 2D scaling factor.
     ///
@@ -234,28 +241,38 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     /// Negative values are allowed and flip the element.
     ///
     /// Syntax can be scale(factor) or scale(factor, factor)
+    #[css(comma, function)]
     Scale(Number, Option<Number>),
     /// scaleX(factor)
+    #[css(function = "scaleX")]
     ScaleX(Number),
     /// scaleY(factor)
+    #[css(function = "scaleY")]
     ScaleY(Number),
     /// scaleZ(factor)
+    #[css(function = "scaleZ")]
     ScaleZ(Number),
     /// scale3D(factorX, factorY, factorZ)
+    #[css(comma, function = "scale3d")]
     Scale3D(Number, Number, Number),
     /// Describes a 2D Rotation.
     ///
     /// In a 3D scene `rotate(angle)` is equivalent to `rotateZ(angle)`.
+    #[css(function)]
     Rotate(Angle),
     /// Rotation in 3D space around the x-axis.
+    #[css(function = "rotateX")]
     RotateX(Angle),
     /// Rotation in 3D space around the y-axis.
+    #[css(function = "rotateY")]
     RotateY(Angle),
     /// Rotation in 3D space around the z-axis.
+    #[css(function = "rotateZ")]
     RotateZ(Angle),
     /// Rotation in 3D space.
     ///
     /// Generalization of rotateX, rotateY and rotateZ.
+    #[css(comma, function = "rotate3d")]
     Rotate3D(Number, Number, Number, Angle),
     /// Specifies a perspective projection matrix.
     ///
@@ -263,11 +280,14 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     /// [§ 13.1. 3D Transform Function](https://drafts.csswg.org/css-transforms-2/#funcdef-perspective).
     ///
     /// The value must be greater than or equal to zero.
+    #[css(function)]
     Perspective(Length),
     /// A intermediate type for interpolation of mismatched transform lists.
     #[allow(missing_docs)]
+    #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
         #[compute(ignore_bound)]
+        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -280,6 +300,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
             >,
         >,
         #[compute(ignore_bound)]
+        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -296,8 +317,10 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     },
     /// A intermediate type for accumulation of mismatched transform lists.
     #[allow(missing_docs)]
+    #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
         #[compute(ignore_bound)]
+        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -310,6 +333,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
             >,
         >,
         #[compute(ignore_bound)]
+        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -457,18 +481,20 @@ where
                 let theta = TWO_PI - theta.as_ref().radians64();
                 let (ax, ay, az, theta) =
                     get_normalized_vector_and_angle(ax.into(), ay.into(), az.into(), theta);
-                Transform3D::create_rotation(ax as f64, ay as f64, az as f64, Radians::new(theta))
+                Transform3D::create_rotation(
+                    ax as f64, ay as f64, az as f64, euclid::Angle::radians(theta)
+                )
             },
             RotateX(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(1., 0., 0., theta)
             },
             RotateY(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(0., 1., 0., theta)
             },
             RotateZ(theta) | Rotate(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(0., 0., 1., theta)
             },
             Perspective(ref d) => {
@@ -503,20 +529,20 @@ where
             },
             Skew(theta_x, theta_y) => {
                 Transform3D::create_skew(
-                    Radians::new(theta_x.as_ref().radians64()),
-                    Radians::new(theta_y.map_or(0., |a| a.as_ref().radians64())),
+                    euclid::Angle::radians(theta_x.as_ref().radians64()),
+                    euclid::Angle::radians(theta_y.map_or(0., |a| a.as_ref().radians64())),
                 )
             },
             SkewX(theta) => {
                 Transform3D::create_skew(
-                    Radians::new(theta.as_ref().radians64()),
-                    Radians::new(0.),
+                    euclid::Angle::radians(theta.as_ref().radians64()),
+                    euclid::Angle::radians(0.),
                 )
             },
             SkewY(theta) => {
                 Transform3D::create_skew(
-                    Radians::new(0.),
-                    Radians::new(theta.as_ref().radians64()),
+                    euclid::Angle::radians(0.),
+                    euclid::Angle::radians(theta.as_ref().radians64()),
                 )
             },
             Matrix3D(m) => m.into(),
@@ -539,121 +565,10 @@ where
     }
 }
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
-     Integer: ToCss + Copy, LengthOrNumber: ToCss, LengthOrPercentage: ToCss, LoPoNumber: ToCss>
-    ToCss for
-    TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            TransformOperation::Matrix(ref m) => m.to_css(dest),
-            TransformOperation::PrefixedMatrix(ref m) => m.to_css(dest),
-            TransformOperation::Matrix3D(Matrix3D {
-                m11, m12, m13, m14,
-                m21, m22, m23, m24,
-                m31, m32, m33, m34,
-                m41, m42, m43, m44,
-            }) => {
-                serialize_function!(dest, matrix3d(
-                    m11, m12, m13, m14,
-                    m21, m22, m23, m24,
-                    m31, m32, m33, m34,
-                    m41, m42, m43, m44,
-                ))
-            }
-            TransformOperation::PrefixedMatrix3D(Matrix3D {
-                m11, m12, m13, m14,
-                m21, m22, m23, m24,
-                m31, m32, m33, m34,
-                ref m41, ref m42, ref m43, m44,
-            }) => {
-                serialize_function!(dest, matrix3d(
-                    m11, m12, m13, m14,
-                    m21, m22, m23, m24,
-                    m31, m32, m33, m34,
-                    m41, m42, m43, m44,
-                ))
-            }
-            TransformOperation::Skew(ax, None) => {
-                serialize_function!(dest, skew(ax))
-            }
-            TransformOperation::Skew(ax, Some(ay)) => {
-                serialize_function!(dest, skew(ax, ay))
-            }
-            TransformOperation::SkewX(angle) => {
-                serialize_function!(dest, skewX(angle))
-            }
-            TransformOperation::SkewY(angle) => {
-                serialize_function!(dest, skewY(angle))
-            }
-            TransformOperation::Translate(ref tx, None) => {
-                serialize_function!(dest, translate(tx))
-            }
-            TransformOperation::Translate(ref tx, Some(ref ty)) => {
-                serialize_function!(dest, translate(tx, ty))
-            }
-            TransformOperation::TranslateX(ref tx) => {
-                serialize_function!(dest, translateX(tx))
-            }
-            TransformOperation::TranslateY(ref ty) => {
-                serialize_function!(dest, translateY(ty))
-            }
-            TransformOperation::TranslateZ(ref tz) => {
-                serialize_function!(dest, translateZ(tz))
-            }
-            TransformOperation::Translate3D(ref tx, ref ty, ref tz) => {
-                serialize_function!(dest, translate3d(tx, ty, tz))
-            }
-            TransformOperation::Scale(factor, None) => {
-                serialize_function!(dest, scale(factor))
-            }
-            TransformOperation::Scale(sx, Some(sy)) => {
-                serialize_function!(dest, scale(sx, sy))
-            }
-            TransformOperation::ScaleX(sx) => {
-                serialize_function!(dest, scaleX(sx))
-            }
-            TransformOperation::ScaleY(sy) => {
-                serialize_function!(dest, scaleY(sy))
-            }
-            TransformOperation::ScaleZ(sz) => {
-                serialize_function!(dest, scaleZ(sz))
-            }
-            TransformOperation::Scale3D(sx, sy, sz) => {
-                serialize_function!(dest, scale3d(sx, sy, sz))
-            }
-            TransformOperation::Rotate(theta) => {
-                serialize_function!(dest, rotate(theta))
-            }
-            TransformOperation::RotateX(theta) => {
-                serialize_function!(dest, rotateX(theta))
-            }
-            TransformOperation::RotateY(theta) => {
-                serialize_function!(dest, rotateY(theta))
-            }
-            TransformOperation::RotateZ(theta) => {
-                serialize_function!(dest, rotateZ(theta))
-            }
-            TransformOperation::Rotate3D(x, y, z, theta) => {
-                serialize_function!(dest, rotate3d(x, y, z, theta))
-            }
-            TransformOperation::Perspective(ref length) => {
-                serialize_function!(dest, perspective(length))
-            }
-            TransformOperation::InterpolateMatrix { ref from_list, ref to_list, progress } => {
-                serialize_function!(dest, interpolatematrix(from_list, to_list, progress))
-            }
-            TransformOperation::AccumulateMatrix { ref from_list, ref to_list, count } => {
-                serialize_function!(dest, accumulatematrix(from_list, to_list, count))
-            }
-        }
-    }
-}
-
 impl<T: ToCss> ToCss for Transform<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         if self.0.is_empty() {
             return dest.write_str("none");

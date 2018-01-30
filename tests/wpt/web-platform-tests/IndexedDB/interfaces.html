@@ -20,7 +20,7 @@ async_test(function(t) {
     var idls = request.responseText;
 
     // https://html.spec.whatwg.org/multipage/browsers.html#window
-    idlArray.add_untested_idls("[PrimaryGlobal] interface Window { };");
+    idlArray.add_untested_idls("[Global=Window, Exposed=Window] interface Window { };");
 
     // https://html.spec.whatwg.org/multipage/webappapis.html#windoworworkerglobalscope-mixin
     idlArray.add_untested_idls(`[NoInterfaceObject, Exposed=(Window,Worker)]

@@ -14,9 +14,6 @@ default-members = [
 ]
 exclude = [".cargo"]
 
-[profile.dev]
-codegen-units = 4
-
 [profile.release]
 opt-level = 3
 # Uncomment to profile on Linux:
@@ -24,6 +21,7 @@ opt-level = 3
 # lto = false
 
 [patch.crates-io]
+
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #

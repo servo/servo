@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+    <h:meta name="assert" content="d is a property"/>
+  </metadata>
+  <style>
+    .p3 {
+      d: path('M 10 3 H 30');
+    }
+    .g5 {
+      d: path('M 10 5 H 50');
+    }
+    .p6 {
+      d: inherit;
+    }
+  </style>
+  <g id="g0">
+    <path id="p1"></path>
+    <path id="p2" d="M 10 2 H 20"></path>
+    <path id="p3" class="p3"></path>
+    <path id="p4" style="d: path('M 10 4 H 40')"></path>
+  </g>
+  <g id="g5" class="g5">
+    <path id="p6" class="p6"></path>
+    <path id="p7"></path>
+  </g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+  test(function() {
+    var g0 = document.getElementById('g0');
+    var p1 = document.getElementById('p1');
+    var p2 = document.getElementById('p2');
+    var p3 = document.getElementById('p3');
+    var p4 = document.getElementById('p4');
+    var g5 = document.getElementById('g5');
+    var p6 = document.getElementById('p6');
+    var p7 = document.getElementById('p7');
+
+    assert_equals(getComputedStyle(g0).d, "none");
+    assert_equals(getComputedStyle(p1).d, "none");
+    assert_equals(getComputedStyle(p2).d, "path('M 10 2 H 20')");
+    assert_equals(getComputedStyle(p3).d, "path('M 10 3 H 30')");
+    assert_equals(getComputedStyle(p4).d, "path('M 10 4 H 40')");
+    assert_equals(getComputedStyle(g5).d, "path('M 10 5 H 50')");
+    assert_equals(getComputedStyle(p6).d, "path('M 10 5 H 50')");
+    assert_equals(getComputedStyle(p7).d, "none");
+  });
+  ]]></script>
+</svg>

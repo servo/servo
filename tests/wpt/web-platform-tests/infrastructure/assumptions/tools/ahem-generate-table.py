@@ -30,52 +30,68 @@ chars_sorted = sorted(chars)
 per_row = 17
 
 
-def build_header(is_test):
-    rv = []
-
-    rv.append("""
-<!doctype html>
-<title>Ahem checker</title>""")
-
-    if is_test:
-        rv.append("""
-<link rel="match" href="ahem-ref.html">""")
-
-    rv.append("""
-<style>""")
-
-    if not is_test:
-        rv.append("""
-@font-face {
-  font-family: Ahem;
-  src: url("../../fonts/Ahem.ttf");
-}""")
-
-    rv.append("""
+doctype = "<!doctype html>"
+title = "<title>Ahem checker</title>"
+style_open = """
+<style>
 * {
   padding: 0;
   margin: 0;
   border: none;
 }
-
+td {
+  width: 34px;
+}""".strip()
+style_close = "</style>"
+style_font_face = """
+@font-face {
+  font-family: Ahem;
+  src: url("../../fonts/Ahem.ttf");
+}""".strip()
+style_table_font_specified = """
 table {
   font: 15px/1 Ahem;
   border-collapse: separate;
   border-spacing: 1px;
   table-layout: fixed;
-}
+}""".strip()
+style_table_font_unspecified = """
+table {
+  font-size: 15px;
+  line-height: 1;
+  border-collapse: separate;
+  border-spacing: 1px;
+  table-layout: fixed;
+}""".strip()
 
-td {
-  width: 34px;
-}
-</style>
-""")
 
-    return "".join(rv)
+def build_header(is_test, rel, href):
+    rv = [doctype, title]
+
+    if rel != None and href != None:
+        rv.append('<link rel="%s" href="%s">' % (rel, href))
+
+    rv.append(style_open)
+
+    if not is_test:
+        if rel == None and href == None:
+            # ahem-notref.html
+            rv.append(style_table_font_unspecified)
+        else:
+            # ahem-ref.html
+            rv.append(style_font_face)
+            rv.append(style_table_font_specified)
+    else:
+        # ahem.html
+        rv.append(style_table_font_specified)
+
+    rv.append(style_close)
+
+    return "\n".join(rv)
 
 
 def build_table():
-    rv = []
+    rv = ["\n"]
 
     rv.append("<table>\n")
     for row in grouper(per_row, chars_sorted):
@@ -93,10 +109,21 @@ def build_table():
     return "".join(rv)
 
 
-with open("../ahem.html", "w") as f1:
-    f1.write(build_header(True))
-    f1.write(build_table())
+cases = [
+    # file, is_test, rel
+    ("../ahem.html", True, "match"),
+    ("../ahem-ref.html", False, "mismatch"),
+    ("../ahem-notref.html", False, None),
+]
 
-with open("../ahem-ref.html", "w") as f1:
-    f1.write(build_header(False))
-    f1.write(build_table())
+table = build_table()
+
+for index, case in enumerate(cases):
+    next_index = index + 1
+    file, is_test, rel = case
+    href = cases[next_index][0][3:] if next_index < len(cases) else None
+    header = build_header(is_test, rel, href)
+
+    with open(file, "w") as file:
+        file.write("%s%s" % (header, table))
+

@@ -13,6 +13,7 @@ use std::cell::UnsafeCell;
 use std::fmt;
 #[cfg(feature = "gecko")]
 use std::ptr;
+use str::{CssString, CssStringWriter};
 use stylesheets::Origin;
 
 /// A shared read/write lock that can protect multiple objects.
@@ -219,18 +220,18 @@ mod compile_time_assert {
     impl<'a> Marker2 for SharedRwLockWriteGuard<'a> {}  // Assert SharedRwLockWriteGuard: !Copy
 }
 
-/// Like ToCss, but with a lock guard given by the caller.
+/// Like ToCss, but with a lock guard given by the caller, and with the writer specified
+/// concretely rather than with a parameter.
 pub trait ToCssWithGuard {
     /// Serialize `self` in CSS syntax, writing to `dest`, using the given lock guard.
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write;
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result;
 
     /// Serialize `self` in CSS syntax using the given lock guard and return a string.
     ///
     /// (This is a convenience wrapper for `to_css` and probably should not be overridden.)
     #[inline]
-    fn to_css_string(&self, guard: &SharedRwLockReadGuard) -> String {
-        let mut s = String::new();
+    fn to_css_string(&self, guard: &SharedRwLockReadGuard) -> CssString {
+        let mut s = CssString::new();
         self.to_css(guard, &mut s).unwrap();
         s
     }

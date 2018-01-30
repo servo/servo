@@ -8,16 +8,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -31,14 +28,11 @@
                             "sequence": true,
                             "generic": "sequence",
                             "nullable": true,
-                            "array": false,
                             "union": false,
                             "idlType": {
                                 "sequence": false,
                                 "generic": null,
                                 "nullable": true,
-                                "array": 1,
-                                "nullableArray": [false],
                                 "union": false,
                                 "idlType": "DOMString"
                             }

@@ -191,21 +191,6 @@
       }
       return ret + "};";
     };
-    var serializer = function(it) {
-      var ret = "serializer";
-      if (it.name) {
-        ret += " = " + it.name + ";";
-      } else if (it.patternList) {
-        ret += " = [ " + it.names.join(", ") + " ];";
-      } else if (it.patternMap) {
-        ret += " = { " + it.names.join(", ") + " };";
-      } else if (it.operation) {
-        ret += " " + operation(it);
-      } else {
-        ret += ";";
-      }
-      return ret;
-    };
     var iterable = function(it) {
       return "iterable<" + (it.idlType instanceof Array ? it.idlType.map(type).join(", ") : type(it.idlType)) + ">;";
     };
@@ -241,7 +226,6 @@
       "implements": implements_,
       callback: callback,
       "enum": enum_,
-      serializer: serializer,
       iterable: iterable,
       legacyiterable: legacyiterable,
       maplike: maplike,

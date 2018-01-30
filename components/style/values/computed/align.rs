@@ -7,11 +7,12 @@
 //! https://drafts.csswg.org/css-align/
 
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
 
-pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf};
+pub use super::specified::{AlignContent, JustifyContent, AlignItems, SelfAlignment};
+pub use super::specified::{AlignSelf, JustifySelf};
 
 /// The computed value for the `justify-items` property.
 ///
@@ -26,7 +27,7 @@ pub struct JustifyItems {
 }
 
 impl ToCss for JustifyItems {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
         where W: fmt::Write,
     {
         self.computed.to_css(dest)

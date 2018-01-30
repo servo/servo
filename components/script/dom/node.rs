@@ -164,10 +164,7 @@ bitflags! {
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 1 << 3;
 
-        /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 1 << 4;
-
-        // There's a free bit here.
+        // There are two free bits here.
 
         #[doc = "Specifies whether the parser has set an associated form owner for \
                  this element. Only applicable for form-associatable elements."]
@@ -1143,7 +1140,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
         }
 
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return unsafe { area.get_value_for_layout() };
+            return unsafe { area.value_for_layout() };
         }
 
         panic!("not text!")

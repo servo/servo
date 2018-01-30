@@ -35,16 +35,14 @@ test(() => {
 }, 'Underlying source start: throwing method');
 
 
-promise_test(t => {
+test(() => {
 
   const theError = new Error('a unique string');
-  const rs = new ReadableStream({
+  assert_throws(theError, () => new ReadableStream({
     get pull() {
       throw theError;
     }
-  });
-
-  return promise_rejects(t, theError, rs.getReader().closed);
+  }), 'constructor should throw');
 
 }, 'Underlying source: throwing pull getter (initial pull)');
 
@@ -82,13 +80,15 @@ promise_test(t => {
 
   return Promise.all([
     reader.read().then(r => {
-      assert_object_equals(r, { value: 'a', done: false }, 'the chunk read should be correct');
+      assert_object_equals(r, { value: 'a', done: false }, 'the first chunk read should be correct');
     }),
-    promise_rejects(t, theError, reader.closed)
+    reader.read().then(r => {
+      assert_object_equals(r, { value: 'a', done: false }, 'the second chunk read should be correct');
+      assert_equals(counter, 1, 'counter should be 1');
+    })
   ]);
 
-}, 'Underlying source pull: throwing getter (second pull)');
-
+}, 'Underlying source pull: throwing getter (second pull does not result in a second get)');
 
 promise_test(t => {
 
@@ -117,16 +117,14 @@ promise_test(t => {
 
 }, 'Underlying source pull: throwing method (second pull)');
 
-promise_test(t => {
+test(() => {
 
   const theError = new Error('a unique string');
-  const rs = new ReadableStream({
+  assert_throws(theError, () => new ReadableStream({
     get cancel() {
       throw theError;
     }
-  });
-
-  return promise_rejects(t, theError, rs.cancel());
+  }), 'constructor should throw');
 
 }, 'Underlying source cancel: throwing getter');
 

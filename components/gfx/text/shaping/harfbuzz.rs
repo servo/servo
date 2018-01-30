@@ -64,7 +64,7 @@ impl ShapedGlyphData {
             let mut pos_count = 0;
             let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
             assert!(!pos_infos.is_null());
-            assert!(glyph_count == pos_count);
+            assert_eq!(glyph_count, pos_count);
 
             ShapedGlyphData {
                 count: glyph_count as usize,

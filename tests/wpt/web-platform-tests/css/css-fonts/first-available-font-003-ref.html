@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS-fonts: reference file</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+@font-face {
+  font-family: 'A';
+  font-style: normal;
+  font-weight: 400;
+  src:  url(support/Revalia.woff) format('woff');
+}
+div {
+  position: absolute;
+  line-height: normal;
+  font-size: 100px;
+  color: transparent;
+  border: solid black 1px;
+  width: 100px;
+  font-family: A;
+}
+
+.ba { margin-left: 100px; }
+</style>
+
+<p>There should be <strong>two identically sized rectangles</strong> below.
+
+<div class="ba">a</div>
+<div class="a">a</div>

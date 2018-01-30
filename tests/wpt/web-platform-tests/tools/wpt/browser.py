@@ -4,9 +4,12 @@ import platform
 import re
 import shutil
 import stat
+import subprocess
+import sys
 from abc import ABCMeta, abstractmethod
 from ConfigParser import RawConfigParser
 from distutils.spawn import find_executable
+from io import BytesIO
 
 from utils import call, get, untar, unzip
 
@@ -257,6 +260,61 @@ class Chrome(Browser):
         """Retrieve the release version of the installed browser."""
         output = call(self.binary, "--version")
         return re.search(r"[0-9\.]+( [a-z]+)?$", output.strip()).group(0)
+
+    def prepare_environment(self):
+        # https://bugs.chromium.org/p/chromium/issues/detail?id=713947
+        logger.debug("DBUS_SESSION_BUS_ADDRESS %s" % os.environ.get("DBUS_SESSION_BUS_ADDRESS"))
+        if "DBUS_SESSION_BUS_ADDRESS" not in os.environ:
+            if find_executable("dbus-launch"):
+                logger.debug("Attempting to start dbus")
+                dbus_conf = subprocess.check_output(["dbus-launch"])
+                logger.debug(dbus_conf)
+
+                # From dbus-launch(1):
+                #
+                # > When dbus-launch prints bus information to standard output,
+                # > by default it is in a simple key-value pairs format.
+                for line in dbus_conf.strip().split("\n"):
+                    key, _, value = line.partition("=")
+                    os.environ[key] = value
+            else:
+                logger.critical("dbus not running and can't be started")
+                sys.exit(1)
+
+class ChromeAndroid(Browser):
+    """Chrome-specific interface for android.
+
+    Includes installation, webdriver installation, and wptrunner setup methods.
+    """
+
+    product = "chrome_android"
+    requirements = "requirements_chrome_android.txt"
+
+    def install(self, dest=None):
+        raise NotImplementedError
+
+    def platform_string(self):
+        raise NotImplementedError
+
+    def find_webdriver(self):
+        return find_executable("chromedriver")
+
+    def install_webdriver(self, dest=None):
+        """Install latest Webdriver."""
+        if dest is None:
+            dest = os.pwd
+        latest = get("http://chromedriver.storage.googleapis.com/LATEST_RELEASE").text.strip()
+        url = "http://chromedriver.storage.googleapis.com/%s/chromedriver_%s.zip" % (latest,
+                                                                                     self.platform_string())
+        unzip(get(url).raw, dest)
+
+        path = find_executable("chromedriver", dest)
+        st = os.stat(path)
+        os.chmod(path, st.st_mode | stat.S_IEXEC)
+        return path
+
+    def version(self, root):
+        raise NotImplementedError
 
     def prepare_environment(self):
         # https://bugs.chromium.org/p/chromium/issues/detail?id=713947

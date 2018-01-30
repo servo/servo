@@ -13,8 +13,8 @@ use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::f32;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{Context, ToComputedValue};
@@ -26,7 +26,9 @@ use values::specified::calc::CalcNode;
 pub use properties::animated_properties::TransitionProperty;
 pub use self::angle::Angle;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::align::{AlignContent, JustifyContent, AlignItems, ContentDistribution, SelfAlignment, JustifyItems};
+#[cfg(feature = "gecko")]
+pub use self::align::{AlignSelf, JustifySelf};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
@@ -34,8 +36,8 @@ pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVa
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
-pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior};
-pub use self::box_::{OverflowClipBox, ScrollSnapType, VerticalAlign};
+pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior, Contain};
+pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::counters::CounterReset;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
@@ -44,18 +46,29 @@ pub use self::flex::FlexBasis;
 pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageLayer, MozImageRect};
+pub use self::inherited_box::ImageOrientation;
 pub use self::length::{AbsoluteLength, CalcLengthOrPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNone, LengthOrNumber};
 pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, ViewportPercentageLength};
 pub use self::length::NonNegativeLengthOrPercentage;
+pub use self::list::{ListStyleImage, Quotes};
+#[cfg(feature = "gecko")]
+pub use self::list::ListStyleType;
+pub use self::outline::OutlineStyle;
 pub use self::rect::LengthOrNumberRect;
 pub use self::percentage::Percentage;
 pub use self::position::{Position, PositionComponent, GridAutoFlow, GridTemplateAreas};
-pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
+pub use self::pointing::Cursor;
+#[cfg(feature = "gecko")]
+pub use self::pointing::CursorImage;
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
+pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
+pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine, TextOverflow, WordSpacing};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine};
+pub use self::text::{TextAlign, TextAlignKeyword, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, Transform, TransformOrigin};
 pub use self::ui::MozForceBrokenImageIcon;
@@ -79,8 +92,12 @@ pub mod font;
 pub mod gecko;
 pub mod grid;
 pub mod image;
+pub mod inherited_box;
 pub mod length;
+pub mod list;
+pub mod outline;
 pub mod percentage;
+pub mod pointing;
 pub mod position;
 pub mod rect;
 pub mod source_size_list;
@@ -237,8 +254,9 @@ impl ToComputedValue for Number {
 }
 
 impl ToCss for Number {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         if self.calc_clamping_mode.is_some() {
             dest.write_str("calc(")?;
@@ -463,8 +481,9 @@ impl ToComputedValue for Integer {
 }
 
 impl ToCss for Integer {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         if self.was_calc {
             dest.write_str("calc(")?;
@@ -547,7 +566,10 @@ pub struct ClipRect {
 
 
 impl ToCss for ClipRect {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("rect(")?;
 
         if let Some(ref top) = self.top {
@@ -792,7 +814,10 @@ impl Attr {
 }
 
 impl ToCss for Attr {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("attr(")?;
         if let Some(ref ns) = self.namespace {
             serialize_identifier(&ns.0.to_string(), dest)?;

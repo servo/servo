@@ -6,7 +6,7 @@ The test suite for the `testharness.js` testing framework.
 
 Install the following dependencies:
 
-- [Python 2.7](https://www.python.org/)
+- [Python 2.7.9+](https://www.python.org/)
 - [the tox Python package](https://tox.readthedocs.io/en/latest/)
 - [the Mozilla Firefox web browser](https://mozilla.org/firefox)
 - [the GeckoDriver server](https://github.com/mozilla/geckodriver)

@@ -1257,11 +1257,22 @@ policies and contribution forms [3].
             if (e instanceof AssertionError) {
                 throw e;
             }
+
+            assert(typeof e === "object",
+                   "assert_throws", description,
+                   "${func} threw ${e} with type ${type}, not an object",
+                   {func:func, e:e, type:typeof e});
+
+            assert(e !== null,
+                   "assert_throws", description,
+                   "${func} threw null, not an object",
+                   {func:func});
+
             if (code === null) {
                 throw new AssertionError('Test bug: need to pass exception to assert_throws()');
             }
             if (typeof code === "object") {
-                assert(typeof e == "object" && "name" in e && e.name == code.name,
+                assert("name" in e && e.name == code.name,
                        "assert_throws", description,
                        "${func} threw ${actual} (${actual_name}) expected ${expected} (${expected_name})",
                                     {func:func, actual:e, actual_name:e.name,
@@ -1340,8 +1351,7 @@ policies and contribution forms [3].
             var required_props = { code: name_code_map[name] };
 
             if (required_props.code === 0 ||
-               (typeof e == "object" &&
-                "name" in e &&
+               ("name" in e &&
                 e.name !== e.name.toUpperCase() &&
                 e.name !== "DOMException")) {
                 // New style exception: also test the name property.
@@ -1353,13 +1363,8 @@ policies and contribution forms [3].
             //in.  It might be an instanceof the appropriate interface on some
             //unknown other window.  TODO: Work around this somehow?
 
-            assert(typeof e == "object",
-                   "assert_throws", description,
-                   "${func} threw ${e} with type ${type}, not an object",
-                   {func:func, e:e, type:typeof e});
-
             for (var prop in required_props) {
-                assert(typeof e == "object" && prop in e && e[prop] == required_props[prop],
+                assert(prop in e && e[prop] == required_props[prop],
                        "assert_throws", description,
                        "${func} threw ${e} that is not a DOMException " + code + ": property ${prop} is equal to ${actual}, expected ${expected}",
                        {func:func, e:e, prop:prop, actual:e[prop], expected:required_props[prop]});
@@ -1569,11 +1574,6 @@ policies and contribution forms [3].
         this._add_cleanup(callback);
     };
 
-    Test.prototype.force_timeout = function() {
-        this.set_status(this.TIMEOUT);
-        this.phase = this.phases.HAS_RESULT;
-    };
-
     Test.prototype.set_timeout = function()
     {
         if (this.timeout_length !== null) {
@@ -1599,6 +1599,8 @@ policies and contribution forms [3].
         this.phase = this.phases.HAS_RESULT;
         this.done();
     };
+
+    Test.prototype.force_timeout = Test.prototype.timeout;
 
     Test.prototype.done = function()
     {
@@ -1711,7 +1713,13 @@ policies and contribution forms [3].
         this.tests = new Array();
 
         var this_obj = this;
-        remote.onerror = function(error) { this_obj.remote_error(error); };
+        // If remote context is cross origin assigning to onerror is not
+        // possible, so silently catch those errors.
+        try {
+          remote.onerror = function(error) { this_obj.remote_error(error); };
+        } catch (e) {
+          // Ignore.
+        }
 
         // Keeping a reference to the remote object and the message handler until
         // remote_done() is seen prevents the remote object and its message channel
@@ -2084,11 +2092,7 @@ policies and contribution forms [3].
         var message_port;
 
         if (is_service_worker(worker)) {
-            // Microsoft Edge's implementation of ServiceWorker doesn't support MessagePort yet.
-            // Feature detection isn't a straightforward option here; it's only possible in the
-            // worker's script context.
-            var isMicrosoftEdgeBrowser = navigator.userAgent.includes("Edge");
-            if (window.MessageChannel && !isMicrosoftEdgeBrowser) {
+            if (window.MessageChannel) {
                 // The ServiceWorker's implicit MessagePort is currently not
                 // reliably accessible from the ServiceWorkerGlobalScope due to
                 // Blink setting MessageEvent.source to null for messages sent

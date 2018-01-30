@@ -17,24 +17,25 @@
 use app_units::Au;
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D, TypedRect, SideOffsets2D};
 use euclid::num::{One, Zero};
-use gfx_traits::StackingContextId;
+use gfx_traits::{self, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
-use servo_geometry::max_rect;
+use servo_geometry::MaxRect;
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;
+use std::f32;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_style, image_rendering};
-use style::values::computed::Filter;
-use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_api::{self, ClipId, ColorF, GradientStop, LocalClip, MixBlendMode, ScrollPolicy};
-use webrender_api::{ScrollSensitivity, StickyOffsetBounds, TransformStyle};
+use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipId, ColorF, ExtendMode};
+use webrender_api::{FilterOp, GradientStop, ImageBorder, ImageKey, ImageRendering, LayoutPoint};
+use webrender_api::{LayoutRect, LayoutSize, LayoutVector2D, LineStyle, LocalClip, MixBlendMode};
+use webrender_api::{NormalBorder, ScrollPolicy, ScrollSensitivity, StickyOffsetBounds};
+use webrender_api::TransformStyle;
 
 pub use style::dom::OpaqueNode;
 
@@ -146,6 +147,25 @@ impl DisplayList {
     }
 }
 
+impl gfx_traits::DisplayList for DisplayList {
+    /// Analyze the display list to figure out if this may be the first
+    /// contentful paint (i.e. the display list contains items of type text,
+    /// image, non-white canvas or SVG). Used by metrics.
+    fn is_contentful(&self) -> bool {
+        for item in &self.list {
+            match item {
+                &DisplayItem::Text(_) |
+                &DisplayItem::Image(_) => {
+                    return true
+                }
+                _ => (),
+            }
+        }
+
+        false
+    }
+}
+
 /// Display list sections that make up a stacking context. Each section  here refers
 /// to the steps in CSS 2.1 Appendix E.
 ///
@@ -183,7 +203,7 @@ pub struct StackingContext {
     pub z_index: i32,
 
     /// CSS filters to be applied to this stacking context (including opacity).
-    pub filters: Vec<Filter>,
+    pub filters: Vec<FilterOp>,
 
     /// The blend mode with which this stacking context blends with its backdrop.
     pub mix_blend_mode: MixBlendMode,
@@ -212,7 +232,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               filters: Vec<Filter>,
+               filters: Vec<FilterOp>,
                mix_blend_mode: MixBlendMode,
                transform: Option<Transform3D<f32>>,
                transform_style: TransformStyle,
@@ -349,7 +369,7 @@ pub struct ClipScrollNode {
     pub clip: ClippingRegion,
 
     /// The rect of the contents that can be scrolled inside of the scroll root.
-    pub content_rect: Rect<Au>,
+    pub content_rect: LayoutRect,
 
     /// The type of this ClipScrollNode.
     pub node_type: ClipScrollNodeType,
@@ -398,7 +418,7 @@ pub struct BaseDisplayItem {
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: &Rect<Au>,
+    pub fn new(bounds: Rect<Au>,
                metadata: DisplayItemMetadata,
                local_clip: LocalClip,
                section: DisplayListSection,
@@ -406,12 +426,12 @@ impl BaseDisplayItem {
                clipping_and_scrolling: ClippingAndScrolling)
                -> BaseDisplayItem {
         BaseDisplayItem {
-            bounds: *bounds,
-            metadata: metadata,
-            local_clip: local_clip,
-            section: section,
-            stacking_context_id: stacking_context_id,
-            clipping_and_scrolling: clipping_and_scrolling,
+            bounds,
+            metadata,
+            local_clip,
+            section,
+            stacking_context_id,
+            clipping_and_scrolling,
         }
     }
 
@@ -423,7 +443,8 @@ impl BaseDisplayItem {
                 node: OpaqueNode(0),
                 pointing: None,
             },
-            local_clip: LocalClip::from(max_rect().to_rectf()),
+            // Create a rectangle of maximal size.
+            local_clip: LocalClip::from(LayoutRect::max_rect()),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
             clipping_and_scrolling: ClippingAndScrolling::simple(ClipScrollNodeIndex(0)),
@@ -470,7 +491,7 @@ impl ClippingRegion {
     #[inline]
     pub fn max() -> ClippingRegion {
         ClippingRegion {
-            main: max_rect(),
+            main: Rect::max_rect(),
             complex: Vec::new(),
         }
     }
@@ -581,7 +602,7 @@ impl ClippingRegion {
 
     #[inline]
     pub fn is_max(&self) -> bool {
-        self.main == max_rect() && self.complex.is_empty()
+        self.main == Rect::max_rect() && self.complex.is_empty()
     }
 }
 
@@ -591,7 +612,7 @@ impl fmt::Debug for ClippingRegion {
             write!(f, "ClippingRegion::Max")
         } else if *self == ClippingRegion::empty() {
             write!(f, "ClippingRegion::Empty")
-        } else if self.main == max_rect() {
+        } else if self.main == Rect::max_rect() {
             write!(f, "ClippingRegion(Complex={:?})", self.complex)
         } else {
             write!(f, "ClippingRegion(Rect={:?}, Complex={:?})", self.main, self.complex)
@@ -624,7 +645,7 @@ pub struct DisplayItemMetadata {
     pub node: OpaqueNode,
     /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
     /// this display item is ineligible for pointer events (`pointer-events: none`).
-    pub pointing: Option<Cursor>,
+    pub pointing: Option<u16>,
 }
 
 /// Paints a solid color.
@@ -680,15 +701,15 @@ pub struct ImageDisplayItem {
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
     /// direction to tile the entire bounds.
-    pub stretch_size: Size2D<Au>,
+    pub stretch_size: LayoutSize,
 
     /// The amount of space to add to the right and bottom part of each tile, when the image
     /// is tiled.
-    pub tile_spacing: Size2D<Au>,
+    pub tile_spacing: LayoutSize,
 
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
-    pub image_rendering: image_rendering::T,
+    pub image_rendering: ImageRendering,
 }
 /// Paints an iframe.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
@@ -701,16 +722,16 @@ pub struct IframeDisplayItem {
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Gradient {
     /// The start point of the gradient (computed during display list construction).
-    pub start_point: Point2D<Au>,
+    pub start_point: LayoutPoint,
 
     /// The end point of the gradient (computed during display list construction).
-    pub end_point: Point2D<Au>,
+    pub end_point: LayoutPoint,
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 
-    /// True if gradient repeats infinitly.
-    pub repeating: bool,
+    /// Whether the gradient is repeated or clamped.
+    pub extend_mode: ExtendMode,
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
@@ -720,22 +741,32 @@ pub struct GradientDisplayItem {
 
     /// Contains all gradient data. Included start, end point and color stops.
     pub gradient: Gradient,
+
+    /// The size of a single gradient tile.
+    ///
+    /// The gradient may fill an entire element background
+    /// but it can be composed from many smaller copys of
+    /// the same gradient.
+    ///
+    /// Without tiles, the tile will be the same size as the background.
+    pub tile: LayoutSize,
+    pub tile_spacing: LayoutSize,
 }
 
 /// Paints a radial gradient.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct RadialGradient {
     /// The center point of the gradient.
-    pub center: Point2D<Au>,
+    pub center: LayoutPoint,
 
     /// The radius of the gradient with an x and an y component.
-    pub radius: Size2D<Au>,
+    pub radius: LayoutSize,
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 
-    /// True if gradient repeats infinitly.
-    pub repeating: bool,
+    /// Whether the gradient is repeated or clamped.
+    pub extend_mode: ExtendMode,
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
@@ -745,43 +776,16 @@ pub struct RadialGradientDisplayItem {
 
     /// Contains all gradient data.
     pub gradient: RadialGradient,
-}
 
-/// A normal border, supporting CSS border styles.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct NormalBorder {
-    /// Border colors.
-    pub color: SideOffsets2D<ColorF>,
-
-    /// Border styles.
-    pub style: SideOffsets2D<border_style::T>,
-
-    /// Border radii.
+    /// The size of a single gradient tile.
     ///
-    /// TODO(pcwalton): Elliptical radii.
-    pub radius: BorderRadii<Au>,
-}
-
-/// A border that is made of image segments.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct ImageBorder {
-    /// The image this border uses, border-image-source.
-    pub image: WebRenderImageInfo,
-
-    /// How to slice the image, as per border-image-slice.
-    pub slice: SideOffsets2D<u32>,
-
-    /// Outsets for the border, as per border-image-outset.
-    pub outset: SideOffsets2D<f32>,
-
-    /// If fill is true, draw the center patch of the image.
-    pub fill: bool,
-
-    /// How to repeat or stretch horizontal edges (border-image-repeat).
-    pub repeat_horizontal: webrender_api::RepeatMode,
-
-    /// How to repeat or stretch vertical edges (border-image-repeat).
-    pub repeat_vertical: webrender_api::RepeatMode,
+    /// The gradient may fill an entire element background
+    /// but it can be composed from many smaller copys of
+    /// the same gradient.
+    ///
+    /// Without tiles, the tile will be the same size as the background.
+    pub tile: LayoutSize,
+    pub tile_spacing: LayoutSize,
 }
 
 /// A border that is made of linear gradient
@@ -820,15 +824,13 @@ pub struct BorderDisplayItem {
     pub base: BaseDisplayItem,
 
     /// Border widths.
-    pub border_widths: SideOffsets2D<Au>,
+    pub border_widths: BorderWidths,
 
     /// Details for specific border type
     pub details: BorderDetails,
 }
 
 /// Information about the border radii.
-///
-/// TODO(pcwalton): Elliptical radii.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct BorderRadii<T> {
     pub top_left: Size2D<T>,
@@ -899,8 +901,7 @@ pub struct LineDisplayItem {
     pub color: ColorF,
 
     /// The line segment style.
-    #[ignore_malloc_size_of = "enum type in webrender"]
-    pub style: webrender_api::LineStyle,
+    pub style: LineStyle,
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.
@@ -910,22 +911,22 @@ pub struct BoxShadowDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The dimensions of the box that we're placing a shadow around.
-    pub box_bounds: Rect<Au>,
+    pub box_bounds: LayoutRect,
 
     /// The offset of this shadow from the box.
-    pub offset: Vector2D<Au>,
+    pub offset: LayoutVector2D,
 
     /// The color of this shadow.
     pub color: ColorF,
 
     /// The blur radius for this shadow.
-    pub blur_radius: Au,
+    pub blur_radius: f32,
 
     /// The spread radius of this shadow.
-    pub spread_radius: Au,
+    pub spread_radius: f32,
 
     /// The border radius of this shadow.
-    pub border_radius: BorderRadii<Au>,
+    pub border_radius: BorderRadius,
 
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,
@@ -938,13 +939,13 @@ pub struct PushTextShadowDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The offset of this shadow from the text.
-    pub offset: Vector2D<Au>,
+    pub offset: LayoutVector2D,
 
     /// The color of this shadow.
     pub color: ColorF,
 
     /// The blur radius for this shadow.
-    pub blur_radius: Au,
+    pub blur_radius: f32,
 }
 
 /// Defines a text shadow that affects all items until the next PopTextShadow.
@@ -980,17 +981,6 @@ pub struct DefineClipScrollNodeItem {
 
     /// The scroll root that this item starts.
     pub node_index: ClipScrollNodeIndex,
-}
-
-/// How a box shadow should be clipped.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum BoxShadowClipMode {
-    /// The area inside `box_bounds` should be clipped out. Corresponds to the normal CSS
-    /// `box-shadow`.
-    Outset,
-    /// The area outside `box_bounds` should be clipped out. Corresponds to the `inset` flag on CSS
-    /// `box-shadow`.
-    Inset,
 }
 
 impl DisplayItem {
@@ -1093,7 +1083,7 @@ pub struct WebRenderImageInfo {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    pub key: Option<webrender_api::ImageKey>,
+    pub key: Option<ImageKey>,
 }
 
 impl WebRenderImageInfo {
@@ -1127,28 +1117,3 @@ impl SimpleMatrixDetection for Transform3D<f32> {
     }
 }
 
-trait ToPointF {
-    fn to_pointf(&self) -> webrender_api::LayoutPoint;
-}
-
-impl ToPointF for Point2D<Au> {
-    fn to_pointf(&self) -> webrender_api::LayoutPoint {
-        webrender_api::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
-    }
-}
-
-trait ToRectF {
-    fn to_rectf(&self) -> webrender_api::LayoutRect;
-}
-
-impl ToRectF for Rect<Au> {
-    fn to_rectf(&self) -> webrender_api::LayoutRect {
-        let x = self.origin.x.to_f32_px();
-        let y = self.origin.y.to_f32_px();
-        let w = self.size.width.to_f32_px();
-        let h = self.size.height.to_f32_px();
-        let point = webrender_api::LayoutPoint::new(x, y);
-        let size = webrender_api::LayoutSize::new(w, h);
-        webrender_api::LayoutRect::new(point, size)
-    }
-}

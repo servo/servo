@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebXR Device API IDL Tests</title>
+<link rel="help" href="https://immersive-web.github.io/webxr/spec/latest/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+"use strict";
+
+promise_test(async () => {
+  const idl_array = new IdlArray();
+  const dom_idl = await fetch("/interfaces/dom.idl").then(r => r.text());
+  const webxr_idl = await fetch("/interfaces/webxr.idl").then(r => r.text());
+
+  idl_array.add_untested_idls(dom_idl);
+  idl_array.add_untested_idls("interface Navigator {};");
+  idl_array.add_idls(webxr_idl);
+  idl_array.add_objects({
+    Navigator:['navigator'],
+  });
+  idl_array.test();
+}, "Test IDL implementation of WebXR API");
+</script>

@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+        <title>All Resource Types Test Page</title>
+    </head>
+    <body background='blue.png?id=body'>
+        <script>
+            if (window.parent.hasOwnProperty('on_test_body_created'))
+                window.parent.on_test_body_created();
+        </script>
+        <link rel="stylesheet" href="nested.css"></link>
+        <img src="resource_timing_test0.png"></img>
+        <iframe src="blank_page_green.htm" width="100px" height="100px"></iframe>
+        <script src="empty_script.js"></script>
+        <script>
+            var async_xhr = new XMLHttpRequest;
+            async_xhr.open('GET', 'blue.png?id=async_xhr', true);
+            async_xhr.onreadystatechange = function() {
+                if (async_xhr.readyState == 4 && async_xhr.status == 200 && parent.hasOwnProperty('on_async_xhr_done'))
+                    parent.on_async_xhr_done();
+            }
+            async_xhr.send();
+        </script>
+        <style>
+            @font-face {
+                font-family: remoteFontAhem;
+                src: url('/fonts/Ahem.ttf');
+            }
+            iframe {
+                background: url('blue.png?id=1');
+            }
+            ul {
+                font-family: remoteFontAhem;
+                list-style-image: url('blue.png?id=2');
+            }
+        </style>
+        <ul>
+            <li>Test</li>
+        </ul>
+        <ol>
+            <li>Test</li>
+        </ol>
+        <embed src="resource_timing_test0.css?id=embed" type="text/css"></embed>
+        <input type="image" src="blue.png?id=input"></input>
+        <object type="image/png" data="blue.png?id=object"></object>
+        <video poster="blue.png?id=poster"></video>
+    </body>
+</html>

@@ -16,12 +16,12 @@
         var stack = interfaceFrom('interface A { };').get_inheritance_stack();
         assert_array_equals(stack.map(i => i.name), ["A"]);
     }, 'should return an array that includes itself.');
-    
+
     test(function() {
         var i = interfaceFrom('interface A : B { };');
         assert_throws(new Error(), _ => i.get_inheritance_stack());
     }, "should throw for interfaces which inherit from another interface which wasn't added to the IdlArray");
-    
+
     test(function() {
         var idl = new IdlArray();
         idl.add_idls('interface A : B { };');
@@ -32,4 +32,3 @@
 </script>
 </body>
 </html>
-
