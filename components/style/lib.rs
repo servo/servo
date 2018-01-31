@@ -23,7 +23,6 @@
 //! [cssparser]: ../cssparser/index.html
 //! [selectors]: ../selectors/index.html
 
-#![deny(warnings)]
 #![deny(missing_docs)]
 
 #![recursion_limit = "500"]  // For define_css_keyword_enum! in -moz-appearance
