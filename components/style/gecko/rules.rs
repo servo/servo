@@ -21,7 +21,7 @@ use std::fmt::{self, Write};
 use std::str;
 use str::CssStringWriter;
 use values::computed::font::FamilyName;
-use values::generics::FontSettings;
+use values::generics::font::FontSettings;
 
 /// A @font-face rule
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;

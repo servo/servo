@@ -51,15 +51,15 @@ use values::computed::transform::Translate as ComputedTranslate;
 use values::computed::transform::Scale as ComputedScale;
 use values::generics::transform::{self, Rotate, Translate, Scale, Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-#[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
-#[cfg(feature = "gecko")] use values::generics::FontSettingTag as GenericFontSettingTag;
-#[cfg(feature = "gecko")] use values::generics::FontSettingTagFloat;
-#[cfg(feature = "gecko")] use values::generics::FontTag;
+#[cfg(feature = "gecko")] use values::generics::font::FontSettings as GenericFontSettings;
+#[cfg(feature = "gecko")] use values::generics::font::FontSettingTag as GenericFontSettingTag;
+#[cfg(feature = "gecko")] use values::generics::font::FontSettingTagFloat;
 use values::generics::NonNegative;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
+#[cfg(feature = "gecko")] use values::specified::font::FontTag;
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
 pub trait RepeatableListAnimatable: Animate {}

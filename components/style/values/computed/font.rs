@@ -23,7 +23,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
-use values::generics::{FontSettings, FontSettingTagInt};
+use values::generics::font::{FontSettings, FontSettingTagInt};
 use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
 

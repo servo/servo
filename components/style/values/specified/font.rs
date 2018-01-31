@@ -21,7 +21,7 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{SingleFontFamily, FontFamilyList, FamilyName};
-use values::generics::{FontSettings, FontSettingTagFloat};
+use values::generics::font::{FontSettings, FontSettingTagFloat};
 use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength, Number};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
@@ -1961,6 +1961,51 @@ impl Parse for FontLanguageOverride {
         Ok(FontLanguageOverride::Override(string.as_ref().to_owned().into_boxed_str()))
     }
 }
+
+/// A font four-character tag, represented as a u32 for convenience.
+///
+/// See:
+///   https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
+///   https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-feature-settings
+///
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+pub struct FontTag(pub u32);
+
+impl Parse for FontTag {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        use byteorder::{ReadBytesExt, BigEndian};
+        use std::io::Cursor;
+
+        let location = input.current_source_location();
+        let tag = input.expect_string()?;
+
+        // allowed strings of length 4 containing chars: <U+20, U+7E>
+        if tag.len() != 4 || tag.as_bytes().iter().any(|c| *c < b' ' || *c > b'~') {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+
+        let mut raw = Cursor::new(tag.as_bytes());
+        Ok(FontTag(raw.read_u32::<BigEndian>().unwrap()))
+    }
+}
+
+impl ToCss for FontTag {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use byteorder::{BigEndian, ByteOrder};
+        use std::str;
+
+        let mut raw = [0u8; 4];
+        BigEndian::write_u32(&mut raw, self.0);
+        str::from_utf8(&raw).unwrap_or_default().to_css(dest)
+    }
+}
+
 
 /// This property provides low-level control over OpenType or TrueType font variations.
 pub type FontVariantSettings = FontSettings<FontSettingTagFloat>;

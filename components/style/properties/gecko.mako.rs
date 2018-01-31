@@ -1432,13 +1432,13 @@ impl Clone for ${style_struct.gecko_struct_name} {
     %>
 
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use values::generics::FontSettings;
+        use values::generics::font::FontSettings;
 
         let current_settings = &mut self.gecko.mFont.${gecko_ffi_name};
         current_settings.clear_pod();
 
         match v {
-            FontSettings::Normal => (), // do nothing, length is already 0
+            FontSettings::Normal => {}, // do nothing, length is already 0
 
             FontSettings::Tag(other_settings) => {
                 unsafe { current_settings.set_len_pod(other_settings.len() as u32) };
@@ -1470,7 +1470,8 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::generics::{FontSettings, FontTag, FontSettingTag, ${tag_type}} ;
+        use values::generics::font::{FontSettings, FontSettingTag, ${tag_type}};
+        use values::specified::font::FontTag;
 
         if self.gecko.mFont.${gecko_ffi_name}.len() == 0 {
             FontSettings::Normal
