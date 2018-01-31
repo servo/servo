@@ -302,10 +302,6 @@ impl SelfAlignment {
     /// Returns whether this value is valid for both axis directions.
     pub fn is_valid_on_both_axes(&self) -> bool {
         match self.0.value() {
-            // <baseline-position> is only allowed on the block axis.
-            AlignFlags::BASELINE |
-            AlignFlags::LAST_BASELINE => false,
-
             // left | right are only allowed on the inline axis.
             AlignFlags::LEFT |
             AlignFlags::RIGHT => false,
@@ -325,11 +321,12 @@ impl SelfAlignment {
         input: &mut Parser<'i, 't>,
         axis: AxisDirection,
     ) -> Result<Self, ParseError<'i>> {
-        // <baseline-position>, only on the block axis.
-        if axis == AxisDirection::Block {
-            if let Ok(value) = input.try(parse_baseline) {
-                return Ok(SelfAlignment(value));
-            }
+        // <baseline-position>
+        //
+        // It's weird that this accepts <baseline-position>, but not
+        // justify-content...
+        if let Ok(value) = input.try(parse_baseline) {
+            return Ok(SelfAlignment(value));
         }
 
         // auto | normal | stretch
@@ -465,8 +462,8 @@ impl Parse for JustifyItems {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         // <baseline-position>
         //
-        // It's weird that this accepts <baseline-position>, but not the
-        // justify-self / justify-content properties...
+        // It's weird that this accepts <baseline-position>, but not
+        // justify-content...
         if let Ok(baseline) = input.try(parse_baseline) {
             return Ok(JustifyItems(baseline));
         }
@@ -511,7 +508,7 @@ fn parse_auto_normal_stretch<'i, 't>(
     }
 }
 
-// normal | stretch | <baseline-position>
+// normal | stretch
 fn parse_normal_stretch<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
         "normal" => Ok(AlignFlags::NORMAL),
