@@ -9,19 +9,26 @@
 
 use fnv;
 
+// #[cfg(feature = "gecko")]
+// pub use hashglobe::hash_map::HashMap;
+// #[cfg(feature = "gecko")]
+// pub use hashglobe::hash_set::HashSet;
 #[cfg(feature = "gecko")]
-pub use hashglobe::hash_map::HashMap;
+pub use hashglobe::order::HashMap;
 #[cfg(feature = "gecko")]
-pub use hashglobe::hash_set::HashSet;
+pub use hashglobe::order::HashSet;
 
 
 #[cfg(feature = "servo")]
 pub use hashglobe::fake::{HashMap, HashSet};
 
+
 /// Appropriate reexports of hash_map types
 pub mod map {
+    // #[cfg(feature = "gecko")]
+    // pub use hashglobe::hash_map::{Entry, Iter};
     #[cfg(feature = "gecko")]
-    pub use hashglobe::hash_map::{Entry, Iter};
+    pub use hashglobe::order::{Entry, MapIter as Iter};
     #[cfg(feature = "servo")]
     pub use std::collections::hash_map::{Entry, Iter};
 }

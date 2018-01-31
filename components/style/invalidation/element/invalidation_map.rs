@@ -273,7 +273,7 @@ impl InvalidationMap {
 
             for class in compound_visitor.classes {
                 self.class_to_selector
-                    .entry(class, quirks_mode)
+                    .try_entry(class, quirks_mode)?
                     .or_insert_with(SmallVec::new)
                     .try_push(Dependency {
                         selector: selector.clone(),
@@ -283,7 +283,7 @@ impl InvalidationMap {
 
             for id in compound_visitor.ids {
                 self.id_to_selector
-                    .entry(id, quirks_mode)
+                    .try_entry(id, quirks_mode)?
                     .or_insert_with(SmallVec::new)
                     .try_push(Dependency {
                         selector: selector.clone(),
