@@ -81,7 +81,6 @@ directories = [
   "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
-  "./ports/cef",
 ]
 
 # Directories that are checked for correct file extension

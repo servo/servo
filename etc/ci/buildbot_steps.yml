@@ -46,7 +46,6 @@ mac-dev-unit:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
   - ./mach package --dev
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build-cef
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -108,7 +107,6 @@ linux-dev:
     - ./mach build --dev
     - ./mach test-unit
     - ./mach package --dev
-    - ./mach build-cef
     - ./mach build --dev --no-default-features --features default-except-unstable
     - ./mach build-geckolib
     - ./mach test-stylo

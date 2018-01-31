@@ -531,9 +531,6 @@ class CommandBase(object):
     def geckolib_manifest(self):
         return path.join(self.context.topdir, "ports", "geckolib", "Cargo.toml")
 
-    def cef_manifest(self):
-        return path.join(self.context.topdir, "ports", "cef", "Cargo.toml")
-
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""
         features = []
