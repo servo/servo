@@ -113,7 +113,6 @@
 //! which invoke their member's destructors through C++ code.
 
 #![allow(non_camel_case_types)]
-#![deny(warnings)]
 
 #[macro_use]
 extern crate bitflags;
