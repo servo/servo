@@ -26,7 +26,7 @@ test(t => {
   animation.timeline = document.timeline;
 
   assert_equals(animation.playState, 'paused');
-  assert_times_equal(animation.currentTime, 50 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 50 * MS_PER_SEC);
 }, 'After setting timeline on paused animation it is still paused');
 
 test(t => {
@@ -39,7 +39,7 @@ test(t => {
   animation.timeline = document.timeline;
 
   assert_equals(animation.playState, 'paused');
-  assert_times_equal(animation.currentTime, 200 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 200 * MS_PER_SEC);
 }, 'After setting timeline on animation paused outside active interval'
    + ' it is still paused');
 
@@ -141,7 +141,7 @@ test(t => {
 
   assert_false(animation.pending);
   assert_equals(animation.playState, 'paused');
-  assert_times_equal(animation.currentTime, 50 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 50 * MS_PER_SEC);
 }, 'After clearing timeline on paused animation it is still paused');
 
 test(t => {

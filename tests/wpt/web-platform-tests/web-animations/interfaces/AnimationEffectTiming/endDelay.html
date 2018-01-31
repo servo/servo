@@ -19,10 +19,10 @@ test(t => {
   const div = createDiv(t);
   const anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
   anim.effect.timing.endDelay = 123.45;
-  assert_times_equal(anim.effect.timing.endDelay, 123.45,
-                     'set endDelay 123.45');
-  assert_times_equal(anim.effect.getComputedTiming().endDelay, 123.45,
-                     'getComputedTiming() after set endDelay 123.45');
+  assert_time_equals_literal(anim.effect.timing.endDelay, 123.45,
+                             'set endDelay 123.45');
+  assert_time_equals_literal(anim.effect.getComputedTiming().endDelay, 123.45,
+                             'getComputedTiming() after set endDelay 123.45');
 }, 'Can be set to a positive number');
 
 test(t => {

@@ -10,7 +10,11 @@
 window.evaluated_module_script = true;
 </script>
 <script>
-test(() => assert_true(window.evaluated_module_script), "module script in XHTML documents should be evaluated.");
+  var test = async_test("module script in XHTML documents should be evaluated.");
+  window.addEventListener("load", () => {
+    test.step(() => { assert_true(window.evaluated_module_script); });
+    test.done();
+  });
 </script>
 </body>
 </html>

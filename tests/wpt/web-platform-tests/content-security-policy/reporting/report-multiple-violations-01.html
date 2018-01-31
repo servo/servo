@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Test multiple violations cause multiple reports</title>
+    <!-- CSP headers
+         Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self'; img-src 'none'; report-uri ../support/report.py?op=put&reportID={{$id}}
+         -->
+</head>
+<body>
+    <img src="../support/pass.png">
+    <img src="../support/pass2.png">
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27&reportCount=2'></script>
+</body>
+</html>

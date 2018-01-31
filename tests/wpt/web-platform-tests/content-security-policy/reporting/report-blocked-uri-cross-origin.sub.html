@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Cross-origin images are reported correctly</title>
+    <!-- CSP headers
+Content-Security-Policy: script-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: img-src 'none'; script-src 'self' 'unsafe-inline'; report-uri ../support/report.py?op=put&reportID=$id
+-->
+</head>
+<body>
+  <img src="http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/pass.png">
+  <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27'></script>
+</body>
+</html>

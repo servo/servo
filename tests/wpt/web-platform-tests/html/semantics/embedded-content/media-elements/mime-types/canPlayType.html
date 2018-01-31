@@ -2,8 +2,13 @@
 <title>canPlayType</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<audio id="audio"></audio>
+<video id="video"></video>
 <div id="log"></div>
 <script>
+let VIDEO_ELEM = document.getElementById('video');
+let AUDIO_ELEM = document.getElementById('audio');
+
 function t(type, expected) {
   assert_equals(canPlayType(type), expected, type);
 }
@@ -22,12 +27,13 @@ test(function() {
 }, 'utility code');
 
 function canPlayType(type) {
-  var canPlay = document.createElement('audio').canPlayType(type);
-  assert_equals(canPlay, document.createElement('video').canPlayType(type),
+  let audioCanPlay = AUDIO_ELEM.canPlayType(type);
+  let videoCanPlay = VIDEO_ELEM.canPlayType(type);
+  assert_equals(audioCanPlay, videoCanPlay,
                 'audio.canPlayType() and video.canPlayType() agree');
-  assert_in_array(canPlay, ['', 'maybe', 'probably'],
+  assert_in_array(audioCanPlay, ['', 'maybe', 'probably'],
                   'return value is one of "", "maybe" and "probably"');
-  return canPlay;
+  return audioCanPlay;
 }
 
 test(function() {
@@ -37,20 +43,22 @@ test(function() {
   t('application/octet-stream; codecs="mp4a.40.2"', '');
   t('application/octet-stream; codecs="theora, vorbis"', '');
   t('application/octet-stream; codecs="avc1.42E01E, mp4a.40.2"', '');
-}, 'application/octet-stream');
+}, 'application/octet-stream not supported');
 
 test(function() {
+  t('application/marks-fantasmagorical-format', '');
   t('video/x-new-fictional-format', '');
   t('video/x-new-fictional-format;codecs="kittens,bunnies"', '');
-}, 'video/x-new-fictional-format');
+}, 'fictional formats and codecs not supported');
 
 function type_codecs_test(type, audioCodecs, videoCodecs) {
   var typeSupported = false;
   var codecSupported = false;
 
+  // Test 'type' without codecs.
+  // Spec: Generally, a user agent should never return "probably" for a type
+  // that allows the codecs parameter if that parameter is not present.
   test(function() {
-    // Spec: Generally, a user agent should never return "probably" for a type
-    // that allows the codecs parameter if that parameter is not present.
     t(type, 'maybe');
     t(type + ';', 'maybe');
     t(type + ';codecs', 'maybe');
@@ -66,9 +74,11 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
     }, typeWithCodec + ' (optional)');
   }
 
+  // Test each audio and video codec separately.
   audioCodecs.forEach(test_codec);
   videoCodecs.forEach(test_codec);
 
+  // Test different pairings and orderings of audio+video codecs.
   if (audioCodecs.length > 0 && videoCodecs.length > 0) {
     test(function() {
       audioCodecs.forEach(function(ac) {

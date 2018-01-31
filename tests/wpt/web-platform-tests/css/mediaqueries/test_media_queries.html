@@ -431,6 +431,8 @@ function run() {
     should_apply("(orientation");
     should_not_apply("not all and (orientation");
     should_not_apply("(orientation:");
+    should_not_apply("(orientation:)");
+    should_not_apply("(orientation:  )");
     should_apply("all,(orientation:");
     should_not_apply("(orientation:,all");
     should_apply("not all and (grid");

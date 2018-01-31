@@ -119,5 +119,4 @@ def test_unknown_cookie(session):
     response = delete_cookie(session, "stilton")
     assert response.status == 200
     assert "value" in response.body
-    assert isinstance(response.body["value"], dict)
-    assert response.body["value"] == {}
+    assert response.body["value"] is None

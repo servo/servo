@@ -98,10 +98,19 @@ Guidelines for writing tests
     Remember, even if we do need to make all tests take, say 200s each, text
     editors are very good at search and replace.
 
-*   Use the `assert_times_equal` assertion for comparing calculated times.
-    It tests times are equal using the precision recommended in the spec whilst
-    allowing implementations to override the function to meet their own
-    precision requirements.
+*   Use the `assert_times_equal` assertion for comparing times returned from
+    the API. This asserts that the time values are equal using a tolerance
+    based on the precision recommended in the spec. This tolerance is applied
+    to *both* of the values being compared. That is, it effectively allows
+    double the epsilon that is used when comparing with an absolute value.
+
+    For comparing a time value returned from the API to an absolute value, use
+    `assert_time_equals_literal`. This tests that the actual value is equal to
+    the expected value within the precision recommended in the spec.
+
+    Both `assert_times_equal` and `assert_time_equals_literal` are defined in a
+    way that implementations can override them to meet their own precision
+    requirements.
 
 *   There are quite a few bad tests in the repository. We're learning as
     we go. Don't just copy them blindly&mdash;please fix them!

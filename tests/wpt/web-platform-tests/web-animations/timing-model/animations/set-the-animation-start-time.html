@@ -80,9 +80,9 @@ test(t => {
 
   // If we set the start time, however, we should clear the hold time.
   animation.startTime = document.timeline.currentTime - 2000;
-  assert_times_equal(animation.currentTime, 2000,
-                     'The current time is calculated from the start time,'
-                     + ' not the hold time');
+  assert_time_equals_literal(animation.currentTime, 2000,
+                             'The current time is calculated from the start'
+                             + ' time, not the hold time');
 
   // Sanity check
   assert_equals(animation.playState, 'running',
@@ -99,13 +99,14 @@ test(t => {
   // are resolved).
   animation.startTime = document.timeline.currentTime - 1000;
   assert_equals(animation.playState, 'running');
-  assert_times_equal(animation.currentTime, 1000,
-                     'Current time is resolved for a running animation')
+  assert_time_equals_literal(animation.currentTime, 1000,
+                             'Current time is resolved for a running animation');
 
   // Clear start time
   animation.startTime = null;
-  assert_times_equal(animation.currentTime, 1000,
-                     'Hold time is set after start time is made unresolved');
+  assert_time_equals_literal(animation.currentTime, 1000,
+                             'Hold time is set after start time is made'
+                             + ' unresolved');
   assert_equals(animation.playState, 'paused',
                 'Animation reports it is paused after setting an unresolved'
                 + ' start time');

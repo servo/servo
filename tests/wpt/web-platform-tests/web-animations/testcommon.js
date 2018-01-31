@@ -21,8 +21,16 @@ const TIME_PRECISION = 0.0005; // ms
 // times based on their precision requirements.
 if (!window.assert_times_equal) {
   window.assert_times_equal = (actual, expected, description) => {
-    assert_approx_equals(actual, expected, TIME_PRECISION, description);
+    assert_approx_equals(actual, expected, TIME_PRECISION * 2, description);
   };
+}
+
+// Allow implementations to substitute an alternative method for comparing
+// a time value based on its precision requirements with a fixed value.
+if (!window.assert_time_equals_literal) {
+  window.assert_time_equals_literal = (actual, expected, description) => {
+    assert_approx_equals(actual, expected, TIME_PRECISION, description);
+  }
 }
 
 // creates div element, appends it to the document body and

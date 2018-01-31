@@ -17,11 +17,15 @@
           try {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", "data:,", false);
-            xhr.send();
-            resolve();
+            try {
+              xhr.send();
+            } catch(e) {
+              reject(e);
+            }
           } catch(e) {
-            reject(e);
+            reject({"name": "UnexpectedException:" + e.name});
           }
+          resolve();
        });
       });
   </script>

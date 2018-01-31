@@ -178,7 +178,7 @@ function validateRtpStreamStats(statsReport, stats) {
 
   assert_optional_unsigned_int_field(stats, 'firCount');
   assert_optional_unsigned_int_field(stats, 'pliCount');
-  assert_unsigned_int_field(stats, 'nackCount');
+  assert_optional_unsigned_int_field(stats, 'nackCount');
   assert_optional_unsigned_int_field(stats, 'sliCount');
   assert_optional_unsigned_int_field(stats, 'qpSum');
 }
@@ -211,15 +211,15 @@ function validateCodecStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
   assert_unsigned_int_field(stats, 'payloadType');
-  assert_enum_field(stats, 'codecType', ['encode', 'decode']);
+  assert_optional_enum_field(stats, 'codecType', ['encode', 'decode']);
 
   validateOptionalIdField(statsReport, stats, 'transportId', 'transport');
 
   assert_optional_string_field(stats, 'mimeType');
   assert_unsigned_int_field(stats, 'clockRate');
-  assert_unsigned_int_field(stats, 'channels');
+  assert_optional_unsigned_int_field(stats, 'channels');
 
-  assert_string_field(stats, 'sdpFmtpLine');
+  assert_optional_string_field(stats, 'sdpFmtpLine');
   assert_optional_string_field(stats, 'implementation');
 }
 
@@ -365,7 +365,9 @@ function validateOutboundRtpStreamStats(statsReport, stats) {
 
   assert_optional_number_field(stats, 'lastPacketSentTimestamp');
   assert_optional_number_field(stats, 'targetBitrate');
-  assert_unsigned_int_field(stats, 'framesEncoded');
+  if (stats['mediaType'] == 'video') {
+    assert_unsigned_int_field(stats, 'framesEncoded');
+  }
   assert_optional_number_field(stats, 'totalEncodeTime');
   assert_optional_number_field(stats, 'averageRTCPInterval');
 }
@@ -526,35 +528,38 @@ function validateMediaStreamTrackStats(statsReport, stats) {
 
   assert_optional_enum_field(stats, 'kind', ['audio', 'video']);
   assert_optional_number_field(stats, 'estimatedPlayoutTimestamp');
+  if (stats['kind'] === 'video') {
+    assert_unsigned_int_field(stats, 'frameWidth');
+    assert_unsigned_int_field(stats, 'frameHeight');
+    assert_number_field(stats, 'framesPerSecond');
+    if (stats['framesSent']) {
+      assert_optional_unsigned_int_field(stats, 'framesCaptured');
+      assert_unsigned_int_field(stats, 'framesSent');
+      assert_optional_unsigned_int_field(stats, 'keyFramesSent');
+    } else {
+      assert_unsigned_int_field(stats, 'framesReceived');
+      assert_optional_unsigned_int_field(stats, 'keyFramesReceived');
+      assert_unsigned_int_field(stats, 'framesDecoded');
+      assert_unsigned_int_field(stats, 'framesDropped');
+      assert_unsigned_int_field(stats, 'framesCorrupted');
+    }
 
-  assert_unsigned_int_field(stats, 'frameWidth');
-  assert_unsigned_int_field(stats, 'frameHeight');
-  assert_number_field(stats, 'framesPerSecond');
+    assert_optional_unsigned_int_field(stats, 'partialFramesLost');
+    assert_optional_unsigned_int_field(stats, 'fullFramesLost');
+  } else {
+    assert_number_field(stats, 'audioLevel');
+    assert_optional_number_field(stats, 'totalAudioEnergy');
+    assert_optional_boolean_field(stats, 'voiceActivityFlag');
+    assert_optional_number_field(stats, 'echoReturnLoss');
+    assert_optional_number_field(stats, 'echoReturnLossEnhancement');
 
-  assert_optional_unsigned_int_field(stats, 'framesCaptured');
-  assert_unsigned_int_field(stats, 'framesSent');
-  assert_optional_unsigned_int_field(stats, 'keyFramesSent');
-  assert_unsigned_int_field(stats, 'framesReceived');
-  assert_optional_unsigned_int_field(stats, 'keyFramesReceived');
-  assert_unsigned_int_field(stats, 'framesDecoded');
-  assert_unsigned_int_field(stats, 'framesDropped');
-  assert_unsigned_int_field(stats, 'framesCorrupted');
-
-  assert_optional_unsigned_int_field(stats, 'partialFramesLost');
-  assert_optional_unsigned_int_field(stats, 'fullFramesLost');
-
-  assert_number_field(stats, 'audioLevel');
-  assert_optional_number_field(stats, 'totalAudioEnergy');
-  assert_optional_boolean_field(stats, 'voiceActivityFlag');
-  assert_optional_number_field(stats, 'echoReturnLoss');
-  assert_optional_number_field(stats, 'echoReturnLossEnhancement');
-
-  assert_optional_unsigned_int_field(stats, 'totalSamplesSent');
-  assert_optional_unsigned_int_field(stats, 'totalSamplesReceived');
-  assert_optional_number_field(stats, 'totalSamplesDuration');
-  assert_optional_unsigned_int_field(stats, 'concealedSamples');
-  assert_optional_unsigned_int_field(stats, 'concealmentEvents');
-  assert_optional_number_field(stats, 'jitterBufferDelay');
+    assert_optional_unsigned_int_field(stats, 'totalSamplesSent');
+    assert_optional_unsigned_int_field(stats, 'totalSamplesReceived');
+    assert_optional_number_field(stats, 'totalSamplesDuration');
+    assert_optional_unsigned_int_field(stats, 'concealedSamples');
+    assert_optional_unsigned_int_field(stats, 'concealmentEvents');
+    assert_optional_number_field(stats, 'jitterBufferDelay');
+  }
 
   assert_optional_enum_field(stats, 'priority',
     ['very-low', 'low', 'medium', 'high']);
@@ -651,7 +656,8 @@ function validateTransportStats(statsReport, stats) {
   assert_unsigned_int_field(stats, 'bytesSent');
   assert_unsigned_int_field(stats, 'bytesReceived');
 
-  validateIdField(statsReport, stats, 'rtcpTransportStatsId', 'transport');
+  validateOptionalIdField(statsReport, stats, 'rtcpTransportStatsId',
+                          'transport');
 
   assert_optional_enum_field(stats, 'iceRole',
     ['controlling', 'controlled']);
@@ -721,7 +727,7 @@ function validateIceCandidateStats(statsReport, stats) {
     ['host', 'srflx', 'prflx', 'relay']);
 
   assert_int_field(stats, 'priority');
-  assert_string_field(stats, 'url');
+  assert_optional_string_field(stats, 'url');
   assert_optional_string_field(stats, 'relayProtocol');
   assert_optional_boolean_field(stats, 'deleted');
 }
@@ -788,7 +794,7 @@ function validateIceCandidatePairStats(statsReport, stats) {
   assert_optional_unsigned_int_field(stats, 'packetsSent');
   assert_optional_unsigned_int_field(stats, 'packetsReceived');
   assert_unsigned_int_field(stats, 'bytesSent');
-  assert_unsigned_int_field(stats, 'byteReceived');
+  assert_unsigned_int_field(stats, 'bytesReceived');
 
   assert_optional_number_field(stats, 'lastPacketSentTimestamp');
   assert_optional_number_field(stats, 'lastPacketReceivedTimestamp');
@@ -834,5 +840,5 @@ function validateCertificateStats(statsReport, stats) {
   assert_string_field(stats, 'fingerprint');
   assert_string_field(stats, 'fingerprintAlgorithm');
   assert_string_field(stats, 'base64Certificate');
-  assert_string_field(stats, 'issuerCertificateId');
+  assert_optional_string_field(stats, 'issuerCertificateId');
 }

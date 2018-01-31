@@ -585,8 +585,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/*/.htaccess
 CSS-COLLIDING-SUPPORT-NAME: css/*/LOCK
 
 # These are all the current "merge mismatch" errors the build system produces
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/100x100-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/100x100-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/200x200-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/200x200-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-regions/contentEditable/support/common.css

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Default-Alignment: align-items - setting values via CSS</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#default-alignment" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-self-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-baseline-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-overflow-position" />
+<link rel="stylesheet" href="../../support/alignment.css" >
+<meta name="assert" content="Check that the computed value is the specified value and the JS value is empty."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    let classes = Object.assign({"Normal":"normal", "Stretch":"stretch"}, selfPositionClasses,
+                                baselineClasses, overflowClasses);
+
+    for (var key in classes) {
+        let specifiedValue = classes[key];
+        element = document.createElement("div");
+        element.className = "alignItems" + key;
+        document.body.appendChild(element);
+        test(function() {
+            if (specifiedValue === "first baseline")
+                checkValues(element, "alignItems", "align-items", "", "baseline");
+            else
+                checkValues(element, "alignItems", "align-items", "", specifiedValue);
+        }, "Checking align-items: " + specifiedValue);
+    }
+</script>

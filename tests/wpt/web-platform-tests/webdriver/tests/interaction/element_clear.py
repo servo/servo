@@ -1,185 +1,390 @@
+# META: timeout=long
+
 import pytest
-from tests.support.asserts import assert_error, assert_success
+
+from tests.support.asserts import (
+    assert_element_has_focus,
+    assert_error,
+    assert_success,
+)
 from tests.support.inline import inline
 
 
-def clear(session, element):
-    return session.transport.send("POST", "session/{session_id}/element/{element_id}/clear"
-                                  .format(session_id=session.session_id,
-                                          element_id=element.id))
+def add_event_listeners(element):
+    element.session.execute_script("""
+        let [target] = arguments;
+        window.events = [];
+        for (let expected of ["focus", "blur", "change"]) {
+          target.addEventListener(expected, ({type}) => window.events.push(type));
+        }
+        """, args=(element,))
 
 
-# 14.2 Element Clear
+def get_events(session):
+    return session.execute_script("return window.events")
 
-def test_no_browsing_context(session, create_window):
-    # 14.2 step 1
-    session.url = inline("<p>This is not an editable paragraph.")
-    element = session.find.css("p", all=False)
 
-    session.window_handle = create_window()
+@pytest.fixture(scope="session")
+def text_file(tmpdir_factory):
+    fh = tmpdir_factory.mktemp("tmp").join("hello.txt")
+    fh.write("hello")
+    return fh
+
+
+def element_clear(session, element):
+    return session.transport.send("POST", "/session/%s/element/%s/clear" %
+                                  (session.session_id, element.id))
+
+
+def test_closed_context(session, create_window):
+    new_window = create_window()
+    session.window_handle = new_window
+    session.url = inline("<input>")
+    element = session.find.css("input", all=False)
     session.close()
 
-    response = clear(session, element)
+    response = element_clear(session, element)
     assert_error(response, "no such window")
 
 
-def test_element_not_found(session):
-    # 14.2 Step 2
-    response = session.transport.send("POST", "session/{session_id}/element/{element_id}/clear"
-                                      .format(session_id=session.session_id,
-                                              element_id="box1"))
+def test_connected_element(session):
+    session.url = inline("<input>")
+    element = session.find.css("input", all=False)
 
-    assert_error(response, "no such element")
+    session.url = inline("<input>")
+    response = element_clear(session, element)
+    assert_error(response, "stale element reference")
 
 
-def test_element_not_editable(session):
-    # 14.2 Step 3
-    session.url = inline("<p>This is not an editable paragraph.")
+def test_pointer_interactable(session):
+    session.url = inline("<input style='margin-left: -1000px' value=foobar>")
+    element = session.find.css("input", all=False)
 
+    response = element_clear(session, element)
+    assert_error(response, "element not interactable")
+
+
+def test_keyboard_interactable(session):
+    session.url = inline("""
+        <input value=foobar>
+        <div></div>
+
+        <style>
+        div {
+          position: absolute;
+          background: blue;
+          top: 0;
+        }
+        </style>
+        """)
+    element = session.find.css("input", all=False)
+    assert element.property("value") == "foobar"
+
+    response = element_clear(session, element)
+    assert_success(response)
+    assert element.property("value") == ""
+
+
+@pytest.mark.parametrize("type,value,default",
+                         [("number", "42", ""),
+                          ("range", "42", "50"),
+                          ("email", "foo@example.com", ""),
+                          ("password", "password", ""),
+                          ("search", "search", ""),
+                          ("tel", "999", ""),
+                          ("text", "text", ""),
+                          ("url", "https://example.com/", ""),
+                          ("color", "#ff0000", "#000000"),
+                          ("date", "2017-12-26", ""),
+                          ("datetime", "2017-12-26T19:48", ""),
+                          ("datetime-local", "2017-12-26T19:48", ""),
+                          ("time", "19:48", ""),
+                          ("month", "2017-11", ""),
+                          ("week", "2017-W52", "")])
+def test_input(session, type, value, default):
+    session.url = inline("<input type=%s value='%s'>" % (type, value))
+    element = session.find.css("input", all=False)
+    add_event_listeners(element)
+    assert element.property("value") == value
+
+    response = element_clear(session, element)
+    assert_success(response)
+    assert element.property("value") == default
+    events = get_events(session)
+    assert "focus" in events
+    assert "change" in events
+    assert "blur" in events
+    assert_element_has_focus(session.execute_script("return document.body"))
+
+
+@pytest.mark.parametrize("type",
+                         ["number",
+                          "range",
+                          "email",
+                          "password",
+                          "search",
+                          "tel",
+                          "text",
+                          "url",
+                          "color",
+                          "date",
+                          "datetime",
+                          "datetime-local",
+                          "time",
+                          "month",
+                          "week",
+                          "file"])
+def test_input_disabled(session, type):
+    session.url = inline("<input type=%s disabled>" % type)
+    element = session.find.css("input", all=False)
+
+    response = element_clear(session, element)
+    assert_error(response, "invalid element state")
+
+
+@pytest.mark.parametrize("type",
+                         ["number",
+                          "range",
+                          "email",
+                          "password",
+                          "search",
+                          "tel",
+                          "text",
+                          "url",
+                          "color",
+                          "date",
+                          "datetime",
+                          "datetime-local",
+                          "time",
+                          "month",
+                          "week",
+                          "file"])
+def test_input_readonly(session, type):
+    session.url = inline("<input type=%s readonly>" % type)
+    element = session.find.css("input", all=False)
+
+    response = element_clear(session, element)
+    assert_error(response, "invalid element state")
+
+
+def test_textarea(session):
+    session.url = inline("<textarea>foobar</textarea>")
+    element = session.find.css("textarea", all=False)
+    add_event_listeners(element)
+    assert element.property("value") == "foobar"
+
+    response = element_clear(session, element)
+    assert_success(response)
+    assert element.property("value") == ""
+    events = get_events(session)
+    assert "focus" in events
+    assert "change" in events
+    assert "blur" in events
+
+
+def test_textarea_disabled(session):
+    session.url = inline("<textarea disabled></textarea>")
+    element = session.find.css("textarea", all=False)
+
+    response = element_clear(session, element)
+    assert_error(response, "invalid element state")
+
+
+def test_textarea_readonly(session):
+    session.url = inline("<textarea readonly></textarea>")
+    element = session.find.css("textarea", all=False)
+
+    response = element_clear(session, element)
+    assert_error(response, "invalid element state")
+
+
+def test_input_file(session, text_file):
+    session.url = inline("<input type=file>")
+    element = session.find.css("input", all=False)
+    element.send_keys(str(text_file))
+
+    response = element_clear(session, element)
+    assert_success(response)
+    assert element.property("value") == ""
+
+
+def test_input_file_multiple(session, text_file):
+    session.url = inline("<input type=file multiple>")
+    element = session.find.css("input", all=False)
+    element.send_keys(str(text_file))
+    element.send_keys(str(text_file))
+
+    response = element_clear(session, element)
+    assert_success(response)
+    assert element.property("value") == ""
+
+
+def test_select(session):
+    session.url = inline("""
+        <select>
+          <option>foo
+        </select>
+        """)
+    select = session.find.css("select", all=False)
+    option = session.find.css("option", all=False)
+
+    response = element_clear(session, select)
+    assert_error(response, "invalid element state")
+    response = element_clear(session, option)
+    assert_error(response, "invalid element state")
+
+
+def test_button(session):
+    session.url = inline("<button></button>")
+    button = session.find.css("button", all=False)
+
+    response = element_clear(session, button)
+    assert_error(response, "invalid element state")
+
+
+def test_button_with_subtree(session):
+    """
+    Whilst an <input> is normally editable, the focusable area
+    where it is placed will default to the <button>.  I.e. if you
+    try to click <input> to focus it, you will hit the <button>.
+    """
+    session.url = inline("""
+        <button>
+          <input value=foobar>
+        </button>
+        """)
+    text_field = session.find.css("input", all=False)
+
+    response = element_clear(session, text_field)
+    assert_error(response, "element not interactable")
+
+
+def test_contenteditable(session):
+    session.url = inline("<p contenteditable>foobar</p>")
     element = session.find.css("p", all=False)
-    response = clear(session, element)
-    assert_error(response, "invalid element state")
+    add_event_listeners(element)
+    assert element.property("innerHTML") == "foobar"
 
-
-def test_button_element_not_resettable(session):
-    # 14.2 Step 3
-    session.url = inline("<input type=button value=Federer>")
-
-    element = session.find.css("input", all=False)
-    response = clear(session, element)
-    assert_error(response, "invalid element state")
-
-
-def test_disabled_element_not_resettable(session):
-    # 14.2 Step 3
-    session.url = inline("<input type=text value=Federer disabled>")
-
-    element = session.find.css("input", all=False)
-    response = clear(session, element)
-    assert_error(response, "invalid element state")
-
-
-def test_scroll_into_element_view(session):
-    # 14.2 Step 4
-    session.url = inline("<input type=text value=Federer><div style= \"height: 200vh; width: 5000vh\">")
-
-    # Scroll to the bottom right of the page
-    session.execute_script("window.scrollTo(document.body.scrollWidth, document.body.scrollHeight);")
-    element = session.find.css("input", all=False)
-    # Clear and scroll back to the top of the page
-    response = clear(session, element)
+    response = element_clear(session, element)
     assert_success(response)
-
-    # Check if element cleared is scrolled into view
-    rect = session.execute_script("return document.getElementsByTagName(\"input\")[0].getBoundingClientRect()")
-
-    pageDict = {}
-
-    pageDict["innerHeight"] = session.execute_script("return window.innerHeight")
-    pageDict["innerWidth"] = session.execute_script("return window.innerWidth")
-    pageDict["pageXOffset"] = session.execute_script("return window.pageXOffset")
-    pageDict["pageYOffset"] = session.execute_script("return window.pageYOffset")
-
-    assert rect["top"] < (pageDict["innerHeight"] + pageDict["pageYOffset"]) and \
-           rect["left"] < (pageDict["innerWidth"] + pageDict["pageXOffset"]) and \
-           (rect["top"] + element.rect["height"]) > pageDict["pageYOffset"] and \
-           (rect["left"] + element.rect["width"]) > pageDict["pageXOffset"]
+    assert element.property("innerHTML") == ""
+    assert get_events(session) == ["focus", "change", "blur"]
+    assert_element_has_focus(session.execute_script("return document.body"))
 
 
-# TODO
-# Any suggestions on implementation?
-# def test_session_implicit_wait_timeout(session):
-    # 14.2 Step 5
 
-# TODO
-# Any suggestions on implementation?
-# def test_element_not_interactable(session):
-#     # 14.2 Step 6
-#     assert_error(response, "element not interactable")
+def test_designmode(session):
+    session.url = inline("foobar")
+    element = session.find.css("body", all=False)
+    assert element.property("innerHTML") == "foobar"
+    session.execute_script("document.designMode = 'on'")
 
-
-def test_element_readonly(session):
-    # 14.2 Step 7
-    session.url = inline("<input type=text readonly value=Federer>")
-
-    element = session.find.css("input", all=False)
-    response = clear(session, element)
-    assert_error(response, "invalid element state")
-
-
-def test_element_disabled(session):
-    # 14.2 Step 7
-    session.url = inline("<input type=text disabled value=Federer>")
-
-    element = session.find.css("input", all=False)
-    response = clear(session, element)
-    assert_error(response, "invalid element state")
-
-
-def test_element_pointer_events_disabled(session):
-    # 14.2 Step 7
-    session.url = inline("<input type=text value=Federer style=\"pointer-events: none\">")
-
-    element = session.find.css("input", all=False)
-    response = clear(session, element)
-    assert_error(response, "invalid element state")
-
-
-@pytest.mark.parametrize("element", [["text", "<input id=text type=text value=\"Federer\"><input id=empty type=text value=\"\">"],
-                                    ["search", "<input id=search type=search value=\"Federer\"><input id=empty type=search value=\"\">"],
-                                    ["url", "<input id=url type=url value=\"www.hello.com\"><input id=empty type=url value=\"\">"],
-                                    ["tele", "<input id=tele type=telephone value=\"2061234567\"><input id=empty type=telephone value=\"\">"],
-                                    ["email", "<input id=email type=email value=\"hello@world.com\"><input id=empty type=email value=\"\">"],
-                                    ["password", "<input id=password type=password value=\"pass123\"><input id=empty type=password value=\"\">"],
-                                    ["date", "<input id=date type=date value=\"2017-12-25\"><input id=empty type=date value=\"\">"],
-                                    ["time", "<input id=time type=time value=\"11:11\"><input id=empty type=time value=\"\">"],
-                                    ["number", "<input id=number type=number value=\"19\"><input id=empty type=number value=\"\">"],
-                                    ["range", "<input id=range type=range min=\"0\" max=\"10\"><input id=empty type=range value=\"\">"],
-                                    ["color", "<input id=color type=color value=\"#ff0000\"><input id=empty type=color value=\"\">"],
-                                    ["file", "<input id=file type=file value=\"C:\\helloworld.txt\"><input id=empty type=file value=\"\">"],
-                                    ["textarea", "<textarea id=textarea>Hello World</textarea><textarea id=empty></textarea>"],
-                                    ["sel", "<select id=sel><option></option><option>a</option><option>b</option></select><select id=empty><option></option></select>"],
-                                    ["out", "<output id=out value=100></output><output id=empty></output>"],
-                                    ["para", "<p id=para contenteditable=true>This is an editable paragraph.</p><p id=empty contenteditable=true></p>"]])
-
-def test_clear_content_editable_resettable_element(session, element):
-    # 14.2 Step 8
-    url = element[1] + """<input id=focusCheck type=checkbox>
-                    <input id=blurCheck type=checkbox>
-                    <script>
-                    var id = "%s";
-                    document.getElementById(id).addEventListener("focus", checkFocus);
-                    document.getElementById(id).addEventListener("blur", checkBlur);
-                    document.getElementById("empty").addEventListener("focus", checkFocus);
-                    document.getElementById("empty").addEventListener("blur", checkBlur);
-
-                    function checkFocus() {
-                        document.getElementById("focusCheck").checked = true;
-                    }
-                    function checkBlur() {
-                        document.getElementById("blurCheck").checked = true;
-                    }
-                    </script>""" % element[0]
-    session.url = inline(url)
-    # Step 1
-    empty_element = session.find.css("#empty", all=False)
-    clear_element_test_helper(session, empty_element, False)
-    session.execute_script("document.getElementById(\"focusCheck\").checked = false;")
-    session.execute_script("document.getElementById(\"blurCheck\").checked = false;")
-    # Step 2 - 4
-    test_element = session.find.css("#" + element[0], all=False)
-    clear_element_test_helper(session, test_element, True)
-
-
-def clear_element_test_helper(session, element, value):
-    response = clear(session, element)
+    response = element_clear(session, element)
     assert_success(response)
-    response = session.execute_script("return document.getElementById(\"focusCheck\").checked;")
-    assert response is value
-    response = session.execute_script("return document.getElementById(\"blurCheck\").checked;")
-    assert response is value
-    if element.name == "p":
-        response = session.execute_script("return document.getElementById(\"para\").innerHTML;")
-        assert response == ""
-    else:
-        assert element.property("value") == ""
+    assert element.property("innerHTML") == "<br>"
+    assert_element_has_focus(session.execute_script("return document.body"))
+
+
+def test_resettable_element_focus_when_empty(session):
+    session.url = inline("<input>")
+    element = session.find.css("input", all=False)
+    add_event_listeners(element)
+    assert element.property("value") == ""
+
+    response = element_clear(session, element)
+    assert_success(response)
+    assert element.property("value") == ""
+    assert get_events(session) == []
+
+
+@pytest.mark.parametrize("type,invalid_value",
+                         [("number", "foo"),
+                          ("range", "foo"),
+                          ("email", "foo"),
+                          ("url", "foo"),
+                          ("color", "foo"),
+                          ("date", "foo"),
+                          ("datetime", "foo"),
+                          ("datetime-local", "foo"),
+                          ("time", "foo"),
+                          ("month", "foo"),
+                          ("week", "foo")])
+def test_resettable_element_does_not_satisfy_validation_constraints(session, type, invalid_value):
+    """
+    Some UAs allow invalid input to certain types of constrained
+    form controls.  For example, Gecko allows non-valid characters
+    to be typed into <input type=number> but Chrome does not.
+    Since we want to test that Element Clear works for clearing the
+    invalid characters in these UAs, it is fine to skip this test
+    where UAs do not allow the element to not satisfy its constraints.
+    """
+    session.url = inline("<input type=%s>" % type)
+    element = session.find.css("input", all=False)
+
+    def is_valid(element):
+        return session.execute_script("""
+            let [input] = arguments;
+            return input.validity.valid;
+            """, args=(element,))
+
+    # value property does not get updated if the input is invalid
+    element.send_keys(invalid_value)
+
+    # UA does not allow invalid input for this form control type
+    if is_valid(element):
+        return
+
+    response = element_clear(session, element)
+    assert_success(response)
+    assert is_valid(element)
+
+
+@pytest.mark.parametrize("type",
+                         ["checkbox",
+                          "radio",
+                          "hidden",
+                          "submit",
+                          "button",
+                          "image"])
+def test_non_editable_inputs(session, type):
+    session.url = inline("<input type=%s>" % type)
+    element = session.find.css("input", all=False)
+
+    response = element_clear(session, element)
+    assert_error(response, "invalid element state")
+
+
+def test_scroll_into_view(session):
+    session.url = inline("""
+        <input value=foobar>
+        <div style='height: 200vh; width: 5000vh'>
+        """)
+    element = session.find.css("input", all=False)
+    assert element.property("value") == "foobar"
+    assert session.execute_script("return window.scrollY") == 0
+
+    # scroll to the bottom right of the page
+    session.execute_script("""
+        let {scrollWidth, scrollHeight} = document.body;
+        window.scrollTo(scrollWidth, scrollHeight);
+        """)
+
+    # clear and scroll back to the top of the page
+    response = element_clear(session, element)
+    assert_success(response)
+    assert element.property("value") == ""
+
+    # check if element cleared is scrolled into view
+    rect = session.execute_script("""
+        let [input] = arguments;
+        return input.getBoundingClientRect();
+        """, args=(element,))
+    window = session.execute_script("""
+        let {innerHeight, innerWidth, pageXOffset, pageYOffset} = window;
+        return {innerHeight, innerWidth, pageXOffset, pageYOffset};
+        """)
+
+    assert rect["top"] < (window["innerHeight"] + window["pageYOffset"]) and \
+           rect["left"] < (window["innerWidth"] + window["pageXOffset"]) and \
+           (rect["top"] + element.rect["height"]) > window["pageYOffset"] and \
+           (rect["left"] + element.rect["width"]) > window["pageXOffset"]

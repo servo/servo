@@ -25,7 +25,7 @@ registerPaint('geometry', class {
             '--bar',
             '--foo',
             'align-items',
-            'border-radius',
+            'border-top-left-radius',
         ];
     }
     paint(ctx, geom, styleMap) {
@@ -41,13 +41,13 @@ registerPaint('geometry', class {
             serializedStrings.push(serialized);
         }
         ctx.strokeStyle = 'green';
-        if (serializedStrings[0] != "--bar: [null]")
+        if (serializedStrings[0] != "--bar: [CSSUnparsedValue=]")
             ctx.strokeStyle = 'red';
         if (serializedStrings[1] != "--foo: [CSSUnparsedValue= bar]")
             ctx.strokeStyle = 'blue';
         if (serializedStrings[2] != "align-items: [CSSKeywordValue=normal]")
             ctx.strokeStyle = 'yellow';
-        if (serializedStrings[3] != "border-radius: [CSSStyleValue=2px]")
+        if (serializedStrings[3] != "border-top-left-radius: [CSSUnitValue=2px]")
             ctx.strokeStyle = 'cyan';
         ctx.lineWidth = 4;
         ctx.strokeRect(0, 0, geom.width, geom.height);

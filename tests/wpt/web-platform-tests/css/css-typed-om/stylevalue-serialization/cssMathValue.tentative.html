@@ -1,6 +1,8 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>IDL-constructed CSSMathValue serialization tests</title>
+<!-- Tentative because this depends on css-values-4 spec, which is still WIP:
+     https://drafts.csswg.org/css-values-4/#calc-notation -->
 <link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#calc-serialization">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -10,72 +12,76 @@
 
 const gTestCases = [
   {
+    description: 'CSSMathSum with 1 argument',
     value: new CSSMathSum(CSS.px(1)),
     cssText: 'calc(1px)',
-    desc: 'CSSMathSum with 1 argument'
   },
   {
+    description: 'CSSMathSum with 2 arguments',
     value: new CSSMathSum(CSS.px(1), CSS.px(2)),
     cssText: 'calc(1px + 2px)',
-    desc: 'CSSMathSum with 2 arguments'
   },
   {
+    description: 'CSSMathSum with more than 2 arguments',
     value: new CSSMathSum(CSS.px(1), CSS.px(2), CSS.px(3)),
     cssText: 'calc((1px + 2px) + 3px)',
-    desc: 'CSSMathSum with more than 2 arguments'
   },
   {
+    description: 'CSSMathProduct with 1 argument',
     value: new CSSMathProduct(CSS.px(1)),
     cssText: 'calc(1px)',
-    desc: 'CSSMathProduct with 1 argument'
   },
   {
+    description: 'CSSMathProduct with 2 arguments',
     value: new CSSMathProduct(CSS.px(1), 2),
     cssText: 'calc(1px * 2)',
-    desc: 'CSSMathProduct with 2 arguments'
   },
   {
+    description: 'CSSMathProduct with more than 2 arguments',
     value: new CSSMathProduct(CSS.px(1), 2, 3),
     cssText: 'calc((1px * 2) * 3)',
-    desc: 'CSSMathProduct with more than 2 arguments'
+  },
+  {
+    description: 'CSSMathProduct of two different base types',
+    value: new CSSMathProduct(CSS.px(1), CSS.s(1)),
+    cssText: 'calc(1px * 1s)',
+  },
+  {
+    description: 'CSSMathMax with one argument',
+    value: new CSSMathMax(CSS.px(2)),
+    cssText: 'max(1px)',
+  },
+  {
+    description: 'CSSMathMax with more than one argument',
+    value: new CSSMathMax(CSS.px(2), CSS.px(1)),
+    cssText: 'max(1px, 1s)',
+  },
+  {
+    description: 'CSSMathMin with one argument',
+    value: new CSSMathMin(CSS.px(1)),
+    cssText: 'min(1px)',
+  },
+  {
+    description: 'CSSMathMin with more than one argument',
+    value: new CSSMathMin(CSS.px(1), CSS.px(2)),
+    cssText: 'min(1px, 2px)',
+  },
+  {
+    description: 'CSSMathNegate',
+    value: new CSSMathNegate(CSS.px(1)),
+    cssText: 'calc(- 1px)',
+  },
+  {
+    description: 'CSSMathInvert',
+    value: new CSSMathInvert(CSS.px(1)),
+    cssText: 'calc(1 / 1px)',
   },
 ];
 
-for (const {value, cssText, desc} of gTestCases) {
+for (const {value, cssText, description} of gTestCases) {
   test(() => {
     assert_equals(value.toString(), cssText);
-  }, desc + ' serializes correctly');
-}
-
-// TODO(crbug.com/782103): Convert these to actual tests once we have spec
-// for these. For now, let's just test that they don't crash.
-const gInvalidTestCases = [
-  {
-    value: new CSSMathProduct(CSS.px(1), CSS.s(1)),
-    desc: 'CSSMathProduct of two different base types'
-  },
-  {
-    value: new CSSMathMax(CSS.px(2), CSS.px(1)),
-    desc: 'CSSMathMax'
-  },
-  {
-    value: new CSSMathMin(CSS.px(1), CSS.px(2)),
-    desc: 'CSSMathMin'
-  },
-  {
-    value: new CSSMathNegate(CSS.px(1)),
-    desc: 'CSSMathNegate'
-  },
-  {
-    value: new CSSMathInvert(CSS.px(1)),
-    desc: 'CSSMathInvert'
-  },
-];
-
-for (const {value, desc} of gInvalidTestCases) {
-  test(() => {
-    value.toString();
-  }, 'Serializing ' + desc + ' does not crash');
+  }, description + ' serializes correctly');
 }
 
 </script>

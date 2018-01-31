@@ -11,6 +11,7 @@
 </head>
 <body>
 <div id="log"></div>
+<parser-created-element title></parser-created-element>
 <script>
 
 var customElement = define_new_custom_element(['title', 'id', 'r']);
@@ -217,6 +218,36 @@ test(function () {
     instance.title = 'hello';
     assert_attribute_log_entry(calls[0], {name: 'title', oldValue: null, newValue: 'hello', namespace: null});
 }, 'attributedChangedCallback must not be enqueued when mutating inline style declaration if the style attribute is not observed');
+
+test(function () {
+    var calls = [];
+    class CustomElement extends HTMLElement { }
+    CustomElement.prototype.attributeChangedCallback = function (...args) {
+        calls.push(create_attribute_changed_callback_log(this, ...args));
+    }
+    CustomElement.observedAttributes = ['title'];
+    customElements.define('parser-created-element', CustomElement);
+    assert_attribute_log_entry(calls[0], {name: 'title', oldValue: null, newValue: '', namespace: null});
+}, 'Upgrading a parser created element must enqueue and invoke attributeChangedCallback for an HTML attribute');
+
+test(function () {
+    var calls = [];
+    class CustomElement extends HTMLElement { }
+    CustomElement.prototype.attributeChangedCallback = function (...args) {
+        calls.push(create_attribute_changed_callback_log(this, ...args));
+    }
+    CustomElement.observedAttributes = ['title'];
+    customElements.define('cloned-element-with-attribute', CustomElement);
+
+    var instance = document.createElement('cloned-element-with-attribute');
+    assert_equals(calls.length, 0);
+    instance.title = '';
+    assert_attribute_log_entry(calls[0], {name: 'title', oldValue: null, newValue: '', namespace: null});
+
+    calls = [];
+    var clone = instance.cloneNode(false);
+    assert_attribute_log_entry(calls[0], {name: 'title', oldValue: null, newValue: '', namespace: null});
+}, 'Upgrading a cloned element must enqueue and invoke attributeChangedCallback for an HTML attribute');
 
 </script>
 </body>

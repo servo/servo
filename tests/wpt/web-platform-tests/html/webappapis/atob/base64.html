@@ -70,124 +70,6 @@ function btoaLookup(idx) {
     // Throw INVALID_CHARACTER_ERR exception here -- won't be hit in the tests.
 }
 
-/**
- * Implementation of atob() according to the HTML spec, except that instead of
- * throwing INVALID_CHARACTER_ERR we return null.
- */
-function myatob(input) {
-    // WebIDL requires DOMStrings to just be converted using ECMAScript
-    // ToString, which in our case amounts to calling String().
-    input = String(input);
-
-    // "Remove all space characters from input."
-    input = input.replace(/[ \t\n\f\r]/g, "");
-
-    // "If the length of input divides by 4 leaving no remainder, then: if
-    // input ends with one or two U+003D EQUALS SIGN (=) characters, remove
-    // them from input."
-    if (input.length % 4 == 0 && /==?$/.test(input)) {
-        input = input.replace(/==?$/, "");
-    }
-
-    // "If the length of input divides by 4 leaving a remainder of 1, throw an
-    // INVALID_CHARACTER_ERR exception and abort these steps."
-    //
-    // "If input contains a character that is not in the following list of
-    // characters and character ranges, throw an INVALID_CHARACTER_ERR
-    // exception and abort these steps:
-    //
-    // U+002B PLUS SIGN (+)
-    // U+002F SOLIDUS (/)
-    // U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9)
-    // U+0041 LATIN CAPITAL LETTER A to U+005A LATIN CAPITAL LETTER Z
-    // U+0061 LATIN SMALL LETTER A to U+007A LATIN SMALL LETTER Z"
-    if (input.length % 4 == 1
-    || !/^[+/0-9A-Za-z]*$/.test(input)) {
-        return null;
-    }
-
-    // "Let output be a string, initially empty."
-    var output = "";
-
-    // "Let buffer be a buffer that can have bits appended to it, initially
-    // empty."
-    //
-    // We append bits via left-shift and or.  accumulatedBits is used to track
-    // when we've gotten to 24 bits.
-    var buffer = 0;
-    var accumulatedBits = 0;
-
-    // "While position does not point past the end of input, run these
-    // substeps:"
-    for (var i = 0; i < input.length; i++) {
-        // "Find the character pointed to by position in the first column of
-        // the following table. Let n be the number given in the second cell of
-        // the same row."
-        //
-        // "Append to buffer the six bits corresponding to number, most
-        // significant bit first."
-        //
-        // atobLookup() implements the table from the spec.
-        buffer <<= 6;
-        buffer |= atobLookup(input[i]);
-
-        // "If buffer has accumulated 24 bits, interpret them as three 8-bit
-        // big-endian numbers. Append the three characters with code points
-        // equal to those numbers to output, in the same order, and then empty
-        // buffer."
-        accumulatedBits += 6;
-        if (accumulatedBits == 24) {
-            output += String.fromCharCode((buffer & 0xff0000) >> 16);
-            output += String.fromCharCode((buffer & 0xff00) >> 8);
-            output += String.fromCharCode(buffer & 0xff);
-            buffer = accumulatedBits = 0;
-        }
-
-        // "Advance position by one character."
-    }
-
-    // "If buffer is not empty, it contains either 12 or 18 bits. If it
-    // contains 12 bits, discard the last four and interpret the remaining
-    // eight as an 8-bit big-endian number. If it contains 18 bits, discard the
-    // last two and interpret the remaining 16 as two 8-bit big-endian numbers.
-    // Append the one or two characters with code points equal to those one or
-    // two numbers to output, in the same order."
-    if (accumulatedBits == 12) {
-        buffer >>= 4;
-        output += String.fromCharCode(buffer);
-    } else if (accumulatedBits == 18) {
-        buffer >>= 2;
-        output += String.fromCharCode((buffer & 0xff00) >> 8);
-        output += String.fromCharCode(buffer & 0xff);
-    }
-
-    // "Return output."
-    return output;
-}
-
-/**
- * A lookup table for atob(), which converts an ASCII character to the
- * corresponding six-bit number.
- */
-function atobLookup(chr) {
-    if (/[A-Z]/.test(chr)) {
-        return chr.charCodeAt(0) - "A".charCodeAt(0);
-    }
-    if (/[a-z]/.test(chr)) {
-        return chr.charCodeAt(0) - "a".charCodeAt(0) + 26;
-    }
-    if (/[0-9]/.test(chr)) {
-        return chr.charCodeAt(0) - "0".charCodeAt(0) + 52;
-    }
-    if (chr == "+") {
-        return 62;
-    }
-    if (chr == "/") {
-        return 63;
-    }
-    // Throw exception; should not be hit in tests
-}
-
 function btoaException(input) {
     input = String(input);
     for (var i = 0; i < input.length; i++) {
@@ -252,55 +134,40 @@ tests.push(["btoa(first 256 code points concatenated)", everything]);
 
 generate_tests(testBtoa, tests);
 
-function testAtob(input) {
-    var expected = myatob(input);
-    if (expected === null) {
-        assert_throws("InvalidCharacterError", function() { atob(input) });
-        return;
-    }
+promise_test(() => fetch("../../../fetch/data-urls/resources/base64.json").then(res => res.json()).then(runAtobTests), "atob() setup.");
 
-    assert_equals(atob(input), expected);
-}
-
-var tests = ["", "abcd", " abcd", "abcd ", " abcd===", "abcd=== ",
-    "abcd ===", "a", "ab", "abc", "abcde", String.fromCharCode(0xd800, 0xdc00),
-    "=", "==", "===", "====", "=====",
-    "a=", "a==", "a===", "a====", "a=====",
-    "ab=", "ab==", "ab===", "ab====", "ab=====",
-    "abc=", "abc==", "abc===", "abc====", "abc=====",
-    "abcd=", "abcd==", "abcd===", "abcd====", "abcd=====",
-    "abcde=", "abcde==", "abcde===", "abcde====", "abcde=====",
-    "=a", "=a=", "a=b", "a=b=", "ab=c", "ab=c=", "abc=d", "abc=d=",
-    // With whitespace
-    "ab\tcd", "ab\ncd", "ab\fcd", "ab\rcd", "ab cd", "ab\u00a0cd",
-    "ab\t\n\f\r cd", " \t\n\f\r ab\t\n\f\r cd\t\n\f\r ",
-    "ab\t\n\f\r =\t\n\f\r =\t\n\f\r ",
-    // Test if any bits are set at the end.  These should all be fine, since
-    // they end with A, which becomes 0:
-    "A", "/A", "//A", "///A", "////A",
-    // These are all bad, since they end in / (= 63, all bits set) but their
-    // length isn't a multiple of four characters, so they can't be output by
-    // btoa().  Thus one might expect some UAs to throw exceptions or otherwise
-    // object, since they could never be output by btoa(), so they're good to
-    // test.
-    "/", "A/", "AA/", "AAAA/",
-    // But this one is possible:
-    "AAA/",
-    // Binary-safety tests
-    "\0nonsense", "abcd\0nonsense",
-    // WebIDL tests
-    undefined, null, 7, 12, 1.5, true, false, NaN, +Infinity, -Infinity, 0, -0,
-    {toString: function() { return "foo" }},
-    {toString: function() { return "abcd" }},
+const idlTests = [
+  [undefined, null],
+  [null, [158, 233, 101]],
+  [7, null],
+  [12, [215]],
+  [1.5, null],
+  [true, [182, 187]],
+  [false, null],
+  [NaN, [53, 163]],
+  [+Infinity, [34, 119, 226, 158, 43, 114]],
+  [-Infinity, null],
+  [0, null],
+  [-0, null],
+  [{toString: function() { return "foo" }}, [126, 138]],
+  [{toString: function() { return "abcd" }}, [105, 183, 29]]
 ];
-tests = tests.map(
-    function(elem) {
-        if (myatob(elem) === null) {
-            return ["atob(" + format_value(elem) + ") must raise InvalidCharacterError", elem];
-        }
-        return ["atob(" + format_value(elem) + ") == " + format_value(myatob(elem)), elem];
-    }
-);
 
-generate_tests(testAtob, tests);
+function runAtobTests(tests) {
+  const allTests = tests.concat(idlTests);
+  for(let i = 0; i < allTests.length; i++) {
+    const input = allTests[i][0],
+          output = allTests[i][1];
+    test(() => {
+      if(output === null) {
+        assert_throws("InvalidCharacterError", () => window.atob(input));
+      } else {
+        const result = window.atob(input);
+        for(let ii = 0; ii < output.length; ii++) {
+          assert_equals(result.charCodeAt(ii), output[ii]);
+        }
+      }
+    }, "atob(" + format_value(input) + ")");
+  }
+}
 </script>

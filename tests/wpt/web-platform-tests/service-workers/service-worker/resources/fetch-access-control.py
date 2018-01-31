@@ -1,5 +1,7 @@
 import base64
 import json
+import os
+import sys
 
 def main(request, response):
     headers = []
@@ -31,6 +33,10 @@ def main(request, response):
                                    "jBoAAqMGDLwBDAwAEsoCTFWunmQAAAAASUVORK5CYII=")
         return headers, body
 
+    if "VIDEO" in request.GET:
+        headers.append(("Content-Type", "video/webm"))
+        body = open(os.path.join(request.doc_root, "media", "movie_5.ogv"), "rb").read()
+        return headers, body
 
     username = request.auth.username if request.auth.username else "undefined"
     password = request.auth.password if request.auth.username else "undefined"

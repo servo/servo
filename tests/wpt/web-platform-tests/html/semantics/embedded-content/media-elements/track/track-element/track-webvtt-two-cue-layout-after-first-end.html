@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT two-cue layout after the first cue has ended</title>
+<link rel="match" href="track-webvtt-two-cue-layout-after-first-end-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<video style="border:1px solid gray">
+  <source src="/media/white.webm" type="video/webm">
+  <source src="/media/white.mp4" type="video/mp4">
+</video>
+<script>
+// Add two cues, where the first cue ends before the second.
+var video = document.querySelector("video");
+var track = video.addTextTrack("captions");
+track.addCue(new VTTCue(0, 1, "cue 1"));
+track.addCue(new VTTCue(0, 3, "cue 2"));
+track.mode = "showing";
+
+video.onloadeddata = function() {
+  // Double nesting of requestAnimationFrame to
+  // make sure cue layout and paint happens.
+  window.requestAnimationFrame(function() {
+    window.requestAnimationFrame(function() {
+      // Seek past the end of the first cue. The second cue should not move.
+      video.currentTime = 2;
+      video.onseeked = function() { takeScreenshot(); };
+    });
+  });
+};
+</script>
+</html>

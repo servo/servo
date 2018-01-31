@@ -11,9 +11,6 @@
     return;
   }
   mojo.internal.markMojomLoaded(mojomId);
-
-  // TODO(yzshen): Define these aliases to minimize the differences between the
-  // old/new modes. Remove them when the old mode goes away.
   var bindings = mojo;
   var associatedBindings = mojo;
   var codec = mojo.internal;
@@ -1251,6 +1248,137 @@
     encoder.writeUint32(FakeCentral_AddFakeService_ResponseParams.encodedSize);
     encoder.writeUint32(0);
     encoder.encodeStruct(codec.NullableString, val.serviceId);
+  };
+  function FakeCentral_RemoveFakeService_Params(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  FakeCentral_RemoveFakeService_Params.prototype.initDefaults_ = function() {
+    this.identifier = null;
+    this.peripheralAddress = null;
+  };
+  FakeCentral_RemoveFakeService_Params.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  FakeCentral_RemoveFakeService_Params.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 24}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate FakeCentral_RemoveFakeService_Params.identifier
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 0, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate FakeCentral_RemoveFakeService_Params.peripheralAddress
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 8, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    return validator.validationError.NONE;
+  };
+
+  FakeCentral_RemoveFakeService_Params.encodedSize = codec.kStructHeaderSize + 16;
+
+  FakeCentral_RemoveFakeService_Params.decode = function(decoder) {
+    var packed;
+    var val = new FakeCentral_RemoveFakeService_Params();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    val.identifier = decoder.decodeStruct(codec.String);
+    val.peripheralAddress = decoder.decodeStruct(codec.String);
+    return val;
+  };
+
+  FakeCentral_RemoveFakeService_Params.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(FakeCentral_RemoveFakeService_Params.encodedSize);
+    encoder.writeUint32(0);
+    encoder.encodeStruct(codec.String, val.identifier);
+    encoder.encodeStruct(codec.String, val.peripheralAddress);
+  };
+  function FakeCentral_RemoveFakeService_ResponseParams(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  FakeCentral_RemoveFakeService_ResponseParams.prototype.initDefaults_ = function() {
+    this.success = false;
+  };
+  FakeCentral_RemoveFakeService_ResponseParams.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  FakeCentral_RemoveFakeService_ResponseParams.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 16}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    return validator.validationError.NONE;
+  };
+
+  FakeCentral_RemoveFakeService_ResponseParams.encodedSize = codec.kStructHeaderSize + 8;
+
+  FakeCentral_RemoveFakeService_ResponseParams.decode = function(decoder) {
+    var packed;
+    var val = new FakeCentral_RemoveFakeService_ResponseParams();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    packed = decoder.readUint8();
+    val.success = (packed >> 0) & 1 ? true : false;
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    return val;
+  };
+
+  FakeCentral_RemoveFakeService_ResponseParams.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(FakeCentral_RemoveFakeService_ResponseParams.encodedSize);
+    encoder.writeUint32(0);
+    packed = 0;
+    packed |= (val.success & 1) << 0
+    encoder.writeUint8(packed);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
   };
   function FakeCentral_AddFakeCharacteristic_Params(values) {
     this.initDefaults_();
@@ -2701,14 +2829,15 @@
   var kFakeCentral_SimulateGATTDisconnection_Name = 3;
   var kFakeCentral_SimulateGATTServicesChanged_Name = 4;
   var kFakeCentral_AddFakeService_Name = 5;
-  var kFakeCentral_AddFakeCharacteristic_Name = 6;
-  var kFakeCentral_RemoveFakeCharacteristic_Name = 7;
-  var kFakeCentral_AddFakeDescriptor_Name = 8;
-  var kFakeCentral_SetNextReadCharacteristicResponse_Name = 9;
-  var kFakeCentral_SetNextWriteCharacteristicResponse_Name = 10;
-  var kFakeCentral_SetNextSubscribeToNotificationsResponse_Name = 11;
-  var kFakeCentral_GetLastWrittenValue_Name = 12;
-  var kFakeCentral_SetNextReadDescriptorResponse_Name = 13;
+  var kFakeCentral_RemoveFakeService_Name = 6;
+  var kFakeCentral_AddFakeCharacteristic_Name = 7;
+  var kFakeCentral_RemoveFakeCharacteristic_Name = 8;
+  var kFakeCentral_AddFakeDescriptor_Name = 9;
+  var kFakeCentral_SetNextReadCharacteristicResponse_Name = 10;
+  var kFakeCentral_SetNextWriteCharacteristicResponse_Name = 11;
+  var kFakeCentral_SetNextSubscribeToNotificationsResponse_Name = 12;
+  var kFakeCentral_GetLastWrittenValue_Name = 13;
+  var kFakeCentral_SetNextReadDescriptorResponse_Name = 14;
 
   function FakeCentralPtr(handleOrPtrInfo) {
     this.ptr = new bindings.InterfacePtrController(FakeCentral,
@@ -2877,6 +3006,32 @@
         var reader = new codec.MessageReader(message);
         var responseParams =
             reader.decodeStruct(FakeCentral_AddFakeService_ResponseParams);
+        resolve(responseParams);
+      }).catch(function(result) {
+        reject(Error("Connection error: " + result));
+      });
+    }.bind(this));
+  };
+  FakeCentralPtr.prototype.removeFakeService = function() {
+    return FakeCentralProxy.prototype.removeFakeService
+        .apply(this.ptr.getProxy(), arguments);
+  };
+
+  FakeCentralProxy.prototype.removeFakeService = function(identifier, peripheralAddress) {
+    var params = new FakeCentral_RemoveFakeService_Params();
+    params.identifier = identifier;
+    params.peripheralAddress = peripheralAddress;
+    return new Promise(function(resolve, reject) {
+      var builder = new codec.MessageV1Builder(
+          kFakeCentral_RemoveFakeService_Name,
+          codec.align(FakeCentral_RemoveFakeService_Params.encodedSize),
+          codec.kMessageExpectsResponse, 0);
+      builder.encodeStruct(FakeCentral_RemoveFakeService_Params, params);
+      var message = builder.finish();
+      this.receiver_.acceptAndExpectResponse(message).then(function(message) {
+        var reader = new codec.MessageReader(message);
+        var responseParams =
+            reader.decodeStruct(FakeCentral_RemoveFakeService_ResponseParams);
         resolve(responseParams);
       }).catch(function(result) {
         reject(Error("Connection error: " + result));
@@ -3130,6 +3285,9 @@
   FakeCentralStub.prototype.addFakeService = function(peripheralAddress, serviceUuid) {
     return this.delegate_ && this.delegate_.addFakeService && this.delegate_.addFakeService(peripheralAddress, serviceUuid);
   }
+  FakeCentralStub.prototype.removeFakeService = function(identifier, peripheralAddress) {
+    return this.delegate_ && this.delegate_.removeFakeService && this.delegate_.removeFakeService(identifier, peripheralAddress);
+  }
   FakeCentralStub.prototype.addFakeCharacteristic = function(characteristicUuid, properties, serviceId, peripheralAddress) {
     return this.delegate_ && this.delegate_.addFakeCharacteristic && this.delegate_.addFakeCharacteristic(characteristicUuid, properties, serviceId, peripheralAddress);
   }
@@ -3257,6 +3415,22 @@
             codec.align(FakeCentral_AddFakeService_ResponseParams.encodedSize),
             codec.kMessageIsResponse, reader.requestID);
         builder.encodeStruct(FakeCentral_AddFakeService_ResponseParams,
+                             responseParams);
+        var message = builder.finish();
+        responder.accept(message);
+      });
+      return true;
+    case kFakeCentral_RemoveFakeService_Name:
+      var params = reader.decodeStruct(FakeCentral_RemoveFakeService_Params);
+      this.removeFakeService(params.identifier, params.peripheralAddress).then(function(response) {
+        var responseParams =
+            new FakeCentral_RemoveFakeService_ResponseParams();
+        responseParams.success = response.success;
+        var builder = new codec.MessageV1Builder(
+            kFakeCentral_RemoveFakeService_Name,
+            codec.align(FakeCentral_RemoveFakeService_ResponseParams.encodedSize),
+            codec.kMessageIsResponse, reader.requestID);
+        builder.encodeStruct(FakeCentral_RemoveFakeService_ResponseParams,
                              responseParams);
         var message = builder.finish();
         responder.accept(message);
@@ -3424,6 +3598,10 @@
         if (message.expectsResponse())
           paramsClass = FakeCentral_AddFakeService_Params;
       break;
+      case kFakeCentral_RemoveFakeService_Name:
+        if (message.expectsResponse())
+          paramsClass = FakeCentral_RemoveFakeService_Params;
+      break;
       case kFakeCentral_AddFakeCharacteristic_Name:
         if (message.expectsResponse())
           paramsClass = FakeCentral_AddFakeCharacteristic_Params;
@@ -3489,6 +3667,10 @@
       case kFakeCentral_AddFakeService_Name:
         if (message.isResponse())
           paramsClass = FakeCentral_AddFakeService_ResponseParams;
+        break;
+      case kFakeCentral_RemoveFakeService_Name:
+        if (message.isResponse())
+          paramsClass = FakeCentral_RemoveFakeService_ResponseParams;
         break;
       case kFakeCentral_AddFakeCharacteristic_Name:
         if (message.isResponse())

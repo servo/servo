@@ -50,5 +50,5 @@ def test_timeouts(new_session, add_browser_capabilites, platform_name):
     }
 
 def test_pageLoadStrategy(new_session, add_browser_capabilites, platform_name):
-    resp, _ = new_session({"capabilities": add_browser_capabilites({"alwaysMatch": {"pageLoadStrategy": "eager"}})})
+    resp, _ = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"pageLoadStrategy": "eager"})}})
     assert resp["capabilities"]["pageLoadStrategy"] == "eager"

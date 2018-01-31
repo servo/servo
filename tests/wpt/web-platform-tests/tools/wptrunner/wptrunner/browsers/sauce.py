@@ -156,10 +156,28 @@ class SauceConnect():
             "web-platform.test",
             "*.web-platform.test"
         ])
-        while not os.path.exists('./sauce_is_ready') and not self.sc_process.poll():
-            time.sleep(5)
 
-        if self.sc_process.returncode is not None and self.sc_process.returncode > 0:
+        # Timeout config vars
+        each_sleep_secs = 1
+        max_wait = 30
+        kill_wait = 5
+
+        tot_wait = 0
+        while not os.path.exists('./sauce_is_ready') and self.sc_process.poll() is None:
+            if tot_wait >= max_wait:
+                self.sc_process.terminate()
+                while self.sc_process.poll() is None:
+                    time.sleep(each_sleep_secs)
+                    tot_wait += each_sleep_secs
+                    if tot_wait >= (max_wait + kill_wait):
+                        self.sc_process.kill()
+                        break
+                raise SauceException("Sauce Connect Proxy was not ready after %d seconds" % tot_wait)
+
+            time.sleep(each_sleep_secs)
+            tot_wait += each_sleep_secs
+
+        if self.sc_process.returncode is not None:
             raise SauceException("Unable to start Sauce Connect Proxy. Process exited with code %s", self.sc_process.returncode)
 
     def __exit__(self, exc_type, exc_val, exc_tb):

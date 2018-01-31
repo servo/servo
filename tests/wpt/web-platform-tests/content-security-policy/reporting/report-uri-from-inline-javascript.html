@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Violation report is sent from inline javascript.</title>
+    <!-- CSP headers
+         Content-Security-Policy: img-src 'none'; report-uri ../support/report.py?op=put&reportID={{$id}}
+         -->
+</head>
+<body>
+    <script>
+        // This script block will trigger a violation report.
+        var i = document.createElement('img');
+        i.src = '/security/resources/abe.png';
+        document.body.appendChild(i);
+    </script>
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27'></script>
+</body>
+</html>

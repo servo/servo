@@ -28,7 +28,7 @@ div {
 'use strict';
 
 const target = document.getElementById('target');
-const styleMap = document.styleSheets[0].rules[0].attributeStyleMap;
+const styleMap = document.styleSheets[0].rules[0].styleMap;
 
 test(() => {
   const properties = styleMap.getProperties();
@@ -63,7 +63,7 @@ test(() => {
   style.sheet.insertRule('.test { width: 10px; }');
   let rule = style.sheet.rules[0];
 
-  let styleMap = rule.attributeStyleMap;
+  let styleMap = rule.styleMap;
   assert_style_value_equals(styleMap.get('width'), CSS.px(10));
 
   rule.style.width = '20px';

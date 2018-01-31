@@ -68,7 +68,7 @@ promise_test(t => {
 
   return animation.ready.then(() => waitForAnimationFrames(1))
   .then(() => {
-    assert_times_equal(animation.currentTime, 0);
+    assert_time_equals_literal(animation.currentTime, 0);
   });
 }, 'The current time does not progress if playback rate is 0');
 

@@ -14,16 +14,14 @@ function assert_playbackrate(animation,
                              previousAnimationCurrentTime,
                              previousTimelineCurrentTime,
                              description) {
-  const accuracy = 0.001; /* accuracy of DOMHighResTimeStamp */
   const animationCurrentTimeDifference =
     animation.currentTime - previousAnimationCurrentTime;
   const timelineCurrentTimeDifference =
     animation.timeline.currentTime - previousTimelineCurrentTime;
 
-  assert_approx_equals(animationCurrentTimeDifference,
-                       timelineCurrentTimeDifference * animation.playbackRate,
-                       accuracy,
-                       description);
+  assert_times_equal(animationCurrentTimeDifference,
+                     timelineCurrentTimeDifference * animation.playbackRate,
+                     description);
 }
 
 promise_test(t => {

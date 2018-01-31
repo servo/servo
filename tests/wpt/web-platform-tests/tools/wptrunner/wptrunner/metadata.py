@@ -65,9 +65,9 @@ def update_expected(test_paths, serve_root, log_file_names,
                 for test in tree.iterchildren():
                     for subtest in test.iterchildren():
                         if subtest.new_disabled:
-                            print os.path.dirname(subtest.root.test_path) + "/" + subtest.name
+                            print "disabled: %s" % os.path.dirname(subtest.root.test_path) + "/" + subtest.name
                     if test.new_disabled:
-                        print test.root.test_path
+                        print "disabled: %s" % test.root.test_path
 
     results_changed = [item.test_path for item in expected_map.itervalues() if item.modified]
 

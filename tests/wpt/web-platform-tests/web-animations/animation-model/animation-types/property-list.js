@@ -751,19 +751,19 @@ const gCSSProperties = {
   'justify-content': {
     // https://drafts.csswg.org/css-align/#propdef-justify-content
     types: [
-      { type: 'discrete', options: [ [ 'baseline', 'last baseline' ] ] }
+      { type: 'discrete', options: [ [ 'start', 'end' ] ] }
     ]
   },
   'justify-items': {
     // https://drafts.csswg.org/css-align/#propdef-justify-items
     types: [
-      { type: 'discrete', options: [ [ 'baseline', 'last baseline' ] ] }
+      { type: 'discrete', options: [ [ 'start', 'end' ] ] }
     ]
   },
   'justify-self': {
     // https://drafts.csswg.org/css-align/#propdef-justify-self
     types: [
-      { type: 'discrete', options: [ [ 'baseline', 'last baseline' ] ] }
+      { type: 'discrete', options: [ [ 'start', 'end' ] ] }
     ]
   },
   'left': {

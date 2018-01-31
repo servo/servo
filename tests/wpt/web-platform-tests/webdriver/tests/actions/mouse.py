@@ -1,7 +1,8 @@
 import pytest
 
-from tests.actions.support.mouse import assert_move_to_coordinates, get_center
+from tests.actions.support.mouse import get_center
 from tests.actions.support.refine import get_events, filter_dict
+from tests.support.asserts import assert_move_to_coordinates
 from tests.support.inline import inline
 from tests.support.wait import wait
 

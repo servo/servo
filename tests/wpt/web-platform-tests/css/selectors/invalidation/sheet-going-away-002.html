@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: invalidation of class changes when the sheet the style depends on goes away</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1432850">
+<link rel="match" href="sheet-going-away-002-ref.html">
+<style>
+  p { color: green; }
+</style>
+<style id="style">
+  .red p { color: red; }
+</style>
+<body class="red">
+<p>
+  Should be green.
+</p>
+<script>
+document.body.offsetTop;
+document.body.className = "";
+style.remove();
+</script>
+</body>

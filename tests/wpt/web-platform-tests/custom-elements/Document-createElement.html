@@ -29,6 +29,21 @@ test(function () {
 
 }, 'document.createElement must create an instance of custom elements');
 
+test(function () {
+    class AutonomousCustomElement extends HTMLElement {};
+    class IsCustomElement extends HTMLElement {};
+
+    customElements.define('autonomous-custom-element', AutonomousCustomElement);
+    customElements.define('is-custom-element', IsCustomElement);
+
+    var instance = document.createElement('autonomous-custom-element', { is: "is-custom-element"});
+
+    assert_true(instance instanceof AutonomousCustomElement);
+    assert_equals(instance.localName, 'autonomous-custom-element');
+    assert_equals(instance.namespaceURI, 'http://www.w3.org/1999/xhtml', 'A custom element HTML must use HTML namespace');
+
+}, 'document.createElement must create an instance of autonomous custom elements when it has is attribute');
+
 function assert_reports(expected, testFunction, message) {
     var uncaughtError = null;
     window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
