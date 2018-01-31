@@ -77,8 +77,7 @@ impl Parse for CounterIncrement {
 }
 
 impl ToCss for CounterIncrement {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-                where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write,
     {
         self.0.to_css(dest)
     }
@@ -111,8 +110,7 @@ impl Parse for CounterReset {
 }
 
 impl ToCss for CounterReset {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-                where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write,
     {
         self.0.to_css(dest)
     }

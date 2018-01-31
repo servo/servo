@@ -9,8 +9,6 @@ use std::fmt::Write;
 use style_traits::{CssWriter, ToCss};
 use values::CustomIdent;
 
-// use values::computed::{Context, CounterReset as ComputedValue, ToComputedValue};
-
 /// A generic value for both the `counter-increment` and `counter-reset` property.
 ///
 /// Keyword `none` is represented by an empty vector.
