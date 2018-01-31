@@ -189,6 +189,9 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString transform-style;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString backfaceVisibility;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString backface-visibility;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString rotate;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString scale;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString translate;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString direction;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString unicodeBidi;

@@ -668,3 +668,49 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
         (vector.x, vector.y, vector.z, angle)
     }
 }
+
+#[derive(ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// A value of the `Rotate` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Rotate<Number, Angle> {
+    /// 'none'
+    None,
+    /// '<angle>'
+    Rotate(Angle),
+    /// '<number>{3} <angle>'
+    Rotate3D(Number, Number, Number, Angle),
+}
+
+#[derive(ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// A value of the `Scale` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Scale<Number> {
+    /// 'none'
+    None,
+    /// '<number>'
+    ScaleX(Number),
+    /// '<number>{2}'
+    Scale(Number, Number),
+    /// '<number>{3}'
+    Scale3D(Number, Number, Number),
+}
+
+#[derive(ComputeSquaredDistance, ToAnimatedZero, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// A value of the `Translate` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Translate<LengthOrPercentage, Length> {
+    /// 'none'
+    None,
+    /// '<length-percentage>'
+    TranslateX(LengthOrPercentage),
+    /// '<length-percentage> <length-percentage>'
+    Translate(LengthOrPercentage, LengthOrPercentage),
+    /// '<length-percentage> <length-percentage> <length>'
+    Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+}

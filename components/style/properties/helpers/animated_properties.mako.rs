@@ -46,7 +46,10 @@ use values::computed::ToComputedValue;
 use values::computed::transform::{DirectionVector, Matrix, Matrix3D};
 use values::computed::transform::TransformOperation as ComputedTransformOperation;
 use values::computed::transform::Transform as ComputedTransform;
-use values::generics::transform::{self, Transform, TransformOperation};
+use values::computed::transform::Rotate as ComputedRotate;
+use values::computed::transform::Translate as ComputedTranslate;
+use values::computed::transform::Scale as ComputedScale;
+use values::generics::transform::{self, Rotate, Translate, Scale, Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
 #[cfg(feature = "gecko")] use values::generics::FontSettingTag as GenericFontSettingTag;
@@ -1696,7 +1699,7 @@ pub struct Perspective(f32, f32, f32, f32);
 pub struct Quaternion(f64, f64, f64, f64);
 
 /// A decomposed 3d matrix.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct MatrixDecomposed3D {
     /// A translation function.
@@ -1736,6 +1739,76 @@ impl Quaternion {
     #[inline]
     fn dot(&self, other: &Self) -> f64 {
         self.0 * other.0 + self.1 * other.1 + self.2 * other.2 + self.3 * other.3
+    }
+}
+
+impl Animate for Quaternion {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        use std::f64;
+
+        let (this_weight, other_weight) = procedure.weights();
+        debug_assert!((this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
+                      other_weight == 1.0f64 || other_weight == 0.0f64,
+                      "animate should only be used for interpolating or accumulating transforms");
+
+        // We take a specialized code path for accumulation (where other_weight is 1)
+        if other_weight == 1.0 {
+            if this_weight == 0.0 {
+                return Ok(*other);
+            }
+
+            let clamped_w = self.3.min(1.0).max(-1.0);
+
+            // Determine the scale factor.
+            let mut theta = clamped_w.acos();
+            let mut scale = if theta == 0.0 { 0.0 } else { 1.0 / theta.sin() };
+            theta *= this_weight;
+            scale *= theta.sin();
+
+            // Scale the self matrix by this_weight.
+            let mut scaled_self = *self;
+            % for i in range(3):
+                scaled_self.${i} *= scale;
+            % endfor
+            scaled_self.3 = theta.cos();
+
+            // Multiply scaled-self by other.
+            let a = &scaled_self;
+            let b = other;
+            return Ok(Quaternion(
+                a.3 * b.0 + a.0 * b.3 + a.1 * b.2 - a.2 * b.1,
+                a.3 * b.1 - a.0 * b.2 + a.1 * b.3 + a.2 * b.0,
+                a.3 * b.2 + a.0 * b.1 - a.1 * b.0 + a.2 * b.3,
+                a.3 * b.3 - a.0 * b.0 - a.1 * b.1 - a.2 * b.2,
+            ));
+        }
+
+        let mut product = self.0 * other.0 +
+                          self.1 * other.1 +
+                          self.2 * other.2 +
+                          self.3 * other.3;
+
+        // Clamp product to -1.0 <= product <= 1.0
+        product = product.min(1.0);
+        product = product.max(-1.0);
+
+        if product == 1.0 {
+            return Ok(*self);
+        }
+
+        let theta = product.acos();
+        let w = (other_weight * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+
+        let mut a = *self;
+        let mut b = *other;
+        let mut result = Quaternion(0., 0., 0., 0.,);
+        % for i in range(4):
+            a.${i} *= (other_weight * theta).cos() - product * w;
+            b.${i} *= w;
+            result.${i} = a.${i} + b.${i};
+        % endfor
+
+        Ok(result)
     }
 }
 
@@ -2002,87 +2075,6 @@ impl Animate for Perspective {
     }
 }
 
-impl Animate for MatrixDecomposed3D {
-    /// <https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values>
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        use std::f64;
-
-        let (this_weight, other_weight) = procedure.weights();
-
-        debug_assert!((this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
-                      other_weight == 1.0f64 || other_weight == 0.0f64,
-                      "animate should only be used for interpolating or accumulating transforms");
-
-        let mut sum = *self;
-
-        // Add translate, scale, skew and perspective components.
-        sum.translate = self.translate.animate(&other.translate, procedure)?;
-        sum.scale = self.scale.animate(&other.scale, procedure)?;
-        sum.skew = self.skew.animate(&other.skew, procedure)?;
-        sum.perspective = self.perspective.animate(&other.perspective, procedure)?;
-
-        // Add quaternions using spherical linear interpolation (Slerp).
-        //
-        // We take a specialized code path for accumulation (where other_weight is 1)
-        if other_weight == 1.0 {
-            if this_weight == 0.0 {
-                return Ok(*other)
-            }
-
-            let clamped_w = self.quaternion.3.min(1.0).max(-1.0);
-
-            // Determine the scale factor.
-            let mut theta = clamped_w.acos();
-            let mut scale = if theta == 0.0 { 0.0 } else { 1.0 / theta.sin() };
-            theta *= this_weight;
-            scale *= theta.sin();
-
-            // Scale the self matrix by this_weight.
-            let mut scaled_self = *self;
-            % for i in range(3):
-                scaled_self.quaternion.${i} *= scale;
-            % endfor
-            scaled_self.quaternion.3 = theta.cos();
-
-            // Multiply scaled-self by other.
-            let a = &scaled_self.quaternion;
-            let b = &other.quaternion;
-            sum.quaternion = Quaternion(
-                a.3 * b.0 + a.0 * b.3 + a.1 * b.2 - a.2 * b.1,
-                a.3 * b.1 - a.0 * b.2 + a.1 * b.3 + a.2 * b.0,
-                a.3 * b.2 + a.0 * b.1 - a.1 * b.0 + a.2 * b.3,
-                a.3 * b.3 - a.0 * b.0 - a.1 * b.1 - a.2 * b.2,
-            );
-        } else {
-            let mut product = self.quaternion.0 * other.quaternion.0 +
-                              self.quaternion.1 * other.quaternion.1 +
-                              self.quaternion.2 * other.quaternion.2 +
-                              self.quaternion.3 * other.quaternion.3;
-
-            // Clamp product to -1.0 <= product <= 1.0
-            product = product.min(1.0);
-            product = product.max(-1.0);
-
-            if product == 1.0 {
-                return Ok(sum);
-            }
-
-            let theta = product.acos();
-            let w = (other_weight * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
-
-            let mut a = *self;
-            let mut b = *other;
-            % for i in range(4):
-                a.quaternion.${i} *= (other_weight * theta).cos() - product * w;
-                b.quaternion.${i} *= w;
-                sum.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
-            % endfor
-        }
-
-        Ok(sum)
-    }
-}
-
 impl From<MatrixDecomposed3D> for Matrix3D {
     /// Recompose a 3D matrix.
     /// <https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix>
@@ -2277,6 +2269,129 @@ impl Matrix3D {
         };
 
         Some(x)
+    }
+}
+
+/// <https://drafts.csswg.org/css-transforms-2/#propdef-rotate>
+impl ComputedRotate {
+    fn fill_unspecified(rotate: &ComputedRotate) -> Result<(Number, Number, Number, Angle), ()> {
+        // According to the spec:
+        // https://drafts.csswg.org/css-transforms-2/#individual-transforms
+        //
+        // If the axis is unspecified, it defaults to "0 0 1"
+        match *rotate {
+            Rotate::None =>
+                Ok((0., 0., 1., Angle::zero())),
+            Rotate::Rotate3D(rx, ry, rz, angle) => Ok((rx, ry, rz, angle)),
+            Rotate::Rotate(angle) => Ok((0., 0., 1., angle)),
+        }
+    }
+}
+
+impl Animate for ComputedRotate {
+    #[inline]
+    fn animate(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let from = ComputedRotate::fill_unspecified(self)?;
+        let to = ComputedRotate::fill_unspecified(other)?;
+
+        let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
+        let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
+        if (fx, fy, fz) == (tx, ty, tz) {
+            return Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&ta, procedure)?));
+        }
+
+        let fv = DirectionVector::new(fx, fy, fz);
+        let tv = DirectionVector::new(tx, ty, tz);
+        let fq = Quaternion::from_direction_and_angle(&fv, fa.radians64());
+        let tq = Quaternion::from_direction_and_angle(&tv, ta.radians64());
+
+        let rq = Quaternion::animate(&fq, &tq, procedure)?;
+        let (x, y, z, angle) =
+            transform::get_normalized_vector_and_angle(rq.0 as f32,
+                                                       rq.1 as f32,
+                                                       rq.2 as f32,
+                                                       rq.3.acos() as f32 *2.0);
+
+        Ok(Rotate::Rotate3D(x, y, z, Angle::from_radians(angle)))
+    }
+}
+
+/// <https://drafts.csswg.org/css-transforms-2/#propdef-translate>
+impl ComputedTranslate {
+    fn fill_unspecified(translate: &ComputedTranslate)
+        -> Result<(LengthOrPercentage, LengthOrPercentage, Length), ()> {
+        // According to the spec:
+        // https://drafts.csswg.org/css-transforms-2/#individual-transforms
+        //
+        // Unspecified translations default to 0px
+        match *translate {
+            Translate::None => {
+                Ok((LengthOrPercentage::Length(Length::zero()),
+                    LengthOrPercentage::Length(Length::zero()),
+                    Length::zero()))
+            },
+            Translate::Translate3D(tx, ty, tz) => Ok((tx, ty, tz)),
+            Translate::Translate(tx, ty) => Ok((tx, ty, Length::zero())),
+            Translate::TranslateX(tx) => Ok((tx, LengthOrPercentage::Length(Length::zero()), Length::zero())),
+        }
+    }
+}
+
+impl Animate for ComputedTranslate {
+    #[inline]
+    fn animate(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let from = ComputedTranslate::fill_unspecified(self)?;
+        let to = ComputedTranslate::fill_unspecified(other)?;
+
+        Ok(Translate::Translate3D(from.0.animate(&to.0, procedure)?,
+                                  from.1.animate(&to.1, procedure)?,
+                                  from.2.animate(&to.2, procedure)?))
+    }
+}
+
+/// <https://drafts.csswg.org/css-transforms-2/#propdef-scale>
+impl ComputedScale {
+    fn fill_unspecified(scale: &ComputedScale)
+        -> Result<(Number, Number, Number), ()> {
+        // According to the spec:
+        // https://drafts.csswg.org/css-transforms-2/#individual-transforms
+        //
+        // Unspecified scales default to 1
+        match *scale {
+            Scale::None => Ok((1.0, 1.0, 1.0)),
+            Scale::Scale3D(sx, sy, sz) => Ok((sx, sy, sz)),
+            Scale::Scale(sx, sy) => Ok((sx, sy, 1.)),
+            Scale::ScaleX(sx) => Ok((sx, 1., 1.)),
+        }
+    }
+}
+
+impl Animate for ComputedScale {
+    #[inline]
+    fn animate(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let from = ComputedScale::fill_unspecified(self)?;
+        let to = ComputedScale::fill_unspecified(other)?;
+
+        if procedure == Procedure::Add {
+            // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
+            return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
+        }
+
+        Ok(Scale::Scale3D(animate_multiplicative_factor(from.0, to.0, procedure)?,
+                          animate_multiplicative_factor(from.1, to.1, procedure)?,
+                          animate_multiplicative_factor(from.2, to.2, procedure)?))
     }
 }
 

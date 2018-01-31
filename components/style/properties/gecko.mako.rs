@@ -3016,20 +3016,53 @@ fn static_assert() {
     ${impl_copy_animation_value(ident, gecko_ffi_name)}
 </%def>
 
+<%def name="impl_individual_transform(ident, type, gecko_ffi_name)">
+    pub fn set_${ident}(&mut self, other: values::computed::${type}) {
+        unsafe { self.gecko.${gecko_ffi_name}.clear() };
+
+        if let Some(operation) = other.to_transform_operation() {
+            convert_transform(&[operation], &mut self.gecko.${gecko_ffi_name})
+        }
+    }
+
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        unsafe { self.gecko.${gecko_ffi_name}.set(&other.gecko.${gecko_ffi_name}); }
+    }
+
+    pub fn reset_${ident}(&mut self, other: &Self) {
+        self.copy_${ident}_from(other)
+    }
+
+    pub fn clone_${ident}(&self) -> values::computed::${type} {
+        use values::generics::transform::${type};
+
+        if self.gecko.${gecko_ffi_name}.mRawPtr.is_null() {
+            return ${type}::None;
+        }
+
+        let list = unsafe { (*self.gecko.${gecko_ffi_name}.to_safe().get()).mHead.as_ref() };
+
+        let mut transform = clone_transform_from_list(list);
+        debug_assert_eq!(transform.0.len(), 1);
+        ${type}::from_transform_operation(&transform.0.pop().unwrap())
+    }
+</%def>
+
 <% skip_box_longhands= """display overflow-y vertical-align
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
                           transition-duration transition-delay
                           transition-timing-function transition-property
-                          page-break-before page-break-after
+                          page-break-before page-break-after rotate
                           scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin -moz-binding will-change
                           overscroll-behavior-x overscroll-behavior-y
                           overflow-clip-box-inline overflow-clip-box-block
                           perspective-origin -moz-binding will-change
-                          shape-outside contain touch-action""" %>
+                          shape-outside contain touch-action translate
+                          scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -3453,6 +3486,10 @@ fn static_assert() {
                 .expect("Expected length or percentage for vertical value of perspective-origin"),
         }
     }
+
+    ${impl_individual_transform('rotate', 'Rotate', 'mSpecifiedRotate')}
+    ${impl_individual_transform('translate', 'Translate', 'mSpecifiedTranslate')}
+    ${impl_individual_transform('scale', 'Scale', 'mSpecifiedScale')}
 
     pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_AppendWillChange, Gecko_ClearWillChange};
