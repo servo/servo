@@ -1444,7 +1444,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
                 unsafe { current_settings.set_len_pod(other_settings.len() as u32) };
 
                 for (current, other) in current_settings.iter_mut().zip(other_settings) {
-                    current.mTag = other.tag;
+                    current.mTag = other.tag.0;
                     current.mValue = other.value.0;
                 }
             }
@@ -1470,7 +1470,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::generics::{FontSettings, FontSettingTag, ${tag_type}} ;
+        use values::generics::{FontSettings, FontTag, FontSettingTag, ${tag_type}} ;
 
         if self.gecko.mFont.${gecko_ffi_name}.len() == 0 {
             FontSettings::Normal
@@ -1478,7 +1478,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
             FontSettings::Tag(
                 self.gecko.mFont.${gecko_ffi_name}.iter().map(|gecko_font_setting| {
                     FontSettingTag {
-                        tag: gecko_font_setting.mTag,
+                        tag: FontTag(gecko_font_setting.mTag),
                         value: ${tag_type}(gecko_font_setting.mValue),
                     }
                 }).collect()

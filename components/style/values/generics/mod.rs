@@ -128,23 +128,37 @@ impl Parse for CounterStyleOrNone {
     }
 }
 
-/// A settings tag, defined by a four-character tag and a setting value
+/// A font four-character tag, represented as a u32 for convenience.
 ///
-/// For font-feature-settings, this is a tag and an integer,
-/// for font-variation-settings this is a tag and a float
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
-pub struct FontSettingTag<T> {
-    /// A four-character tag, packed into a u32 (one byte per character)
-    pub tag: u32,
-    /// The value
-    pub value: T,
+/// See:
+///   https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
+///   https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-feature-settings
+///
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+pub struct FontTag(pub u32);
+
+impl Parse for FontTag {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        use byteorder::{ReadBytesExt, BigEndian};
+        use std::io::Cursor;
+
+        let location = input.current_source_location();
+        let tag = input.expect_string()?;
+
+        // allowed strings of length 4 containing chars: <U+20, U+7E>
+        if tag.len() != 4 || tag.as_bytes().iter().any(|c| *c < b' ' || *c > b'~') {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+
+        let mut raw = Cursor::new(tag.as_bytes());
+        Ok(FontTag(raw.read_u32::<BigEndian>().unwrap()))
+    }
 }
 
-impl<T> OneOrMoreSeparated for FontSettingTag<T> {
-    type S = Comma;
-}
-
-impl<T: ToCss> ToCss for FontSettingTag<T> {
+impl ToCss for FontTag {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
@@ -153,11 +167,25 @@ impl<T: ToCss> ToCss for FontSettingTag<T> {
         use std::str;
 
         let mut raw = [0u8; 4];
-        BigEndian::write_u32(&mut raw, self.tag);
-        str::from_utf8(&raw).unwrap_or_default().to_css(dest)?;
-
-        self.value.to_css(dest)
+        BigEndian::write_u32(&mut raw, self.0);
+        str::from_utf8(&raw).unwrap_or_default().to_css(dest)
     }
+}
+
+/// A settings tag, defined by a four-character tag and a setting value
+///
+/// For font-feature-settings, this is a tag and an integer, for
+/// font-variation-settings this is a tag and a float.
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct FontSettingTag<T> {
+    /// A four-character tag, packed into a u32 (one byte per character)
+    pub tag: FontTag,
+    /// The actual value.
+    pub value: T,
+}
+
+impl<T> OneOrMoreSeparated for FontSettingTag<T> {
+    type S = Comma;
 }
 
 impl<T: Parse> Parse for FontSettingTag<T> {
@@ -166,30 +194,16 @@ impl<T: Parse> Parse for FontSettingTag<T> {
     /// settings-control-the-font-variation-settings-property
     /// <string> [ on | off | <integer> ]
     /// <string> <number>
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        use byteorder::{ReadBytesExt, BigEndian};
-        use std::io::Cursor;
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let tag = FontTag::parse(context, input)?;
+        let value = T::parse(context, input)?;
 
-        let u_tag;
-        {
-            let location = input.current_source_location();
-            let tag = input.expect_string()?;
-
-            // allowed strings of length 4 containing chars: <U+20, U+7E>
-            if tag.len() != 4 ||
-               tag.chars().any(|c| c < ' ' || c > '~')
-            {
-                return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
-
-            let mut raw = Cursor::new(tag.as_bytes());
-            u_tag = raw.read_u32::<BigEndian>().unwrap();
-        }
-
-        Ok(FontSettingTag { tag: u_tag, value: T::parse(context, input)? })
+        Ok(Self { tag, value })
     }
 }
-
 
 /// A font settings value for font-variation-settings or font-feature-settings
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
@@ -220,18 +234,17 @@ impl<T: Parse> Parse for FontSettings<T> {
 
 /// An integer that can also parse "on" and "off",
 /// for font-feature-settings
-///
-/// Do not use this type anywhere except within FontSettings
-/// because it serializes with the preceding space
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct FontSettingTagInt(pub u32);
 
-/// A number value to be used for font-variation-settings
+/// A number value to be used for font-variation-settings.
 ///
-/// Do not use this type anywhere except within FontSettings
-/// because it serializes with the preceding space
+/// FIXME(emilio): The spec only says <integer>, so we should be able to reuse
+/// the other code:
+///
+/// https://drafts.csswg.org/css-fonts-4/#propdef-font-variation-settings
 #[cfg_attr(feature = "gecko", derive(Animate, ComputeSquaredDistance))]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct FontSettingTagFloat(pub f32);
 
 impl ToCss for FontSettingTagInt {
@@ -241,13 +254,8 @@ impl ToCss for FontSettingTagInt {
     {
         match self.0 {
             1 => Ok(()),
-            0 => dest.write_str(" off"),
-            x => {
-                // FIXME(emilio): Why in the world does this serialize the space
-                // itself?
-                dest.write_char(' ')?;
-                x.to_css(dest)
-            }
+            0 => dest.write_str("off"),
+            x => x.to_css(dest),
         }
     }
 }
@@ -281,16 +289,6 @@ impl Parse for FontSettingTagFloat {
         //
         // Also why is this not in font.rs?
         input.expect_number().map(FontSettingTagFloat).map_err(|e| e.into())
-    }
-}
-
-impl ToCss for FontSettingTagFloat {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str(" ")?;
-        self.0.to_css(dest)
     }
 }
 

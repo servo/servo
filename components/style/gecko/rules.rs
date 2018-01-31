@@ -58,7 +58,7 @@ impl ToNsCssValue for font_feature_settings::T {
                 nscssvalue.set_pair_list(tags.into_iter().map(|entry| {
                     let mut feature = nsCSSValue::null();
                     let mut raw = [0u8; 4];
-                    (&mut raw[..]).write_u32::<BigEndian>(entry.tag).unwrap();
+                    (&mut raw[..]).write_u32::<BigEndian>(entry.tag.0).unwrap();
                     feature.set_string(str::from_utf8(&raw).unwrap());
 
                     let mut index = nsCSSValue::null();

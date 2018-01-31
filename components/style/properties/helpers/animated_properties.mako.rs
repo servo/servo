@@ -54,6 +54,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
 #[cfg(feature = "gecko")] use values::generics::FontSettingTag as GenericFontSettingTag;
 #[cfg(feature = "gecko")] use values::generics::FontSettingTagFloat;
+#[cfg(feature = "gecko")] use values::generics::FontTag;
 use values::generics::NonNegative;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
@@ -878,7 +879,7 @@ type FontSettingTag = GenericFontSettingTag<FontSettingTagFloat>;
 struct FontSettingTagIterState<'a> {
     tags: Vec<(&'a FontSettingTag)>,
     index: usize,
-    prev_tag: u32,
+    prev_tag: FontTag,
 }
 
 #[cfg(feature = "gecko")]
@@ -887,7 +888,7 @@ impl<'a> FontSettingTagIterState<'a> {
         FontSettingTagIterState {
             index: tags.len(),
             tags,
-            prev_tag: 0,
+            prev_tag: FontTag(0),
         }
     }
 }
@@ -941,7 +942,7 @@ impl<'a> FontSettingTagIter<'a> {
             fn as_new_sorted_tags(tags: &Vec<FontSettingTag>) -> Vec<(&FontSettingTag)> {
                 use std::iter::FromIterator;
                 let mut sorted_tags: Vec<(&FontSettingTag)> = Vec::from_iter(tags.iter());
-                sorted_tags.sort_by_key(|k| k.tag);
+                sorted_tags.sort_by_key(|k| k.tag.0);
                 sorted_tags
             };
 
