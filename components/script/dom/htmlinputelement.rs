@@ -32,7 +32,7 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
-use dom::textcontrol::TextControl;
+use dom::textcontrol::{TextControlElement, TextControlSelection};
 use dom::validation::Validatable;
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
@@ -400,11 +400,7 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
     }
 }
 
-impl TextControl for HTMLInputElement {
-    fn textinput(&self) -> &DomRefCell<TextInput<ScriptToConstellationChan>> {
-        &self.textinput
-    }
-
+impl TextControlElement for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
     fn selection_api_applies(&self) -> bool {
         match self.input_type() {
@@ -715,55 +711,53 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
     fn Select(&self) {
-        self.dom_select(); // defined in TextControl trait
+        self.selection().dom_select();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.get_dom_selection_start()
+        self.selection().dom_start()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
-        self.set_dom_selection_start(start)
+        self.selection().set_dom_start(start)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.get_dom_selection_end()
+        self.selection().dom_end()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
-        self.set_dom_selection_end(end)
+        self.selection().set_dom_end(end)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn GetSelectionDirection(&self) -> Option<DOMString> {
-        self.get_dom_selection_direction()
+        self.selection().dom_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
-        self.set_dom_selection_direction(direction)
+        self.selection().set_dom_direction(direction)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.set_dom_selection_range(start, end, direction)
+        self.selection().set_dom_range(start, end, direction)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        // defined in TextControl trait
-        self.set_dom_range_text(replacement, None, None, Default::default())
+        self.selection().set_dom_range_text(replacement, None, None, Default::default())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
     fn SetRangeText_(&self, replacement: DOMString, start: u32, end: u32,
                      selection_mode: SelectionMode) -> ErrorResult {
-        // defined in TextControl trait
-        self.set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+        self.selection().set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 
     // Select the files based on filepaths passed in,
@@ -1103,6 +1097,11 @@ impl HTMLInputElement {
             }
             _ => ()
         }
+    }
+
+    #[allow(unrooted_must_root)]
+    fn selection(&self) -> TextControlSelection<Self> {
+        TextControlSelection::new(&self, &self.textinput)
     }
 }
 

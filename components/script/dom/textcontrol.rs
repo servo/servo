@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! This is an abstraction used by `HTMLInputElement` and `HTMLTextAreaElement` to implement the
+//! text control selection DOM API.
+//!
+//! https://html.spec.whatwg.org/multipage/#textFieldSelection
+
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use dom::bindings::conversions::DerivedFrom;
@@ -13,43 +18,53 @@ use dom::node::{Node, NodeDamage, window_from_node};
 use script_traits::ScriptToConstellationChan;
 use textinput::{SelectionDirection, SelectionState, TextInput};
 
-pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
-    fn textinput(&self) -> &DomRefCell<TextInput<ScriptToConstellationChan>>;
+pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
+}
+
+pub struct TextControlSelection<'a, E: TextControlElement> {
+    element: &'a E,
+    textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+}
+
+impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
+    pub fn new(element: &'a E, textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>) -> Self {
+        TextControlSelection { element, textinput }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
-    fn dom_select(&self) {
+    pub fn dom_select(&self) {
         // Step 1
-        if !self.has_selectable_text() {
+        if !self.element.has_selectable_text() {
             return;
         }
 
         // Step 2
-        self.set_selection_range(Some(0), Some(u32::max_value()), None, None);
+        self.set_range(Some(0), Some(u32::max_value()), None, None);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn get_dom_selection_start(&self) -> Option<u32> {
+    pub fn dom_start(&self) -> Option<u32> {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return None;
         }
 
         // Steps 2-3
-        Some(self.selection_start())
+        Some(self.start())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn set_dom_selection_start(&self, start: Option<u32>) -> ErrorResult {
+    pub fn set_dom_start(&self, start: Option<u32>) -> ErrorResult {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
         // Step 2
-        let mut end = self.selection_end();
+        let mut end = self.end();
 
         // Step 3
         if let Some(s) = start {
@@ -59,54 +74,54 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
         }
 
         // Step 4
-        self.set_selection_range(start, Some(end), Some(self.selection_direction()), None);
+        self.set_range(start, Some(end), Some(self.direction()), None);
         Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn get_dom_selection_end(&self) -> Option<u32> {
+    pub fn dom_end(&self) -> Option<u32> {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return None;
         }
 
         // Steps 2-3
-        Some(self.selection_end())
+        Some(self.end())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn set_dom_selection_end(&self, end: Option<u32>) -> ErrorResult {
+    pub fn set_dom_end(&self, end: Option<u32>) -> ErrorResult {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
         // Step 2
-        self.set_selection_range(Some(self.selection_start()), end, Some(self.selection_direction()), None);
+        self.set_range(Some(self.start()), end, Some(self.direction()), None);
         Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn get_dom_selection_direction(&self) -> Option<DOMString> {
+    pub fn dom_direction(&self) -> Option<DOMString> {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return None;
         }
 
-        Some(DOMString::from(self.selection_direction()))
+        Some(DOMString::from(self.direction()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn set_dom_selection_direction(&self, direction: Option<DOMString>) -> ErrorResult {
+    pub fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
         // Step 2
-        self.set_selection_range(
-            Some(self.selection_start()),
-            Some(self.selection_end()),
+        self.set_range(
+            Some(self.start()),
+            Some(self.end()),
             direction.map(|d| SelectionDirection::from(d)),
             None
         );
@@ -114,31 +129,36 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
-    fn set_dom_selection_range(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+    pub fn set_dom_range(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
         // Step 2
-        self.set_selection_range(Some(start), Some(end), direction.map(|d| SelectionDirection::from(d)), None);
+        self.set_range(Some(start), Some(end), direction.map(|d| SelectionDirection::from(d)), None);
         Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
-    fn set_dom_range_text(&self, replacement: DOMString, start: Option<u32>, end: Option<u32>,
-                          selection_mode: SelectionMode) -> ErrorResult {
+    pub fn set_dom_range_text(
+        &self,
+        replacement: DOMString,
+        start: Option<u32>,
+        end: Option<u32>,
+        selection_mode: SelectionMode
+    ) -> ErrorResult {
         // Step 1
-        if !self.selection_api_applies() {
+        if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
         // Step 2
-        self.set_dirty_value_flag(true);
+        self.element.set_dirty_value_flag(true);
 
         // Step 3
-        let mut start = start.unwrap_or_else(|| self.selection_start());
-        let mut end = end.unwrap_or_else(|| self.selection_end());
+        let mut start = start.unwrap_or_else(|| self.start());
+        let mut end = end.unwrap_or_else(|| self.end());
 
         // Step 4
         if start > end {
@@ -147,9 +167,9 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
 
         // Save the original selection state to later pass to set_selection_range, because we will
         // change the selection state in order to replace the text in the range.
-        let original_selection_state = self.textinput().borrow().selection_state();
+        let original_selection_state = self.textinput.borrow().selection_state();
 
-        let content_length = self.textinput().borrow().len() as u32;
+        let content_length = self.textinput.borrow().len() as u32;
 
         // Step 5
         if start > content_length {
@@ -162,10 +182,10 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
         }
 
         // Step 7
-        let mut selection_start = self.selection_start();
+        let mut selection_start = self.start();
 
         // Step 8
-        let mut selection_end = self.selection_end();
+        let mut selection_end = self.end();
 
         // Step 11
         // Must come before the textinput.replace_selection() call, as replacement gets moved in
@@ -173,7 +193,7 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
         let new_length = replacement.len() as u32;
 
         {
-            let mut textinput = self.textinput().borrow_mut();
+            let mut textinput = self.textinput.borrow_mut();
 
             // Steps 9-10
             textinput.set_selection_range(start, end, SelectionDirection::None);
@@ -224,32 +244,31 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
         }
 
         // Step 14
-        self.set_selection_range(
-            Some(selection_start),
-            Some(selection_end),
-            None,
-            Some(original_selection_state)
-        );
-
+        self.set_range(Some(selection_start), Some(selection_end), None, Some(original_selection_state));
         Ok(())
     }
 
-    fn selection_start(&self) -> u32 {
-        self.textinput().borrow().selection_start_offset() as u32
+    fn start(&self) -> u32 {
+        self.textinput.borrow().selection_start_offset() as u32
     }
 
-    fn selection_end(&self) -> u32 {
-        self.textinput().borrow().selection_end_offset() as u32
+    fn end(&self) -> u32 {
+        self.textinput.borrow().selection_end_offset() as u32
     }
 
-    fn selection_direction(&self) -> SelectionDirection {
-        self.textinput().borrow().selection_direction
+    fn direction(&self) -> SelectionDirection {
+        self.textinput.borrow().selection_direction
     }
 
     // https://html.spec.whatwg.org/multipage/#set-the-selection-range
-    fn set_selection_range(&self, start: Option<u32>, end: Option<u32>, direction: Option<SelectionDirection>,
-                           original_selection_state: Option<SelectionState>) {
-        let mut textinput = self.textinput().borrow_mut();
+    fn set_range(
+        &self,
+        start: Option<u32>,
+        end: Option<u32>,
+        direction: Option<SelectionDirection>,
+        original_selection_state: Option<SelectionState>
+    ) {
+        let mut textinput = self.textinput.borrow_mut();
         let original_selection_state = original_selection_state.unwrap_or_else(|| textinput.selection_state());
 
         // Step 1
@@ -263,15 +282,15 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
 
         // Step 6
         if textinput.selection_state() != original_selection_state {
-            let window = window_from_node(self);
+            let window = window_from_node(self.element);
             window.user_interaction_task_source().queue_event(
-                &self.upcast::<EventTarget>(),
+                &self.element.upcast::<EventTarget>(),
                 atom!("select"),
                 EventBubbles::Bubbles,
                 EventCancelable::NotCancelable,
                 &window);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
