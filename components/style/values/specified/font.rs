@@ -2060,6 +2060,7 @@ pub enum MozScriptLevel {
 
 impl Parse for MozScriptLevel {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<MozScriptLevel, ParseError<'i>> {
+        // We don't bother to handle calc here.
         if let Ok(i) = input.try(|i| i.expect_integer()) {
             return Ok(MozScriptLevel::Relative(i))
         }

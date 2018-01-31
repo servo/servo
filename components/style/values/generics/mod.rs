@@ -243,6 +243,8 @@ impl ToCss for FontSettingTagInt {
             1 => Ok(()),
             0 => dest.write_str(" off"),
             x => {
+                // FIXME(emilio): Why in the world does this serialize the space
+                // itself?
                 dest.write_char(' ')?;
                 x.to_css(dest)
             }
@@ -252,6 +254,7 @@ impl ToCss for FontSettingTagInt {
 
 impl Parse for FontSettingTagInt {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // FIXME(emilio): This doesn't handle calc properly.
         if let Ok(value) = input.try(|input| input.expect_integer()) {
             // handle integer, throw if it is negative
             if value >= 0 {
@@ -272,9 +275,11 @@ impl Parse for FontSettingTagInt {
     }
 }
 
-
 impl Parse for FontSettingTagFloat {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // FIXME(emilio): Should handle calc() using Number::parse.
+        //
+        // Also why is this not in font.rs?
         input.expect_number().map(FontSettingTagFloat).map_err(|e| e.into())
     }
 }
