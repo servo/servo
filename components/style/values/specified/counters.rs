@@ -62,7 +62,7 @@ impl CounterIncrement {
     }
 
     /// Returns a clone of the values of the specified `counter-increment` object.
-    pub fn get_values(&self) -> Vec<(CustomIdent, Integer)> {
+    pub fn get_values(&self) -> &[(CustomIdent, Integer)] {
         self.0.get_values()
     }
 }
@@ -95,7 +95,7 @@ impl CounterReset {
     }
 
     /// Returns a clone of the values of the specified `counter-reset` object.
-    pub fn get_values(&self) -> Vec<(CustomIdent, Integer)> {
+    pub fn get_values(&self) -> &[(CustomIdent, Integer)] {
         self.0.get_values()
     }
 }

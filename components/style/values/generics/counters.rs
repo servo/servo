@@ -13,23 +13,23 @@ use values::CustomIdent;
 ///
 /// Keyword `none` is represented by an empty vector.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct CounterIntegerList<I>(Vec<(CustomIdent, I)>);
+pub struct CounterIntegerList<I>(Box<[(CustomIdent, I)]>);
 
 impl<I> CounterIntegerList<I> {
     /// Returns the `none` value.
     #[inline]
     pub fn none() -> CounterIntegerList<I> {
-        CounterIntegerList(Vec::new())
+        CounterIntegerList(vec![].into_boxed_slice())
     }
 
-    /// Returns a clone of the values of the CounterIntegerList object.
+    /// Returns a new CounterIntegerList object.
     pub fn new(vec: Vec<(CustomIdent, I)>) -> CounterIntegerList<I> {
-        CounterIntegerList(vec)
+        CounterIntegerList(vec.into_boxed_slice())
     }
 
-    /// Returns a clone of the values of the CounterIntegerList object.
-    pub fn get_values(&self) -> Vec<(CustomIdent, I)> where I: Copy {
-        self.0.clone()
+    /// Returns the values of the CounterIntegerList object.
+    pub fn get_values(&self) -> &[(CustomIdent, I)] {
+        self.0.as_ref()
     }
 }
 
@@ -47,7 +47,7 @@ where
         }
 
         let mut first = true;
-        for &(ref name, ref value) in &self.0 {
+        for &(ref name, ref value) in self.get_values() {
             if !first {
                 dest.write_str(" ")?;
             }

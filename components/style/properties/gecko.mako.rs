@@ -5634,7 +5634,7 @@ clip-path
             unsafe {
                 bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko,
                                                                       v.get_values().len() as u32);
-                for (i, (name, value)) in v.get_values().into_iter().enumerate() {
+                for (i, &(ref name, value)) in v.get_values().into_iter().enumerate() {
                     self.gecko.m${counter_property}s[i].mCounter.assign(name.0.as_slice());
                     self.gecko.m${counter_property}s[i].mValue = value;
                 }
