@@ -66,6 +66,7 @@ impl<'a> ErrorString<'a> {
     }
 }
 
+#[derive(Debug)]
 enum Action {
     Nothing,
     Skip,
@@ -370,14 +371,14 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                         StyleParseErrorKind::ValueError(
                             ValueParseErrorKind::InvalidColor(..)
                         )
-                    ) => (b"PEColorNotColor", Action::Nothing),
+                    ) => (b"PEColorNotColor\0", Action::Nothing),
                     _ => {
                         // Not the best error message, since we weren't parsing
                         // a declaration, just a value. But we don't produce
                         // UnsupportedValue errors other than InvalidColors
                         // currently.
                         debug_assert!(false, "should use a more specific error message");
-                        (b"PEDeclDropped", Action::Nothing)
+                        (b"PEDeclDropped\0", Action::Nothing)
                     }
                 }
             }
