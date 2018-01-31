@@ -1408,6 +1408,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 width: usize,
                 height: usize)
                 -> RgbImage {
+        // For some reason, OSMesa fails to render on the 3rd
+        // attempt in headless mode, under some conditions.
+        // I think this can only be some kind of synchronization
+        // bug in OSMesa, but explicitly un-binding any vertex
+        // array here seems to work around that bug.
+        // See https://github.com/servo/servo/issues/18606.
+        self.gl.bind_vertex_array(0);
+
         let mut pixels = self.gl.read_pixels(0, 0,
                                              width as gl::GLsizei,
                                              height as gl::GLsizei,
