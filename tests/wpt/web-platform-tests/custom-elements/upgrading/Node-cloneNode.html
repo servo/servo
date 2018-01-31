@@ -30,6 +30,25 @@ test(function () {
         'A cloned custom element must be an instance of the custom element');
 }, 'Node.prototype.cloneNode(false) must be able to clone a custom element');
 
+test(function () {
+    class AutonomousCustomElement extends HTMLElement {};
+    class IsCustomElement extends HTMLElement {};
+
+    customElements.define('autonomous-custom-element', AutonomousCustomElement);
+    customElements.define('is-custom-element', IsCustomElement);
+
+    var instance = document.createElement('autonomous-custom-element', { is: "is-custom-element"});
+    assert_true(instance instanceof HTMLElement);
+    assert_true(instance instanceof AutonomousCustomElement);
+
+    var clone = instance.cloneNode(false);
+    assert_not_equals(instance, clone);
+    assert_true(clone instanceof HTMLElement,
+        'A cloned custom element must be an instance of HTMLElement');
+    assert_true(clone instanceof AutonomousCustomElement,
+        'A cloned custom element must be an instance of the custom element');
+}, 'Node.prototype.cloneNode(false) must be able to clone as a autonomous custom element when it contains is attribute');
+
 test_with_window(function (contentWindow) {
     var contentDocument = contentWindow.document;
     class MyCustomElement extends contentWindow.HTMLElement {}

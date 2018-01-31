@@ -65,6 +65,11 @@
         });
       }, "Testing empty Response Content-Type header");
 
+      test(function() {
+        var response = new Response(null, {status: 204});
+        assert_equals(response.body, null);
+      }, "Testing null Response body");
+
     </script>
   </body>
 </html>

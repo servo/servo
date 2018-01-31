@@ -174,49 +174,77 @@ async_test(function(t) {
       .catch(unreached_rejection(t));
   }, 'Service Worker fetches other file in fetch event');
 
-async_test(function(t) {
-    var scope = 'resources/simple.html?form-post';
-    var frame_name = 'xhr-post-frame';
-    service_worker_unregister_and_register(t, worker, scope)
-      .then(function(reg) {
+// Creates a form and an iframe and does a form submission that navigates the
+// frame to |action_url|. Returns the frame after navigation.
+function submit_form(action_url) {
+  return new Promise(resolve => {
+      const frame = document.createElement('iframe');
+      frame.name = 'post-frame';
+      document.body.appendChild(frame);
+      const form = document.createElement('form');
+      form.target = frame.name;
+      form.action = action_url;
+      form.method = 'post';
+      const input1 = document.createElement('input');
+      input1.type = 'text';
+      input1.value = 'testValue1';
+      input1.name = 'testName1'
+      form.appendChild(input1);
+      const input2 = document.createElement('input');
+      input2.type = 'text';
+      input2.value = 'testValue2';
+      input2.name = 'testName2'
+      form.appendChild(input2);
+      document.body.appendChild(form);
+      frame.onload = function() {
+        form.remove();
+        resolve(frame);
+      };
+      form.submit();
+    });
+}
+
+promise_test(t => {
+    const scope = 'resources/simple.html?form-post';
+    let registration;
+    return service_worker_unregister_and_register(t, worker, scope)
+      .then(reg => {
+          registration = reg;
+          add_completion_callback(() => { reg.unregister(); });
           return wait_for_state(t, reg.installing, 'activated');
         })
-      .then(function(sw) {
-         return new Promise(function(resolve) {
-            var frame = document.createElement('iframe');
-            frame.name = frame_name;
-            document.body.appendChild(frame);
-            var form = document.createElement('form');
-            form.target = frame_name;
-            form.action = scope;
-            form.method = 'post';
-            var input1 = document.createElement('input');
-            input1.type = 'text';
-            input1.value = 'testValue1';
-            input1.name = 'testName1'
-            form.appendChild(input1);
-            var input2 = document.createElement('input');
-            input2.type = 'text';
-            input2.value = 'testValue2';
-            input2.name = 'testName2'
-            form.appendChild(input2);
-            document.body.appendChild(form);
-            frame.onload = function() {
-              document.body.removeChild(form);
-              resolve(frame);
-            };
-            form.submit();
-          });
+      .then(() => {
+          return submit_form(scope);
         })
-      .then(function(frame) {
+      .then(frame => {
           assert_equals(frame.contentDocument.body.textContent,
                         'POST:application/x-www-form-urlencoded:' +
                         'testName1=testValue1&testName2=testValue2');
           frame.remove();
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+          return registration.unregister();
+        });
   }, 'Service Worker responds to fetch event with POST form');
+
+promise_test(t => {
+    // Add '?ignore' to scope so the service worker falls back to network.
+    const scope = 'resources/echo-content.py?ignore';
+    let registration;
+    return service_worker_unregister_and_register(t, worker, scope)
+      .then(reg => {
+          registration = reg;
+          add_completion_callback(() => { reg.unregister(); });
+          return wait_for_state(t, reg.installing, 'activated');
+        })
+      .then(() => {
+          return submit_form(scope);
+        })
+      .then(frame => {
+          assert_equals(frame.contentDocument.body.textContent,
+                        'testName1=testValue1&testName2=testValue2');
+          frame.remove();
+          return registration.unregister();
+        });
+  }, 'Service Worker falls back to network in fetch event with POST form');
 
 async_test(function(t) {
     var scope = 'resources/simple.html?multiple-respond-with';
@@ -456,6 +484,43 @@ promise_test(t => {
         });
   }, 'FetchEvent#body is a string');
 
+// Test that the request body is sent to network upon network fallback,
+// for a string body.
+promise_test(t => {
+    // Set scope to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const scope = 'resources/?ignore-for-request-body-fallback-string';
+    let frame;
+
+    return service_worker_unregister_and_register(t, worker, scope)
+      .then(reg => {
+          add_completion_callback(() => { reg.unregister(); });
+          return wait_for_state(t, reg.installing, 'activated');
+        })
+      .then(() => {
+          return with_iframe(scope); })
+      .then(f => {
+          frame = f;
+          // Add "?ignore" so the service worker falls back to echo-content.py.
+          const echo_url = '/fetch/api/resources/echo-content.py?ignore';
+          return frame.contentWindow.fetch(echo_url, {
+              method: 'POST',
+              body: 'i am the request body'
+            });
+        })
+      .then(response => {
+          return response.text();
+        })
+      .then(response_text => {
+          frame.remove();
+          assert_equals(
+              response_text,
+              'i am the request body',
+              'the network fallback request should include the request body');
+        });
+  }, 'FetchEvent#body is a string and is passed to network fallback');
+
 // Test that the service worker can read FetchEvent#body when it is a blob.
 // It responds with request body it read.
 promise_test(t => {
@@ -488,6 +553,44 @@ promise_test(t => {
           assert_equals(response_text, 'it\'s me the blob and more blob!');
         });
   }, 'FetchEvent#body is a blob');
+
+// Test that the request body is sent to network upon network fallback,
+// for a blob body.
+promise_test(t => {
+    // Set scope to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const scope = 'resources/simple.html?ignore-for-request-body-fallback-blob';
+    let frame;
+
+    return service_worker_unregister_and_register(t, worker, scope)
+      .then(reg => {
+          add_completion_callback(() => { reg.unregister(); });
+          return wait_for_state(t, reg.installing, 'activated');
+        })
+      .then(() => {
+          return with_iframe(scope); })
+      .then(f => {
+          frame = f;
+          const blob = new Blob(['it\'s me the blob', ' ', 'and more blob!']);
+          // Add "?ignore" so the service worker falls back to echo-content.py.
+          const echo_url = '/fetch/api/resources/echo-content.py?ignore';
+          return frame.contentWindow.fetch(echo_url, {
+              method: 'POST',
+              body: blob
+            });
+        })
+      .then(response => {
+          return response.text();
+        })
+      .then(response_text => {
+          frame.remove();
+          assert_equals(
+              response_text,
+              'it\'s me the blob and more blob!',
+              'the network fallback request should include the request body');
+        });
+  }, 'FetchEvent#body is a blob and is passed to network fallback');
 
 promise_test(async (t) => {
     const scope = 'resources/simple.html?keepalive';

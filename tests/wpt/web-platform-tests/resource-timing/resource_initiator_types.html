@@ -17,6 +17,7 @@ let page_loaded = false;
 let ol_font_loaded = false;
 let ul_font_loaded = false;
 let xhr_loaded = false;
+let tests_run = false;
 
 function check_finished() {
     if (!ul_font_loaded) {
@@ -64,6 +65,10 @@ function onload_test() {
 }
 
 function perform_test() {
+    if (tests_run) {
+        return;
+    }
+    tests_run = true;
     const context = new PerformanceContext(document.getElementById('frameContext').contentWindow.performance);
     const entries = context.getEntriesByType('resource');
 

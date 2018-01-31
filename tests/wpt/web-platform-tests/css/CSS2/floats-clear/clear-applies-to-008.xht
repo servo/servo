@@ -11,6 +11,8 @@
 
   <meta name="assert" content="The 'clear' property does not apply to elements with a display of 'inline'." />
   <style type="text/css">
+   /* Disable kerning because kerning may differ for different node tree. */
+   html { font-kerning: none; font-feature-settings: "kern" off; }
    .float { float: left; height: 10em; }
    .clear { clear: left; }
   </style>

@@ -211,3 +211,15 @@ def test_out_of_view_multiple(session):
     last_option = options[-1]
     last_option.click()
     assert last_option.selected
+
+
+def test_option_disabled(session):
+    session.url = inline("""
+        <select>
+          <option disabled>foo
+        </select>""")
+    option = session.find.css("option", all=False)
+    assert not option.selected
+
+    option.click()
+    assert not option.selected

@@ -5,13 +5,14 @@
 <meta name="assert" content="Check that setting a single value to place-content expands to such value set in both 'align-content' and 'justify-content'." />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../resources/alignment-parsing-utils.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
 <div id="log"></div>
 <script>
-    var values = ["normal"].concat(contentPositionValues, distributionValues, baselineValues);
-    values.forEach(function(value) {
+    let classes = Object.assign({"Normal":"normal"}, contentPositionClasses, distributionClasses);
+    for (var key in classes) {
+        let value = classes[key];
         test(function() {
             checkPlaceShorhandLonghands("place-content", "align-content", "justify-content", value);
         }, "Checking place-content: " + value);
-    });
+    }
 </script>

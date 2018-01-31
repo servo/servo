@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+    <meta charset='utf-8' />
+    <script src="/resources/testharness.js"></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src="/common/performance-timeline-utils.js"></script>
+    <script>
+      setup({explicit_done: true})
+
+      const {location: {href}} = document
+      const urls = {}
+      urls['same-origin'] = `${href.substring(0, href.lastIndexOf('/'))}/resources/blue.png`
+      urls['cross-origin'] = urls['same-origin'].replace('://', '://www.')
+      Object.keys(urls).forEach(function(key) {
+        const img = document.createElement('img')
+        img.src = urls[key]
+        document.getElementsByTagName('script')[0].parentNode.appendChild(img)
+      })
+
+      window.addEventListener('load', function() {
+        function assertServerTimingEntries(url, expectedEntryCount) {
+          test_equals(performance.getEntriesByName(url)[0].serverTiming.length,
+            expectedEntryCount,
+            `Expected entry count for ${url}: ${expectedEntryCount}`)
+        }
+        assertServerTimingEntries(urls['same-origin'], 1)
+        assertServerTimingEntries(urls['cross-origin'], 0)
+        done()
+      })
+    </script>
+</head>

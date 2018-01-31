@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<title>SVGAnimatedNumber interface - utilizing the surfaceScale property of SVGFESpecularLightingElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the SVGAnimatedNumber API - utilizing the surfaceScale property of SVGFESpecularLightingElement.
+
+  var feSpecularLightingElement = document.createElementNS("http://www.w3.org/2000/svg", "feSpecularLighting");
+
+  // Check initial surfaceScale value.
+  assert_true(feSpecularLightingElement.surfaceScale instanceof SVGAnimatedNumber);
+  assert_equals(typeof(feSpecularLightingElement.surfaceScale.baseVal), "number");
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 1);
+
+  // Check that integers are static, caching value in a local variable and modifying it, should have no effect.
+  var numRef = feSpecularLightingElement.surfaceScale.baseVal;
+  numRef = 100;
+  assert_equals(numRef, 100);
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 1);
+
+  // Check assigning various valid and invalid values.
+  feSpecularLightingElement.surfaceScale.baseVal = -1; // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, -1);
+  feSpecularLightingElement.surfaceScale.baseVal = 300;
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 300);
+
+  // ECMA-262, 9.3, "ToNumber"
+  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = 'aString'; });
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 300);
+  feSpecularLightingElement.surfaceScale.baseVal = 0;
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
+  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = NaN; });
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
+  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = Infinity; });
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
+  assert_throws(new TypeError(), function() { feSpecularLightingElement.surfaceScale.baseVal = feSpecularLightingElement; });
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 0);
+  feSpecularLightingElement.surfaceScale.baseVal = 300;
+  assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 300);
+});
+</script>

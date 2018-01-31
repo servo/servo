@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<title>SVGAnimatedPreserveAspectRatio interface - utilizing the preserveAspectRatio property of SVGSVGElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the SVGAnimatedPreserveAspectRatio API - utilizing the preserveAspectRatio property of SVGSVGElement.
+
+  var svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+  // Check initial preserveAspectRatio value.
+  assert_true(svgElement.preserveAspectRatio instanceof SVGAnimatedPreserveAspectRatio);
+  assert_true(svgElement.preserveAspectRatio.baseVal instanceof SVGPreserveAspectRatio);
+  assert_equals(svgElement.preserveAspectRatio.baseVal.align, SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMIDYMID);
+  assert_equals(svgElement.preserveAspectRatio.baseVal.meetOrSlice, SVGPreserveAspectRatio.SVG_MEETORSLICE_MEET);
+
+  // Check that preserveAspectRatios are dynamic, caching value in a local variable and modifying it, should take effect;
+  var aspectRef = svgElement.preserveAspectRatio.baseVal;
+  aspectRef.align = SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMAXYMIN;
+  aspectRef.meetOrSlice = SVGPreserveAspectRatio.SVG_MEETORSLICE_SLICE;
+  assert_equals(aspectRef.align, SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMAXYMIN);
+  assert_equals(aspectRef.meetOrSlice, SVGPreserveAspectRatio.SVG_MEETORSLICE_SLICE);
+  assert_equals(svgElement.preserveAspectRatio.baseVal.align, SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMAXYMIN);
+  assert_equals(svgElement.preserveAspectRatio.baseVal.meetOrSlice, SVGPreserveAspectRatio.SVG_MEETORSLICE_SLICE);
+
+  // Check that assigning to baseVal has no effect, as no setter is defined.
+  // And the preserveAspectRatio align/meetOrSlice remained xMaxYMin/slice.
+  svgElement.preserveAspectRatio.baseVal = -1;
+  assert_equals(svgElement.preserveAspectRatio.baseVal.align, SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMAXYMIN);
+  assert_equals(svgElement.preserveAspectRatio.baseVal.meetOrSlice, SVGPreserveAspectRatio.SVG_MEETORSLICE_SLICE);
+  svgElement.preserveAspectRatio.baseVal = 'aString';
+  assert_equals(svgElement.preserveAspectRatio.baseVal.align, SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMAXYMIN);
+  assert_equals(svgElement.preserveAspectRatio.baseVal.meetOrSlice, SVGPreserveAspectRatio.SVG_MEETORSLICE_SLICE);
+  svgElement.preserveAspectRatio.baseVal = svgElement;
+  assert_equals(svgElement.preserveAspectRatio.baseVal.align, SVGPreserveAspectRatio.SVG_PRESERVEASPECTRATIO_XMAXYMIN);
+  assert_equals(svgElement.preserveAspectRatio.baseVal.meetOrSlice, SVGPreserveAspectRatio.SVG_MEETORSLICE_SLICE);
+
+  // Check that the preserveAspectRatio baseVal type has not been changed.
+  assert_true(svgElement.preserveAspectRatio.baseVal instanceof SVGPreserveAspectRatio);
+});
+</script>

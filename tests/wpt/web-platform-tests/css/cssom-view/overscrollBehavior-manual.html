@@ -79,6 +79,7 @@ function set_boundary_prevents_y() {
   container.style.overscrollBehaviorY = 'none';
   setUpForRoot(100);
   setUpForContainer(0);
+  window.scrollTo(0, 0);
 }
 
 function verify_y_prevented_and_set_boundary_prevents_x() {
@@ -87,12 +88,14 @@ function verify_y_prevented_and_set_boundary_prevents_x() {
   test.step(function() {
     assert_equals(root.scrollTop, 100);
     assert_equals(root.scrollLeft, 0);
+    window.scrollTo(0, 0);
   }, "overscroll-behavior-y: none should only prevent scroll propagation on y axis.");
 
   container.style.overscrollBehaviorX = 'none';
   container.style.overscrollBehaviorY = 'auto';
   setUpForRoot(100);
   setUpForContainer(0);
+  window.scrollTo(0, 0);
 }
 
 function verify_x_prevented_and_set_boundary_allows_inner() {
@@ -107,6 +110,7 @@ function verify_x_prevented_and_set_boundary_allows_inner() {
   container.style.overscrollBehaviorY = 'none';
   setUpForRoot(100);
   setUpForContainer(100);
+  window.scrollTo(0, 0);
 }
 
 function verify_inner_allowed_and_set_nonscrollable_allows_propagation() {
@@ -124,6 +128,7 @@ function verify_inner_allowed_and_set_nonscrollable_allows_propagation() {
   non_scrollable.style.overscrollBehaviorX = 'none';
   non_scrollable.style.overscrollBehaviorY = 'none';
   setUpForRoot(100);
+  window.scrollTo(0, 0);
 }
 
 function verify_non_scrollable_allows_propagation() {

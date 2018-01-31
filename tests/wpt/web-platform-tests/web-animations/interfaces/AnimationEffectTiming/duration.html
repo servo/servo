@@ -19,10 +19,10 @@ test(t => {
   const div = createDiv(t);
   const anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
   anim.effect.timing.duration = 123.45;
-  assert_times_equal(anim.effect.timing.duration, 123.45,
-                     'set duration 123.45');
-  assert_times_equal(anim.effect.getComputedTiming().duration, 123.45,
-                     'getComputedTiming() after set duration 123.45');
+  assert_time_equals_literal(anim.effect.timing.duration, 123.45,
+                             'set duration 123.45');
+  assert_time_equals_literal(anim.effect.getComputedTiming().duration, 123.45,
+                             'getComputedTiming() after set duration 123.45');
 }, 'Can be set to a double value');
 
 test(t => {
@@ -176,8 +176,8 @@ test(t => {
   assert_equals(anim.effect.getComputedTiming().progress, 1,
                 'progress when animation is finished');
   anim.effect.timing.duration *= 2;
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5,
-                     'progress after doubling the duration');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5,
+                             'progress after doubling the duration');
   anim.effect.timing.duration = 0;
   assert_equals(anim.effect.getComputedTiming().progress, 1,
                 'progress after setting duration to zero');

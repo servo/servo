@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: column-gap supports percentages</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#column-gap">
+<meta name="assert" content="This test checks the behavior of precentage column-gap in different situations depending on the multicol container size.">
+<style>
+.multicol {
+  position: relative;
+  font: 20px/1 Ahem;
+  margin: 10px;
+  column-count: 2;
+  column-gap: 25%;
+  background: yellow;
+}
+
+.fixed200 {
+  width: 200px;
+}
+
+.inlineBlock {
+  display: inline-block;
+}
+
+.wrapper200 {
+  width: 200px;
+}
+
+.wrapper8 {
+  width: 8px;
+}
+
+.marginTopBottom {
+  margin: 10px 0;
+}
+
+.multicol > :nth-child(1) { background: magenta; }
+.multicol > :nth-child(2) { background: cyan; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.multicol')">
+
+<div id="log"></div>
+
+<h3>Multicol container: fixed width</h3>
+
+<div class="multicol fixed200" data-expected-width="200" data-expected-height="20">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="75" data-expected-height="20">X</div>
+  <div data-offset-x="125" data-offset-y="0" data-expected-width="75" data-expected-height="20">X</div>
+</div>
+
+<div class="multicol fixed200"
+    data-expected-width="200" data-expected-height="40">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="75" data-expected-height="40">XX X X</div>
+  <div data-offset-x="125" data-offset-y="0" data-expected-width="75" data-expected-height="40">XX X X</div>
+</div>
+
+<div class="multicol fixed200"
+    data-expected-width="200" data-expected-height="20">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="75" data-expected-height="20">XXXXX</div>
+  <div data-offset-x="125" data-offset-y="0" data-expected-width="75" data-expected-height="20">XXXXX</div>
+</div>
+
+<h3>Multicol container: intrinsic width</h3>
+
+<div class="multicol inlineBlock"
+    data-expected-width="40" data-expected-height="20">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="15" data-expected-height="20">X</div>
+  <div data-offset-x="25" data-offset-y="0" data-expected-width="15" data-expected-height="20">X</div>
+</div>
+
+<div class="multicol inlineBlock"
+    data-expected-width="240" data-expected-height="40">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="90" data-expected-height="40">XX X X</div>
+  <div data-offset-x="150" data-offset-y="0" data-expected-width="90" data-expected-height="40">XX X X</div>
+</div>
+
+<div class="multicol inlineBlock"
+    data-expected-width="200" data-expected-height="20">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="75" data-expected-height="20">XXXXX</div>
+  <div data-offset-x="125" data-offset-y="0" data-expected-width="75" data-expected-height="20">XXXXX</div>
+</div>
+
+<h3>Multicol container: auto width</h3>
+
+<div class="wrapper200">
+
+  <div class="multicol marginTopBottom"
+      data-expected-width="200" data-expected-height="20">
+    <div data-offset-x="0" data-offset-y="0" data-expected-width="75" data-expected-height="20">X</div>
+    <div data-offset-x="125" data-offset-y="0" data-expected-width="75" data-expected-height="20">X</div>
+  </div>
+
+  <div class="multicol marginTopBottom"
+      data-expected-width="200" data-expected-height="40">
+    <div data-offset-x="0" data-offset-y="0" data-expected-width="75" data-expected-height="40">XX X X</div>
+    <div data-offset-x="125" data-offset-y="0" data-expected-width="75" data-expected-height="40">XX X X</div>
+  </div>
+
+  <div class="multicol marginTopBottom"
+      data-expected-width="200" data-expected-height="20">
+    <div data-offset-x="0" data-offset-y="0" data-expected-width="75" data-expected-height="20">XXXXX</div>
+    <div data-offset-x="125" data-offset-y="0" data-expected-width="75" data-expected-height="20">XXXXX</div>
+  </div>
+
+</div>
+
+<div class="wrapper8">
+
+  <div class="multicol marginTopBottom"
+      data-expected-width="8" data-expected-height="20">
+    <div data-offset-x="0" data-offset-y="0" data-expected-width="3" data-expected-height="20">X</div>
+    <div data-offset-x="5" data-offset-y="0" data-expected-width="3" data-expected-height="20">X</div>
+  </div>
+
+  <div class="multicol marginTopBottom"
+      data-expected-width="8" data-expected-height="60">
+    <div data-offset-x="0" data-offset-y="0" data-expected-width="3" data-expected-height="60">XX X X</div>
+    <div data-offset-x="5" data-offset-y="0" data-expected-width="3" data-expected-height="60">XX X X</div>
+  </div>
+
+  <div class="multicol marginTopBottom"
+      data-expected-width="8" data-expected-height="20">
+    <div data-offset-x="0" data-offset-y="0" data-expected-width="3" data-expected-height="20">XXXXX</div>
+    <div data-offset-x="5" data-offset-y="0" data-expected-width="3" data-expected-height="20">XXXXX</div>
+  </div>
+
+</div>

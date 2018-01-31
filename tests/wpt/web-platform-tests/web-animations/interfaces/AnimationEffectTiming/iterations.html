@@ -70,10 +70,12 @@ test(t => {
 
   anim.effect.timing.iterations = 2;
 
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0,
-                     'progress after adding an iteration');
-  assert_times_equal(anim.effect.getComputedTiming().currentIteration, 1,
-                     'current iteration after adding an iteration');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress,
+                             0,
+                             'progress after adding an iteration');
+  assert_time_equals_literal(anim.effect.getComputedTiming().currentIteration,
+                             1,
+                             'current iteration after adding an iteration');
 
   anim.effect.timing.iterations = 0;
 

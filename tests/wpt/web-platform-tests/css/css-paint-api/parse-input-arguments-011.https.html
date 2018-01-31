@@ -21,7 +21,7 @@ var testsPassed = false;
 try {
     registerPaint('foo7', class { });
 } catch(ex) {
-    if (ex.name == 'TypeError' && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': The 'paint' function on the prototype does not exist.")
+    if (ex.name == 'TypeError' && ex.message == "Failed to execute 'registerPaint' on 'PaintWorkletGlobalScope': The 'paint' property on the prototype does not exist.")
         testsPassed = true;
 }
 

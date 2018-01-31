@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Request for service. Should return right service';
+let device;
+
+bluetooth_test(() => getHealthThermometerDevice({
+  filters: [{services: ['health_thermometer']}],
+  optionalServices: ['generic_access']
+})
+    .then(_ => ({device} = _))
+    .then(() => Promise.all([
+      device.gatt.getPrimaryService(generic_access.alias),
+      device.gatt.getPrimaryService(generic_access.name),
+      device.gatt.getPrimaryService(generic_access.uuid)]))
+    .then(services => {
+      services.forEach(service => {
+        assert_equals(service.uuid, generic_access.uuid,
+            'Service UUID should be the same as requested UUID.');
+        assert_true(service.isPrimary,
+            'getPrimaryService should return a primary service.');
+        assert_equals(service.device, device,
+            'Service device should be the same as device.');
+      })
+    }), test_desc);
+</script>

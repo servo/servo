@@ -57,7 +57,7 @@ test(t => {
     assert_equals(effect.getKeyframes()[0].composite, composite,
                   `resulting composite for '${composite}'`);
   }
-  for (const composite of gBadCompositeValueTests) {
+  for (const composite of gBadKeyframeCompositeValueTests) {
     assert_throws(new TypeError, () => {
       new KeyframeEffectReadOnly(target, getKeyframe(composite));
     });
@@ -76,7 +76,7 @@ test(t => {
     assert_equals(effect.getKeyframes()[0].composite, composite,
                   `resulting composite for '${composite}'`);
   }
-  for (const composite of gBadCompositeValueTests) {
+  for (const composite of gBadKeyframeCompositeValueTests) {
     assert_throws(new TypeError, () => {
       new KeyframeEffectReadOnly(target, getKeyframes(composite));
     });
@@ -89,17 +89,17 @@ test(t => {
     const effect = new KeyframeEffectReadOnly(target, {
       left: ['10px', '20px']
     }, { composite: composite });
-    assert_equals(effect.getKeyframes()[0].composite, undefined,
+    assert_equals(effect.getKeyframes()[0].composite, null,
                   `resulting composite for '${composite}'`);
   }
-  for (const composite of gBadCompositeValueTests) {
+  for (const composite of gBadOptionsCompositeValueTests) {
     assert_throws(new TypeError, () => {
       new KeyframeEffectReadOnly(target, {
         left: ['10px', '20px']
       }, { composite: composite });
     });
   }
-}, 'composite value is absent if the composite operation specified on the ' +
+}, 'composite value is null if the composite operation specified on the ' +
    'keyframe effect is being used');
 
 for (const subtest of gKeyframesTests) {

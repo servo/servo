@@ -14,26 +14,26 @@
 test(t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.currentTime = 1 * MS_PER_SEC;
-  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 1 * MS_PER_SEC);
   animation.play();
-  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 1 * MS_PER_SEC);
 }, 'Playing a running animation leaves the current time unchanged');
 
 test(t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.finish();
-  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
   animation.play();
-  assert_times_equal(animation.currentTime, 0);
+  assert_time_equals_literal(animation.currentTime, 0);
 }, 'Playing a finished animation seeks back to the start');
 
 test(t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.playbackRate = -1;
   animation.currentTime = 0;
-  assert_times_equal(animation.currentTime, 0);
+  assert_time_equals_literal(animation.currentTime, 0);
   animation.play();
-  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
 }, 'Playing a finished and reversed animation seeks to end');
 
 test(t => {

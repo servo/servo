@@ -5,8 +5,7 @@
     #output {
         width: 100px;
         height: 100px;
-        background-image: paint(error);
-        background-color: green;
+        background-image: paint(errorIndicator), paint(successIndicator);
     }
 </style>
 <script src="/common/reftest-wait.js"></script>
@@ -15,11 +14,20 @@
 <div id="output"></div>
 
 <script id="code" type="text/worklet">
-registerPaint('error', class {
+registerPaint('errorIndicator', class {
     constructor() { throw Error('failed!'); }
+    // The paint function should not be executed because an error has been
+    // thrown.
     paint(ctx, geom) {
         ctx.fillStyle = 'red';
-        ctx.fillRect(0, 0, geom.width, geom.height);
+        ctx.fillRect(0, 0, 50, 50);
+    }
+});
+
+registerPaint('successIndicator', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(50, 50, 50, 50);
     }
 });
 </script>

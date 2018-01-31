@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: font-feature-settings serialization</title>
+<link rel="author" title="Chris Nardi" href="mailto:cnardi@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-3/#feature-tag-value">
+<link rel="help" href="https://drafts.csswg.org/cssom/#common-serializing-idioms">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #test {
+        font-feature-settings: "vert" 1;
+    }
+    #test1 {
+        font-feature-settings: 'vert' 1;
+    }
+</style>
+<div id="test"></div>
+<div id="test1"></div>
+<script>
+    const div = document.querySelector("#test");
+    const div1 = document.querySelector("#test1");
+    test(function() {
+        assert_equals(getComputedStyle(div).fontFeatureSettings, '"vert" 1');
+        assert_equals(getComputedStyle(div1).fontFeatureSettings, '"vert" 1');
+    }, "font-feature-settings should have its feature tag serialized with double quotes");
+</script>

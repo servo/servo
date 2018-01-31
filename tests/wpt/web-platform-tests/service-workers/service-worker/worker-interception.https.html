@@ -81,10 +81,16 @@ promise_test(function(t) {
             });
         })
       .then(function(data) {
-          assert_equals(data, 'dummy-worker-script loaded');
+          assert_unreached('intercepted cors response to a same-origin mode ' +
+                           'worker load should fail');
           service_worker_unregister_and_done(t, scope);
-        });
-  }, 'Verify worker script intercepted by cors response succeeds');
+        })
+      .catch(function(e) {
+          assert_true(true, 'intercepted cors response to a same-origin mode ' +
+                            'worker load should fail');
+          service_worker_unregister_and_done(t, scope);
+       });
+  }, 'Verify worker script intercepted by cors response fails');
 
 promise_test(function(t) {
     var worker_url = 'resources/dummy-no-cors-worker.js';

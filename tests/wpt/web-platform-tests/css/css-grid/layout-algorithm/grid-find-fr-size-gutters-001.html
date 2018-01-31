@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid Track Sizing Algorithm Flexible Tracks and Gutters</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#gutters">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#algo-find-fr-size">
+<meta name="assert" content="This test checks that the size of flexible tracks is properly computed when you have gaps (with and without spanning items).">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  grid-gap: 10px 20px;
+  font: 10px/1 Ahem;
+  margin: 50px;
+}
+
+.fixedSize {
+  width: 200px;
+  height: 100px;
+}
+
+.contentBasedSize {
+  float: left;
+  height: auto;
+}
+
+.grid div:nth-child(1) { background: magenta; }
+.grid div:nth-child(2) { background: cyan; }
+.grid div:nth-child(3) { background: yellow; }
+.grid div:nth-child(4) { background: lime; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<div class="grid fixedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50"></div>
+  <div data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40"></div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40"></div>
+</div>
+
+<div class="grid fixedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: span 2;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="50"></div>
+  <div data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40"></div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40"></div>
+</div>
+
+<div class="grid fixedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: 1; grid-row: 1;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div style="grid-column: 2; grid-row: 1;"
+    data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50"></div>
+  <div style="grid-column: span 2;"
+    data-offset-x="0" data-offset-y="60" data-expected-width="200" data-expected-height="40"></div>
+</div>
+
+<div class="grid fixedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-row: span 2;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="100"></div>
+  <div data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50"></div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40"></div>
+</div>
+
+<div class="grid fixedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: 1; grid-row: 1;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div style="grid-column: 1; grid-row: 2;"
+    data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40"></div>
+  <div style="grid-row: span 2;"
+    data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="100"></div>
+</div>
+
+<div class="grid fixedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-row: span 2; grid-column: span 2;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100"></div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50">XXXXXXXX</div>
+  <div data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40">X<br>X<br>X<br>X</div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40"></div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50"></div>
+  <div data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40"></div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40">XXXXXXXX<br>X<br>X<br>X</div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: span 2;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="50"></div>
+  <div data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40">X<br>X<br>X<br>X</div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40">XXXXXXXX</div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: span 2;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="50">XXXXXXXXXXXXXXXXXXXX</div>
+  <div data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40">X<br>X<br>X<br>X</div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40"></div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: 1; grid-row: 1;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div style="grid-column: 2; grid-row: 1;"
+    data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50">XXXXXXXX</div>
+  <div style="grid-column: span 2;"
+    data-offset-x="0" data-offset-y="60" data-expected-width="200" data-expected-height="40">X<br>X<br>X<br>X</div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: 1; grid-row: 1;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div style="grid-column: 2; grid-row: 1;"
+    data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50"></div>
+  <div style="grid-column: span 2;"
+    data-offset-x="0" data-offset-y="60" data-expected-width="200" data-expected-height="40">XXXXXXXXXXXXXXXXXXXX<br>X<br>X<br>X</div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-row: span 2;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="100"></div>
+  <div data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50">XXXXXXXX</div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40">X<br>X<br>X<br>X</div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-row: span 2;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="100">X<br>X<br>X<br>X<br>X<br>X<br>X<br>X<br>X<br>X</div>
+  <div data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="50">XXXXXXXX</div>
+  <div data-offset-x="120" data-offset-y="60" data-expected-width="80" data-expected-height="40"></div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: 1; grid-row: 1;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div style="grid-column: 1; grid-row: 2;"
+    data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40">X<br>X<br>X<br>X</div>
+  <div style="grid-row: span 2;"
+    data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="100">XXXXXXXX</div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-column: 1; grid-row: 1;"
+    data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+  <div style="grid-column: 1; grid-row: 2;"
+    data-offset-x="0" data-offset-y="60" data-expected-width="100" data-expected-height="40"></div>
+  <div style="grid-row: span 2;"
+    data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="100">XXXXXXXX<br>X<br>X<br>X<br>X<br>X<br>X<br>X<br>X<br>X</div>
+</div>
+
+<div class="grid contentBasedSize" style="grid: 50px 1fr / 100px 1fr;">
+  <div style="grid-row: span 2; grid-column: span 2;"
+       data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100">
+XXXXXXXXXXXXXXXXXXXX<br>X<br>X<br>X<br>X<br>X<br>X<br>X<br>X<br>X</div>
+</div>

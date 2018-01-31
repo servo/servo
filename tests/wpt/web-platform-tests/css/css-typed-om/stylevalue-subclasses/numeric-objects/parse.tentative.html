@@ -1,0 +1,26 @@
+<meta charset="utf-8">
+<title>CSSNumericValue.parse tests</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-cssnumericvalue-parse">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script>
+'use strict';
+
+test(() => {
+  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('%#('));
+}, 'Parsing an invalid string throws SyntaxError');
+
+test(() => {
+  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('auto'));
+}, 'Parsing a string with a non numeric token throws SyntaxError');
+
+test(() => {
+  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('1 2'));
+}, 'Parsing a string with left over numeric tokens throws SyntaxError');
+
+test(() => {
+  assert_throws(new SyntaxError(), () => CSSNumericValue.parse('calc(calc(1px * 2s) + 3%)'));
+}, 'Parsing a calc with incompatible units throws a SyntaxError');
+
+</script>
