@@ -2195,7 +2195,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             self.0,
             name,
             case_sensitivity,
-            Gecko_ClassOrClassList,
+            bindings::Gecko_HasClass,
         )
     }
 

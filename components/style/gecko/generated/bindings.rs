@@ -725,6 +725,13 @@ extern "C" {
     ) -> u32;
 }
 extern "C" {
+    pub fn Gecko_HasClass(
+        element: RawGeckoElementBorrowed,
+        class_: *mut nsAtom,
+        ignore_case: bool,
+    ) -> bool;
+}
+extern "C" {
     pub fn Gecko_SnapshotAtomAttrValue(
         element: *const ServoElementSnapshot,
         attribute: *mut nsAtom,
@@ -800,6 +807,13 @@ extern "C" {
         class_: *mut *mut nsAtom,
         classList: *mut *mut *mut nsAtom,
     ) -> u32;
+}
+extern "C" {
+    pub fn Gecko_SnapshotHasClass(
+        element: *const ServoElementSnapshot,
+        class_: *mut nsAtom,
+        ignore_case: bool,
+    ) -> bool;
 }
 extern "C" {
     pub fn Gecko_GetStyleAttrDeclarationBlock(

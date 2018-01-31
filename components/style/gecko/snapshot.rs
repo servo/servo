@@ -185,10 +185,12 @@ impl ElementSnapshot for GeckoElementSnapshot {
             return false;
         }
 
-        snapshot_helpers::has_class(self.as_ptr(),
-                                    name,
-                                    case_sensitivity,
-                                    bindings::Gecko_SnapshotClassOrClassList)
+        snapshot_helpers::has_class(
+            self.as_ptr(),
+            name,
+            case_sensitivity,
+            bindings::Gecko_SnapshotHasClass,
+        )
     }
 
     #[inline]
@@ -200,9 +202,11 @@ impl ElementSnapshot for GeckoElementSnapshot {
             return;
         }
 
-        snapshot_helpers::each_class(self.as_ptr(),
-                                     callback,
-                                     bindings::Gecko_SnapshotClassOrClassList)
+        snapshot_helpers::each_class(
+            self.as_ptr(),
+            callback,
+            bindings::Gecko_SnapshotClassOrClassList,
+        )
     }
 
     #[inline]
