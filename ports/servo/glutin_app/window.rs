@@ -4,7 +4,6 @@
 
 //! A windowing implementation using glutin.
 
-use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent};
 use compositing::windowing::{WebRenderDebugOption, WindowEvent, WindowMethods};
@@ -43,6 +42,7 @@ use std::thread;
 use std::time;
 use style_traits::DevicePixel;
 use style_traits::cursor::CursorKind;
+use super::NestedEventLoopListener;
 #[cfg(target_os = "windows")]
 use user32;
 use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
@@ -228,8 +228,7 @@ impl Window {
     }
 
     pub fn new(is_foreground: bool,
-               window_size: TypedSize2D<u32, DeviceIndependentPixel>,
-               parent: Option<glutin::WindowID>) -> Rc<Window> {
+               window_size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<Window> {
         let win_size: TypedSize2D<u32, DevicePixel> =
             (window_size.to_f32() * window_creation_scale_factor())
                 .to_usize().cast().expect("Window size should fit in u32");
@@ -252,7 +251,6 @@ impl Window {
                                             .with_dimensions(width, height)
                                             .with_gl(Window::gl_version())
                                             .with_visibility(visible)
-                                            .with_parent(parent)
                                             .with_multitouch();
 
             if let Ok(mut icon_path) = resource_files::resources_dir_path() {
@@ -338,17 +336,6 @@ impl Window {
         window.present();
 
         Rc::new(window)
-    }
-
-    pub fn platform_window(&self) -> glutin::WindowID {
-        match self.kind {
-            WindowKind::Window(ref window) => {
-                unsafe { glutin::WindowID::new(window.platform_window()) }
-            }
-            WindowKind::Headless(..) => {
-                unreachable!();
-            }
-        }
     }
 
     fn nested_window_resize(_width: u32, _height: u32) {
@@ -1472,49 +1459,4 @@ fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
     } else {
         None
     }
-}
-
-// These functions aren't actually called. They are here as a link
-// hack because Skia references them.
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glBindVertexArrayOES(_array: usize)
-{
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glDeleteVertexArraysOES(_n: isize, _arrays: *const ())
-{
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glGenVertexArraysOES(_n: isize, _arrays: *const ())
-{
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glRenderbufferStorageMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize)
-{
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glFramebufferTexture2DMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize, _: isize)
-{
-    unimplemented!()
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn glDiscardFramebufferEXT(_: isize, _: isize, _: *const ())
-{
-    unimplemented!()
 }

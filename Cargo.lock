@@ -745,31 +745,6 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "embedding"
-version = "0.0.1"
-dependencies = [
- "cocoa 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "compositing 0.0.1",
- "devtools 0.0.1",
- "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.4.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin_app 0.0.1",
- "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "libservo 0.0.1",
- "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "msg 0.0.1",
- "net_traits 0.0.1",
- "objc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "script_traits 0.0.1",
- "servo_config 0.0.1",
- "servo_geometry 0.0.1",
- "servo_url 0.0.1",
- "style_traits 0.0.1",
- "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
- "x11 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "encoding_rs"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1075,34 +1050,6 @@ dependencies = [
 name = "glob"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "glutin_app"
-version = "0.0.1"
-dependencies = [
- "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "compositing 0.0.1",
- "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.4.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "libservo 0.0.1",
- "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "msg 0.0.1",
- "net_traits 0.0.1",
- "osmesa-src 17.3.1-devel (git+https://github.com/servo/osmesa-src)",
- "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "script_traits 0.0.1",
- "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-glutin 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_config 0.0.1",
- "servo_geometry 0.0.1",
- "servo_url 0.0.1",
- "style_traits 0.0.1",
- "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
- "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "glx"
@@ -2621,11 +2568,30 @@ version = "0.0.1"
 dependencies = [
  "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
- "glutin_app 0.0.1",
+ "compositing 0.0.1",
+ "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.4.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "msg 0.0.1",
+ "net_traits 0.0.1",
+ "osmesa-src 17.3.1-devel (git+https://github.com/servo/osmesa-src)",
+ "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "script_traits 0.0.1",
+ "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-glutin 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_config 0.0.1",
+ "servo_geometry 0.0.1",
+ "servo_url 0.0.1",
  "sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "style_traits 0.0.1",
+ "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -14,7 +14,6 @@ set -o pipefail
 env CC=gcc-5 CXX=g++-5 ./mach build --dev
 env ./mach test-unit
 env ./mach package --dev
-env ./mach build-cef
 env ./mach build --dev --no-default-features --features default-except-unstable
 ./mach build-geckolib
 ./mach test-stylo

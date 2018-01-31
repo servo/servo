@@ -20,15 +20,31 @@
 #[cfg(target_os = "android")]
 extern crate android_injected_glue;
 extern crate backtrace;
+#[macro_use] extern crate bitflags;
+extern crate compositing;
+extern crate euclid;
+#[cfg(target_os = "windows")] extern crate gdi32;
+extern crate gleam;
+extern crate glutin;
 // The window backed by glutin
-extern crate glutin_app as app;
-#[macro_use]
-extern crate log;
-// The Servo engine
+#[macro_use] extern crate log;
+extern crate msg;
+extern crate net_traits;
+#[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
+extern crate script_traits;
 extern crate servo;
+extern crate servo_config;
+extern crate servo_geometry;
+extern crate servo_url;
 #[cfg(all(feature = "unstable", not(target_os = "android")))]
 #[macro_use]
 extern crate sig;
+extern crate style_traits;
+extern crate webrender_api;
+#[cfg(target_os = "windows")] extern crate winapi;
+#[cfg(target_os = "windows")] extern crate user32;
+
+mod glutin_app;
 
 use backtrace::Backtrace;
 use servo::Servo;
@@ -144,7 +160,7 @@ fn main() {
         process::exit(0);
     }
 
-    let window = app::create_window(None);
+    let window = glutin_app::create_window();
 
     // If the url is not provided, we fallback to the homepage in PREFS,
     // or a blank page in case the homepage is not set either.
@@ -188,23 +204,23 @@ fn main() {
     platform::deinit()
 }
 
-fn register_glutin_resize_handler(window: &Rc<app::window::Window>, browser: &mut ServoWrapper) {
+fn register_glutin_resize_handler(window: &Rc<glutin_app::window::Window>, browser: &mut ServoWrapper) {
     unsafe {
         window.set_nested_event_loop_listener(browser);
     }
 }
 
-fn unregister_glutin_resize_handler(window: &Rc<app::window::Window>) {
+fn unregister_glutin_resize_handler(window: &Rc<glutin_app::window::Window>) {
     unsafe {
         window.remove_nested_event_loop_listener();
     }
 }
 
 struct ServoWrapper {
-    servo: Servo<app::window::Window>,
+    servo: Servo<glutin_app::window::Window>,
 }
 
-impl app::NestedEventLoopListener for ServoWrapper {
+impl glutin_app::NestedEventLoopListener for ServoWrapper {
     fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool {
         let is_resize = match event {
             WindowEvent::Resize => true,
@@ -280,4 +296,49 @@ fn args() -> Vec<String> {
 #[allow(non_snake_case)]
 pub extern "C" fn android_main(app: *mut ()) {
     android_injected_glue::android_main2(app as *mut _, move |_, _| main());
+}
+
+// These functions aren't actually called. They are here as a link
+// hack because Skia references them.
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glBindVertexArrayOES(_array: usize)
+{
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glDeleteVertexArraysOES(_n: isize, _arrays: *const ())
+{
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glGenVertexArraysOES(_n: isize, _arrays: *const ())
+{
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glRenderbufferStorageMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize)
+{
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glFramebufferTexture2DMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize, _: isize)
+{
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glDiscardFramebufferEXT(_: isize, _: isize, _: *const ())
+{
+    unimplemented!()
 }
