@@ -21,7 +21,9 @@ pub fn derive(input: DeriveInput) -> Tokens {
         );
 
         let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
-        let identifier = cg::to_css_identifier(variant.ident.as_ref());
+        let identifier = cg::to_css_identifier(
+            &variant_attrs.keyword.as_ref().unwrap_or(&variant.ident).as_ref(),
+        );
         let ident = &variant.ident;
 
         match_body = quote! {

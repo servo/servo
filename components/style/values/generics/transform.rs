@@ -714,3 +714,13 @@ pub enum Translate<LengthOrPercentage, Length> {
     /// '<length-percentage> <length-percentage> <length>'
     Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
 }
+
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+pub enum TransformStyle {
+    #[cfg(feature = "servo")]
+    Auto,
+    Flat,
+    #[css(keyword = "preserve-3d")]
+    Preserve3d,
+}

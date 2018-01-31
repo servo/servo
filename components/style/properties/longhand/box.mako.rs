@@ -526,14 +526,16 @@ ${helpers.single_keyword("transform-box",
                          gecko_inexhaustive="True",
                          animation_value_type="discrete")}
 
-// `auto` keyword is not supported in gecko yet.
-${helpers.single_keyword("transform-style",
-                         "auto flat preserve-3d" if product == "servo" else
-                         "flat preserve-3d",
-                         spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
-                         extra_prefixes="moz webkit",
-                         flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                         animation_value_type="discrete")}
+${helpers.predefined_type(
+    "transform-style",
+    "TransformStyle",
+    "computed::TransformStyle::" + ("Auto" if product == "servo" else "Flat"),
+    spec="https://drafts.csswg.org/css-transforms-2/#transform-style-property",
+    needs_context=False,
+    extra_prefixes="moz webkit",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    animation_value_type="discrete",
+)}
 
 ${helpers.predefined_type("transform-origin",
                           "TransformOrigin",
