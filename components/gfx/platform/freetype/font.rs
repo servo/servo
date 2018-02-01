@@ -113,14 +113,17 @@ impl FontHandleMethods for FontHandle {
             }
         }
     }
+
     fn template(&self) -> Arc<FontTemplateData> {
         self.font_data.clone()
     }
+
     fn family_name(&self) -> String {
         unsafe {
             c_str_to_string((*self.face).family_name as *const c_char)
         }
     }
+
     fn face_name(&self) -> Option<String> {
         unsafe {
             let name = FT_Get_Postscript_Name(self.face) as *const c_char;
@@ -132,9 +135,11 @@ impl FontHandleMethods for FontHandle {
             }
         }
     }
+
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 }
     }
+
     fn boldness(&self) -> FontWeight {
         let default_weight = FontWeight::normal();
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD as c_long == 0 } {
@@ -158,6 +163,7 @@ impl FontHandleMethods for FontHandle {
             }
         }
     }
+
     fn stretchiness(&self) -> FontStretch {
         // TODO(pcwalton): Implement this.
         FontStretch::Normal
