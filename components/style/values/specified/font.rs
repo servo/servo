@@ -21,8 +21,8 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{SingleFontFamily, FontFamilyList, FamilyName};
-use values::generics::{FontSettings, FontSettingTagFloat};
-use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength, Number};
+use values::generics::font::{FontSettings, FeatureTagValue, VariationValue};
+use values::specified::{AllowQuirks, Integer, LengthOrPercentage, NoCalcLength, Number};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
@@ -164,8 +164,8 @@ impl From<LengthOrPercentage> for FontSize {
     }
 }
 
+/// Specifies a prioritized list of font family names or generic family names.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-/// Specifies a prioritized list of font family names or generic family names
 pub enum FontFamily {
     /// List of `font-family`
     Values(FontFamilyList),
@@ -1709,13 +1709,15 @@ impl Parse for FontVariantNumeric {
     }
 }
 
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
-/// Define initial settings that apply when the font defined
-/// by an @font-face rule is rendered.
+/// This property provides low-level control over OpenType or TrueType font variations.
+pub type SpecifiedFontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
+
+/// Define initial settings that apply when the font defined by an @font-face
+/// rule is rendered.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum FontFeatureSettings {
     /// Value of `FontSettings`
-    Value(computed::FontFeatureSettings),
+    Value(SpecifiedFontFeatureSettings),
     /// System font
     System(SystemFont)
 }
@@ -1724,7 +1726,7 @@ impl FontFeatureSettings {
     #[inline]
     /// Get default value of `font-feature-settings` as normal
     pub fn normal() -> FontFeatureSettings {
-        FontFeatureSettings::Value(FontSettings::Normal)
+        FontFeatureSettings::Value(FontSettings::normal())
     }
 
     /// Get `font-feature-settings` with system font
@@ -1745,12 +1747,12 @@ impl FontFeatureSettings {
 impl ToComputedValue for FontFeatureSettings {
     type ComputedValue = computed::FontFeatureSettings;
 
-    fn to_computed_value(&self, _context: &Context) -> computed::FontFeatureSettings {
+    fn to_computed_value(&self, context: &Context) -> computed::FontFeatureSettings {
         match *self {
-            FontFeatureSettings::Value(ref v) => v.clone(),
+            FontFeatureSettings::Value(ref v) => v.to_computed_value(context),
             FontFeatureSettings::System(_) => {
                 #[cfg(feature = "gecko")] {
-                    _context.cached_system_font.as_ref().unwrap().font_feature_settings.clone()
+                    context.cached_system_font.as_ref().unwrap().font_feature_settings.clone()
                 }
                 #[cfg(feature = "servo")] {
                     unreachable!()
@@ -1760,7 +1762,7 @@ impl ToComputedValue for FontFeatureSettings {
     }
 
     fn from_computed_value(other: &computed::FontFeatureSettings) -> Self {
-        FontFeatureSettings::Value(other.clone())
+        FontFeatureSettings::Value(ToComputedValue::from_computed_value(other))
     }
 }
 
@@ -1770,7 +1772,7 @@ impl Parse for FontFeatureSettings {
         context: &ParserContext,
         input: &mut Parser<'i, 't>
     ) -> Result<FontFeatureSettings, ParseError<'i>> {
-        computed::FontFeatureSettings::parse(context, input).map(FontFeatureSettings::Value)
+        SpecifiedFontFeatureSettings::parse(context, input).map(FontFeatureSettings::Value)
     }
 }
 
@@ -1962,8 +1964,95 @@ impl Parse for FontLanguageOverride {
     }
 }
 
-/// This property provides low-level control over OpenType or TrueType font variations.
-pub type FontVariantSettings = FontSettings<FontSettingTagFloat>;
+/// A font four-character tag, represented as a u32 for convenience.
+///
+/// See:
+///   https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
+///   https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-feature-settings
+///
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+pub struct FontTag(pub u32);
+
+impl Parse for FontTag {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        use byteorder::{ReadBytesExt, BigEndian};
+        use std::io::Cursor;
+
+        let location = input.current_source_location();
+        let tag = input.expect_string()?;
+
+        // allowed strings of length 4 containing chars: <U+20, U+7E>
+        if tag.len() != 4 || tag.as_bytes().iter().any(|c| *c < b' ' || *c > b'~') {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+
+        let mut raw = Cursor::new(tag.as_bytes());
+        Ok(FontTag(raw.read_u32::<BigEndian>().unwrap()))
+    }
+}
+
+impl ToCss for FontTag {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use byteorder::{BigEndian, ByteOrder};
+        use std::str;
+
+        let mut raw = [0u8; 4];
+        BigEndian::write_u32(&mut raw, self.0);
+        str::from_utf8(&raw).unwrap_or_default().to_css(dest)
+    }
+}
+
+/// This property provides low-level control over OpenType or TrueType font
+/// variations.
+pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
+
+fn parse_one_feature_value<'i, 't>(
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+) -> Result<Integer, ParseError<'i>> {
+    if let Ok(integer) = input.try(|i| Integer::parse_non_negative(context, i)) {
+        return Ok(integer)
+    }
+
+    try_match_ident_ignore_ascii_case! { input,
+        "on" => Ok(Integer::new(1)),
+        "off" => Ok(Integer::new(0)),
+    }
+}
+
+impl Parse for FeatureTagValue<Integer> {
+    /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let tag = FontTag::parse(context, input)?;
+        let value = input.try(|i| parse_one_feature_value(context, i))
+            .unwrap_or_else(|_| Integer::new(1));
+
+        Ok(Self { tag, value })
+    }
+}
+
+impl Parse for VariationValue<Number> {
+    /// This is the `<string> <number>` part of the font-variation-settings
+    /// syntax.
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let tag = FontTag::parse(context, input)?;
+        let value = Number::parse(context, input)?;
+        Ok(Self { tag, value })
+    }
+}
+
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// text-zoom. Enable if true, disable if false
@@ -2060,6 +2149,7 @@ pub enum MozScriptLevel {
 
 impl Parse for MozScriptLevel {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<MozScriptLevel, ParseError<'i>> {
+        // We don't bother to handle calc here.
         if let Ok(i) = input.try(|i| i.expect_integer()) {
             return Ok(MozScriptLevel::Relative(i))
         }

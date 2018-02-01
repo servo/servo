@@ -4727,10 +4727,11 @@ pub extern "C" fn Servo_ParseFontDescriptor(
 ) -> bool {
     use cssparser::UnicodeRange;
     use self::nsCSSFontDesc::*;
-    use style::computed_values::{font_feature_settings, font_stretch, font_style};
+    use style::computed_values::{font_stretch, font_style};
     use style::font_face::{FontDisplay, FontWeight, Source};
     use style::properties::longhands::font_language_override;
     use style::values::computed::font::FamilyName;
+    use style::values::specified::font::SpecifiedFontFeatureSettings;
 
     let string = unsafe { (*value).to_string() };
     let mut input = ParserInput::new(&string);
@@ -4779,7 +4780,7 @@ pub extern "C" fn Servo_ParseFontDescriptor(
             eCSSFontDesc_Stretch / font_stretch::T,
             eCSSFontDesc_Src / Vec<Source>,
             eCSSFontDesc_UnicodeRange / Vec<UnicodeRange>,
-            eCSSFontDesc_FontFeatureSettings / font_feature_settings::T,
+            eCSSFontDesc_FontFeatureSettings / SpecifiedFontFeatureSettings,
             eCSSFontDesc_FontLanguageOverride / font_language_override::SpecifiedValue,
             eCSSFontDesc_Display / FontDisplay,
         ]

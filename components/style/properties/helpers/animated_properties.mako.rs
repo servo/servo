@@ -17,8 +17,6 @@ use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
-#[cfg(feature = "gecko")]
-use properties::longhands::font_variation_settings::computed_value::T as FontVariationSettings;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")]
 use properties::PropertyId;
@@ -51,14 +49,15 @@ use values::computed::transform::Translate as ComputedTranslate;
 use values::computed::transform::Scale as ComputedScale;
 use values::generics::transform::{self, Rotate, Translate, Scale, Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-#[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
-#[cfg(feature = "gecko")] use values::generics::FontSettingTag as GenericFontSettingTag;
-#[cfg(feature = "gecko")] use values::generics::FontSettingTagFloat;
+use values::generics::font::FontSettings as GenericFontSettings;
+use values::computed::font::FontVariationSettings;
+use values::generics::font::VariationValue;
 use values::generics::NonNegative;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
+use values::specified::font::FontTag;
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
 pub trait RepeatableListAnimatable: Animate {}
@@ -816,18 +815,16 @@ impl Into<FontStretch> for f64 {
 }
 
 /// <https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def>
-#[cfg(feature = "gecko")]
 impl Animate for FontVariationSettings {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         FontSettingTagIter::new(self, other)?
             .map(|r| r.and_then(|(st, ot)| st.animate(&ot, procedure)))
-            .collect::<Result<Vec<FontSettingTag>, ()>>()
-            .map(GenericFontSettings::Tag)
+            .collect::<Result<Vec<ComputedVariationValue>, ()>>()
+            .map(|v| GenericFontSettings(v.into_boxed_slice()))
     }
 }
 
-#[cfg(feature = "gecko")]
 impl ComputeSquaredDistance for FontVariationSettings {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
@@ -837,7 +834,6 @@ impl ComputeSquaredDistance for FontVariationSettings {
     }
 }
 
-#[cfg(feature = "gecko")]
 impl ToAnimatedZero for FontVariationSettings {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -845,49 +841,21 @@ impl ToAnimatedZero for FontVariationSettings {
     }
 }
 
-#[cfg(feature = "gecko")]
-impl Animate for FontSettingTag {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        if self.tag != other.tag {
-            return Err(());
-        }
-        let value = self.value.animate(&other.value, procedure)?;
-        Ok(FontSettingTag {
-            tag: self.tag,
-            value,
-        })
-    }
-}
+type ComputedVariationValue = VariationValue<Number>;
 
-#[cfg(feature = "gecko")]
-impl ComputeSquaredDistance for FontSettingTag {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        if self.tag != other.tag {
-            return Err(());
-        }
-        self.value.compute_squared_distance(&other.value)
-    }
-}
-
-#[cfg(feature = "gecko")]
-type FontSettingTag = GenericFontSettingTag<FontSettingTagFloat>;
-
-#[cfg(feature = "gecko")]
+// FIXME: Could do a rename, this is only used for font variations.
 struct FontSettingTagIterState<'a> {
-    tags: Vec<(&'a FontSettingTag)>,
+    tags: Vec<(&'a ComputedVariationValue)>,
     index: usize,
-    prev_tag: u32,
+    prev_tag: FontTag,
 }
 
-#[cfg(feature = "gecko")]
 impl<'a> FontSettingTagIterState<'a> {
-    fn new(tags: Vec<(&'a FontSettingTag)>) -> FontSettingTagIterState<'a> {
+    fn new(tags: Vec<<&'a ComputedVariationValue>) -> FontSettingTagIterState<'a> {
         FontSettingTagIterState {
             index: tags.len(),
             tags,
-            prev_tag: 0,
+            prev_tag: FontTag(0),
         }
     }
 }
@@ -897,12 +865,13 @@ impl<'a> FontSettingTagIterState<'a> {
 /// [CSS fonts level 4](https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-variation-settings)
 /// defines the animation of font-variation-settings as follows:
 ///
-///   Two declarations of font-feature-settings[sic] can be animated between if they are "like".
-///   "Like" declarations are ones where the same set of properties appear (in any order).
-///   Because succesive[sic] duplicate properties are applied instead of prior duplicate
-///   properties, two declarations can be "like" even if they have differing number of
-///   properties. If two declarations are "like" then animation occurs pairwise between
-///   corresponding values in the declarations.
+///   Two declarations of font-feature-settings[sic] can be animated between if
+///   they are "like".  "Like" declarations are ones where the same set of
+///   properties appear (in any order).  Because succesive[sic] duplicate
+///   properties are applied instead of prior duplicate properties, two
+///   declarations can be "like" even if they have differing number of
+///   properties. If two declarations are "like" then animation occurs pairwise
+///   between corresponding values in the declarations.
 ///
 /// In other words if we have the following lists:
 ///
@@ -914,9 +883,10 @@ impl<'a> FontSettingTagIterState<'a> {
 ///   "wdth" 5, "wght" 2
 ///   "wght" 4, "wdth" 10
 ///
-/// This iterator supports this by sorting the two lists, then iterating them in reverse,
-/// and skipping entries with repeated tag names. It will return Some(Err()) if it reaches the
-/// end of one list before the other, or if the tag names do not match.
+/// This iterator supports this by sorting the two lists, then iterating them in
+/// reverse, and skipping entries with repeated tag names. It will return
+/// Some(Err()) if it reaches the end of one list before the other, or if the
+/// tag names do not match.
 ///
 /// For the above example, this iterator would return:
 ///
@@ -924,37 +894,33 @@ impl<'a> FontSettingTagIterState<'a> {
 ///   Some(Ok("wdth" 5, "wdth" 10))
 ///   None
 ///
-#[cfg(feature = "gecko")]
 struct FontSettingTagIter<'a> {
     a_state: FontSettingTagIterState<'a>,
     b_state: FontSettingTagIterState<'a>,
 }
 
-#[cfg(feature = "gecko")]
 impl<'a> FontSettingTagIter<'a> {
     fn new(
         a_settings: &'a FontVariationSettings,
         b_settings: &'a FontVariationSettings,
     ) -> Result<FontSettingTagIter<'a>, ()> {
-        if let (&GenericFontSettings::Tag(ref a_tags), &GenericFontSettings::Tag(ref b_tags)) = (a_settings, b_settings)
-        {
-            fn as_new_sorted_tags(tags: &Vec<FontSettingTag>) -> Vec<(&FontSettingTag)> {
-                use std::iter::FromIterator;
-                let mut sorted_tags: Vec<(&FontSettingTag)> = Vec::from_iter(tags.iter());
-                sorted_tags.sort_by_key(|k| k.tag);
-                sorted_tags
-            };
-
-            Ok(FontSettingTagIter {
-                a_state: FontSettingTagIterState::new(as_new_sorted_tags(a_tags)),
-                b_state: FontSettingTagIterState::new(as_new_sorted_tags(b_tags)),
-            })
-        } else {
-            Err(())
+        if a_settings.0.is_empty() || b_settings.0.is_empty() {
+            return Err(());
         }
+        fn as_new_sorted_tags(tags: &[ComputedVariationValue]) -> Vec<<&ComputedVariationValue> {
+            use std::iter::FromIterator;
+            let mut sorted_tags = Vec::from_iter(tags.iter());
+            sorted_tags.sort_by_key(|k| k.tag.0);
+            sorted_tags
+        };
+
+        Ok(FontSettingTagIter {
+            a_state: FontSettingTagIterState::new(as_new_sorted_tags(&a_settings.0)),
+            b_state: FontSettingTagIterState::new(as_new_sorted_tags(&b_settings.0)),
+        })
     }
 
-    fn next_tag(state: &mut FontSettingTagIterState<'a>) -> Option<(&'a FontSettingTag)> {
+    fn next_tag(state: &mut FontSettingTagIterState<'a>) -> Option<<&'a ComputedVariationValue> {
         if state.index == 0 {
             return None;
         }
@@ -970,11 +936,10 @@ impl<'a> FontSettingTagIter<'a> {
     }
 }
 
-#[cfg(feature = "gecko")]
 impl<'a> Iterator for FontSettingTagIter<'a> {
-    type Item = Result<(&'a FontSettingTag, &'a FontSettingTag), ()>;
+    type Item = Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>;
 
-    fn next(&mut self) -> Option<Result<(&'a FontSettingTag, &'a FontSettingTag), ()>> {
+    fn next(&mut self) -> Option<Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>> {
         match (
             FontSettingTagIter::next_tag(&mut self.a_state),
             FontSettingTagIter::next_tag(&mut self.b_state),
