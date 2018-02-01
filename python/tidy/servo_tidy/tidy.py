@@ -461,8 +461,8 @@ def rec_parse(current_path, current_node):
 
 def check_manifest_dirs(config_file, print_text=True):
     if not os.path.exists(config_file):
-        print("%s manifest file is required but was not found" % config_file)
-        sys.exit(1)
+        yield(config_file, 0, "%s manifest file is required but was not found" % config_file)
+        return
 
     # Load configs from include.ini
     with open(config_file) as content:
