@@ -37,7 +37,7 @@ pub use self::align::{AlignItems, AlignContent, JustifyContent, SelfAlignment, J
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
-pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
+pub use self::border::{BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariationSettings, FontVariantEastAsian};

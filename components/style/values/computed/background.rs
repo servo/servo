@@ -12,7 +12,7 @@ use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, ToComputedValue};
 use values::computed::length::LengthOrPercentageOrAuto;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
-use values::specified::background::{BackgroundRepeat as SpecifiedBackgroundRepeat, RepeatKeyword};
+use values::specified::background::{BackgroundRepeat as SpecifiedBackgroundRepeat, BackgroundRepeatKeyword};
 
 /// A computed value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<LengthOrPercentageOrAuto>;
@@ -86,12 +86,12 @@ impl ToAnimatedValue for BackgroundSizeList {
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct BackgroundRepeat(pub RepeatKeyword, pub RepeatKeyword);
+pub struct BackgroundRepeat(pub BackgroundRepeatKeyword, pub BackgroundRepeatKeyword);
 
 impl BackgroundRepeat {
     /// Returns the `repeat repeat` value.
     pub fn repeat() -> Self {
-        BackgroundRepeat(RepeatKeyword::Repeat, RepeatKeyword::Repeat)
+        BackgroundRepeat(BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::Repeat)
     }
 }
 
@@ -101,8 +101,12 @@ impl ToCss for BackgroundRepeat {
         W: Write,
     {
         match (self.0, self.1) {
-            (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => dest.write_str("repeat-x"),
-            (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => dest.write_str("repeat-y"),
+            (BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::NoRepeat) => {
+                dest.write_str("repeat-x")
+            },
+            (BackgroundRepeatKeyword::NoRepeat, BackgroundRepeatKeyword::Repeat) => {
+                dest.write_str("repeat-y")
+            },
             (horizontal, vertical) => {
                 horizontal.to_css(dest)?;
                 if horizontal != vertical {
@@ -122,10 +126,10 @@ impl ToComputedValue for SpecifiedBackgroundRepeat {
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
         match *self {
             SpecifiedBackgroundRepeat::RepeatX => {
-                BackgroundRepeat(RepeatKeyword::Repeat, RepeatKeyword::NoRepeat)
+                BackgroundRepeat(BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::NoRepeat)
             }
             SpecifiedBackgroundRepeat::RepeatY => {
-                BackgroundRepeat(RepeatKeyword::NoRepeat, RepeatKeyword::Repeat)
+                BackgroundRepeat(BackgroundRepeatKeyword::NoRepeat, BackgroundRepeatKeyword::Repeat)
             }
             SpecifiedBackgroundRepeat::Keywords(horizontal, vertical) => {
                 BackgroundRepeat(horizontal, vertical.unwrap_or(horizontal))
@@ -138,10 +142,10 @@ impl ToComputedValue for SpecifiedBackgroundRepeat {
         // FIXME(emilio): Why can't this just be:
         //   SpecifiedBackgroundRepeat::Keywords(computed.0, computed.1)
         match (computed.0, computed.1) {
-            (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => {
+            (BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::NoRepeat) => {
                 SpecifiedBackgroundRepeat::RepeatX
             }
-            (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => {
+            (BackgroundRepeatKeyword::NoRepeat, BackgroundRepeatKeyword::Repeat) => {
                 SpecifiedBackgroundRepeat::RepeatY
             }
             (horizontal, vertical) => {

@@ -101,60 +101,15 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     flags="APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
-<%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER"
-                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
-    pub mod computed_value {
-        pub use super::RepeatKeyword;
-
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-        pub struct T(pub RepeatKeyword, pub RepeatKeyword);
-    }
-
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-    pub struct SpecifiedValue(pub RepeatKeyword,
-                              pub Option<RepeatKeyword>);
-
-    #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
-    pub enum RepeatKeyword {
-        Stretch,
-        Repeat,
-        Round,
-        Space,
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(RepeatKeyword::Stretch, RepeatKeyword::Stretch)
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(RepeatKeyword::Stretch, None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-            computed_value::T(self.0, self.1.unwrap_or(self.0))
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(computed.0, Some(computed.1))
-        }
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        let first = RepeatKeyword::parse(input)?;
-        let second = input.try(RepeatKeyword::parse).ok();
-
-        Ok(SpecifiedValue(first, second))
-    }
-</%helpers:longhand>
+${helpers.predefined_type(
+    "border-image-repeat",
+    "BorderImageRepeat",
+    "computed::BorderImageRepeat::stretch()",
+    initial_specified_value="specified::BorderImageRepeat::stretch()",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat",
+    flags="APPLIES_TO_FIRST_LETTER",
+)}
 
 ${helpers.predefined_type("border-image-width", "BorderImageWidth",
     initial_value="computed::BorderImageWidth::all(computed::BorderImageSideWidth::one())",

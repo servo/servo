@@ -7,10 +7,10 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use style::computed_values::image_rendering::T as ImageRendering;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
 use style::computed_values::transform_style::T as TransformStyle;
-use style::properties::longhands::border_image_repeat::RepeatKeyword;
 use style::values::RGBA;
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
+use style::values::specified::border::BorderImageRepeatKeyword;
 use webrender_api as wr;
 
 pub trait ToLayout {
@@ -152,14 +152,15 @@ impl ToLayout for Vector2D<Au> {
     }
 }
 
-impl ToLayout for RepeatKeyword {
+impl ToLayout for BorderImageRepeatKeyword {
     type Type = wr::RepeatMode;
+
     fn to_layout(&self) -> Self::Type {
         match *self {
-            RepeatKeyword::Stretch => wr::RepeatMode::Stretch,
-            RepeatKeyword::Repeat => wr::RepeatMode::Repeat,
-            RepeatKeyword::Round => wr::RepeatMode::Round,
-            RepeatKeyword::Space => wr::RepeatMode::Space,
+            BorderImageRepeatKeyword::Stretch => wr::RepeatMode::Stretch,
+            BorderImageRepeatKeyword::Repeat => wr::RepeatMode::Repeat,
+            BorderImageRepeatKeyword::Round => wr::RepeatMode::Round,
+            BorderImageRepeatKeyword::Space => wr::RepeatMode::Space,
         }
     }
 }
