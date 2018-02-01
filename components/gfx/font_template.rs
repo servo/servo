@@ -107,33 +107,35 @@ impl FontTemplate {
         &self.identifier
     }
 
-    /// Get the data for creating a font if it matches a given descriptor.
-    pub fn data_for_descriptor(&mut self,
-                               fctx: &FontContextHandle,
-                               requested_desc: &FontTemplateDescriptor)
-                               -> Option<Arc<FontTemplateData>> {
+    /// Get the descriptor. Returns `None` when instantiating the data fails.
+    pub fn descriptor(&mut self, font_context: &FontContextHandle) -> Option<FontTemplateDescriptor> {
         // The font template data can be unloaded when nothing is referencing
         // it (via the Weak reference to the Arc above). However, if we have
         // already loaded a font, store the style information about it separately,
         // so that we can do font matching against it again in the future
         // without having to reload the font (unless it is an actual match).
-        match self.descriptor {
-            Some(actual_desc) if *requested_desc == actual_desc => self.data().ok(),
-            Some(_) => None,
-            None => {
-                if self.instantiate(fctx).is_err() {
-                    return None
-                }
 
-                if self.descriptor
-                       .as_ref()
-                       .expect("Instantiation succeeded but no descriptor?") == requested_desc {
-                    self.data().ok()
-                } else {
-                    None
-                }
+        self.descriptor.or_else(|| {
+            if self.instantiate(font_context).is_err() {
+                return None
+            };
+
+            Some(self.descriptor.expect("Instantiation succeeded but no descriptor?"))
+        })
+    }
+
+    /// Get the data for creating a font if it matches a given descriptor.
+    pub fn data_for_descriptor(&mut self,
+                               fctx: &FontContextHandle,
+                               requested_desc: &FontTemplateDescriptor)
+                               -> Option<Arc<FontTemplateData>> {
+        self.descriptor(&fctx).and_then(|descriptor| {
+            if *requested_desc == descriptor {
+                self.data().ok()
+            } else {
+                None
             }
-        }
+        })
     }
 
     /// Returns the font data along with the distance between this font's descriptor and the given
@@ -142,24 +144,11 @@ impl FontTemplate {
                                            font_context: &FontContextHandle,
                                            requested_descriptor: &FontTemplateDescriptor)
                                            -> Option<(Arc<FontTemplateData>, u32)> {
-        match self.descriptor {
-            Some(actual_descriptor) => {
-                self.data().ok().map(|data| {
-                    (data, actual_descriptor.distance_from(requested_descriptor))
-                })
-            }
-            None => {
-                if self.instantiate(font_context).is_ok() {
-                    let distance = self.descriptor
-                                       .as_ref()
-                                       .expect("Instantiation successful but no descriptor?")
-                                       .distance_from(requested_descriptor);
-                    self.data().ok().map(|data| (data, distance))
-                } else {
-                    None
-                }
-            }
-        }
+        self.descriptor(&font_context).and_then(|descriptor| {
+            self.data().ok().map(|data| {
+                (data, descriptor.distance_from(requested_descriptor))
+            })
+        })
     }
 
     fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), ()> {
