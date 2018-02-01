@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Flexbox Test: Flex item - contiguous text runs - position:absolute and node removal</title>
+<title>CSS Flexbox Test: Flex item - non-contiguous text runs - position:absolute and node removal</title>
 <link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-items">
-<link rel="match" href="anonymous-flex-item-ref.html">
+<link rel="match" href="anonymous-flex-item-split-ref.html">
 <style>.abs { position:absolute }</style>
-<p>There should be a space between "two" and "words" below.</p>
-<div style="display:flex">two <span class="abs"></span><span id="spanRemove"></span><span class="abs"></span>words</div>
+<p>The words "Two" and "lines" should not be on the same line.</p>
+<div style="display:flex;flex-direction:column">Two <span class="abs"></span><span id="spanRemove"></span><span class="abs"></span>lines</div>
 <script>
   document.body.offsetTop;
   spanRemove.remove();
