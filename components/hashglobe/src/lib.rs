@@ -8,6 +8,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+extern crate ordermap;
+
 pub mod alloc;
 pub mod hash_map;
 pub mod hash_set;
@@ -15,6 +17,7 @@ mod shim;
 mod table;
 
 pub mod fake;
+pub mod order;
 
 use std::{error, fmt};
 
