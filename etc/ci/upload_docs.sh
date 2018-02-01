@@ -36,4 +36,4 @@ cd ../..
 ghp-import -n target/doc
 git push -qf \
     "https://${TOKEN}@github.com/servo/doc.servo.org.git" gh-pages \
-    >/dev/null 2>&1
+    &>/dev/null
