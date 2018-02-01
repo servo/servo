@@ -825,13 +825,19 @@ malloc_size_of_is_0!(webrender_api::ClipAndScrollInfo);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ColorF);
 #[cfg(feature = "webrender_api")]
+malloc_size_of_is_0!(webrender_api::ComplexClipRegion);
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ExtendMode);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::FilterOp);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ExternalScrollId);
 #[cfg(feature = "webrender_api")]
+malloc_size_of_is_0!(webrender_api::FontInstanceKey);
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::GradientStop);
+#[cfg(feature = "webrender_api")]
+malloc_size_of_is_0!(webrender_api::GlyphInstance);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ImageBorder);
 #[cfg(feature = "webrender_api")]
