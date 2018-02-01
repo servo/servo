@@ -7,10 +7,9 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use app_units::Au;
 use display_list::ToLayout;
 use euclid::Point2D;
-use gfx::display_list::{BorderDetails, BorderRadii, ClipScrollNode};
+use gfx::display_list::{BorderDetails, ClipScrollNode};
 use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingRegion, DisplayItem};
 use gfx::display_list::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
@@ -32,26 +31,11 @@ trait WebRenderDisplayItemConverter {
     );
 }
 
-pub trait ToBorderRadius {
-    fn to_border_radius(&self) -> webrender_api::BorderRadius;
-}
-
-impl ToBorderRadius for BorderRadii<Au> {
-    fn to_border_radius(&self) -> webrender_api::BorderRadius {
-        webrender_api::BorderRadius {
-            top_left: self.top_left.to_layout(),
-            top_right: self.top_right.to_layout(),
-            bottom_left: self.bottom_left.to_layout(),
-            bottom_right: self.bottom_right.to_layout(),
-        }
-    }
-}
-
 impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let mut builder = DisplayListBuilder::with_capacity(
             pipeline_id.to_webrender(),
-            self.bounds().size.to_layout(),
+            self.bounds().size,
             1024 * 1024,
         ); // 1 MB of space
 
@@ -81,7 +65,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             None => None,
         };
         webrender_api::LayoutPrimitiveInfo {
-            rect: self.base().bounds.to_layout(),
+            rect: self.base().bounds,
             local_clip: self.base().local_clip,
             // TODO(gw): Make use of the WR backface visibility functionality.
             is_backface_visible: true,
@@ -134,9 +118,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             glyph.advance()
                         };
                         if !slice.glyphs.is_whitespace() {
-                            let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                            let x = (origin.x + glyph_offset.x).to_f32_px();
-                            let y = (origin.y + glyph_offset.y).to_f32_px();
+                            let glyph_offset =
+                                glyph.offset().unwrap_or(Point2D::zero()).to_layout();
+                            let x = origin.x + glyph_offset.x;
+                            let y = origin.y + glyph_offset.y;
                             let point = webrender_api::LayoutPoint::new(x, y);
                             let glyph = webrender_api::GlyphInstance {
                                 index: glyph.id(),
@@ -144,7 +129,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             };
                             glyphs.push(glyph);
                         }
-                        origin.x = origin.x + glyph_advance;
+                        origin.x = origin.x + glyph_advance.to_f32_px();
                     }
                 }
 
@@ -233,7 +218,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_line(
                     &self.prim_info(),
                     // TODO(gw): Use a better estimate for wavy line thickness.
-                    (0.33 * item.base.bounds.size.height.to_f32_px()).ceil(),
+                    (0.33 * item.base.bounds.size.height).ceil(),
                     webrender_api::LineOrientation::Horizontal,
                     &item.color,
                     item.style,
@@ -279,7 +264,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     .map(|perspective| LayoutTransform::from_untyped(&perspective));
 
                 builder.push_stacking_context(
-                    &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds.to_layout()),
+                    &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds),
                     stacking_context.scroll_policy,
                     transform,
                     stacking_context.transform_style,
@@ -292,7 +277,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::DefineClipScrollNode(ref item) => {
                 let node = &clip_scroll_nodes[item.node_index.0];
                 let parent_id = get_id(clip_ids, node.parent_index);
-                let item_rect = node.clip.main.to_layout();
+                let item_rect = node.clip.main;
 
                 let webrender_id = match node.node_type {
                     ClipScrollNodeType::Clip => builder.define_clip_with_parent(
@@ -307,7 +292,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             node.id,
                             parent_id,
                             node.content_rect,
-                            node.clip.main.to_layout(),
+                            node.clip.main,
                             node.clip.get_complex_clips(),
                             None,
                             scroll_sensitivity,
@@ -345,8 +330,8 @@ impl ToWebRenderClip for ClippingRegion {
             .iter()
             .map(|complex_clipping_region| {
                 ComplexClipRegion::new(
-                    complex_clipping_region.rect.to_layout(),
-                    complex_clipping_region.radii.to_border_radius(),
+                    complex_clipping_region.rect,
+                    complex_clipping_region.radii,
                     ClipMode::Clip,
                 )
             })
