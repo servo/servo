@@ -94,7 +94,7 @@ function unsafe_open_pull_request() {
     AUTH="${WPT_SYNC_USER}:${WPT_SYNC_TOKEN}"
     UPSTREAM="https://${AUTH}@github.com/${WPT_SYNC_USER}/servo.git"
     git remote add "${REMOTE_NAME}" "${UPSTREAM}" || return 2
-    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}" || return 3
+    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}" &>/dev/null || return 3
 
     # Prepare the pull request metadata.
     BODY=":warning: Do not merge this PR without verifying that it "
