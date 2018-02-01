@@ -28,9 +28,9 @@ pub enum Display {
     Table, InlineTable, TableRowGroup, TableHeaderGroup,
     TableFooterGroup, TableRow, TableColumnGroup,
     TableColumn, TableCell, TableCaption, ListItem, None,
-    #[parse(aliases = "-webkit-flex")]
+    #[css(aliases = "-webkit-flex")]
     Flex,
-    #[parse(aliases = "-webkit-inline-flex")]
+    #[css(aliases = "-webkit-inline-flex")]
     InlineFlex,
     #[cfg(feature = "gecko")]
     Grid,

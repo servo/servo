@@ -123,11 +123,12 @@ struct CssInputAttrs {
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
-struct CssVariantAttrs {
-    function: Option<Function>,
-    iterable: bool,
-    comma: bool,
-    dimension: bool,
+pub struct CssVariantAttrs {
+    pub function: Option<Function>,
+    pub iterable: bool,
+    pub comma: bool,
+    pub dimension: bool,
+    pub aliases: Option<String>,
 }
 
 #[darling(attributes(css), default)]
@@ -136,7 +137,7 @@ struct CssFieldAttrs {
     ignore_bound: bool,
 }
 
-struct Function {
+pub struct Function {
     name: Option<Ident>,
 }
 
