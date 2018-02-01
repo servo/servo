@@ -459,7 +459,7 @@ def rec_parse(current_path, current_node):
     return dirs
 
 
-def check_manifest_dirs(config_file):
+def check_manifest_dirs(config_file, print_text=True):
     if not os.path.exists(config_file):
         print("%s manifest file is required but was not found" % config_file)
         sys.exit(1)
@@ -469,12 +469,16 @@ def check_manifest_dirs(config_file):
         conf_file = content.read()
         lines = conf_file.splitlines(True)
 
+    if print_text:
+        print '\rChecking the wpt manifest file...'
+
     p = parser.parse(lines)
     rv = rec_parse(wpt_path("web-platform-tests"), p)
-    for path in rv:
+    for idx, path in enumerate(rv):
+        if path.endswith("_mozilla"):
+            continue
         if not os.path.isdir(path):
-            print("error {}".format(path))
-    return []
+            yield(config_file, idx + 1, "Path in manifest was not found: {}".format(path))
 
 
 def check_rust(file_name, lines):
@@ -1174,8 +1178,8 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     # other lint checks
     lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo)
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, lint_errors,
-                             file_errors, dep_license_errors, manifest_errors)
+    errors = itertools.chain(config_errors, manifest_errors, directory_errors, lint_errors,
+                             file_errors, dep_license_errors)
 
     error = None
     for error in errors:
