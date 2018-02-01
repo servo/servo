@@ -97,12 +97,14 @@ function unsafe_open_pull_request() {
     git push -f "${REMOTE_NAME}" "${BRANCH_NAME}" || return 3
 
     # Prepare the pull request metadata.
-    BODY="Automated downstream sync of changes from upstream as of "
+    BODY=":warning: Do not merge this PR without verifying that it "
+    BODY+="is not overwriting local changes to web-platform-tests. :warning:\n\n
+    BODY+="Automated downstream sync of changes from upstream as of "
     BODY+="${CURRENT_DATE}.\n"
     BODY+="[no-wpt-sync]"
     cat <<EOF >prdata.json || return 4
 {
-  "title": "Sync WPT with upstream (${CURRENT_DATE})",
+  "title": "[WIP] Sync WPT with upstream (${CURRENT_DATE})",
   "head": "${WPT_SYNC_USER}:${BRANCH_NAME}",
   "base": "master",
   "body": "${BODY}",
