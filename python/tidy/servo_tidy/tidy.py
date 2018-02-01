@@ -22,10 +22,19 @@ import colorama
 import toml
 import voluptuous
 import yaml
-
 from licenseck import MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+wpt = os.path.join(topdir, "tests", "wpt")
+
+
+def wpt_path(*args):
+    return os.path.join(wpt, *args)
+
+sys.path.append(wpt_path("web-platform-tests", "tools", "wptrunner", "wptrunner"))
+from wptmanifest import parser, node
 
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
+WPT_MANIFEST_PATH = wpt_path("include.ini")
 
 # Default configs
 config = {
@@ -438,6 +447,34 @@ def check_shell(file_name, lines):
                 next_char = stripped[next_idx]
                 if not (next_char == '{' or next_char == '('):
                     yield(idx + 1, "variable substitutions should use the full \"${VAR}\" form")
+
+
+def rec_parse(current_path, current_node):
+    dirs = []
+    for item in current_node.children:
+        if isinstance(item, node.DataNode):
+            next_depth = os.path.join(current_path, item.data)
+            dirs.append(next_depth)
+            dirs += rec_parse(next_depth, item)
+    return dirs
+
+
+def check_manifest_dirs(config_file):
+    if not os.path.exists(config_file):
+        print("%s manifest file is required but was not found" % config_file)
+        sys.exit(1)
+
+    # Load configs from include.ini
+    with open(config_file) as content:
+        conf_file = content.read()
+        lines = conf_file.splitlines(True)
+
+    p = parser.parse(lines)
+    rv = rec_parse(wpt_path("web-platform-tests"), p)
+    for path in rv:
+        if not os.path.isdir(path):
+            print("error {}".format(path))
+    return []
 
 
 def check_rust(file_name, lines):
@@ -1122,6 +1159,8 @@ def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
 def scan(only_changed_files=False, progress=True, stylo=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
+    # check ini directories exist
+    manifest_errors = check_manifest_dirs(WPT_MANIFEST_PATH)
     # check directories contain expected files
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
@@ -1136,7 +1175,7 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo)
     # chain all the iterators
     errors = itertools.chain(config_errors, directory_errors, lint_errors,
-                             file_errors, dep_license_errors)
+                             file_errors, dep_license_errors, manifest_errors)
 
     error = None
     for error in errors:
