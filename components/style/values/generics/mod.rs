@@ -16,6 +16,7 @@ pub mod basic_shape;
 pub mod border;
 #[path = "box.rs"]
 pub mod box_;
+pub mod counters;
 pub mod effects;
 pub mod flex;
 pub mod font;

@@ -1035,8 +1035,8 @@ impl BaseFlow {
                     }
                 }
 
-                if !style.get_counters().counter_reset.0.is_empty() ||
-                        !style.get_counters().counter_increment.0.is_empty() {
+                if !style.get_counters().counter_reset.get_values().is_empty() ||
+                        !style.get_counters().counter_increment.get_values().is_empty() {
                     flags.insert(FlowFlags::AFFECTS_COUNTERS)
                 }
             }
