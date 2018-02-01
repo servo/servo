@@ -140,12 +140,15 @@ impl Parse for GridLine<specified::Integer> {
     }
 }
 
-define_css_keyword_enum!{ TrackKeyword:
-    "auto" => Auto,
-    "max-content" => MaxContent,
-    "min-content" => MinContent
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum TrackKeyword {
+    Auto,
+    MaxContent,
+    MinContent,
 }
-add_impls_for_keyword_enum!(TrackKeyword);
 
 /// A track breadth for explicit grid track sizing. It's generic solely to
 /// avoid re-implementing it for the computed type.

@@ -69,7 +69,8 @@ pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine};
 pub use self::text::{TextAlign, TextAlignKeyword, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOrigin, Rotate, Translate, Scale};
+pub use self::transform::{Rotate, Scale, TimingFunction, Transform};
+pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::MozForceBrokenImageIcon;
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
@@ -160,19 +161,22 @@ fn parse_number_with_clamping_mode<'i, 't>(
 // 17.6.2.1. Higher values override lower values.
 //
 // FIXME(emilio): Should move to border.rs
-define_numbered_css_keyword_enum! { BorderStyle:
-    "none" => None = -1,
-    "solid" => Solid = 6,
-    "double" => Double = 7,
-    "dotted" => Dotted = 4,
-    "dashed" => Dashed = 5,
-    "hidden" => Hidden = -2,
-    "groove" => Groove = 1,
-    "ridge" => Ridge = 3,
-    "inset" => Inset = 0,
-    "outset" => Outset = 2,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, Parse, PartialEq)]
+#[derive(PartialOrd, ToCss)]
+pub enum BorderStyle {
+    None = -1,
+    Solid = 6,
+    Double = 7,
+    Dotted = 4,
+    Dashed = 5,
+    Hidden = -2,
+    Groove = 1,
+    Ridge = 3,
+    Inset = 0,
+    Outset = 2,
 }
-
 
 impl BorderStyle {
     /// Whether this border style is either none or hidden.

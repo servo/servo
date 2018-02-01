@@ -424,20 +424,13 @@
         use properties::longhands::system_font::SystemFont;
 
         pub mod computed_value {
-            use cssparser::Parser;
-            use parser::{Parse, ParserContext};
-
-            use style_traits::ParseError;
-            define_css_keyword_enum! { T:
-                % for value in keyword.values_for(product):
-                    "${value}" => ${to_camel_case(value)},
-                % endfor
-            }
-
-            impl Parse for T {
-                fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-                    T::parse(input)
-                }
+            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse)]
+            #[derive(PartialEq, ToCss)]
+            pub enum T {
+            % for value in keyword.values_for(product):
+                ${to_camel_case(value)},
+            % endfor
             }
 
             ${gecko_keyword_conversion(keyword, keyword.values_for(product), type="T", cast_to="i32")}
@@ -604,26 +597,32 @@
 
     <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False)">
         % if extra_specified or keyword.aliases_for(product):
-            define_css_keyword_enum! { SpecifiedValue:
-                values {
-                    % for value in keyword.values_for(product) + (extra_specified or "").split():
-                        "${value}" => ${to_camel_case(value)},
-                    % endfor
-                }
-                aliases {
-                    % for alias, value in keyword.aliases_for(product).iteritems():
-                        "${alias}" => ${to_camel_case(value)},
-                    % endfor
-                }
+            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+            pub enum SpecifiedValue {
+                % for value in keyword.values_for(product) + (extra_specified or "").split():
+                <%
+                    aliases = []
+                    for alias, v in keyword.aliases_for(product).iteritems():
+                        if value == v:
+                            aliases.append(alias)
+                %>
+                % if aliases:
+                #[css(aliases = "${','.join(aliases)}")]
+                % endif
+                ${to_camel_case(value)},
+                % endfor
             }
         % else:
             pub use self::computed_value::T as SpecifiedValue;
         % endif
         pub mod computed_value {
-            define_css_keyword_enum! { T:
-                % for value in data.longhands_by_name[name].keyword.values_for(product):
-                    "${value}" => ${to_camel_case(value)},
-                % endfor
+            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+            pub enum T {
+            % for value in data.longhands_by_name[name].keyword.values_for(product):
+                ${to_camel_case(value)},
+            % endfor
             }
         }
         #[inline]
@@ -638,13 +637,6 @@
         pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<SpecifiedValue, ParseError<'i>> {
             SpecifiedValue::parse(input)
-        }
-        impl Parse for SpecifiedValue {
-            #[inline]
-            fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<SpecifiedValue, ParseError<'i>> {
-                SpecifiedValue::parse(input)
-            }
         }
 
         % if needs_conversion:

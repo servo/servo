@@ -32,14 +32,17 @@ pub mod text;
 pub mod transform;
 
 // https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
-define_css_keyword_enum! { SymbolsType:
-    "cyclic" => Cyclic,
-    "numeric" => Numeric,
-    "alphabetic" => Alphabetic,
-    "symbolic" => Symbolic,
-    "fixed" => Fixed,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum SymbolsType {
+    Cyclic,
+    Numeric,
+    Alphabetic,
+    Symbolic,
+    Fixed,
 }
-add_impls_for_keyword_enum!(SymbolsType);
 
 #[cfg(feature = "gecko")]
 impl SymbolsType {

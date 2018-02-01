@@ -32,13 +32,16 @@
         ignored_when_colors_disabled=True,
     )}
 
-    ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
-                              "specified::BorderStyle::None",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
-                              spec=maybe_logical_spec(side, "style"),
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              animation_value_type="discrete" if not is_logical else "none",
-                              logical=is_logical)}
+    ${helpers.predefined_type(
+        "border-%s-style" % side_name, "BorderStyle",
+        "specified::BorderStyle::None",
+        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
+        spec=maybe_logical_spec(side, "style"),
+        flags="APPLIES_TO_FIRST_LETTER",
+        animation_value_type="discrete" if not is_logical else "none",
+        logical=is_logical,
+        needs_context=False,
+    )}
 
     ${helpers.predefined_type("border-%s-width" % side_name,
                               "BorderSideWidth",
@@ -112,11 +115,14 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     pub struct SpecifiedValue(pub RepeatKeyword,
                               pub Option<RepeatKeyword>);
 
-    define_css_keyword_enum!(RepeatKeyword:
-                             "stretch" => Stretch,
-                             "repeat" => Repeat,
-                             "round" => Round,
-                             "space" => Space);
+    #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+    pub enum RepeatKeyword {
+        Stretch,
+        Repeat,
+        Round,
+        Space,
+    }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {

@@ -6,6 +6,7 @@ use cg;
 use quote::Tokens;
 use syn::DeriveInput;
 use synstructure;
+use to_css::CssVariantAttrs;
 
 pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
@@ -19,8 +20,10 @@ pub fn derive(input: DeriveInput) -> Tokens {
             "Parse is only supported for single-variant enums for now"
         );
 
-        let variant_attrs = cg::parse_variant_attrs::<ParseVariantAttrs>(variant);
-        let identifier = cg::to_css_identifier(variant.ident.as_ref());
+        let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
+        let identifier = cg::to_css_identifier(
+            &variant_attrs.keyword.as_ref().unwrap_or(&variant.ident).as_ref(),
+        );
         let ident = &variant.ident;
 
         match_body = quote! {
@@ -86,12 +89,4 @@ pub fn derive(input: DeriveInput) -> Tokens {
         #parse_trait_impl
         #methods_impl
     }
-}
-
-#[darling(attributes(parse), default)]
-#[derive(Default, FromVariant)]
-struct ParseVariantAttrs {
-    /// The comma-separated list of aliases this variant should be aliased to at
-    /// parse time.
-    aliases: Option<String>,
 }

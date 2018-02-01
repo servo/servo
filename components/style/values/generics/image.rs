@@ -97,15 +97,18 @@ pub enum Ellipse<LengthOrPercentage> {
 }
 
 /// <https://drafts.csswg.org/css-images/#typedef-extent-keyword>
-define_css_keyword_enum!(ShapeExtent:
-    "closest-side" => ClosestSide,
-    "farthest-side" => FarthestSide,
-    "closest-corner" => ClosestCorner,
-    "farthest-corner" => FarthestCorner,
-    "contain" => Contain,
-    "cover" => Cover
-);
-add_impls_for_keyword_enum!(ShapeExtent);
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum ShapeExtent {
+    ClosestSide,
+    FarthestSide,
+    ClosestCorner,
+    FarthestCorner,
+    Contain,
+    Cover,
+}
 
 /// A gradient item.
 /// <https://drafts.csswg.org/css-images-4/#color-stop-syntax>

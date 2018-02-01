@@ -22,6 +22,8 @@ use values::specified::{self, Angle, Number, Length, Integer};
 use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
 use values::specified::position::{Side, X, Y};
 
+pub use values::generics::transform::TransformStyle;
+
 /// A single operation in a specified CSS `transform`
 pub type TransformOperation = GenericTransformOperation<
     Angle,

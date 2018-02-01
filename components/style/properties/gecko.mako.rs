@@ -62,6 +62,7 @@ use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
 use values::computed::font::{FontSize, SingleFontFamily};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
+use values::generics::transform::TransformStyle;
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -3345,6 +3346,25 @@ fn static_assert() {
         self.copy_transition_property_from(other)
     }
 
+    // Hand-written because the Mako helpers transform `Preserve3d` into `PRESERVE3D`.
+    pub fn set_transform_style(&mut self, v: TransformStyle) {
+        self.gecko.mTransformStyle = match v {
+            TransformStyle::Flat => structs::NS_STYLE_TRANSFORM_STYLE_FLAT as u8,
+            TransformStyle::Preserve3d => structs::NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D as u8,
+        };
+    }
+
+    // Hand-written because the Mako helpers transform `Preserve3d` into `PRESERVE3D`.
+    pub fn clone_transform_style(&self) -> TransformStyle {
+        match self.gecko.mTransformStyle as u32 {
+            structs::NS_STYLE_TRANSFORM_STYLE_FLAT => TransformStyle::Flat,
+            structs::NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D => TransformStyle::Preserve3d,
+            _ => panic!("illegal transform style"),
+        }
+    }
+
+    ${impl_simple_copy('transform_style', 'mTransformStyle')}
+
     ${impl_transition_count('property', 'Property')}
 
     pub fn animations_equals(&self, other: &Self) -> bool {
@@ -5081,7 +5101,7 @@ fn static_assert() {
                             coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
                             coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
                         }
-                        shape.mFillRule = if poly.fill == FillRule::EvenOdd {
+                        shape.mFillRule = if poly.fill == FillRule::Evenodd {
                             StyleFillRule::Evenodd
                         } else {
                             StyleFillRule::Nonzero

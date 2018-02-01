@@ -23,10 +23,19 @@ pub fn derive(input: DeriveInput) -> Tokens {
 
         if variant_attrs.dimension {
             assert_eq!(bindings.len(), 1);
-            assert!(variant_attrs.function.is_none(), "That makes no sense");
+            assert!(
+                variant_attrs.function.is_none() && variant_attrs.keyword.is_none(),
+                "That makes no sense"
+            );
         }
 
-        let mut expr = if !bindings.is_empty() {
+        let mut expr = if let Some(keyword) = variant_attrs.keyword {
+            assert!(bindings.is_empty());
+            let keyword = keyword.to_string();
+            quote! {
+                ::std::fmt::Write::write_str(dest, #keyword)
+            }
+        } else if !bindings.is_empty() {
             let mut expr = quote! {};
             if variant_attrs.iterable {
                 assert_eq!(bindings.len(), 1);
@@ -123,11 +132,13 @@ struct CssInputAttrs {
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
-struct CssVariantAttrs {
-    function: Option<Function>,
-    iterable: bool,
-    comma: bool,
-    dimension: bool,
+pub struct CssVariantAttrs {
+    pub function: Option<Function>,
+    pub iterable: bool,
+    pub comma: bool,
+    pub dimension: bool,
+    pub keyword: Option<Ident>,
+    pub aliases: Option<String>,
 }
 
 #[darling(attributes(css), default)]
@@ -136,7 +147,7 @@ struct CssFieldAttrs {
     ignore_bound: bool,
 }
 
-struct Function {
+pub struct Function {
     name: Option<Ident>,
 }
 

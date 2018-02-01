@@ -98,20 +98,26 @@ pub enum TimingFunction<Integer, Number> {
     Frames(Integer),
 }
 
-define_css_keyword_enum! { TimingKeyword:
-    "linear" => Linear,
-    "ease" => Ease,
-    "ease-in" => EaseIn,
-    "ease-out" => EaseOut,
-    "ease-in-out" => EaseInOut,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum TimingKeyword {
+    Linear,
+    Ease,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
 }
-add_impls_for_keyword_enum!(TimingKeyword);
 
-define_css_keyword_enum! { StepPosition:
-    "start" => Start,
-    "end" => End,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum StepPosition {
+    Start,
+    End,
 }
-add_impls_for_keyword_enum!(StepPosition);
 
 impl<H, V, D> TransformOrigin<H, V, D> {
     /// Returns a new transform origin.
@@ -713,4 +719,14 @@ pub enum Translate<LengthOrPercentage, Length> {
     Translate(LengthOrPercentage, LengthOrPercentage),
     /// '<length-percentage> <length-percentage> <length>'
     Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+}
+
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+pub enum TransformStyle {
+    #[cfg(feature = "servo")]
+    Auto,
+    Flat,
+    #[css(keyword = "preserve-3d")]
+    Preserve3d,
 }

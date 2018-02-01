@@ -18,6 +18,8 @@ use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
 use values::generics::transform::Translate as GenericTranslate;
 
+pub use values::generics::transform::TransformStyle;
+
 /// A single operation in a computed CSS `transform`
 pub type TransformOperation = GenericTransformOperation<
     Angle,
