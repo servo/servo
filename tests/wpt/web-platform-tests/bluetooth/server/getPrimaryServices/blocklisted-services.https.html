@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Request for services. Does not return blocklisted service.';
+
+bluetooth_test(() => getHIDDevice({
+  filters: [{services: ['device_information']}],
+  optionalServices: ['generic_access', 'human_interface_device']
+})
+    .then(({device}) => device.gatt.getPrimaryServices())
+    .then(services => {
+      assert_equals(services.length, 2);
+      let uuid_set = new Set(services.map(s => s.uuid));
+
+      assert_equals(uuid_set.size, 2);
+      assert_true(uuid_set.has(BluetoothUUID.getService('generic_access')));
+      assert_true(uuid_set.has(BluetoothUUID.getService('device_information')));
+      assert_false(
+          uuid_set.has(BluetoothUUID.getService('human_interface_device')));
+    }), test_desc);
+</script>

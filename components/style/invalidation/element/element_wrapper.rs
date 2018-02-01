@@ -71,7 +71,8 @@ pub struct ElementWrapper<'a, E>
 }
 
 impl<'a, E> ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     /// Trivially constructs an `ElementWrapper`.
     pub fn new(el: E, snapshot_map: &'a SnapshotMap) -> Self {
@@ -292,6 +293,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element_in_html_document()
+    }
+
+    fn is_html_slot_element(&self) -> bool {
+        self.element.is_html_slot_element()
     }
 
     fn get_local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {

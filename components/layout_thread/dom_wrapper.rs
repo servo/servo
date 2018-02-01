@@ -784,6 +784,13 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         }
     }
 
+    fn is_html_slot_element(&self) -> bool {
+        unsafe {
+            self.element.is_html_element() &&
+            self.get_local_name() == &local_name!("slot")
+        }
+    }
+
     fn is_html_element_in_html_document(&self) -> bool {
         unsafe {
             if !self.element.is_html_element() {
@@ -1174,6 +1181,10 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn next_sibling_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::next_sibling_element called");
         None
+    }
+
+    fn is_html_slot_element(&self) -> bool {
+        self.element.is_html_slot_element()
     }
 
     fn is_html_element_in_html_document(&self) -> bool {

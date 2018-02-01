@@ -21,7 +21,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              assert_throws(new TypeError(),
+              assert_throws({name: "TypeError"},
                           function() { mediaSource.addSourceBuffer(""); },
                           "addSourceBuffer() threw an exception when passed an empty string.");
               test.done();
@@ -42,7 +42,6 @@
                           "addSourceBuffer() threw an exception for an unsupported type.");
               test.done();
           }, "Test addSourceBuffer() with unsupported type");
-
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
@@ -83,7 +82,7 @@
               var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
               assert_true(sourceBuffer != null, "New SourceBuffer returned");
               assert_equals(mediaSource.sourceBuffers[0], sourceBuffer, "SourceBuffer is in mediaSource.sourceBuffers");
-              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is in mediaSource.activeSourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is not in mediaSource.activeSourceBuffers");
               test.done();
           }, "Test addSourceBuffer() video only");
 
@@ -96,7 +95,7 @@
               var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
               assert_true(sourceBuffer != null, "New SourceBuffer returned");
               assert_equals(mediaSource.sourceBuffers[0], sourceBuffer, "SourceBuffer is in mediaSource.sourceBuffers");
-              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is in mediaSource.activeSourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is not in mediaSource.activeSourceBuffers");
               test.done();
           }, "Test addSourceBuffer() audio only");
 
@@ -129,26 +128,6 @@
               assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBufferB is not in mediaSource.activeSourceBuffers");
               test.done();
           }, "Test addSourceBuffer() with AAC and H.264 in separate SourceBuffers");
-
-          mediasource_test(function(test, mediaElement, mediaSource)
-          {
-              var reachedLimit = false;
-
-             // The 20 here is an arbitrary upper limit to make sure the test terminates. This test
-             // assumes that implementations won't support more than 20 SourceBuffers simultaneously.
-             for (var i = 0; i < 20; ++i) {
-                 try {
-                     mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
-                 } catch(e) {
-                     assert_equals(e.name, "QuotaExceededError");
-                     reachedLimit = true;
-                     break;
-                 }
-             }
-             assert_true(reachedLimit, "Reached SourceBuffer limit.");
-             test.done();
-          }, "Test addSourceBuffer() QuotaExceededError.");
-
         </script>
     </body>
 </html>

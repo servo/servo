@@ -40,10 +40,10 @@ function assert_style_value_equals(a, b) {
     case 'CSSTransformValue':
       assert_style_value_array_equals(a, b);
       break;
-    case 'CSSRotation':
+    case 'CSSRotate':
       assert_style_value_equals(a.angle, b.angle);
       // fallthrough
-    case 'CSSTranslation':
+    case 'CSSTranslate':
     case 'CSSScale':
       assert_style_value_equals(a.x, b.x);
       assert_style_value_equals(a.y, b.y);
@@ -105,25 +105,39 @@ function createDivWithStyle(test, cssText) {
 // Creates a new div element with inline style |cssText| and returns
 // its inline style property map.
 function createInlineStyleMap(test, cssText) {
-  return createDivWithStyle(test, cssText).attributeStyleMap;
+  return createElementWithInlineStyleMap(test, cssText)[1]
+}
+// Same as createInlineStyleMap but also returns the element itself.
+function createElementWithInlineStyleMap(test, cssText) {
+  let elem = createDivWithStyle(test, cssText);
+  return [elem, elem.attributeStyleMap];
 }
 
 // Creates a new div element with inline style |cssText| and returns
 // its computed style property map.
 function createComputedStyleMap(test, cssText) {
-  return createDivWithStyle(test, cssText).computedStyleMap();
+  return createElementWithComputedStyleMap(test, cssText)[1];
+}
+// Same as createComputedStyleMap but also returns the element itself.
+function createElementWithComputedStyleMap(test, cssText) {
+  let elem = createDivWithStyle(test, cssText);
+  return [elem, elem.computedStyleMap()];
 }
 
 // Creates a new style element with a rule |cssText| and returns
 // its declared style property map.
 function createDeclaredStyleMap(test, cssText) {
+  return createRuleWithDeclaredStyleMap(test, cssText)[1];
+}
+// Same as createDeclaredStyleMap but also returns the rule itself.
+function createRuleWithDeclaredStyleMap(test, cssText) {
   const style = document.createElement('style');
   document.head.appendChild(style);
   const rule = style.sheet.cssRules[style.sheet.insertRule('#test { ' + cssText + '}')];
   test.add_cleanup(() => {
     style.remove();
   });
-  return rule.attributeStyleMap;
+  return [rule, rule.styleMap];
 }
 
 // Creates a new element with background image set to |imageValue|

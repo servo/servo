@@ -722,7 +722,8 @@ def changed_files(wpt_root):
 
 def lint_paths(kwargs, wpt_root):
     if kwargs.get("paths"):
-        paths = kwargs["paths"]
+        r = os.path.realpath(wpt_root)
+        paths = [os.path.relpath(os.path.realpath(x), r) for x in kwargs["paths"]]
     elif kwargs["all"]:
         paths = list(all_filesystem_paths(wpt_root))
     else:

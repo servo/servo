@@ -58,7 +58,7 @@ function getClientIdByURL(worker, url) {
   });
 }
 
-async function doAsyncTest(t, scope, extraSearchParams) {
+async function doAsyncTest(t, scope) {
   let reg = await service_worker_unregister_and_register(t, worker, scope);
   await wait_for_state(t, reg.installing, 'activated');
 
@@ -70,20 +70,30 @@ async function doAsyncTest(t, scope, extraSearchParams) {
   let initialResult = frame.contentWindow.nested().document.body.textContent;
   assert_false(initialResult.startsWith('failure:'), `result: ${initialResult}`);
 
+  assert_equals(frame.contentWindow.navigator.serviceWorker.controller.scriptURL,
+                frame.contentWindow.nested().navigator.serviceWorker.controller.scriptURL,
+                'nested about:blank should have same controlling service worker');
+
   // Next, ask the service worker to find the final client ID for the fully
   // loaded nested frame.
-  let nestedURL = new URL(scope, window.location);
-  nestedURL.searchParams.set('nested', true);
-  extraSearchParams = extraSearchParams || {};
-  for (let p in extraSearchParams) {
-    nestedURL.searchParams.set(p, extraSearchParams[p]);
-  }
+  let nestedURL = new URL(frame.contentWindow.nested().location);
   let finalResult = await getClientIdByURL(reg.active, nestedURL);
   assert_false(finalResult.startsWith('failure:'), `result: ${finalResult}`);
 
-  // The initial about:blank client and the final loaded client should have
-  // the same ID value.
-  assert_equals(initialResult, finalResult, 'client ID values should match');
+  // If the nested frame doesn't have a URL to load, then there is no fetch
+  // event and the body should be empty.  We can't verify the final client ID
+  // against anything.
+  if (nestedURL.href === 'about:blank' ||
+      nestedURL.href === 'about:srcdoc') {
+    assert_equals('', initialResult, 'about:blank text content should be blank');
+  }
+
+  // If the nested URL is not about:blank, though, then the fetch event handler
+  // should have populated the body with the client id of the initial about:blank.
+  // Verify the final client id matches.
+  else {
+    assert_equals(initialResult, finalResult, 'client ID values should match');
+  }
 
   frame.remove();
   await service_worker_unregister_and_done(t, scope);
@@ -101,8 +111,7 @@ promise_test(async function(t) {
   // worker can ping the client to verify its existence.  This ping-pong
   // check is performed during the initial load and when verifying the
   // final loaded client.
-  await doAsyncTest(t, 'resources/about-blank-replacement-ping-frame.py',
-                    { 'ping': true });
+  await doAsyncTest(t, 'resources/about-blank-replacement-ping-frame.py');
 }, 'Initial about:blank modified by parent is controlled, exposed to ' +
    'clients.matchAll(), and matches final Client.');
 
@@ -141,6 +150,28 @@ promise_test(async function(t) {
   await service_worker_unregister_and_done(t, scope);
 }, 'Initial about:blank is controlled, exposed to clients.matchAll(), and ' +
    'final Client is not controlled by a service worker.');
+
+promise_test(async function(t) {
+  // Execute a test where the nested frame is an iframe without a src
+  // attribute.  This simple nested about:blank should still inherit the
+  // controller and be visible to clients.matchAll().
+  await doAsyncTest(t, 'resources/about-blank-replacement-blank-nested-frame.html');
+}, 'Simple about:blank is controlled and is exposed to clients.matchAll().');
+
+promise_test(async function(t) {
+  // Execute a test where the nested frame is an iframe using a non-empty
+  // srcdoc containing only a tag pair so its textContent is still empty.
+  // This nested iframe should still inherit the controller and be visible
+  // to clients.matchAll().
+  await doAsyncTest(t, 'resources/about-blank-replacement-srcdoc-nested-frame.html');
+}, 'Nested about:srcdoc is controlled and is exposed to clients.matchAll().');
+
+promise_test(async function(t) {
+  // Execute a test where the nested frame is dynamically added without a src
+  // attribute.  This simple nested about:blank should still inherit the
+  // controller and be visible to clients.matchAll().
+  await doAsyncTest(t, 'resources/about-blank-replacement-blank-dynamic-nested-frame.html');
+}, 'Dynamic about:blank is controlled and is exposed to clients.matchAll().');
 
 </script>
 </body>

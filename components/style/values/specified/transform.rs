@@ -14,7 +14,10 @@ use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{Matrix3D, Transform as GenericTransform};
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, Matrix};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
+use values::generics::transform::Rotate as GenericRotate;
+use values::generics::transform::Scale as GenericScale;
 use values::generics::transform::TransformOperation as GenericTransformOperation;
+use values::generics::transform::Translate as GenericTranslate;
 use values::specified::{self, Angle, Number, Length, Integer};
 use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
 use values::specified::position::{Side, X, Y};
@@ -506,5 +509,87 @@ impl ToComputedValue for TimingFunction {
                 GenericTimingFunction::Frames(Integer::from_computed_value(&(frames as i32)))
             },
         }
+    }
+}
+
+/// A specified CSS `rotate`
+pub type Rotate = GenericRotate<Number, Angle>;
+
+impl Parse for Rotate {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GenericRotate::None);
+        }
+
+        if let Ok(rx) = input.try(|i| Number::parse(context, i)) {
+            // 'rotate: <number>{3} <angle>'
+            let ry = Number::parse(context, input)?;
+            let rz = Number::parse(context, input)?;
+            let angle = specified::Angle::parse(context, input)?;
+            return Ok(GenericRotate::Rotate3D(rx, ry, rz, angle));
+        }
+
+        // 'rotate: <angle>'
+        let angle = specified::Angle::parse(context, input)?;
+        Ok(GenericRotate::Rotate(angle))
+    }
+}
+
+/// A specified CSS `translate`
+pub type Translate = GenericTranslate<LengthOrPercentage, Length>;
+
+impl Parse for Translate {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GenericTranslate::None);
+        }
+
+        let tx = specified::LengthOrPercentage::parse(context, input)?;
+        if let Ok(ty) = input.try(|i| specified::LengthOrPercentage::parse(context, i)) {
+            if let Ok(tz) = input.try(|i| specified::Length::parse(context, i)) {
+                // 'translate: <length-percentage> <length-percentage> <length>'
+                return Ok(GenericTranslate::Translate3D(tx, ty, tz));
+            }
+
+            // translate: <length-percentage> <length-percentage>'
+            return Ok(GenericTranslate::Translate(tx, ty));
+        }
+
+        // 'translate: <length-percentage> '
+        Ok(GenericTranslate::TranslateX(tx))
+    }
+}
+
+/// A specified CSS `scale`
+pub type Scale = GenericScale<Number>;
+
+impl Parse for Scale {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GenericScale::None);
+        }
+
+        let sx = Number::parse(context, input)?;
+        if let Ok(sy) = input.try(|i| Number::parse(context, i)) {
+            if let Ok(sz) = input.try(|i| Number::parse(context, i)) {
+                // 'scale: <number> <number> <number>'
+                return Ok(GenericScale::Scale3D(sx, sy, sz));
+            }
+
+            // 'scale: <number> <number>'
+            return Ok(GenericScale::Scale(sx, sy));
+        }
+
+        // 'scale: <number>'
+        Ok(GenericScale::ScaleX(sx))
     }
 }

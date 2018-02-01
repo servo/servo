@@ -2195,7 +2195,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             self.0,
             name,
             case_sensitivity,
-            Gecko_ClassOrClassList,
+            bindings::Gecko_HasClass,
         )
     }
 
@@ -2203,6 +2203,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn is_html_element_in_html_document(&self) -> bool {
         self.is_html_element() &&
         self.as_node().owner_doc().is_html_document()
+    }
+
+    #[inline]
+    fn is_html_slot_element(&self) -> bool {
+        self.is_html_element() &&
+        self.get_local_name().as_ptr() == local_name!("slot").as_ptr()
     }
 
     #[inline]

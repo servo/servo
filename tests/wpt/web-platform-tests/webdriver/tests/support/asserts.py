@@ -137,3 +137,22 @@ def assert_same_element(session, a, b):
         pass
 
     raise AssertionError(message)
+
+
+def assert_element_has_focus(target_element):
+    session = target_element.session
+
+    active_element = session.execute_script("return document.activeElement")
+    active_tag = active_element.property("localName")
+    target_tag = target_element.property("localName")
+
+    assert active_element == target_element, (
+        "Focussed element is <%s>, not <%s>" % (active_tag, target_tag))
+
+
+def assert_move_to_coordinates(point, target, events):
+    for e in events:
+        if e["type"] != "mousemove":
+            assert e["pageX"] == point["x"]
+            assert e["pageY"] == point["y"]
+            assert e["target"] == target

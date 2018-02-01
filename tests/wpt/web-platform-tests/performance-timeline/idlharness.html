@@ -67,6 +67,7 @@ callback PerformanceObserverCallback = void (PerformanceObserverEntryList entrie
 interface PerformanceObserver {
     void observe(PerformanceObserverInit options);
     void disconnect();
+    PerformanceEntryList takeRecords();
 };
 </pre>
 

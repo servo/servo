@@ -10,14 +10,14 @@
 <div id="test1">scroll 2</div>
 <script>
 test(function() {
-  assert_equals(document.body.scrollTop, 0);
+  assert_equals(document.scrollingElement.scrollTop, 0);
   location.hash = "test";
 
-  var scroll1 = document.body.scrollTop;
+  var scroll1 = document.scrollingElement.scrollTop;
   assert_true(scroll1 > 0);
 
   location.hash = "test1";
-  var scroll2 = document.body.scrollTop;
+  var scroll2 = document.scrollingElement.scrollTop;
   assert_true(scroll2 > scroll1);
 
   location.hash = ""

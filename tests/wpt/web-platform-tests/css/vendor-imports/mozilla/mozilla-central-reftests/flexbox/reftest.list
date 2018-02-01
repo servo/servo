@@ -174,6 +174,7 @@
 # Tests for the order in which we paint flex items
 == flexbox-paint-ordering-001.xhtml flexbox-paint-ordering-001-ref.xhtml
 == flexbox-paint-ordering-002.xhtml flexbox-paint-ordering-002-ref.xhtml
+== flexbox-paint-ordering-003.html  flexbox-paint-ordering-003-ref.html
 
 # Tests for "display:flex" on root node
 == flexbox-root-node-001a.html flexbox-root-node-001-ref.html

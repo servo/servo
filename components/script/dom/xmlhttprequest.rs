@@ -75,7 +75,7 @@ use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Position;
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -849,7 +849,7 @@ pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
-        assert!(self.ready_state.get() != rs);
+        assert_ne!(self.ready_state.get(), rs);
         self.ready_state.set(rs);
         let event = Event::new(&self.global(),
                                atom!("readystatechange"),
@@ -1205,7 +1205,7 @@ impl XMLHttpRequest {
             };
             let last = true;
             let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, last);
-            assert!(read == bytes.len());
+            assert_eq!(read, bytes.len());
             unsafe {
                 utf16.set_len(written)
             }

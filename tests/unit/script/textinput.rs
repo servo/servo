@@ -222,7 +222,7 @@ fn test_textinput_delete_char() {
     let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.adjust_horizontal(2, Selection::NotSelected);
     // Set an empty selection range.
-    textinput.selection_begin = Some(textinput.edit_point);
+    textinput.selection_origin = Some(textinput.edit_point);
     textinput.delete_char(Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
 }
@@ -252,15 +252,15 @@ fn test_textinput_get_sorted_selection() {
     let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.adjust_horizontal(2, Selection::Selected);
-    let (begin, end) = textinput.get_sorted_selection().unwrap();
-    assert_eq!(begin.index, 2);
+    let (start, end) = textinput.sorted_selection_bounds();
+    assert_eq!(start.index, 2);
     assert_eq!(end.index, 4);
 
     textinput.clear_selection();
 
     textinput.adjust_horizontal(-2, Selection::Selected);
-    let (begin, end) = textinput.get_sorted_selection().unwrap();
-    assert_eq!(begin.index, 2);
+    let (start, end) = textinput.sorted_selection_bounds();
+    assert_eq!(start.index, 2);
     assert_eq!(end.index, 4);
 }
 
@@ -588,18 +588,18 @@ fn test_textinput_set_selection_with_direction() {
     assert_eq!(textinput.edit_point.index, 6);
     assert_eq!(textinput.selection_direction, SelectionDirection::Forward);
 
-    assert!(textinput.selection_begin.is_some());
-    assert_eq!(textinput.selection_begin.unwrap().line, 0);
-    assert_eq!(textinput.selection_begin.unwrap().index, 2);
+    assert!(textinput.selection_origin.is_some());
+    assert_eq!(textinput.selection_origin.unwrap().line, 0);
+    assert_eq!(textinput.selection_origin.unwrap().index, 2);
 
     textinput.set_selection_range(2, 6, SelectionDirection::Backward);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);
     assert_eq!(textinput.selection_direction, SelectionDirection::Backward);
 
-    assert!(textinput.selection_begin.is_some());
-    assert_eq!(textinput.selection_begin.unwrap().line, 0);
-    assert_eq!(textinput.selection_begin.unwrap().index, 6);
+    assert!(textinput.selection_origin.is_some());
+    assert_eq!(textinput.selection_origin.unwrap().line, 0);
+    assert_eq!(textinput.selection_origin.unwrap().index, 6);
 }
 
 #[test]
@@ -610,4 +610,23 @@ fn test_textinput_unicode_handling() {
     assert_eq!(textinput.edit_point.index, 2);
     textinput.set_edit_point_index(4);
     assert_eq!(textinput.edit_point.index, 8);
+}
+
+#[test]
+fn test_selection_bounds() {
+    let mut textinput = text_input(Lines::Single, "abcdef");
+
+    textinput.set_selection_range(2, 5, SelectionDirection::Forward);
+    assert_eq!(TextPoint { line: 0, index: 2 }, textinput.selection_origin_or_edit_point());
+    assert_eq!(TextPoint { line: 0, index: 2 }, textinput.selection_start());
+    assert_eq!(TextPoint { line: 0, index: 5 }, textinput.selection_end());
+    assert_eq!(2, textinput.selection_start_offset());
+    assert_eq!(5, textinput.selection_end_offset());
+
+    textinput.set_selection_range(3, 6, SelectionDirection::Backward);
+    assert_eq!(TextPoint { line: 0, index: 6 }, textinput.selection_origin_or_edit_point());
+    assert_eq!(TextPoint { line: 0, index: 3 }, textinput.selection_start());
+    assert_eq!(TextPoint { line: 0, index: 6 }, textinput.selection_end());
+    assert_eq!(3, textinput.selection_start_offset());
+    assert_eq!(6, textinput.selection_end_offset());
 }

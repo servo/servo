@@ -10,7 +10,8 @@ const properties = {
   'AbsoluteOrientationSensor' : ['timestamp', 'quaternion'],
   'RelativeOrientationSensor' : ['timestamp', 'quaternion'],
   'GeolocationSensor' : ['timestamp', 'latitude', 'longitude', 'altitude',
-                         'accuracy', 'altitudeAccuracy', 'heading', 'speed']
+                         'accuracy', 'altitudeAccuracy', 'heading', 'speed'],
+  'ProximitySensor' : ['timestamp', 'max']
 };
 
 function assert_reading_not_null(sensor) {
@@ -257,6 +258,7 @@ function runGenericSensorOnerror(sensorType) {
 
     const event = await sensorWatcher.wait_for("error");
     assert_false(sensor.activated);
-    assert_equals(event.error.name, 'NotReadableError');
+    assert_true(event.error.name == 'NotReadableError' ||
+                event.error.name == 'NotAllowedError');
   }, `${sensorType.name}: 'onerror' event is fired when sensor is not supported`);
 }

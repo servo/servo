@@ -5,15 +5,19 @@
 <meta name="assert" content="Check that setting two values to place-self sets the first one to 'align-self' and the second one to 'justify-self'." />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../resources/alignment-parsing-utils.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
 <div id="log"></div>
 <script>
-    var values = ["auto", "normal", "stretch"].concat(selfPositionValues, baselineValues);
-    values.forEach(function(alignValue) {
-        values.forEach(function(justifyValue) {
+    let classes = Object.assign({"Auto":"auto", "Normal":"normal", "Stretch":"stretch"}, selfPositionClasses,
+                                baselineClasses);
+    for (var key1 in classes) {
+        let alignValue = classes[key1];
+        let classes2 = Object.assign({"Left":"left", "Right":"right"}, classes);
+        for (var key2 in classes2) {
+            let justifyValue = classes2[key2];
             test(function() {
                 checkPlaceShorhandLonghands("place-self", "align-self", "justify-self", alignValue, justifyValue);
             }, "Checking place-self: " + alignValue + " " + justifyValue);
-        });
-    });
+        }
+    }
 </script>

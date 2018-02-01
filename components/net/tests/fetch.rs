@@ -74,7 +74,7 @@ fn test_fetch_on_bad_port_is_network_error() {
     let fetch_response = fetch(&mut request, None);
     assert!(fetch_response.is_network_error());
     let fetch_error = fetch_response.get_network_error().unwrap();
-    assert!(fetch_error == &NetworkError::Internal("Request attempted on bad port".into()))
+    assert_eq!(fetch_error, &NetworkError::Internal("Request attempted on bad port".into()))
 }
 
 #[test]
@@ -110,7 +110,7 @@ fn test_fetch_aboutblank() {
     request.referrer = Referrer::NoReferrer;
     let fetch_response = fetch(&mut request, None);
     assert!(!fetch_response.is_network_error());
-    assert!(*fetch_response.body.lock().unwrap() == ResponseBody::Done(vec![]));
+    assert_eq!(*fetch_response.body.lock().unwrap(), ResponseBody::Done(vec![]));
 }
 
 #[test]
@@ -166,7 +166,7 @@ fn test_fetch_file() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.headers.len(), 1);
     let content_type: &ContentType = fetch_response.headers.get().unwrap();
-    assert!(**content_type == Mime(TopLevel::Text, SubLevel::Css, vec![]));
+    assert_eq!(**content_type, Mime(TopLevel::Text, SubLevel::Css, vec![]));
 
     let resp_body = fetch_response.body.lock().unwrap();
     let mut file = File::open(path).unwrap();

@@ -95,8 +95,18 @@ test(() => {
 }, "websocket url : unpaired surrogate codepoint should be replaced with U+FFFD")
 
 test(() => {
+  try {
+    navigator.sendBeacon("resources/\uD800blank.txt");
+    assert_true(true);
+  } catch (e) {
+    assert_true(false);
+  }
+}, "sendBeacon URL: unpaired surrogate codepoint should not make any exceptions.")
+
+test(() => {
   var w = window.open("about:blank#\uD800");
   assert_equals(w.document.URL, 'about:blank#%EF%BF%BD');
   assert_equals(w.document.documentURI, 'about:blank#%EF%BF%BD');
 }, "Document URLs: unpaired surrogate codepoint should be replaced with U+FFFD")
+
 </script>

@@ -1831,8 +1831,8 @@ impl Document {
             return;
         }
         self.domcontentloaded_dispatched.set(true);
-        assert!(self.ReadyState() != DocumentReadyState::Complete,
-                "Complete before DOMContentLoaded?");
+        assert_ne!(self.ReadyState(), DocumentReadyState::Complete,
+                   "Complete before DOMContentLoaded?");
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 

@@ -23,6 +23,8 @@
   function doIdlTest(idlText) {
     const MDI_idl = new IdlArray();
 
+    MDI_idl.add_untested_idls("interface Event {};");
+    MDI_idl.add_untested_idls("interface EventTarget {};");
     MDI_idl.add_untested_idls("interface Navigator {};");
     MDI_idl.add_idls(idlText);
 

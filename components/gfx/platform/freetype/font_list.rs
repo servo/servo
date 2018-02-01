@@ -63,7 +63,7 @@ pub fn for_each_variation<F>(family_name: &str, mut callback: F)
         let family_name_c = CString::new(family_name).unwrap();
         let family_name = family_name_c.as_ptr();
         let ok = FcPatternAddString(pattern, FC_FAMILY.as_ptr() as *mut c_char, family_name as *mut FcChar8);
-        assert!(ok != 0);
+        assert_ne!(ok, 0);
 
         let object_set = FcObjectSetCreate();
         assert!(!object_set.is_null());

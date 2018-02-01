@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Self-Alignment: align-self - 'initial' value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#self-alignment" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-self" />
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#initial-values" />
+<meta name="assert" content="Check the 'initial' value in diferent scenarios."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+container = document.createElement("div");
+element = document.createElement("div");
+container.appendChild(element);
+document.body.appendChild(container);
+
+test(function() {
+    element = document.createElement("div");
+    document.body.appendChild(element);
+    checkValues(element, "alignSelf", "align-self", "", "auto");
+}, "Test 'initial' value when nothing is specified");
+
+test(function() {
+    container.style.display = "";
+    checkInitialValues(element, "alignSelf", "align-self", "center", "auto");
+}, "Test align-self: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    checkInitialValues(element, "alignSelf", "align-self", "safe start", "auto");
+}, "Test grid items align-self: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    checkInitialValues(element, "alignSelf", "align-self", "unsafe end", "auto");
+}, "Test flex items align-self: 'initial'");
+
+test(function() {
+    container.style.display = "";
+    element.style.position = "absolute";
+    checkInitialValues(element, "alignSelf", "align-self", "start", "auto");
+}, "Test absolute positioned elements align-self: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    element.style.position = "absolute";
+    checkInitialValues(element, "alignSelf", "align-self", "end", "auto");
+}, "Test absolute positioned grid items align-self: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    element.style.position = "absolute";
+    checkInitialValues(element, "alignSelf", "align-self", "end", "auto");
+}, "Test absolute positioned flex items align-self: 'initial'");
+</script>

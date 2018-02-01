@@ -46,7 +46,7 @@ def test_document_element_is_interactable(session):
 
     response = send_keys_to_element(session, element, "foo")
     assert_success(response)
-    assert_same_element(session, element, session.active_element)
+    assert_same_element(session, body, session.active_element)
     assert result.property("value") == "foo"
 
 
@@ -65,7 +65,7 @@ def test_iframe_is_interactable(session):
 
     response = send_keys_to_element(session, frame, "foo")
     assert_success(response)
-    assert_same_element(session, frame, session.active_element)
+    assert_same_element(session, body, session.active_element)
 
     # Any key events are immediately routed to the nested
     # browsing context's active document.

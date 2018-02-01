@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, is_macosx
+from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX
 from servo.util import host_triple
 
 
@@ -388,63 +388,6 @@ class MachCommands(CommandBase):
 
         print("Build %s in %s" % ("Completed" if status == 0 else "FAILED", format_duration(elapsed)))
         return status
-
-    @Command('build-cef',
-             description='Build the Chromium Embedding Framework library',
-             category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    @CommandArgument('--with-debug-assertions',
-                     default=None,
-                     action='store_true',
-                     help='Enable debug assertions in release')
-    def build_cef(self, jobs=None, verbose=False, release=False,
-                  with_debug_assertions=False):
-        self.ensure_bootstrapped()
-        self.ensure_clobbered()
-
-        ret = None
-        opts = ["-p", "embedding"]
-
-        if jobs is not None:
-            opts += ["-j", jobs]
-        if verbose:
-            opts += ["-v"]
-        if release:
-            opts += ["--release"]
-
-        servo_features = self.servo_features()
-        if servo_features:
-            opts += ["--features", "%s" % ' '.join(servo_features)]
-
-        build_start = time()
-        env = self.build_env(is_build=True)
-
-        if with_debug_assertions:
-            env["RUSTFLAGS"] = "-C debug_assertions"
-
-        if is_macosx():
-            # Unlike RUSTFLAGS, these are only passed in the final rustc invocation
-            # so that `./mach build` followed by `./mach build-cef` both build
-            # common dependencies with the same flags.
-            opts += ["--", "-Clink-args=-Xlinker -undefined -Xlinker dynamic_lookup"]
-
-        ret = self.call_rustup_run(["cargo", "rustc"] + opts, env=env, verbose=verbose)
-        elapsed = time() - build_start
-
-        # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(self.config, elapsed)
-
-        print("CEF build completed in %s" % format_duration(elapsed))
-
-        return ret
 
     @Command('build-geckolib',
              description='Build a static library of components used by Gecko',

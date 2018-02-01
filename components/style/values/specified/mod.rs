@@ -26,7 +26,9 @@ use values::specified::calc::CalcNode;
 pub use properties::animated_properties::TransitionProperty;
 pub use self::angle::Angle;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::align::{AlignContent, JustifyContent, AlignItems, ContentDistribution, SelfAlignment, JustifyItems};
+#[cfg(feature = "gecko")]
+pub use self::align::{AlignSelf, JustifySelf};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
@@ -67,7 +69,7 @@ pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine};
 pub use self::text::{TextAlign, TextAlignKeyword, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOrigin};
+pub use self::transform::{TimingFunction, Transform, TransformOrigin, Rotate, Translate, Scale};
 pub use self::ui::MozForceBrokenImageIcon;
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 

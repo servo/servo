@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+<script>
+window.addEventListener('load', function() {
+  var img = document.createElement('IMG');
+  img.setAttribute("src", "/feature-policy/experimental-features/resources/image.jpg");
+  img.addEventListener('load', function() {
+    parent.postMessage({width: img.width, height: img.height}, '*');
+  });
+  document.body.appendChild(img);
+});
+</script>
+</body>

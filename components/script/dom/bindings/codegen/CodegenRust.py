@@ -4417,7 +4417,7 @@ class ClassMethod(ClassItem):
     def __init__(self, name, returnType, args, inline=False, static=False,
                  virtual=False, const=False, bodyInHeader=False,
                  templateArgs=None, visibility='public', body=None,
-                 breakAfterReturnDecl="\n",
+                 breakAfterReturnDecl="\n", unsafe=False,
                  breakAfterSelf="\n", override=False):
         """
         override indicates whether to flag the method as MOZ_OVERRIDE
@@ -4436,6 +4436,7 @@ class ClassMethod(ClassItem):
         self.breakAfterReturnDecl = breakAfterReturnDecl
         self.breakAfterSelf = breakAfterSelf
         self.override = override
+        self.unsafe = unsafe
         ClassItem.__init__(self, name, visibility)
 
     def getDecorators(self, declaring):
@@ -4468,7 +4469,7 @@ class ClassMethod(ClassItem):
 
         return string.Template(
             "${decorators}%s"
-            "${visibility}fn ${name}${templateClause}(${args})${returnType}${const}${override}${body}%s" %
+            "${visibility}${unsafe}fn ${name}${templateClause}(${args})${returnType}${const}${override}${body}%s" %
             (self.breakAfterReturnDecl, self.breakAfterSelf)
         ).substitute({
             'templateClause': templateClause,
@@ -4479,7 +4480,8 @@ class ClassMethod(ClassItem):
             'override': ' MOZ_OVERRIDE' if self.override else '',
             'args': args,
             'body': body,
-            'visibility': self.visibility + ' ' if self.visibility != 'priv' else ''
+            'visibility': self.visibility + ' ' if self.visibility != 'priv' else '',
+            'unsafe': "unsafe " if self.unsafe else "",
         })
 
     def define(self, cgClass):
@@ -4549,7 +4551,7 @@ class ClassConstructor(ClassItem):
                 "});\n"
                 "// Note: callback cannot be moved after calling init.\n"
                 "match Rc::get_mut(&mut ret) {\n"
-                "    Some(ref mut callback) => unsafe { callback.parent.init(%s, %s) },\n"
+                "    Some(ref mut callback) => callback.parent.init(%s, %s),\n"
                 "    None => unreachable!(),\n"
                 "};\n"
                 "ret") % (cgClass.name, '\n'.join(initializers),
@@ -4564,7 +4566,7 @@ class ClassConstructor(ClassItem):
         body = ' {\n' + body + '}'
 
         return string.Template("""\
-pub fn ${decorators}new(${args}) -> Rc<${className}>${body}
+pub unsafe fn ${decorators}new(${args}) -> Rc<${className}>${body}
 """).substitute({'decorators': self.getDecorators(True),
                  'className': cgClass.getNameString(),
                  'args': args,
@@ -6495,7 +6497,8 @@ def return_type(descriptorProvider, rettype, infallible):
 
 class CGNativeMember(ClassMethod):
     def __init__(self, descriptorProvider, member, name, signature, extendedAttrs,
-                 breakAfter=True, passJSBitsAsNeeded=True, visibility="public"):
+                 breakAfter=True, passJSBitsAsNeeded=True, visibility="public",
+                 unsafe=False):
         """
         If passJSBitsAsNeeded is false, we don't automatically pass in a
         JSContext* or a JSObject* based on the return and argument types.
@@ -6514,6 +6517,7 @@ class CGNativeMember(ClassMethod):
                              const=(not member.isStatic() and member.isAttr() and
                                     not signature[0].isVoid()),
                              breakAfterSelf=breakAfterSelf,
+                             unsafe=unsafe,
                              visibility=visibility)
 
     def getReturnType(self, type):
@@ -6529,8 +6533,7 @@ class CGNativeMember(ClassMethod):
 
 
 class CGCallback(CGClass):
-    def __init__(self, idlObject, descriptorProvider, baseName, methods,
-                 getters=[], setters=[]):
+    def __init__(self, idlObject, descriptorProvider, baseName, methods):
         self.baseName = baseName
         self._deps = idlObject.getDeps()
         name = idlObject.identifier.name
@@ -6549,7 +6552,7 @@ class CGCallback(CGClass):
         CGClass.__init__(self, name,
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
-                         methods=realMethods + getters + setters,
+                         methods=realMethods,
                          decorators="#[derive(JSTraceable, PartialEq)]\n#[allow_unrooted_interior]")
 
     def getConstructors(self):
@@ -6599,14 +6602,14 @@ class CGCallback(CGClass):
             "if thisObjJS.is_null() {\n"
             "    return Err(JSFailed);\n"
             "}\n"
-            "return ${methodName}(${callArgs});").substitute({
+            "unsafe { ${methodName}(${callArgs}) }").substitute({
                 "callArgs": ", ".join(argnamesWithThis),
                 "methodName": 'self.' + method.name,
             })
         bodyWithoutThis = string.Template(
             setupCall +
             "rooted!(in(s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
-            "return ${methodName}(${callArgs});").substitute({
+            "unsafe { ${methodName}(${callArgs}) }").substitute({
                 "callArgs": ", ".join(argnamesWithoutThis),
                 "methodName": 'self.' + method.name,
             })
@@ -6672,16 +6675,13 @@ class CGCallbackInterface(CGCallback):
     def __init__(self, descriptor):
         iface = descriptor.interface
         attrs = [m for m in iface.members if m.isAttr() and not m.isStatic()]
-        getters = [CallbackGetter(a, descriptor) for a in attrs]
-        setters = [CallbackSetter(a, descriptor) for a in attrs
-                   if not a.readonly]
+        assert not attrs
         methods = [m for m in iface.members
                    if m.isMethod() and not m.isStatic() and not m.isIdentifierLess()]
         methods = [CallbackOperation(m, sig, descriptor) for m in methods
                    for sig in m.signatures()]
         assert not iface.isJSImplemented() or not iface.ctor()
-        CGCallback.__init__(self, iface, descriptor, "CallbackInterface",
-                            methods, getters=getters, setters=setters)
+        CGCallback.__init__(self, iface, descriptor, "CallbackInterface", methods)
 
 
 class FakeMember():
@@ -6732,6 +6732,7 @@ class CallbackMember(CGNativeMember):
                                 name, (self.retvalType, args),
                                 extendedAttrs={},
                                 passJSBitsAsNeeded=False,
+                                unsafe=needThisHandling,
                                 visibility=visibility)
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
@@ -6765,10 +6766,7 @@ class CallbackMember(CGNativeMember):
             "${convertArgs}"
             "${doCall}"
             "${returnResult}").substitute(replacements)
-        return CGWrapper(CGIndenter(CGList([
-            CGGeneric(pre),
-            CGGeneric(body),
-        ], "\n"), 4), pre="unsafe {\n", post="\n}").define()
+        return pre + "\n" + body
 
     def getResultConversion(self):
         replacements = {
@@ -6996,59 +6994,6 @@ class CallbackOperation(CallbackOperationBase):
                                        jsName,
                                        MakeNativeName(descriptor.binaryNameFor(jsName)),
                                        descriptor, descriptor.interface.isSingleOperationInterface())
-
-
-class CallbackGetter(CallbackMember):
-    def __init__(self, attr, descriptor):
-        self.ensureASCIIName(attr)
-        self.attrName = attr.identifier.name
-        CallbackMember.__init__(self,
-                                (attr.type, []),
-                                callbackGetterName(attr),
-                                descriptor,
-                                needThisHandling=False)
-
-    def getRvalDecl(self):
-        return "Dom::Rooted<Dom::Value> rval(cx, JS::UndefinedValue());\n"
-
-    def getCall(self):
-        replacements = {
-            "attrName": self.attrName
-        }
-        return string.Template(
-            'if (!JS_GetProperty(cx, mCallback, "${attrName}", &rval)) {\n'
-            '    return Err(JSFailed);\n'
-            '}\n').substitute(replacements)
-
-
-class CallbackSetter(CallbackMember):
-    def __init__(self, attr, descriptor):
-        self.ensureASCIIName(attr)
-        self.attrName = attr.identifier.name
-        CallbackMember.__init__(self,
-                                (BuiltinTypes[IDLBuiltinType.Types.void],
-                                 [FakeArgument(attr.type, attr)]),
-                                callbackSetterName(attr),
-                                descriptor,
-                                needThisHandling=False)
-
-    def getRvalDecl(self):
-        # We don't need an rval
-        return ""
-
-    def getCall(self):
-        replacements = {
-            "attrName": self.attrName,
-            "argv": "argv.handleAt(0)",
-        }
-        return string.Template(
-            'MOZ_ASSERT(argv.length() == 1);\n'
-            'if (!JS_SetProperty(cx, mCallback, "${attrName}", ${argv})) {\n'
-            '    return Err(JSFailed);\n'
-            '}\n').substitute(replacements)
-
-    def getArgcDecl(self):
-        return None
 
 
 class CGIterableMethodGenerator(CGGeneric):

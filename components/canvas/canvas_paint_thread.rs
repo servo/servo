@@ -648,7 +648,7 @@ impl<'a> CanvasPaintThread<'a> {
             return
         }
 
-        assert!(image_data_size.width * image_data_size.height * 4.0 == imagedata.len() as f64);
+        assert_eq!(image_data_size.width * image_data_size.height * 4.0, imagedata.len() as f64);
 
         // Step 1. TODO (neutered data)
 

@@ -502,7 +502,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         let data = webrender_api::ExternalImageData {
             id: webrender_api::ExternalImageId(context_id.0 as u64),
             channel_index: 0,
-            image_type: webrender_api::ExternalImageType::Texture2DHandle,
+            image_type: webrender_api::ExternalImageType::TextureHandle(
+                webrender_api::TextureTarget::Default,
+            ),
         };
         webrender_api::ImageData::External(data)
     }
@@ -612,10 +614,12 @@ impl<T: WebGLExternalImageApi> webrender::ExternalImageHandler for WebGLExternal
         let (texture_id, size) = self.handler.lock(ctx_id);
 
         webrender::ExternalImage {
-            u0: 0.0,
-            u1: size.width as f32,
-            v1: 0.0,
-            v0: size.height as f32,
+            uv: webrender_api::TexelRect::new(
+                0.0,
+                size.height as f32,
+                size.width as f32,
+                0.0,
+            ),
             source: webrender::ExternalImageSource::NativeTexture(texture_id),
         }
 
@@ -884,7 +888,7 @@ impl WebGLImpl {
         // TODO: update test expectations in order to enable debug assertions
         //if cfg!(debug_assertions) {
             let error = ctx.gl().get_error();
-            assert!(error == gl::NO_ERROR, "Unexpected WebGL error: 0x{:x} ({})", error, error);
+            assert_eq!(error, gl::NO_ERROR, "Unexpected WebGL error: 0x{:x} ({})", error, error);
         //}
     }
 

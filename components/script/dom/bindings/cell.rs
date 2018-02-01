@@ -29,18 +29,6 @@ impl<T> DomRefCell<T> {
         &*self.value.as_ptr()
     }
 
-    /// Borrow the contents for the purpose of GC tracing.
-    ///
-    /// This succeeds even if the object is mutably borrowed,
-    /// so you have to be careful in trace code!
-    #[allow(unsafe_code)]
-    pub unsafe fn borrow_for_gc_trace(&self) -> &T {
-        // FIXME: IN_GC isn't reliable enough - doesn't catch minor GCs
-        // https://github.com/servo/servo/issues/6389
-        // debug_assert!(thread_state::get().contains(SCRIPT | IN_GC));
-        &*self.value.as_ptr()
-    }
-
     /// Borrow the contents for the purpose of script deallocation.
     ///
     #[allow(unsafe_code)]

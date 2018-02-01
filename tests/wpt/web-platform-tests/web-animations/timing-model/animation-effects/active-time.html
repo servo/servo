@@ -25,19 +25,19 @@ test(t => {
 test(t => {
   const anim = createDiv(t).animate(null, 1000);
   anim.currentTime = 500;
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
 }, 'Active time in active phase and no start delay is the local time');
 
 test(t => {
   const anim = createDiv(t).animate(null, { duration: 1000, delay: 500 });
   anim.currentTime = 1000;
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
 }, 'Active time in active phase and positive start delay is the local time'
    + ' minus the start delay');
 
 test(t => {
   const anim = createDiv(t).animate(null, { duration: 1000, delay: -500 });
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
 }, 'Active time in active phase and negative start delay is the local time'
    + ' minus the start delay');
 
@@ -58,7 +58,7 @@ test(t => {
                                             fill: 'forwards' });
   anim.finish();
   assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.3);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3);
 }, 'Active time in after phase with forwards fill is the active duration');
 
 test(t => {
@@ -79,7 +79,7 @@ test(t => {
                                             fill: 'forwards' });
   anim.finish();
   assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.3);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3);
 }, 'Active time in after phase with forwards fill and positive end delay'
    + ' is the active duration');
 
@@ -91,7 +91,7 @@ test(t => {
                                             fill: 'forwards' });
   anim.finish();
   assert_equals(anim.effect.getComputedTiming().currentIteration, 1);
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
 }, 'Active time in after phase with forwards fill and negative end delay'
    + ' is the active duration + end delay');
 
@@ -127,7 +127,7 @@ test(t => {
                                             fill: 'both' });
   anim.finish();
   assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.3);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3);
 }, 'Active time in after phase with \'both\' fill is the active duration');
 
 test(t => {

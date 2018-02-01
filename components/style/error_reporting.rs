@@ -13,6 +13,7 @@ use style_traits::ParseError;
 use stylesheets::UrlExtraData;
 
 /// Errors that can be encountered while parsing CSS.
+#[derive(Debug)]
 pub enum ContextualParseError<'a> {
     /// A property declaration was not recognized.
     UnsupportedPropertyDeclaration(&'a str, ParseError<'a>),

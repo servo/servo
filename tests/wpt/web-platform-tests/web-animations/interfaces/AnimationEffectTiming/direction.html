@@ -31,13 +31,13 @@ test(t => {
   const div = createDiv(t);
   const anim = div.animate(null, { duration: 10000, direction: 'normal' });
   anim.currentTime = 7000;
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.7,
-                     'progress before updating direction');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.7,
+                             'progress before updating direction');
 
   anim.effect.timing.direction = 'reverse';
 
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.3,
-                     'progress after updating direction');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3,
+                             'progress after updating direction');
 }, 'Can be changed from \'normal\' to \'reverse\' while in progress');
 
 test(t => {
@@ -78,13 +78,13 @@ test(t => {
                              duration: 10000,
                              direction: 'normal' });
   anim.currentTime = 17000;
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.7,
-                     'progress before updating direction');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.7,
+                             'progress before updating direction');
 
   anim.effect.timing.direction = 'alternate';
 
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.3,
-                     'progress after updating direction');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3,
+                             'progress after updating direction');
 }, 'Can be changed from \'normal\' to \'alternate\' while in progress');
 
 test(t => {
@@ -94,13 +94,13 @@ test(t => {
                              duration: 10000,
                              direction: 'alternate' });
   anim.currentTime = 17000;
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.3,
-                     'progress before updating direction');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3,
+                             'progress before updating direction');
 
   anim.effect.timing.direction = 'alternate-reverse';
 
-  assert_times_equal(anim.effect.getComputedTiming().progress, 0.7,
-                     'progress after updating direction');
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.7,
+                             'progress after updating direction');
 }, 'Can be changed from \'alternate\' to \'alternate-reverse\' while in'
    + ' progress');
 

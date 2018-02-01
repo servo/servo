@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Violation report is sent from javascript resource.</title>
+    <!-- CSP headers
+         Content-Security-Policy: img-src 'none'; report-uri ../support/report.py?op=put&reportID={{$id}}
+         -->
+</head>
+<body>
+    <script src="../support/inject-image.js"></script>
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27'></script>
+</body>
+</html>

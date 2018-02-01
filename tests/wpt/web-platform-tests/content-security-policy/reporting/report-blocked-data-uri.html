@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Data-uri images are reported correctly</title>
+    <!-- CSP headers
+Content-Security-Policy: img-src 'none'; report-uri ../support/report.py?op=put&reportID={{$id}}
+-->
+</head>
+<body>
+    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27'></script>
+</body>
+</html>

@@ -32,6 +32,7 @@ use style::properties::style_structs;
 use style::values::generics::text::LineHeight;
 use unicode_bidi as bidi;
 use unicode_script::{Script, get_script};
+use xi_unicode::LineBreakLeafIter;
 
 /// Returns the concatenated text of a list of unscanned text fragments.
 fn text(fragments: &LinkedList<Fragment>) -> String {
@@ -91,6 +92,15 @@ impl TextRunScanner {
         let mut last_whitespace = false;
         let mut paragraph_bytes_processed = 0;
 
+        // The first time we process a text run we will set this
+        // linebreaker. There is no way for the linebreaker to start
+        // with an empty state; you must give it its first input immediately.
+        //
+        // This linebreaker is shared across text runs, so we can know if
+        // there is a break at the beginning of a text run or clump, e.g.
+        // in the case of FooBar<span>Baz</span>
+        let mut linebreaker = None;
+
         while !fragments.is_empty() {
             // Create a clump.
             split_first_fragment_at_newline_if_necessary(&mut fragments);
@@ -109,7 +119,8 @@ impl TextRunScanner {
                                                        &mut new_fragments,
                                                        &mut paragraph_bytes_processed,
                                                        bidi_levels,
-                                                       last_whitespace);
+                                                       last_whitespace,
+                                                       &mut linebreaker);
         }
 
         debug!("TextRunScanner: complete.");
@@ -129,7 +140,8 @@ impl TextRunScanner {
                            out_fragments: &mut Vec<Fragment>,
                            paragraph_bytes_processed: &mut usize,
                            bidi_levels: Option<&[bidi::Level]>,
-                           mut last_whitespace: bool)
+                           mut last_whitespace: bool,
+                           linebreaker: &mut Option<LineBreakLeafIter>)
                            -> bool {
         debug!("TextRunScanner: flushing {} fragments in range", self.clump.len());
 
@@ -309,22 +321,26 @@ impl TextRunScanner {
                 flags: flags,
             };
 
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            run_info_list.into_iter().map(|run_info| {
+            let mut result = Vec::with_capacity(run_info_list.len());
+            for run_info in run_info_list {
                 let mut options = options;
                 options.script = run_info.script;
                 if run_info.bidi_level.is_rtl() {
                     options.flags.insert(ShapingFlags::RTL_FLAG);
                 }
                 let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
-                ScannedTextRun {
-                    run: Arc::new(TextRun::new(&mut *font,
-                                               run_info.text,
-                                               &options,
-                                               run_info.bidi_level)),
+
+                let (run, break_at_zero) = TextRun::new(&mut *font,
+                                                        run_info.text,
+                                                        &options,
+                                                        run_info.bidi_level,
+                                                        linebreaker);
+                result.push((ScannedTextRun {
+                    run: Arc::new(run),
                     insertion_point: run_info.insertion_point,
-                }
-            }).collect::<Vec<_>>()
+                }, break_at_zero))
+            }
+            result
         };
 
         // Make new fragments with the runs and adjusted text indices.
@@ -351,12 +367,17 @@ impl TextRunScanner {
                     }
                 };
                 let mapping = mappings.next().unwrap();
-                let scanned_run = runs[mapping.text_run_index].clone();
+                let (scanned_run, break_at_zero) = runs[mapping.text_run_index].clone();
 
                 let mut byte_range = Range::new(ByteIndex(mapping.byte_range.begin() as isize),
                                                 ByteIndex(mapping.byte_range.length() as isize));
 
                 let mut flags = ScannedTextFlags::empty();
+                if !break_at_zero && mapping.byte_range.begin() == 0 {
+                    // If this is the first segment of the text run,
+                    // and the text run doesn't break at zero, suppress line breaks
+                    flags.insert(ScannedTextFlags::SUPPRESS_LINE_BREAK_BEFORE)
+                }
                 let text_size = old_fragment.border_box.size;
 
                 let requires_line_break_afterward_if_wrapping_on_newlines =

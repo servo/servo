@@ -90,9 +90,12 @@ async_test(function(t) {
           return registration.unregister();
         })
       .then(function() {
+          // Step 5.1 of Register clears the uninstall flag before fetching
+          // the script:
+          //
+          //  https://w3c.github.io/ServiceWorker/#register-algorithm
           var promise = navigator.serviceWorker.register('this-will-404',
                                                          { scope: scope });
-          iframe.remove();
           return promise;
         })
       .then(
@@ -100,17 +103,28 @@ async_test(function(t) {
           assert_unreached('register should reject the promise');
         },
         function() {
+          assert_equals(registration.installing, null,
+                        'registration.installing');
+          assert_equals(registration.waiting, null,
+                        'registration.waiting');
+          assert_equals(registration.active.scriptURL, normalizeURL(worker_url),
+                        'registration.active');
+          iframe.remove();
           return with_iframe(scope);
         })
       .then(function(frame) {
-          assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
-                        null,
-                        'document should not load with a controller');
+          assert_equals(
+              frame.contentWindow.navigator.serviceWorker.controller.scriptURL,
+              normalizeURL(worker_url),
+              'the original worker should control a new document');
           frame.remove();
+          return registration.unregister();
+        })
+      .then(function() {
           t.done();
         })
       .catch(unreached_rejection(t));
-}, 'Registering a new script URL that 404s does not resurrect an ' +
+}, 'Registering a new script URL that 404s does resurrect an ' +
        'unregistered registration');
 
 async_test(function(t) {
@@ -131,9 +145,12 @@ async_test(function(t) {
           return registration.unregister();
         })
       .then(function() {
+          // Step 5.1 of Register clears the uninstall flag before firing
+          // the install event:
+          //
+          //  https://w3c.github.io/ServiceWorker/#register-algorithm
           var promise = navigator.serviceWorker.register(
               'resources/reject-install-worker.js', { scope: scope });
-          iframe.remove();
           return promise;
         })
       .then(function(r) {
@@ -141,12 +158,20 @@ async_test(function(t) {
           return wait_for_state(t, r.installing, 'redundant');
         })
       .then(function() {
+          assert_equals(registration.installing, null,
+                        'registration.installing');
+          assert_equals(registration.waiting, null,
+                        'registration.waiting');
+          assert_equals(registration.active.scriptURL, normalizeURL(worker_url),
+                        'registration.active');
+          iframe.remove();
           return with_iframe(scope);
         })
       .then(function(frame) {
-          assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
-                        null,
-                        'document should not load with a controller');
+          assert_equals(
+              frame.contentWindow.navigator.serviceWorker.controller.scriptURL,
+              normalizeURL(worker_url),
+              'the original worker should control a new document');
           frame.remove();
           return registration.unregister();
         })
@@ -154,6 +179,6 @@ async_test(function(t) {
           t.done();
         })
       .catch(unreached_rejection(t));
-  }, 'Registering a new script URL that fails to install does not resurrect ' +
+  }, 'Registering a new script URL that fails to install does resurrect ' +
        'an unregistered registration');
 </script>

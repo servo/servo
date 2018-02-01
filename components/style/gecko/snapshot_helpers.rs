@@ -4,9 +4,7 @@
 
 //! Element an snapshot common logic.
 
-use CaseSensitivityExt;
 use gecko_bindings::structs::nsAtom;
-use gecko_string_cache::WeakAtom;
 use selectors::attr::CaseSensitivity;
 use std::{ptr, slice};
 use string_cache::Atom;
@@ -15,34 +13,27 @@ use string_cache::Atom;
 /// class or a class list.
 pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsAtom, *mut *mut *mut nsAtom) -> u32;
 
+/// A function to return whether an element of type `T` has a given class.
+///
+/// The `bool` argument represents whether it should compare case-insensitively
+/// or not.
+pub type HasClass<T> = unsafe extern fn (T, *mut nsAtom, bool) -> bool;
+
 /// Given an item `T`, a class name, and a getter function, return whether that
 /// element has the class that `name` represents.
+#[inline(always)]
 pub fn has_class<T>(
     item: T,
     name: &Atom,
     case_sensitivity: CaseSensitivity,
-    getter: ClassOrClassList<T>,
+    getter: HasClass<T>,
 ) -> bool {
-    unsafe {
-        let mut class: *mut nsAtom = ptr::null_mut();
-        let mut list: *mut *mut nsAtom = ptr::null_mut();
-        let length = getter(item, &mut class, &mut list);
-        match length {
-            0 => false,
-            1 => case_sensitivity.eq_atom(name, WeakAtom::new(class)),
-            n => {
-                let classes = slice::from_raw_parts(list, n as usize);
-                match case_sensitivity {
-                    CaseSensitivity::CaseSensitive => {
-                        classes.iter().any(|ptr| &**name == WeakAtom::new(*ptr))
-                    }
-                    CaseSensitivity::AsciiCaseInsensitive => {
-                        classes.iter().any(|ptr| name.eq_ignore_ascii_case(WeakAtom::new(*ptr)))
-                    }
-                }
-            }
-        }
-    }
+    let ignore_case = match case_sensitivity {
+        CaseSensitivity::CaseSensitive => false,
+        CaseSensitivity::AsciiCaseInsensitive => true,
+    };
+
+    unsafe { getter(item, name.as_ptr(), ignore_case) }
 }
 
 

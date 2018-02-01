@@ -44,7 +44,7 @@ window.addEventListener('message', event => {
         modal.textContent = 'confirm()';
         confirm(message);
         modal.textContent = 'print()';
-        //print();
+        print();
         modal.textContent = 'prompt()';
         prompt(message);
         notice.style.display = 'none';
@@ -60,36 +60,36 @@ window.addEventListener('message', event => {
         assert_equals(document.cookie, 'PresentationApiTest=Receiving-UA', 'A cookie store is shared by top-level and nested browsing contexts.');
 
         // Indexed Database
-        let db;
+        const dbName = 'db-presentation-api-receiving-ua';
         const checkIndexedDB = () => {
             if ('indexedDB' in window) {
                 message = 'Indexed Database is shared by top-level and nested browsing contexts.';
-                let req = indexedDB.open('db-presentation-api', 1), store;
-                let eventWatcher = new EventWatcher(t, req, 'success');
-                return eventWatcher.wait_for('success').then(() => {
-                    db = req.result;
-                    const transaction = db.transaction('store-controlling-ua', 'readwrite');
-                    store = transaction.objectStore('store-controlling-ua');
-                    req = store.openCursor();
-                    eventWatcher = new EventWatcher(t, req, 'success');
-                    return eventWatcher.wait_for('success');
-                }).then(() => {
-                    assert_true(req.result instanceof IDBCursorWithValue, message);
-                    const cursor = req.result;
-                    const item = cursor.value;
-                    assert_equals(item.id, 'parent', message);
-                    assert_equals(item.data, 'receiving user agent', message);
-                    cursor.continue();
-                    return eventWatcher.wait_for('success');
-                }).then(() => {
-                    assert_equals(req.result, null, message);
-                    req = store.put({ id: 'child', data: 'nested browsing context' });
-                    eventWatcher = new EventWatcher(t, req, 'success');
-                    return eventWatcher.wait_for('success');
-                }).then(() => {
-                    db.close();
-                    db = null;
-                });
+
+                const req = indexedDB.open(dbName);
+                const upgradeneededWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                const successWatcher = new EventWatcher(t, req, 'success');
+                return Promise.race([
+                    upgradeneededWatcher.wait_for('upgradeneeded').then(evt => {
+                        evt.target.result.close();
+                        // This would fail if the database is not created by the top-level browsing context
+                        assert_unreached(message);
+                    }),
+                    successWatcher.wait_for('success').then(evt => {
+                        evt.target.result.close();
+                        const db = evt.target.result;
+                        const version = db.version;
+                        db.close();
+                        // Check if the version of the database is 2 as specified by the top-level browsing context
+                        assert_equals(version, 2, message);
+
+                        // Upgrade the version
+                        const req = indexedDB.open(dbName, 3);
+                        const eventWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                        return eventWatcher.wait_for('upgradeneeded');
+                    }).then(evt => {
+                        evt.target.result.close();
+                    })
+                ]);
             }
             else
                 return Promise.resolve();

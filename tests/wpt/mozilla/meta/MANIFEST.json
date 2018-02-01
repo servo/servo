@@ -3887,6 +3887,18 @@
      {}
     ]
    ],
+   "css/list_item_marker_around_float.html": [
+    [
+     "/_mozilla/css/list_item_marker_around_float.html",
+     [
+      [
+       "/_mozilla/css/list_item_marker_around_float_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/list_item_overflow.html": [
     [
      "/_mozilla/css/list_item_overflow.html",
@@ -9538,6 +9550,11 @@
      {}
     ]
    ],
+   "css/list_item_marker_around_float_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/list_item_overflow_ref.html": [
     [
      {}
@@ -12474,11 +12491,6 @@
     ]
    ],
    "mozilla/resources/external.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/resources/http-cache-trickle.py": [
     [
      {}
     ]
@@ -63573,6 +63585,14 @@
    "958f9315c950502cdadb2297e1ab77e197774113",
    "support"
   ],
+  "css/list_item_marker_around_float.html": [
+   "1023fced99e1181fadce849978c4e111da8ad4aa",
+   "reftest"
+  ],
+  "css/list_item_marker_around_float_ref.html": [
+   "1c13844df9055d73a8421ca3f8398cb4c289c44e",
+   "support"
+  ],
   "css/list_item_overflow.html": [
    "a8aeb2070bb26c8bf1344a8fdb2bc84d8a60a5b4",
    "reftest"
@@ -66370,11 +66390,11 @@
    "testharness"
   ],
   "mozilla/http-cache-xhr.html": [
-   "d4747fdc9ec6acc50718c13a668451987a44d219",
+   "56c44d5100ec2b5a585192e4ec319bb133123c93",
    "testharness"
   ],
   "mozilla/http-cache.html": [
-   "33827dc9bdb0efcbcae4f730086693be315cfc14",
+   "929fdc40e9a193d0ead4c95e2d21d030d27d4bf0",
    "testharness"
   ],
   "mozilla/iframe-unblock-onload.html": [
@@ -66450,7 +66470,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "ad914ab4c7a794b251c03f7b0f50aaef1ea78df0",
+   "365c76c771b3d79a671b04047923f5644efb9b93",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -72049,12 +72069,8 @@
    "78686147f85e4146e7fc58c1f67a613f65b099a2",
    "support"
   ],
-  "mozilla/resources/http-cache-trickle.py": [
-   "48f4e32ec2e1c1b6d47e89254045b398c1d84d40",
-   "support"
-  ],
   "mozilla/resources/http-cache.js": [
-   "4bf71e1f328e778990eb756741a3be58f4f57ef6",
+   "c6b1ee9def26d4e12a1b93e551c225f82b4717c2",
    "support"
   ],
   "mozilla/resources/iframe_contentDocument_inner.html": [

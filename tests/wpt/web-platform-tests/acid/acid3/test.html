@@ -3419,6 +3419,7 @@
     }
 
   ];
+  window.parent.postMessage({num_tests: tests.length}, "*");
   var log = '';
   var delay = 10;
   var score = 0, index = 0, retry = 0, errors = 0;
@@ -3456,6 +3457,7 @@
         } else {
           fail("no error message");
         }
+        window.parent.postMessage({test: index, result: "pass"}, "*");
       } catch (e) {
         var s;
         if (e.message)
@@ -3464,6 +3466,7 @@
           s = e;
         errors += 1;
         log += "Test " + zeroPaddedIndex + " failed: " + s + "\n";
+        window.parent.postMessage({test: index, result: "fail", message: s}, "*");
       };
       retry = 0;
       index += 1;

@@ -1,3 +1,5 @@
+# META: timeout=long
+
 import pytest
 
 from tests.support.asserts import assert_error, assert_success, assert_dialog_handled

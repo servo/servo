@@ -471,50 +471,76 @@ impl EventTarget {
         assert!(!funobj.is_null());
         // Step 1.14
         if is_error {
-            Some(CommonEventHandler::ErrorEventHandler(OnErrorEventHandlerNonNull::new(cx, funobj)))
+            Some(CommonEventHandler::ErrorEventHandler(
+                unsafe { OnErrorEventHandlerNonNull::new(cx, funobj) },
+            ))
         } else {
             if ty == &atom!("beforeunload") {
                 Some(CommonEventHandler::BeforeUnloadEventHandler(
-                        OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)))
+                    unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, funobj) },
+                ))
             } else {
-                Some(CommonEventHandler::EventHandler(EventHandlerNonNull::new(cx, funobj)))
+                Some(CommonEventHandler::EventHandler(
+                    unsafe { EventHandlerNonNull::new(cx, funobj) },
+                ))
             }
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn set_event_handler_common<T: CallbackContainer>(
-        &self, ty: &str, listener: Option<Rc<T>>)
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    )
+    where
+        T: CallbackContainer,
     {
         let cx = self.global().get_cx();
 
-        let event_listener = listener.map(|listener|
-                                          InlineEventListener::Compiled(
-                                              CommonEventHandler::EventHandler(
-                                                  EventHandlerNonNull::new(cx, listener.callback()))));
+        let event_listener = listener.map(|listener| {
+            InlineEventListener::Compiled(CommonEventHandler::EventHandler(
+                unsafe { EventHandlerNonNull::new(cx, listener.callback()) },
+            ))
+        });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
+    #[allow(unsafe_code)]
     pub fn set_error_event_handler<T: CallbackContainer>(
-        &self, ty: &str, listener: Option<Rc<T>>)
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    )
+    where
+        T: CallbackContainer,
     {
         let cx = self.global().get_cx();
 
-        let event_listener = listener.map(|listener|
-                                          InlineEventListener::Compiled(
-                                              CommonEventHandler::ErrorEventHandler(
-                                                  OnErrorEventHandlerNonNull::new(cx, listener.callback()))));
+        let event_listener = listener.map(|listener| {
+            InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(
+                unsafe { OnErrorEventHandlerNonNull::new(cx, listener.callback()) }
+            ))
+        });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
-    pub fn set_beforeunload_event_handler<T: CallbackContainer>(&self, ty: &str,
-                                                                listener: Option<Rc<T>>) {
+    #[allow(unsafe_code)]
+    pub fn set_beforeunload_event_handler<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    )
+    where
+        T: CallbackContainer,
+    {
         let cx = self.global().get_cx();
 
-        let event_listener = listener.map(|listener|
-            InlineEventListener::Compiled(
-                CommonEventHandler::BeforeUnloadEventHandler(
-                    OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())))
-        );
+        let event_listener = listener.map(|listener| {
+            InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(
+                unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback()) }
+            ))
+        });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 

@@ -8,6 +8,7 @@
 <link rel="help" href="https://dom.spec.whatwg.org/#concept-create-element">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../resources/custom-elements-helpers.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -15,12 +16,21 @@
 
 var numberOfAttributesInConstructor;
 var numberOfChildNodesInConstructor;
+var attributesChangedCalls = [];
 
 class MyCustomElement extends HTMLElement {
     constructor(...args) {
         super(...args);
         numberOfAttributesInConstructor = this.attributes.length;
         numberOfChildNodesInConstructor = this.childNodes.length;
+    }
+
+    attributeChangedCallback(...args) {
+        attributesChangedCalls.push(create_attribute_changed_callback_log(this, ...args));
+    }
+
+    static get observedAttributes() {
+        return ['id', 'class'];
     }
 };
 customElements.define('my-custom-element', MyCustomElement);
@@ -53,6 +63,12 @@ test(function () {
     assert_equals(numberOfAttributesInConstructor, 0, 'HTML parser must not set attributes on a custom element before invoking the constructor');
     assert_equals(numberOfChildNodesInConstructor, 0, 'HTML parser must not append child nodes to a custom element before invoking the constructor');
 }, 'HTML parser must set the attributes or append children before calling constructor');
+
+test(function () {
+    assert_equals(attributesChangedCalls.length, 2);
+    assert_attribute_log_entry(attributesChangedCalls[0], {name: 'id', oldValue: null, newValue: 'custom-element-id', namespace: null});
+    assert_attribute_log_entry(attributesChangedCalls[1], {name: 'class', oldValue: null, newValue: 'class1 class2', namespace: null});
+}, 'HTML parser must enqueue attributeChanged reactions');
 
 </script>
 </body>

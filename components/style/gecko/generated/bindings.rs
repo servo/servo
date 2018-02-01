@@ -725,6 +725,13 @@ extern "C" {
     ) -> u32;
 }
 extern "C" {
+    pub fn Gecko_HasClass(
+        element: RawGeckoElementBorrowed,
+        class_: *mut nsAtom,
+        ignore_case: bool,
+    ) -> bool;
+}
+extern "C" {
     pub fn Gecko_SnapshotAtomAttrValue(
         element: *const ServoElementSnapshot,
         attribute: *mut nsAtom,
@@ -800,6 +807,13 @@ extern "C" {
         class_: *mut *mut nsAtom,
         classList: *mut *mut *mut nsAtom,
     ) -> u32;
+}
+extern "C" {
+    pub fn Gecko_SnapshotHasClass(
+        element: *const ServoElementSnapshot,
+        class_: *mut nsAtom,
+        ignore_case: bool,
+    ) -> bool;
 }
 extern "C" {
     pub fn Gecko_GetStyleAttrDeclarationBlock(
@@ -2009,6 +2023,13 @@ extern "C" {
     pub fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
+    pub fn Servo_InvalidateStyleForDocStateChanges(
+        root: RawGeckoElementBorrowed,
+        sets: *const nsTArray<RawServoStyleSetBorrowed>,
+        aStatesChanged: u64,
+    );
+}
+extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(
         loader: *mut Loader,
         gecko_stylesheet: *mut ServoStyleSheet,
@@ -2112,6 +2133,7 @@ extern "C" {
     pub fn Servo_StyleSet_FlushStyleSheets(
         set: RawServoStyleSetBorrowed,
         doc_elem: RawGeckoElementBorrowedOrNull,
+        snapshots: *const ServoElementSnapshotTable,
     );
 }
 extern "C" {

@@ -28,7 +28,7 @@
     ];
     var uuid = token();
     var url = make_url(uuid, requests, 0);
-    url += '&trickle=true';
+    url += '&pipe=trickle(1:d1:r2)';
     client.onprogress = test.step_func(function() {
       var client2 = new XMLHttpRequest();
       client2.onloadend = test.step_func(function(event) {

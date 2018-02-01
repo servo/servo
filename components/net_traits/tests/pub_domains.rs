@@ -116,6 +116,6 @@ fn test_reg_suffix() {
 #[test]
 fn test_weirdness() {
     // These are weird results, but AFAICT they are spec-compliant.
-    assert!(pub_suffix("city.yokohama.jp") != pub_suffix(pub_suffix("city.yokohama.jp")));
+    assert_ne!(pub_suffix("city.yokohama.jp"), pub_suffix(pub_suffix("city.yokohama.jp")));
     assert!(!is_pub_domain(pub_suffix("city.yokohama.jp")));
 }

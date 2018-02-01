@@ -2270,7 +2270,7 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
         if (!exposed_in(exposure_set(member, this.exposureSet))) {
             test(function() {
                 assert_false(member.name in obj);
-            }.bind(this), this.name + "interface: " + desc + 'must not have property "' + member.name + '"');
+            }.bind(this), this.name + " interface: " + desc + ' must not have property "' + member.name + '"');
             continue;
         }
         if (member.type == "attribute" && member.isUnforgeable)

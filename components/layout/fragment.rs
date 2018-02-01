@@ -479,6 +479,11 @@ bitflags! {
 
         /// Is this fragment selected?
         const SELECTED = 0x02;
+
+        /// Suppress line breaking between this and the previous fragment
+        ///
+        /// This handles cases like Foo<span>bar</span>
+        const SUPPRESS_LINE_BREAK_BEFORE = 0x04;
     }
 }
 
@@ -712,13 +717,15 @@ impl Fragment {
     }
 
     /// Transforms this fragment using the given `SplitInfo`, preserving all the other data.
-    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<TextRun>)
-                                     -> Fragment {
+    ///
+    /// If this is the first half of a split, `first` is true
+    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<TextRun>,
+                                     first: bool) -> Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
         // Preserve the insertion point if it is in this fragment's range or it is at line end.
-        let (flags, insertion_point) = match self.specific {
+        let (mut flags, insertion_point) = match self.specific {
             SpecificFragmentInfo::ScannedText(ref info) => {
                 match info.insertion_point {
                     Some(index) if split.range.contains(index) => (info.flags, info.insertion_point),
@@ -729,6 +736,11 @@ impl Fragment {
             },
             _ => (ScannedTextFlags::empty(), None)
         };
+
+        if !first {
+            flags.set(ScannedTextFlags::SUPPRESS_LINE_BREAK_BEFORE, false);
+        }
+
         let info = Box::new(ScannedTextFragmentInfo::new(
             text_run,
             split.range,
@@ -1421,6 +1433,14 @@ impl Fragment {
         }
     }
 
+    pub fn suppress_line_break_before(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref st) =>
+                st.flags.contains(ScannedTextFlags::SUPPRESS_LINE_BREAK_BEFORE),
+            _ => false,
+        }
+    }
+
     /// Computes the intrinsic inline-sizes of this fragment.
     pub fn compute_intrinsic_inline_sizes(&mut self) -> IntrinsicISizesContribution {
         let mut result = self.style_specified_intrinsic_inline_size();
@@ -1619,6 +1639,16 @@ impl Fragment {
                     flags)
             }
         }
+    }
+
+    /// Does this fragment start on a glyph run boundary?
+    pub fn is_on_glyph_run_boundary(&self) -> bool {
+        let text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment_info)
+                => text_fragment_info,
+            _   => return true,
+        };
+        text_fragment_info.run.on_glyph_run_boundary(text_fragment_info.range.begin())
     }
 
     /// Truncates this fragment to the given `max_inline_size`, using a character-based breaking

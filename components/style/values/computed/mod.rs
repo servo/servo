@@ -32,7 +32,9 @@ use super::specified;
 pub use app_units::Au;
 pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::align::{AlignItems, AlignContent, JustifyContent, SelfAlignment, JustifyItems};
+#[cfg(feature = "gecko")]
+pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
@@ -71,7 +73,7 @@ pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextAlign, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin};
+pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin, Rotate, Translate, Scale};
 pub use self::ui::MozForceBrokenImageIcon;
 
 #[cfg(feature = "gecko")]

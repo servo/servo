@@ -364,8 +364,8 @@ impl Floats {
                     }
                 }
                 Some(rect) => {
-                    assert!(rect.start.b + rect.size.block != float_b,
-                            "Non-terminating float placement");
+                    assert_ne!(rect.start.b + rect.size.block, float_b,
+                               "Non-terminating float placement");
 
                     // Place here if there is enough room
                     if rect.size.inline >= info.size.inline {

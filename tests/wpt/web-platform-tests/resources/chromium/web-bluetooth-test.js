@@ -236,6 +236,16 @@ class FakeRemoteGATTService {
       characteristic_id, this.service_id_,
       this.peripheral_address_, this.fake_central_ptr_);
   }
+
+  // Removes the fake GATT service from its fake peripheral.
+  async remove() {
+    let {success} =
+        await this.fake_central_ptr_.removeFakeService(
+            this.service_id_,
+            this.peripheral_address_);
+
+    if (!success) throw 'remove failed';
+  }
 }
 
 class FakeRemoteGATTCharacteristic {
@@ -367,4 +377,12 @@ class FakeRemoteGATTDescriptor {
   }
 }
 
-navigator.bluetooth.test = new FakeBluetooth();
+// If this line fails, it means that current environment does not support the
+// Web Bluetooth Test API.
+try {
+  navigator.bluetooth.test = new FakeBluetooth();
+} catch {
+    throw 'Web Bluetooth Test API is not implemented on this ' +
+        'environment. See the bluetooth README at ' +
+        'https://github.com/w3c/web-platform-tests/blob/master/bluetooth/README.md#web-bluetooth-testing';
+}

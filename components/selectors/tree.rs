@@ -82,6 +82,9 @@ pub trait Element: Sized + Clone + Debug {
     /// Whether this element is a `link`.
     fn is_link(&self) -> bool;
 
+    /// Returns whether the element is an HTML <slot> element.
+    fn is_html_slot_element(&self) -> bool;
+
     /// Returns the assigned <slot> element this element is assigned to.
     ///
     /// Necessary for the `::slotted` pseudo-class.

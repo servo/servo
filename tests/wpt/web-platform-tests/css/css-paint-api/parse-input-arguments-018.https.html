@@ -9,16 +9,17 @@
 
 #canvas-geometry {
     border:1px solid black;
-    background-image: paint(geometry);
+    background-image: paint(failureIndicator), paint(geometry);
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
 <script src="/common/css-paint-tests.js"></script>
 <body>
-<p>The test result should show only one black rect border. It should not paint
-any content in the rect because registerPaint will be called twice and the
-inputArguments will return two different strings, that will throw an exception
-and paint won't be executed.</p>
+<p>This test result should show a rect with black border, where the rect is
+filled with green on the lower right corner. The registerPaint('failureIndicator')
+will be called twice and the inputArguments will return two different strings,
+which will throw an exception and the paint function with 'failureIndicator'
+should never be called. In other words, there should be no red painted in the result.</p>
 <div id="canvas-geometry" class="container"></div>
 
 <script id="code" type="text/worklet">
@@ -31,7 +32,7 @@ function generateRandString(length) {
 }
 
 try {
-    registerPaint('geometry', class {
+    registerPaint('failureIndicator', class {
         static get inputArguments() {
             // This test is testing the case where an exception should be thrown
             // when two paint definitions with different properties are registered
@@ -42,14 +43,23 @@ try {
             var current_str = generateRandString(100);
             return [current_str];
         }
+        // The paint function here should never be called because the inputArguments
+        // will generate two different properties, and that should throw an
+        // exception.
         paint(ctx, geom) {
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, geom.width, geom.height);
+            ctx.fillStyle = 'red';
+            ctx.fillRect(0, 0, 50, 50);
         }
     });
 } catch(ex) {
 }
+
+registerPaint('geometry', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(50, 50, 50, 50);
+    }
+});
 </script>
 
 <script>

@@ -242,18 +242,19 @@
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
                     products="gecko">
     use parser::Parse;
+    use servo_arc::Arc;
     use values::{Either, None_};
     use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
     use values::generics::grid::{TrackListValue, concat_serialize_idents};
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
-    use values::specified::position::TemplateAreas;
+    use values::specified::position::{TemplateAreas, TemplateAreasArc};
 
     /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
     pub fn parse_grid_template<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                        -> Result<(GridTemplateComponent,
                                                   GridTemplateComponent,
-                                                  Either<TemplateAreas, None_>), ParseError<'i>> {
+                                                  Either<TemplateAreasArc, None_>), ParseError<'i>> {
         // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
         // shorthand should know after these keywords there is nothing to parse. Otherwise it
         // gets confused and rejects the sub properties that contains `none` or `subgrid`.
@@ -332,7 +333,7 @@
             };
 
             Ok((GenericGridTemplateComponent::TrackList(template_rows),
-                template_cols, Either::First(template_areas)))
+                template_cols, Either::First(TemplateAreasArc(Arc::new(template_areas)))))
         } else {
             let mut template_rows = GridTemplateComponent::parse(context, input)?;
             if let GenericGridTemplateComponent::TrackList(ref mut list) = template_rows {
@@ -365,7 +366,7 @@
     pub fn serialize_grid_template<W>(
         template_rows: &GridTemplateComponent,
         template_columns: &GridTemplateComponent,
-        template_areas: &Either<TemplateAreas, None_>,
+        template_areas: &Either<TemplateAreasArc, None_>,
         dest: &mut CssWriter<W>,
     ) -> fmt::Result
     where
@@ -378,7 +379,7 @@
             },
             Either::First(ref areas) => {
                 // The length of template-area and template-rows values should be equal.
-                if areas.strings.len() != template_rows.track_list_len() {
+                if areas.0.strings.len() != template_rows.track_list_len() {
                     return Ok(());
                 }
 
@@ -423,7 +424,7 @@
                 }
 
                 let mut names_iter = track_list.line_names.iter();
-                for (((i, string), names), value) in areas.strings.iter().enumerate()
+                for (((i, string), names), value) in areas.0.strings.iter().enumerate()
                                                                   .zip(&mut names_iter)
                                                                   .zip(track_list.values.iter()) {
                     if i > 0 {
@@ -456,8 +457,12 @@
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         #[inline]
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            serialize_grid_template(self.grid_template_rows, self.grid_template_columns,
-                                    self.grid_template_areas, dest)
+            serialize_grid_template(
+                self.grid_template_rows,
+                self.grid_template_columns,
+                self.grid_template_areas,
+                dest
+            )
         }
     }
 </%helpers:shorthand>
@@ -615,33 +620,44 @@
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko">
-    use values::specified::align::{AlignJustifyContent, FallbackAllowed};
+    use values::specified::align::{AlignContent, JustifyContent, ContentDistribution, AxisDirection};
 
     pub fn parse_value<'i, 't>(
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        let align = AlignJustifyContent::parse_with_fallback(input, FallbackAllowed::No)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify =
-            input.try(|input| AlignJustifyContent::parse_with_fallback(input, FallbackAllowed::No))
-                .unwrap_or(align);
-        if justify.has_extra_flags() {
+        let align_content =
+            ContentDistribution::parse(input, AxisDirection::Block)?;
+
+        let justify_content = input.try(|input| {
+            ContentDistribution::parse(input, AxisDirection::Inline)
+        });
+
+        let justify_content = match justify_content {
+            Ok(v) => v,
+            Err(err) => {
+                if !align_content.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+
+                align_content
+            }
+        };
+
+        if align_content.has_extra_flags() || justify_content.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_content: align,
-            justify_content: justify,
+            align_content: AlignContent(align_content),
+            justify_content: JustifyContent(justify_content),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.align_content.to_css(dest)?;
-            if self.align_content != self.justify_content {
+            if self.align_content.0 != self.justify_content.0 {
                 dest.write_str(" ")?;
                 self.justify_content.to_css(dest)?;
             }
@@ -653,35 +669,43 @@
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
                     products="gecko">
-    use values::specified::align::AlignJustifySelf;
-    use parser::Parse;
+    use values::specified::align::{AlignSelf, JustifySelf, SelfAlignment, AxisDirection};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-        let align = AlignJustifySelf::parse(context, input)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
-        if justify.has_extra_flags() {
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let align = SelfAlignment::parse(input, AxisDirection::Block)?;
+        let justify = input.try(|input| SelfAlignment::parse(input, AxisDirection::Inline));
+
+        let justify = match justify {
+            Ok(v) => v,
+            Err(err) => {
+                if !align.is_valid_on_both_axes() {
+                    return Err(err);
+                }
+                align
+            }
+        };
+
+        if justify.has_extra_flags() || align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
-            align_self: align,
-            justify_self: justify,
+            align_self: AlignSelf(align),
+            justify_self: JustifySelf(justify),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if self.align_self == self.justify_self {
-                self.align_self.to_css(dest)
-            } else {
-                self.align_self.to_css(dest)?;
+            self.align_self.to_css(dest)?;
+            if self.align_self.0 != self.justify_self.0 {
                 dest.write_str(" ")?;
-                self.justify_self.to_css(dest)
+                self.justify_self.to_css(dest)?;
             }
+            Ok(())
         }
     }
 </%helpers:shorthand>

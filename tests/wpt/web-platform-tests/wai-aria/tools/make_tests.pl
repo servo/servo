@@ -230,6 +230,9 @@ while (<$io>) {
         $theCode =~ s/ +$//;
         $theCode =~ s/\t/ /g;
         $theCode .= $_;
+        # In MediaWiki, to display & symbol escapes as literal text, one
+        # must use "&amp;&" for the "&" character. We need to undo that.
+        $theCode =~ s/&amp;(\S)/&$1/g;
       }
     }
   } elsif ($state == 3) {

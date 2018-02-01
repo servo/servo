@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Find all services in a device.';
+
+bluetooth_test(() => getTwoHealthThermometerServicesDevice({
+  filters: [{services: ['health_thermometer']}],
+  optionalServices: ['generic_access']
+})
+    .then(({device}) => device.gatt.getPrimaryServices())
+    .then(services => {
+      // Expect three service instances.
+      assert_equals(services.length, 3);
+      services.forEach(s => assert_true(s.isPrimary));
+
+      let uuid_set = new Set(services.map(s => s.uuid));
+      // Two of the expected services are 'health_thermometer', so
+      // only 2 unique UUIDs.
+      assert_equals(uuid_set.size, 2);
+
+      assert_true(uuid_set.has(BluetoothUUID.getService('generic_access')));
+      assert_true(uuid_set.has(BluetoothUUID.getService('health_thermometer')));
+    }), test_desc);
+</script>
