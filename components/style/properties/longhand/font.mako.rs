@@ -157,10 +157,10 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 %>
 
 ${helpers.predefined_type("font-variation-settings",
-                          "FontVariantSettings",
+                          "FontVariationSettings",
                           products="gecko",
                           gecko_pref="layout.css.font-variations.enabled",
-                          initial_value="specified::FontVariantSettings::normal()",
+                          initial_value="computed::FontVariationSettings::normal()",
                           animation_value_type="ComputedValue",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="${variation_spec}")}
