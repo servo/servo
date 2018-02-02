@@ -179,7 +179,7 @@ impl<'a> Context<'a> {
 
         let context = Context {
             is_root_element: false,
-            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
+            builder: StyleBuilder::for_inheritance(device, default_values, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: true,

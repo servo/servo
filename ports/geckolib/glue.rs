@@ -2318,30 +2318,19 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     let atom = Atom::from(pseudo_tag);
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon-box? Gah!");
-    let style = if let Some(reference) = parent_style_context {
-        let mut style = StyleBuilder::for_inheritance(
-            data.stylist.device(),
-            reference,
-            Some(&pseudo)
-        );
+    let device = data.stylist.device();
 
-        if for_text {
-            StyleAdjuster::new(&mut style)
-                .adjust_for_text();
-        }
+    let mut style = StyleBuilder::for_inheritance(
+        data.stylist.device(),
+        parent_style_context.unwrap_or_else(|| device.default_computed_values()),
+        Some(&pseudo)
+    );
 
-        style.build()
-    } else {
-        debug_assert!(!for_text);
-        StyleBuilder::for_derived_style(
-            data.stylist.device(),
-            data.default_computed_values(),
-            /* parent_style = */ None,
-            Some(&pseudo),
-        ).build()
-    };
+    if for_text {
+        StyleAdjuster::new(&mut style).adjust_for_text();
+    }
 
-    style.into()
+    style.build().into()
 }
 
 #[no_mangle]

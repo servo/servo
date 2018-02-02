@@ -2783,8 +2783,12 @@ impl<'a> StyleBuilder<'a> {
         self.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED)
     }
 
-    /// Creates a StyleBuilder holding only references to the structs of `s`, in
-    /// order to create a derived style.
+    /// NOTE(emilio): This is done so we can compute relative units with respect
+    /// to the parent style, but all the early properties / writing-mode / etc
+    /// are already set to the right ones on the kid.
+    ///
+    /// Do _not_ actually call this to construct a style, this should mostly be
+    /// used for animations.
     pub fn for_derived_style(
         device: &'a Device,
         style_to_derive_from: &'a ComputedValues,
@@ -2805,11 +2809,11 @@ impl<'a> StyleBuilder<'a> {
             reset_style,
             pseudo,
             modified_reset: false,
-            rules: None, // FIXME(emilio): Dubious...
+            rules: None,
             custom_properties: style_to_derive_from.custom_properties().cloned(),
             writing_mode: style_to_derive_from.writing_mode,
             flags: style_to_derive_from.flags,
-            visited_style: style_to_derive_from.clone_visited_style(),
+            visited_style: None,
             % for style_struct in data.active_style_structs():
             ${style_struct.ident}: StyleStructRef::Borrowed(
                 style_to_derive_from.${style_struct.name_lower}_arc()
