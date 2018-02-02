@@ -25,8 +25,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::u32;
-use style::font_face::{EffectiveSources, Source};
-use style::values::computed::font::{SingleFontFamily, FamilyName};
+use style_traits::values::font::{EffectiveSources, FamilyName, Source, SingleFontFamily};
 use webrender_api;
 
 /// A list of font templates that make up a given font family.
@@ -230,7 +229,7 @@ impl FontCache {
         match src {
             Source::Url(url_source) => {
                 // https://drafts.csswg.org/css-fonts/#font-fetching-requirements
-                let url = match url_source.url.url() {
+                let url = match url_source {
                     Some(url) => url.clone(),
                     None => return,
                 };

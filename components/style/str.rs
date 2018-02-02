@@ -14,28 +14,10 @@ use std::fmt::{self, Write};
 use std::iter::{Filter, Peekable};
 use std::str::Split;
 
-/// A static slice of characters.
-pub type StaticCharVec = &'static [char];
+pub use style_traits::{char_is_whitespace, HTML_SPACE_CHARACTERS, StaticCharVec};
 
 /// A static slice of `str`s.
 pub type StaticStringVec = &'static [&'static str];
-
-/// A "space character" according to:
-///
-/// <https://html.spec.whatwg.org/multipage/#space-character>
-pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
-    '\u{0020}',
-    '\u{0009}',
-    '\u{000a}',
-    '\u{000c}',
-    '\u{000d}',
-];
-
-/// Whether a character is a HTML whitespace character.
-#[inline]
-pub fn char_is_whitespace(c: char) -> bool {
-    HTML_SPACE_CHARACTERS.contains(&c)
-}
 
 /// Whether all the string is HTML whitespace.
 #[inline]

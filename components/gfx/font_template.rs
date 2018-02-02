@@ -11,7 +11,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
 use std::u32;
-use style::computed_values::{font_stretch, font_weight};
+use style_traits::values::font::{FontStretch, FontWeight};
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.
@@ -19,14 +19,14 @@ use style::computed_values::{font_stretch, font_weight};
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Serialize)]
 pub struct FontTemplateDescriptor {
-    pub weight: font_weight::T,
-    pub stretch: font_stretch::T,
+    pub weight: FontWeight,
+    pub stretch: FontStretch,
     pub italic: bool,
 }
 
 impl FontTemplateDescriptor {
     #[inline]
-    pub fn new(weight: font_weight::T, stretch: font_stretch::T, italic: bool)
+    pub fn new(weight: FontWeight, stretch: FontStretch, italic: bool)
                -> FontTemplateDescriptor {
         FontTemplateDescriptor {
             weight: weight,

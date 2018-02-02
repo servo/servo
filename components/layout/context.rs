@@ -7,7 +7,6 @@
 use fnv::FnvHasher;
 use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
-use gfx::font_context::FontContext;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
@@ -26,6 +25,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use style::context::RegisteredSpeculativePainter;
 use style::context::SharedStyleContext;
+use text::FontContext;
 
 thread_local!(static FONT_CONTEXT_KEY: RefCell<Option<FontContext>> = RefCell::new(None));
 

@@ -57,7 +57,7 @@ extern crate servo_url;
 #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 extern crate simd;
 extern crate smallvec;
-extern crate style;
+extern crate style_traits;
 extern crate time;
 extern crate unicode_bidi;
 extern crate unicode_script;

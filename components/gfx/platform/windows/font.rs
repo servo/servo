@@ -16,8 +16,8 @@ use platform::font_template::FontTemplateData;
 use platform::windows::font_context::FontContextHandle;
 use platform::windows::font_list::font_from_atom;
 use std::sync::Arc;
-use style::computed_values::font_stretch::T as StyleFontStretch;
-use style::computed_values::font_weight::T as StyleFontWeight;
+use style_traits::values::font::FontStretch as StyleFontStretch;
+use style_traits::values::font::FontWeight as StyleFontWeight;
 use text::glyph::GlyphId;
 use truetype;
 
