@@ -2216,6 +2216,11 @@ pub struct ComputedValues {
 }
 
 impl ComputedValues {
+    /// Returns whether this style's display value is equal to contents.
+    pub fn is_display_contents(&self) -> bool {
+        self.get_box().clone_display().is_contents()
+    }
+
     /// Whether we're a visited style.
     pub fn is_style_if_visited(&self) -> bool {
         self.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED)
@@ -2334,17 +2339,6 @@ impl ComputedValuesInner {
     /// Whether this style has a -moz-binding value. This is always false for
     /// Servo for obvious reasons.
     pub fn has_moz_binding(&self) -> bool { false }
-
-    /// Clone the visited style.  Used for inheriting parent styles in
-    /// StyleBuilder::for_derived_style.
-    pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
-        self.visited_style.clone()
-    }
-
-    /// Returns whether this style's display value is equal to contents.
-    ///
-    /// Since this isn't supported in Servo, this is always false for Servo.
-    pub fn is_display_contents(&self) -> bool { false }
 
     #[inline]
     /// Returns whether the "content" property for the given style is completely
@@ -2728,8 +2722,6 @@ impl<'a> StyleBuilder<'a> {
         cascade_flags: CascadeFlags,
         rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
-        writing_mode: WritingMode,
-        mut flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
         debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
@@ -2751,6 +2743,7 @@ impl<'a> StyleBuilder<'a> {
             reset_style
         };
 
+        let mut flags = inherited_style.flags.inherited();
         if cascade_flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) {
             flags.insert(ComputedValueFlags::IS_STYLE_IF_VISITED);
         }
@@ -2765,7 +2758,7 @@ impl<'a> StyleBuilder<'a> {
             rules,
             modified_reset: false,
             custom_properties,
-            writing_mode,
+            writing_mode: inherited_style.writing_mode,
             flags,
             visited_style,
             % for style_struct in data.active_style_structs():
@@ -2789,11 +2782,10 @@ impl<'a> StyleBuilder<'a> {
     ///
     /// Do _not_ actually call this to construct a style, this should mostly be
     /// used for animations.
-    pub fn for_derived_style(
+    pub fn for_animation(
         device: &'a Device,
         style_to_derive_from: &'a ComputedValues,
         parent_style: Option<<&'a ComputedValues>,
-        pseudo: Option<<&'a PseudoElement>,
     ) -> Self {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
@@ -2807,7 +2799,7 @@ impl<'a> StyleBuilder<'a> {
             // None of our callers pass in ::first-line parent styles.
             inherited_style_ignoring_first_line: inherited_style,
             reset_style,
-            pseudo,
+            pseudo: None,
             modified_reset: false,
             rules: None,
             custom_properties: style_to_derive_from.custom_properties().cloned(),
@@ -2916,7 +2908,7 @@ impl<'a> StyleBuilder<'a> {
     /// computed values that need to be provided as well.
     pub fn for_inheritance(
         device: &'a Device,
-        parent: &'a ComputedValues,
+        parent: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
     ) -> Self {
         // Rebuild the visited style from the parent, ensuring that it will also
@@ -2924,26 +2916,23 @@ impl<'a> StyleBuilder<'a> {
         // produced by this builder.  This assumes that the caller doesn't need
         // to adjust or process visited style, so we can just build visited
         // style here for simplicity.
-        let visited_style = parent.visited_style().map(|style| {
-            Self::for_inheritance(
-                device,
-                style,
-                pseudo,
-            ).build()
+        let visited_style = parent.and_then(|parent| {
+            parent.visited_style().map(|style| {
+                Self::for_inheritance(
+                    device,
+                    Some(style),
+                    pseudo,
+                ).build()
+            })
         });
-        // FIXME(emilio): This Some(parent) here is inconsistent with what we
-        // usually do if `parent` is the default computed values, but that's
-        // fine, and we want to eventually get rid of it.
         Self::new(
             device,
-            Some(parent),
-            Some(parent),
+            parent,
+            parent,
             pseudo,
             CascadeFlags::empty(),
             /* rules = */ None,
-            parent.custom_properties().cloned(),
-            parent.writing_mode,
-            parent.flags.inherited(),
+            parent.and_then(|p| p.custom_properties().cloned()),
             visited_style,
         )
     }
@@ -3076,9 +3065,10 @@ impl<'a> StyleBuilder<'a> {
         &self.inherited_style.writing_mode
     }
 
-    /// Inherited style flags.
-    pub fn inherited_flags(&self) -> &ComputedValueFlags {
-        &self.inherited_style.flags
+    /// The computed value flags of our parent.
+    #[inline]
+    pub fn get_parent_flags(&self) -> ComputedValueFlags {
+        self.inherited_style.flags
     }
 
     /// And access to inherited style structs.
@@ -3330,8 +3320,6 @@ where
             flags,
             Some(rules.clone()),
             custom_properties,
-            WritingMode::empty(),
-            ComputedValueFlags::empty(),
             visited_style,
         ),
         cached_system_font: None,

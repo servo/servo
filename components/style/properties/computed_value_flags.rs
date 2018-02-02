@@ -71,11 +71,35 @@ bitflags! {
 }
 
 impl ComputedValueFlags {
-    /// Returns the flags that are inherited.
+    /// Flags that are unconditionally propagated to descendants.
+    #[inline]
+    fn inherited_flags() -> Self {
+        ComputedValueFlags::IS_STYLE_IF_VISITED |
+        ComputedValueFlags::IS_RELEVANT_LINK_VISITED |
+        ComputedValueFlags::CAN_BE_FRAGMENTED |
+        ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE |
+        ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE |
+        ComputedValueFlags::HAS_TEXT_DECORATION_LINES
+    }
+
+    /// Flags that may be propagated to descendants.
+    #[inline]
+    fn maybe_inherited_flags() -> Self {
+        Self::inherited_flags() | ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK
+    }
+
+    /// Returns the flags that are always propagated to descendants.
+    ///
+    /// See StyleAdjuster::set_bits and StyleBuilder.
     #[inline]
     pub fn inherited(self) -> Self {
-        self & !(ComputedValueFlags::INHERITS_DISPLAY |
-                 ComputedValueFlags::INHERITS_CONTENT |
-                 ComputedValueFlags::INHERITS_RESET_STYLE)
+        self & Self::inherited_flags()
+    }
+
+    /// Flags that are conditionally propagated to descendants, just to handle
+    /// properly style invalidation.
+    #[inline]
+    pub fn maybe_inherited(self) -> Self {
+        self & Self::maybe_inherited_flags()
     }
 }
