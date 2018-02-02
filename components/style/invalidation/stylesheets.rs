@@ -151,7 +151,7 @@ impl StylesheetInvalidationSet {
         }
 
         for rule in stylesheet.effective_rules(device, guard) {
-            self.collect_invalidations_for_rule(rule, guard);
+            self.collect_invalidations_for_rule(rule, guard, device);
             if self.fully_invalid {
                 self.invalid_scopes.clear();
                 self.invalid_elements.clear();
@@ -393,8 +393,9 @@ impl StylesheetInvalidationSet {
     fn collect_invalidations_for_rule(
         &mut self,
         rule: &CssRule,
-        guard: &SharedRwLockReadGuard)
-    {
+        guard: &SharedRwLockReadGuard,
+        device: &Device,
+    ) {
         use stylesheets::CssRule::*;
         debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
         debug_assert!(!self.fully_invalid, "Not worth to be here!");
@@ -422,7 +423,17 @@ impl StylesheetInvalidationSet {
                 // information. We'll restyle when the font face loads, if
                 // needed.
             }
-            Keyframes(..) |
+            Keyframes(ref lock) => {
+                let keyframes_rule = lock.read_with(guard);
+                if device.animation_name_may_be_referenced(&keyframes_rule.name) {
+                    debug!(" > Found @keyframes rule potentially referenced \
+                           from the page, marking the whole tree invalid.");
+                    self.fully_invalid = true;
+                } else {
+                    // Do nothing, this animation can't affect the style of
+                    // existing elements.
+                }
+            }
             CounterStyle(..) |
             Page(..) |
             Viewport(..) |
