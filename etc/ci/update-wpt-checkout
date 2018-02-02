@@ -98,7 +98,7 @@ function unsafe_open_pull_request() {
 
     # Prepare the pull request metadata.
     BODY=":warning: Do not merge this PR without verifying that it "
-    BODY+="is not overwriting local changes to web-platform-tests. :warning:\n\n
+    BODY+="is not overwriting local changes to web-platform-tests. :warning:\n\n"
     BODY+="Automated downstream sync of changes from upstream as of "
     BODY+="${CURRENT_DATE}.\n"
     BODY+="[no-wpt-sync]"
