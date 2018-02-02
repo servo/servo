@@ -417,9 +417,13 @@ impl StylesheetInvalidationSet {
                 // Do nothing, relevant nested rules are visited as part of the
                 // iteration.
             }
-            FontFace(..) |
-            CounterStyle(..) |
+            FontFace(..) => {
+                // Do nothing, @font-face doesn't affect computed style
+                // information. We'll restyle when the font face loads, if
+                // needed.
+            }
             Keyframes(..) |
+            CounterStyle(..) |
             Page(..) |
             Viewport(..) |
             FontFeatureValues(..) => {
