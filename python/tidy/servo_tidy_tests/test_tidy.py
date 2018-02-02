@@ -33,10 +33,13 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("ignored directory './fake/dir' doesn't exist", errors.next()[2])
         self.assertNoMoreErrors(errors)
 
-    def test_wpt_manifest_checks(self):
+    def test_non_existing_wpt_manifest_checks(self):
         wrong_path = "/wrong/path.ini"
-        errors = tidy.check_manifest_dirs(wrong_path)
+        errors = tidy.check_manifest_dirs(wrong_path, print_text=False)
         self.assertEqual("%s manifest file is required but was not found" % wrong_path, errors.next()[2])
+        self.assertNoMoreErrors(errors)
+        errors = tidy.check_manifest_dirs(os.path.join(base_path, 'manifest-include.ini'), print_text=False)
+        self.assertNoMoreErrors(errors)
 
     def test_directory_checks(self):
         dirs = {
