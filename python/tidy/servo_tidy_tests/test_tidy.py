@@ -39,6 +39,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("%s manifest file is required but was not found" % wrong_path, errors.next()[2])
         self.assertNoMoreErrors(errors)
         errors = tidy.check_manifest_dirs(os.path.join(base_path, 'manifest-include.ini'), print_text=False)
+        self.assertTrue(errors.next()[2].endswith("never_going_to_exist"))
         self.assertNoMoreErrors(errors)
 
     def test_directory_checks(self):
