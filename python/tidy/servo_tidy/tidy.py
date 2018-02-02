@@ -449,9 +449,9 @@ def check_shell(file_name, lines):
                     yield(idx + 1, "variable substitutions should use the full \"${VAR}\" form")
 
 
-def rec_parse(current_path, current_node):
+def rec_parse(current_path, root_node):
     dirs = []
-    for item in current_node.children:
+    for item in root_node.children:
         if isinstance(item, node.DataNode):
             next_depth = os.path.join(current_path, item.data)
             dirs.append(next_depth)
@@ -473,8 +473,8 @@ def check_manifest_dirs(config_file, print_text=True):
         print '\rChecking the wpt manifest file...'
 
     p = parser.parse(lines)
-    rv = rec_parse(wpt_path("web-platform-tests"), p)
-    for idx, path in enumerate(rv):
+    paths = rec_parse(wpt_path("web-platform-tests"), p)
+    for idx, path in enumerate(paths):
         if path.endswith("_mozilla"):
             continue
         if not os.path.isdir(path):
