@@ -13,7 +13,10 @@ import os
 import os.path as path
 import subprocess
 import time
+import tarfile
+
 from shutil import copytree, rmtree, copy2
+from servo.util import extract, download_file
 
 from mach.decorators import (
     CommandArgument,
@@ -21,12 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import (
-    CommandBase,
-    check_call, check_output, BIN_SUFFIX,
-    is_linux, is_windows, is_macosx, set_osmesa_env,
-    get_browserhtml_path,
-)
+from servo.command_base import CommandBase
 
 
 def read_file(filename, if_exists=False):
@@ -41,41 +39,66 @@ class BisectCommands(CommandBase):
     @Command('bisect',
              description='Run Servo using downloaded nightlies',
              category='bisect')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Run the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Run the dev build')
-    @CommandArgument('--android', action='store_true', default=None,
-                     help='Run on an Android device through `adb shell`')
-    @CommandArgument('--debug', action='store_true',
-                     help='Enable the debugger. Not specifying a '
-                          '--debugger option will result in the default '
-                          'debugger being used. The following arguments '
-                          'have no effect without this.')
-    @CommandArgument('--debugger', default=None, type=str,
-                     help='Name of debugger to use.')
-    @CommandArgument('--browserhtml', '-b', action='store_true',
-                     help='Launch with Browser.html')
-    @CommandArgument('--headless', '-z', action='store_true',
-                     help='Launch in headless mode')
-    @CommandArgument('--software', '-s', action='store_true',
-                     help='Launch with software rendering')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def bisect(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False,
-            headless=False, software=False):
+    def bisect(self, params):
         # Run the command
         SCRIPT_PATH = os.path.split(__file__)[0]
-        command_to_run = [os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", "mach"))]
+        command_to_run = [os.path.abspath(
+            os.path.join(SCRIPT_PATH, "..", "..", "mach"))]
         command_to_run.extend(params)
-        print("Wrapping bisect around command {}".format(command_to_run))
+
+        print("Wrapping bisect around command {}".format(
+            " ".join(command_to_run)))
+        bisect_start = time.time()
+        self.run_once_with_version(command_to_run, "2017-01-01T01-21-52Z")
+        bisect_end = time.time()
+        print("Bisect completed in {} seconds.".format(
+            round(bisect_end - bisect_start, 2)))
+
+    def run_once_with_version(self, command, version):
+        fetch_version(version)
+        print("Running command {} with version {} ".format(command, version))
         start = time.time()
-        proc = subprocess.Popen(command_to_run)
+        proc = subprocess.Popen(command)
         output = proc.communicate()
         if proc.returncode:
-            print("Bisection on nightly {} was bad, trying older version".format("FOOBAR"))
+            print(
+                "Bisection on nightly {} was bad, trying older version".format(version))
         else:
-            print("Bisection on nightly {} was good, trying newer version".format("FOOBAR11234"))
+            print("Bisection on nightly {} was good, trying newer version".format(
+                "FOOBAR11234"))
         end = time.time()
-        print("Bisect completed in {} seconds.".format(round(end-start,2)))
+        print("Command {} with servo version {} completed in {} seconds.".format(
+            command, version, round(end - start, 2)))
+
+
+def get_all_versions(os):
+    url = "https://servo-builds.s3.amazonaws.com/?list-type=2&prefix=nightly/linux"
+
+
+def fetch_version(version):
+    # Download from
+    cache_folder = "./nightlies/"
+    build_name = "-servo-tech-demo"
+    extension = ".tar.gz"
+    file_name = version + build_name
+    destination = cache_folder + file_name + extension
+    version_folder = cache_folder + file_name
+    source = "https://servo-builds.s3.amazonaws.com/nightly/linux/" + file_name + extension
+
+    if not os.path.exists(cache_folder):
+        os.mkdir(cache_folder)
+
+    if os.path.isfile(destination):
+        print("The nightly version {} has already been downloaded.".format(version))
+    else:
+        download_file(file_name,source, destination)
+
+    if os.path.isdir(version_folder):
+        print("The version {} has already been extracted.".format(version))
+    else:
+        print("Extracting to {}...".format(version_folder), end='')
+        with tarfile.open(destination, "r") as tar:
+            tar.extractall(version_folder)
