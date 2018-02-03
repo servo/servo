@@ -532,7 +532,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
         first_fragment.transform(
             first_fragment.border_box.size,
             SpecificFragmentInfo::UnscannedText(Box::new(
-                UnscannedTextFragmentInfo::new(string_before, selection_before)
+                UnscannedTextFragmentInfo::new(string_before.into_boxed_str(), selection_before)
             ))
         )
     };
