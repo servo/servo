@@ -36,8 +36,8 @@ use script_thread::Documents;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_traits::webdriver_msg::WebDriverCookieError;
 use servo_url::ServoUrl;
-use std::rc::Rc;
-use dom::eventtarget::RustEventHandler;
+use script_thread::IonApplication;
+use std::cell::RefCell;
 
 fn find_node_by_unique_id(documents: &Documents,
                           pipeline: PipelineId,
@@ -110,31 +110,26 @@ pub fn handle_execute_async_script(documents: &Documents,
     window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
-pub fn handle_testing(documents: &Documents,
-                                   pipeline: PipelineId,
-                                   msg: String,
-                                   reply: IpcSender<String>) {
+pub fn handle_load_rust_script(app_ptr: &RefCell<Option<IonApplication>>, documents: &Documents, pipeline: PipelineId, path: String) {
+    use libloading::Library;
+    use libloading::Symbol;
+
     use dom::document::Document;
     use std::ops::Deref;
-    use dom::bindings::str::DOMString;
-    use dom::bindings::codegen::UnionTypes::NodeOrString;
-    use dom::eventtarget::EventTarget;
 
-    reply.send(documents.find_document(pipeline).and_then(|document| {
+    let mut opt_ref = app_ptr.borrow_mut();
+    *opt_ref = Some(IonApplication { lib: Library::new(path.clone()).unwrap() });
+    let app = opt_ref.as_ref().unwrap();
+    println!("Loaded application from {}", path);
+
+    documents.find_document(pipeline).and_then(|document| {
         let doc: &Document = document.deref();
-        let elemPtr = doc.GetElementById(DOMString::from_string(msg)).unwrap();
-        elemPtr.deref().SetInnerHTML(DOMString::from_string("Bonjour!".to_string())).unwrap();
-        elemPtr.deref().SetAttribute(DOMString::from_string("style".to_string()),
-                                     DOMString::from_string("background-color: #eee; border: 1px solid black".to_string())).unwrap();
-        elemPtr.deref().Append(vec![NodeOrString::String(
-            DOMString::from_string("My child".to_string()))]).unwrap();
-        let node: &EventTarget = elemPtr.deref().upcast::<EventTarget>();
-        node.add_event_handler_rust("click", RustEventHandler {
-            handler: Rc::new(|| println!("I am rust code!!!!!"))
-        });
-
-        Some("Ok".to_string())
-    }).unwrap()).unwrap();
+        unsafe {
+            let func: Symbol<unsafe extern "C" fn(&Document) -> ()> = app.lib.get(b"app_start").unwrap();
+            func(doc);
+        }
+        Some(())
+    }).unwrap()
 }
 
 pub fn handle_get_browsing_context_id(documents: &Documents,
