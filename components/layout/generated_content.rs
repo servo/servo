@@ -15,12 +15,12 @@ use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use style::computed_values::content::ContentItem;
 use style::computed_values::display::T as Display;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::computed::counters::ContentItem;
 use text::TextRunScanner;
 use traversal::InorderFlowTraversal;
 
@@ -189,7 +189,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                     let temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
-                                      .get(&*counter_name)
+                                      .get(&**counter_name)
                                       .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
@@ -204,7 +204,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                     let temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
-                                      .get(&*counter_name)
+                                      .get(&**counter_name)
                                       .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
@@ -437,7 +437,7 @@ fn render_text(layout_context: &LayoutContext,
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();
     let info = SpecificFragmentInfo::UnscannedText(
-        Box::new(UnscannedTextFragmentInfo::new(string, None))
+        Box::new(UnscannedTextFragmentInfo::new(string.into_boxed_str(), None))
     );
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
                                                              pseudo,

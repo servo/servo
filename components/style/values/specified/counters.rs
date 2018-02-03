@@ -4,13 +4,21 @@
 
 //! Specified types for counter properties.
 
+#[cfg(feature = "servo")]
+use computed_values::list_style_type::T as ListStyleType;
 use cssparser::{Token, Parser};
 use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::CustomIdent;
+#[cfg(feature = "gecko")]
+use values::generics::CounterStyleOrNone;
 use values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use values::generics::counters::CounterReset as GenericCounterReset;
+#[cfg(feature = "gecko")]
+use values::specified::Attr;
 use values::specified::Integer;
+#[cfg(feature = "gecko")]
+use values::specified::url::SpecifiedUrl;
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<Integer>;
@@ -64,4 +72,50 @@ fn parse_counters<'i, 't>(
     } else {
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
+}
+
+#[cfg(feature = "servo")]
+type CounterStyleType = ListStyleType;
+#[cfg(feature = "gecko")]
+type CounterStyleType = CounterStyleOrNone;
+
+/// The specified value for the `content` property.
+///
+/// https://drafts.csswg.org/css-content/#propdef-content
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+pub enum Content {
+    /// `normal` reserved keyword.
+    Normal,
+    /// `none` reserved keyword.
+    None,
+    /// `-moz-alt-content`.
+    #[cfg(feature = "gecko")]
+    MozAltContent,
+    /// Content items.
+    Items(Box<[ContentItem]>),
+}
+
+/// Items for the `content` property.
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+pub enum ContentItem {
+    /// Literal string content.
+    String(Box<str>),
+    /// `counter(name, style)`.
+    Counter(Box<str>, CounterStyleType),
+    /// `counters(name, separator, style)`.
+    Counters(Box<str>, Box<str>, CounterStyleType),
+    /// `open-quote`.
+    OpenQuote,
+    /// `close-quote`.
+    CloseQuote,
+    /// `no-open-quote`.
+    NoOpenQuote,
+    /// `no-close-quote`.
+    NoCloseQuote,
+    /// `attr([namespace? `|`]? ident)`
+    #[cfg(feature = "gecko")]
+    Attr(Attr),
+    /// `url(url)`
+    #[cfg(feature = "gecko")]
+    Url(SpecifiedUrl),
 }

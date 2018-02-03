@@ -5459,8 +5459,7 @@ clip-path
     }
 
     pub fn set_content(&mut self, v: longhands::content::computed_value::T, device: &Device) {
-        use properties::longhands::content::computed_value::T;
-        use properties::longhands::content::computed_value::ContentItem;
+        use values::computed::counters::{Content, ContentItem};
         use values::generics::CounterStyleOrNone;
         use gecko_bindings::structs::nsStyleContentData;
         use gecko_bindings::structs::nsStyleContentType;
@@ -5494,8 +5493,8 @@ clip-path
         }
 
         match v {
-            T::None |
-            T::Normal => {
+            Content::None |
+            Content::Normal => {
                 // Ensure destructors run, otherwise we could leak.
                 if !self.gecko.mContents.is_empty() {
                     unsafe {
@@ -5503,14 +5502,14 @@ clip-path
                     }
                 }
             },
-            T::MozAltContent => {
+            Content::MozAltContent => {
                 unsafe {
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko, 1);
                     *self.gecko.mContents[0].mContent.mString.as_mut() = ptr::null_mut();
                 }
                 self.gecko.mContents[0].mType = eStyleContentType_AltContent;
             },
-            T::Items(items) => {
+            Content::Items(items) => {
                 unsafe {
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko,
                                                       items.len() as u32);
@@ -5522,8 +5521,8 @@ clip-path
                     unsafe {
                         *self.gecko.mContents[i].mContent.mString.as_mut() = ptr::null_mut();
                     }
-                    match item {
-                        ContentItem::String(value) => {
+                    match *item {
+                        ContentItem::String(ref value) => {
                             self.gecko.mContents[i].mType = eStyleContentType_String;
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
@@ -5531,17 +5530,18 @@ clip-path
                                     as_utf16_and_forget(&value);
                             }
                         }
-                        ContentItem::Attr(attr) => {
+                        ContentItem::Attr(ref attr) => {
                             self.gecko.mContents[i].mType = eStyleContentType_Attr;
-                            let s = if let Some((_, ns)) = attr.namespace {
-                                format!("{}|{}", ns, attr.attribute)
-                            } else {
-                                attr.attribute.into()
-                            };
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
-                                *self.gecko.mContents[i].mContent.mString.as_mut() =
-                                    as_utf16_and_forget(&s);
+                                *self.gecko.mContents[i].mContent.mString.as_mut() = match attr.namespace {
+                                    Some((_, ns)) => {
+                                        as_utf16_and_forget(&format!("{}|{}", ns, attr.attribute))
+                                    },
+                                    None => {
+                                        as_utf16_and_forget(&attr.attribute)
+                                    }
+                                };
                             }
                         }
                         ContentItem::OpenQuote
@@ -5552,13 +5552,13 @@ clip-path
                             => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
-                        ContentItem::Counter(name, style) => {
+                        ContentItem::Counter(ref name, ref style) => {
                             set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counter, &name, "", style, device);
+                                                 eStyleContentType_Counter, &name, "", style.clone(), device);
                         }
-                        ContentItem::Counters(name, sep, style) => {
+                        ContentItem::Counters(ref name, ref sep, ref style) => {
                             set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counters, &name, &sep, style, device);
+                                                 eStyleContentType_Counters, &name, &sep, style.clone(), device);
                         }
                         ContentItem::Url(ref url) => {
                             unsafe {
@@ -5586,22 +5586,22 @@ clip-path
     pub fn clone_content(&self) -> longhands::content::computed_value::T {
         use gecko::conversions::string_from_chars_pointer;
         use gecko_bindings::structs::nsStyleContentType::*;
-        use properties::longhands::content::computed_value::{T, ContentItem};
+        use values::computed::counters::{Content, ContentItem};
         use values::Either;
         use values::generics::CounterStyleOrNone;
         use values::specified::url::SpecifiedUrl;
         use values::specified::Attr;
 
         if self.gecko.mContents.is_empty() {
-            return T::Normal;
+            return Content::Normal;
         }
 
         if self.gecko.mContents.len() == 1 &&
            self.gecko.mContents[0].mType == eStyleContentType_AltContent {
-            return T::MozAltContent;
+            return Content::MozAltContent;
         }
 
-        T::Items(
+        Content::Items(
             self.gecko.mContents.iter().map(|gecko_content| {
                 match gecko_content.mType {
                     eStyleContentType_OpenQuote => ContentItem::OpenQuote,
@@ -5611,7 +5611,7 @@ clip-path
                     eStyleContentType_String => {
                         let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
                         let string = unsafe { string_from_chars_pointer(*gecko_chars) };
-                        ContentItem::String(string)
+                        ContentItem::String(string.into_boxed_str())
                     },
                     eStyleContentType_Attr => {
                         let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
@@ -5641,10 +5641,10 @@ clip-path
                                 unreachable!("counter function shouldn't have single string type"),
                         };
                         if gecko_content.mType == eStyleContentType_Counter {
-                            ContentItem::Counter(ident, style)
+                            ContentItem::Counter(ident.into_boxed_str(), style)
                         } else {
                             let separator = gecko_function.mSeparator.to_string();
-                            ContentItem::Counters(ident, separator, style)
+                            ContentItem::Counters(ident.into_boxed_str(), separator.into_boxed_str(), style)
                         }
                     },
                     eStyleContentType_Image => {
@@ -5659,7 +5659,7 @@ clip-path
                     },
                     _ => panic!("Found unexpected value in style struct for content property"),
                 }
-            }).collect()
+            }).collect::<Vec<_>>().into_boxed_slice()
         )
     }
 
