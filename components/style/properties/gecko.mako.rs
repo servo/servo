@@ -5459,8 +5459,7 @@ clip-path
     }
 
     pub fn set_content(&mut self, v: longhands::content::computed_value::T, device: &Device) {
-        use properties::longhands::content::computed_value::T;
-        use properties::longhands::content::computed_value::ContentItem;
+        use values::computed::counters::{Content, ContentItem};
         use values::generics::CounterStyleOrNone;
         use gecko_bindings::structs::nsStyleContentData;
         use gecko_bindings::structs::nsStyleContentType;
@@ -5494,8 +5493,8 @@ clip-path
         }
 
         match v {
-            T::None |
-            T::Normal => {
+            Content::None |
+            Content::Normal => {
                 // Ensure destructors run, otherwise we could leak.
                 if !self.gecko.mContents.is_empty() {
                     unsafe {
@@ -5503,14 +5502,14 @@ clip-path
                     }
                 }
             },
-            T::MozAltContent => {
+            Content::MozAltContent => {
                 unsafe {
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko, 1);
                     *self.gecko.mContents[0].mContent.mString.as_mut() = ptr::null_mut();
                 }
                 self.gecko.mContents[0].mType = eStyleContentType_AltContent;
             },
-            T::Items(items) => {
+            Content::Items(items) => {
                 unsafe {
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko,
                                                       items.len() as u32);
@@ -5586,22 +5585,22 @@ clip-path
     pub fn clone_content(&self) -> longhands::content::computed_value::T {
         use gecko::conversions::string_from_chars_pointer;
         use gecko_bindings::structs::nsStyleContentType::*;
-        use properties::longhands::content::computed_value::{T, ContentItem};
+        use values::computed::counters::{Content, ContentItem};
         use values::Either;
         use values::generics::CounterStyleOrNone;
         use values::specified::url::SpecifiedUrl;
         use values::specified::Attr;
 
         if self.gecko.mContents.is_empty() {
-            return T::Normal;
+            return Content::Normal;
         }
 
         if self.gecko.mContents.len() == 1 &&
            self.gecko.mContents[0].mType == eStyleContentType_AltContent {
-            return T::MozAltContent;
+            return Content::MozAltContent;
         }
 
-        T::Items(
+        Content::Items(
             self.gecko.mContents.iter().map(|gecko_content| {
                 match gecko_content.mType {
                     eStyleContentType_OpenQuote => ContentItem::OpenQuote,
