@@ -174,12 +174,11 @@ impl<'a> Context<'a> {
         F: FnOnce(&Context) -> R
     {
         let mut conditions = RuleCacheConditions::default();
-        let default_values = device.default_computed_values();
         let provider = get_metrics_provider_for_product();
 
         let context = Context {
             is_root_element: false,
-            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
+            builder: StyleBuilder::for_inheritance(device, None, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: true,

@@ -1997,10 +1997,11 @@ pub extern "C" fn Servo_FontFeatureValuesRule_GetValueText(rule: RawServoFontFea
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: ServoStyleContextBorrowedOrNull,
-                                                          pseudo_tag: *mut nsAtom,
-                                                          raw_data: RawServoStyleSetBorrowed)
-     -> ServoStyleContextStrong {
+pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(
+    parent_style_or_null: ServoStyleContextBorrowedOrNull,
+    pseudo_tag: *mut nsAtom,
+    raw_data: RawServoStyleSetBorrowed,
+) -> ServoStyleContextStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let guards = StylesheetGuards::same(&guard);
@@ -2299,7 +2300,7 @@ fn get_pseudo_style(
     Some(style.unwrap_or_else(|| {
         StyleBuilder::for_inheritance(
             doc_data.stylist.device(),
-            styles.primary(),
+            Some(styles.primary()),
             Some(pseudo),
         ).build()
     }))
@@ -2318,30 +2319,18 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     let atom = Atom::from(pseudo_tag);
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon-box? Gah!");
-    let style = if let Some(reference) = parent_style_context {
-        let mut style = StyleBuilder::for_inheritance(
-            data.stylist.device(),
-            reference,
-            Some(&pseudo)
-        );
 
-        if for_text {
-            StyleAdjuster::new(&mut style)
-                .adjust_for_text();
-        }
+    let mut style = StyleBuilder::for_inheritance(
+        data.stylist.device(),
+        parent_style_context,
+        Some(&pseudo)
+    );
 
-        style.build()
-    } else {
-        debug_assert!(!for_text);
-        StyleBuilder::for_derived_style(
-            data.stylist.device(),
-            data.default_computed_values(),
-            /* parent_style = */ None,
-            Some(&pseudo),
-        ).build()
-    };
+    if for_text {
+        StyleAdjuster::new(&mut style).adjust_for_text();
+    }
 
-    style.into()
+    style.build().into()
 }
 
 #[no_mangle]
@@ -3658,22 +3647,20 @@ fn simulate_compute_values_failure(_: &PropertyValuePair) -> bool {
     false
 }
 
-fn create_context<'a>(
+fn create_context_for_animation<'a>(
     per_doc_data: &'a PerDocumentStyleDataImpl,
     font_metrics_provider: &'a FontMetricsProvider,
     style: &'a ComputedValues,
     parent_style: Option<&'a ComputedValues>,
-    pseudo: Option<&'a PseudoElement>,
     for_smil_animation: bool,
     rule_cache_conditions: &'a mut RuleCacheConditions,
 ) -> Context<'a> {
     Context {
         is_root_element: false,
-        builder: StyleBuilder::for_derived_style(
+        builder: StyleBuilder::for_animation(
             per_doc_data.stylist.device(),
             style,
             parent_style,
-            pseudo,
         ),
         font_metrics_provider: font_metrics_provider,
         cached_system_font: None,
@@ -3751,14 +3738,12 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
     let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
-    let pseudo = style.pseudo();
     let mut conditions = Default::default();
-    let mut context = create_context(
+    let mut context = create_context_for_animation(
         &data,
         &metrics,
         &style,
         parent_style,
-        pseudo.as_ref(),
         /* for_smil_animation = */ false,
         &mut conditions,
     );
@@ -3860,14 +3845,12 @@ pub extern "C" fn Servo_GetAnimationValues(
     let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
-    let pseudo = style.pseudo();
     let mut conditions = Default::default();
-    let mut context = create_context(
+    let mut context = create_context_for_animation(
         &data,
         &metrics,
         &style,
         parent_style,
-        pseudo.as_ref(),
         /* for_smil_animation = */ true,
         &mut conditions,
     );
@@ -3904,14 +3887,12 @@ pub extern "C" fn Servo_AnimationValue_Compute(
     let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
-    let pseudo = style.pseudo();
     let mut conditions = Default::default();
-    let mut context = create_context(
+    let mut context = create_context_for_animation(
         &data,
         &metrics,
         style,
         parent_style,
-        pseudo.as_ref(),
         /* for_smil_animation = */ false,
         &mut conditions,
     );
@@ -4609,18 +4590,11 @@ pub extern "C" fn Servo_ComputeColor(
             let computed_color = match raw_data {
                 Some(raw_data) => {
                     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-                    let metrics = get_metrics_provider_for_product();
-                    let mut conditions = Default::default();
-                    let context = create_context(
-                        &data,
-                        &metrics,
-                        data.stylist.device().default_computed_values(),
-                        /* parent_style = */ None,
-                        /* pseudo = */ None,
-                        /* for_smil_animation = */ false,
-                        &mut conditions,
-                    );
-                    specified_color.to_computed_color(Some(&context))
+                    let device = data.stylist.device();
+                    let quirks_mode = data.stylist.quirks_mode();
+                    Context::for_media_query_evaluation(device, quirks_mode, |context| {
+                        specified_color.to_computed_color(Some(&context))
+                    })
                 }
                 None => {
                     specified_color.to_computed_color(None)

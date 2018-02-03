@@ -252,17 +252,6 @@ impl ops::DerefMut for ComputedValues {
 }
 
 impl ComputedValuesInner {
-    /// Clone the visited style.  Used for inheriting parent styles in
-    /// StyleBuilder::for_derived_style.
-    pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
-        self.visited_style.as_ref().map(|x| x.clone_arc())
-    }
-
-    #[inline]
-    pub fn is_display_contents(&self) -> bool {
-        self.get_box().clone_display() == longhands::display::computed_value::T::Contents
-    }
-
     /// Returns true if the value of the `content` property would make a
     /// pseudo-element not rendered.
     #[inline]

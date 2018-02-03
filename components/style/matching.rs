@@ -336,7 +336,7 @@ trait PrivateMatchMethods: TElement {
 
         // We need to cascade the children in order to ensure the correct
         // propagation of inherited computed value flags.
-        if old_values.flags.inherited() != new_values.flags.inherited() {
+        if old_values.flags.maybe_inherited() != new_values.flags.maybe_inherited() {
             debug!(" > flags changed: {:?} != {:?}", old_values.flags, new_values.flags);
             return ChildCascadeRequirement::MustCascadeChildren;
         }

@@ -708,19 +708,16 @@ impl MaybeNew for ViewportConstraints {
         }
 
         // DEVICE-ADAPT § 6.2.3 Resolve non-auto lengths to pixel lengths
-        //
-        // Note: DEVICE-ADAPT § 5. states that relative length values are
-        // resolved against initial values
         let initial_viewport = device.au_viewport_size();
 
         let provider = get_metrics_provider_for_product();
 
-        let default_values = device.default_computed_values();
-
         let mut conditions = RuleCacheConditions::default();
         let context = Context {
             is_root_element: false,
-            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
+            // Note: DEVICE-ADAPT § 5. states that relative length values are
+            // resolved against initial values
+            builder: StyleBuilder::for_inheritance(device, None, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: false,
