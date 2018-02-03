@@ -552,8 +552,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.pseudo.is_none() &&
             element.map_or(false, |e| e.is_link());
 
-        if is_link_element && element.unwrap().is_visited_link() {
+        if !is_link_element {
+            return;
+        }
+
+        if element.unwrap().is_visited_link() {
             self.style.flags.insert(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+        } else {
+            // Need to remove to handle unvisited link inside visited.
+            self.style.flags.remove(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         }
     }
 
