@@ -490,33 +490,6 @@
     </%call>
 </%def>
 
-<%def name="single_keyword(name, values, vector=False, **kwargs)">
-    <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
-        // FIXME(emilio): WTF is this even trying to do? Those are no-ops,
-        // should be derived instead!
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-                match *self {
-                    % for value in data.longhands_by_name[name].keyword.values_for(product):
-                        SpecifiedValue::${to_camel_case(value)} => computed_value::T::${to_camel_case(value)},
-                    % endfor
-                }
-            }
-            #[inline]
-            fn from_computed_value(computed: &computed_value::T) -> Self {
-                match *computed {
-                    % for value in data.longhands_by_name[name].keyword.values_for(product):
-                        computed_value::T::${to_camel_case(value)} => SpecifiedValue::${to_camel_case(value)},
-                    % endfor
-                }
-            }
-        }
-    </%call>
-</%def>
-
 <%def name="gecko_keyword_conversion(keyword, values=None, type='SpecifiedValue', cast_to=None)">
     <%
         if not values:
@@ -584,7 +557,7 @@
     }
 </%def>
 
-<%def name="single_keyword_computed(name, values, vector=False,
+<%def name="single_keyword(name, values, vector=False,
             extra_specified=None, needs_conversion=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
@@ -596,33 +569,39 @@
     %>
 
     <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False)">
-        % if extra_specified or keyword.aliases_for(product):
+        <%def name="variants(variants, include_aliases)">
+            % for variant in variants:
+            % if include_aliases:
+            <%
+                aliases = []
+                for alias, v in keyword.aliases_for(product).iteritems():
+                    if variant == v:
+                        aliases.append(alias)
+            %>
+            % if aliases:
+            #[css(aliases = "${','.join(aliases)}")]
+            % endif
+            % endif
+            ${to_camel_case(variant)},
+            % endfor
+        </%def>
+        % if extra_specified:
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
             #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
             pub enum SpecifiedValue {
-                % for value in keyword.values_for(product) + (extra_specified or "").split():
-                <%
-                    aliases = []
-                    for alias, v in keyword.aliases_for(product).iteritems():
-                        if value == v:
-                            aliases.append(alias)
-                %>
-                % if aliases:
-                #[css(aliases = "${','.join(aliases)}")]
-                % endif
-                ${to_camel_case(value)},
-                % endfor
+                ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
             }
         % else:
             pub use self::computed_value::T as SpecifiedValue;
         % endif
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+            % if not extra_specified:
+            #[derive(Parse, ToComputedValue)]
+            % endif
             pub enum T {
-            % for value in data.longhands_by_name[name].keyword.values_for(product):
-                ${to_camel_case(value)},
-            % endfor
+                ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}
             }
         }
         #[inline]
@@ -652,13 +631,17 @@
     % if vector:
         <%call expr="vector_longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
             ${inner_body(Keyword(name, values, **keyword_kwargs))}
+            % if caller:
             ${caller.body()}
+            % endif
         </%call>
     % else:
         <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
             ${inner_body(Keyword(name, values, **keyword_kwargs),
                          extra_specified=extra_specified, needs_conversion=needs_conversion)}
+            % if caller:
             ${caller.body()}
+            % endif
         </%call>
     % endif
 </%def>

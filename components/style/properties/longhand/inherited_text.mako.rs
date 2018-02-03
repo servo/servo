@@ -60,46 +60,43 @@ ${helpers.single_keyword("word-break",
                          spec="https://drafts.csswg.org/css-text/#propdef-word-break")}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
-<%helpers:single_keyword_computed name="text-justify"
-                                  values="auto none inter-word"
-                                  extra_gecko_values="inter-character"
-                                  extra_specified="${'distribute' if product == 'gecko' else ''}"
-                                  gecko_enum_prefix="StyleTextJustify"
-                                  animation_value_type="discrete"
-                                  gecko_pref="layout.css.text-justify.enabled"
-                                  flags="APPLIES_TO_PLACEHOLDER",
-                                  spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
-
+<%helpers:single_keyword
+    name="text-justify"
+    values="auto none inter-word"
+    extra_gecko_values="inter-character"
+    extra_specified="${'distribute' if product == 'gecko' else ''}"
+    gecko_enum_prefix="StyleTextJustify"
+    animation_value_type="discrete"
+    gecko_pref="layout.css.text-justify.enabled"
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-text/#propdef-text-justify"
+>
+    % if product == 'gecko':
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, _: &Context) -> computed_value::T {
             match *self {
-                % for value in "Auto None InterWord".split():
-                    SpecifiedValue::${value} => computed_value::T::${value},
+                % for value in "Auto None InterCharacter InterWord".split():
+                SpecifiedValue::${value} => computed_value::T::${value},
                 % endfor
-                % if product == "gecko":
-                    SpecifiedValue::InterCharacter => computed_value::T::InterCharacter,
-                    // https://drafts.csswg.org/css-text-3/#valdef-text-justify-distribute
-                    SpecifiedValue::Distribute => computed_value::T::InterCharacter,
-                % endif
+                // https://drafts.csswg.org/css-text-3/#valdef-text-justify-distribute
+                SpecifiedValue::Distribute => computed_value::T::InterCharacter,
             }
         }
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
             match *computed {
-                % for value in "Auto None InterWord".split():
-                    computed_value::T::${value} => SpecifiedValue::${value},
+                % for value in "Auto None InterCharacter InterWord".split():
+                computed_value::T::${value} => SpecifiedValue::${value},
                 % endfor
-                % if product == "gecko":
-                    computed_value::T::InterCharacter => SpecifiedValue::InterCharacter,
-                % endif
             }
         }
     }
-</%helpers:single_keyword_computed>
+    % endif
+</%helpers:single_keyword>
 
 ${helpers.single_keyword("text-align-last",
                          "auto start end left right center justify",
@@ -132,17 +129,17 @@ ${helpers.predefined_type("word-spacing",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
 
-<%helpers:single_keyword_computed name="white-space"
-                                  values="normal pre nowrap pre-wrap pre-line"
-                                  extra_gecko_values="-moz-pre-space"
-                                  gecko_enum_prefix="StyleWhiteSpace"
-                                  needs_conversion="True"
-                                  animation_value_type="discrete"
-                                  // Only allowed for UA sheets, which set it
-                                  // !important.
-                                  flags="APPLIES_TO_PLACEHOLDER"
-                                  spec="https://drafts.csswg.org/css-text/#propdef-white-space">
-    trivial_to_computed_value!(SpecifiedValue);
+<%helpers:single_keyword
+    name="white-space"
+    values="normal pre nowrap pre-wrap pre-line"
+    extra_gecko_values="-moz-pre-space"
+    gecko_enum_prefix="StyleWhiteSpace"
+    needs_conversion="True"
+    animation_value_type="discrete"
+    // Only allowed for UA sheets, which set it !important.
+    flags="APPLIES_TO_PLACEHOLDER"
+    spec="https://drafts.csswg.org/css-text/#propdef-white-space"
+>
     % if product != "gecko":
     impl SpecifiedValue {
         pub fn allow_wrap(&self) -> bool {
@@ -176,7 +173,7 @@ ${helpers.predefined_type("word-spacing",
         }
     }
     % endif
-</%helpers:single_keyword_computed>
+</%helpers:single_keyword>
 
 ${helpers.predefined_type(
     "text-shadow",
