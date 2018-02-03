@@ -490,33 +490,6 @@
     </%call>
 </%def>
 
-<%def name="single_keyword(name, values, vector=False, **kwargs)">
-    <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
-        // FIXME(emilio): WTF is this even trying to do? Those are no-ops,
-        // should be derived instead!
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-                match *self {
-                    % for value in data.longhands_by_name[name].keyword.values_for(product):
-                        SpecifiedValue::${to_camel_case(value)} => computed_value::T::${to_camel_case(value)},
-                    % endfor
-                }
-            }
-            #[inline]
-            fn from_computed_value(computed: &computed_value::T) -> Self {
-                match *computed {
-                    % for value in data.longhands_by_name[name].keyword.values_for(product):
-                        computed_value::T::${to_camel_case(value)} => SpecifiedValue::${to_camel_case(value)},
-                    % endfor
-                }
-            }
-        }
-    </%call>
-</%def>
-
 <%def name="gecko_keyword_conversion(keyword, values=None, type='SpecifiedValue', cast_to=None)">
     <%
         if not values:
@@ -584,7 +557,7 @@
     }
 </%def>
 
-<%def name="single_keyword_computed(name, values, vector=False,
+<%def name="single_keyword(name, values, vector=False,
             extra_specified=None, needs_conversion=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
@@ -625,7 +598,7 @@
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
             #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
             % if not extra_specified:
-            #[derive(Parse)]
+            #[derive(Parse, ToComputedValue)]
             % endif
             pub enum T {
                 ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}
@@ -658,13 +631,17 @@
     % if vector:
         <%call expr="vector_longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
             ${inner_body(Keyword(name, values, **keyword_kwargs))}
+            % if caller:
             ${caller.body()}
+            % endif
         </%call>
     % else:
         <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
             ${inner_body(Keyword(name, values, **keyword_kwargs),
                          extra_specified=extra_specified, needs_conversion=needs_conversion)}
+            % if caller:
             ${caller.body()}
+            % endif
         </%call>
     % endif
 </%def>
