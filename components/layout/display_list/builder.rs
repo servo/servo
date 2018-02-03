@@ -17,7 +17,7 @@ use context::LayoutContext;
 use display_list::ToLayout;
 use display_list::background::{compute_background_image_size, tile_image_axis};
 use display_list::background::{convert_linear_gradient, convert_radial_gradient};
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Transform3D, TypedSize2D, Vector2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Transform3D, TypedSize2D, Vector2D, rect};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, FlowFlags};
 use flow_ref::FlowRef;
@@ -1692,27 +1692,19 @@ impl FragmentDisplayListBuilding for Fragment {
         let insertion_point_bounds;
         let cursor;
         if !self.style.writing_mode.is_vertical() {
-            insertion_point_bounds = Rect::new(
-                Point2D::new(
-                    stacking_relative_border_box.origin.x + advance,
-                    stacking_relative_border_box.origin.y,
-                ),
-                Size2D::new(
-                    INSERTION_POINT_LOGICAL_WIDTH,
-                    stacking_relative_border_box.size.height,
-                ),
+            insertion_point_bounds = rect(
+                stacking_relative_border_box.origin.x + advance,
+                stacking_relative_border_box.origin.y,
+                INSERTION_POINT_LOGICAL_WIDTH,
+                stacking_relative_border_box.size.height,
             );
             cursor = CursorKind::Text;
         } else {
-            insertion_point_bounds = Rect::new(
-                Point2D::new(
-                    stacking_relative_border_box.origin.x,
-                    stacking_relative_border_box.origin.y + advance,
-                ),
-                Size2D::new(
-                    stacking_relative_border_box.size.width,
-                    INSERTION_POINT_LOGICAL_WIDTH,
-                ),
+            insertion_point_bounds = rect(
+                stacking_relative_border_box.origin.x,
+                stacking_relative_border_box.origin.y + advance,
+                stacking_relative_border_box.size.width,
+                INSERTION_POINT_LOGICAL_WIDTH,
             );
             cursor = CursorKind::VerticalText;
         };
@@ -2479,25 +2471,20 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     Rect::max_rect()
                 },
                 Some(transform) => {
-                    let clip = Rect::new(
-                        Point2D::new(
-                            (clip.origin.x - origin.x).to_f32_px(),
-                            (clip.origin.y - origin.y).to_f32_px(),
-                        ),
-                        Size2D::new(clip.size.width.to_f32_px(), clip.size.height.to_f32_px()),
+                    let clip = rect(
+                        (clip.origin.x - origin.x).to_f32_px(),
+                        (clip.origin.y - origin.y).to_f32_px(),
+                        clip.size.width.to_f32_px(),
+                        clip.size.height.to_f32_px(),
                     );
 
                     let clip = transform.transform_rect(&clip);
 
-                    Rect::new(
-                        Point2D::new(
-                            Au::from_f32_px(clip.origin.x),
-                            Au::from_f32_px(clip.origin.y),
-                        ),
-                        Size2D::new(
-                            Au::from_f32_px(clip.size.width),
-                            Au::from_f32_px(clip.size.height),
-                        ),
+                    rect(
+                        Au::from_f32_px(clip.origin.x),
+                        Au::from_f32_px(clip.origin.y),
+                        Au::from_f32_px(clip.size.width),
+                        Au::from_f32_px(clip.size.height),
                     )
                 },
                 None => Rect::zero(),
