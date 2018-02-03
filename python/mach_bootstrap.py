@@ -24,6 +24,7 @@ MACH_MODULES = [
     os.path.join('python', 'servo', 'post_build_commands.py'),
     os.path.join('python', 'servo', 'package_commands.py'),
     os.path.join('python', 'servo', 'devenv_commands.py'),
+    os.path.join('python', 'servo', 'bisect_commands.py'),
 ]
 
 CATEGORIES = {
@@ -66,6 +67,11 @@ CATEGORIES = {
         'short': 'Potpourri',
         'long': 'Potent potables and assorted snacks.',
         'priority': 10,
+    },
+    'bisect': {
+        'short': 'Bisect Commands',
+        'long': 'Bisect with the nightly versions',
+        'priority': 5,
     },
     'disabled': {
         'short': 'Disabled',
