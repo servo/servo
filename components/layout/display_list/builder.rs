@@ -804,31 +804,6 @@ fn build_border_radius_for_inner_rect(
     calculate_inner_border_radii(radii, border_widths)
 }
 
-fn build_inner_border_box_for_border_rect(
-    border_box: &Rect<Au>,
-    style: &ComputedValues,
-) -> Rect<Au> {
-    let border_widths = style.logical_border_width().to_physical(style.writing_mode);
-    let mut inner_border_box = *border_box;
-    inner_border_box.origin.x += border_widths.left;
-    inner_border_box.origin.y += border_widths.top;
-    inner_border_box.size.width -= border_widths.right + border_widths.left;
-    inner_border_box.size.height -= border_widths.bottom + border_widths.top;
-    inner_border_box
-}
-
-/// Subtract offsets from a bounding box.
-///
-/// As an example if the bounds are the border-box and the border
-/// is provided as offsets the result will be the padding-box.
-fn calculate_inner_bounds(mut bounds: Rect<Au>, offsets: SideOffsets2D<Au>) -> Rect<Au> {
-    bounds.origin.x += offsets.left;
-    bounds.origin.y += offsets.top;
-    bounds.size.width -= offsets.horizontal();
-    bounds.size.height -= offsets.vertical();
-    bounds
-}
-
 fn simple_normal_border(color: ColorF, style: webrender_api::BorderStyle) -> NormalBorder {
     let side = BorderSide { color, style };
     NormalBorder {
@@ -979,12 +954,12 @@ impl FragmentDisplayListBuilding for Fragment {
             BackgroundClip::BorderBox => {},
             BackgroundClip::PaddingBox => {
                 let border = style.logical_border_width().to_physical(style.writing_mode);
-                bounds = calculate_inner_bounds(bounds, border);
+                bounds = bounds.inner_rect(border);
                 border_radii = calculate_inner_border_radii(border_radii, border);
             },
             BackgroundClip::ContentBox => {
                 let border_padding = self.border_padding.to_physical(style.writing_mode);
-                bounds = calculate_inner_bounds(bounds, border_padding);
+                bounds = bounds.inner_rect(border_padding);
                 border_radii = calculate_inner_border_radii(border_radii, border_padding);
             },
         }
@@ -1106,27 +1081,21 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let css_clip = match bg_clip {
             BackgroundClip::BorderBox => absolute_bounds,
-            BackgroundClip::PaddingBox => calculate_inner_bounds(
-                absolute_bounds,
-                style.logical_border_width().to_physical(style.writing_mode),
-            ),
-            BackgroundClip::ContentBox => calculate_inner_bounds(
-                absolute_bounds,
-                self.border_padding.to_physical(style.writing_mode),
-            ),
+            BackgroundClip::PaddingBox => absolute_bounds
+                .inner_rect(style.logical_border_width().to_physical(style.writing_mode)),
+            BackgroundClip::ContentBox => {
+                absolute_bounds.inner_rect(self.border_padding.to_physical(style.writing_mode))
+            },
         };
 
         let mut bounds = match bg_attachment {
             BackgroundAttachment::Scroll => match bg_origin {
                 BackgroundOrigin::BorderBox => absolute_bounds,
-                BackgroundOrigin::PaddingBox => calculate_inner_bounds(
-                    absolute_bounds,
-                    style.logical_border_width().to_physical(style.writing_mode),
-                ),
-                BackgroundOrigin::ContentBox => calculate_inner_bounds(
-                    absolute_bounds,
-                    self.border_padding.to_physical(style.writing_mode),
-                ),
+                BackgroundOrigin::PaddingBox => absolute_bounds
+                    .inner_rect(style.logical_border_width().to_physical(style.writing_mode)),
+                BackgroundOrigin::ContentBox => {
+                    absolute_bounds.inner_rect(self.border_padding.to_physical(style.writing_mode))
+                },
             },
             BackgroundAttachment::Fixed => Rect::new(
                 Point2D::origin(),
@@ -2739,7 +2708,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollSensitivity::ScriptAndInputEvents
         };
 
-        let clip_rect = build_inner_border_box_for_border_rect(&border_box, &self.fragment.style);
+        let border_widths = self.fragment
+            .style
+            .logical_border_width()
+            .to_physical(self.fragment.style.writing_mode);
+        let clip_rect = border_box.inner_rect(border_widths);
+
         let mut clip = ClippingRegion::from_rect(clip_rect.to_layout());
         let radii = build_border_radius_for_inner_rect(&border_box, &self.fragment.style);
         if !radii.is_zero() {
