@@ -596,33 +596,39 @@
     %>
 
     <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False)">
-        % if extra_specified or keyword.aliases_for(product):
+        <%def name="variants(variants, include_aliases)">
+            % for variant in variants:
+            % if include_aliases:
+            <%
+                aliases = []
+                for alias, v in keyword.aliases_for(product).iteritems():
+                    if variant == v:
+                        aliases.append(alias)
+            %>
+            % if aliases:
+            #[css(aliases = "${','.join(aliases)}")]
+            % endif
+            % endif
+            ${to_camel_case(variant)},
+            % endfor
+        </%def>
+        % if extra_specified:
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
             #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
             pub enum SpecifiedValue {
-                % for value in keyword.values_for(product) + (extra_specified or "").split():
-                <%
-                    aliases = []
-                    for alias, v in keyword.aliases_for(product).iteritems():
-                        if value == v:
-                            aliases.append(alias)
-                %>
-                % if aliases:
-                #[css(aliases = "${','.join(aliases)}")]
-                % endif
-                ${to_camel_case(value)},
-                % endfor
+                ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
             }
         % else:
             pub use self::computed_value::T as SpecifiedValue;
         % endif
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+            % if not extra_specified:
+            #[derive(Parse)]
+            % endif
             pub enum T {
-            % for value in data.longhands_by_name[name].keyword.values_for(product):
-                ${to_camel_case(value)},
-            % endfor
+                ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}
             }
         }
         #[inline]
