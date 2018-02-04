@@ -88,7 +88,7 @@ use js::jsapi::{GCReason, JS_GC};
 use js::jsval::UndefinedValue;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleObject};
 use media::WindowGLContext;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -1076,7 +1076,14 @@ impl WindowMethods for Window {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/window-object.html#named-access-on-the-window-object
+    // https://heycam.github.io/webidl/#named-properties-object
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    fn CreateNamedPropertiesObject(_cx: JSContext, _proto: MutableHandleObject) {
+        unimplemented!("Wow!")
+    }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273).
         //
@@ -1088,7 +1095,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     fn NamedGetter(
         &self,
-        cx: JSContext,
+        _cx: JSContext,
         name: DOMString,
     ) -> Option<NonNull<JSObject>> {
         // TODO: Return child windows, like iframes and such. When this is
@@ -1115,15 +1122,15 @@ impl WindowMethods for Window {
 
             let first_element = named_elements.next()?;
             if named_elements.next().is_none() {
-                return Some(NonNull::new_unchecked(
+                return Some(NonNull::new(
                     first_element.reflector().get_jsobject().get()
-                ));
+                ).unwrap());
             }
         }
 
         let collection =
             HTMLCollection::create(self, root, Box::new(filter));
-        Some(NonNull::new_unchecked(collection.reflector().get_jsobject().get()))
+        Some(NonNull::new(collection.reflector().get_jsobject().get()).unwrap())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
