@@ -1443,12 +1443,16 @@ impl PropertyId {
 #[derive(Clone, PartialEq)]
 pub enum PropertyDeclaration {
     % for property in data.longhands:
-        /// ${property.name}
-        % if property.boxed:
-            ${property.camel_case}(Box<longhands::${property.ident}::SpecifiedValue>),
-        % else:
-            ${property.camel_case}(longhands::${property.ident}::SpecifiedValue),
-        % endif
+    /// ${property.name}
+    <%
+        if property.predefined_type and not property.is_vector:
+            ty = "::values::specified::{}".format(property.predefined_type)
+        else:
+            ty = "longhands::{}::SpecifiedValue".format(property.ident)
+        if property.boxed:
+            ty = "Box<{}>".format(ty)
+    %>
+    ${property.camel_case}(${ty}),
     % endfor
     /// A css-wide keyword.
     CSSWideKeyword(LonghandId, CSSWideKeyword),
