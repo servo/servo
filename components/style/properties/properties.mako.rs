@@ -1658,29 +1658,9 @@ impl PropertyDeclaration {
     /// Returns true if this property declaration is for one of the animatable
     /// properties.
     pub fn is_animatable(&self) -> bool {
-        match *self {
-            % for property in data.longhands:
-            PropertyDeclaration::${property.camel_case}(_) => {
-                % if property.animatable:
-                    true
-                % else:
-                    false
-                % endif
-            }
-            % endfor
-            PropertyDeclaration::CSSWideKeyword(id, _) |
-            PropertyDeclaration::WithVariables(id, _) => match id {
-                % for property in data.longhands:
-                LonghandId::${property.camel_case} => {
-                    % if property.animatable:
-                        true
-                    % else:
-                        false
-                    % endif
-                }
-                % endfor
-            },
-            PropertyDeclaration::Custom(..) => false,
+        match self.id() {
+            PropertyDeclarationId::Longhand(id) => id.is_animatable(),
+            PropertyDeclarationId::Custom(..) => false,
         }
     }
 
