@@ -9,7 +9,9 @@ publish = false
 path = "lib.rs"
 
 [features]
-servo = ["mozjs", "string_cache", "url", "webrender_api", "xml5ever"]
+servo = ["mozjs", "string_cache", "xml5ever"]
+url_traits = ["url"]
+webrender_traits = ["webrender_api"]
 
 [dependencies]
 app_units = "0.6"
