@@ -276,7 +276,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         debug_assert!(self.edit_point.line < self.lines.len());
-        debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len());
+        debug_assert!(self.edit_point.index <= max(1, self.lines[self.edit_point.line].len()));
     }
 
     pub fn get_selection_text(&self) -> Option<String> {
