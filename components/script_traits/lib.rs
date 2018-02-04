@@ -565,16 +565,6 @@ pub struct InitialScriptState {
     pub webrender_document: DocumentId,
 }
 
-/// This trait allows creating a `ScriptThread` without depending on the `script`
-/// crate.
-pub trait ScriptThreadFactory {
-    /// Type of message sent from script to layout.
-    type Message;
-    /// Create a `ScriptThread`.
-    fn create(state: InitialScriptState, load_data: LoadData)
-        -> (Sender<Self::Message>, Receiver<Self::Message>);
-}
-
 /// Whether the sandbox attribute is present for an iframe element
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum IFrameSandboxState {

@@ -26,7 +26,9 @@ use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToCon
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
-use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
+use script_traits::{TimerSchedulerMsg, WindowSizeData};
+use script::script_thread::ScriptThreadFactory;
+use script::dom::document::Document;
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
@@ -183,7 +185,7 @@ pub struct InitialPipelineState {
 impl Pipeline {
     /// Starts a layout thread, and possibly a script thread, in
     /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, Error>
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState, ion_application: Option<fn(&Document) -> ()>) -> Result<Pipeline, Error>
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -285,7 +287,7 @@ impl Pipeline {
                 if opts::multiprocess() {
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, ion_application);
                 }
 
                 EventLoop::new(script_chan)
@@ -481,7 +483,7 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
+    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool, ion_application: Option<fn(&Document) -> ()>)
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -513,7 +515,7 @@ impl UnprivilegedPipelineContent {
             webgl_chan: self.webgl_chan,
             webvr_chan: self.webvr_chan,
             webrender_document: self.webrender_document,
-        }, self.load_data.clone());
+        }, self.load_data.clone(), ion_application);
 
         LTF::create(self.id,
                     self.top_level_browsing_context_id,

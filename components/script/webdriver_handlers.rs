@@ -110,31 +110,9 @@ pub fn handle_execute_async_script(documents: &Documents,
     window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
-pub fn handle_testing(documents: &Documents,
-                                   pipeline: PipelineId,
-                                   msg: String,
-                                   reply: IpcSender<String>) {
-    use dom::document::Document;
-    use std::ops::Deref;
-    use dom::bindings::str::DOMString;
-    use dom::bindings::codegen::UnionTypes::NodeOrString;
-    use dom::eventtarget::EventTarget;
-
-    reply.send(documents.find_document(pipeline).and_then(|document| {
-        let doc: &Document = document.deref();
-        let elemPtr = doc.GetElementById(DOMString::from_string(msg)).unwrap();
-        elemPtr.deref().SetInnerHTML(DOMString::from_string("Bonjour!".to_string())).unwrap();
-        elemPtr.deref().SetAttribute(DOMString::from_string("style".to_string()),
-                                     DOMString::from_string("background-color: #eee; border: 1px solid black".to_string())).unwrap();
-        elemPtr.deref().Append(vec![NodeOrString::String(
-            DOMString::from_string("My child".to_string()))]).unwrap();
-        let node: &EventTarget = elemPtr.deref().upcast::<EventTarget>();
-        node.add_event_handler_rust("click", RustEventHandler {
-            handler: Rc::new(|| println!("I am rust code!!!!!"))
-        });
-
-        Some("Ok".to_string())
-    }).unwrap()).unwrap();
+pub fn handle_load_rust(documents: &Documents,
+                                   pipeline: PipelineId) {
+    println!("TODO")
 }
 
 pub fn handle_get_browsing_context_id(documents: &Documents,

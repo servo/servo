@@ -112,7 +112,7 @@ pub mod clipboard_provider;
 mod devtools;
 pub mod document_loader;
 #[macro_use]
-mod dom;
+pub mod dom;
 pub mod fetch;
 mod layout_image;
 mod mem;

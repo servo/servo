@@ -92,7 +92,7 @@ use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
-use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFactory};
+use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
@@ -131,6 +131,7 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
+thread_local!(pub static ION_APPLICATION: Cell<Option<fn(&Document) -> ()>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
@@ -540,11 +541,19 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     }
 }
 
+pub trait ScriptThreadFactory {
+    /// Type of message sent from script to layout.
+    type Message;
+    /// Create a `ScriptThread`.
+    fn create(state: InitialScriptState, load_data: LoadData, ion_application: Option<fn(&Document) -> ()>)
+              -> (Sender<Self::Message>, Receiver<Self::Message>);
+}
+
 impl ScriptThreadFactory for ScriptThread {
     type Message = message::Msg;
 
     fn create(state: InitialScriptState,
-              load_data: LoadData)
+              load_data: LoadData, ion_application_main: Option<fn(&Document) -> ()>)
               -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let (script_chan, script_port) = channel();
 
@@ -569,6 +578,12 @@ impl ScriptThreadFactory for ScriptThread {
             SCRIPT_THREAD_ROOT.with(|root| {
                 root.set(Some(&script_thread as *const _));
             });
+
+            if let Some(f) = ion_application_main {
+                ION_APPLICATION.with(|root| {
+                    root.set(Some(f));
+                });
+            }
 
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
@@ -1476,8 +1491,8 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_title(&*documents, pipeline_id, reply),
             WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>
                 webdriver_handlers::handle_execute_async_script(&*documents, pipeline_id, script, reply),
-            WebDriverScriptCommand::Testing(msg, reply) =>
-                webdriver_handlers::handle_testing(&*documents, pipeline_id, msg, reply),
+            WebDriverScriptCommand::LoadRust =>
+                webdriver_handlers::handle_load_rust(&*documents, pipeline_id),
         }
     }
 
