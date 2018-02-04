@@ -40,11 +40,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::hashchangeevent::HashChangeEvent;
 use dom::history::History;
-<<<<<<< HEAD
-=======
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use dom::htmliframeelement::build_mozbrowser_custom_event;
->>>>>>> script: Partially implement the window named getter.
 use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use dom::mediaquerylistevent::MediaQueryListEvent;
@@ -65,16 +61,13 @@ use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSiz
 use fetch;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
-<<<<<<< HEAD
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
+use js::jsval::JSObject;
 use js::jsapi::JSPROP_ENUMERATE;
+use js::jsapi::JS_GetRuntime;
 use js::jsapi::JS_GC;
 use js::jsval::JSVal;
-=======
-use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext, JSObject};
-use js::jsapi::{JS_GC, JS_GetRuntime};
->>>>>>> script: Partially implement the window named getter.
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_DefineProperty;
@@ -104,11 +97,8 @@ use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, Win
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
 use servo_arc;
-<<<<<<< HEAD
-use servo_channel::{channel, Sender};
-=======
 use servo_atoms::Atom;
->>>>>>> script: Partially implement the window named getter.
+use servo_channel::{channel, Sender};
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
@@ -1015,7 +1005,14 @@ impl WindowMethods for Window {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/window-object.html#named-access-on-the-window-object
+    // https://heycam.github.io/webidl/#named-properties-object
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    unsafe fn CreateNamedPropertiesObject(_cx: *mut JSContext, _proto: MutableHandleObject) {
+        unimplemented!("Wow!")
+    }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273).
         //

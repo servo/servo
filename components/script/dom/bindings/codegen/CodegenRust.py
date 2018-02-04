@@ -2943,8 +2943,19 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
         else:
             proto_properties = properties
 
+
         code.append(CGGeneric("""
 rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
+"""))
+
+        if self.descriptor.hasNamedPropertiesObject():
+            assert self.descriptor.isGlobal()
+            assert not self.haveUnscopables
+            code.append(CGGeneric("""
+dom::types::%s::CreateNamedPropertiesObject(cx, prototype.handle_mut());
+""" % name))
+        else:
+            code.append(CGGeneric("""
 create_interface_prototype_object(cx,
                                   prototype_proto.handle().into(),
                                   &PrototypeClass,
@@ -2953,6 +2964,9 @@ create_interface_prototype_object(cx,
                                   %(consts)s,
                                   %(unscopables)s,
                                   prototype.handle_mut().into());
+""" % proto_properties))
+
+        code.append(CGGeneric("""
 assert!(!prototype.is_null());
 assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 (*cache)[PrototypeList::ID::%(id)s as usize] = prototype.get();
@@ -5646,7 +5660,7 @@ class CGInterfaceTrait(CGThing):
                             rettype = "ErrorResult"
                         yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type), rettype
 
-            if descriptor.proxy:
+            if descriptor.proxy or descriptor.hasNamedPropertiesObject():
                 for name, operation in descriptor.operations.iteritems():
                     if not operation or operation.isStringifier():
                         continue
@@ -5681,6 +5695,12 @@ class CGInterfaceTrait(CGThing):
             return reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
 
         methods = []
+
+        if descriptor.hasNamedPropertiesObject():
+            methods.append(CGGeneric("""
+unsafe fn CreateNamedPropertiesObject(cx: *mut JSContext, proto: MutableHandleObject);
+"""))
+
         for name, arguments, rettype in members():
             arguments = list(arguments)
             methods.append(CGGeneric("%sfn %s(&self%s) -> %s;\n" % (
@@ -5994,6 +6014,7 @@ class CGDescriptor(CGThing):
         cgThings = []
 
         unscopableNames = []
+
         for m in descriptor.interface.members:
             if (m.isMethod() and
                     (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
