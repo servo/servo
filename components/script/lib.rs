@@ -20,7 +20,6 @@
 #![plugin(script_plugins)]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 
-extern crate libloading;
 extern crate angle;
 extern crate app_units;
 extern crate audio_video_metadata;
@@ -113,7 +112,7 @@ pub mod clipboard_provider;
 mod devtools;
 pub mod document_loader;
 #[macro_use]
-pub mod dom;
+mod dom;
 pub mod fetch;
 mod layout_image;
 mod mem;

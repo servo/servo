@@ -36,7 +36,7 @@ pub enum WebDriverScriptCommand {
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),
     GetTitle(IpcSender<String>),
-    LoadRustScript(String),
+    Testing(String, IpcSender<String>),
 }
 
 #[derive(Deserialize, Serialize)]

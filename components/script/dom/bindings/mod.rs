@@ -130,6 +130,7 @@
 //! (error/enum.Error.html).
 
 #![allow(unsafe_code)]
+#![deny(missing_docs)]
 #![deny(non_snake_case)]
 
 pub mod callback;

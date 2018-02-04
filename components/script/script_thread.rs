@@ -103,7 +103,7 @@ use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
 use std::ops::Deref;
@@ -127,12 +127,10 @@ use url::percent_encoding::percent_decode;
 use webdriver_handlers;
 use webrender_api::DocumentId;
 use webvr_traits::{WebVREvent, WebVRMsg};
-use libloading;
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
-thread_local!(static ION_ROOT: RefCell<Option<IonApplication>> = RefCell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
@@ -387,10 +385,6 @@ impl<'a> Iterator for DocumentsIter<'a> {
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
         self.iter.next().map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
     }
-}
-
-pub struct IonApplication {
-    pub lib: libloading::Library
 }
 
 #[derive(JSTraceable)]
@@ -1482,9 +1476,8 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_title(&*documents, pipeline_id, reply),
             WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>
                 webdriver_handlers::handle_execute_async_script(&*documents, pipeline_id, script, reply),
-            WebDriverScriptCommand::LoadRustScript(path) => ION_ROOT.with(|root| {
-                webdriver_handlers::handle_load_rust_script(root, &*documents, pipeline_id, path)
-            }),
+            WebDriverScriptCommand::Testing(msg, reply) =>
+                webdriver_handlers::handle_testing(&*documents, pipeline_id, msg, reply),
         }
     }
 
