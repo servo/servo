@@ -59,11 +59,13 @@ class PostBuildCommands(CommandBase):
                      help='Launch in headless mode')
     @CommandArgument('--software', '-s', action='store_true',
                      help='Launch with software rendering')
+    @CommandArgument('--bin', default=None,
+                     help='Launch with specific binary')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False,
-            headless=False, software=False):
+            headless=False, software=False, bin=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -96,7 +98,7 @@ class PostBuildCommands(CommandBase):
             shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
-        args = [self.get_binary_path(release, dev)]
+        args = [bin or self.get_binary_path(release, dev)]
 
         if browserhtml:
             browserhtml_path = get_browserhtml_path(args[0])
@@ -173,14 +175,16 @@ class PostBuildCommands(CommandBase):
                      help='Use release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Use dev build')
+    @CommandArgument('--bin', default=None,
+                     help='Launch with specific binary')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def rr_record(self, release=False, dev=False, params=[]):
+    def rr_record(self, release=False, dev=False, bin=None, params=[]):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        servo_cmd = [self.get_binary_path(release, dev)] + params
+        servo_cmd = [bin or self.get_binary_path(release, dev)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             check_call(rr_cmd + servo_cmd)
