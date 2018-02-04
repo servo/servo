@@ -237,9 +237,11 @@ impl RootCollection {
 
     /// Stops tracking a trace object, asserting if it isn't found.
     unsafe fn unroot(&self, object: *const JSTraceable) {
+        use std::ptr;
         debug_assert!(thread_state::get().is_script());
         let roots = &mut *self.roots.get();
-        match roots.iter().rposition(|r| *r == object) {
+        //https://stackoverflow.com/questions/47489449/why-can-comparing-two-seemingly-equal-pointers-with-return-false
+        match roots.iter().rposition(|r| *r as *const () == object as *const ()) {
             Some(idx) => {
                 roots.remove(idx);
             },
