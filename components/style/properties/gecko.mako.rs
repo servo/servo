@@ -5669,9 +5669,8 @@ clip-path
             v: longhands::counter_${counter_property.lower()}::computed_value::T
         ) {
             unsafe {
-                bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko,
-                                                                      v.get_values().len() as u32);
-                for (i, &(ref name, value)) in v.get_values().into_iter().enumerate() {
+                bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko, v.len() as u32);
+                for (i, &(ref name, value)) in v.iter().enumerate() {
                     self.gecko.m${counter_property}s[i].mCounter.assign(name.0.as_slice());
                     self.gecko.m${counter_property}s[i].mValue = value;
                 }

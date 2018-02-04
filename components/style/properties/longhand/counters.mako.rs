@@ -236,14 +236,18 @@
     }
 </%helpers:longhand>
 
-${helpers.predefined_type("counter-increment",
-                          "CounterIncrement",
-                          initial_value="computed::CounterIncrement::none()",
-                          animation_value_type="discrete",
-                          spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment")}
+${helpers.predefined_type(
+    "counter-increment",
+    "CounterIncrement",
+    initial_value="Default::default()",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment",
+)}
 
-${helpers.predefined_type("counter-reset",
-                          "CounterReset",
-                          initial_value="computed::CounterReset::none()",
-                          animation_value_type="discrete",
-                          spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset")}
+${helpers.predefined_type(
+    "counter-reset",
+    "CounterReset",
+    initial_value="Default::default()",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset",
+)}
