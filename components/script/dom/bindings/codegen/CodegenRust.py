@@ -5161,8 +5161,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n" +
                     "}\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.operations['NamedGetter']:
             attrs = []
             if not self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
                 attrs.append("JSPROP_ENUMERATE")
@@ -5419,11 +5418,10 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                         "    return true;\n" +
                         "}\n\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
         condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
         if indexedGetter:
             condition = "index.is_none() && (%s)" % condition
-        if namedGetter:
+        if self.descriptor.operations['NamedGetter']:
             named = """\
 if %s {
     let mut has_on_proto = false;
@@ -5506,8 +5504,7 @@ if !expando.is_null() {
         else:
             getIndexedOrExpando = getFromExpando + "\n"
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.operations['NamedGetter']:
             condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
             # From step 1:
             #     If O supports indexed properties and P is an array index, then:
@@ -6214,7 +6211,7 @@ class CGDescriptor(CGThing):
                 elif m.getExtendedAttribute("Replaceable"):
                     cgThings.append(CGSpecializedReplaceableSetter(descriptor, m))
 
-                if (not m.isStatic() and not descriptor.interface.isCallback()):
+                if not m.isStatic() and not descriptor.interface.isCallback():
                     cgThings.append(CGMemberJITInfo(descriptor, m))
 
         if defaultToJSONMethod:
