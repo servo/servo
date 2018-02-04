@@ -55,7 +55,7 @@ use euclid::{Point2D, Vector2D, Rect, Size2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext, JSObject};
+use js::jsapi::{HandleObject, HandleValue, MutableHandleObject, JSAutoCompartment, JSContext, JSObject};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
 use layout_image::fetch_image_for_layout;
@@ -845,7 +845,14 @@ impl WindowMethods for Window {
                                  CSSModificationAccess::Readonly)
     }
 
-    // https://html.spec.whatwg.org/multipage/window-object.html#named-access-on-the-window-object
+    // https://heycam.github.io/webidl/#named-properties-object
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    unsafe fn CreateNamedPropertiesObject(_cx: *mut JSContext, _proto: MutableHandleObject) {
+        unimplemented!("Wow!")
+    }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273).
         //
