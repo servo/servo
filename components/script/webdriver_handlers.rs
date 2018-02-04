@@ -36,8 +36,6 @@ use script_thread::Documents;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_traits::webdriver_msg::WebDriverCookieError;
 use servo_url::ServoUrl;
-use std::rc::Rc;
-use dom::eventtarget::RustEventHandler;
 
 fn find_node_by_unique_id(documents: &Documents,
                           pipeline: PipelineId,

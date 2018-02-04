@@ -50,11 +50,12 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::rc::Rc;
 use dom::document::Document;
+use js::jsapi::JSContext;
 
 #[derive(Clone, MallocSizeOf)]
 pub struct RustEventHandler {
     #[ignore_malloc_size_of = "Rc"]
-    pub handler: Rc<Fn(&Document) -> ()>
+    pub handler: Rc<Fn(&Document, *mut JSContext) -> ()>
 }
 
 impl PartialEq for RustEventHandler {
@@ -250,16 +251,13 @@ impl CompiledEventListener {
                 }
             },
             CompiledEventListener::Rust(RustEventHandler { handler: ref f }) => {
-                use dom::bindings::codegen::Bindings::DocumentBinding::DocumentBinding::DocumentMethods;
-                use std::thread;
-
                 let cx = object.global().get_cx();
                 let target = &event.GetTarget().unwrap();
                 let glob = &target.global();
                 let window = &glob.downcast::<Window>().unwrap();
                 let doc = &window.Document();
 
-                let _ = f(doc);
+                let _ = f(doc, cx);
             },
         }
     }
