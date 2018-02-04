@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use servo_atoms::Atom;
+use std::fmt;
 use std::fs::File;
 use std::io::{Read, Error};
 use webrender_api::NativeFontHandle;
@@ -11,10 +12,21 @@ use webrender_api::NativeFontHandle;
 /// The identifier is an absolute path, and the bytes
 /// field is the loaded data that can be passed to
 /// freetype and azure directly.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
+    // If you add members here, review the Debug impl below
+
     pub bytes: Vec<u8>,
     pub identifier: Atom,
+}
+
+impl fmt::Debug for FontTemplateData {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("FontTemplateData")
+           .field("bytes", &format!("[{} bytes]", self.bytes.len()))
+           .field("identifier", &self.identifier)
+           .finish()
+    }
 }
 
 impl FontTemplateData {

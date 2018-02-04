@@ -4,13 +4,30 @@
 
 use platform::windows::font_list::{descriptor_from_atom, font_from_atom};
 use servo_atoms::Atom;
+use std::fmt;
 use std::io;
 use webrender_api::NativeFontHandle;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
+    // If you add members here, review the Debug impl below
+
     pub bytes: Option<Vec<u8>>,
     pub identifier: Atom,
+}
+
+impl fmt::Debug for FontTemplateData {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("FontTemplateData")
+           .field(
+               "bytes",
+               &self.bytes
+                    .as_ref()
+                    .map(|bytes| format!("[{} bytes]", bytes.len()))
+            )
+           .field("identifier", &self.identifier)
+           .finish()
+    }
 }
 
 impl FontTemplateData {
