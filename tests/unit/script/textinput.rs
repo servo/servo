@@ -613,7 +613,7 @@ fn test_textinput_set_selection_with_direction() {
 
     textinput = text_input(Lines::Multiple, "\n");
     textinput.set_selection_range(0, 1, SelectionDirection::Forward);
-    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.line, 1);
     assert_eq!(textinput.edit_point.index, 0);
     assert_eq!(textinput.selection_direction, SelectionDirection::Forward);
 
