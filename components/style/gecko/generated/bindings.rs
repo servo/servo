@@ -1180,6 +1180,12 @@ extern "C" {
     pub fn Gecko_NoteAnimationOnlyDirtyElement(element: RawGeckoElementBorrowed);
 }
 extern "C" {
+    pub fn Gecko_AnimationNameMayBeReferencedFromStyle(
+        pres_context: RawGeckoPresContextBorrowed,
+        name: *mut nsAtom,
+    ) -> bool;
+}
+extern "C" {
     pub fn Gecko_GetImplementedPseudo(element: RawGeckoElementBorrowed) -> CSSPseudoElementType;
 }
 extern "C" {
