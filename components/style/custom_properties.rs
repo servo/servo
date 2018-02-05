@@ -8,6 +8,7 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
+use hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
 use properties::{CSSWideKeyword, DeclaredValue};
 use selector_map::{PrecomputedHashSet, PrecomputedHashMap};
@@ -105,11 +106,21 @@ where
     }
 
     /// Insert a new key-value pair.
+    ///
+    /// TODO(emilio): Remove unused_mut when Gecko and Servo agree in whether
+    /// it's necessary.
+    #[allow(unused_mut)]
     pub fn insert(&mut self, key: K, value: V) {
-        if !self.values.contains_key(&key) {
-            self.index.push(key.clone());
+        let OrderedMap { ref mut index, ref mut values } = *self;
+        match values.entry(key) {
+            Entry::Vacant(mut entry) => {
+                index.push(entry.key().clone());
+                entry.insert(value);
+            }
+            Entry::Occupied(mut entry) => {
+                entry.insert(value);
+            }
         }
-        self.values.insert(key, value);
     }
 
     /// Get a value given its key.
@@ -666,8 +677,6 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
     ///   been completely resolved.
     /// * There is no such variable at all.
     fn traverse<'a>(name: Name, context: &mut Context<'a>) -> Option<usize> {
-        use hash::map::Entry;
-
         // Some shortcut checks.
         let (name, value) = if let Some(value) = context.map.get(&name) {
             // This variable has been resolved. Return the signal value.
