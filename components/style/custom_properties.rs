@@ -255,9 +255,7 @@ impl VariableValue {
         debug_assert!(variable.references.is_empty());
         self.push(&variable.css, variable.first_token_type, variable.last_token_type)
     }
-}
 
-impl VariableValue {
     /// Parse a custom property value.
     pub fn parse<'i, 't>(
         input: &mut Parser<'i, 't>,
