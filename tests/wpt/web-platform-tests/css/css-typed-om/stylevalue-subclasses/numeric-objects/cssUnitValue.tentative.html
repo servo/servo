@@ -19,26 +19,12 @@ for (const {unit, desc} of gInvalidTestUnits) {
   }, 'Constructing CSSUnitValue with ' + desc + ' as the unit throws a TypeError');
 }
 
-for (const {unit, desc} of gInvalidTestUnits) {
-  test(() => {
-    let result = new CSSUnitValue(0, 'px');
-    assert_throws(new TypeError(), () => result.unit = unit);
-    assert_equals(result.unit, 'px');
-  }, 'Updating CSSUnitValue.unit with ' + desc + ' throws a TypeError');
-}
-
 for (const unit of gValidUnits) {
   test(() => {
     const result = new CSSUnitValue(-3.14, unit);
     assert_equals(result.value, -3.14);
     assert_equals(result.unit, unit.toLowerCase());
   }, 'CSSUnitValue can be constructed with ' + unit);
-
-  test(() => {
-    let result = new CSSUnitValue(-3.14, 'px');
-    result.unit = unit
-    assert_equals(result.unit, unit.toLowerCase());
-  }, 'CSSUnitValue.unit can be updated to ' + unit);
 }
 
 </script>

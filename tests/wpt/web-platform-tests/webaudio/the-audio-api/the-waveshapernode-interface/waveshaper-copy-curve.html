@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test WaveShaper Copies Curve Data
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/audit-util.js"></script>
+    <script src="../../resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      // Sample rate and number of frames are fairly arbitrary.  We need to
+      // render, however, at least 384 frames.  1024 is a nice small value.
+      let sampleRate = 16000;
+      let renderFrames = 1024;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define(
+          {
+            label: 'test copying',
+            description: 'Modifying curve should not modify WaveShaper'
+          },
+          (task, should) => {
+            // Two-channel context; channel 0 contains the test data and channel
+            // 1 contains the expected result.  Channel 1 has the normal
+            // WaveShaper output and channel 0 has the WaveShaper output with a
+            // modified curve.
+            let context = new OfflineAudioContext(2, renderFrames, sampleRate);
+
+            // Just use a default oscillator as the source.  Doesn't really
+            // matter what we use.
+            let src = context.createOscillator();
+            src.type = 'sawtooth';
+
+            // Create the wave shapers: ws0 is the test shaper, and ws1 is the
+            // reference wave shaper.
+            let ws0 = context.createWaveShaper();
+            let ws1 = context.createWaveShaper();
+
+            // Wave shaper curves.  Doesn't really matter what we use as long as
+            // it modifies the input in some way.  Thus, keep it simple and just
+            // invert the input.
+            let desiredCurve = [1, 0, -1];
+            let curve0 = Float32Array.from(desiredCurve);
+            let curve1 = Float32Array.from(desiredCurve);
+
+            ws0.curve = curve0;
+            ws1.curve = curve1;
+
+            let merger = context.createChannelMerger(2);
+
+            // Connect the graph
+            src.connect(ws0);
+            src.connect(ws1);
+
+            ws0.connect(merger, 0, 0);
+            ws1.connect(merger, 0, 1);
+
+            merger.connect(context.destination);
+
+            // Let the context run for a bit and then modify the curve for ws0.
+            // Doesn't really matter what we modify the curve to as long as it's
+            // different.
+            context.suspend(256 / context.sampleRate)
+                .then(() => {
+                  should(
+                      () => {
+                        curve0[0] = -0.5;
+                        curve0[1] = 0.125;
+                        curve0[2] = 0.75;
+                      },
+                      `Modifying curve array at time ${context.currentTime}`)
+                      .notThrow();
+                })
+                .then(context.resume.bind(context));
+
+            src.start();
+
+            context.startRendering()
+                .then(function(renderedBuffer) {
+                  let actual = renderedBuffer.getChannelData(0);
+                  let expected = renderedBuffer.getChannelData(1);
+
+                  // Modifying the wave shaper curve should not modify the
+                  // output so the outputs from the two wave shaper nodes should
+                  // be exactly identical.
+                  should(actual, 'Output of WaveShaper with modified curve')
+                      .beEqualToArray(expected);
+
+                })
+                .then(() => task.done());
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

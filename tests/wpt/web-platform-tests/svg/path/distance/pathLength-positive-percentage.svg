@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200"
+     font-family="sans-serif" font-size="28">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+    <h:link rel="match" href="pathLength-positive-ref.svg"/>
+    <h:meta name="assert" content="pathLength scales distance along the path"/>
+  </metadata>
+
+  <defs>
+    <path id="track" stroke="lightblue" fill="none" d="M 50 50 h 200" pathLength="2"/>
+  </defs>
+
+  <g>
+    <use xlink:href="#track"/>
+    <text>
+      <textPath xlink:href="#track" startOffset="0%">The quick brown fox</textPath>
+    </text>
+  </g>
+
+  <g transform="translate(0,50)">
+    <use xlink:href="#track"/>
+    <text>
+      <textPath xlink:href="#track" startOffset="50%">The quick brown fox</textPath>
+    </text>
+  </g>
+
+  <g transform="translate(0,100)">
+    <use xlink:href="#track"/>
+    <text>
+      <textPath xlink:href="#track" startOffset="-50%">The quick brown fox</textPath>
+    </text>
+  </g>
+</svg>

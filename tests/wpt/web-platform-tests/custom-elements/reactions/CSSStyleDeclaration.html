@@ -26,13 +26,17 @@ test_mutating_style_property_priority(function (instance, propertyName, idlName,
     instance.style.setProperty(propertyName, instance.style[idlName], isImportant ? 'important': '');
 }, 'setProperty on CSSStyleDeclaration');
 
-test_mutating_style_property_value(function (instance, propertyName, idlName, value) {
-    instance.style.setPropertyValue(propertyName, value);
-}, 'setPropertyValue on CSSStyleDeclaration');
+if (CSSStyleDeclaration.prototype.setPropertyValue) {
+    test_mutating_style_property_value(function (instance, propertyName, idlName, value) {
+        instance.style.setPropertyValue(propertyName, value);
+    }, 'setPropertyValue on CSSStyleDeclaration');
+}
 
-test_mutating_style_property_priority(function (instance, propertyName, idlName, isImportant) {
-    instance.style.setPropertyPriority(propertyName, isImportant ? 'important': '');
-}, 'setPropertyPriority on CSSStyleDeclaration');
+if (CSSStyleDeclaration.prototype.setPropertyPriority) {
+    test_mutating_style_property_priority(function (instance, propertyName, idlName, isImportant) {
+        instance.style.setPropertyPriority(propertyName, isImportant ? 'important': '');
+    }, 'setPropertyPriority on CSSStyleDeclaration');
+}
 
 test_removing_style_property_value(function (instance, propertyName, idlName) {
     instance.style.removeProperty(propertyName);

@@ -17,8 +17,12 @@ test(function() {
     // https://heycam.github.io/webidl/#abstract-opdef-converttoint
     [[0, 0],
      [-0, 0],
+     [-1, 4294967295],
+     [-100, 4294967196],
      [101, 101],
+     [-2147483648, 2147483648],
      [2147483647, 2147483647],
+     [2147483648, 2147483648],
      [NaN, 0],
      [Infinity, 0],
      [-Infinity, 0]].forEach(function (pair) {
@@ -28,10 +32,5 @@ test(function() {
         assert_equals(region.lines, expected);
     });
 
-    [-1, -100, -2147483648, 2147483648 /* wraps to -2147483648 */].forEach(function (invalid) {
-        assert_throws('IndexSizeError', function() {
-          region.lines = invalid;
-        }, invalid);
-    });
 }, document.title + ' script-created region');
 </script>
