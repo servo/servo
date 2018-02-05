@@ -28,7 +28,7 @@ use style_traits::{CSSPixel, CssWriter, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::Origin;
-use values::{CSSFloat, CustomIdent};
+use values::{CSSFloat, CustomIdent, KeyframesName};
 use values::computed::{self, ToComputedValue};
 use values::computed::font::FontSize;
 use values::specified::{Integer, Length, Number};
@@ -71,7 +71,7 @@ impl Device {
     pub fn new(pres_context: RawGeckoPresContextOwned) -> Self {
         assert!(!pres_context.is_null());
         Device {
-            pres_context: pres_context,
+            pres_context,
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
             // FIXME(bz): Seems dubious?
             root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
@@ -85,9 +85,20 @@ impl Device {
     /// relevant viewport constraints.
     pub fn account_for_viewport_rule(
         &mut self,
-        _constraints: &ViewportConstraints
+        _constraints: &ViewportConstraints,
     ) {
         unreachable!("Gecko doesn't support @viewport");
+    }
+
+    /// Whether any animation name may be referenced from the style of any
+    /// element.
+    pub fn animation_name_may_be_referenced(&self, name: &KeyframesName) -> bool {
+        unsafe {
+            bindings::Gecko_AnimationNameMayBeReferencedFromStyle(
+                self.pres_context(),
+                name.as_atom().as_ptr(),
+            )
+        }
     }
 
     /// Returns the default computed values as a reference, in order to match
