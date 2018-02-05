@@ -614,89 +614,89 @@ impl PseudoElement {
                 PseudoElement::MozColorSwatch =>
                     structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozColorSwatch,
                 PseudoElement::MozText =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::OofPlaceholder =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::FirstLetterContinuation =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozBlockInsideInlineWrapper =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozMathMLAnonymousBlock =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozXULAnonymousBlock =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::HorizontalFramesetBorder =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::VerticalFramesetBorder =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozLineFrame =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::ButtonContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::CellContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::DropDownList =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::FieldsetContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::FramesetBlank =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozDisplayComboboxControlFrame =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::HtmlCanvasContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::InlineTable =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::Table =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableCell =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableColGroup =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableCol =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableWrapper =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableRowGroup =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableRow =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::Canvas =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::PageBreak =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::Page =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::PageContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::PageSequence =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::ScrolledContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::ScrolledCanvas =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::ScrolledPageSequence =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::ColumnContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::Viewport =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::ViewportScroll =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::AnonymousFlexItem =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::AnonymousGridItem =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::Ruby =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::RubyBase =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::RubyBaseContainer =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::RubyText =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::RubyTextContainer =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozTreeColumn(..) =>
                     0,
                 PseudoElement::MozTreeRow(..) =>
@@ -720,13 +720,13 @@ impl PseudoElement {
                 PseudoElement::MozTreeDropFeedback(..) =>
                     0,
                 PseudoElement::MozSVGMarkerAnonChild =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozSVGOuterSVGAnonChild =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozSVGForeignContent =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozSVGText =>
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
         }
     }
 
@@ -1360,367 +1360,232 @@ impl PseudoElement {
     ///
     /// Returns `None` if the pseudo-element is not recognised.
     #[inline]
-    pub fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
-
+    pub fn from_slice(name: &str) -> Option<Self> {
         // We don't need to support tree pseudos because functional
         // pseudo-elements needs arguments, and thus should be created
         // via other methods.
-            if in_ua_stylesheet || PseudoElement::After.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("after") {
-                    return Some(PseudoElement::After);
-                }
+        match_ignore_ascii_case! { name,
+            "after" => {
+                return Some(PseudoElement::After)
             }
-            if in_ua_stylesheet || PseudoElement::Before.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("before") {
-                    return Some(PseudoElement::Before);
-                }
+            "before" => {
+                return Some(PseudoElement::Before)
             }
-            if in_ua_stylesheet || PseudoElement::Backdrop.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("backdrop") {
-                    return Some(PseudoElement::Backdrop);
-                }
+            "backdrop" => {
+                return Some(PseudoElement::Backdrop)
             }
-            if in_ua_stylesheet || PseudoElement::Cue.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("cue") {
-                    return Some(PseudoElement::Cue);
-                }
+            "cue" => {
+                return Some(PseudoElement::Cue)
             }
-            if in_ua_stylesheet || PseudoElement::FirstLetter.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("first-letter") {
-                    return Some(PseudoElement::FirstLetter);
-                }
+            "first-letter" => {
+                return Some(PseudoElement::FirstLetter)
             }
-            if in_ua_stylesheet || PseudoElement::FirstLine.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("first-line") {
-                    return Some(PseudoElement::FirstLine);
-                }
+            "first-line" => {
+                return Some(PseudoElement::FirstLine)
             }
-            if in_ua_stylesheet || PseudoElement::MozSelection.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-selection") {
-                    return Some(PseudoElement::MozSelection);
-                }
+            "-moz-selection" => {
+                return Some(PseudoElement::MozSelection)
             }
-            if in_ua_stylesheet || PseudoElement::MozFocusInner.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-focus-inner") {
-                    return Some(PseudoElement::MozFocusInner);
-                }
+            "-moz-focus-inner" => {
+                return Some(PseudoElement::MozFocusInner)
             }
-            if in_ua_stylesheet || PseudoElement::MozFocusOuter.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-focus-outer") {
-                    return Some(PseudoElement::MozFocusOuter);
-                }
+            "-moz-focus-outer" => {
+                return Some(PseudoElement::MozFocusOuter)
             }
-            if in_ua_stylesheet || PseudoElement::MozListBullet.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-list-bullet") {
-                    return Some(PseudoElement::MozListBullet);
-                }
+            "-moz-list-bullet" => {
+                return Some(PseudoElement::MozListBullet)
             }
-            if in_ua_stylesheet || PseudoElement::MozListNumber.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-list-number") {
-                    return Some(PseudoElement::MozListNumber);
-                }
+            "-moz-list-number" => {
+                return Some(PseudoElement::MozListNumber)
             }
-            if in_ua_stylesheet || PseudoElement::MozMathAnonymous.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-math-anonymous") {
-                    return Some(PseudoElement::MozMathAnonymous);
-                }
+            "-moz-math-anonymous" => {
+                return Some(PseudoElement::MozMathAnonymous)
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberWrapper.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-number-wrapper") {
-                    return Some(PseudoElement::MozNumberWrapper);
-                }
+            "-moz-number-wrapper" => {
+                return Some(PseudoElement::MozNumberWrapper)
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberText.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-number-text") {
-                    return Some(PseudoElement::MozNumberText);
-                }
+            "-moz-number-text" => {
+                return Some(PseudoElement::MozNumberText)
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberSpinBox.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-number-spin-box") {
-                    return Some(PseudoElement::MozNumberSpinBox);
-                }
+            "-moz-number-spin-box" => {
+                return Some(PseudoElement::MozNumberSpinBox)
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberSpinUp.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-number-spin-up") {
-                    return Some(PseudoElement::MozNumberSpinUp);
-                }
+            "-moz-number-spin-up" => {
+                return Some(PseudoElement::MozNumberSpinUp)
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberSpinDown.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-number-spin-down") {
-                    return Some(PseudoElement::MozNumberSpinDown);
-                }
+            "-moz-number-spin-down" => {
+                return Some(PseudoElement::MozNumberSpinDown)
             }
-            if in_ua_stylesheet || PseudoElement::MozProgressBar.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-progress-bar") {
-                    return Some(PseudoElement::MozProgressBar);
-                }
+            "-moz-progress-bar" => {
+                return Some(PseudoElement::MozProgressBar)
             }
-            if in_ua_stylesheet || PseudoElement::MozRangeTrack.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-range-track") {
-                    return Some(PseudoElement::MozRangeTrack);
-                }
+            "-moz-range-track" => {
+                return Some(PseudoElement::MozRangeTrack)
             }
-            if in_ua_stylesheet || PseudoElement::MozRangeProgress.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-range-progress") {
-                    return Some(PseudoElement::MozRangeProgress);
-                }
+            "-moz-range-progress" => {
+                return Some(PseudoElement::MozRangeProgress)
             }
-            if in_ua_stylesheet || PseudoElement::MozRangeThumb.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-range-thumb") {
-                    return Some(PseudoElement::MozRangeThumb);
-                }
+            "-moz-range-thumb" => {
+                return Some(PseudoElement::MozRangeThumb)
             }
-            if in_ua_stylesheet || PseudoElement::MozMeterBar.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-meter-bar") {
-                    return Some(PseudoElement::MozMeterBar);
-                }
+            "-moz-meter-bar" => {
+                return Some(PseudoElement::MozMeterBar)
             }
-            if in_ua_stylesheet || PseudoElement::MozPlaceholder.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-placeholder") {
-                    return Some(PseudoElement::MozPlaceholder);
-                }
+            "-moz-placeholder" => {
+                return Some(PseudoElement::MozPlaceholder)
             }
-            if in_ua_stylesheet || PseudoElement::Placeholder.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("placeholder") {
-                    return Some(PseudoElement::Placeholder);
-                }
+            "placeholder" => {
+                return Some(PseudoElement::Placeholder)
             }
-            if in_ua_stylesheet || PseudoElement::MozColorSwatch.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-color-swatch") {
-                    return Some(PseudoElement::MozColorSwatch);
-                }
+            "-moz-color-swatch" => {
+                return Some(PseudoElement::MozColorSwatch)
             }
-            if in_ua_stylesheet || PseudoElement::MozText.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-text") {
-                    return Some(PseudoElement::MozText);
-                }
+            "-moz-text" => {
+                return Some(PseudoElement::MozText)
             }
-            if in_ua_stylesheet || PseudoElement::OofPlaceholder.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-oof-placeholder") {
-                    return Some(PseudoElement::OofPlaceholder);
-                }
+            "-moz-oof-placeholder" => {
+                return Some(PseudoElement::OofPlaceholder)
             }
-            if in_ua_stylesheet || PseudoElement::FirstLetterContinuation.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-first-letter-continuation") {
-                    return Some(PseudoElement::FirstLetterContinuation);
-                }
+            "-moz-first-letter-continuation" => {
+                return Some(PseudoElement::FirstLetterContinuation)
             }
-            if in_ua_stylesheet || PseudoElement::MozBlockInsideInlineWrapper.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-block-inside-inline-wrapper") {
-                    return Some(PseudoElement::MozBlockInsideInlineWrapper);
-                }
+            "-moz-block-inside-inline-wrapper" => {
+                return Some(PseudoElement::MozBlockInsideInlineWrapper)
             }
-            if in_ua_stylesheet || PseudoElement::MozMathMLAnonymousBlock.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-mathml-anonymous-block") {
-                    return Some(PseudoElement::MozMathMLAnonymousBlock);
-                }
+            "-moz-mathml-anonymous-block" => {
+                return Some(PseudoElement::MozMathMLAnonymousBlock)
             }
-            if in_ua_stylesheet || PseudoElement::MozXULAnonymousBlock.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-xul-anonymous-block") {
-                    return Some(PseudoElement::MozXULAnonymousBlock);
-                }
+            "-moz-xul-anonymous-block" => {
+                return Some(PseudoElement::MozXULAnonymousBlock)
             }
-            if in_ua_stylesheet || PseudoElement::HorizontalFramesetBorder.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-hframeset-border") {
-                    return Some(PseudoElement::HorizontalFramesetBorder);
-                }
+            "-moz-hframeset-border" => {
+                return Some(PseudoElement::HorizontalFramesetBorder)
             }
-            if in_ua_stylesheet || PseudoElement::VerticalFramesetBorder.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-vframeset-border") {
-                    return Some(PseudoElement::VerticalFramesetBorder);
-                }
+            "-moz-vframeset-border" => {
+                return Some(PseudoElement::VerticalFramesetBorder)
             }
-            if in_ua_stylesheet || PseudoElement::MozLineFrame.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-line-frame") {
-                    return Some(PseudoElement::MozLineFrame);
-                }
+            "-moz-line-frame" => {
+                return Some(PseudoElement::MozLineFrame)
             }
-            if in_ua_stylesheet || PseudoElement::ButtonContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-button-content") {
-                    return Some(PseudoElement::ButtonContent);
-                }
+            "-moz-button-content" => {
+                return Some(PseudoElement::ButtonContent)
             }
-            if in_ua_stylesheet || PseudoElement::CellContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-cell-content") {
-                    return Some(PseudoElement::CellContent);
-                }
+            "-moz-cell-content" => {
+                return Some(PseudoElement::CellContent)
             }
-            if in_ua_stylesheet || PseudoElement::DropDownList.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-dropdown-list") {
-                    return Some(PseudoElement::DropDownList);
-                }
+            "-moz-dropdown-list" => {
+                return Some(PseudoElement::DropDownList)
             }
-            if in_ua_stylesheet || PseudoElement::FieldsetContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-fieldset-content") {
-                    return Some(PseudoElement::FieldsetContent);
-                }
+            "-moz-fieldset-content" => {
+                return Some(PseudoElement::FieldsetContent)
             }
-            if in_ua_stylesheet || PseudoElement::FramesetBlank.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-frameset-blank") {
-                    return Some(PseudoElement::FramesetBlank);
-                }
+            "-moz-frameset-blank" => {
+                return Some(PseudoElement::FramesetBlank)
             }
-            if in_ua_stylesheet || PseudoElement::MozDisplayComboboxControlFrame.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-display-comboboxcontrol-frame") {
-                    return Some(PseudoElement::MozDisplayComboboxControlFrame);
-                }
+            "-moz-display-comboboxcontrol-frame" => {
+                return Some(PseudoElement::MozDisplayComboboxControlFrame)
             }
-            if in_ua_stylesheet || PseudoElement::HtmlCanvasContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-html-canvas-content") {
-                    return Some(PseudoElement::HtmlCanvasContent);
-                }
+            "-moz-html-canvas-content" => {
+                return Some(PseudoElement::HtmlCanvasContent)
             }
-            if in_ua_stylesheet || PseudoElement::InlineTable.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-inline-table") {
-                    return Some(PseudoElement::InlineTable);
-                }
+            "-moz-inline-table" => {
+                return Some(PseudoElement::InlineTable)
             }
-            if in_ua_stylesheet || PseudoElement::Table.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-table") {
-                    return Some(PseudoElement::Table);
-                }
+            "-moz-table" => {
+                return Some(PseudoElement::Table)
             }
-            if in_ua_stylesheet || PseudoElement::TableCell.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-table-cell") {
-                    return Some(PseudoElement::TableCell);
-                }
+            "-moz-table-cell" => {
+                return Some(PseudoElement::TableCell)
             }
-            if in_ua_stylesheet || PseudoElement::TableColGroup.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-table-column-group") {
-                    return Some(PseudoElement::TableColGroup);
-                }
+            "-moz-table-column-group" => {
+                return Some(PseudoElement::TableColGroup)
             }
-            if in_ua_stylesheet || PseudoElement::TableCol.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-table-column") {
-                    return Some(PseudoElement::TableCol);
-                }
+            "-moz-table-column" => {
+                return Some(PseudoElement::TableCol)
             }
-            if in_ua_stylesheet || PseudoElement::TableWrapper.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-table-wrapper") {
-                    return Some(PseudoElement::TableWrapper);
-                }
+            "-moz-table-wrapper" => {
+                return Some(PseudoElement::TableWrapper)
             }
-            if in_ua_stylesheet || PseudoElement::TableRowGroup.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-table-row-group") {
-                    return Some(PseudoElement::TableRowGroup);
-                }
+            "-moz-table-row-group" => {
+                return Some(PseudoElement::TableRowGroup)
             }
-            if in_ua_stylesheet || PseudoElement::TableRow.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-table-row") {
-                    return Some(PseudoElement::TableRow);
-                }
+            "-moz-table-row" => {
+                return Some(PseudoElement::TableRow)
             }
-            if in_ua_stylesheet || PseudoElement::Canvas.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-canvas") {
-                    return Some(PseudoElement::Canvas);
-                }
+            "-moz-canvas" => {
+                return Some(PseudoElement::Canvas)
             }
-            if in_ua_stylesheet || PseudoElement::PageBreak.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-pagebreak") {
-                    return Some(PseudoElement::PageBreak);
-                }
+            "-moz-pagebreak" => {
+                return Some(PseudoElement::PageBreak)
             }
-            if in_ua_stylesheet || PseudoElement::Page.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-page") {
-                    return Some(PseudoElement::Page);
-                }
+            "-moz-page" => {
+                return Some(PseudoElement::Page)
             }
-            if in_ua_stylesheet || PseudoElement::PageContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-pagecontent") {
-                    return Some(PseudoElement::PageContent);
-                }
+            "-moz-pagecontent" => {
+                return Some(PseudoElement::PageContent)
             }
-            if in_ua_stylesheet || PseudoElement::PageSequence.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-page-sequence") {
-                    return Some(PseudoElement::PageSequence);
-                }
+            "-moz-page-sequence" => {
+                return Some(PseudoElement::PageSequence)
             }
-            if in_ua_stylesheet || PseudoElement::ScrolledContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-scrolled-content") {
-                    return Some(PseudoElement::ScrolledContent);
-                }
+            "-moz-scrolled-content" => {
+                return Some(PseudoElement::ScrolledContent)
             }
-            if in_ua_stylesheet || PseudoElement::ScrolledCanvas.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-scrolled-canvas") {
-                    return Some(PseudoElement::ScrolledCanvas);
-                }
+            "-moz-scrolled-canvas" => {
+                return Some(PseudoElement::ScrolledCanvas)
             }
-            if in_ua_stylesheet || PseudoElement::ScrolledPageSequence.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-scrolled-page-sequence") {
-                    return Some(PseudoElement::ScrolledPageSequence);
-                }
+            "-moz-scrolled-page-sequence" => {
+                return Some(PseudoElement::ScrolledPageSequence)
             }
-            if in_ua_stylesheet || PseudoElement::ColumnContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-column-content") {
-                    return Some(PseudoElement::ColumnContent);
-                }
+            "-moz-column-content" => {
+                return Some(PseudoElement::ColumnContent)
             }
-            if in_ua_stylesheet || PseudoElement::Viewport.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-viewport") {
-                    return Some(PseudoElement::Viewport);
-                }
+            "-moz-viewport" => {
+                return Some(PseudoElement::Viewport)
             }
-            if in_ua_stylesheet || PseudoElement::ViewportScroll.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-viewport-scroll") {
-                    return Some(PseudoElement::ViewportScroll);
-                }
+            "-moz-viewport-scroll" => {
+                return Some(PseudoElement::ViewportScroll)
             }
-            if in_ua_stylesheet || PseudoElement::AnonymousFlexItem.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-anonymous-flex-item") {
-                    return Some(PseudoElement::AnonymousFlexItem);
-                }
+            "-moz-anonymous-flex-item" => {
+                return Some(PseudoElement::AnonymousFlexItem)
             }
-            if in_ua_stylesheet || PseudoElement::AnonymousGridItem.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-anonymous-grid-item") {
-                    return Some(PseudoElement::AnonymousGridItem);
-                }
+            "-moz-anonymous-grid-item" => {
+                return Some(PseudoElement::AnonymousGridItem)
             }
-            if in_ua_stylesheet || PseudoElement::Ruby.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-ruby") {
-                    return Some(PseudoElement::Ruby);
-                }
+            "-moz-ruby" => {
+                return Some(PseudoElement::Ruby)
             }
-            if in_ua_stylesheet || PseudoElement::RubyBase.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-ruby-base") {
-                    return Some(PseudoElement::RubyBase);
-                }
+            "-moz-ruby-base" => {
+                return Some(PseudoElement::RubyBase)
             }
-            if in_ua_stylesheet || PseudoElement::RubyBaseContainer.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-ruby-base-container") {
-                    return Some(PseudoElement::RubyBaseContainer);
-                }
+            "-moz-ruby-base-container" => {
+                return Some(PseudoElement::RubyBaseContainer)
             }
-            if in_ua_stylesheet || PseudoElement::RubyText.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-ruby-text") {
-                    return Some(PseudoElement::RubyText);
-                }
+            "-moz-ruby-text" => {
+                return Some(PseudoElement::RubyText)
             }
-            if in_ua_stylesheet || PseudoElement::RubyTextContainer.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-ruby-text-container") {
-                    return Some(PseudoElement::RubyTextContainer);
-                }
+            "-moz-ruby-text-container" => {
+                return Some(PseudoElement::RubyTextContainer)
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGMarkerAnonChild.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-svg-marker-anon-child") {
-                    return Some(PseudoElement::MozSVGMarkerAnonChild);
-                }
+            "-moz-svg-marker-anon-child" => {
+                return Some(PseudoElement::MozSVGMarkerAnonChild)
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGOuterSVGAnonChild.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-svg-outer-svg-anon-child") {
-                    return Some(PseudoElement::MozSVGOuterSVGAnonChild);
-                }
+            "-moz-svg-outer-svg-anon-child" => {
+                return Some(PseudoElement::MozSVGOuterSVGAnonChild)
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGForeignContent.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-svg-foreign-content") {
-                    return Some(PseudoElement::MozSVGForeignContent);
-                }
+            "-moz-svg-foreign-content" => {
+                return Some(PseudoElement::MozSVGForeignContent)
+            }
+            "-moz-svg-text" => {
+                return Some(PseudoElement::MozSVGText)
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGText.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-svg-text") {
-                    return Some(PseudoElement::MozSVGText);
+            _ => {
+                // FIXME: -moz-tree check should probably be
+                // ascii-case-insensitive.
+                if name.starts_with("-moz-tree-") {
+                    return PseudoElement::tree_pseudo_element(name, Box::new([]))
                 }
             }
+        }
 
         None
     }
