@@ -29,7 +29,7 @@ pub enum GeometryBox {
 /// A float area shape, for `shape-outside`.
 pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, Image>;
 
-// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
+/// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
