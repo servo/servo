@@ -1074,7 +1074,10 @@ impl UnparsedValue {
             } else {
                 CSSWideKeyword::Initial
             };
-            PropertyDeclaration::CSSWideKeyword(longhand_id, keyword)
+            PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
+                id: longhand_id,
+                keyword,
+        })
         })
     }
 }
@@ -1443,33 +1446,51 @@ impl PropertyId {
 #[derive(Clone, PartialEq)]
 pub enum PropertyDeclaration {
     % for property in data.longhands:
-    /// ${property.name}
     <%
-        if property.predefined_type and not property.is_vector:
+        if property.predefined_type and not property.is_vector and not property.is_gecko_size_type_hack:
             ty = "::values::specified::{}".format(property.predefined_type)
         else:
             ty = "longhands::{}::SpecifiedValue".format(property.ident)
         if property.boxed:
             ty = "Box<{}>".format(ty)
     %>
+    /// ${property.name}
     ${property.camel_case}(${ty}),
     % endfor
     /// A css-wide keyword.
-    CSSWideKeyword(LonghandId, CSSWideKeyword),
-    /// An unparsed value that contains `var()` functions.
-    WithVariables(
-        LonghandId,
-        #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
-        Arc<UnparsedValue>
-    ),
-    /// A custom property declaration, with the property name and the declared
-    /// value.
+    CSSWideKeyword(WideKeywordDeclaration),
+    /// An unparsed declaration.
+    WithVariables(VariableDeclaration),
+    /// A custom property declaration.
+    Custom(CustomDeclaration),
+}
+
+/// A declaration using a CSS-wide keyword.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, PartialEq)]
+pub struct WideKeywordDeclaration {
+    id: LonghandId,
+    keyword: CSSWideKeyword,
+}
+
+/// An unparsed declaration that contains `var()` functions.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, PartialEq)]
+pub struct VariableDeclaration {
+    id: LonghandId,
     #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
-    Custom(
-        ::custom_properties::Name,
-        #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
-        DeclaredValueOwned<Arc<::custom_properties::SpecifiedValue>>
-    ),
+    value: Arc<UnparsedValue>,
+}
+
+/// A custom property declaration with the property name and the declared value.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, PartialEq)]
+pub struct CustomDeclaration {
+    /// The name of the custom property.
+    pub name: ::custom_properties::Name,
+    /// The value of the custom property.
+    #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
+    pub value: DeclaredValueOwned<Arc<::custom_properties::SpecifiedValue>>,
 }
 
 impl fmt::Debug for PropertyDeclaration {
@@ -1497,24 +1518,24 @@ impl PropertyDeclaration {
                 value.to_css(&mut CssWriter::new(dest))
             }
             % endfor
-            PropertyDeclaration::CSSWideKeyword(_, keyword) => {
-                keyword.to_css(&mut CssWriter::new(dest))
+            PropertyDeclaration::CSSWideKeyword(ref declaration) => {
+                declaration.keyword.to_css(&mut CssWriter::new(dest))
             },
-            PropertyDeclaration::WithVariables(_, ref with_variables) => {
+            PropertyDeclaration::WithVariables(ref declaration) => {
                 // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-                match with_variables.from_shorthand {
+                match declaration.value.from_shorthand {
                     // Normally, we shouldn't be printing variables here if they came from
                     // shorthands. But we should allow properties that came from shorthand
                     // aliases. That also matches with the Gecko behavior.
                     Some(shorthand) if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) =>
-                        dest.write_str(&*with_variables.css)?,
-                    None => dest.write_str(&*with_variables.css)?,
+                        dest.write_str(&*declaration.value.css)?,
+                    None => dest.write_str(&*declaration.value.css)?,
                     _ => {},
                 }
                 Ok(())
             },
-            PropertyDeclaration::Custom(_, ref value) => {
-                value.borrow().to_css(&mut CssWriter::new(dest))
+            PropertyDeclaration::Custom(ref declaration) => {
+                declaration.value.borrow().to_css(&mut CssWriter::new(dest))
             },
         }
     }
@@ -1524,12 +1545,14 @@ impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.
     pub fn id(&self) -> PropertyDeclarationId {
         match *self {
-            PropertyDeclaration::Custom(ref name, _) => {
-                return PropertyDeclarationId::Custom(name)
+            PropertyDeclaration::Custom(ref declaration) => {
+                return PropertyDeclarationId::Custom(&declaration.name)
             }
-            PropertyDeclaration::CSSWideKeyword(id, _) |
-            PropertyDeclaration::WithVariables(id, _) => {
-                return PropertyDeclarationId::Longhand(id)
+            PropertyDeclaration::CSSWideKeyword(ref declaration) => {
+                return PropertyDeclarationId::Longhand(declaration.id);
+            }
+            PropertyDeclaration::WithVariables(ref declaration) => {
+                return PropertyDeclarationId::Longhand(declaration.id);
             }
             _ => {}
         }
@@ -1554,10 +1577,10 @@ impl PropertyDeclaration {
 
     fn with_variables_from_shorthand(&self, shorthand: ShorthandId) -> Option< &str> {
         match *self {
-            PropertyDeclaration::WithVariables(_, ref with_variables) => {
-                if let Some(s) = with_variables.from_shorthand {
+            PropertyDeclaration::WithVariables(ref declaration) => {
+                if let Some(s) = declaration.value.from_shorthand {
                     if s == shorthand {
-                        Some(&*with_variables.css)
+                        Some(&*declaration.value.css)
                     } else { None }
                 } else {
                     // Normally, longhand property that doesn't come from a shorthand
@@ -1565,7 +1588,7 @@ impl PropertyDeclaration {
                     // came from a shorthand alias. Because for example, we should be able to
                     // get -moz-transform's value from transform.
                     if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) {
-                        return Some(&*with_variables.css);
+                        return Some(&*declaration.value.css);
                     }
                     None
                 }
@@ -1577,7 +1600,9 @@ impl PropertyDeclaration {
     /// Returns a CSS-wide keyword if the declaration's value is one.
     pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
         match *self {
-            PropertyDeclaration::CSSWideKeyword(_, keyword) => Some(keyword),
+            PropertyDeclaration::CSSWideKeyword(ref declaration) => {
+                Some(declaration.keyword)
+            },
             _ => None,
         }
     }
@@ -1640,8 +1665,8 @@ impl PropertyDeclaration {
     pub fn value_is_unparsed(&self) -> bool {
       match *self {
           PropertyDeclaration::WithVariables(..) => true,
-          PropertyDeclaration::Custom(_, ref value) => {
-            !matches!(value.borrow(), DeclaredValue::CSSWideKeyword(..))
+          PropertyDeclaration::Custom(ref declaration) => {
+            !matches!(declaration.value.borrow(), DeclaredValue::CSSWideKeyword(..))
           }
           _ => false,
       }
@@ -1667,7 +1692,7 @@ impl PropertyDeclaration {
     /// Returns true if this property is a custom property, false
     /// otherwise.
     pub fn is_custom(&self) -> bool {
-        matches!(*self, PropertyDeclaration::Custom(_, _))
+        matches!(*self, PropertyDeclaration::Custom(..))
     }
 
     /// The `context` parameter controls this:
@@ -1708,14 +1733,19 @@ impl PropertyDeclaration {
                         Err(e) => return Err(StyleParseErrorKind::new_invalid(name, e)),
                     }
                 };
-                declarations.push(PropertyDeclaration::Custom(property_name, value));
+                declarations.push(PropertyDeclaration::Custom(CustomDeclaration {
+                    name: property_name,
+                    value,
+                }));
                 Ok(())
             }
             PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 input.try(|i| CSSWideKeyword::parse(i)).map(|keyword| {
-                    PropertyDeclaration::CSSWideKeyword(id, keyword)
+                    PropertyDeclaration::CSSWideKeyword(
+                        WideKeywordDeclaration { id, keyword },
+                    )
                 }).or_else(|()| {
                     input.look_for_var_functions();
                     input.parse_entirely(|input| id.parse_value(context, input))
@@ -1727,12 +1757,15 @@ impl PropertyDeclaration {
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
                                     StyleParseErrorKind::new_invalid(name, e)
                                 })?;
-                            Ok(PropertyDeclaration::WithVariables(id, Arc::new(UnparsedValue {
+                            Ok(PropertyDeclaration::WithVariables(VariableDeclaration {
+                                id,
+                                value: Arc::new(UnparsedValue {
                                 css: css.into_owned(),
                                 first_token_type: first_token_type,
                                 url_data: context.url_data.clone(),
                                 from_shorthand: None,
-                            })))
+                                }),
+                            }))
                         } else {
                             Err(StyleParseErrorKind::new_invalid(name, err))
                         }
@@ -1749,7 +1782,12 @@ impl PropertyDeclaration {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {
                         for &longhand in id.longhands() {
-                            declarations.push(PropertyDeclaration::CSSWideKeyword(longhand, keyword))
+                            declarations.push(PropertyDeclaration::CSSWideKeyword(
+                                WideKeywordDeclaration {
+                                    id: longhand,
+                                    keyword,
+                                },
+                            ))
                         }
                     }
                     Ok(())
@@ -1774,9 +1812,12 @@ impl PropertyDeclaration {
                             if id == ShorthandId::All {
                                 declarations.all_shorthand = AllShorthand::WithVariables(unparsed)
                             } else {
-                                for &longhand in id.longhands() {
+                                for &id in id.longhands() {
                                     declarations.push(
-                                        PropertyDeclaration::WithVariables(longhand, unparsed.clone())
+                                        PropertyDeclaration::WithVariables(VariableDeclaration {
+                                            id,
+                                            value: unparsed.clone(),
+                                        })
                                     )
                                 }
                             }
@@ -3283,8 +3324,8 @@ where
             CustomPropertiesBuilder::new(inherited_style.custom_properties());
 
         for (declaration, _cascade_level) in iter_declarations() {
-            if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
-                builder.cascade(name, value.borrow());
+            if let PropertyDeclaration::Custom(ref declaration) = *declaration {
+                builder.cascade(&declaration.name, declaration.value.borrow());
             }
         }
 
@@ -3372,13 +3413,13 @@ where
             }
 
             let mut declaration = match *declaration {
-                PropertyDeclaration::WithVariables(id, ref unparsed) => {
-                    if !id.inherited() {
+                PropertyDeclaration::WithVariables(ref declaration) => {
+                    if !declaration.id.inherited() {
                         context.rule_cache_conditions.borrow_mut()
                             .set_uncacheable();
                     }
-                    Cow::Owned(unparsed.substitute_variables(
-                        id,
+                    Cow::Owned(declaration.value.substitute_variables(
+                        declaration.id,
                         context.builder.custom_properties.as_ref(),
                         context.quirks_mode
                     ))
@@ -3537,8 +3578,10 @@ where
                       seen.contains(LonghandId::MozMinFontSizeRatio) ||
                       font_family.is_some() {
                 let discriminant = LonghandId::FontSize as usize;
-                let size = PropertyDeclaration::CSSWideKeyword(
-                    LonghandId::FontSize, CSSWideKeyword::Inherit);
+                let size = PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
+                    id: LonghandId::FontSize,
+                    keyword: CSSWideKeyword::Inherit,
+                });
 
                 (CASCADE_PROPERTY[discriminant])(&size, &mut context);
             % endif

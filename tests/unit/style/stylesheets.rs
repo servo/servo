@@ -18,9 +18,9 @@ use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
-use style::properties::Importance;
-use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
-use style::properties::DeclarationSource;
+use style::properties::{CSSWideKeyword, CustomDeclaration, DeclarationSource};
+use style::properties::{DeclaredValueOwned, Importance};
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::longhands::{self, animation_timing_function};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Namespaces};
@@ -108,11 +108,17 @@ fn test_parse_stylesheet() {
                         ), (0 << 20) + (1 << 10) + (1 << 0))
                     )),
                     block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
-                        (PropertyDeclaration::Display(longhands::display::SpecifiedValue::None),
-                         Importance::Important),
-                        (PropertyDeclaration::Custom(Atom::from("a"),
-                         DeclaredValueOwned::CSSWideKeyword(CSSWideKeyword::Inherit)),
-                         Importance::Important),
+                        (
+                            PropertyDeclaration::Display(longhands::display::SpecifiedValue::None),
+                            Importance::Important,
+                        ),
+                        (
+                            PropertyDeclaration::Custom(CustomDeclaration {
+                                name: Atom::from("a"),
+                                value: DeclaredValueOwned::CSSWideKeyword(CSSWideKeyword::Inherit),
+                            }),
+                            Importance::Important,
+                        ),
                     ]))),
                     source_location: SourceLocation {
                         line: 3,
