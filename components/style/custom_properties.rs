@@ -678,7 +678,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
         // Some shortcut checks.
         let (name, value) = if let Some(value) = context.map.get(&name) {
             // This variable has been resolved. Return the signal value.
-            if value.references.is_empty()  || context.invalid.contains(&name) {
+            if value.references.is_empty() || context.invalid.contains(&name) {
                 return None;
             }
             // Whether this variable has been visited in this traversal.
