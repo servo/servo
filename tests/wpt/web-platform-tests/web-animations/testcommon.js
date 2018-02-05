@@ -262,3 +262,25 @@ function assert_matrix_equals(actual, expected, description) {
       `expected ${expected} but got ${actual}: ${description}`);
   }
 }
+
+// Compare rotate3d vector like '0 1 0 45deg' with tolerances.
+function assert_rotate3d_equals(actual, expected, description) {
+  const rotationRegExp =/^((([+-]?\d+(\.+\d+)?\s){3})?\d+(\.+\d+)?)deg/;
+
+  assert_regexp_match(actual, rotationRegExp,
+    'Actual value is not a rotate3d vector')
+  assert_regexp_match(expected, rotationRegExp,
+    'Expected value is not a rotate3d vector');
+
+  const actualRotationVector =
+    actual.match(rotationRegExp)[1].split(' ').map(Number);
+  const expectedRotationVector =
+    expected.match(rotationRegExp)[1].split(' ').map(Number);
+
+  assert_equals(actualRotationVector.length, expectedRotationVector.length,
+    `dimension of the matrix: ${description}`);
+  for (let i = 0; i < actualRotationVector.length; i++) {
+    assert_approx_equals(actualRotationVector[i], expectedRotationVector[i], 0.0001,
+      `expected ${expected} but got ${actual}: ${description}`);
+  }
+}

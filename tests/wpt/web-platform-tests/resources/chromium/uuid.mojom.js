@@ -5,15 +5,12 @@
 'use strict';
 
 (function() {
-  var mojomId = 'device/bluetooth/public/interfaces/uuid.mojom';
+  var mojomId = 'device/bluetooth/public/mojom/uuid.mojom';
   if (mojo.internal.isMojomLoaded(mojomId)) {
     console.warn('The following mojom is loaded multiple times: ' + mojomId);
     return;
   }
   mojo.internal.markMojomLoaded(mojomId);
-
-  // TODO(yzshen): Define these aliases to minimize the differences between the
-  // old/new modes. Remove them when the old mode goes away.
   var bindings = mojo;
   var associatedBindings = mojo;
   var codec = mojo.internal;

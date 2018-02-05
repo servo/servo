@@ -3,19 +3,17 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<!-- Testcase with percent-valued padding and/or margin on flex items. The spec
-     says that percentage values on padding/margin-top and -bottom should be
-     resolved against the flex container's height (not its width, as would
-     be the case in a block).
+<!-- Testcase with percent-valued padding and/or margin on flex items.
+     The spec allows these to be resolved against the flex container's
+     inline size (regardless of which axis the percent padding/margin is in).
 -->
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>CSS Test: Testing percent-valued padding and margin on flex items</title>
     <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
-    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm"/>
+    <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#item-margins"/>
     <link rel="match" href="flexbox-mbp-horiz-004-ref.xhtml"/>
     <style>
-      div { border: 0; }
       div.flexbox {
         width: 200px;
         display: flex;
@@ -52,8 +50,9 @@
     </style>
   </head>
   <body>
-    <!-- Flex container is auto-height - vertical margin and padding should
-         resolve to 0, since they don't have anything to resolve % against. -->
+    <!-- Flex container is auto-height - this shouldn't impact percent
+         margin/padding resolution, since they resolve against container's
+         inline-size, i.e. its width in this case. -->
     <div class="flexbox"
          ><div class="child1 paddingA"><div class="filler"/></div
          ><div class="child2 paddingB"><div class="filler"/></div
@@ -61,8 +60,9 @@
          ><div class="child2 marginB"></div
     ></div>
 
-    <!-- Flex container has height: 50px - vertical margin and padding should
-         resolve % values against that. -->
+    <!-- Flex container has height: 50px - again, this shouldn't impact percent
+         margin/padding resolution, since they resolve against container's
+         inline-size, i.e. its width in this case. -->
     <div class="flexbox height50"
          ><div class="child1 paddingA"><div class="filler"/></div
          ><div class="child2 paddingB"><div class="filler"/></div

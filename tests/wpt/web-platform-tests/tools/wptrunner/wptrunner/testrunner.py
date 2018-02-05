@@ -229,7 +229,6 @@ class BrowserManager(object):
     def cleanup(self):
         if self.init_timer is not None:
             self.init_timer.cancel()
-        self.browser.cleanup()
 
     def check_for_crashes(self):
         self.browser.check_for_crashes()

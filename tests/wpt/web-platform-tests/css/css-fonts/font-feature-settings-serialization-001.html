@@ -20,7 +20,7 @@
     const div = document.querySelector("#test");
     const div1 = document.querySelector("#test1");
     test(function() {
-        assert_equals(getComputedStyle(div).fontFeatureSettings, '"vert" 1');
-        assert_equals(getComputedStyle(div1).fontFeatureSettings, '"vert" 1');
-    }, "font-feature-settings should have its feature tag serialized with double quotes");
+        assert_equals(getComputedStyle(div).fontFeatureSettings, '"vert"');
+        assert_equals(getComputedStyle(div1).fontFeatureSettings, '"vert"');
+    }, "font-feature-settings should be serialized with double quotes, and the default value of 1 should be omitted");
 </script>

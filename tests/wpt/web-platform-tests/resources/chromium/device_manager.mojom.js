@@ -2,19 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 'use strict';
 
 (function() {
-  var mojomId = 'device/usb/public/interfaces/device_manager.mojom';
+  var mojomId = 'device/usb/public/mojom/device_manager.mojom';
   if (mojo.internal.isMojomLoaded(mojomId)) {
     console.warn('The following mojom is loaded multiple times: ' + mojomId);
     return;
   }
   mojo.internal.markMojomLoaded(mojomId);
-
-  // TODO(yzshen): Define these aliases to minimize the differences between the
-  // old/new modes. Remove them when the old mode goes away.
   var bindings = mojo;
   var associatedBindings = mojo;
   var codec = mojo.internal;
@@ -25,13 +21,13 @@
       mojo.internal.exposeNamespace('device.mojom');
   if (mojo.config.autoLoadMojomDeps) {
     mojo.internal.loadMojomIfNecessary(
-        'device/usb/public/interfaces/device.mojom', 'device.mojom.js');
+        'device/usb/public/mojom/device.mojom', 'device.mojom.js');
   }
   var string16$ =
       mojo.internal.exposeNamespace('mojo.common.mojom');
   if (mojo.config.autoLoadMojomDeps) {
     mojo.internal.loadMojomIfNecessary(
-        'mojo/common/string16.mojom', '../../../../mojo/common/string16.mojom.js');
+        'mojo/public/mojom/base/string16.mojom', '../../../../mojo/public/mojom/base/string16.mojom.js');
   }
 
 
@@ -86,7 +82,6 @@
 
 
 
-    
     // validate UsbDeviceFilter.serialNumber
     err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 8, string16$.String16, true);
     if (err !== validator.validationError.NONE)
@@ -165,7 +160,6 @@
         return err;
 
 
-    
     // validate UsbEnumerationOptions.filters
     err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 0, 8, new codec.PointerTo(UsbDeviceFilter), false, [0], 0);
     if (err !== validator.validationError.NONE)
@@ -221,7 +215,6 @@
         return err;
 
 
-    
     // validate UsbDeviceManager_GetDevices_Params.options
     err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 0, UsbEnumerationOptions, true);
     if (err !== validator.validationError.NONE)
@@ -277,7 +270,6 @@
         return err;
 
 
-    
     // validate UsbDeviceManager_GetDevices_ResponseParams.results
     err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 0, 8, new codec.PointerTo(device$.UsbDeviceInfo), false, [0], 0);
     if (err !== validator.validationError.NONE)
@@ -334,14 +326,12 @@
         return err;
 
 
-    
     // validate UsbDeviceManager_GetDevice_Params.guid
     err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 0, false)
     if (err !== validator.validationError.NONE)
         return err;
 
 
-    
     // validate UsbDeviceManager_GetDevice_Params.deviceRequest
     err = messageValidator.validateInterfaceRequest(offset + codec.kStructHeaderSize + 8, false)
     if (err !== validator.validationError.NONE)
@@ -407,7 +397,6 @@
         return err;
 
 
-    
     // validate UsbDeviceManager_SetClient_Params.client
     err = messageValidator.validateInterface(offset + codec.kStructHeaderSize + 0, false);
     if (err !== validator.validationError.NONE)
@@ -463,7 +452,6 @@
         return err;
 
 
-    
     // validate UsbDeviceManagerClient_OnDeviceAdded_Params.deviceInfo
     err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 0, device$.UsbDeviceInfo, false);
     if (err !== validator.validationError.NONE)
@@ -519,7 +507,6 @@
         return err;
 
 
-    
     // validate UsbDeviceManagerClient_OnDeviceRemoved_Params.deviceInfo
     err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 0, device$.UsbDeviceInfo, false);
     if (err !== validator.validationError.NONE)

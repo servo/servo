@@ -342,6 +342,18 @@ test(function () {
 
 }, 'document.createElement must report an exception thrown by a custom element constructor');
 
+test(() => {
+  class MyElement extends HTMLDivElement {}
+
+  // createElement with unknown 'is' should not throw.
+  // https://github.com/w3c/webcomponents/issues/608
+  let div = document.createElement('div', { is: 'my-div' });
+  assert_false(div instanceof MyElement);
+
+  customElements.define('my-div', MyElement, { extends: 'div' });
+  document.body.appendChild(div);
+  assert_true(div instanceof MyElement, 'Undefined element is upgraded on connecting to a document');
+}, 'document.createElement with unknown "is" value should create "undefined" state element');
 </script>
 </body>
 </html>

@@ -20,12 +20,12 @@ let internal = {
 };
 
 // Converts an ECMAScript String object to an instance of
-// mojo.common.mojom.String16.
+// mojo_base.mojom.String16.
 function mojoString16ToString(string16) {
   return String.fromCharCode.apply(null, string16.data);
 }
 
-// Converts an instance of mojo.common.mojom.String16 to an ECMAScript String.
+// Converts an instance of mojo_base.mojom.String16 to an ECMAScript String.
 function stringToMojoString16(string) {
   let array = new Array(string.length);
   for (var i = 0; i < string.length; ++i) {

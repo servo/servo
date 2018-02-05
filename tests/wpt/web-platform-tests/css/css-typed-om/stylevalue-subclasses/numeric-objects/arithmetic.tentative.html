@@ -144,4 +144,10 @@ test(() => {
     new CSSMathProduct(CSS.number(2), CSS.number(0.5), new CSSMathInvert(CSS.px(2)), CSS.number(2), new CSSMathInvert(new CSSMathSum(2))));
 }, 'Calling CSSNumericValue.div inverts all argument values');
 
+test(() => {
+  assert_throws(new RangeError(), () => CSS.number(2).div(CSS.number(0)));
+  assert_throws(new RangeError(), () => CSS.number(3).div(CSS.px(10) ,CSS.number(0)));
+  assert_throws(new RangeError(), () => CSS.number(2).div(CSS.number(0), CSS.number(0)));
+}, 'Can not divide with CSSUnitValue which has zero value and number type');
+
 </script>
