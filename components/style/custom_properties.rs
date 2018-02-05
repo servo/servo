@@ -697,7 +697,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
         // Add new entry to the information table.
         let index = context.count;
         context.count += 1;
-        debug_assert!(index == context.var_info.len());
+        debug_assert_eq!(index, context.var_info.len());
         context.var_info.push(VarInfo {
             name: Some(name),
             lowlink: index,
