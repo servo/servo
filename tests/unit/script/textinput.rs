@@ -607,6 +607,20 @@ fn test_textinput_set_selection_with_direction() {
     assert_eq!(textinput.edit_point.index, 0);
     assert_eq!(textinput.selection_direction, SelectionDirection::Forward);
 
+    assert!(textinput.selection_origin.is_some());
+    assert_eq!(textinput.selection_origin.unwrap().line, 0);
+    assert_eq!(textinput.selection_origin.unwrap().index, 0);
+
+    textinput = text_input(Lines::Multiple, "\n");
+    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.selection_direction, SelectionDirection::Forward);
+
+    assert!(textinput.selection_origin.is_some());
+    assert_eq!(textinput.selection_origin.unwrap().line, 0);
+    assert_eq!(textinput.selection_origin.unwrap().index, 0);
+
 }
 
 #[test]
