@@ -203,6 +203,8 @@ pub mod animated_properties {
 }
 
 <%
+    from itertools import groupby
+
     variants = []
     for property in data.longhands:
         if property.predefined_type and not property.is_vector and not property.is_size_type:
@@ -216,7 +218,33 @@ pub mod animated_properties {
             "type": ty,
             "doc": "`" + property.name + "`",
         })
-    variants += [
+
+    groups = {}
+    keyfunc = lambda x: x["type"]
+    sortkeys = {}
+    for ty, group in groupby(sorted(variants, key=keyfunc), keyfunc):
+        group = [v["name"] for v in group]
+        groups[ty] = group
+        for v in group:
+            if len(group) == 1:
+                sortkeys[v] = (1, v, "")
+            else:
+                sortkeys[v] = (len(group), ty, v)
+    variants.sort(key=lambda x: sortkeys[x["name"]])
+
+    # It is extremely important to sort the `data.longhands` array here so
+    # that it is in the same order as `variants`, for `LonghandId` and
+    # `PropertyDeclarationId` to coincide.
+    data.longhands.sort(key=lambda x: sortkeys[x.camel_case])
+%>
+
+// WARNING: It is *really* important for the variants of `LonghandId`
+// and `PropertyDeclaration` to be defined in the exact same order,
+// with the exception of `CSSWideKeyword`, `WithVariables` and `Custom`,
+// which don't exist in `LonghandId`.
+
+<%
+    extra = [
         {
             "name": "CSSWideKeyword",
             "type": "WideKeywordDeclaration",
@@ -233,6 +261,9 @@ pub mod animated_properties {
             "doc": "A custom property declaration.",
         },
     ]
+    for v in extra:
+        variants.append(v)
+        groups[v["type"]] = [v["name"]]
 %>
 
 /// Servo's representation for a property declaration.
@@ -245,15 +276,6 @@ pub enum PropertyDeclaration {
     ${variant["name"]}(${variant["type"]}),
     % endfor
 }
-
-<%
-    from itertools import groupby
-
-    groups = {}
-    keyfunc = lambda x: x["type"]
-    for ty, group in groupby(sorted(variants, key=keyfunc), keyfunc):
-        groups[ty] = list(group)
-%>
 
 impl Clone for PropertyDeclaration {
     #[inline]
@@ -269,11 +291,11 @@ impl Clone for PropertyDeclaration {
         match *self {
             % for ty, variants in groups.iteritems():
             % if len(variants) == 1:
-            ${variants[0]["name"]}(ref value) => {
-                ${variants[0]["name"]}(value.clone())
+            ${variants[0]}(ref value) => {
+                ${variants[0]}(value.clone())
             }
             % else:
-            ${" | ".join("{}(ref value)".format(v["name"]) for v in variants)} => {
+            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
                 unsafe {
                     let mut out = ManuallyDrop::new(mem::uninitialized());
                     ptr::write(
@@ -376,7 +398,7 @@ impl<'a> Iterator for LonghandIdSetIterator<'a> {
                 return None;
             }
 
-            let id: LonghandId = unsafe { mem::transmute(self.cur as ${"u16" if product == "gecko" else "u8"}) };
+            let id: LonghandId = unsafe { mem::transmute(self.cur as u16) };
             self.cur += 1;
 
             if self.longhands.contains(id) {
@@ -583,6 +605,7 @@ bitflags! {
 
 /// An identifier for a given longhand property.
 #[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq)]
+#[repr(u16)]
 pub enum LonghandId {
     % for i, property in enumerate(data.longhands):
         /// ${property.name}
@@ -1623,23 +1646,9 @@ impl PropertyDeclaration {
             }
             _ => {}
         }
-        let longhand_id = match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(..) => {
-                    LonghandId::${property.camel_case}
-                }
-            % endfor
-            PropertyDeclaration::CSSWideKeyword(..) |
-            PropertyDeclaration::WithVariables(..) |
-            PropertyDeclaration::Custom(..) => {
-                debug_assert!(false, "unreachable");
-                // This value is never used, but having an expression of the same "shape"
-                // as for other variants helps the optimizer compile this `match` expression
-                // to a lookup table.
-                LonghandId::BackgroundColor
-            }
-        };
-        PropertyDeclarationId::Longhand(longhand_id)
+        PropertyDeclarationId::Longhand(
+            unsafe { *(self as *const _ as *const LonghandId) },
+        )
     }
 
     fn with_variables_from_shorthand(&self, shorthand: ShorthandId) -> Option< &str> {
