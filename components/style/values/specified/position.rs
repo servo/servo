@@ -304,10 +304,11 @@ impl Parse for LegacyPosition {
 
 impl LegacyPosition {
     /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         match input.try(|i| OriginComponent::parse(context, i)) {
             Ok(x_pos @ OriginComponent::Center) => {
                 if let Ok(y_pos) = input.try(|i|
