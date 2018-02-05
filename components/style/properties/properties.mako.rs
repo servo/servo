@@ -268,7 +268,6 @@ pub mod animated_properties {
 
 /// Servo's representation for a property declaration.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(PartialEq)]
 #[repr(u16)]
 pub enum PropertyDeclaration {
     % for variant in variants:
@@ -277,16 +276,16 @@ pub enum PropertyDeclaration {
     % endfor
 }
 
+#[repr(C)]
+struct PropertyDeclarationVariantRepr<T> {
+    tag: u16,
+    value: T
+}
+
 impl Clone for PropertyDeclaration {
     #[inline]
     fn clone(&self) -> Self {
         use self::PropertyDeclaration::*;
-
-        #[repr(C)]
-        struct VariantRepr<T> {
-            tag: u16,
-            value: T
-        }
 
         match *self {
             % for ty, variants in groups.iteritems():
@@ -299,8 +298,8 @@ impl Clone for PropertyDeclaration {
                 unsafe {
                     let mut out = ManuallyDrop::new(mem::uninitialized());
                     ptr::write(
-                        &mut out as *mut _ as *mut VariantRepr<${ty}>,
-                        VariantRepr {
+                        &mut out as *mut _ as *mut PropertyDeclarationVariantRepr<${ty}>,
+                        PropertyDeclarationVariantRepr {
                             tag: *(self as *const _ as *const u16),
                             value: value.clone(),
                         },
@@ -310,6 +309,32 @@ impl Clone for PropertyDeclaration {
             }
             % endif
             % endfor
+        }
+    }
+}
+
+impl PartialEq for PropertyDeclaration {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        use self::PropertyDeclaration::*;
+
+        unsafe {
+            let this_repr =
+                &*(self as *const _ as *const PropertyDeclarationVariantRepr<()>);
+            let other_repr =
+                &*(other as *const _ as *const PropertyDeclarationVariantRepr<()>);
+            if this_repr.tag != other_repr.tag {
+                return false;
+            }
+            match *self {
+                % for ty, variants in groups.iteritems():
+                ${" | ".join("{}(ref this)".format(v) for v in variants)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const PropertyDeclarationVariantRepr<${ty}>);
+                    *this == other_repr.value
+                }
+                % endfor
+            }
         }
     }
 }
