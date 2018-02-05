@@ -345,8 +345,8 @@ unsafe impl HasSimpleFFI for AnimationValueMap {}
 ///
 /// FIXME: We need to add a path for custom properties, but that's trivial after
 /// this (is a similar path to that of PropertyDeclaration).
-#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug)]
 #[repr(u16)]
 pub enum AnimationValue {
     % for prop in data.longhands:
@@ -369,6 +369,40 @@ pub enum AnimationValue {
         else:
             unanimated.append(prop)
 %>
+
+#[repr(C)]
+struct AnimationValueVariantRepr<T> {
+    tag: u16,
+    value: T
+}
+
+impl PartialEq for AnimationValue {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        use self::AnimationValue::*;
+
+        unsafe {
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
+                return false;
+            }
+
+            match *self {
+                % for ty, props in groupby(animated, key=lambda x: x.animated_type()):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+                    *this == other_repr.value
+                }
+                % endfor
+                ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                    void::unreachable(void)
+                }
+            }
+        }
+    }
+}
 
 impl AnimationValue {
     /// Returns the longhand id this animated value corresponds to.
@@ -562,12 +596,6 @@ fn animate_discrete<T: Clone>(this: &T, other: &T, procedure: Procedure) -> Resu
     } else {
         Err(())
     }
-}
-
-#[repr(C)]
-struct AnimationValueVariantRepr<T> {
-    tag: u16,
-    value: T
 }
 
 impl Animate for AnimationValue {
