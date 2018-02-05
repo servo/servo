@@ -738,7 +738,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         match text_content {
             TextContent::Text(string) => {
-                let info = Box::new(UnscannedTextFragmentInfo::new(string, node.selection()));
+                let info = Box::new(UnscannedTextFragmentInfo::new(string.to_string(), node.selection()));
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),
@@ -750,13 +750,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
             TextContent::GeneratedContent(content_items) => {
                 for content_item in content_items.into_iter() {
-                    let specific_fragment_info = match content_item {
-                        ContentItem::String(string) => {
-                            let info = Box::new(UnscannedTextFragmentInfo::new(string, None));
+                    let specific_fragment_info = match *content_item {
+                        ContentItem::String(ref string) => {
+                            let info = Box::new(UnscannedTextFragmentInfo::new(String::from(string.clone()), None));
                             SpecificFragmentInfo::UnscannedText(info)
-                        }
-                        content_item => {
-                            let content_item = Box::new(GeneratedContentInfo::ContentItem(content_item));
+                        },
+                        ref content_item => {
+                            let content_item = Box::new(GeneratedContentInfo::ContentItem(content_item.clone()));
                             SpecificFragmentInfo::GeneratedContent(content_item)
                         }
                     };

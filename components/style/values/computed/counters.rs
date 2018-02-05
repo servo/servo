@@ -88,12 +88,12 @@ impl Parse for Content {
             // FIXME: remove clone() when lifetimes are non-lexical
             match input.next().map(|t| t.clone()) {
                 Ok(Token::QuotedString(ref value)) => {
-                    content.push(ContentItem::String(value.as_ref().to_owned()));
+                    content.push(ContentItem::String(value.as_ref().to_owned().into_boxed_str()));
                 }
                 Ok(Token::Function(ref name)) => {
                     let result = match_ignore_ascii_case! { &name,
                         "counter" => Some(input.parse_nested_block(|input| {
-                            let name = input.expect_ident()?.as_ref().to_owned();
+                            let name = input.expect_ident()?.as_ref().to_owned().into_boxed_str();
                             #[cfg(feature = "servo")]
                             let style = Content::parse_counter_style(input);
                             #[cfg(feature = "gecko")]
@@ -101,9 +101,9 @@ impl Parse for Content {
                             Ok(ContentItem::Counter(name, style))
                         })),
                         "counters" => Some(input.parse_nested_block(|input| {
-                            let name = input.expect_ident()?.as_ref().to_owned();
+                            let name = input.expect_ident()?.as_ref().to_owned().into_boxed_str();
                             input.expect_comma()?;
-                            let separator = input.expect_string()?.as_ref().to_owned();
+                            let separator = input.expect_string()?.as_ref().to_owned().into_boxed_str();
                             #[cfg(feature = "servo")]
                             let style = Content::parse_counter_style(input);
                             #[cfg(feature = "gecko")]
@@ -142,7 +142,7 @@ impl Parse for Content {
         if content.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        Ok(Content::Items(content))
+        Ok(Content::Items(content.into_boxed_slice()))
     }
 }
 

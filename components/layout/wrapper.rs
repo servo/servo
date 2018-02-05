@@ -117,11 +117,11 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
                 Content::Items(ref value) if !value.is_empty() => {
                     TextContent::GeneratedContent((*value).clone())
                 }
-                _ => TextContent::GeneratedContent(vec![]),
+                _ => TextContent::GeneratedContent(vec![].into_boxed_slice()),
             };
         }
 
-        TextContent::Text(self.node_text_content())
+        TextContent::Text(self.node_text_content().into_boxed_str())
     }
 
     fn restyle_damage(self) -> RestyleDamage {
@@ -156,8 +156,8 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
 }
 
 pub enum TextContent {
-    Text(String),
-    GeneratedContent(Vec<ContentItem>),
+    Text(Box<str>),
+    GeneratedContent(Box<[ContentItem]>),
 }
 
 impl TextContent {

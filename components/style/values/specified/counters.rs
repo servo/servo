@@ -92,18 +92,18 @@ pub enum Content {
     #[cfg(feature = "gecko")]
     MozAltContent,
     /// Content items.
-    Items(Vec<ContentItem>),
+    Items(Box<[ContentItem]>),
 }
 
 /// Items for the `content` property.
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
 pub enum ContentItem {
     /// Literal string content.
-    String(String),
+    String(Box<str>),
     /// `counter(name, style)`.
-    Counter(String, CounterStyleType),
+    Counter(Box<str>, CounterStyleType),
     /// `counters(name, separator, style)`.
-    Counters(String, String, CounterStyleType),
+    Counters(Box<str>, Box<str>, CounterStyleType),
     /// `open-quote`.
     OpenQuote,
     /// `close-quote`.

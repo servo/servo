@@ -10,7 +10,6 @@ ${helpers.predefined_type("content",
                           "Content",
                           "computed::Content::normal()",
                           initial_specified_value="specified::Content::normal()",
-                          boxed=True,
                           animation_value_type="discrete",
                           spec="https://drafts.csswg.org/css-content/#propdef-content")}
 
