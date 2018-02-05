@@ -314,6 +314,24 @@ impl Clone for PropertyDeclaration {
     }
 }
 
+impl PropertyDeclaration {
+    /// Like the method on ToCss, but without the type parameter to avoid
+    /// accidentally monomorphizing this large function multiple times for
+    /// different writers.
+    pub fn to_css(&self, dest: &mut CssStringWriter) -> fmt::Result {
+        use self::PropertyDeclaration::*;
+
+        let mut dest = CssWriter::new(dest);
+        match *self {
+            % for ty, variants in groups.iteritems():
+            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+                value.to_css(&mut dest)
+            }
+            % endfor
+        }
+    }
+}
+
 /// A longhand or shorthand porperty
 #[derive(Clone, Copy, Debug)]
 pub struct NonCustomPropertyId(usize);
@@ -1563,6 +1581,15 @@ pub struct WideKeywordDeclaration {
     keyword: CSSWideKeyword,
 }
 
+impl ToCss for WideKeywordDeclaration {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        self.keyword.to_css(dest)
+    }
+}
+
 /// An unparsed declaration that contains `var()` functions.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, PartialEq)]
@@ -1570,6 +1597,28 @@ pub struct VariableDeclaration {
     id: LonghandId,
     #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
     value: Arc<UnparsedValue>,
+}
+
+impl ToCss for VariableDeclaration {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+        match self.value.from_shorthand {
+            // Normally, we shouldn't be printing variables here if they came from
+            // shorthands. But we should allow properties that came from shorthand
+            // aliases. That also matches with the Gecko behavior.
+            Some(shorthand) if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) => {
+                dest.write_str(&*self.value.css)?
+            }
+            None => {
+                dest.write_str(&*self.value.css)?
+            }
+            _ => {},
+        }
+        Ok(())
+    }
 }
 
 /// A custom property declaration with the property name and the declared value.
@@ -1583,6 +1632,15 @@ pub struct CustomDeclaration {
     pub value: DeclaredValueOwned<Arc<::custom_properties::SpecifiedValue>>,
 }
 
+impl ToCss for CustomDeclaration {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        self.value.borrow().to_css(dest)
+    }
+}
+
 impl fmt::Debug for PropertyDeclaration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.id().to_css(&mut CssWriter::new(f))?;
@@ -1594,40 +1652,6 @@ impl fmt::Debug for PropertyDeclaration {
         let mut s = CssString::new();
         self.to_css(&mut s)?;
         write!(f, "{}", s)
-    }
-}
-
-impl PropertyDeclaration {
-    /// Like the method on ToCss, but without the type parameter to avoid
-    /// accidentally monomorphizing this large function multiple times for
-    /// different writers.
-    pub fn to_css(&self, dest: &mut CssStringWriter) -> fmt::Result {
-        match *self {
-            % for property in data.longhands:
-            PropertyDeclaration::${property.camel_case}(ref value) => {
-                value.to_css(&mut CssWriter::new(dest))
-            }
-            % endfor
-            PropertyDeclaration::CSSWideKeyword(ref declaration) => {
-                declaration.keyword.to_css(&mut CssWriter::new(dest))
-            },
-            PropertyDeclaration::WithVariables(ref declaration) => {
-                // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-                match declaration.value.from_shorthand {
-                    // Normally, we shouldn't be printing variables here if they came from
-                    // shorthands. But we should allow properties that came from shorthand
-                    // aliases. That also matches with the Gecko behavior.
-                    Some(shorthand) if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) =>
-                        dest.write_str(&*declaration.value.css)?,
-                    None => dest.write_str(&*declaration.value.css)?,
-                    _ => {},
-                }
-                Ok(())
-            },
-            PropertyDeclaration::Custom(ref declaration) => {
-                declaration.value.borrow().to_css(&mut CssWriter::new(dest))
-            },
-        }
     }
 }
 
