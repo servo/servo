@@ -108,11 +108,6 @@ pub fn handle_execute_async_script(documents: &Documents,
     window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
-pub fn handle_load_rust(documents: &Documents,
-                                   pipeline: PipelineId) {
-    println!("TODO")
-}
-
 pub fn handle_get_browsing_context_id(documents: &Documents,
                                       pipeline: PipelineId,
                                       webdriver_frame_id: WebDriverFrameId,

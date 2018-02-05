@@ -65,7 +65,7 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
+use std::sync::mpsc::RecvTimeoutError;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;

@@ -124,7 +124,7 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 /// various browser components.
 pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
-    pub constellation_chan: Sender<ConstellationMsg>,
+    constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver
 }
 
