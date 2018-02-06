@@ -167,11 +167,18 @@ ${helpers.predefined_type("order", "Integer", "0",
 // and should be converted to just LengthOrPercentage.
 % if product == "gecko":
     // FIXME: Gecko doesn't support content value yet.
-    ${helpers.gecko_size_type("flex-basis", "MozLength", "auto()",
-                              logical=False,
-                              spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
-                              extra_prefixes="webkit",
-                              animation_value_type="MozLength")}
+    //
+    // FIXME(emilio): I suspect this property shouldn't allow quirks, and this
+    // was just a mistake.
+    ${helpers.predefined_type(
+        "flex-basis",
+        "MozLength",
+        "computed::MozLength::auto()",
+        extra_prefixes="webkit",
+        animation_value_type="ComputedValue",
+        allow_quirks=True,
+        spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property"
+    )}
 % else:
     // FIXME: This property should be animatable.
     ${helpers.predefined_type("flex-basis",

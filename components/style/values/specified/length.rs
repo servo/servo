@@ -933,6 +933,7 @@ impl LengthOrPercentageOrAuto {
     }
 
     /// Returns a value representing `0%`.
+    #[inline]
     pub fn zero_percent() -> Self {
         LengthOrPercentageOrAuto::Percentage(computed::Percentage::zero())
     }
@@ -1141,6 +1142,18 @@ impl MozLength {
             allow_quirks,
         )?;
         Ok(MozLength::LengthOrPercentageOrAuto(length))
+    }
+
+    /// Returns `auto`.
+    #[inline]
+    pub fn auto() -> Self {
+        MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::auto())
+    }
+
+    /// Returns `0%`.
+    #[inline]
+    pub fn zero_percent() -> Self {
+        MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::zero_percent())
     }
 }
 
