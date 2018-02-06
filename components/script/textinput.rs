@@ -171,7 +171,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: min_length,
             selection_direction: selection_direction,
         };
-        i.set_content(initial, false);
+        i.set_content(initial);
         i
     }
 
@@ -411,7 +411,9 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
+
         let col = self.lines[self.edit_point.line][..self.edit_point.index].chars().count();
+
         self.edit_point.line = target_line as usize;
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
         self.assert_ok_selection();
@@ -531,9 +533,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Remove the current selection and set the edit point to the end of the content.
-    pub fn clear_selection_to_limit(&mut self, direction: Direction, update_text_cursor: bool) {
+    pub fn clear_selection_to_limit(&mut self, direction: Direction) {
         self.clear_selection();
-        self.adjust_horizontal_to_limit(direction, Selection::NotSelected, update_text_cursor);
+        self.adjust_horizontal_to_limit(direction, Selection::NotSelected);
     }
 
     pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
@@ -625,20 +627,18 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.perform_horizontal_adjustment(shift, select);
     }
 
-    pub fn adjust_horizontal_to_limit(&mut self, direction: Direction, select: Selection, update_text_cursor: bool) {
+    pub fn adjust_horizontal_to_limit(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return
         }
-        if update_text_cursor {
-            match direction {
-                Direction::Backward => {
-                    self.edit_point.line = 0;
-                    self.edit_point.index = 0;
-                },
-                Direction::Forward => {
-                    self.edit_point.line = &self.lines.len() - 1;
-                    self.edit_point.index = (&self.lines[&self.lines.len() - 1]).len();
-                }
+        match direction {
+            Direction::Backward => {
+                self.edit_point.line = 0;
+                self.edit_point.index = 0;
+            },
+            Direction::Forward => {
+                self.edit_point.line = &self.lines.len() - 1;
+                self.edit_point.index = (&self.lines[&self.lines.len() - 1]).len();
             }
         }
     }
@@ -728,12 +728,12 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
             #[cfg(target_os = "macos")]
             (None, Key::Up) if mods.contains(KeyModifiers::SUPER) => {
-                self.adjust_horizontal_to_limit(Direction::Backward, maybe_select, true);
+                self.adjust_horizontal_to_limit(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
             (None, Key::Down) if mods.contains(KeyModifiers::SUPER) => {
-                self.adjust_horizontal_to_limit(Direction::Forward, maybe_select, true);
+                self.adjust_horizontal_to_limit(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             (None, Key::Left) if mods.contains(KeyModifiers::ALT) => {
@@ -840,7 +840,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
-    pub fn set_content(&mut self, content: DOMString, update_text_cursor: bool) {
+    pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
             content.replace("\r\n", "\n")
@@ -850,10 +850,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             vec!(content)
         };
-        if update_text_cursor {
-            self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
-            self.edit_point.index = min(self.edit_point.index, self.current_line_length());
-        }
+        self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
+        self.edit_point.index = min(self.edit_point.index, self.current_line_length());
         self.selection_origin = None;
         self.assert_ok_selection();
     }
