@@ -3138,8 +3138,6 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(
 ) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::border_spacing::SpecifiedValue as BorderSpacing;
-    use style::properties::longhands::height::SpecifiedValue as Height;
-    use style::properties::longhands::width::SpecifiedValue as Width;
     use style::values::specified::{BorderSideWidth, MozLength, BorderCornerRadius};
     use style::values::specified::length::{NoCalcLength, NonNegativeLength, LengthOrPercentage};
 
@@ -3147,8 +3145,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(
     let nocalc = NoCalcLength::from_px(value);
 
     let prop = match_wrap_declared! { long,
-        Height => Height(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
-        Width => Width(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
+        Height => MozLength::LengthOrPercentageOrAuto(nocalc.into()),
+        Width => MozLength::LengthOrPercentageOrAuto(nocalc.into()),
         BorderTopWidth => BorderSideWidth::Length(nocalc.into()),
         BorderRightWidth => BorderSideWidth::Length(nocalc.into()),
         BorderBottomWidth => BorderSideWidth::Length(nocalc.into()),
@@ -3197,7 +3195,6 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
 ) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_moz_script_min_size::SpecifiedValue as MozScriptMinSize;
-    use style::properties::longhands::width::SpecifiedValue as Width;
     use style::values::specified::MozLength;
     use style::values::specified::length::{AbsoluteLength, FontRelativeLength};
     use style::values::specified::length::{LengthOrPercentage, NoCalcLength};
@@ -3217,7 +3214,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
     };
 
     let prop = match_wrap_declared! { long,
-        Width => Width(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
+        Width => MozLength::LengthOrPercentageOrAuto(nocalc.into()),
         FontSize => LengthOrPercentage::from(nocalc).into(),
         MozScriptMinSize => MozScriptMinSize(nocalc),
     };
@@ -3255,8 +3252,6 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(
     value: f32,
 ) {
     use style::properties::{PropertyDeclaration, LonghandId};
-    use style::properties::longhands::height::SpecifiedValue as Height;
-    use style::properties::longhands::width::SpecifiedValue as Width;
     use style::values::computed::Percentage;
     use style::values::specified::MozLength;
     use style::values::specified::length::LengthOrPercentage;
@@ -3265,8 +3260,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(
     let pc = Percentage(value);
 
     let prop = match_wrap_declared! { long,
-        Height => Height(MozLength::LengthOrPercentageOrAuto(pc.into())),
-        Width => Width(MozLength::LengthOrPercentageOrAuto(pc.into())),
+        Height => MozLength::LengthOrPercentageOrAuto(pc.into()),
+        Width => MozLength::LengthOrPercentageOrAuto(pc.into()),
         MarginTop => pc.into(),
         MarginRight => pc.into(),
         MarginBottom => pc.into(),
@@ -3284,16 +3279,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(
     property: nsCSSPropertyID,
 ) {
     use style::properties::{PropertyDeclaration, LonghandId};
-    use style::properties::longhands::height::SpecifiedValue as Height;
-    use style::properties::longhands::width::SpecifiedValue as Width;
-    use style::values::specified::LengthOrPercentageOrAuto;
+    use style::values::specified::{LengthOrPercentageOrAuto, MozLength};
 
     let long = get_longhand_from_id!(property);
     let auto = LengthOrPercentageOrAuto::Auto;
 
     let prop = match_wrap_declared! { long,
-        Height => Height::auto(),
-        Width => Width::auto(),
+        Height => MozLength::auto(),
+        Width => MozLength::auto(),
         MarginTop => auto,
         MarginRight => auto,
         MarginBottom => auto,
