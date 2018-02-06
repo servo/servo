@@ -143,27 +143,14 @@
             None
         }
     % endif
-    enum SerializeFor {
-        Normal,
-    % if product == "gecko":
-        Canvas,
-    % endif
-    }
 
-    impl<'a> LonghandsToSerialize<'a> {
-        fn to_css_for<W>(
-            &self,
-            serialize_for: SerializeFor,
-            dest: &mut CssWriter<W>,
-        ) -> fmt::Result
-        where
-            W: Write,
-        {
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             % if product == "gecko":
                 match self.check_system() {
                     CheckSystemResult::AllSystem(sys) => return sys.to_css(dest),
                     CheckSystemResult::SomeSystem => return Ok(()),
-                    CheckSystemResult::None => ()
+                    CheckSystemResult::None => {}
                 }
             % endif
 
@@ -178,14 +165,7 @@
             // In case of serialization for canvas font, we need to drop
             // initial values of properties other than size and family.
             % for name in "style variant_caps weight stretch".split():
-                let needs_this_property = match serialize_for {
-                    SerializeFor::Normal => true,
-                % if product == "gecko":
-                    SerializeFor::Canvas =>
-                        self.font_${name} != &font_${name}::get_initial_specified_value(),
-                % endif
-                };
-                if needs_this_property {
+                if self.font_${name} != &font_${name}::get_initial_specified_value() {
                     self.font_${name}.to_css(dest)?;
                     dest.write_str(" ")?;
                 }
@@ -203,45 +183,35 @@
 
             Ok(())
         }
-
-        % if product == "gecko":
-            /// Check if some or all members are system fonts
-            fn check_system(&self) -> CheckSystemResult {
-                let mut sys = None;
-                let mut all = true;
-
-                % for prop in SYSTEM_FONT_LONGHANDS:
-                    if let Some(s) = self.${prop}.get_system() {
-                        debug_assert!(sys.is_none() || s == sys.unwrap());
-                        sys = Some(s);
-                    } else {
-                        all = false;
-                    }
-                % endfor
-                if self.line_height != &LineHeight::normal() {
-                    all = false
-                }
-                if all {
-                    CheckSystemResult::AllSystem(sys.unwrap())
-                } else if sys.is_some() {
-                    CheckSystemResult::SomeSystem
-                } else {
-                    CheckSystemResult::None
-                }
-            }
-
-            /// Serialize the shorthand value for canvas font attribute.
-            pub fn to_css_for_canvas<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-                self.to_css_for(SerializeFor::Canvas, dest)
-            }
-        % endif
     }
 
-    // This may be a bit off, unsure, possibly needs changes
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.to_css_for(SerializeFor::Normal, dest)
+    impl<'a> LonghandsToSerialize<'a> {
+        % if product == "gecko":
+        /// Check if some or all members are system fonts
+        fn check_system(&self) -> CheckSystemResult {
+            let mut sys = None;
+            let mut all = true;
+
+            % for prop in SYSTEM_FONT_LONGHANDS:
+                if let Some(s) = self.${prop}.get_system() {
+                    debug_assert!(sys.is_none() || s == sys.unwrap());
+                    sys = Some(s);
+                } else {
+                    all = false;
+                }
+            % endfor
+            if self.line_height != &LineHeight::normal() {
+                all = false
+            }
+            if all {
+                CheckSystemResult::AllSystem(sys.unwrap())
+            } else if sys.is_some() {
+                CheckSystemResult::SomeSystem
+            } else {
+                CheckSystemResult::None
+            }
         }
+        % endif
     }
 </%helpers:shorthand>
 
