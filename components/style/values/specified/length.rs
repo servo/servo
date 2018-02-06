@@ -1131,9 +1131,16 @@ impl MozLength {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        input.try(ExtremumLength::parse).map(MozLength::ExtremumLength)
-            .or_else(|_| input.try(|i| LengthOrPercentageOrAuto::parse_non_negative_quirky(context, i, allow_quirks))
-                               .map(MozLength::LengthOrPercentageOrAuto))
+        if let Ok(l) = input.try(ExtremumLength::parse) {
+            return Ok(MozLength::ExtremumLength(l));
+        }
+
+        let length = LengthOrPercentageOrAuto::parse_non_negative_quirky(
+            context,
+            input,
+            allow_quirks,
+        )?;
+        Ok(MozLength::LengthOrPercentageOrAuto(length))
     }
 }
 
@@ -1158,8 +1165,15 @@ impl MaxLength {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
-            .or_else(|_| input.try(|i| LengthOrPercentageOrNone::parse_non_negative_quirky(context, i, allow_quirks))
-                               .map(MaxLength::LengthOrPercentageOrNone))
+        if let Ok(l) = input.try(ExtremumLength::parse) {
+            return Ok(MaxLength::ExtremumLength(l));
+        }
+
+        let length = LengthOrPercentageOrNone::parse_non_negative_quirky(
+            context,
+            input,
+            allow_quirks,
+        )?;
+        Ok(MaxLength::LengthOrPercentageOrNone(length))
     }
 }

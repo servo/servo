@@ -888,6 +888,7 @@ pub enum MozLength {
 
 impl MozLength {
     /// Returns the `auto` value.
+    #[inline]
     pub fn auto() -> Self {
         MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::Auto)
     }
