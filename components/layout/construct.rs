@@ -37,14 +37,12 @@ use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use servo_config::opts;
 use servo_url::ServoUrl;
-use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use style::computed_values::caption_side::T as CaptionSide;
-use style::computed_values::content::ContentItem;
 use style::computed_values::display::T as Display;
 use style::computed_values::empty_cells::T as EmptyCells;
 use style::computed_values::float::T as Float;
@@ -58,6 +56,7 @@ use style::properties::longhands::list_style_image;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::Either;
+use style::values::computed::counters::ContentItem;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -598,7 +597,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
-                    Box::new(UnscannedTextFragmentInfo::new(" ".to_owned(), None))
+                    Box::new(UnscannedTextFragmentInfo::new(Box::<str>::from(" "), None))
                 );
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_pseudo,
@@ -754,7 +753,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         ContentItem::String(string) => {
                             let info = Box::new(UnscannedTextFragmentInfo::new(string, None));
                             SpecificFragmentInfo::UnscannedText(info)
-                        }
+                        },
                         content_item => {
                             let content_item = Box::new(GeneratedContentInfo::ContentItem(content_item));
                             SpecificFragmentInfo::GeneratedContent(content_item)
@@ -873,7 +872,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = SpecificFragmentInfo::UnscannedText(
-                        Box::new(UnscannedTextFragmentInfo::new(" ".to_owned(), None))
+                        Box::new(UnscannedTextFragmentInfo::new(Box::<str>::from(" "), None))
                     );
                     let fragment =
                         Fragment::from_opaque_node_and_style(whitespace_node,
@@ -895,7 +894,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         if is_empty && node_style.has_padding_or_border() {
             // An empty inline box needs at least one fragment to draw its background and borders.
             let info = SpecificFragmentInfo::UnscannedText(
-                Box::new(UnscannedTextFragmentInfo::new(String::new(), None))
+                Box::new(UnscannedTextFragmentInfo::new(Box::<str>::from(""), None))
             );
             let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                                 node.get_pseudo_element_type(),
@@ -1296,7 +1295,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         unscanned_marker_fragments.push_back(Fragment::new(
                             node,
                             SpecificFragmentInfo::UnscannedText(
-                                Box::new(UnscannedTextFragmentInfo::new(text, None))
+                                Box::new(UnscannedTextFragmentInfo::new(Box::<str>::from(text), None))
                             ),
                             self.layout_context));
                         let marker_fragments =
@@ -1899,7 +1898,7 @@ where
     E: TElement,
 {
     let info = SpecificFragmentInfo::UnscannedText(
-        Box::new(UnscannedTextFragmentInfo::new(String::from(text), None))
+        Box::new(UnscannedTextFragmentInfo::new(Box::<str>::from(text), None))
     );
     let text_style = context.stylist.style_for_anonymous::<E>(
         &context.guards,
