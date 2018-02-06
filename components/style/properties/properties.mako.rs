@@ -33,6 +33,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::LogicalMargin;
 #[cfg(feature = "servo")] use computed_values;
 use logical_geometry::WritingMode;
+#[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use media_queries::Device;
 use parser::ParserContext;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
@@ -267,7 +268,6 @@ pub mod animated_properties {
 %>
 
 /// Servo's representation for a property declaration.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[repr(u16)]
 pub enum PropertyDeclaration {
     % for variant in variants:
@@ -338,6 +338,23 @@ impl PartialEq for PropertyDeclaration {
         }
     }
 }
+
+#[cfg(feature = "gecko")]
+impl MallocSizeOf for PropertyDeclaration {
+    #[inline]
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        use self::PropertyDeclaration::*;
+
+        match *self {
+            % for ty, variants in groups.iteritems():
+            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+                value.size_of(ops)
+            }
+            % endfor
+        }
+    }
+}
+
 
 impl PropertyDeclaration {
     /// Like the method on ToCss, but without the type parameter to avoid
