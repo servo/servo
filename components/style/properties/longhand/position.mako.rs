@@ -196,7 +196,7 @@ ${helpers.predefined_type("order", "Integer", "0",
     %>
     % if product == "gecko":
         // width, height, block-size, inline-size
-        ${helpers.gecko_size_type("%s" % size, "MozLength", "auto()",
+        ${helpers.gecko_size_type(size, "MozLength", "auto()",
                                   logical,
                                   spec=spec % size,
                                   animation_value_type="MozLength")}
@@ -212,7 +212,7 @@ ${helpers.predefined_type("order", "Integer", "0",
                                   animation_value_type="MaxLength")}
     % else:
         // servo versions (no keyword support)
-        ${helpers.predefined_type("%s" % size,
+        ${helpers.predefined_type(size,
                                   "LengthOrPercentageOrAuto",
                                   "computed::LengthOrPercentageOrAuto::Auto",
                                   "parse_non_negative",
