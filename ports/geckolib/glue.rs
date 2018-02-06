@@ -1121,9 +1121,10 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
+pub unsafe extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     raw_data: RawServoStyleSetBorrowed,
     viewport_units_used: *mut bool,
+    may_affect_default_style: bool,
 ) -> u8 {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -1140,10 +1141,15 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     // less often.
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
 
-    unsafe {
-        *viewport_units_used = data.stylist.device().used_viewport_size();
+    *viewport_units_used = data.stylist.device().used_viewport_size();
+    if may_affect_default_style {
+        // FIXME(emilio): It's a shame we do this too for XBL stuff, but we need
+        // to right now to evaluate relative units in media queries correctly.
+        //
+        // We should instead just pass the `Device` reference from the master
+        // stylist, but that looked kinda gross... Maybe it's not actually.
+        data.stylist.device_mut().reset_computed_values();
     }
-    data.stylist.device_mut().reset_computed_values();
     let guards = StylesheetGuards::same(&guard);
     let origins_in_which_rules_changed =
         data.stylist.media_features_change_changed_style(&guards);
