@@ -18,8 +18,12 @@ element.setAttribute("bar", "baz");
 
 var idlArray = new IdlArray();
 
-function doTest(idl) {
-  idlArray.add_idls(idl);
+function doTest([html, dom]) {
+  // HTML is needed for EventHandler. Provide a dummy interface for
+  // LinkStyle which HTML depends on but we're not testing.
+  idlArray.add_untested_idls('interface LinkStyle {};');
+  idlArray.add_untested_idls(html);
+  idlArray.add_idls(dom);
   idlArray.add_objects({
     EventTarget: ['new EventTarget()'],
     Event: ['document.createEvent("Event")', 'new Event("foo")'],
@@ -46,8 +50,13 @@ function doTest(idl) {
   idlArray.test();
 }
 
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
 promise_test(function() {
-  return fetch("/interfaces/dom.idl").then(response => response.text())
-                                     .then(doTest);
+  return Promise.all(['/interfaces/html.idl',
+                      '/interfaces/dom.idl'].map(fetchText))
+                .then(doTest);
 }, "Test driver");
 </script>
