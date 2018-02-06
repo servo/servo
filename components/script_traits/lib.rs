@@ -70,7 +70,7 @@ use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::{ClipId, DevicePixel, DocumentId, ImageKey};
+use webrender_api::{ExternalScrollId, DevicePixel, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -719,7 +719,7 @@ pub enum AnimationTickType {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct ScrollState {
     /// The ID of the scroll root.
-    pub scroll_root_id: ClipId,
+    pub scroll_id: ExternalScrollId,
     /// The scrolling offset of this stacking context.
     pub scroll_offset: Vector2D<f32>,
 }

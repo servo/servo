@@ -261,6 +261,10 @@ impl PipelineId {
         webrender_api::ClipId::root_scroll_node(self.to_webrender())
     }
 
+    pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
+        webrender_api::ExternalScrollId(0, self.to_webrender())
+    }
+
     pub fn root_clip_and_scroll_info(&self) -> webrender_api::ClipAndScrollInfo {
         webrender_api::ClipAndScrollInfo::simple(self.root_scroll_node())
     }

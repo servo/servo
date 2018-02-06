@@ -31,11 +31,11 @@ use std::fmt;
 use std::sync::Arc;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipId, ColorF, ExtendMode};
-use webrender_api::{FilterOp, GradientStop, ImageBorder, ImageKey, ImageRendering, LayoutPoint};
-use webrender_api::{LayoutRect, LayoutSize, LayoutVector2D, LineStyle, LocalClip, MixBlendMode};
-use webrender_api::{NormalBorder, ScrollPolicy, ScrollSensitivity, StickyOffsetBounds};
-use webrender_api::TransformStyle;
+use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ColorF, ExtendMode};
+use webrender_api::{ExternalScrollId, FilterOp, GradientStop, ImageBorder, ImageKey};
+use webrender_api::{ImageRendering, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};
+use webrender_api::{LineStyle, LocalClip, MixBlendMode, NormalBorder, ScrollPolicy};
+use webrender_api::{ScrollSensitivity, StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
 
@@ -350,7 +350,7 @@ pub struct StickyFrameData {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ClipScrollNodeType {
-    ScrollFrame(ScrollSensitivity),
+    ScrollFrame(ScrollSensitivity, ExternalScrollId),
     StickyFrame(StickyFrameData),
     Clip,
 }
@@ -358,10 +358,6 @@ pub enum ClipScrollNodeType {
 /// Defines a clip scroll node.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ClipScrollNode {
-    /// The WebRender clip id of this scroll root based on the source of this clip
-    /// and information about the fragment.
-    pub id: Option<ClipId>,
-
     /// The index of the parent of this ClipScrollNode.
     pub parent_index: ClipScrollNodeIndex,
 
@@ -1099,7 +1095,7 @@ impl WebRenderImageInfo {
 }
 
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
-pub type ScrollOffsetMap = HashMap<ClipId, Vector2D<f32>>;
+pub type ScrollOffsetMap = HashMap<ExternalScrollId, Vector2D<f32>>;
 
 
 pub trait SimpleMatrixDetection {

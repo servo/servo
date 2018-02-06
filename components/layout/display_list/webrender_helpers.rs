@@ -296,16 +296,15 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 let webrender_id = match node.node_type {
                     ClipScrollNodeType::Clip => builder.define_clip_with_parent(
-                        node.id,
                         parent_id,
                         item_rect,
                         node.clip.get_complex_clips(),
                         None,
                     ),
-                    ClipScrollNodeType::ScrollFrame(scroll_sensitivity) => builder
+                    ClipScrollNodeType::ScrollFrame(scroll_sensitivity, external_id) => builder
                         .define_scroll_frame_with_parent(
-                            node.id,
                             parent_id,
+                            Some(external_id),
                             node.content_rect,
                             node.clip.main.to_layout(),
                             node.clip.get_complex_clips(),
@@ -316,7 +315,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         // TODO: Add define_sticky_frame_with_parent to WebRender.
                         builder.push_clip_id(parent_id);
                         let id = builder.define_sticky_frame(
-                            node.id,
                             item_rect,
                             sticky_data.margins,
                             sticky_data.vertical_offset_bounds,
@@ -328,7 +326,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     },
                 };
 
-                debug_assert!(node.id.is_none() || node.id == Some(webrender_id));
                 clip_ids[item.node_index.0] = Some(webrender_id);
             },
         }

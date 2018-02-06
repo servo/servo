@@ -1171,19 +1171,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_viewport_rects(&self) {
         let mut scroll_states_per_pipeline = HashMap::new();
         for scroll_layer_state in self.webrender_api.get_scroll_node_state(self.webrender_document) {
-            if scroll_layer_state.id.external_id().is_none() &&
-               !scroll_layer_state.id.is_root_scroll_node() {
-                continue;
-            }
-
             let scroll_state = ScrollState {
-                scroll_root_id: scroll_layer_state.id,
+                scroll_id: scroll_layer_state.id,
                 scroll_offset: scroll_layer_state.scroll_offset.to_untyped(),
             };
 
-            scroll_states_per_pipeline.entry(scroll_layer_state.id.pipeline_id())
-                                     .or_insert(vec![])
-                                     .push(scroll_state);
+            scroll_states_per_pipeline
+                .entry(scroll_layer_state.id.pipeline_id())
+                .or_insert(vec![])
+                .push(scroll_state);
         }
 
         for (pipeline_id, scroll_states) in scroll_states_per_pipeline {

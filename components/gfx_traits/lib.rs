@@ -56,10 +56,10 @@ int_range_index! {
     struct ByteIndex(isize)
 }
 
-/// The type of fragment that a stacking context represents.
+/// The type of fragment that a scroll root is created for.
 ///
 /// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
-/// into the lower 2 bits of the `StackingContextId`, which otherwise contains a 32-bit-aligned
+/// into the lower 2 bits of the `ScrollRootId`, which otherwise contains a 32-bit-aligned
 /// heap address.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FragmentType {
@@ -71,23 +71,20 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
-/// The next ID that will be used for a special stacking context.
+/// The next ID that will be used for a special scroll root id.
 ///
-/// A special stacking context is a stacking context that is one of (a) the outer stacking context
-/// of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
-static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+/// A special scroll root is a scroll root that is created for generated content.
+static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
-/// If none of the bits outside this mask are set, the stacking context is a special stacking
-/// context.
-///
+/// If none of the bits outside this mask are set, the scroll root is a special scroll root.
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
+const SPECIAL_SCROLL_ROOT_ID_MASK: usize = 0xffff;
 
-/// Returns a new stacking context ID for a special stacking context.
+/// Returns a new scroll root ID for a scroll root.
 fn next_special_id() -> usize {
     // We shift this left by 2 to make room for the fragment type ID.
-    ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
-        SPECIAL_STACKING_CONTEXT_ID_MASK
+    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+        SPECIAL_SCROLL_ROOT_ID_MASK
 }
 
 pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) ->  usize {
@@ -99,8 +96,8 @@ pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> 
     }
 }
 
-pub fn node_id_from_clip_id(id: usize) -> Option<usize> {
-    if (id & !SPECIAL_STACKING_CONTEXT_ID_MASK) != 0 {
+pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
+    if (id & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
         return Some((id & !3) as usize);
     }
     None
