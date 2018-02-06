@@ -45,6 +45,11 @@ const gTestCases = [
     desc: 'CSSSkew'
   },
   {
+    value: new CSSSkew(CSS.deg(90), CSS.turn(0)),
+    cssText: 'skew(90deg)',
+    desc: 'CSSSkew with Y which is 0 value'
+  },
+  {
     value: new CSSPerspective(CSS.px(1)),
     cssText: 'perspective(1px)',
     desc: 'CSSPerspective'
