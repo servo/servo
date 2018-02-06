@@ -194,7 +194,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: min_length,
             selection_direction: selection_direction,
         };
-        i.set_content(initial, &ChangeEditPoint::NoChange);
+        i.set_content(initial);
         i
     }
 
@@ -454,7 +454,9 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
+
         let col = self.lines[self.edit_point.line][..self.edit_point.index].chars().count();
+
         self.edit_point.line = target_line as usize;
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
         self.assert_ok_selection();
@@ -875,7 +877,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
-    pub fn set_content(&mut self, content: DOMString, update_text_cursor: &ChangeEditPoint) {
+    pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
             content.replace("\r\n", "\n")
@@ -891,7 +893,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         if let Some(origin) = self.selection_origin {
             self.selection_origin = Some(origin.constrain_to(&self.lines));
         }
-
         self.assert_ok_selection();
     }
 

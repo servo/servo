@@ -935,7 +935,7 @@ impl HTMLInputElement {
             InputType::Image => (),
             _ => ()
         }
-        self.textinput.borrow_mut().set_content(self.DefaultValue(), &ChangeEditPoint::Change);
+        self.textinput.borrow_mut().set_content(self.DefaultValue());
         self.value_dirty.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
@@ -1054,6 +1054,7 @@ impl HTMLInputElement {
                     value.make_ascii_lowercase();
                 } else {
                     *value = "#000000".into();
+                    textinput.set_content("#000000".into());
                 }
             }
             InputType::Time => {
@@ -1092,6 +1093,7 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
+
         match attr.local_name() {
             &local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -1222,12 +1224,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.sanitize_value(&mut value);
 
                 self.textinput.borrow_mut().set_content(
-<<<<<<< HEAD
                     value.map_or(DOMString::new(), DOMString::from));
-=======
-                    value.map_or(DOMString::new(), DOMString::from), &ChangeEditPoint::Change);
-                self.sanitize_value();
->>>>>>> Correct default selectionStart and selectionEnd
                 self.update_placeholder_shown_state();
             },
             &local_name!("name") if self.input_type() == InputType::Radio => {

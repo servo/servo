@@ -251,7 +251,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         let old_selection = textinput.selection_origin;
 
         // Step 2
-        textinput.set_content(value, &ChangeEditPoint::Change);
+        textinput.set_content(value);
 
         // Step 3
         self.value_dirty.set(true);
@@ -328,7 +328,7 @@ impl HTMLTextAreaElement {
     pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
-        textinput.set_content(self.DefaultValue(), &ChangeEditPoint::Change);
+        textinput.set_content(self.DefaultValue());
         self.value_dirty.set(false);
     }
 
