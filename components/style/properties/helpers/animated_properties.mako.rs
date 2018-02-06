@@ -435,14 +435,14 @@ impl AnimationValue {
             },
             % endif
             % endfor
-            PropertyDeclaration::CSSWideKeyword(id, keyword) => {
-                match id {
+            PropertyDeclaration::CSSWideKeyword(ref declaration) => {
+                match declaration.id {
                     // We put all the animatable properties first in the hopes
                     // that it might increase match locality.
                     % for prop in data.longhands:
                     % if prop.animatable:
                     LonghandId::${prop.camel_case} => {
-                        let style_struct = match keyword {
+                        let style_struct = match declaration.keyword {
                             % if not prop.style_struct.inherited:
                                 CSSWideKeyword::Unset |
                             % endif
@@ -472,15 +472,15 @@ impl AnimationValue {
                     % endfor
                 }
             },
-            PropertyDeclaration::WithVariables(id, ref unparsed) => {
+            PropertyDeclaration::WithVariables(ref declaration) => {
                 let substituted = {
                     let custom_properties =
                         extra_custom_properties.or_else(|| context.style().custom_properties());
 
-                    unparsed.substitute_variables(
-                        id,
+                    declaration.value.substitute_variables(
+                        declaration.id,
                         custom_properties,
-                        context.quirks_mode
+                        context.quirks_mode,
                     )
                 };
                 return AnimationValue::from_declaration(

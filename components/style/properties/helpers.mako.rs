@@ -302,9 +302,9 @@
                 PropertyDeclaration::${property.camel_case}(ref value) => {
                     DeclaredValue::Value(value)
                 },
-                PropertyDeclaration::CSSWideKeyword(id, value) => {
-                    debug_assert!(id == LonghandId::${property.camel_case});
-                    DeclaredValue::CSSWideKeyword(value)
+                PropertyDeclaration::CSSWideKeyword(ref declaration) => {
+                    debug_assert!(declaration.id == LonghandId::${property.camel_case});
+                    DeclaredValue::CSSWideKeyword(declaration.keyword)
                 },
                 PropertyDeclaration::WithVariables(..) => {
                     panic!("variables should already have been substituted")
@@ -903,6 +903,7 @@
     <%call expr="longhand(name,
                           predefined_type=length_type,
                           logical=logical,
+                          is_gecko_size_type_hack=True,
                           **kwargs)">
         % if not logical:
             use values::specified::AllowQuirks;
