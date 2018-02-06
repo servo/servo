@@ -202,6 +202,96 @@ pub mod animated_properties {
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
+<%
+    variants = []
+    for property in data.longhands:
+        if property.predefined_type and not property.is_vector and not property.is_size_type:
+            ty = "::values::specified::{}".format(property.predefined_type)
+        else:
+            ty = "longhands::{}::SpecifiedValue".format(property.ident)
+        if property.boxed:
+            ty = "Box<{}>".format(ty)
+        variants.append({
+            "name": property.camel_case,
+            "type": ty,
+            "doc": "`" + property.name + "`",
+        })
+    variants += [
+        {
+            "name": "CSSWideKeyword",
+            "type": "WideKeywordDeclaration",
+            "doc": "A CSS-wide keyword.",
+        },
+        {
+            "name": "WithVariables",
+            "type": "VariableDeclaration",
+            "doc": "An unparsed declaration.",
+        },
+        {
+            "name": "Custom",
+            "type": "CustomDeclaration",
+            "doc": "A custom property declaration.",
+        },
+    ]
+%>
+
+/// Servo's representation for a property declaration.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(PartialEq)]
+#[repr(u16)]
+pub enum PropertyDeclaration {
+    % for variant in variants:
+    /// ${variant["doc"]}
+    ${variant["name"]}(${variant["type"]}),
+    % endfor
+}
+
+<%
+    from itertools import groupby
+
+    groups = {}
+    keyfunc = lambda x: x["type"]
+    for ty, group in groupby(sorted(variants, key=keyfunc), keyfunc):
+        groups[ty] = list(group)
+%>
+
+impl Clone for PropertyDeclaration {
+    #[inline]
+    fn clone(&self) -> Self {
+        use self::PropertyDeclaration::*;
+
+        #[repr(C)]
+        struct VariantRepr<T> {
+            tag: u16,
+            value: T
+        }
+
+        match *self {
+            % for ty, variants in groups.iteritems():
+            % if len(variants) == 1:
+            ${variants[0]["name"]}(ref value) => {
+                ${variants[0]["name"]}(value.clone())
+            }
+            % else:
+            ${" | ".join("{}(ref value)".format(v["name"]) for v in variants)} => {
+                unsafe {
+                    let mut out = ManuallyDrop::new(mem::uninitialized());
+                    ptr::write(
+                        &mut out as *mut _ as *mut VariantRepr<${ty}>,
+                        VariantRepr {
+                            tag: *(self as *const _ as *const u16),
+                            value: value.clone(),
+                        },
+                    );
+                    ManuallyDrop::into_inner(out)
+                }
+            }
+            % endif
+            % endfor
+        }
+    }
+}
+
 /// A longhand or shorthand porperty
 #[derive(Clone, Copy, Debug)]
 pub struct NonCustomPropertyId(usize);
@@ -1439,96 +1529,6 @@ impl PropertyId {
         }
 
         false
-    }
-}
-
-<%
-    variants = []
-    for property in data.longhands:
-        if property.predefined_type and not property.is_vector and not property.is_size_type:
-            ty = "::values::specified::{}".format(property.predefined_type)
-        else:
-            ty = "longhands::{}::SpecifiedValue".format(property.ident)
-        if property.boxed:
-            ty = "Box<{}>".format(ty)
-        variants.append({
-            "name": property.camel_case,
-            "type": ty,
-            "doc": "`" + property.name + "`",
-        })
-    variants += [
-        {
-            "name": "CSSWideKeyword",
-            "type": "WideKeywordDeclaration",
-            "doc": "A CSS-wide keyword.",
-        },
-        {
-            "name": "WithVariables",
-            "type": "VariableDeclaration",
-            "doc": "An unparsed declaration.",
-        },
-        {
-            "name": "Custom",
-            "type": "CustomDeclaration",
-            "doc": "A custom property declaration.",
-        },
-    ]
-%>
-
-/// Servo's representation for a property declaration.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(PartialEq)]
-#[repr(u16)]
-pub enum PropertyDeclaration {
-    % for variant in variants:
-    /// ${variant["doc"]}
-    ${variant["name"]}(${variant["type"]}),
-    % endfor
-}
-
-<%
-    from itertools import groupby
-
-    groups = {}
-    keyfunc = lambda x: x["type"]
-    for ty, group in groupby(sorted(variants, key=keyfunc), keyfunc):
-        groups[ty] = list(group)
-%>
-
-impl Clone for PropertyDeclaration {
-    #[inline]
-    fn clone(&self) -> Self {
-        use self::PropertyDeclaration::*;
-
-        #[repr(C)]
-        struct VariantRepr<T> {
-            tag: u16,
-            value: T
-        }
-
-        match *self {
-            % for ty, variants in groups.iteritems():
-            % if len(variants) == 1:
-            ${variants[0]["name"]}(ref value) => {
-                ${variants[0]["name"]}(value.clone())
-            }
-            % else:
-            ${" | ".join("{}(ref value)".format(v["name"]) for v in variants)} => {
-                unsafe {
-                    let mut out = ManuallyDrop::new(mem::uninitialized());
-                    ptr::write(
-                        &mut out as *mut _ as *mut VariantRepr<${ty}>,
-                        VariantRepr {
-                            tag: *(self as *const _ as *const u16),
-                            value: value.clone(),
-                        },
-                    );
-                    ManuallyDrop::into_inner(out)
-                }
-            }
-            % endif
-            % endfor
-        }
     }
 }
 
