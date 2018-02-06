@@ -205,9 +205,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The start of the selection (or the edit point, if there is no selection). Always less than
     /// or equal to selection_end(), regardless of the selection direction.
     pub fn selection_start(&self) -> TextPoint {
-        match self.selection_direction {
-            SelectionDirection::None | SelectionDirection::Forward => self.selection_origin_or_edit_point(),
-            SelectionDirection::Backward => self.edit_point,
+        if self.selection_origin.is_none() {
+            Default::default()
+        } else {
+            match self.selection_direction {
+                SelectionDirection::None | SelectionDirection::Forward => self.selection_origin_or_edit_point(),
+                SelectionDirection::Backward => self.edit_point,
+            }
         }
     }
 
@@ -219,9 +223,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The end of the selection (or the edit point, if there is no selection). Always greater
     /// than or equal to selection_start(), regardless of the selection direction.
     pub fn selection_end(&self) -> TextPoint {
-        match self.selection_direction {
-            SelectionDirection::None | SelectionDirection::Forward => self.edit_point,
-            SelectionDirection::Backward => self.selection_origin_or_edit_point(),
+        if self.selection_origin.is_none() {
+            Default::default()
+        } else {
+            match self.selection_direction {
+                SelectionDirection::None | SelectionDirection::Forward => self.edit_point,
+                SelectionDirection::Backward => self.selection_origin_or_edit_point(),
+            }
         }
     }
 
