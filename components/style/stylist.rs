@@ -1089,9 +1089,6 @@ impl Stylist {
     ///
     /// Also, the device that arrives here may need to take the viewport rules
     /// into account.
-    ///
-    /// For Gecko, this is called when XBL bindings are used by different
-    /// documents.
     pub fn set_device(
         &mut self,
         mut device: Device,
@@ -1119,14 +1116,22 @@ impl Stylist {
         }
 
         self.device = device;
-        self.media_features_change_changed_style(guards)
+        self.media_features_change_changed_style(guards, &self.device)
     }
 
     /// Returns whether, given a media feature change, any previously-applicable
-    /// style has become non-applicable, or vice-versa for each origin.
+    /// style has become non-applicable, or vice-versa for each origin, using
+    /// `device`.
+    ///
+    /// Passing `device` is needed because this is used for XBL in Gecko, which
+    /// can be stale in various ways, so we need to pass the device of the
+    /// document itself, which is what is kept up-to-date.
+    ///
+    /// Arguably XBL should use something more lightweight than a Stylist.
     pub fn media_features_change_changed_style(
         &self,
         guards: &StylesheetGuards,
+        device: &Device,
     ) -> OriginSet {
         debug!("Stylist::media_features_change_changed_style");
 
@@ -1145,7 +1150,7 @@ impl Stylist {
             let affected_changed = !origin_cascade_data.media_feature_affected_matches(
                 stylesheet,
                 guard,
-                &self.device,
+                device,
                 self.quirks_mode
             );
 
