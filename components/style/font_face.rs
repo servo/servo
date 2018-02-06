@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 #[cfg(feature = "gecko")]
-use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
+use computed_values::{font_stretch, font_style, font_weight};
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{SourceLocation, CowRcStr};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -25,6 +25,8 @@ use str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use values::computed::font::FamilyName;
+#[cfg(feature = "gecko")]
+use values::specified::font::SpecifiedFontFeatureSettings;
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -67,13 +69,17 @@ impl ToCss for UrlSource {
 /// A font-display value for a @font-face rule.
 /// The font-display descriptor determines how a font face is displayed based
 /// on whether and when it is downloaded and ready to use.
-define_css_keyword_enum!(FontDisplay:
-                         "auto" => Auto,
-                         "block" => Block,
-                         "swap" => Swap,
-                         "fallback" => Fallback,
-                         "optional" => Optional);
-add_impls_for_keyword_enum!(FontDisplay);
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum FontDisplay {
+    Auto,
+    Block,
+    Swap,
+    Fallback,
+    Optional,
+}
 
 /// A font-weight value for a @font-face rule.
 /// The font-weight CSS property specifies the weight or boldness of the font.
@@ -395,8 +401,8 @@ font_face_descriptors! {
         ],
 
         /// The feature settings of this font face.
-        "font-feature-settings" feature_settings / mFontFeatureSettings: font_feature_settings::T = {
-            font_feature_settings::T::Normal
+        "font-feature-settings" feature_settings / mFontFeatureSettings: SpecifiedFontFeatureSettings = {
+            font_feature_settings::SpecifiedValue::normal()
         },
 
         /// The language override of this font face.

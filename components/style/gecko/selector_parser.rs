@@ -159,10 +159,10 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     fn is_enabled_in_content(&self) -> bool {
         use gecko_bindings::structs::mozilla;
-        match self {
+        match *self {
             // For pseudo-classes with pref, the availability in content
             // depends on the pref.
-            &NonTSPseudoClass::Fullscreen =>
+            NonTSPseudoClass::Fullscreen =>
                 unsafe { mozilla::StylePrefs_sUnprefixedFullscreenApiEnabled },
             // Otherwise, a pseudo-class is enabled in content when it
             // doesn't have any enabled flag.
@@ -322,6 +322,25 @@ impl<'a> SelectorParser<'a> {
 
         return false;
     }
+
+    fn is_pseudo_element_enabled(
+        &self,
+        pseudo_element: &PseudoElement,
+    ) -> bool {
+        if pseudo_element.enabled_in_content() {
+            return true;
+        }
+
+        if self.in_user_agent_stylesheet() && pseudo_element.enabled_in_ua_sheets() {
+            return true;
+        }
+
+        if self.chrome_rules_enabled() && pseudo_element.enabled_in_chrome() {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
@@ -418,17 +437,15 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         location: SourceLocation,
         name: CowRcStr<'i>,
     ) -> Result<PseudoElement, ParseError<'i>> {
-        PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
-            .or_else(|| {
-                // FIXME: -moz-tree check should probably be
-                // ascii-case-insensitive.
-                if name.starts_with("-moz-tree-") {
-                    PseudoElement::tree_pseudo_element(&name, Box::new([]))
-                } else {
-                    None
-                }
-            })
-            .ok_or(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())))
+        if let Some(pseudo) = PseudoElement::from_slice(&name) {
+            if self.is_pseudo_element_enabled(&pseudo) {
+                return Ok(pseudo);
+            }
+        }
+
+        Err(location.new_custom_error(
+            SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)
+        ))
     }
 
     fn parse_functional_pseudo_element<'t>(
@@ -456,7 +473,9 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 return Ok(pseudo);
             }
         }
-        Err(parser.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())))
+        Err(parser.new_custom_error(
+            SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)
+        ))
     }
 
     fn default_namespace(&self) -> Option<Namespace> {

@@ -871,13 +871,12 @@ impl<T: ClipboardProvider> TextInput<T> {
     fn offset_to_text_point(&self, abs_point: usize) -> TextPoint {
         let mut index = abs_point;
         let mut line = 0;
-
         let last_line_idx = self.lines.len() - 1;
         self.lines.iter().enumerate().fold(0, |acc, (i, val)| {
             if i != last_line_idx {
-                let line_end = max(val.len(), 1);
-                let new_acc = acc + line_end;
-                if abs_point > new_acc && index > line_end {
+                let line_end = val.len();
+                let new_acc = acc + line_end + 1;
+                if abs_point >= new_acc && index > line_end {
                     index -= line_end + 1;
                     line += 1;
                 }

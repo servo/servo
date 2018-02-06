@@ -195,10 +195,14 @@ impl ToCss for KeyframesName {
     }
 }
 
-// A type for possible values for min- and max- flavors of width,
-// height, block-size, and inline-size.
-define_css_keyword_enum!(ExtremumLength:
-                         "-moz-max-content" => MaxContent,
-                         "-moz-min-content" => MinContent,
-                         "-moz-fit-content" => FitContent,
-                         "-moz-available" => FillAvailable);
+/// A type for possible values for min- and max- flavors of width,
+/// height, block-size, and inline-size.
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+pub enum ExtremumLength {
+    MozMaxContent,
+    MozMinContent,
+    MozFitContent,
+    MozAvailable,
+}

@@ -5,11 +5,6 @@ importScripts("testharness-helpers.js")
 
 self.onfetch = function(e) {
   if (e.request.url.indexOf("client-navigate-frame.html") >= 0) {
-    if (e.clientId === null) {
-      e.respondWith(fetch(e.request));
-    } else {
-      e.respondWith(Response.error());
-    }
     return;
   }
   e.respondWith(new Response(e.clientId));

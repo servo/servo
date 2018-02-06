@@ -129,8 +129,10 @@ impl Parse for InsetRect {
 
 impl InsetRect {
     /// Parse the inner function arguments of `inset()`
-    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                            -> Result<Self, ParseError<'i>> {
+    fn parse_function_arguments<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let rect = Rect::parse_with(context, input, LengthOrPercentage::parse)?;
         let round = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
             Some(BorderRadius::parse(context, input)?)
@@ -153,9 +155,10 @@ impl Parse for Circle {
 }
 
 impl Circle {
-    #[allow(missing_docs)]
-    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                            -> Result<Self, ParseError<'i>> {
+    fn parse_function_arguments<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let radius = input.try(|i| ShapeRadius::parse(context, i)).unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
@@ -163,10 +166,7 @@ impl Circle {
             Position::center()
         };
 
-        Ok(GenericCircle {
-            radius: radius,
-            position: position,
-        })
+        Ok(GenericCircle { radius, position })
     }
 }
 
@@ -195,9 +195,10 @@ impl Parse for Ellipse {
 }
 
 impl Ellipse {
-    #[allow(missing_docs)]
-    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                            -> Result<Self, ParseError<'i>> {
+    fn parse_function_arguments<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let (a, b) = input.try(|i| -> Result<_, ParseError> {
             Ok((ShapeRadius::parse(context, i)?, ShapeRadius::parse(context, i)?))
         }).unwrap_or_default();
@@ -331,8 +332,10 @@ impl Parse for Polygon {
 
 impl Polygon {
     /// Parse the inner arguments of a `polygon` function.
-    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                            -> Result<Self, ParseError<'i>> {
+    fn parse_function_arguments<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let fill = input.try(|i| -> Result<_, ParseError> {
             let fill = FillRule::parse(i)?;
             i.expect_comma()?;      // only eat the comma if there is something before it

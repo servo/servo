@@ -8,6 +8,7 @@
 use app_units::Au;
 use dom::TElement;
 use properties::{self, CascadeFlags, ComputedValues, StyleBuilder};
+use properties::computed_value_flags::ComputedValueFlags;
 use properties::longhands::display::computed_value::T as Display;
 use properties::longhands::float::computed_value::T as Float;
 use properties::longhands::overflow_x::computed_value::T as Overflow;
@@ -111,23 +112,23 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Compute a few common flags for both text and element's style.
     pub fn set_bits(&mut self) {
-        use properties::computed_value_flags::ComputedValueFlags;
+        let display = self.style.get_box().clone_display();
 
-        if self.style.inherited_flags().contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE) ||
-            self.style.get_box().clone_display() == Display::None {
+        if !display.is_contents() && !self.style.get_text().clone_text_decoration_line().is_empty() {
+            self.style.flags.insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
+        }
+
+        if display == Display::None {
             self.style.flags.insert(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE);
         }
 
-        if self.style.inherited_flags().contains(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE) ||
-            self.style.is_pseudo_element() {
+        if self.style.is_pseudo_element() {
             self.style.flags.insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
         #[cfg(feature = "servo")]
         {
-            if self.style.inherited_flags().contains(ComputedValueFlags::CAN_BE_FRAGMENTED) ||
-                self.style.get_parent_column().is_multicol()
-            {
+            if self.style.get_parent_column().is_multicol() {
                 self.style.flags.insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
             }
         }
@@ -160,7 +161,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_text_combine_upright(&mut self) {
         use computed_values::text_combine_upright::T as TextCombineUpright;
         use computed_values::writing_mode::T as WritingMode;
-        use properties::computed_value_flags::ComputedValueFlags;
 
         let writing_mode =
             self.style.get_inheritedbox().clone_writing_mode();
@@ -174,15 +174,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
-    /// Applies the line break suppression flag to text if it is in any ruby
-    /// box. This is necessary because its parent may not itself have the flag
-    /// set (e.g. ruby or ruby containers), thus we may not inherit the flag
-    /// from them.
+    /// Unconditionally propagates the line break suppression flag to text, and
+    /// additionally it applies it if it is in any ruby box.
+    ///
+    /// This is necessary because its parent may not itself have the flag set
+    /// (e.g. ruby or ruby containers), thus we may not inherit the flag from
+    /// them.
     #[cfg(feature = "gecko")]
     fn adjust_for_text_in_ruby(&mut self) {
-        use properties::computed_value_flags::ComputedValueFlags;
         let parent_display = self.style.get_parent_box().clone_display();
-        if parent_display.is_ruby_type() {
+        if parent_display.is_ruby_type() ||
+           self.style.get_parent_flags().contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
+        {
             self.style.flags.insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
         }
     }
@@ -426,18 +429,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.style.mutate_inheritedtext().set_text_align(TextAlign::Start)
     }
 
-    /// Set the HAS_TEXT_DECORATION_LINES flag based on parent style.
-    fn adjust_for_text_decoration_lines(
-        &mut self,
-        layout_parent_style: &ComputedValues,
-    ) {
-        use properties::computed_value_flags::ComputedValueFlags;
-        if layout_parent_style.flags.contains(ComputedValueFlags::HAS_TEXT_DECORATION_LINES) ||
-           !self.style.get_text().clone_text_decoration_line().is_empty() {
-            self.style.flags.insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
-        }
-    }
-
     /// Computes the used text decoration for Servo.
     ///
     /// FIXME(emilio): This is a layout tree concept, should move away from
@@ -458,7 +449,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         &self,
         layout_parent_style: &ComputedValues,
     ) -> bool {
-        use properties::computed_value_flags::ComputedValueFlags;
         // Line break suppression should only be propagated to in-flow children.
         if self.style.floated() || self.style.out_of_flow_positioned() {
             return false;
@@ -503,7 +493,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        use properties::computed_value_flags::ComputedValueFlags;
         use properties::longhands::unicode_bidi::computed_value::T as UnicodeBidi;
 
         let self_display = self.style.get_box().clone_display();
@@ -555,8 +544,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        use properties::computed_value_flags::ComputedValueFlags;
-
         if !self.style.has_visited_style() {
             return;
         }
@@ -565,14 +552,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.pseudo.is_none() &&
             element.map_or(false, |e| e.is_link());
 
-        let relevant_link_visited = if is_link_element {
-            element.unwrap().is_visited_link()
-        } else {
-            self.style.inherited_flags().contains(ComputedValueFlags::IS_RELEVANT_LINK_VISITED)
-        };
+        if !is_link_element {
+            return;
+        }
 
-        if relevant_link_visited {
+        if element.unwrap().is_visited_link() {
             self.style.flags.insert(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+        } else {
+            // Need to remove to handle unvisited link inside visited.
+            self.style.flags.remove(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         }
     }
 
@@ -674,7 +662,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_border_width();
         self.adjust_for_outline();
         self.adjust_for_writing_mode(layout_parent_style);
-        self.adjust_for_text_decoration_lines(layout_parent_style);
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_ruby(layout_parent_style, element);

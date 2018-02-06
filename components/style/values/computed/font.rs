@@ -22,13 +22,13 @@ use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
-use values::computed::{Context, NonNegativeLength, ToComputedValue};
-use values::generics::{FontSettings, FontSettingTagInt};
+use values::computed::{Context, NonNegativeLength, ToComputedValue, Integer, Number};
+use values::generics::font::{FontSettings, FeatureTagValue, VariationValue};
 use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
-pub use values::specified::font::{XTextZoom, XLang, MozScriptSizeMultiplier, FontSynthesis, FontVariantSettings};
+pub use values::specified::font::{XTextZoom, XLang, MozScriptSizeMultiplier, FontSynthesis};
 
 /// As of CSS Fonts Module Level 3, only the following values are
 /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
@@ -712,8 +712,11 @@ pub type FontVariantLigatures = specified::VariantLigatures;
 /// Use VariantNumeric as computed type of FontVariantNumeric
 pub type FontVariantNumeric = specified::VariantNumeric;
 
-/// Use FontSettings as computed type of FontFeatureSettings
-pub type FontFeatureSettings = FontSettings<FontSettingTagInt>;
+/// Use FontSettings as computed type of FontFeatureSettings.
+pub type FontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
+
+/// The computed value for font-variation-settings.
+pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 
 /// font-language-override can only have a single three-letter
 /// OpenType "language system" tag, so we should be able to compute

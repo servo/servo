@@ -65,67 +65,6 @@ macro_rules! try_match_ident_ignore_ascii_case {
     }}
 }
 
-macro_rules! define_numbered_css_keyword_enum {
-    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
-        define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
-    };
-    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
-        #[allow(non_camel_case_types, missing_docs)]
-        #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-        #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-        pub enum $name {
-            $( $variant = $value ),+
-        }
-
-        impl $crate::parser::Parse for $name {
-            fn parse<'i, 't>(
-                _context: &$crate::parser::ParserContext,
-                input: &mut ::cssparser::Parser<'i, 't>,
-            ) -> Result<$name, ::style_traits::ParseError<'i>> {
-                try_match_ident_ignore_ascii_case! { input,
-                    $( $css => Ok($name::$variant), )+
-                }
-            }
-        }
-
-        impl ::style_traits::ToCss for $name {
-            fn to_css<W>(
-                &self,
-                dest: &mut ::style_traits::CssWriter<W>,
-            ) -> ::std::fmt::Result
-            where
-                W: ::std::fmt::Write,
-            {
-                match *self {
-                    $( $name::$variant => dest.write_str($css) ),+
-                }
-            }
-        }
-    }
-}
-
-/// A macro for implementing `ToComputedValue`, and `Parse` traits for
-/// the enums defined using `define_css_keyword_enum` macro.
-///
-/// NOTE: We should either move `Parse` trait to `style_traits`
-/// or `define_css_keyword_enum` macro to this crate, but that
-/// may involve significant cleanup in both the crates.
-macro_rules! add_impls_for_keyword_enum {
-    ($name:ident) => {
-        impl $crate::parser::Parse for $name {
-            #[inline]
-            fn parse<'i, 't>(
-                _context: &$crate::parser::ParserContext,
-                input: &mut ::cssparser::Parser<'i, 't>,
-            ) -> Result<Self, ::style_traits::ParseError<'i>> {
-                $name::parse(input)
-            }
-        }
-
-        trivial_to_computed_value!($name);
-    };
-}
-
 macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]

@@ -21,7 +21,7 @@ use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
 use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
-use style::values::specified::background::RepeatKeyword;
+use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
 use webrender_api::{ExtendMode, GradientStop};
 
@@ -176,7 +176,7 @@ fn tile_image(position: &mut Au, size: &mut Au, absolute_anchor_origin: Au, imag
 ///
 /// This is done separately for both axes because the repeat keywords may differ.
 pub fn tile_image_axis(
-    repeat: RepeatKeyword,
+    repeat: BackgroundRepeatKeyword,
     position: &mut Au,
     size: &mut Au,
     tile_size: &mut Au,
@@ -187,16 +187,16 @@ pub fn tile_image_axis(
 ) {
     let absolute_anchor_origin = *position + offset;
     match repeat {
-        RepeatKeyword::NoRepeat => {
+        BackgroundRepeatKeyword::NoRepeat => {
             *position += offset;
             *size = *tile_size;
         },
-        RepeatKeyword::Repeat => {
+        BackgroundRepeatKeyword::Repeat => {
             *position = clip_origin;
             *size = clip_size;
             tile_image(position, size, absolute_anchor_origin, *tile_size);
         },
-        RepeatKeyword::Space => {
+        BackgroundRepeatKeyword::Space => {
             tile_image_spaced(
                 position,
                 size,
@@ -209,7 +209,7 @@ pub fn tile_image_axis(
             *size = clip_size;
             tile_image(position, size, absolute_anchor_origin, combined_tile_size);
         },
-        RepeatKeyword::Round => {
+        BackgroundRepeatKeyword::Round => {
             tile_image_round(position, size, absolute_anchor_origin, tile_size);
             *position = clip_origin;
             *size = clip_size;

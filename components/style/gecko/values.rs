@@ -348,10 +348,10 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
         use gecko_bindings::structs::{NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT};
         coord.set_value(CoordDataValue::Enumerated(
             match *self {
-                ExtremumLength::MaxContent => NS_STYLE_WIDTH_MAX_CONTENT,
-                ExtremumLength::MinContent => NS_STYLE_WIDTH_MIN_CONTENT,
-                ExtremumLength::FitContent => NS_STYLE_WIDTH_FIT_CONTENT,
-                ExtremumLength::FillAvailable => NS_STYLE_WIDTH_AVAILABLE,
+                ExtremumLength::MozMaxContent => NS_STYLE_WIDTH_MAX_CONTENT,
+                ExtremumLength::MozMinContent => NS_STYLE_WIDTH_MIN_CONTENT,
+                ExtremumLength::MozFitContent => NS_STYLE_WIDTH_FIT_CONTENT,
+                ExtremumLength::MozAvailable => NS_STYLE_WIDTH_AVAILABLE,
             }
         ))
     }
@@ -361,12 +361,12 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
         use gecko_bindings::structs::{NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT};
         match coord.as_value() {
             CoordDataValue::Enumerated(NS_STYLE_WIDTH_MAX_CONTENT) =>
-                Some(ExtremumLength::MaxContent),
+                Some(ExtremumLength::MozMaxContent),
             CoordDataValue::Enumerated(NS_STYLE_WIDTH_MIN_CONTENT) =>
-                Some(ExtremumLength::MinContent),
+                Some(ExtremumLength::MozMinContent),
             CoordDataValue::Enumerated(NS_STYLE_WIDTH_FIT_CONTENT) =>
-                Some(ExtremumLength::FitContent),
-            CoordDataValue::Enumerated(NS_STYLE_WIDTH_AVAILABLE) => Some(ExtremumLength::FillAvailable),
+                Some(ExtremumLength::MozFitContent),
+            CoordDataValue::Enumerated(NS_STYLE_WIDTH_AVAILABLE) => Some(ExtremumLength::MozAvailable),
             _ => None,
         }
     }

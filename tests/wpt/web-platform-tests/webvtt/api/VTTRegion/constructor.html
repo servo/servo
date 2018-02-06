@@ -40,7 +40,6 @@ test(function() {
         }
     }
 
-    assert_throws("IndexSizeError", function() { region.lines = -1; });
     assert_equals(region.lines, 3);
 
     region.lines = 130;

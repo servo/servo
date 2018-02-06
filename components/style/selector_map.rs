@@ -512,20 +512,29 @@ impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
         MaybeCaseInsensitiveHashMap(PrecomputedHashMap::default())
     }
 
-    /// HashMap::entry
-    pub fn entry(&mut self, mut key: Atom, quirks_mode: QuirksMode) -> hash_map::Entry<Atom, V> {
-        if quirks_mode == QuirksMode::Quirks {
-            key = key.to_ascii_lowercase()
-        }
-        self.0.entry(key)
-    }
-
     /// HashMap::try_entry
+    #[cfg(not(feature = "gecko"))]
     pub fn try_entry(
         &mut self,
         mut key: Atom,
-        quirks_mode: QuirksMode
+        quirks_mode: QuirksMode,
     ) -> Result<hash_map::Entry<Atom, V>, FailedAllocationError> {
+        if quirks_mode == QuirksMode::Quirks {
+            key = key.to_ascii_lowercase()
+        }
+        self.0.try_entry(key)
+    }
+
+    /// HashMap::try_entry
+    ///
+    /// FIXME(emilio): Remove the extra Entry parameter and unify when ordermap
+    /// 0.4 is released.
+    #[cfg(feature = "gecko")]
+    pub fn try_entry(
+        &mut self,
+        mut key: Atom,
+        quirks_mode: QuirksMode,
+    ) -> Result<hash_map::Entry<Atom, V, BuildHasherDefault<PrecomputedHasher>>, FailedAllocationError> {
         if quirks_mode == QuirksMode::Quirks {
             key = key.to_ascii_lowercase()
         }

@@ -37,15 +37,16 @@ pub use self::align::{AlignItems, AlignContent, JustifyContent, SelfAlignment, J
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
-pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
+pub use self::border::{BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
-pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
+pub use self::font::{FontFamily, FontLanguageOverride, FontVariationSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
 pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior, Contain};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
@@ -73,7 +74,8 @@ pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextAlign, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin, Rotate, Translate, Scale};
+pub use self::transform::{Rotate, Scale, TimingFunction, Transform, TransformOperation};
+pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::MozForceBrokenImageIcon;
 
 #[cfg(feature = "gecko")]
@@ -85,6 +87,7 @@ pub mod border;
 #[path = "box.rs"]
 pub mod box_;
 pub mod color;
+pub mod counters;
 pub mod effects;
 pub mod flex;
 pub mod font;
@@ -171,12 +174,11 @@ impl<'a> Context<'a> {
         F: FnOnce(&Context) -> R
     {
         let mut conditions = RuleCacheConditions::default();
-        let default_values = device.default_computed_values();
         let provider = get_metrics_provider_for_product();
 
         let context = Context {
             is_root_element: false,
-            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
+            builder: StyleBuilder::for_inheritance(device, None, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: true,

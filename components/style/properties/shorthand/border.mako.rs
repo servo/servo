@@ -9,9 +9,13 @@ ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::Co
                                spec="https://drafts.csswg.org/css-backgrounds/#border-color",
                                allow_quirks=True)}
 
-${helpers.four_sides_shorthand("border-style", "border-%s-style",
-                               "specified::BorderStyle::parse",
-                               spec="https://drafts.csswg.org/css-backgrounds/#border-style")}
+${helpers.four_sides_shorthand(
+    "border-style",
+    "border-%s-style",
+    "specified::BorderStyle::parse",
+    needs_context=False,
+    spec="https://drafts.csswg.org/css-backgrounds/#border-style",
+)}
 
 <%helpers:shorthand name="border-width" sub_properties="${
         ' '.join('border-%s-width' % side
@@ -63,7 +67,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
             }
         }
         if style.is_none() {
-            if let Ok(value) = input.try(|i| BorderStyle::parse(context, i)) {
+            if let Ok(value) = input.try(BorderStyle::parse) {
                 style = Some(value);
                 any = true;
                 continue

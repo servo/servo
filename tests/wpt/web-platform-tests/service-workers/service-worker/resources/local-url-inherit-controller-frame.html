@@ -6,10 +6,16 @@ const fetchURL = new URL('dummy.txt', window.location).href;
 
 const frameControllerText =
 `<script>
-  let t = navigator.serviceWorker.controller
-        ? navigator.serviceWorker.controller.scriptURL
-        : null;
-  parent.postMessage({ data: t }, '*');
+  let t = null;
+  try {
+    if (navigator.serviceWorker.controller) {
+      t = navigator.serviceWorker.controller.scriptURL;
+    }
+  } catch (e) {
+    t = e.message;
+  } finally {
+    parent.postMessage({ data: t }, '*');
+  }
 </` + `script>`;
 
 const frameFetchText =
@@ -67,14 +73,15 @@ function getChildText(opts) {
 }
 
 function makeURL(opts) {
+  let mimetype = opts.child === 'iframe' ? 'text/html'
+                                         : 'text/javascript';
+
   if (opts.scheme === 'blob') {
-    let blob = new Blob([getChildText(opts)]);
+    let blob = new Blob([getChildText(opts)], { type: mimetype });
     return URL.createObjectURL(blob);
   }
 
   if (opts.scheme === 'data') {
-    let mimetype = opts.child === 'iframe' ? 'text/html'
-                                           : 'text/javascript';
     return `data:${mimetype},${getChildText(opts)}`;
   }
 

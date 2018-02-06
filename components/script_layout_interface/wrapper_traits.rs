@@ -25,7 +25,7 @@ use style::font_metrics::ServoMetricsProvider;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylist::RuleInclusion;
-use webrender_api::ClipId;
+use webrender_api::ExternalScrollId;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PseudoElementType {
@@ -269,9 +269,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
         self.get_pseudo_element_type().fragment_type()
     }
 
-    fn generate_scroll_root_id(&self, pipeline_id: PipelineId) -> ClipId {
+    fn generate_scroll_id(&self, pipeline_id: PipelineId) -> ExternalScrollId {
         let id = combine_id_with_fragment_type(self.opaque().id(), self.fragment_type());
-        ClipId::new(id as u64, pipeline_id.to_webrender())
+        ExternalScrollId(id as u64, pipeline_id.to_webrender())
     }
 }
 

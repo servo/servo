@@ -54,17 +54,19 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                          flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
                          spec="https://drafts.csswg.org/css-position/#position-property")}
 
-<%helpers:single_keyword_computed name="float"
-                                  values="none left right"
-                                  // https://drafts.csswg.org/css-logical-props/#float-clear
-                                  extra_specified="inline-start inline-end"
-                                  needs_conversion="True"
-                                  animation_value_type="discrete"
-                                  gecko_enum_prefix="StyleFloat"
-                                  gecko_inexhaustive="True"
-                                  gecko_ffi_name="mFloat"
-                                  flags="APPLIES_TO_FIRST_LETTER"
-                                  spec="https://drafts.csswg.org/css-box/#propdef-float">
+<%helpers:single_keyword
+    name="float"
+    values="none left right"
+    // https://drafts.csswg.org/css-logical-props/#float-clear
+    extra_specified="inline-start inline-end"
+    needs_conversion="True"
+    animation_value_type="discrete"
+    gecko_enum_prefix="StyleFloat"
+    gecko_inexhaustive="True"
+    gecko_ffi_name="mFloat"
+    flags="APPLIES_TO_FIRST_LETTER"
+    spec="https://drafts.csswg.org/css-box/#propdef-float"
+>
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -105,18 +107,20 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
             }
         }
     }
-</%helpers:single_keyword_computed>
+</%helpers:single_keyword>
 
-<%helpers:single_keyword_computed name="clear"
-                                  values="none left right both"
-                                  // https://drafts.csswg.org/css-logical-props/#float-clear
-                                  extra_specified="inline-start inline-end"
-                                  needs_conversion="True"
-                                  gecko_inexhaustive="True"
-                                  animation_value_type="discrete"
-                                  gecko_enum_prefix="StyleClear"
-                                  gecko_ffi_name="mBreakType"
-                                  spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
+<%helpers:single_keyword
+    name="clear"
+    values="none left right both"
+    // https://drafts.csswg.org/css-logical-props/#float-clear
+    extra_specified="inline-start inline-end"
+    needs_conversion="True"
+    gecko_inexhaustive="True"
+    animation_value_type="discrete"
+    gecko_enum_prefix="StyleClear"
+    gecko_ffi_name="mBreakType"
+    spec="https://drafts.csswg.org/css-box/#propdef-clear"
+>
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -157,7 +161,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
             }
         }
     }
-</%helpers:single_keyword_computed>
+</%helpers:single_keyword>
 
 ${helpers.predefined_type(
     "vertical-align",
@@ -526,14 +530,16 @@ ${helpers.single_keyword("transform-box",
                          gecko_inexhaustive="True",
                          animation_value_type="discrete")}
 
-// `auto` keyword is not supported in gecko yet.
-${helpers.single_keyword("transform-style",
-                         "auto flat preserve-3d" if product == "servo" else
-                         "flat preserve-3d",
-                         spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
-                         extra_prefixes="moz webkit",
-                         flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                         animation_value_type="discrete")}
+${helpers.predefined_type(
+    "transform-style",
+    "TransformStyle",
+    "computed::TransformStyle::" + ("Auto" if product == "servo" else "Flat"),
+    spec="https://drafts.csswg.org/css-transforms-2/#transform-style-property",
+    needs_context=False,
+    extra_prefixes="moz webkit",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    animation_value_type="discrete",
+)}
 
 ${helpers.predefined_type("transform-origin",
                           "TransformOrigin",

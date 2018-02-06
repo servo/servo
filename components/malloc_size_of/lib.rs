@@ -49,15 +49,16 @@ extern crate euclid;
 extern crate hashglobe;
 #[cfg(feature = "servo")]
 extern crate mozjs as js;
+extern crate ordermap;
 extern crate selectors;
 extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
 #[cfg(feature = "servo")]
 extern crate string_cache;
-#[cfg(feature = "servo")]
+#[cfg(feature = "url")]
 extern crate url;
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 extern crate webrender_api;
 #[cfg(feature = "servo")]
 extern crate xml5ever;
@@ -409,6 +410,33 @@ impl<T, S> MallocShallowSizeOf for hashglobe::hash_set::HashSet<T, S>
     }
 }
 
+impl<T, S> MallocSizeOf for ordermap::OrderSet<T, S>
+    where T: Eq + Hash + MallocSizeOf,
+          S: BuildHasher,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for t in self.iter() {
+            n += t.size_of(ops);
+        }
+        n
+    }
+}
+
+impl<T, S> MallocShallowSizeOf for ordermap::OrderSet<T, S>
+    where T: Eq + Hash,
+          S: BuildHasher
+{
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // See the implementation for std::collections::HashSet for details.
+        if ops.has_malloc_enclosing_size_of() {
+            self.iter().next().map_or(0, |t| unsafe { ops.malloc_enclosing_size_of(t) })
+        } else {
+            self.capacity() * (size_of::<T>() + size_of::<usize>())
+        }
+    }
+}
+
 impl<T, S> MallocSizeOf for hashglobe::hash_set::HashSet<T, S>
     where T: Eq + Hash + MallocSizeOf,
           S: BuildHasher,
@@ -442,6 +470,26 @@ impl<T, S> MallocSizeOf for hashglobe::fake::HashSet<T, S>
     }
 }
 
+impl<T, S> MallocShallowSizeOf for hashglobe::order::HashSet<T, S>
+    where T: Eq + Hash,
+          S: BuildHasher,
+{
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        use std::ops::Deref;
+        self.deref().shallow_size_of(ops)
+    }
+}
+
+impl<T, S> MallocSizeOf for hashglobe::order::HashSet<T, S>
+    where T: Eq + Hash + MallocSizeOf,
+          S: BuildHasher,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        use std::ops::Deref;
+        self.deref().size_of(ops)
+    }
+}
+
 impl<K, V, S> MallocShallowSizeOf for std::collections::HashMap<K, V, S>
     where K: Eq + Hash,
           S: BuildHasher
@@ -457,6 +505,35 @@ impl<K, V, S> MallocShallowSizeOf for std::collections::HashMap<K, V, S>
 }
 
 impl<K, V, S> MallocSizeOf for std::collections::HashMap<K, V, S>
+    where K: Eq + Hash + MallocSizeOf,
+          V: MallocSizeOf,
+          S: BuildHasher,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for (k, v) in self.iter() {
+            n += k.size_of(ops);
+            n += v.size_of(ops);
+        }
+        n
+    }
+}
+
+impl<K, V, S> MallocShallowSizeOf for ordermap::OrderMap<K, V, S>
+    where K: Eq + Hash,
+          S: BuildHasher
+{
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // See the implementation for std::collections::HashSet for details.
+        if ops.has_malloc_enclosing_size_of() {
+            self.values().next().map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
+        } else {
+            self.capacity() * (size_of::<V>() + size_of::<K>() + size_of::<usize>())
+        }
+    }
+}
+
+impl<K, V, S> MallocSizeOf for ordermap::OrderMap<K, V, S>
     where K: Eq + Hash + MallocSizeOf,
           V: MallocSizeOf,
           S: BuildHasher,
@@ -511,6 +588,27 @@ impl<K, V, S> MallocShallowSizeOf for hashglobe::fake::HashMap<K, V, S>
 }
 
 impl<K, V, S> MallocSizeOf for hashglobe::fake::HashMap<K, V, S>
+    where K: Eq + Hash + MallocSizeOf,
+          V: MallocSizeOf,
+          S: BuildHasher,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        use std::ops::Deref;
+        self.deref().size_of(ops)
+    }
+}
+
+impl<K, V, S> MallocShallowSizeOf for hashglobe::order::HashMap<K, V, S>
+    where K: Eq + Hash,
+          S: BuildHasher,
+{
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        use std::ops::Deref;
+        self.deref().shallow_size_of(ops)
+    }
+}
+
+impl<K, V, S> MallocSizeOf for hashglobe::order::HashMap<K, V, S>
     where K: Eq + Hash + MallocSizeOf,
           V: MallocSizeOf,
           S: BuildHasher,
@@ -705,7 +803,7 @@ malloc_size_of_is_0!(app_units::Au);
 
 malloc_size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
 
-#[cfg(feature = "servo")]
+#[cfg(feature = "url")]
 impl MallocSizeOf for url::Host {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match *self {
@@ -714,49 +812,49 @@ impl MallocSizeOf for url::Host {
         }
     }
 }
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::BorderRadius);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::BorderStyle);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::BorderWidths);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ClipAndScrollInfo);
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(webrender_api::ClipId);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ColorF);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ExtendMode);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::FilterOp);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
+malloc_size_of_is_0!(webrender_api::ExternalScrollId);
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::GradientStop);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ImageBorder);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ImageKey);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ImageRendering);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::LineStyle);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::LocalClip);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::MixBlendMode);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::NormalBorder);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::RepeatMode);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ScrollPolicy);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ScrollSensitivity);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
-#[cfg(feature = "servo")]
+#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::TransformStyle);
 
 #[cfg(feature = "servo")]

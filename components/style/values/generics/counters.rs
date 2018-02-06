@@ -5,24 +5,67 @@
 //! Generic types for counters-related CSS values.
 
 use std::fmt;
+use std::fmt::Write;
+use std::ops::Deref;
 use style_traits::{CssWriter, ToCss};
 use values::CustomIdent;
 
 /// A generic value for the `counter-increment` property.
-///
-/// Keyword `none` is represented by an empty slice.
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
-pub struct CounterIncrement<Integer>(Box<[(CustomIdent, Integer)]);
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct CounterIncrement<I>(Counters<I>);
 
 impl<I> CounterIncrement<I> {
-    /// Returns `none`.
+    /// Returns a new value for `counter-increment`.
     #[inline]
-    pub fn none() -> Self {
-        CounterIncrement(vec![].into_boxed_slice())
+    pub fn new(counters: Vec<(CustomIdent, I)>) -> Self {
+        CounterIncrement(Counters(counters.into_boxed_slice()))
     }
 }
 
-impl<I> ToCss for CounterIncrement<I>
+impl<I> Deref for CounterIncrement<I> {
+    type Target = [(CustomIdent, I)];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &(self.0).0
+    }
+}
+
+/// A generic value for the `counter-reset` property.
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct CounterReset<I>(Counters<I>);
+
+impl<I> CounterReset<I> {
+    /// Returns a new value for `counter-reset`.
+    #[inline]
+    pub fn new(counters: Vec<(CustomIdent, I)>) -> Self {
+        CounterReset(Counters(counters.into_boxed_slice()))
+    }
+}
+
+impl<I> Deref for CounterReset<I> {
+    type Target = [(CustomIdent, I)];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &(self.0).0
+    }
+}
+
+/// A generic value for lists of counters.
+///
+/// Keyword `none` is represented by an empty vector.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+pub struct Counters<I>(Box<[(CustomIdent, I)]>);
+
+impl<I> Default for Counters<I> {
+    #[inline]
+    fn default() -> Self {
+        Counters(vec![].into_boxed_slice())
+    }
+}
+
+impl<I> ToCss for Counters<I>
 where
     I: ToCss,
 {
@@ -32,12 +75,15 @@ where
         W: fmt::Write,
     {
         if self.0.is_empty() {
-            return dest.write_str("none");
+            return dest.write_str("none")
         }
-        for (&(ref name, ref value), i) in self.0.iter().enumerate() {
-            if i != 0 {
+
+        let mut first = true;
+        for &(ref name, ref value) in &*self.0 {
+            if !first {
                 dest.write_str(" ")?;
             }
+            first = false;
             name.to_css(dest)?;
             dest.write_str(" ")?;
             value.to_css(dest)?;

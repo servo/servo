@@ -1,3 +1,6 @@
+import subprocess
+
+from ..config import *
 from .base import Browser, ExecutorBrowser, require_arg
 from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
@@ -17,6 +20,8 @@ __wptrunner__ = {"product": "chrome_android",
                  "env_extras": "env_extras",
                  "env_options": "env_options"}
 
+_wptserve_ports = set()
+
 
 def check_args(**kwargs):
     require_arg(kwargs, "webdriver_binary")
@@ -32,13 +37,19 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
     from selenium.webdriver import DesiredCapabilities
 
+    # Use extend() to modify the global list in place.
+    _wptserve_ports.update(set(
+        server_config['ports']['http'] + server_config['ports']['https'] +
+        server_config['ports']['ws'] + server_config['ports']['wss']
+    ))
+
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, **kwargs)
     executor_kwargs["close_after_done"] = True
     capabilities = dict(DesiredCapabilities.CHROME.items())
     capabilities["chromeOptions"] = {}
     # required to start on mobile
-    capabilities["chromeOptions"]["androidPackage"] = "com.android.chrome"
+    capabilities["chromeOptions"]["androidPackage"] = "com.google.android.apps.chrome"
 
     for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
         if kwargs[kwarg] is not None:
@@ -76,6 +87,17 @@ class ChromeAndroidBrowser(Browser):
                                          binary=webdriver_binary,
                                          args=webdriver_args)
 
+    def _adb_run(self, args):
+        self.logger.info('adb ' + ' '.join(args))
+        subprocess.check_call(['adb'] + args)
+
+    def setup(self):
+        self._adb_run(['wait-for-device'])
+        self._adb_run(['forward', '--remove-all'])
+        self._adb_run(['reverse', '--remove-all'])
+        for port in _wptserve_ports:
+            self._adb_run(['reverse', 'tcp:%d' % port, 'tcp:%d' % port])
+
     def start(self, **kwargs):
         self.server.start(block=False)
 
@@ -93,6 +115,8 @@ class ChromeAndroidBrowser(Browser):
 
     def cleanup(self):
         self.stop()
+        self._adb_run(['forward', '--remove-all'])
+        self._adb_run(['reverse', '--remove-all'])
 
     def executor_browser(self):
         return ExecutorBrowser, {"webdriver_url": self.server.url}

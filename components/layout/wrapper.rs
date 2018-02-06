@@ -34,9 +34,9 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
-use style::computed_values::content::{self, ContentItem};
 use style::dom::{NodeInfo, TNode};
 use style::selector_parser::RestyleDamage;
+use style::values::computed::counters::{Content, ContentItem};
 
 pub trait LayoutNodeLayoutData {
     /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
@@ -114,14 +114,14 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
             let style = self.as_element().unwrap().resolved_style();
 
             return match style.as_ref().get_counters().content {
-                content::T::Items(ref value) if !value.is_empty() => {
-                    TextContent::GeneratedContent((*value).clone())
+                Content::Items(ref value) if !value.is_empty() => {
+                    TextContent::GeneratedContent((*value).to_vec())
                 }
                 _ => TextContent::GeneratedContent(vec![]),
             };
         }
 
-        return TextContent::Text(self.node_text_content());
+        TextContent::Text(self.node_text_content().into_boxed_str())
     }
 
     fn restyle_damage(self) -> RestyleDamage {
@@ -156,7 +156,7 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
 }
 
 pub enum TextContent {
-    Text(String),
+    Text(Box<str>),
     GeneratedContent(Vec<ContentItem>),
 }
 

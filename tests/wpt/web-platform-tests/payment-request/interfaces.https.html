@@ -7,12 +7,13 @@
 <script src=/resources/idlharness.js></script>
 <script>
 promise_test(async () => {
-  const idlURLs = ["/interfaces/dom.idl", "/interfaces/payment-request.idl"];
+  const urls =  ["/interfaces/dom.idl", "/interfaces/payment-request.idl"];
+  const [dom, payment_request] = await Promise.all(
+    urls.map(url => fetch(url).then(r => r.text())));
   const idlArray = new IdlArray();
-  for(const url of idlURLs){
-    const idlText = await fetch(url).then(r => r.text());
-    idlArray.add_idls(idlText);
-  }
+  idlArray.add_untested_idls(dom);
+  idlArray.add_idls(payment_request);
+
   // typedef EventHandler from HTML
   // https://html.spec.whatwg.org/#eventhandler
   idlArray.add_idls(`

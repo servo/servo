@@ -8,6 +8,7 @@ import subprocess
 import sys
 from abc import ABCMeta, abstractmethod
 from ConfigParser import RawConfigParser
+from datetime import datetime, timedelta
 from distutils.spawn import find_executable
 from io import BytesIO
 
@@ -158,9 +159,15 @@ class Firefox(Browser):
         dest = os.path.join(dest, "profiles")
         if not os.path.exists(dest):
             os.makedirs(dest)
-        with open(os.path.join(dest, "prefs_general.js"), "wb") as f:
-            resp = get("https://hg.mozilla.org/mozilla-central/raw-file/tip/testing/profiles/prefs_general.js")
-            f.write(resp.content)
+        prefs_path = os.path.join(dest, "prefs_general.js")
+
+        now = datetime.now()
+        if (not os.path.exists(prefs_path) or
+            (datetime.fromtimestamp(os.stat(prefs_path).st_mtime) <
+             now - timedelta(days=2))):
+            with open(prefs_path, "wb") as f:
+                resp = get("https://hg.mozilla.org/mozilla-central/raw-file/tip/testing/profiles/prefs_general.js")
+                f.write(resp.content)
 
         return dest
 
@@ -281,6 +288,7 @@ class Chrome(Browser):
                 logger.critical("dbus not running and can't be started")
                 sys.exit(1)
 
+
 class ChromeAndroid(Browser):
     """Chrome-specific interface for android.
 
@@ -293,48 +301,15 @@ class ChromeAndroid(Browser):
     def install(self, dest=None):
         raise NotImplementedError
 
-    def platform_string(self):
-        raise NotImplementedError
-
     def find_webdriver(self):
         return find_executable("chromedriver")
 
     def install_webdriver(self, dest=None):
-        """Install latest Webdriver."""
-        if dest is None:
-            dest = os.pwd
-        latest = get("http://chromedriver.storage.googleapis.com/LATEST_RELEASE").text.strip()
-        url = "http://chromedriver.storage.googleapis.com/%s/chromedriver_%s.zip" % (latest,
-                                                                                     self.platform_string())
-        unzip(get(url).raw, dest)
-
-        path = find_executable("chromedriver", dest)
-        st = os.stat(path)
-        os.chmod(path, st.st_mode | stat.S_IEXEC)
-        return path
+        chrome = Chrome()
+        return chrome.install_webdriver(dest)
 
     def version(self, root):
         raise NotImplementedError
-
-    def prepare_environment(self):
-        # https://bugs.chromium.org/p/chromium/issues/detail?id=713947
-        logger.debug("DBUS_SESSION_BUS_ADDRESS %s" % os.environ.get("DBUS_SESSION_BUS_ADDRESS"))
-        if "DBUS_SESSION_BUS_ADDRESS" not in os.environ:
-            if find_executable("dbus-launch"):
-                logger.debug("Attempting to start dbus")
-                dbus_conf = subprocess.check_output(["dbus-launch"])
-                logger.debug(dbus_conf)
-
-                # From dbus-launch(1):
-                #
-                # > When dbus-launch prints bus information to standard output,
-                # > by default it is in a simple key-value pairs format.
-                for line in dbus_conf.strip().split("\n"):
-                    key, _, value = line.partition("=")
-                    os.environ[key] = value
-            else:
-                logger.critical("dbus not running and can't be started")
-                sys.exit(1)
 
 
 class Opera(Browser):

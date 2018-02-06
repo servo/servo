@@ -430,7 +430,9 @@ impl PropertyDeclarationBlock {
             AllShorthand::NotSet => {}
             AllShorthand::CSSWideKeyword(keyword) => {
                 for &id in ShorthandId::All.longhands() {
-                    let decl = PropertyDeclaration::CSSWideKeyword(id, keyword);
+                    let decl = PropertyDeclaration::CSSWideKeyword(
+                        WideKeywordDeclaration { id, keyword },
+                    );
                     changed |= self.push(
                         decl,
                         importance,
@@ -440,7 +442,9 @@ impl PropertyDeclarationBlock {
             }
             AllShorthand::WithVariables(unparsed) => {
                 for &id in ShorthandId::All.longhands() {
-                    let decl = PropertyDeclaration::WithVariables(id, unparsed.clone());
+                    let decl = PropertyDeclaration::WithVariables(
+                        VariableDeclaration { id, value: unparsed.clone() },
+                    );
                     changed |= self.push(
                         decl,
                         importance,
@@ -639,14 +643,15 @@ impl PropertyDeclarationBlock {
                         // in Gecko's getKeyframes() implementation for CSS animations, if
                         // |computed_values| is supplied, we use it to expand such variable
                         // declarations. This will be fixed properly in Gecko bug 1391537.
-                        (&PropertyDeclaration::WithVariables(id, ref unparsed),
-                         Some(ref _computed_values)) => {
-                            unparsed.substitute_variables(
-                                id,
+                        (
+                            &PropertyDeclaration::WithVariables(ref declaration),
+                            Some(ref _computed_values),
+                        ) => {
+                            declaration.value.substitute_variables(
+                                declaration.id,
                                 custom_properties.as_ref(),
                                 QuirksMode::NoQuirks,
-                            )
-                            .to_css(dest)
+                            ).to_css(dest)
                         },
                         (ref d, _) => d.to_css(dest),
                     }
@@ -726,8 +731,8 @@ impl PropertyDeclarationBlock {
         let mut builder = CustomPropertiesBuilder::new(inherited_custom_properties);
 
         for declaration in self.normal_declaration_iter() {
-            if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
-                builder.cascade(name, value.borrow());
+            if let PropertyDeclaration::Custom(ref declaration) = *declaration {
+                builder.cascade(&declaration.name, declaration.value.borrow());
             }
         }
 

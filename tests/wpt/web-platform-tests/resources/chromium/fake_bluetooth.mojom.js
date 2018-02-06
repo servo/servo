@@ -5,7 +5,7 @@
 'use strict';
 
 (function() {
-  var mojomId = 'device/bluetooth/public/interfaces/test/fake_bluetooth.mojom';
+  var mojomId = 'device/bluetooth/public/mojom/test/fake_bluetooth.mojom';
   if (mojo.internal.isMojomLoaded(mojomId)) {
     console.warn('The following mojom is loaded multiple times: ' + mojomId);
     return;
@@ -21,7 +21,7 @@
       mojo.internal.exposeNamespace('bluetooth.mojom');
   if (mojo.config.autoLoadMojomDeps) {
     mojo.internal.loadMojomIfNecessary(
-        'device/bluetooth/public/interfaces/uuid.mojom', '../uuid.mojom.js');
+        'device/bluetooth/public/mojom/uuid.mojom', '../uuid.mojom.js');
   }
 
 
@@ -1256,7 +1256,7 @@
 
 
   FakeCentral_RemoveFakeService_Params.prototype.initDefaults_ = function() {
-    this.identifier = null;
+    this.serviceId = null;
     this.peripheralAddress = null;
   };
   FakeCentral_RemoveFakeService_Params.prototype.initFields_ = function(fields) {
@@ -1280,7 +1280,7 @@
         return err;
 
 
-    // validate FakeCentral_RemoveFakeService_Params.identifier
+    // validate FakeCentral_RemoveFakeService_Params.serviceId
     err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 0, false)
     if (err !== validator.validationError.NONE)
         return err;
@@ -1301,7 +1301,7 @@
     var val = new FakeCentral_RemoveFakeService_Params();
     var numberOfBytes = decoder.readUint32();
     var version = decoder.readUint32();
-    val.identifier = decoder.decodeStruct(codec.String);
+    val.serviceId = decoder.decodeStruct(codec.String);
     val.peripheralAddress = decoder.decodeStruct(codec.String);
     return val;
   };
@@ -1310,7 +1310,7 @@
     var packed;
     encoder.writeUint32(FakeCentral_RemoveFakeService_Params.encodedSize);
     encoder.writeUint32(0);
-    encoder.encodeStruct(codec.String, val.identifier);
+    encoder.encodeStruct(codec.String, val.serviceId);
     encoder.encodeStruct(codec.String, val.peripheralAddress);
   };
   function FakeCentral_RemoveFakeService_ResponseParams(values) {
@@ -3017,9 +3017,9 @@
         .apply(this.ptr.getProxy(), arguments);
   };
 
-  FakeCentralProxy.prototype.removeFakeService = function(identifier, peripheralAddress) {
+  FakeCentralProxy.prototype.removeFakeService = function(serviceId, peripheralAddress) {
     var params = new FakeCentral_RemoveFakeService_Params();
-    params.identifier = identifier;
+    params.serviceId = serviceId;
     params.peripheralAddress = peripheralAddress;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
@@ -3285,8 +3285,8 @@
   FakeCentralStub.prototype.addFakeService = function(peripheralAddress, serviceUuid) {
     return this.delegate_ && this.delegate_.addFakeService && this.delegate_.addFakeService(peripheralAddress, serviceUuid);
   }
-  FakeCentralStub.prototype.removeFakeService = function(identifier, peripheralAddress) {
-    return this.delegate_ && this.delegate_.removeFakeService && this.delegate_.removeFakeService(identifier, peripheralAddress);
+  FakeCentralStub.prototype.removeFakeService = function(serviceId, peripheralAddress) {
+    return this.delegate_ && this.delegate_.removeFakeService && this.delegate_.removeFakeService(serviceId, peripheralAddress);
   }
   FakeCentralStub.prototype.addFakeCharacteristic = function(characteristicUuid, properties, serviceId, peripheralAddress) {
     return this.delegate_ && this.delegate_.addFakeCharacteristic && this.delegate_.addFakeCharacteristic(characteristicUuid, properties, serviceId, peripheralAddress);
@@ -3422,7 +3422,7 @@
       return true;
     case kFakeCentral_RemoveFakeService_Name:
       var params = reader.decodeStruct(FakeCentral_RemoveFakeService_Params);
-      this.removeFakeService(params.identifier, params.peripheralAddress).then(function(response) {
+      this.removeFakeService(params.serviceId, params.peripheralAddress).then(function(response) {
         var responseParams =
             new FakeCentral_RemoveFakeService_ResponseParams();
         responseParams.success = response.success;

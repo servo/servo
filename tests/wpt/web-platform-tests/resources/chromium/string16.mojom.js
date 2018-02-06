@@ -7,7 +7,7 @@
 if ((typeof mojo !== 'undefined')  && mojo.internal && mojo.config) {
 
 (function() {
-  var mojomId = 'mojo/common/string16.mojom';
+  var mojomId = 'mojo/public/mojom/base/string16.mojom';
   if (mojo.internal.isMojomLoaded(mojomId)) {
     console.warn('The following mojom is loaded multiple times: ' + mojomId);
     return;
@@ -87,7 +87,7 @@ if ((typeof mojo !== 'undefined')  && mojo.internal && mojo.config) {
 
 if ((typeof mojo === 'undefined') || !mojo.internal || !mojo.config) {
 
-define("mojo/common/string16.mojom", [
+define("mojo/public/mojom/base/string16.mojom", [
     "mojo/public/js/associated_bindings",
     "mojo/public/js/bindings",
     "mojo/public/js/codec",

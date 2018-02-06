@@ -44,7 +44,6 @@ use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::clear::T as Clear;
 use style::computed_values::color::T as Color;
-use style::computed_values::content::ContentItem;
 use style::computed_values::display::T as Display;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
 use style::computed_values::overflow_wrap::T as OverflowWrap;
@@ -61,6 +60,7 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
 use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::counters::ContentItem;
 use style::values::generics::box_::VerticalAlign;
 use style::values::generics::transform;
 use text;
@@ -570,9 +570,9 @@ pub struct UnscannedTextFragmentInfo {
 impl UnscannedTextFragmentInfo {
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
-    pub fn new(text: String, selection: Option<Range<ByteIndex>>) -> UnscannedTextFragmentInfo {
+    pub fn new(text: Box<str>, selection: Option<Range<ByteIndex>>) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
-            text: text.into_boxed_str(),
+            text: text,
             selection: selection,
         }
     }
@@ -760,7 +760,7 @@ impl Fragment {
         let mut ellipsis_fragment = self.transform(
             self.border_box.size,
             SpecificFragmentInfo::UnscannedText(
-                Box::new(UnscannedTextFragmentInfo::new(text_overflow_string, None))
+                Box::new(UnscannedTextFragmentInfo::new(text_overflow_string.into_boxed_str(), None))
             )
         );
         unscanned_ellipsis_fragments.push_back(ellipsis_fragment);

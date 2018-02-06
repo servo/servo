@@ -9,6 +9,7 @@
 use Namespace;
 use context::QuirksMode;
 use cssparser::{Parser, Token, serialize_identifier};
+use num_traits::One;
 use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
@@ -31,14 +32,15 @@ pub use self::align::{AlignContent, JustifyContent, AlignItems, ContentDistribut
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
-pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
+pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
-pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
+pub use self::font::{FontFamily, FontLanguageOverride, FontVariationSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
 pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior, Contain};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 #[cfg(feature = "gecko")]
@@ -69,7 +71,8 @@ pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine};
 pub use self::text::{TextAlign, TextAlignKeyword, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOrigin, Rotate, Translate, Scale};
+pub use self::transform::{Rotate, Scale, TimingFunction, Transform};
+pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::MozForceBrokenImageIcon;
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
@@ -83,6 +86,7 @@ pub mod border;
 pub mod box_;
 pub mod calc;
 pub mod color;
+pub mod counters;
 pub mod effects;
 pub mod flex;
 pub mod font;
@@ -160,19 +164,22 @@ fn parse_number_with_clamping_mode<'i, 't>(
 // 17.6.2.1. Higher values override lower values.
 //
 // FIXME(emilio): Should move to border.rs
-define_numbered_css_keyword_enum! { BorderStyle:
-    "none" => None = -1,
-    "solid" => Solid = 6,
-    "double" => Double = 7,
-    "dotted" => Dotted = 4,
-    "dashed" => Dashed = 5,
-    "hidden" => Hidden = -2,
-    "groove" => Groove = 1,
-    "ridge" => Ridge = 3,
-    "inset" => Inset = 0,
-    "outset" => Outset = 2,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, Parse, PartialEq)]
+#[derive(PartialOrd, ToCss)]
+pub enum BorderStyle {
+    None = -1,
+    Solid = 6,
+    Double = 7,
+    Dotted = 4,
+    Dashed = 5,
+    Hidden = -2,
+    Groove = 1,
+    Ridge = 3,
+    Inset = 0,
+    Outset = 2,
 }
-
 
 impl BorderStyle {
     /// Whether this border style is either none or hidden.
@@ -382,10 +389,26 @@ impl ToComputedValue for Opacity {
 /// An specified `<integer>`, optionally coming from a `calc()` expression.
 ///
 /// <https://drafts.csswg.org/css-values/#integers>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd)]
 pub struct Integer {
     value: CSSInteger,
     was_calc: bool,
+}
+
+impl One for Integer {
+    #[inline]
+    fn one() -> Self {
+        Self::new(1)
+    }
+}
+
+// This is not great, because it loses calc-ness, but it's necessary for One.
+impl ::std::ops::Mul<Integer> for Integer {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        Self::new(self.value * other.value)
+    }
 }
 
 impl Integer {
@@ -435,7 +458,7 @@ impl Integer {
     pub fn parse_with_minimum<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        min: i32
+        min: i32,
     ) -> Result<Integer, ParseError<'i>> {
         match Integer::parse(context, input) {
             // FIXME(emilio): The spec asks us to avoid rejecting it at parse
@@ -498,10 +521,11 @@ impl ToCss for Integer {
 pub type IntegerOrAuto = Either<Integer, Auto>;
 
 impl IntegerOrAuto {
-    #[allow(missing_docs)]
-    pub fn parse_positive<'i, 't>(context: &ParserContext,
-                                  input: &mut Parser<'i, 't>)
-                                  -> Result<IntegerOrAuto, ParseError<'i>> {
+    /// Parse `auto` or a positive integer.
+    pub fn parse_positive<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<IntegerOrAuto, ParseError<'i>> {
         match IntegerOrAuto::parse(context, input) {
             Ok(Either::First(integer)) if integer.value() <= 0 => {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))

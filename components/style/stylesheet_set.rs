@@ -18,8 +18,11 @@ struct StylesheetSetEntry<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
+    /// The sheet.
     sheet: S,
-    dirty: bool,
+
+    /// Whether this sheet has been part of at least one flush.
+    committed: bool,
 }
 
 impl<S> StylesheetSetEntry<S>
@@ -27,7 +30,7 @@ where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     fn new(sheet: S) -> Self {
-        Self { sheet, dirty: true }
+        Self { sheet, committed: false }
     }
 }
 
@@ -239,9 +242,9 @@ where
         loop {
             let potential_sheet = self.iter.next()?;
 
-            let dirty = mem::replace(&mut potential_sheet.dirty, false);
-            if dirty {
-                // If the sheet was dirty, we need to do a full rebuild anyway.
+            let committed = mem::replace(&mut potential_sheet.committed, true);
+            if !committed {
+                // If the sheet was uncommitted, we need to do a full rebuild anyway.
                 return Some((&potential_sheet.sheet, SheetRebuildKind::Full))
             }
 
@@ -303,18 +306,22 @@ where
     }
 
     fn remove(&mut self, sheet: &S) {
-        let old_len = self.entries.len();
-        self.entries.retain(|entry| entry.sheet != *sheet);
-        if cfg!(feature = "servo") {
+        let index = self.entries.iter().position(|entry| {
+            entry.sheet == *sheet
+        });
+        if cfg!(feature = "gecko") && index.is_none() {
             // FIXME(emilio): Make Gecko's PresShell::AddUserSheet not suck.
-            //
-            // Hopefully that's not necessary for correctness, just somewhat
-            // overkill.
-            debug_assert!(self.entries.len() != old_len, "Sheet not found?");
+            return;
         }
+        let sheet = self.entries.remove(index.unwrap());
         // Removing sheets makes us tear down the whole cascade and invalidation
-        // data.
-        self.set_data_validity_at_least(OriginValidity::FullyInvalid);
+        // data, but only if the sheet has been involved in at least one flush.
+        // Checking whether the sheet has been committed allows us to avoid
+        // rebuilding the world when sites quickly append and remove a stylesheet.
+        // See bug 1434756.
+        if sheet.committed {
+            self.set_data_validity_at_least(OriginValidity::FullyInvalid);
+        }
     }
 
     fn contains(&self, sheet: &S) -> bool {

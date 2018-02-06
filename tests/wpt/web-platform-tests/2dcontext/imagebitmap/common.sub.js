@@ -43,13 +43,34 @@ function makeVideo() {
     });
 }
 
+function makeDataUrlVideo() {
+    const toDataUrl = (type, buffer) => {
+        const encoded = btoa(String.fromCodePoint(...new Uint8Array(buffer)));
+        return `data:${type};base64,${encoded}`
+    };
+
+    return fetch(getVideoURI("/images/pattern"))
+        .then(response => Promise.all([response.headers.get("Content-Type"), response.arrayBuffer()]))
+        .then(([type, data]) => {
+            return new Promise(function(resolve, reject) {
+                var video = document.createElement("video");
+                video.oncanplaythrough = function() {
+                    resolve(video);
+                };
+                video.onerror = reject;
+                video.src = toDataUrl(type, data);
+            });
+        });
+}
+
 function makeMakeHTMLImage(src) {
     return function() {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             var img = new Image();
             img.onload = function() {
                 resolve(img);
             };
+            img.onerror = reject;
             img.src = src;
         });
     }
@@ -115,6 +136,7 @@ function makeBlob() {
 var imageSourceTypes = [
     { name: 'an HTMLCanvasElement', factory: makeCanvas },
     { name: 'an HTMLVideoElement',  factory: makeVideo },
+    { name: 'an HTMLVideoElement from a data URL', factory: makeDataUrlVideo },
     { name: 'a bitmap HTMLImageElement', factory: makeMakeHTMLImage("/images/pattern.png") },
     { name: 'a vector HTMLImageElement', factory: makeMakeHTMLImage("/images/pattern.svg") },
     { name: 'a bitmap SVGImageElement', factory: makeMakeSVGImage("/images/pattern.png") },

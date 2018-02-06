@@ -149,6 +149,7 @@ class Longhand(object):
                  predefined_type=None, servo_pref=None, gecko_pref=None,
                  enabled_in="content", need_index=False,
                  gecko_ffi_name=None,
+                 is_gecko_size_type_hack=False,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
@@ -185,6 +186,7 @@ class Longhand(object):
         self.allow_quirks = allow_quirks
         self.ignored_when_colors_disabled = ignored_when_colors_disabled
         self.is_vector = vector
+        self.is_gecko_size_type_hack = is_gecko_size_type_hack
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
