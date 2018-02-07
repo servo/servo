@@ -2387,18 +2387,6 @@
      {}
     ]
    ],
-   "css/iframe/mozbrowser_navigation.html": [
-    [
-     "/_mozilla/css/iframe/mozbrowser_navigation.html",
-     [
-      [
-       "/_mozilla/css/iframe/mozbrowser_navigation_ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
    "css/iframe/multiple_external.html": [
     [
      "/_mozilla/css/iframe/multiple_external.html",
@@ -8947,11 +8935,6 @@
      {}
     ]
    ],
-   "css/iframe/mozbrowser_navigation_ref.html": [
-    [
-     {}
-    ]
-   ],
    "css/iframe/multiple_external_child.html": [
     [
      {}
@@ -11098,101 +11081,6 @@
     ]
    ],
    "mozilla/interfaces.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/helper.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_contentDocument_inner.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_privateContent_grandchild.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_privateContent_inner.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe1.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe2.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe3.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_child.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_grandchild.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_harness.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsericonchange_event_test.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowserlocationchange_event_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_nested_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_no_params_alert.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/redirect_final.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/redirect_init.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/stash.py": [
     [
      {}
     ]
@@ -33468,96 +33356,6 @@
    "mozilla/mime_sniffing_font_context.html": [
     [
      "/_mozilla/mozilla/mime_sniffing_font_context.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/crossorigin_xhr.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/crossorigin_xhr.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_goback.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/iframe_goback.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_reload_twice.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/iframe_reload_twice.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_visibility.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/iframe_visibility.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_parentage.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowser_iframe_parentage.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_loadevents.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowser_loadevents.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsericonchange_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsericonchange_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowserlocationchange_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowserlocationchange_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsersecuritychange_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsersecuritychange_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/private_browsing.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/private_browsing.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/redirect.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/redirect.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/reload.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/reload.html",
      {}
     ]
    ],
@@ -62602,14 +62400,6 @@
    "e30451b16fc0c4b025a2160e6c7b849901150718",
    "support"
   ],
-  "css/iframe/mozbrowser_navigation.html": [
-   "7a17922ce48c8138284ad1a1f0f88317df35b541",
-   "reftest"
-  ],
-  "css/iframe/mozbrowser_navigation_ref.html": [
-   "368a46cfb7c6cdce26381121d803427d6ad93c69",
-   "support"
-  ],
   "css/iframe/multiple_external.html": [
    "79df63cbb113c57ccacf5734a6d14e29d73478a5",
    "reftest"
@@ -66561,142 +66351,6 @@
   "mozilla/mime_sniffing_font_context.html": [
    "1311e72e0a0dafa6fae594ca1ce2deca164acd36",
    "testharness"
-  ],
-  "mozilla/mozbrowser/crossorigin_xhr.html": [
-   "e716ee75552f0e531fef1a71b20799ccb8b221d9",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/helper.html": [
-   "652e88e7a84b50ca1d4ed3cc2d1f1e354fb9ab32",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_contentDocument_inner.html": [
-   "a098b74e081838bcbf4ceb854a48a57eb5ae3cab",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_goback.html": [
-   "a850e2549dfdbcfbb344ccc23ff03717d392bfdc",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/iframe_privateContent_grandchild.html": [
-   "13d4e88f2581ff7d5cbbf149463563d0754978fe",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_privateContent_inner.html": [
-   "354b3b6d6596559bac45119db6549f1347b93bef",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_reload_twice.html": [
-   "c6e6cc7ca336154723c658fb8cae8989ca8b7ee7",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/iframe_visibility.html": [
-   "c2a2df3f85f7ed1d76fbc694fe247071050ebb81",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html": [
-   "30fa150f6f22a989bf7e85d3b367ec7d61f57f09",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe1.html": [
-   "375566a899295a1da1685cd85127c2da60e1eee8",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe2.html": [
-   "e4d4a2acd91a4f12323b5aca458a5c4068e70782",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe3.html": [
-   "9d714203485baed8faff37c312190dd384769c83",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_child.html": [
-   "a51e76f9c72896a539b08d40f48fef0412336a34",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_grandchild.html": [
-   "441c2e80ad3ecc9da321507a3c41b3c346bea0f0",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_harness.js": [
-   "c5db7a8f3c32f79a4e24d176cb95563a999240e5",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_parentage.html": [
-   "3f03a10f8f8c72cbd0a73fc130f705246c308871",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowser_loadevents.html": [
-   "03ef403ece408147f23f5dc898a0509102c4d75c",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsericonchange_event.html": [
-   "fbaeb75787aa039e506c32ec0487dc05dc6280cf",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsericonchange_event_test.html": [
-   "61e39bc9ead6d4bfc9bf60bed3323753dc0e791a",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowserlocationchange_event.html": [
-   "35a0671b553ae5787b8444deac127e2ee071d0f7",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowserlocationchange_event_iframe.html": [
-   "ed175a1b2426de141ccb47e4d13c88ff0db0506e",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsersecuritychange_event.html": [
-   "58a58e552f21dd650020197b7e28c87c4d84e691",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html": [
-   "ff8971b64dda52903009697dc56df6b3a9cecdb3",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_iframe.html": [
-   "1cd97f725237d9ccba830a2e7f61b85da82319c5",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_nested_iframe.html": [
-   "4b40aeb217cfe9d557dbd4b87120b788ba7a0fd8",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_no_params_alert.html": [
-   "8c67b9c24de045fe36be9ff74a0700d7e7af6588",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event.html": [
-   "2beae7d4e20e0b535144ac91113a73724f970321",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event_iframe.html": [
-   "d7a0b1eced93ae16b2ccc7d1d1f2b1d383ff75ed",
-   "support"
-  ],
-  "mozilla/mozbrowser/private_browsing.html": [
-   "bc8f9bfde5b6eb53ec1362b0cfae5d300af15c7e",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/redirect.html": [
-   "7377e38b6bdaea746d8e3c2801112200dca502d2",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/redirect_final.html": [
-   "db82c9a14bc76e3548200bc2e507d6044660514c",
-   "support"
-  ],
-  "mozilla/mozbrowser/redirect_init.html": [
-   "ab668d7af80b7560bf3afa732b1198e2825929e9",
-   "support"
-  ],
-  "mozilla/mozbrowser/reload.html": [
-   "f8c4f6b0ccf95426a3e6816fce5490ef9704e267",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/stash.py": [
-   "5513229f79ab37de67eb4d60ea9dd23cd31d133f",
-   "support"
   ],
   "mozilla/mql_borrow.html": [
    "f8f9adebe09f9473a52e5ec4f075540b10b32d7e",
