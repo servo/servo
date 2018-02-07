@@ -23,8 +23,7 @@ from mach.decorators import (
 from servo.command_base import (
     CommandBase,
     check_call, check_output, BIN_SUFFIX,
-    is_linux, is_windows, is_macosx, set_osmesa_env,
-    get_browserhtml_path,
+    is_linux, set_osmesa_env,
 )
 
 
@@ -53,8 +52,6 @@ class PostBuildCommands(CommandBase):
                           'have no effect without this.')
     @CommandArgument('--debugger', default=None, type=str,
                      help='Name of debugger to use.')
-    @CommandArgument('--browserhtml', '-b', action='store_true',
-                     help='Launch with Browser.html')
     @CommandArgument('--headless', '-z', action='store_true',
                      help='Launch in headless mode')
     @CommandArgument('--software', '-s', action='store_true',
@@ -64,7 +61,7 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False,
+    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
             headless=False, software=False, bin=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
@@ -99,20 +96,6 @@ class PostBuildCommands(CommandBase):
             return shell.wait()
 
         args = [bin or self.get_binary_path(release, dev)]
-
-        if browserhtml:
-            browserhtml_path = get_browserhtml_path(args[0])
-            if is_macosx():
-                # Enable borderless on OSX
-                args = args + ['-b']
-            elif is_windows():
-                # Convert to a relative path to avoid mingw -> Windows path conversions
-                browserhtml_path = path.relpath(browserhtml_path, os.getcwd())
-
-            args = args + ['--pref', 'dom.mozbrowser.enabled',
-                           '--pref', 'dom.forcetouch.enabled',
-                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                           path.join(browserhtml_path, 'index.html')]
 
         if headless:
             set_osmesa_env(args[0], env)

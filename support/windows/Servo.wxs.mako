@@ -44,7 +44,6 @@
             </Component>
 
             ${include_directory(resources_path, "resources")}
-            ${include_directory(path.join(dir_to_temp, "browserhtml"), "browserhtml")}
           </Directory>
         </Directory>
       </Directory>

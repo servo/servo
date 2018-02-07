@@ -1,7 +1,3 @@
 {
-  "dom.forcetouch.enabled": true,
-  "dom.mozbrowser.enabled": true,
-  "shell.builtin-key-shortcuts.enabled": false,
-  "os:windows,os:linux;shell.homepage": "browserhtml/index.html",
-  "os:macosx;shell.native-titlebar.enabled": false
+  "_comment": "this file is used to add some specific preferences to the Servo package (nightly builds)"
 }

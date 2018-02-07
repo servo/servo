@@ -36,7 +36,6 @@ from servo.command_base import (
     CommandBase,
     is_macosx,
     is_windows,
-    get_browserhtml_path,
 )
 from servo.util import delete
 
@@ -228,11 +227,9 @@ class PackageCommands(CommandBase):
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
-            browserhtml_path = get_browserhtml_path(binary_path)
 
             print("Copying files")
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_resources, 'browserhtml'))
             shutil.copy2(path.join(dir_to_root, 'Info.plist'), path.join(dir_to_app, 'Contents', 'Info.plist'))
 
             content_dir = path.join(dir_to_app, 'Contents', 'MacOS')
@@ -263,16 +260,6 @@ class PackageCommands(CommandBase):
                 with open(credits_path, "w") as credits_file:
                     credits_file.write(template.render(version=version))
             delete(template_path)
-
-            print("Writing run-servo")
-            bhtml_path = path.join('${0%/*}', '..', 'Resources', 'browserhtml', 'index.html')
-            runservo = os.open(
-                path.join(content_dir, 'run-servo'),
-                os.O_WRONLY | os.O_CREAT,
-                int("0755", 8)
-            )
-            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
-            os.close(runservo)
 
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
@@ -323,14 +310,12 @@ class PackageCommands(CommandBase):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_msi)
             os.makedirs(dir_to_msi)
-            browserhtml_path = get_browserhtml_path(binary_path)
 
             print("Copying files")
             dir_to_temp = path.join(dir_to_msi, 'temp')
             dir_to_temp_servo = path.join(dir_to_temp, 'servo')
             dir_to_resources = path.join(dir_to_temp_servo, 'resources')
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_temp_servo, 'browserhtml'))
             shutil.copy(binary_path, dir_to_temp_servo)
             shutil.copy("{}.manifest".format(binary_path), dir_to_temp_servo)
             copy_windows_dependencies(target_dir, dir_to_temp_servo)
@@ -372,7 +357,6 @@ class PackageCommands(CommandBase):
             delete(dir_to_temp)
         else:
             dir_to_temp = path.join(target_dir, 'packaging-temp')
-            browserhtml_path = get_browserhtml_path(binary_path)
             if path.exists(dir_to_temp):
                 # TODO(aneeshusa): lock dir_to_temp to prevent simultaneous builds
                 print("Cleaning up from previous packaging")
@@ -381,7 +365,6 @@ class PackageCommands(CommandBase):
             print("Copying files")
             dir_to_resources = path.join(dir_to_temp, 'resources')
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_temp, 'browserhtml'))
             shutil.copy(binary_path, dir_to_temp)
 
             change_prefs(dir_to_resources, "linux")

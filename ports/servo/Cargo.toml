@@ -26,7 +26,6 @@ unstable = ["libservo/unstable"]
 
 [dependencies]
 backtrace = "0.3"
-browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
 bitflags = "1.0"
 compositing = {path = "../../components/compositing"}
 euclid = "0.16"
