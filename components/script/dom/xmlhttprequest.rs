@@ -60,7 +60,6 @@ use net_traits::trim_http_whitespace;
 use network_listener::{NetworkListener, PreInvoke};
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
-use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -572,20 +571,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             unreachable!()
         };
 
-        let bypass_cross_origin_check = {
-            // We want to be able to do cross-origin requests in browser.html.
-            // If the XHR happens in a top level window and the mozbrowser
-            // preference is enabled, we allow bypassing the CORS check.
-            // This is a temporary measure until we figure out Servo privilege
-            // story. See https://github.com/servo/servo/issues/9582
-            if let Some(win) = DomRoot::downcast::<Window>(self.global()) {
-                let is_root_pipeline = win.parent_info().is_none();
-                is_root_pipeline && PREFS.is_mozbrowser_enabled()
-            } else {
-                false
-            }
-        };
-
         let mut request = RequestInit {
             method: self.request_method.borrow().clone(),
             url: self.request_url.borrow().clone().unwrap(),
@@ -607,10 +592,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             pipeline_id: Some(self.global().pipeline_id()),
             .. RequestInit::default()
         };
-
-        if bypass_cross_origin_check {
-            request.mode = RequestMode::Navigate;
-        }
 
         // step 4 (second half)
         match extracted_or_serialized {

@@ -98,7 +98,7 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
 use mime::{Mime, TopLevel, SubLevel};
-use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -111,7 +111,7 @@ use script_layout_interface::message::{Msg, NodesFromPointQueryType, ReflowGoal}
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
-use script_traits::{MozBrowserEvent, MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
@@ -451,7 +451,6 @@ impl Document {
 
     pub fn set_https_state(&self, https_state: HttpsState) {
         self.https_state.set(https_state);
-        self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
     }
 
     pub fn is_fully_active(&self) -> bool {
@@ -754,13 +753,9 @@ impl Document {
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         match state {
             DocumentReadyState::Loading => {
-                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserconnected
-                self.trigger_mozbrowser_event(MozBrowserEvent::Connected);
                 update_with_current_time_ms(&self.dom_loading);
             },
             DocumentReadyState::Complete => {
-                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-                self.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
                 update_with_current_time_ms(&self.dom_complete);
             },
             DocumentReadyState::Interactive => update_with_current_time_ms(&self.dom_interactive),
@@ -826,9 +821,6 @@ impl Document {
     /// Handles any updates when the document's title has changed.
     pub fn title_changed(&self) {
         if self.browsing_context().is_some() {
-            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsertitlechange
-            self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(String::from(self.Title())));
-
             self.send_title_to_constellation();
         }
     }
@@ -1410,15 +1402,6 @@ impl Document {
         }
     }
 
-    pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
-        if PREFS.is_mozbrowser_enabled() {
-            if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
-                let event = ScriptMsg::MozBrowserEvent(parent_pipeline_id, event);
-                self.send_to_constellation(event);
-            }
-        }
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     pub fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
@@ -1855,20 +1838,6 @@ impl Document {
     pub fn find_iframe(&self, browsing_context_id: BrowsingContextId) -> Option<DomRoot<HTMLIFrameElement>> {
         self.iter_iframes()
             .find(|node| node.browsing_context_id() == Some(browsing_context_id))
-    }
-
-    /// Find a mozbrowser iframe element in the document.
-    pub fn find_mozbrowser_iframe(&self,
-                                  top_level_browsing_context_id: TopLevelBrowsingContextId)
-                                  -> Option<DomRoot<HTMLIFrameElement>>
-    {
-        match self.find_iframe(BrowsingContextId::from(top_level_browsing_context_id)) {
-            None => None,
-            Some(iframe) => {
-                assert!(iframe.Mozbrowser());
-                Some(iframe)
-            },
-        }
     }
 
     pub fn get_dom_loading(&self) -> u64 {

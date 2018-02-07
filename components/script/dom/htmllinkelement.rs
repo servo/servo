@@ -24,7 +24,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
-use script_traits::{MozBrowserEvent, ScriptMsg};
+use script_traits::ScriptMsg;
 use servo_arc::Arc;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -309,18 +309,12 @@ impl HTMLLinkElement {
         }, link_url, cors_setting, integrity_metadata.to_owned());
     }
 
-    fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
+    fn handle_favicon_url(&self, _rel: &str, href: &str, _sizes: &Option<String>) {
         let document = document_from_node(self);
         match document.base_url().join(href) {
             Ok(url) => {
                 let event = ScriptMsg::NewFavicon(url.clone());
                 document.window().upcast::<GlobalScope>().script_to_constellation_chan().send(event).unwrap();
-
-                let mozbrowser_event = match *sizes {
-                    Some(ref sizes) => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), sizes.to_owned()),
-                    None => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), "".to_owned())
-                };
-                document.trigger_mozbrowser_event(mozbrowser_event);
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
