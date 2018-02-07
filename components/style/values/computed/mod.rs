@@ -4,7 +4,9 @@
 
 //! Computed values.
 
-use {Atom, Namespace};
+use Atom;
+#[cfg(feature = "servo")]
+use Prefix;
 use context::QuirksMode;
 use euclid::Size2D;
 use font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
@@ -414,7 +416,8 @@ trivial_to_computed_value!(u32);
 trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(BorderStyle);
 trivial_to_computed_value!(CursorKind);
-trivial_to_computed_value!(Namespace);
+#[cfg(feature = "servo")]
+trivial_to_computed_value!(Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
 

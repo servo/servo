@@ -461,6 +461,7 @@ impl SingleFontFamily {
     /// Get the corresponding font-family with family name
     fn from_font_family_name(family: &structs::FontFamilyName) -> SingleFontFamily {
         use gecko_bindings::structs::FontFamilyType;
+        use values::serialize_atom_identifier;
 
         match family.mType {
             FontFamilyType::eFamily_sans_serif => SingleFontFamily::Generic(atom!("sans-serif")),
@@ -472,7 +473,7 @@ impl SingleFontFamily {
             FontFamilyType::eFamily_named => {
                 let name = Atom::from(&*family.mName);
                 let mut serialization = String::new();
-                serialize_identifier(&name.to_string(), &mut serialization).unwrap();
+                serialize_atom_identifier(&name, &mut serialization).unwrap();
                 SingleFontFamily::FamilyName(FamilyName {
                     name: name.clone(),
                     syntax: FamilyNameSyntax::Identifiers(serialization),

@@ -8,13 +8,14 @@
 //! `pseudo_element_definition.mako.rs`. If you touch that file, you probably
 //! need to update the checked-in files for Servo.
 
-use cssparser::{ToCss, serialize_identifier};
+use cssparser::ToCss;
 use gecko_bindings::structs::{self, CSSPseudoElementType};
 use properties::{CascadeFlags, ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use string_cache::Atom;
+use values::serialize_atom_identifier;
 
 include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_definition.rs"));
 

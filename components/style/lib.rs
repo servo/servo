@@ -68,6 +68,7 @@ pub extern crate servo_arc;
 #[cfg(feature = "servo")] extern crate servo_url;
 extern crate smallbitvec;
 extern crate smallvec;
+#[cfg(feature = "servo")] extern crate string_cache;
 #[macro_use]
 extern crate style_derive;
 extern crate style_traits;
