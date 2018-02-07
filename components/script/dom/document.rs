@@ -98,6 +98,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
+use mime::{Mime, TopLevel, SubLevel};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
@@ -236,7 +237,8 @@ pub struct Document {
     node: Node,
     window: Dom<Window>,
     implementation: MutNullableDom<DOMImplementation>,
-    content_type: DOMString,
+    #[ignore_malloc_size_of = "type from external crate"]
+    content_type: Mime,
     last_modified: Option<String>,
     encoding: Cell<&'static Encoding>,
     has_browsing_context: bool,
@@ -2222,12 +2224,12 @@ impl Document {
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
             content_type: match content_type {
-                Some(string) => string,
-                None => DOMString::from(match is_html_document {
+                Some(string) => string.parse().unwrap(),
+                None => Mime::from(match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    IsHTMLDocument::HTMLDocument => "text/html",
+                    IsHTMLDocument::HTMLDocument => Mime(TopLevel::Text, SubLevel::Html, vec![]),
                     // https://dom.spec.whatwg.org/#concept-document-content-type
-                    IsHTMLDocument::NonHTMLDocument => "application/xml",
+                    IsHTMLDocument::NonHTMLDocument => Mime(TopLevel::Application, SubLevel::Xml, vec![]),
                 }),
             },
             last_modified: last_modified,
@@ -2889,7 +2891,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-content_type
     fn ContentType(&self) -> DOMString {
-        self.content_type.clone()
+        DOMString::from_string(self.content_type.0.to_string() + "/" + &self.content_type.1.to_string()).clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
@@ -2969,7 +2971,8 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
 
-        let ns = if self.is_html_document || self.content_type == "application/xhtml+xml" {
+        let ns = if self.is_html_document || ((self.content_type.0 == TopLevel::Application) &&
+                                               (self.content_type.1.as_str() == "xhtml+xml")) {
             ns!(html)
         } else {
             ns!()
