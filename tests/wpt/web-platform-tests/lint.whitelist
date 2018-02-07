@@ -1,4 +1,4 @@
-# File containing whiteslist for lint errors
+testset# File containing whiteslist for lint errors
 # Format is:
 # ERROR TYPE:file/name/pattern[:line number]
 # e.g.
