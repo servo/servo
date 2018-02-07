@@ -333,10 +333,10 @@ impl<'a> TextRun {
     }
 
     /// Returns the index in the range of the first glyph advancing over given advance
-    pub fn range_index_of_advance(&self, range: &Range<ByteIndex>, advance: Au) -> usize {
+    pub fn range_index_of_advance(&self, range: &Range<ByteIndex>, advance: f32) -> usize {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings when measuring text
-        let mut remaining = advance;
+        let mut remaining = Au::from_f32_px(advance);
         self.natural_word_slices_in_range(range)
             .map(|slice| {
                 let (slice_index, slice_advance) =

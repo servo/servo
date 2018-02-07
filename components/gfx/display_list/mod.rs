@@ -14,8 +14,7 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-use app_units::Au;
-use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D, TypedRect, SideOffsets2D};
+use euclid::{Transform3D, Vector2D, TypedRect, SideOffsets2D};
 use euclid::num::{One, Zero};
 use gfx_traits::{self, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
@@ -24,18 +23,19 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
 use servo_geometry::MaxRect;
-use std::cmp::{self, Ordering};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::f32;
 use std::fmt;
 use std::sync::Arc;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ColorF, ExtendMode};
-use webrender_api::{ExternalScrollId, FilterOp, GradientStop, ImageBorder, ImageKey};
-use webrender_api::{ImageRendering, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};
-use webrender_api::{LineStyle, LocalClip, MixBlendMode, NormalBorder, ScrollPolicy};
-use webrender_api::{ScrollSensitivity, StickyOffsetBounds, TransformStyle};
+use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipMode, ColorF};
+use webrender_api::{ComplexClipRegion, ExtendMode, ExternalScrollId, FilterOp, FontInstanceKey};
+use webrender_api::{GlyphInstance, GradientStop, ImageBorder, ImageKey, ImageRendering};
+use webrender_api::{LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D, LineStyle, LocalClip};
+use webrender_api::{MixBlendMode, NormalBorder, ScrollPolicy, ScrollSensitivity};
+use webrender_api::{StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
 
@@ -96,22 +96,22 @@ pub struct DisplayList {
 impl DisplayList {
     /// Return the bounds of this display list based on the dimensions of the root
     /// stacking context.
-    pub fn bounds(&self) -> Rect<Au> {
+    pub fn bounds(&self) -> LayoutRect {
         match self.list.get(0) {
             Some(&DisplayItem::PushStackingContext(ref item)) => item.stacking_context.bounds,
             Some(_) => unreachable!("Root element of display list not stacking context."),
-            None => Rect::zero(),
+            None => LayoutRect::zero(),
         }
     }
 
     // Returns the text index within a node for the point of interest.
-    pub fn text_index(&self, node: OpaqueNode, point_in_item: &Point2D<Au>) -> Option<usize> {
+    pub fn text_index(&self, node: OpaqueNode, point_in_item: LayoutPoint) -> Option<usize> {
         for item in &self.list {
             match item {
                 &DisplayItem::Text(ref text) => {
                     let base = item.base();
                     if base.metadata.node == node {
-                        let point = *point_in_item + item.base().bounds.origin.to_vector();
+                        let point = point_in_item + item.base().bounds.origin.to_vector();
                         let offset = point - text.baseline_origin;
                         return Some(text.text_run.range_index_of_advance(&text.range, offset.x));
                     }
@@ -194,10 +194,10 @@ pub struct StackingContext {
     pub context_type: StackingContextType,
 
     /// The position and size of this stacking context.
-    pub bounds: Rect<Au>,
+    pub bounds: LayoutRect,
 
     /// The overflow rect for this stacking context in its coordinate system.
-    pub overflow: Rect<Au>,
+    pub overflow: LayoutRect,
 
     /// The `z-index` for this stacking context.
     pub z_index: i32,
@@ -229,8 +229,8 @@ impl StackingContext {
     #[inline]
     pub fn new(id: StackingContextId,
                context_type: StackingContextType,
-               bounds: &Rect<Au>,
-               overflow: &Rect<Au>,
+               bounds: LayoutRect,
+               overflow: LayoutRect,
                z_index: i32,
                filters: Vec<FilterOp>,
                mix_blend_mode: MixBlendMode,
@@ -243,8 +243,8 @@ impl StackingContext {
         StackingContext {
             id,
             context_type,
-            bounds: *bounds,
-            overflow: *overflow,
+            bounds,
+            overflow,
             z_index,
             filters,
             mix_blend_mode,
@@ -261,8 +261,8 @@ impl StackingContext {
         StackingContext::new(
             StackingContextId::root(),
             StackingContextType::Real,
-            &Rect::zero(),
-            &Rect::zero(),
+            LayoutRect::zero(),
+            LayoutRect::zero(),
             0,
             vec![],
             MixBlendMode::Normal,
@@ -394,7 +394,7 @@ pub enum DisplayItem {
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
-    pub bounds: Rect<Au>,
+    pub bounds: LayoutRect,
 
     /// Metadata attached to this display item.
     pub metadata: DisplayItemMetadata,
@@ -414,7 +414,7 @@ pub struct BaseDisplayItem {
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: Rect<Au>,
+    pub fn new(bounds: LayoutRect,
                metadata: DisplayItemMetadata,
                local_clip: LocalClip,
                section: DisplayListSection,
@@ -454,23 +454,12 @@ impl BaseDisplayItem {
 #[derive(Clone, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
-    pub main: Rect<Au>,
+    pub main: LayoutRect,
     /// Any complex regions.
     ///
     /// TODO(pcwalton): Atomically reference count these? Not sure if it's worth the trouble.
     /// Measure and follow up.
-    pub complex: Vec<ComplexClippingRegion>,
-}
-
-/// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
-/// they're stored in a list over to the side. Currently a complex clipping region is just a
-/// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct ComplexClippingRegion {
-    /// The boundaries of the rectangle.
-    pub rect: Rect<Au>,
-    /// Border radii of this rectangle.
-    pub radii: BorderRadii<Au>,
+    pub complex: Vec<ComplexClipRegion>,
 }
 
 impl ClippingRegion {
@@ -478,7 +467,7 @@ impl ClippingRegion {
     #[inline]
     pub fn empty() -> ClippingRegion {
         ClippingRegion {
-            main: Rect::zero(),
+            main: LayoutRect::zero(),
             complex: Vec::new(),
         }
     }
@@ -487,16 +476,16 @@ impl ClippingRegion {
     #[inline]
     pub fn max() -> ClippingRegion {
         ClippingRegion {
-            main: Rect::max_rect(),
+            main: LayoutRect::max_rect(),
             complex: Vec::new(),
         }
     }
 
     /// Returns a clipping region that represents the given rectangle.
     #[inline]
-    pub fn from_rect(rect: &Rect<Au>) -> ClippingRegion {
+    pub fn from_rect(rect: LayoutRect) -> ClippingRegion {
         ClippingRegion {
-            main: *rect,
+            main: rect,
             complex: Vec::new(),
         }
     }
@@ -506,8 +495,8 @@ impl ClippingRegion {
     /// TODO(pcwalton): This could more eagerly eliminate complex clipping regions, at the cost of
     /// complexity.
     #[inline]
-    pub fn intersect_rect(&mut self, rect: &Rect<Au>) {
-        self.main = self.main.intersection(rect).unwrap_or(Rect::zero())
+    pub fn intersect_rect(&mut self, rect: &LayoutRect) {
+        self.main = self.main.intersection(rect).unwrap_or(LayoutRect::zero())
     }
 
     /// Returns true if this clipping region might be nonempty. This can return false positives,
@@ -520,7 +509,7 @@ impl ClippingRegion {
     /// Returns true if this clipping region might contain the given point and false otherwise.
     /// This is a quick, not a precise, test; it can yield false positives.
     #[inline]
-    pub fn might_intersect_point(&self, point: &Point2D<Au>) -> bool {
+    pub fn might_intersect_point(&self, point: &LayoutPoint) -> bool {
         self.main.contains(point) &&
             self.complex.iter().all(|complex| complex.rect.contains(point))
     }
@@ -528,14 +517,14 @@ impl ClippingRegion {
     /// Returns true if this clipping region might intersect the given rectangle and false
     /// otherwise. This is a quick, not a precise, test; it can yield false positives.
     #[inline]
-    pub fn might_intersect_rect(&self, rect: &Rect<Au>) -> bool {
+    pub fn might_intersect_rect(&self, rect: &LayoutRect) -> bool {
         self.main.intersects(rect) &&
             self.complex.iter().all(|complex| complex.rect.intersects(rect))
     }
 
     /// Returns true if this clipping region completely surrounds the given rect.
     #[inline]
-    pub fn does_not_clip_rect(&self, rect: &Rect<Au>) -> bool {
+    pub fn does_not_clip_rect(&self, rect: &LayoutRect) -> bool {
         self.main.contains(&rect.origin) && self.main.contains(&rect.bottom_right()) &&
             self.complex.iter().all(|complex| {
                 complex.rect.contains(&rect.origin) && complex.rect.contains(&rect.bottom_right())
@@ -544,7 +533,7 @@ impl ClippingRegion {
 
     /// Returns a bounding rect that surrounds this entire clipping region.
     #[inline]
-    pub fn bounding_rect(&self) -> Rect<Au> {
+    pub fn bounding_rect(&self) -> LayoutRect {
         let mut rect = self.main;
         for complex in &*self.complex {
             rect = rect.union(&complex.rect)
@@ -554,10 +543,11 @@ impl ClippingRegion {
 
     /// Intersects this clipping region with the given rounded rectangle.
     #[inline]
-    pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>) {
-        let new_complex_region = ComplexClippingRegion {
-            rect: *rect,
-            radii: *radii,
+    pub fn intersect_with_rounded_rect(&mut self, rect: LayoutRect, radii: BorderRadius) {
+        let new_complex_region = ComplexClipRegion {
+            rect,
+            radii,
+            mode: ClipMode::Clip,
         };
 
         // FIXME(pcwalton): This is O(n²) worst case for disjoint clipping regions. Is that OK?
@@ -576,21 +566,19 @@ impl ClippingRegion {
             }
         }
 
-        self.complex.push(ComplexClippingRegion {
-            rect: *rect,
-            radii: *radii,
-        });
+        self.complex.push(new_complex_region);
     }
 
     /// Translates this clipping region by the given vector.
     #[inline]
-    pub fn translate(&self, delta: &Vector2D<Au>) -> ClippingRegion {
+    pub fn translate(&self, delta: &LayoutVector2D) -> ClippingRegion {
         ClippingRegion {
             main: self.main.translate(delta),
             complex: self.complex.iter().map(|complex| {
-                ComplexClippingRegion {
+                ComplexClipRegion {
                     rect: complex.rect.translate(delta),
                     radii: complex.radii,
+                    mode: complex.mode,
                 }
             }).collect(),
         }
@@ -598,7 +586,7 @@ impl ClippingRegion {
 
     #[inline]
     pub fn is_max(&self) -> bool {
-        self.main == Rect::max_rect() && self.complex.is_empty()
+        self.main == LayoutRect::max_rect() && self.complex.is_empty()
     }
 }
 
@@ -608,7 +596,7 @@ impl fmt::Debug for ClippingRegion {
             write!(f, "ClippingRegion::Max")
         } else if *self == ClippingRegion::empty() {
             write!(f, "ClippingRegion::Empty")
-        } else if self.main == Rect::max_rect() {
+        } else if self.main == LayoutRect::max_rect() {
             write!(f, "ClippingRegion(Complex={:?})", self.complex)
         } else {
             write!(f, "ClippingRegion(Rect={:?}, Complex={:?})", self.main, self.complex)
@@ -616,17 +604,21 @@ impl fmt::Debug for ClippingRegion {
     }
 }
 
-impl ComplexClippingRegion {
+pub trait CompletelyEncloses {
+    fn completely_encloses(&self, other: &Self) -> bool;
+}
+
+impl CompletelyEncloses for ComplexClipRegion {
     // TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
     // the border radius ellipse.
-    fn completely_encloses(&self, other: &ComplexClippingRegion) -> bool {
-        let left = cmp::max(self.radii.top_left.width, self.radii.bottom_left.width);
-        let top = cmp::max(self.radii.top_left.height, self.radii.top_right.height);
-        let right = cmp::max(self.radii.top_right.width, self.radii.bottom_right.width);
-        let bottom = cmp::max(self.radii.bottom_left.height, self.radii.bottom_right.height);
-        let interior = Rect::new(Point2D::new(self.rect.origin.x + left, self.rect.origin.y + top),
-                                 Size2D::new(self.rect.size.width - left - right,
-                                             self.rect.size.height - top - bottom));
+    fn completely_encloses(&self, other: &Self) -> bool {
+        let left = self.radii.top_left.width.max(self.radii.bottom_left.width);
+        let top = self.radii.top_left.height.max(self.radii.top_right.height);
+        let right = self.radii.top_right.width.max(self.radii.bottom_right.width);
+        let bottom = self.radii.bottom_left.height.max(self.radii.bottom_right.height);
+        let interior = LayoutRect::new(LayoutPoint::new(self.rect.origin.x + left, self.rect.origin.y + top),
+                                       LayoutSize::new(self.rect.size.width - left - right,
+                                                       self.rect.size.height - top - bottom));
         interior.origin.x <= other.rect.origin.x && interior.origin.y <= other.rect.origin.y &&
             interior.max_x() >= other.rect.max_x() && interior.max_y() >= other.rect.max_y()
     }
@@ -667,14 +659,14 @@ pub struct TextDisplayItem {
     /// The range of text within the text run.
     pub range: Range<ByteIndex>,
 
+    /// The position of the start of the baseline of this text.
+    pub baseline_origin: LayoutPoint,
+    /// A collection of (non-whitespace) glyphs to be displayed.
+    pub glyphs: Vec<GlyphInstance>,
+    /// Reference to the font to be used.
+    pub font_key: FontInstanceKey,
     /// The color of the text.
     pub text_color: ColorF,
-
-    /// The position of the start of the baseline of this text.
-    pub baseline_origin: Point2D<Au>,
-
-    /// The orientation of the text: upright or sideways left/right.
-    pub orientation: TextOrientation,
 }
 
 #[derive(Clone, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
@@ -826,68 +818,6 @@ pub struct BorderDisplayItem {
     pub details: BorderDetails,
 }
 
-/// Information about the border radii.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct BorderRadii<T> {
-    pub top_left: Size2D<T>,
-    pub top_right: Size2D<T>,
-    pub bottom_right: Size2D<T>,
-    pub bottom_left: Size2D<T>,
-}
-
-impl<T> Default for BorderRadii<T> where T: Default, T: Clone {
-    fn default() -> Self {
-        let top_left = Size2D::new(Default::default(),
-                                   Default::default());
-        let top_right = Size2D::new(Default::default(),
-                                    Default::default());
-        let bottom_left = Size2D::new(Default::default(),
-                                      Default::default());
-        let bottom_right = Size2D::new(Default::default(),
-                                       Default::default());
-        BorderRadii { top_left: top_left,
-                      top_right: top_right,
-                      bottom_left: bottom_left,
-                      bottom_right: bottom_right }
-    }
-}
-
-impl BorderRadii<Au> {
-    // Scale the border radii by the specified factor
-    pub fn scale_by(&self, s: f32) -> BorderRadii<Au> {
-        BorderRadii { top_left: BorderRadii::scale_corner_by(self.top_left, s),
-                      top_right: BorderRadii::scale_corner_by(self.top_right, s),
-                      bottom_left: BorderRadii::scale_corner_by(self.bottom_left, s),
-                      bottom_right: BorderRadii::scale_corner_by(self.bottom_right, s) }
-    }
-
-    // Scale the border corner radius by the specified factor
-    pub fn scale_corner_by(corner: Size2D<Au>, s: f32) -> Size2D<Au> {
-        Size2D::new(corner.width.scale_by(s), corner.height.scale_by(s))
-    }
-}
-
-impl<T> BorderRadii<T> where T: PartialEq + Zero {
-    /// Returns true if all the radii are zero.
-    pub fn is_square(&self) -> bool {
-        let zero = Zero::zero();
-        self.top_left == zero && self.top_right == zero && self.bottom_right == zero &&
-            self.bottom_left == zero
-    }
-}
-
-impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
-    /// Returns a set of border radii that all have the given value.
-    pub fn all_same(value: T) -> BorderRadii<T> {
-        BorderRadii {
-            top_left: Size2D::new(value.clone(), value.clone()),
-            top_right: Size2D::new(value.clone(), value.clone()),
-            bottom_right: Size2D::new(value.clone(), value.clone()),
-            bottom_left: Size2D::new(value.clone(), value.clone()),
-        }
-    }
-}
-
 /// Paints a line segment.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct LineDisplayItem {
@@ -1015,7 +945,7 @@ impl DisplayItem {
         self.base().section
     }
 
-    pub fn bounds(&self) -> Rect<Au> {
+    pub fn bounds(&self) -> LayoutRect {
         self.base().bounds
     }
 
@@ -1050,11 +980,7 @@ impl fmt::Debug for DisplayItem {
                             solid_color.color.g,
                             solid_color.color.b,
                             solid_color.color.a),
-                DisplayItem::Text(ref text) => {
-                    format!("Text ({:?})",
-                            &text.text_run.text[
-                                text.range.begin().0 as usize..(text.range.begin().0 + text.range.length().0) as usize])
-                }
+                DisplayItem::Text(_) => "Text".to_owned(),
                 DisplayItem::Image(_) => "Image".to_owned(),
                 DisplayItem::Border(_) => "Border".to_owned(),
                 DisplayItem::Gradient(_) => "Gradient".to_owned(),
