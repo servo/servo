@@ -164,7 +164,8 @@ ${helpers.predefined_type("order", "Integer", "0",
     // FIXME: Gecko doesn't support content value yet.
     //
     // FIXME(emilio): I suspect this property shouldn't allow quirks, and this
-    // was just a mistake.
+    // was just a mistake, it's kind of justificable to support it given the
+    // spec grammar is just `content | <width>`, but other browsers don't...
     ${helpers.predefined_type(
         "flex-basis",
         "MozLength",

@@ -891,9 +891,15 @@ pub enum ExtremumLength {
 impl ExtremumLength {
     /// Returns whether this size keyword can be used for the given writing-mode
     /// and property.
+    ///
+    /// TODO: After these values are supported for both axes (and maybe
+    /// unprefixed, see bug 1322780) all this complexity can go away, and
+    /// everything can be derived (no need for uncacheable stuff).
     fn valid_for(&self, wm: WritingMode, longhand: LonghandId) -> bool {
         // We only make sense on the inline axis.
         match longhand {
+            // FIXME(emilio): The flex-basis thing is not quite clear...
+            LonghandId::FlexBasis |
             LonghandId::MinWidth |
             LonghandId::MaxWidth |
             LonghandId::Width => !wm.is_vertical(),
@@ -919,7 +925,9 @@ impl ExtremumLength {
     }
 }
 
-/// A value suitable for a `min-width`, `min-height`, `width` or `height` property.
+/// A value suitable for a `min-width`, `min-height`, `width` or `height`
+/// property.
+///
 /// See values/specified/length.rs for more details.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
