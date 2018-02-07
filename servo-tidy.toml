@@ -54,7 +54,6 @@ files = [
   "./components/style/gecko/generated/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
-  "./components/script/dom/webidls/ForceTouchEvent.webidl",
   "./support/android/openssl.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/mozilla/tests/webgl",

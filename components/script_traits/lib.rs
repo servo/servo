@@ -445,21 +445,8 @@ pub enum CompositorEvent {
     MouseMoveEvent(Option<Point2D<f32>>, Option<UntrustedNodeAddress>),
     /// A touch event was generated with a touch ID and location.
     TouchEvent(TouchEventType, TouchId, Point2D<f32>, Option<UntrustedNodeAddress>),
-    /// Touchpad pressure event
-    TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase, Option<UntrustedNodeAddress>),
     /// A key was pressed.
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
-}
-
-/// Touchpad pressure phase for `TouchpadPressureEvent`.
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum TouchpadPressurePhase {
-    /// Pressure before a regular click.
-    BeforeClick,
-    /// Pressure after a regular click.
-    AfterFirstClick,
-    /// Pressure after a "forceTouch" click
-    AfterSecondClick,
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.

@@ -96,8 +96,7 @@ use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFa
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
-use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
+use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
@@ -2376,19 +2375,6 @@ impl ScriptThread {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
                     }
                 }
-            }
-
-            TouchpadPressureEvent(_point, pressure, phase, node_address) => {
-                let doc = match { self.documents.borrow().find_document(pipeline_id) } {
-                    Some(doc) => doc,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                doc.handle_touchpad_pressure_event(
-                    self.js_runtime.rt(),
-                    pressure,
-                    phase,
-                    node_address
-                );
             }
 
             KeyEvent(ch, key, state, modifiers) => {

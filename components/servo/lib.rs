@@ -311,10 +311,6 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 }
             }
 
-            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
-                self.compositor.on_touchpad_pressure_event(cursor, pressure, stage);
-            }
-
             WindowEvent::KeyEvent(ch, key, state, modifiers) => {
                 let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
                 if let Err(e) = self.constellation_chan.send(msg) {

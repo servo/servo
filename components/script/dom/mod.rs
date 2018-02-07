@@ -289,7 +289,6 @@ pub mod filelist;
 pub mod filereader;
 pub mod filereadersync;
 pub mod focusevent;
-pub mod forcetouchevent;
 pub mod formdata;
 pub mod gamepad;
 pub mod gamepadbutton;
