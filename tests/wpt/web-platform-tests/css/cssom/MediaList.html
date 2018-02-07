@@ -44,6 +44,10 @@
         media.mediaText = null;
         assert_equals(media.mediaText, "", "MediaList mediaText attribute should be empty string in case of null");
         assert_equals(media.toString(), "", "MediaList toString method should be empty string in case of null");
+
+        var rule = document.styleSheets[0].cssRules[0];
+        rule.media = "speech";
+        assert_equals(rule.media.mediaText, "speech", "MediaList mediaText attribute should be updated");
     });
     </script>
 </head>
