@@ -303,7 +303,7 @@
                     DeclaredValue::Value(value)
                 },
                 PropertyDeclaration::CSSWideKeyword(ref declaration) => {
-                    debug_assert!(declaration.id == LonghandId::${property.camel_case});
+                    debug_assert_eq!(declaration.id, LonghandId::${property.camel_case});
                     DeclaredValue::CSSWideKeyword(declaration.keyword)
                 },
                 PropertyDeclaration::WithVariables(..) => {

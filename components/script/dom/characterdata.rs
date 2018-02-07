@@ -291,7 +291,7 @@ fn split_at_utf16_code_unit_offset(s: &str, offset: u32) -> Result<(&str, Option
         if c > '\u{FFFF}' {
             if code_units == offset {
                 if opts::get().replace_surrogates {
-                    debug_assert!(c.len_utf8() == 4);
+                    debug_assert_eq!(c.len_utf8(), 4);
                     return Ok((&s[..i], Some(c), &s[i + c.len_utf8()..]))
                 }
                 panic!("\n\n\

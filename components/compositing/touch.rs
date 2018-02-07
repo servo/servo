@@ -219,7 +219,7 @@ impl TouchHandler {
     }
 
     fn pinch_distance_and_center(&self) -> (f32, TypedPoint2D<f32, DevicePixel>) {
-        debug_assert!(self.touch_count() == 2);
+        debug_assert_eq!(self.touch_count(), 2);
         let p0 = self.active_touch_points[0].point;
         let p1 = self.active_touch_points[1].point;
         let center = p0.lerp(p1, 0.5);

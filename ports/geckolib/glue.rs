@@ -4159,7 +4159,7 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(
     rules: RawGeckoFontFaceRuleListBorrowedMut,
 ) {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    debug_assert!(rules.len() == 0);
+    debug_assert_eq!(rules.len(), 0);
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();

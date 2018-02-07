@@ -369,7 +369,7 @@ impl MediaExpressionValue {
 
         match for_expr.feature.mValueType {
             nsMediaFeature_ValueType::eLength => {
-                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Pixel);
+                debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_Pixel);
                 let pixels = css_value.float_unchecked();
                 Some(MediaExpressionValue::Length(Length::from_px(pixels)))
             }
@@ -379,17 +379,17 @@ impl MediaExpressionValue {
                 Some(MediaExpressionValue::Integer(i as u32))
             }
             nsMediaFeature_ValueType::eFloat => {
-                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Number);
+                debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_Number);
                 Some(MediaExpressionValue::Float(css_value.float_unchecked()))
             }
             nsMediaFeature_ValueType::eBoolInteger => {
-                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Integer);
+                debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_Integer);
                 let i = css_value.integer_unchecked();
                 debug_assert!(i == 0 || i == 1);
                 Some(MediaExpressionValue::BoolInteger(i == 1))
             }
             nsMediaFeature_ValueType::eResolution => {
-                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Pixel);
+                debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_Pixel);
                 Some(MediaExpressionValue::Resolution(Resolution::Dppx(css_value.float_unchecked())))
             }
             nsMediaFeature_ValueType::eEnumerated => {
@@ -397,7 +397,7 @@ impl MediaExpressionValue {
                 Some(MediaExpressionValue::Enumerated(value))
             }
             nsMediaFeature_ValueType::eIdent => {
-                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Ident);
+                debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_Ident);
                 let string = unsafe {
                     let buffer = *css_value.mValue.mString.as_ref();
                     debug_assert!(!buffer.is_null());
@@ -774,11 +774,11 @@ impl Expression {
                 one.to_dpi().partial_cmp(&actual_dpi).unwrap()
             }
             (&Ident(ref one), &Ident(ref other)) => {
-                debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
+                debug_assert_ne!(self.feature.mRangeType, nsMediaFeature_RangeType::eMinMaxAllowed);
                 return one == other;
             }
             (&Enumerated(one), &Enumerated(other)) => {
-                debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
+                debug_assert_ne!(self.feature.mRangeType, nsMediaFeature_RangeType::eMinMaxAllowed);
                 return one == other;
             }
             _ => unreachable!(),

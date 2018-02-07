@@ -499,7 +499,7 @@ fn robin_hood<'a, K: 'a, V: 'a>(bucket: FullBucketMut<'a, K, V>,
         loop {
             displacement += 1;
             let probe = bucket.next();
-            debug_assert!(probe.index() != idx_end);
+            debug_assert_ne!(probe.index(), idx_end);
 
             let full_bucket = match probe.peek() {
                 Empty(bucket) => {
@@ -578,7 +578,7 @@ impl<K, V, S> HashMap<K, V, S>
                 Full(b) => b.into_bucket(),
             };
             buckets.next();
-            debug_assert!(buckets.index() != start_index);
+            debug_assert_ne!(buckets.index(), start_index);
         }
     }
 }
