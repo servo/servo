@@ -13,15 +13,14 @@ use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
+use std::{mem, slice, str};
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
-use std::mem;
 use std::ops::Deref;
-use std::slice;
 
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
@@ -128,21 +127,38 @@ impl WeakAtom {
     /// Find alternatives to this function when possible, please, since it's
     /// pretty slow.
     pub fn with_str<F, Output>(&self, cb: F) -> Output
-        where F: FnOnce(&str) -> Output
+    where
+        F: FnOnce(&str) -> Output
     {
-        // FIXME(bholley): We should measure whether it makes more sense to
-        // cache the UTF-8 version in the Gecko atom table somehow.
-        let owned = self.to_string();
-        cb(&owned)
-    }
+        let mut buffer: [u8; 64] = unsafe { mem::uninitialized() };
 
-    /// Convert this Atom into a string, decoding the UTF-16 bytes.
-    ///
-    /// Find alternatives to this function when possible, please, since it's
-    /// pretty slow.
-    #[inline]
-    pub fn to_string(&self) -> String {
-        String::from_utf16(self.as_slice()).unwrap()
+        // The total string length in utf16 is going to be less than or equal
+        // the slice length (each utf16 character is going to take at least one
+        // and at most 2 items in the utf16 slice).
+        //
+        // Each of those characters will take at most four bytes in the utf8
+        // one. Thus if the slice is less than 64 / 4 (16) we can guarantee that
+        // we'll decode it in place.
+        let owned_string;
+        let len = self.len();
+        let utf8_slice = if len <= 16 {
+            let mut total_len = 0;
+
+            for c in self.chars() {
+                let c = c.unwrap_or(char::REPLACEMENT_CHARACTER);
+                let utf8_len = c.encode_utf8(&mut buffer[total_len..]).len();
+                total_len += utf8_len;
+            }
+
+            let slice = unsafe { str::from_utf8_unchecked(&buffer[..total_len]) };
+            debug_assert_eq!(slice, String::from_utf16_lossy(self.as_slice()));
+            slice
+        } else {
+            owned_string = String::from_utf16_lossy(self.as_slice());
+            &*owned_string
+        };
+
+        cb(utf8_slice)
     }
 
     /// Returns whether this atom is static.
