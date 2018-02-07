@@ -125,7 +125,7 @@ impl TableFlow {
                     }
                 } else {
                     // We discovered a new column. Initialize its data.
-                    debug_assert!(column_index == parent_inline_sizes.len());
+                    debug_assert_eq!(column_index, parent_inline_sizes.len());
                     if child_cell_inline_size.column_span > 1 {
                         // TODO(pcwalton): Perform the recursive algorithm specified in INTRINSIC §
                         // 4. For now we make this column contribute no width.
@@ -635,7 +635,7 @@ impl<T> VecExt<T> for Vec<T> {
         if index < self.len() {
             self[index] = value
         } else {
-            debug_assert!(index == self.len());
+            debug_assert_eq!(index, self.len());
             self.push(value)
         }
         &mut self[index]
@@ -643,7 +643,7 @@ impl<T> VecExt<T> for Vec<T> {
 
     fn get_mut_or_push(&mut self, index: usize, zero: T) -> &mut T {
         if index >= self.len() {
-            debug_assert!(index == self.len());
+            debug_assert_eq!(index, self.len());
             self.push(zero)
         }
         &mut self[index]

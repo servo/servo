@@ -598,7 +598,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             assert!(items.next().is_none(), "ExactSizeIterator under-reported length");
 
             // We should have consumed the buffer exactly.
-            debug_assert!(current as *mut u8 == buffer.offset(size as isize));
+            debug_assert_eq!(current as *mut u8, buffer.offset(size as isize));
         }
 
         // Return the fat Arc.

@@ -804,7 +804,7 @@ impl LineBreaker {
         self.work_list.push_front(cur_fragment);
         for fragment_index in (last_known_line_breaking_opportunity.get()..
                                self.pending_line.range.end().get()).rev() {
-            debug_assert!(fragment_index == (self.new_fragments.len() as isize) - 1);
+            debug_assert_eq!(fragment_index, (self.new_fragments.len() as isize) - 1);
             self.work_list.push_front(self.new_fragments.pop().unwrap());
         }
 

@@ -1213,7 +1213,7 @@ fn clone_single_transform_function(
 
     let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
                                             -> Vec<TransformOperation> {
-        debug_assert!(value.mUnit == structs::nsCSSUnit::eCSSUnit_SharedList);
+        debug_assert_eq!(value.mUnit, structs::nsCSSUnit::eCSSUnit_SharedList);
         let value_list = unsafe {
             value.mValue.mSharedList.as_ref()
                     .as_mut().expect("List pointer should be non-null").mHead.as_ref()
@@ -1804,7 +1804,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleUnit;
         // z-index is never a calc(). If it were, we'd be leaking here, so
         // assert that it isn't.
-        debug_assert!(self.gecko.mZIndex.unit() != nsStyleUnit::eStyleUnit_Calc);
+        debug_assert_ne!(self.gecko.mZIndex.unit(), nsStyleUnit::eStyleUnit_Calc);
         unsafe {
             self.gecko.mZIndex.copy_from_unchecked(&other.gecko.mZIndex);
         }
@@ -1837,7 +1837,7 @@ fn static_assert() {
     }
 
     pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
-        debug_assert!(v.0 != ::values::specified::align::AlignFlags::AUTO);
+        debug_assert_ne!(v.0, ::values::specified::align::AlignFlags::AUTO);
         self.gecko.mJustifyItems = v.into();
     }
 
@@ -2885,7 +2885,7 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator + Clone
     {
         let v = v.into_iter();
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
@@ -2910,7 +2910,7 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator + Clone
     {
         let v = v.into_iter();
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
@@ -2966,7 +2966,7 @@ fn static_assert() {
 
         let v = v.into_iter();
 
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
         self.gecko.mAnimations.ensure_len(input_len);
 
@@ -3364,7 +3364,7 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         self.gecko.mAnimations.ensure_len(v.len());
 
         self.gecko.mAnimationNameCount = v.len() as u32;
@@ -3957,7 +3957,7 @@ fn static_assert() {
             if ty == DimensionType::eAuto as u8 {
                 LengthOrPercentageOrAuto::Auto
             } else {
-                debug_assert!(ty == DimensionType::eLengthPercentage as u8);
+                debug_assert_eq!(ty, DimensionType::eLengthPercentage as u8);
                 value.into()
             }
         }
@@ -3965,11 +3965,11 @@ fn static_assert() {
         longhands::background_size::computed_value::T(
             self.gecko.${image_layers_field}.mLayers.iter().map(|ref layer| {
                 if DimensionType::eCover as u8 == layer.mSize.mWidthType {
-                    debug_assert!(layer.mSize.mHeightType == DimensionType::eCover as u8);
+                    debug_assert_eq!(layer.mSize.mHeightType, DimensionType::eCover as u8);
                     return BackgroundSize::Cover
                 }
                 if DimensionType::eContain as u8 == layer.mSize.mWidthType {
-                    debug_assert!(layer.mSize.mHeightType == DimensionType::eContain as u8);
+                    debug_assert_eq!(layer.mSize.mHeightType, DimensionType::eContain as u8);
                     return BackgroundSize::Contain
                 }
                 BackgroundSize::Explicit {
@@ -4368,28 +4368,28 @@ fn static_assert() {
             ClipRectOrAuto::auto()
         } else {
             let left = if self.gecko.mClipFlags & NS_STYLE_CLIP_LEFT_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.x == 0);
+                debug_assert_eq!(self.gecko.mClip.x, 0);
                 None
             } else {
                 Some(Au(self.gecko.mClip.x).into())
             };
 
             let top = if self.gecko.mClipFlags & NS_STYLE_CLIP_TOP_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.y == 0);
+                debug_assert_eq!(self.gecko.mClip.y, 0);
                 None
             } else {
                 Some(Au(self.gecko.mClip.y).into())
             };
 
             let bottom = if self.gecko.mClipFlags & NS_STYLE_CLIP_BOTTOM_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.height == 1 << 30); // NS_MAXSIZE
+                debug_assert_eq!(self.gecko.mClip.height, 1 << 30); // NS_MAXSIZE
                 None
             } else {
                 Some(Au(self.gecko.mClip.y + self.gecko.mClip.height).into())
             };
 
             let right = if self.gecko.mClipFlags & NS_STYLE_CLIP_RIGHT_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.width == 1 << 30); // NS_MAXSIZE
+                debug_assert_eq!(self.gecko.mClip.width, 1 << 30); // NS_MAXSIZE
                 None
             } else {
                 Some(Au(self.gecko.mClip.x + self.gecko.mClip.width).into())

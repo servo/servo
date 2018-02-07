@@ -71,7 +71,7 @@ impl ToCss for TextOverflow {
         W: Write,
     {
         if self.sides_are_logical {
-            debug_assert!(self.first == TextOverflowSide::Clip);
+            debug_assert_eq!(self.first, TextOverflowSide::Clip);
             self.second.to_css(dest)?;
         } else {
             self.first.to_css(dest)?;

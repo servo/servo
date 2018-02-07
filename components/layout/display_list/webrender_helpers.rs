@@ -269,7 +269,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             },
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
-                debug_assert!(stacking_context.context_type == StackingContextType::Real);
+                debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
                 let transform = stacking_context
                     .transform

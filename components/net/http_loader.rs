@@ -771,7 +771,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
     // Step 11
     if cors_flag || (http_request.method != Method::Get && http_request.method != Method::Head) {
-        debug_assert!(http_request.origin != Origin::Client);
+        debug_assert_ne!(http_request.origin, Origin::Client);
         if let Origin::Origin(ref url_origin) = http_request.origin {
             if let Some(hyper_origin) = try_immutable_origin_to_hyper_origin(url_origin) {
                 http_request.headers.set(hyper_origin)

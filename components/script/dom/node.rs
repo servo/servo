@@ -1334,7 +1334,7 @@ impl TreeIterator {
             }
             self.depth -= 1;
         }
-        debug_assert!(self.depth == 0);
+        debug_assert_eq!(self.depth, 0);
         self.current = None;
         Some(current)
     }
