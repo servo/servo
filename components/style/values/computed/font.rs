@@ -7,20 +7,21 @@
 use Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
-use cssparser::{CssStringWriter, Parser, serialize_identifier};
+use cssparser::{CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
 use gecko_bindings::{bindings, structs};
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use std::borrow::Cow;
 use std::fmt::{self, Write};
 #[cfg(feature = "gecko")]
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
-use values::CSSFloat;
+use values::{CSSFloat, serialize_atom_identifier};
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue, Integer, Number};
 use values::generics::font::{FontSettings, FeatureTagValue, VariationValue};
@@ -286,10 +287,8 @@ impl ToCss for FamilyName {
                 write!(CssStringWriter::new(dest), "{}", self.name)?;
                 dest.write_char('"')
             }
-            FamilyNameSyntax::Identifiers(ref serialization) => {
-                // Note that `serialization` is already escaped/
-                // serialized appropriately.
-                dest.write_str(&*serialization)
+            FamilyNameSyntax::Identifier => {
+                serialize_atom_identifier(&self.name, dest)
             }
         }
     }
@@ -301,13 +300,12 @@ impl ToCss for FamilyName {
 /// or unquoted as a sequence of one or more identifiers.
 pub enum FamilyNameSyntax {
     /// The family name was specified in a quoted form, e.g. "Font Name"
-    /// or 'Font Name'.
+    /// or 'Font Name', or as a list of unquoted identifiers.
     Quoted,
 
-    /// The family name was specified in an unquoted form as a sequence of
-    /// identifiers.  The `String` is the serialization of the sequence of
-    /// identifiers.
-    Identifiers(String),
+    /// The family name was specified in an unquoted form as a single
+    /// identifier.
+    Identifier,
 }
 
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
@@ -367,7 +365,7 @@ impl SingleFontFamily {
         })
     }
 
-    /// Parse a font-family value
+    /// Parse a font-family value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
             return Ok(SingleFontFamily::FamilyName(FamilyName {
@@ -405,28 +403,32 @@ impl SingleFontFamily {
             _ => {}
         }
 
-        let mut value = first_ident.as_ref().to_owned();
-        let mut serialization = String::new();
-        serialize_identifier(&first_ident, &mut serialization).unwrap();
+        let mut syntax = FamilyNameSyntax::Identifier;
+        let mut value = Cow::Borrowed(first_ident.as_ref());
 
         // These keywords are not allowed by themselves.
         // The only way this value can be valid with with another keyword.
         if css_wide_keyword {
+            syntax = FamilyNameSyntax::Quoted;
+
             let ident = input.expect_ident()?;
+
+            let value = value.to_mut();
             value.push(' ');
             value.push_str(&ident);
-            serialization.push(' ');
-            serialize_identifier(&ident, &mut serialization).unwrap();
         }
+
         while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+            syntax = FamilyNameSyntax::Quoted;
+
+            let value = value.to_mut();
             value.push(' ');
             value.push_str(&ident);
-            serialization.push(' ');
-            serialize_identifier(&ident, &mut serialization).unwrap();
         }
+
         Ok(SingleFontFamily::FamilyName(FamilyName {
             name: Atom::from(value),
-            syntax: FamilyNameSyntax::Identifiers(serialization),
+            syntax,
         }))
     }
 
@@ -461,7 +463,6 @@ impl SingleFontFamily {
     /// Get the corresponding font-family with family name
     fn from_font_family_name(family: &structs::FontFamilyName) -> SingleFontFamily {
         use gecko_bindings::structs::FontFamilyType;
-        use values::serialize_atom_identifier;
 
         match family.mType {
             FontFamilyType::eFamily_sans_serif => SingleFontFamily::Generic(atom!("sans-serif")),
@@ -472,11 +473,9 @@ impl SingleFontFamily {
             FontFamilyType::eFamily_moz_fixed => SingleFontFamily::Generic(Atom::from("-moz-fixed")),
             FontFamilyType::eFamily_named => {
                 let name = Atom::from(&*family.mName);
-                let mut serialization = String::new();
-                serialize_atom_identifier(&name, &mut serialization).unwrap();
                 SingleFontFamily::FamilyName(FamilyName {
                     name: name.clone(),
-                    syntax: FamilyNameSyntax::Identifiers(serialization),
+                    syntax: FamilyNameSyntax::Identifier,
                 })
             },
             FontFamilyType::eFamily_named_quoted => SingleFontFamily::FamilyName(FamilyName {
@@ -622,7 +621,7 @@ impl FontFamilyList {
 #[cfg(feature = "gecko")]
 /// Iterator of FontFamily
 pub struct FontFamilyNameIter<'a> {
-    names: &'a structs::nsTArray<structs::FontFamilyName>,
+    names: &'a [structs::FontFamilyName],
     cur: usize,
 }
 
