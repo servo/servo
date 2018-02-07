@@ -208,7 +208,7 @@ pub mod animated_properties {
 
     variants = []
     for property in data.longhands:
-        if property.predefined_type and not property.is_vector and not property.is_gecko_size_type_hack:
+        if property.predefined_type and not property.is_vector:
             ty = "::values::specified::{}".format(property.predefined_type)
         else:
             ty = "longhands::{}::SpecifiedValue".format(property.ident)

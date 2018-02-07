@@ -16,8 +16,8 @@ use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataVa
 use media_queries::Device;
 use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
-use values::{Auto, Either, ExtremumLength, None_, Normal};
-use values::computed::{Angle, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::{Auto, Either, None_, Normal};
+use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MozLength, Percentage};
 use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};

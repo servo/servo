@@ -160,18 +160,21 @@ ${helpers.predefined_type("order", "Integer", "0",
                           animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
-// FIXME(emilio): All the sizes stuff, and the MozLength values should be
-// unified with Servo, or at least be less hacky.
-//
-// The block direction ones don't even accept extremum lengths during parsing,
-// and should be converted to just LengthOrPercentage.
 % if product == "gecko":
     // FIXME: Gecko doesn't support content value yet.
-    ${helpers.gecko_size_type("flex-basis", "MozLength", "auto()",
-                              logical=False,
-                              spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
-                              extra_prefixes="webkit",
-                              animation_value_type="MozLength")}
+    //
+    // FIXME(emilio): I suspect this property shouldn't allow quirks, and this
+    // was just a mistake, it's kind of justificable to support it given the
+    // spec grammar is just `content | <width>`, but other browsers don't...
+    ${helpers.predefined_type(
+        "flex-basis",
+        "MozLength",
+        "computed::MozLength::auto()",
+        extra_prefixes="webkit",
+        animation_value_type="ComputedValue",
+        allow_quirks=True,
+        spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property"
+    )}
 % else:
     // FIXME: This property should be animatable.
     ${helpers.predefined_type("flex-basis",
@@ -183,29 +186,54 @@ ${helpers.predefined_type("order", "Integer", "0",
 % endif
 % for (size, logical) in ALL_SIZES:
     <%
-      spec = "https://drafts.csswg.org/css-box/#propdef-%s"
-      if logical:
-        spec = "https://drafts.csswg.org/css-logical-props/#propdef-%s"
+        spec = "https://drafts.csswg.org/css-box/#propdef-%s"
+        if logical:
+            spec = "https://drafts.csswg.org/css-logical-props/#propdef-%s"
     %>
+    // NOTE: Block-size doesn't support -moz-*-content keywords, since they make
+    // no sense on the block axis, but it simplifies things the have that it has
+    // the same type as the other properties, since otherwise we'd need to
+    // handle logical props where the types are different, which looks like a
+    // pain.
     % if product == "gecko":
+        <%
+            parse_function = "parse" if size != "block-size" else "parse_disallow_keyword"
+        %>
         // width, height, block-size, inline-size
-        ${helpers.gecko_size_type("%s" % size, "MozLength", "auto()",
-                                  logical,
-                                  spec=spec % size,
-                                  animation_value_type="MozLength")}
+        ${helpers.predefined_type(
+            size,
+            "MozLength",
+            "computed::MozLength::auto()",
+            parse_function,
+            logical=logical,
+            allow_quirks=not logical,
+            spec=spec % size,
+            animation_value_type="ComputedValues"
+        )}
         // min-width, min-height, min-block-size, min-inline-size,
-        // max-width, max-height, max-block-size, max-inline-size
-        ${helpers.gecko_size_type("min-%s" % size, "MozLength", "auto()",
-                                  logical,
-                                  spec=spec % size,
-                                  animation_value_type="MozLength")}
-        ${helpers.gecko_size_type("max-%s" % size, "MaxLength", "none()",
-                                  logical,
-                                  spec=spec % size,
-                                  animation_value_type="MaxLength")}
+        ${helpers.predefined_type(
+            "min-%s" % size,
+            "MozLength",
+            "computed::MozLength::auto()",
+            parse_function,
+            logical=logical,
+            allow_quirks=not logical,
+            spec=spec % size,
+            animation_value_type="ComputedValue"
+        )}
+        ${helpers.predefined_type(
+            "max-%s" % size,
+            "MaxLength",
+            "computed::MaxLength::none()",
+            parse_function,
+            logical=logical,
+            allow_quirks=not logical,
+            spec=spec % size,
+            animation_value_type="ComputedValue",
+        )}
     % else:
         // servo versions (no keyword support)
-        ${helpers.predefined_type("%s" % size,
+        ${helpers.predefined_type(size,
                                   "LengthOrPercentageOrAuto",
                                   "computed::LengthOrPercentageOrAuto::Auto",
                                   "parse_non_negative",
