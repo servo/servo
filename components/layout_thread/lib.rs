@@ -707,7 +707,7 @@ impl LayoutThread {
                 let mut txn = webrender_api::Transaction::new();
                 txn.scroll_node_with_id(
                     webrender_api::LayoutPoint::from_untyped(&point),
-                    webrender_api::IdType::ExternalScrollId(state.scroll_id),
+                    webrender_api::ScrollNodeIdType::ExternalScrollId(state.scroll_id),
                     webrender_api::ScrollClamping::ToContentBounds
                 );
                 self.webrender_api.send_transaction(self.webrender_document, txn);
