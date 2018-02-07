@@ -21,7 +21,6 @@ use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, To
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use servo_config::opts;
-use servo_config::prefs::PREFS;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
 use std::fs::File;

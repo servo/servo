@@ -16,7 +16,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
@@ -24,7 +24,7 @@ use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan};
 use script_traits::{DocumentActivity, InitialScriptState};
-use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
+use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
@@ -58,11 +58,8 @@ pub struct Pipeline {
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
 
     /// The parent pipeline of this one. `None` if this is a root pipeline.
-    /// Note that because of mozbrowser iframes, even top-level pipelines
-    /// may have a parent (in which case the frame type will be
-    /// `MozbrowserIFrame`).
     /// TODO: move this field to `BrowsingContext`.
-    pub parent_info: Option<(PipelineId, FrameType)>,
+    pub parent_info: Option<PipelineId>,
 
     /// The event loop handling this pipeline.
     pub event_loop: Rc<EventLoop>,
@@ -110,7 +107,7 @@ pub struct InitialPipelineState {
 
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, FrameType)>,
+    pub parent_info: Option<PipelineId>,
 
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
@@ -309,7 +306,7 @@ impl Pipeline {
     pub fn new(id: PipelineId,
                browsing_context_id: BrowsingContextId,
                top_level_browsing_context_id: TopLevelBrowsingContextId,
-               parent_info: Option<(PipelineId, FrameType)>,
+               parent_info: Option<PipelineId>,
                event_loop: Rc<EventLoop>,
                layout_chan: IpcSender<LayoutControlMsg>,
                compositor_proxy: CompositorProxy,
@@ -405,22 +402,6 @@ impl Pipeline {
         };
     }
 
-    /// Send a mozbrowser event to the script thread for this pipeline.
-    /// This will cause an event to be fired on an iframe in the document,
-    /// or on the `Window` if no frame is given.
-    pub fn trigger_mozbrowser_event(&self,
-                                     child_id: Option<TopLevelBrowsingContextId>,
-                                     event: MozBrowserEvent) {
-        assert!(PREFS.is_mozbrowser_enabled());
-
-        let event = ConstellationControlMsg::MozBrowserEvent(self.id,
-                                                             child_id,
-                                                             event);
-        if let Err(e) = self.event_loop.send(event) {
-            warn!("Sending mozbrowser event to script failed ({}).", e);
-        }
-    }
-
     /// Notify the script thread that this pipeline is visible.
     fn notify_visibility(&self) {
         let script_msg = ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible);
@@ -451,7 +432,7 @@ pub struct UnprivilegedPipelineContent {
     id: PipelineId,
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     browsing_context_id: BrowsingContextId,
-    parent_info: Option<(PipelineId, FrameType)>,
+    parent_info: Option<PipelineId>,
     script_to_constellation_chan: ScriptToConstellationChan,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,

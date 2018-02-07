@@ -228,10 +228,6 @@ impl Preferences {
         self.0.read().unwrap().clone()
     }
 
-    pub fn is_mozbrowser_enabled(&self) -> bool {
-        self.get("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
-    }
-
     pub fn set(&self, name: &str, value: PrefValue) {
         let mut prefs = self.0.write().unwrap();
         if let Some(pref) = prefs.get_mut(name) {
