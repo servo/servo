@@ -171,7 +171,7 @@ ${helpers.predefined_type("order", "Integer", "0",
         "MozLength",
         "computed::MozLength::auto()",
         extra_prefixes="webkit",
-        animation_value_type="ComputedValue",
+        animation_value_type="MozLength",
         allow_quirks=True,
         spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property"
     )}
@@ -208,7 +208,7 @@ ${helpers.predefined_type("order", "Integer", "0",
             logical=logical,
             allow_quirks=not logical,
             spec=spec % size,
-            animation_value_type="ComputedValues"
+            animation_value_type="MozLength"
         )}
         // min-width, min-height, min-block-size, min-inline-size,
         ${helpers.predefined_type(
@@ -219,7 +219,7 @@ ${helpers.predefined_type("order", "Integer", "0",
             logical=logical,
             allow_quirks=not logical,
             spec=spec % size,
-            animation_value_type="ComputedValue"
+            animation_value_type="MozLength"
         )}
         ${helpers.predefined_type(
             "max-%s" % size,
@@ -229,7 +229,7 @@ ${helpers.predefined_type("order", "Integer", "0",
             logical=logical,
             allow_quirks=not logical,
             spec=spec % size,
-            animation_value_type="ComputedValue",
+            animation_value_type="MaxLength",
         )}
     % else:
         // servo versions (no keyword support)
