@@ -206,11 +206,51 @@ pub mod animated_properties {
 <%
     from itertools import groupby
 
+    copyTypes = set([
+        "AlignContent",
+        "AlignItems",
+        "AlignSelf",
+        "BackgroundRepeat",
+        "BorderImageRepeat",
+        "BorderStyle",
+        "Contain",
+        "FontStyleAdjust",
+        "FontSynthesis",
+        "FontWeight",
+        "GridAutoFlow",
+        "ImageOrientation",
+        "InitialLetter",
+        "Integer",
+        "IntegerOrAuto",
+        "JustifyContent",
+        "JustifyItems",
+        "JustifySelf",
+        "MozForceBrokenImageIcon",
+        "MozScriptLevel",
+        "MozScriptMinSize",
+        "MozScriptSizeMultiplier",
+        "NonNegativeNumber",
+        "Opacity",
+        "OutlineStyle",
+        "OverscrollBehavior",
+        "Percentage",
+        "PositiveIntegerOrAuto",
+        "SVGPaintOrder",
+        "ScrollSnapType",
+        "TextDecorationLine",
+        "TouchAction",
+        "TransformStyle",
+        "XSpan",
+        "XTextZoom",
+    ])
+
     variants = []
     for property in data.longhands:
         if property.predefined_type and not property.is_vector:
+            copy = property.predefined_type in copyTypes
             ty = "::values::specified::{}".format(property.predefined_type)
         else:
+            copy = bool(property.keyword) and not property.is_vector
             ty = "longhands::{}::SpecifiedValue".format(property.ident)
         if property.boxed:
             ty = "Box<{}>".format(ty)
@@ -218,7 +258,7 @@ pub mod animated_properties {
             "name": property.camel_case,
             "type": ty,
             "doc": "`" + property.name + "`",
-            "keyword": bool(property.keyword) and not property.is_vector,
+            "copy": copy,
         })
 
     groups = {}
@@ -229,9 +269,9 @@ pub mod animated_properties {
         groups[ty] = group
         for v in group:
             if len(group) == 1:
-                sortkeys[v["name"]] = (not v["keyword"], 1, v["name"], "")
+                sortkeys[v["name"]] = (not v["copy"], 1, v["name"], "")
             else:
-                sortkeys[v["name"]] = (not v["keyword"], len(group), ty, v["name"])
+                sortkeys[v["name"]] = (not v["copy"], len(group), ty, v["name"])
     variants.sort(key=lambda x: sortkeys[x["name"]])
 
     # It is extremely important to sort the `data.longhands` array here so
@@ -251,19 +291,19 @@ pub mod animated_properties {
             "name": "CSSWideKeyword",
             "type": "WideKeywordDeclaration",
             "doc": "A CSS-wide keyword.",
-            "keyword": False,
+            "copy": False,
         },
         {
             "name": "WithVariables",
             "type": "VariableDeclaration",
             "doc": "An unparsed declaration.",
-            "keyword": False,
+            "copy": False,
         },
         {
             "name": "Custom",
             "type": "CustomDeclaration",
             "doc": "A custom property declaration.",
-            "keyword": False,
+            "copy": False,
         },
     ]
     for v in extra:
@@ -292,15 +332,15 @@ impl Clone for PropertyDeclaration {
         use self::PropertyDeclaration::*;
 
         <%
-            [keywords, others] = [list(g) for _, g in groupby(variants, key=lambda x: not x["keyword"])]
+            [copy, others] = [list(g) for _, g in groupby(variants, key=lambda x: not x["copy"])]
         %>
 
         match *self {
-            ${" | ".join("{}(..)".format(v["name"]) for v in keywords)} => {
+            ${" |\n".join("{}(..)".format(v["name"]) for v in copy)} => {
                 #[derive(Clone, Copy)]
                 #[repr(u16)]
-                enum Keywords {
-                    % for v in keywords:
+                enum CopyVariants {
+                    % for v in copy:
                     _${v["name"]}(${v["type"]}),
                     % endfor
                 }
@@ -308,8 +348,8 @@ impl Clone for PropertyDeclaration {
                 unsafe {
                     let mut out = mem::uninitialized();
                     ptr::write(
-                        &mut out as *mut _ as *mut Keywords,
-                        *(self as *const _ as *const Keywords),
+                        &mut out as *mut _ as *mut CopyVariants,
+                        *(self as *const _ as *const CopyVariants),
                     );
                     out
                 }
@@ -323,7 +363,7 @@ impl Clone for PropertyDeclaration {
                 ${vs[0]["name"]}(value.clone())
             }
             % else:
-            ${" | ".join("{}(ref value)".format(v["name"]) for v in vs)} => {
+            ${" |\n".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 unsafe {
                     let mut out = ManuallyDrop::new(mem::uninitialized());
                     ptr::write(
@@ -357,7 +397,7 @@ impl PartialEq for PropertyDeclaration {
             }
             match *self {
                 % for ty, vs in groupby(variants, key=lambda x: x["type"]):
-                ${" | ".join("{}(ref this)".format(v["name"]) for v in vs)} => {
+                ${" |\n".join("{}(ref this)".format(v["name"]) for v in vs)} => {
                     let other_repr =
                         &*(other as *const _ as *const PropertyDeclarationVariantRepr<${ty}>);
                     *this == other_repr.value
