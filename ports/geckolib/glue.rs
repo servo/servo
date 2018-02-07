@@ -120,7 +120,7 @@ use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties;
 use style::invalidation::element::restyle_hints;
-use style::media_queries::{Device, MediaList, parse_media_query_list};
+use style::media_queries::{MediaList, parse_media_query_list};
 use style::parser::{Parse, ParserContext, self};
 use style::properties::{ComputedValues, DeclarationSource, Importance};
 use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
@@ -1121,10 +1121,11 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
-    raw_data: RawServoStyleSetBorrowed,
-    viewport_units_used: *mut bool,
-) -> u8 {
+pub unsafe extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
+    document_set: RawServoStyleSetBorrowed,
+    non_document_sets: *const nsTArray<*mut structs::ServoStyleSet>,
+    may_affect_default_style: bool,
+) -> structs::MediumFeaturesChangedResult {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -1135,43 +1136,58 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     //
     // We need to ensure the default computed values are up to date though,
     // because those can influence the result of media query evaluation.
-    //
-    // FIXME(emilio, bug 1369984): do the computation conditionally, to do it
-    // less often.
-    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let mut document_data =
+        PerDocumentStyleData::from_ffi(document_set).borrow_mut();
 
-    unsafe {
-        *viewport_units_used = data.stylist.device().used_viewport_size();
+    if may_affect_default_style {
+        document_data.stylist.device_mut().reset_computed_values();
     }
-    data.stylist.device_mut().reset_computed_values();
     let guards = StylesheetGuards::same(&guard);
+
     let origins_in_which_rules_changed =
-        data.stylist.media_features_change_changed_style(&guards);
+        document_data.stylist.media_features_change_changed_style(
+            &guards,
+            document_data.stylist.device(),
+        );
 
-    // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
-    // work as return values with the Linux 32-bit ABI at the moment because
-    // they wrap the value in a struct, so for now just unwrap it.
-    OriginFlags::from(origins_in_which_rules_changed).0
-}
+    let affects_document_rules = !origins_in_which_rules_changed.is_empty();
+    if affects_document_rules {
+        document_data.stylist.force_stylesheet_origins_dirty(origins_in_which_rules_changed);
+    }
 
-#[no_mangle]
-pub extern "C" fn Servo_StyleSet_SetDevice(
-    raw_data: RawServoStyleSetBorrowed,
-    pres_context: RawGeckoPresContextOwned
-) -> u8 {
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
+    let mut affects_non_document_rules = false;
+    for non_document_style_set in &**non_document_sets {
+        let non_document_data = &*(**non_document_style_set).mRawSet.mPtr;
+        let non_document_data =
+            mem::transmute::<&structs::RawServoStyleSet, &bindings::RawServoStyleSet>(non_document_data);
+        let mut non_document_data =
+            PerDocumentStyleData::from_ffi(non_document_data).borrow_mut();
 
-    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let device = Device::new(pres_context);
-    let guards = StylesheetGuards::same(&guard);
-    let origins_in_which_rules_changed =
-        data.stylist.set_device(device, &guards);
+        let origins_changed =
+            non_document_data.stylist.media_features_change_changed_style(
+                &guards,
+                document_data.stylist.device(),
+            );
+        if !origins_changed.is_empty() {
+            affects_non_document_rules = true;
+            // XBL stylesets are rebuilt entirely, so we need to mark them
+            // dirty from here instead of going through the stylist
+            // force_origin_dirty stuff, which would be useless.
+            //
+            // FIXME(emilio, bug 1436059): This is super-hacky, make XBL /
+            // Shadow DOM not use a style set at all.
+            (**non_document_style_set).mStylistState = structs::StylistState_StyleSheetsDirty;
+        }
+    }
 
-    // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
-    // work as return values with the Linux 32-bit ABI at the moment because
-    // they wrap the value in a struct, so for now just unwrap it.
-    OriginFlags::from(origins_in_which_rules_changed).0
+    let uses_viewport_units =
+        document_data.stylist.device().used_viewport_size();
+
+    structs::MediumFeaturesChangedResult {
+        mAffectsDocumentRules: affects_document_rules,
+        mAffectsNonDocumentRules: affects_non_document_rules,
+        mUsesViewportUnits: uses_viewport_units,
+    }
 }
 
 #[no_mangle]
