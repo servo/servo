@@ -1,9 +1,12 @@
 <!DOCTYPE html>
+<html is="my-html">
+<head>
 <meta charset="utf-8">
 <meta name="help" content="https://html.spec.whatwg.org/multipage/custom-elements.html#element-definition">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<body>
+</head>
+<body is="my-body">
 <div id="container"></div>
 <script>
 class MyA extends HTMLAnchorElement {
@@ -667,15 +670,15 @@ let testData = [
   {tag: 'bdi', klass: MyBdi},
   {tag: 'bdo', klass: MyBdo},
   {tag: 'blockquote', klass: MyBlockquote},
-  {tag: 'body', klass: MyBody, innerHTML: 'skip'},
+  {tag: 'body', klass: MyBody, parsing: 'document'},
   {tag: 'br', klass: MyBr},
   {tag: 'button', klass: MyButton},
   {tag: 'canvas', klass: MyCanvas},
-  {tag: 'caption', klass: MyCaption, innerHTML: 'table'},
+  {tag: 'caption', klass: MyCaption, parsing: 'table'},
   {tag: 'cite', klass: MyCite},
   {tag: 'code', klass: MyCode},
-  {tag: 'col', klass: MyCol, innerHTML: 'table'},
-  {tag: 'colgroup', klass: MyColgroup, innerHTML: 'table'},
+  {tag: 'col', klass: MyCol, parsing: 'table'},
+  {tag: 'colgroup', klass: MyColgroup, parsing: 'table'},
   {tag: 'data', klass: MyData},
   {tag: 'dd', klass: MyDd},
   {tag: 'del', klass: MyDel},
@@ -700,7 +703,7 @@ let testData = [
   {tag: 'header', klass: MyHeader},
   {tag: 'hgroup', klass: MyHgroup},
   {tag: 'hr', klass: MyHr},
-  {tag: 'html', klass: MyHtml, innerHTML: 'skip'},
+  {tag: 'html', klass: MyHtml, parsing: 'document'},
   {tag: 'i', klass: MyI},
   {tag: 'iframe', klass: MyIframe},
   {tag: 'img', klass: MyImg},
@@ -747,16 +750,16 @@ let testData = [
   {tag: 'summary', klass: MySummary},
   {tag: 'sup', klass: MySup},
   {tag: 'table', klass: MyTable},
-  {tag: 'tbody', klass: MyTbody, innerHTML: 'table'},
-  {tag: 'td', klass: MyTd, innerHTML: 'table'},
+  {tag: 'tbody', klass: MyTbody, parsing: 'table'},
+  {tag: 'td', klass: MyTd, parsing: 'table'},
   {tag: 'template', klass: MyTemplate},
   {tag: 'textarea', klass: MyTextarea},
-  {tag: 'tfoot', klass: MyTfoot, innerHTML: 'table'},
-  {tag: 'th', klass: MyTh, innerHTML: 'table'},
-  {tag: 'thead', klass: MyThead, innerHTML: 'table'},
+  {tag: 'tfoot', klass: MyTfoot, parsing: 'table'},
+  {tag: 'th', klass: MyTh, parsing: 'table'},
+  {tag: 'thead', klass: MyThead, parsing: 'table'},
   {tag: 'time', klass: MyTime},
   {tag: 'title', klass: MyTitle},
-  {tag: 'tr', klass: MyTr, innerHTML: 'table'},
+  {tag: 'tr', klass: MyTr, parsing: 'table'},
   {tag: 'track', klass: MyTrack},
   {tag: 'u', klass: MyU},
   {tag: 'ul', klass: MyUl},
@@ -789,7 +792,7 @@ if (window.HTMLSlotElement) {
   }});
 }
 
-for (t of testData) {
+for (const t of testData) {
   test(() => {
     let name = 'my-' + t.tag;
     customElements.define(name, t.klass, { extends: t.tag });
@@ -804,11 +807,16 @@ for (t of testData) {
       assert_equals(customized.constructor, t.klass);
     }, `${t.tag}: document.createElement() should instantiate a customized built-in element`);
 
-    if (t.innerHTML == 'skip')
+    if (t.parsing == 'document') {
+      let test = async_test(`${t.tag}: document parser should instantiate a customized built-in element`);
+      window.addEventListener('load', test.step_func_done(() => {
+        assert_equals(document.querySelector(t.tag).constructor, t.klass);
+      }));
       return;
+    }
     test(() => {
       let container = document.getElementById('container');
-      if (t.innerHTML == 'table') {
+      if (t.parsing == 'table') {
         container.innerHTML = `<table><${t.tag} is="${name}" id="${name}">`;
       } else {
         container.innerHTML = `<${t.tag} is="${name}" id="${name}">`;
@@ -821,3 +829,4 @@ for (t of testData) {
 }
 </script>
 </body>
+</html>

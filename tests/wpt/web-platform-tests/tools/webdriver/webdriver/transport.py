@@ -39,8 +39,8 @@ class Response(object):
         try:
             body = json.load(http_response, cls=decoder, **kwargs)
         except ValueError:
-            raise ValueError("Failed to decode response body as JSON:\n"
-                "%s" % json.dumps(body, indent=2))
+            raise ValueError("Failed to decode response body as JSON:\n" +
+                http_response.read())
 
         return cls(http_response.status, body)
 

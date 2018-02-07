@@ -83,6 +83,11 @@
             assert_true(ruleWithMedia.media.length > 0);
             assert_equals(ruleWithMedia.media.mediaText, "screen");
         }, "Values of CSSImportRule attributes");
+
+        test(function() {
+            ruleWithMedia.media = "print";
+            assert_equals(ruleWithMedia.media.mediaText, "print");
+        }, "MediaList mediaText attribute should be updated");
     </script>
 </body>
 </html>
