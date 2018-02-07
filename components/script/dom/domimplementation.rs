@@ -24,6 +24,7 @@ use dom::node::Node;
 use dom::text::Text;
 use dom::xmldocument::XMLDocument;
 use dom_struct::dom_struct;
+use mime::{Mime, TopLevel, SubLevel};
 use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation
@@ -72,9 +73,9 @@ impl DOMImplementationMethods for DOMImplementation {
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
 
         let content_type = match namespace {
-            ns!(html) => "application/xhtml+xml",
-            ns!(svg) => "image/svg+xml",
-            _ => "application/xml"
+            ns!(html) => Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![]),
+            ns!(svg) => Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_string()), vec![]),
+            _ => Mime(TopLevel::Application, SubLevel::Xml, vec![])
         };
 
         // Step 1.
@@ -83,7 +84,7 @@ impl DOMImplementationMethods for DOMImplementation {
                                    None,
                                    self.document.origin().clone(),
                                    IsHTMLDocument::NonHTMLDocument,
-                                   Some(DOMString::from(content_type)),
+                                   Some(content_type),
                                    None,
                                    DocumentActivity::Inactive,
                                    DocumentSource::NotFromParser,
