@@ -218,19 +218,20 @@ pub mod animated_properties {
             "name": property.camel_case,
             "type": ty,
             "doc": "`" + property.name + "`",
+            "keyword": bool(property.keyword) and not property.is_vector,
         })
 
     groups = {}
     keyfunc = lambda x: x["type"]
     sortkeys = {}
     for ty, group in groupby(sorted(variants, key=keyfunc), keyfunc):
-        group = [v["name"] for v in group]
+        group = list(group)
         groups[ty] = group
         for v in group:
             if len(group) == 1:
-                sortkeys[v] = (1, v, "")
+                sortkeys[v["name"]] = (not v["keyword"], 1, v["name"], "")
             else:
-                sortkeys[v] = (len(group), ty, v)
+                sortkeys[v["name"]] = (not v["keyword"], len(group), ty, v["name"])
     variants.sort(key=lambda x: sortkeys[x["name"]])
 
     # It is extremely important to sort the `data.longhands` array here so
@@ -250,21 +251,24 @@ pub mod animated_properties {
             "name": "CSSWideKeyword",
             "type": "WideKeywordDeclaration",
             "doc": "A CSS-wide keyword.",
+            "keyword": False,
         },
         {
             "name": "WithVariables",
             "type": "VariableDeclaration",
             "doc": "An unparsed declaration.",
+            "keyword": False,
         },
         {
             "name": "Custom",
             "type": "CustomDeclaration",
             "doc": "A custom property declaration.",
+            "keyword": False,
         },
     ]
     for v in extra:
         variants.append(v)
-        groups[v["type"]] = [v["name"]]
+        groups[v["type"]] = [v]
 %>
 
 /// Servo's representation for a property declaration.
@@ -287,14 +291,39 @@ impl Clone for PropertyDeclaration {
     fn clone(&self) -> Self {
         use self::PropertyDeclaration::*;
 
+        <%
+            [keywords, others] = [list(g) for _, g in groupby(variants, key=lambda x: not x["keyword"])]
+        %>
+
         match *self {
-            % for ty, variants in groups.iteritems():
-            % if len(variants) == 1:
-            ${variants[0]}(ref value) => {
-                ${variants[0]}(value.clone())
+            ${" | ".join("{}(..)".format(v["name"]) for v in keywords)} => {
+                #[derive(Clone, Copy)]
+                #[repr(u16)]
+                enum Keywords {
+                    % for v in keywords:
+                    _${v["name"]}(${v["type"]}),
+                    % endfor
+                }
+
+                unsafe {
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut Keywords,
+                        *(self as *const _ as *const Keywords),
+                    );
+                    out
+                }
+            }
+            % for ty, vs in groupby(others, key=lambda x: x["type"]):
+            <%
+                vs = list(vs)
+            %>
+            % if len(vs) == 1:
+            ${vs[0]["name"]}(ref value) => {
+                ${vs[0]["name"]}(value.clone())
             }
             % else:
-            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+            ${" | ".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 unsafe {
                     let mut out = ManuallyDrop::new(mem::uninitialized());
                     ptr::write(
@@ -327,8 +356,8 @@ impl PartialEq for PropertyDeclaration {
                 return false;
             }
             match *self {
-                % for ty, variants in groups.iteritems():
-                ${" | ".join("{}(ref this)".format(v) for v in variants)} => {
+                % for ty, vs in groupby(variants, key=lambda x: x["type"]):
+                ${" | ".join("{}(ref this)".format(v["name"]) for v in vs)} => {
                     let other_repr =
                         &*(other as *const _ as *const PropertyDeclarationVariantRepr<${ty}>);
                     *this == other_repr.value
@@ -346,8 +375,8 @@ impl MallocSizeOf for PropertyDeclaration {
         use self::PropertyDeclaration::*;
 
         match *self {
-            % for ty, variants in groups.iteritems():
-            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+            % for ty, vs in groupby(variants, key=lambda x: x["type"]):
+            ${" | ".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 value.size_of(ops)
             }
             % endfor
@@ -365,8 +394,8 @@ impl PropertyDeclaration {
 
         let mut dest = CssWriter::new(dest);
         match *self {
-            % for ty, variants in groups.iteritems():
-            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+            % for ty, vs in groupby(variants, key=lambda x: x["type"]):
+            ${" | ".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 value.to_css(&mut dest)
             }
             % endfor
