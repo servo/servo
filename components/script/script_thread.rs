@@ -545,7 +545,7 @@ pub trait ScriptThreadFactory {
     /// Type of message sent from script to layout.
     type Message;
     /// Create a `ScriptThread`.
-    fn create(state: InitialScriptState, load_data: LoadData, ion_application: Option<fn(&Document) -> ()>)
+    fn create(state: InitialScriptState, load_data: LoadData)
               -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
@@ -553,8 +553,9 @@ impl ScriptThreadFactory for ScriptThread {
     type Message = message::Msg;
 
     fn create(state: InitialScriptState,
-              load_data: LoadData, ion_application_main: Option<fn(&Document) -> ()>)
+              load_data: LoadData)
               -> (Sender<message::Msg>, Receiver<message::Msg>) {
+        let ion_application = ION_APPLICATION.with(|root| root.get());
         let (script_chan, script_port) = channel();
 
         let (sender, receiver) = channel();
@@ -579,7 +580,7 @@ impl ScriptThreadFactory for ScriptThread {
                 root.set(Some(&script_thread as *const _));
             });
 
-            if let Some(f) = ion_application_main {
+            if let Some(f) = ion_application {
                 ION_APPLICATION.with(|root| {
                     root.set(Some(f));
                 });

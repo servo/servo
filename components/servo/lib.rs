@@ -211,6 +211,12 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         // can't defer it after `create_constellation` has started.
         script::init();
 
+        if let Some(f) = ion_application {
+            Constellation::<script_layout_interface::message::Msg,
+                layout_thread::LayoutThread,
+                script::script_thread::ScriptThread>::set_ion_application(f);
+        }
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -226,7 +232,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                                                                     &mut webrender,
                                                                     webrender_document,
                                                                     webrender_api_sender,
-                                                                    window.gl(), ion_application);
+                                                                    window.gl());
 
         // Send the constellation's swmanager sender to service worker manager thread
         script::init_service_workers(sw_senders);
@@ -540,7 +546,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         webrender: &mut webrender::Renderer,
                         webrender_document: webrender_api::DocumentId,
                         webrender_api_sender: webrender_api::RenderApiSender,
-                        window_gl: Rc<gl::Gl>, ion_application: Option<fn(&Document) -> ()>)
+                        window_gl: Rc<gl::Gl>)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
 
@@ -604,7 +610,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
     let (constellation_chan, from_swmanager_sender) =
         Constellation::<script_layout_interface::message::Msg,
                         layout_thread::LayoutThread,
-                        script::script_thread::ScriptThread>::start(initial_state, ion_application);
+                        script::script_thread::ScriptThread>::start(initial_state);
 
     if let Some(webvr_constellation_sender) = webvr_constellation_sender {
         // Set constellation channel used by WebVR thread to broadcast events
@@ -671,7 +677,7 @@ pub fn run_content_process(token: String) {
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
-                                     script::script_thread::ScriptThread>(true, None);
+                                     script::script_thread::ScriptThread>(true);
 }
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]

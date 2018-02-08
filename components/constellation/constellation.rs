@@ -159,13 +159,6 @@ use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use webrender_api;
 use webvr_traits::{WebVREvent, WebVRMsg};
-use std::cell::Cell;
-
-thread_local!(static ION_CONSTELLATION: Cell<Option<fn(&Document) -> ()>> = Cell::new(None));
-
-pub fn set_ion_application(app: fn(&Document) -> ()) {
-    ION_CONSTELLATION.with(|root| root.set(Some(app)));
-}
 
 /// The `Constellation` itself. In the servo browser, there is one
 /// constellation, which maintains all of the browser global data.
@@ -551,17 +544,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
 {
+    pub fn set_ion_application(app: fn(&Document) -> ()) {
+        use script::script_thread::ION_APPLICATION;
+        ION_APPLICATION.with(|root| root.set(Some(app)));
+    }
+
     /// Create a new constellation thread.
-    pub fn start(state: InitialConstellationState, ion_application: Option<fn(&Document) -> ()>) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
+    pub fn start(state: InitialConstellationState) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
+        use script::script_thread::ION_APPLICATION;
+
         let (compositor_sender, compositor_receiver) = channel();
 
         // service worker manager to communicate with constellation
         let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
         let sw_mgr_clone = swmanager_sender.clone();
 
+        let ion_application = ION_APPLICATION.with(|root| root.get());
+
         thread::Builder::new().name("Constellation".to_owned()).spawn(move || {
             if let Some(f) = ion_application {
-                set_ion_application(f);
+                ION_APPLICATION.with(|root| root.set(Some(f)));
             }
 
             let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
@@ -679,7 +681,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     // https://github.com/servo/ipc-channel/issues/138
                     load_data: LoadData,
                     sandbox: IFrameSandboxState,
-                    is_private: bool, ion_application: Option<fn(&Document) -> ()>) {
+                    is_private: bool) {
         if self.shutting_down { return; }
 
         debug!("Creating new pipeline {} in browsing context {}.", pipeline_id, browsing_context_id);
@@ -759,7 +761,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             is_private,
             webgl_chan: self.webgl_threads.pipeline(),
             webvr_chan: self.webvr_chan.clone()
-        }, ion_application);
+        });
 
         let pipeline = match result {
             Ok(result) => result,
@@ -1057,9 +1059,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // the browsing context id.
             FromCompositorMsg::NewBrowser(url, response_chan) => {
                 debug!("constellation got NewBrowser message");
-                ION_CONSTELLATION.with(|root| {
-                    self.handle_new_top_level_browsing_context(url, response_chan, root.get());
-                });
+                self.handle_new_top_level_browsing_context(url, response_chan);
             }
             // Close a top level browsing context.
             FromCompositorMsg::CloseBrowser(top_level_browsing_context_id) => {
@@ -1565,7 +1565,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let load_data = LoadData::new(failure_url, None, None, None);
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         self.new_pipeline(new_pipeline_id, browsing_context_id, top_level_browsing_context_id, parent_info,
-                          window_size, load_data.clone(), sandbox, false, None);
+                          window_size, load_data.clone(), sandbox, false);
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
@@ -1621,7 +1621,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_new_top_level_browsing_context(&mut self, url: ServoUrl, reply: IpcSender<TopLevelBrowsingContextId>, ion_application: Option<fn(&Document) -> ()>) {
+    fn handle_new_top_level_browsing_context(&mut self, url: ServoUrl, reply: IpcSender<TopLevelBrowsingContextId>) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
         let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
@@ -1641,7 +1641,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           Some(window_size),
                           load_data.clone(),
                           sandbox,
-                          false, ion_application);
+                          false);
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
@@ -1751,7 +1751,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           window_size,
                           load_data.clone(),
                           load_info.sandbox,
-                          is_private, None);
+                          is_private);
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
             browsing_context_id: load_info.info.browsing_context_id,
@@ -1974,7 +1974,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                   window_size,
                                   load_data.clone(),
                                   sandbox,
-                                  false, None);
+                                  false);
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
@@ -2367,7 +2367,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     None => return warn!("no browsing context to traverse"),
                 };
                 self.new_pipeline(new_pipeline_id, browsing_context_id, top_level_id, parent_info,
-                                  window_size, load_data.clone(), sandbox, is_private, None);
+                                  window_size, load_data.clone(), sandbox, is_private);
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,

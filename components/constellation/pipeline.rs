@@ -185,7 +185,7 @@ pub struct InitialPipelineState {
 impl Pipeline {
     /// Starts a layout thread, and possibly a script thread, in
     /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState, ion_application: Option<fn(&Document) -> ()>) -> Result<Pipeline, Error>
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, Error>
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -287,7 +287,7 @@ impl Pipeline {
                 if opts::multiprocess() {
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, ion_application);
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
                 }
 
                 EventLoop::new(script_chan)
@@ -483,7 +483,7 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool, ion_application: Option<fn(&Document) -> ()>)
+    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -515,7 +515,7 @@ impl UnprivilegedPipelineContent {
             webgl_chan: self.webgl_chan,
             webvr_chan: self.webvr_chan,
             webrender_document: self.webrender_document,
-        }, self.load_data.clone(), ion_application);
+        }, self.load_data.clone());
 
         LTF::create(self.id,
                     self.top_level_browsing_context_id,
