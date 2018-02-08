@@ -152,7 +152,7 @@ class Longhand(object):
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
-                 vector=False, need_animatable=False):
+                 vector=False, need_animatable=False, servo_restyle_damage="repaint"):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -210,6 +210,9 @@ class Longhand(object):
             self.animatable = False
             self.transitionable = False
             self.animation_type = None
+
+        # See compute_damage for the various values this can take
+        self.servo_restyle_damage = servo_restyle_damage
 
     def experimental(self, product):
         if product == "gecko":

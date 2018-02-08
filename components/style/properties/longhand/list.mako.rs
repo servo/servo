@@ -28,7 +28,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         malayalam mongolian myanmar oriya persian telugu thai tibetan cjk-earthly-branch
         cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana katakana-iroha""",
         animation_value_type="discrete",
-        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
+        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type",
+        servo_restyle_damage="rebuild_and_reflow")}
 % else:
     ${helpers.predefined_type("list-style-type",
                               "ListStyleType",
@@ -36,7 +37,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
                               initial_specified_value="specified::ListStyleType::disc()",
                               animation_value_type="discrete",
                               boxed=True,
-                              spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
+                              spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type",
+                              servo_restyle_damage="rebuild_and_reflow")}
 % endif
 
 ${helpers.predefined_type("list-style-image",
@@ -51,7 +53,8 @@ ${helpers.predefined_type("quotes",
                           "Quotes",
                           "computed::Quotes::get_initial_value()",
                           animation_value_type="discrete",
-                          spec="https://drafts.csswg.org/css-content/#propdef-quotes")}
+                          spec="https://drafts.csswg.org/css-content/#propdef-quotes",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("-moz-image-region",
                           "ClipRectOrAuto",

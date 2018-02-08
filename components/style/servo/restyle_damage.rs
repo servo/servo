@@ -175,119 +175,32 @@ impl fmt::Display for ServoRestyleDamage {
     }
 }
 
-// NB: We need the braces inside the RHS due to Rust #8012.  This particular
-// version of this macro might be safe anyway, but we want to avoid silent
-// breakage on modifications.
-macro_rules! add_if_not_equal(
-    ($old:ident, $new:ident, $damage:ident,
-     [ $($effect:path),* ], [ $($style_struct_getter:ident.$name:ident),* ]) => ({
-        if $( ($old.$style_struct_getter().$name != $new.$style_struct_getter().$name) )||* {
-            $damage.insert($($effect)|*);
-            true
-        } else {
-            false
-        }
-    })
-);
-
 fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDamage {
     let mut damage = ServoRestyleDamage::empty();
 
     // This should check every CSS property, as enumerated in the fields of
     // http://doc.servo.org/style/properties/struct.ComputedValues.html
 
-    // FIXME: Test somehow that every property is included.
-
-    add_if_not_equal!(old, new, damage,
-                      [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
-                      ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::BUBBLE_ISIZES,
-                      ServoRestyleDamage::REFLOW_OUT_OF_FLOW, ServoRestyleDamage::REFLOW,
-                      ServoRestyleDamage::RECONSTRUCT_FLOW], [
-        get_box.clear, get_box.float, get_box.display, get_box.position, get_counters.content,
-        get_counters.counter_reset, get_counters.counter_increment,
-        get_list.quotes, get_list.list_style_type,
-
-        // If these text or font properties change, we need to reconstruct the flow so that
-        // text shaping is re-run.
-        get_inheritedtext.letter_spacing, get_inheritedtext.text_rendering,
-        get_inheritedtext.text_transform, get_inheritedtext.word_spacing,
-        get_inheritedtext.overflow_wrap, get_inheritedtext.text_justify,
-        get_inheritedtext.white_space, get_inheritedtext.word_break, get_text.text_overflow,
-        get_font.font_family, get_font.font_style, get_font.font_variant_caps, get_font.font_weight,
-        get_font.font_size, get_font.font_stretch,
-        get_inheritedbox.direction, get_inheritedbox.writing_mode,
-        get_text.text_decoration_line, get_text.unicode_bidi,
-        get_inheritedtable.empty_cells, get_inheritedtable.caption_side,
-        get_column.column_width, get_column.column_count
-    ]) || (new.get_box().display == Display::Inline &&
-           add_if_not_equal!(old, new, damage,
-                             [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
-                             ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::BUBBLE_ISIZES,
-                             ServoRestyleDamage::REFLOW_OUT_OF_FLOW, ServoRestyleDamage::REFLOW,
-                             ServoRestyleDamage::RECONSTRUCT_FLOW], [
-        // For inline boxes only, border/padding styles are used in flow construction (to decide
-        // whether to create fragments for empty flows).
-        get_border.border_top_width, get_border.border_right_width,
-        get_border.border_bottom_width, get_border.border_left_width,
-        get_padding.padding_top, get_padding.padding_right,
-        get_padding.padding_bottom, get_padding.padding_left
-    ])) || add_if_not_equal!(old, new, damage,
-                            [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
-                            ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::BUBBLE_ISIZES,
-                            ServoRestyleDamage::REFLOW_OUT_OF_FLOW, ServoRestyleDamage::REFLOW],
-        [get_border.border_top_width, get_border.border_right_width,
-        get_border.border_bottom_width, get_border.border_left_width,
-        get_margin.margin_top, get_margin.margin_right,
-        get_margin.margin_bottom, get_margin.margin_left,
-        get_padding.padding_top, get_padding.padding_right,
-        get_padding.padding_bottom, get_padding.padding_left,
-        get_position.width, get_position.height,
-        get_inheritedtext.line_height,
-        get_inheritedtext.text_align, get_inheritedtext.text_indent,
-        get_table.table_layout,
-        get_inheritedtable.border_collapse,
-        get_inheritedtable.border_spacing,
-        get_column.column_gap,
-        get_position.flex_direction,
-        get_position.flex_wrap,
-        get_position.justify_content,
-        get_position.align_items,
-        get_position.align_content,
-        get_position.order,
-        get_position.flex_basis,
-        get_position.flex_grow,
-        get_position.flex_shrink,
-        get_position.align_self
-    ]) || add_if_not_equal!(old, new, damage,
-                            [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
-                            ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::REFLOW_OUT_OF_FLOW],
-        [get_position.top, get_position.left,
-        get_position.right, get_position.bottom,
-        get_effects.opacity,
-        get_box.transform, get_box.transform_style, get_box.transform_origin,
-        get_box.perspective, get_box.perspective_origin
-    ]) || add_if_not_equal!(old, new, damage,
-                            [ServoRestyleDamage::REPAINT], [
-        get_color.color, get_background.background_color,
-        get_background.background_image, get_background.background_position_x,
-        get_background.background_position_y, get_background.background_repeat,
-        get_background.background_attachment, get_background.background_clip,
-        get_background.background_origin, get_background.background_size,
-        get_border.border_top_color, get_border.border_right_color,
-        get_border.border_bottom_color, get_border.border_left_color,
-        get_border.border_top_style, get_border.border_right_style,
-        get_border.border_bottom_style, get_border.border_left_style,
-        get_border.border_top_left_radius, get_border.border_top_right_radius,
-        get_border.border_bottom_left_radius, get_border.border_bottom_right_radius,
-        get_position.z_index, get_box._servo_overflow_clip_box,
-        get_inheritedtext.text_decorations_in_effect,
-        get_pointing.cursor, get_pointing.pointer_events,
-        get_effects.box_shadow, get_effects.clip, get_inheritedtext.text_shadow, get_effects.filter,
-        get_effects.mix_blend_mode, get_inheritedbox.image_rendering,
-
-        // Note: May require REFLOW et al. if `visibility: collapse` is implemented.
-        get_inheritedbox.visibility
-    ]);
+    restyle_damage_rebuild_and_reflow!(old, new, damage,
+            [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
+            ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::BUBBLE_ISIZES,
+            ServoRestyleDamage::REFLOW_OUT_OF_FLOW, ServoRestyleDamage::REFLOW,
+            ServoRestyleDamage::RECONSTRUCT_FLOW]) ||
+        (new.get_box().display == Display::Inline &&
+         restyle_damage_rebuild_and_reflow_inline!(old, new, damage,
+            [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
+            ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::BUBBLE_ISIZES,
+            ServoRestyleDamage::REFLOW_OUT_OF_FLOW, ServoRestyleDamage::REFLOW,
+            ServoRestyleDamage::RECONSTRUCT_FLOW])) ||
+    restyle_damage_reflow!(old, new, damage,
+            [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
+            ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::BUBBLE_ISIZES,
+            ServoRestyleDamage::REFLOW_OUT_OF_FLOW, ServoRestyleDamage::REFLOW]) ||
+    restyle_damage_reflow_out_of_flow!(old, new, damage,
+            [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
+            ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::REFLOW_OUT_OF_FLOW]) ||
+    restyle_damage_repaint!(old, new, damage,
+            [ServoRestyleDamage::REPAINT]);
 
 
     // Paint worklets may depend on custom properties,

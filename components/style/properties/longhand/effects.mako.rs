@@ -12,7 +12,8 @@ ${helpers.predefined_type("opacity",
                           "1.0",
                           animation_value_type="ComputedValue",
                           flags="CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-color/#opacity")}
+                          spec="https://drafts.csswg.org/css-color/#opacity",
+                          servo_restyle_damage = "reflow_out_of_flow")}
 
 ${helpers.predefined_type(
     "box-shadow",

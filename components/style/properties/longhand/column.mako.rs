@@ -13,7 +13,8 @@ ${helpers.predefined_type("column-width",
                           extra_prefixes="moz",
                           animation_value_type="NonNegativeLengthOrAuto",
                           servo_pref="layout.column-width.enabled",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-width",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 
 ${helpers.predefined_type("column-count",
@@ -23,7 +24,8 @@ ${helpers.predefined_type("column-count",
                           servo_pref="layout.column-count.enabled",
                           animation_value_type="PositiveIntegerOrAuto",
                           extra_prefixes="moz",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-count",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("column-gap",
                           "length::NonNegativeLengthOrNormal",
@@ -31,7 +33,8 @@ ${helpers.predefined_type("column-gap",
                           extra_prefixes="moz",
                           servo_pref="layout.column-gap.enabled",
                           animation_value_type="NonNegativeLengthOrNormal",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap",
+                          servo_restyle_damage = "reflow")}
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          products="gecko", animation_value_type="discrete",

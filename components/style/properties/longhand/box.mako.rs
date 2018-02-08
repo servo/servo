@@ -22,6 +22,7 @@ ${helpers.predefined_type(
     needs_context=False,
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-display/#propdef-display",
+    servo_restyle_damage="rebuild_and_reflow"
 )}
 
 // FIXME(emilio): Listing all the display values here is very unfortunate, we should teach C++ to use the
@@ -52,7 +53,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
 ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                          animation_value_type="discrete",
                          flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
-                         spec="https://drafts.csswg.org/css-position/#position-property")}
+                         spec="https://drafts.csswg.org/css-position/#position-property",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 <%helpers:single_keyword
     name="float"
@@ -66,6 +68,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
     gecko_ffi_name="mFloat"
     flags="APPLIES_TO_FIRST_LETTER"
     spec="https://drafts.csswg.org/css-box/#propdef-float"
+    servo_restyle_damage="rebuild_and_reflow"
 >
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -120,6 +123,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
     gecko_enum_prefix="StyleClear"
     gecko_ffi_name="mBreakType"
     spec="https://drafts.csswg.org/css-box/#propdef-clear"
+    servo_restyle_damage="rebuild_and_reflow"
 >
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -392,7 +396,8 @@ ${helpers.predefined_type("transform", "Transform",
                           animation_value_type="ComputedValue",
                           gecko_ffi_name="mSpecifiedTransform",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          spec="https://drafts.csswg.org/css-transforms/#propdef-transform")}
+                          spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
+                          servo_restyle_damage = "reflow_out_of_flow")}
 
 ${helpers.predefined_type("rotate", "Rotate",
                           "generics::transform::Rotate::None",
@@ -505,7 +510,8 @@ ${helpers.predefined_type("perspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="ComputedValue",
+                          servo_restyle_damage = "reflow_out_of_flow")}
 
 ${helpers.predefined_type("perspective-origin",
                           "position::Position",
@@ -513,7 +519,8 @@ ${helpers.predefined_type("perspective-origin",
                           boxed=True,
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="ComputedValue",
+                          servo_restyle_damage = "reflow_out_of_flow")}
 
 ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
@@ -539,6 +546,7 @@ ${helpers.predefined_type(
     extra_prefixes="moz webkit",
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     animation_value_type="discrete",
+    servo_restyle_damage = "reflow_out_of_flow",
 )}
 
 ${helpers.predefined_type("transform-origin",
@@ -548,7 +556,8 @@ ${helpers.predefined_type("transform-origin",
                           extra_prefixes="moz webkit",
                           gecko_ffi_name="mTransformOrigin",
                           boxed=True,
-                          spec="https://drafts.csswg.org/css-transforms/#transform-origin-property")}
+                          spec="https://drafts.csswg.org/css-transforms/#transform-origin-property",
+                          servo_restyle_damage = "reflow_out_of_flow")}
 
 ${helpers.predefined_type("contain",
                           "Contain",
