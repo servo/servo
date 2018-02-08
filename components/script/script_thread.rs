@@ -2183,7 +2183,7 @@ impl ScriptThread {
 
         let content_type = metadata.content_type
                                    .as_ref()
-                                   .map(|&Serde(ContentType(ref mimetype))| DOMString::from(mimetype.to_string()));
+                                   .map(|&Serde(ContentType(ref mimetype))| mimetype.clone());
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
                                                       Some(final_url.clone()));

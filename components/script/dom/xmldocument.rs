@@ -16,6 +16,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::JSContext;
 use js::jsapi::JSObject;
+use mime::Mime;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 use std::ptr::NonNull;
@@ -32,7 +33,7 @@ impl XMLDocument {
                      url: Option<ServoUrl>,
                      origin: MutableOrigin,
                      is_html_document: IsHTMLDocument,
-                     content_type: Option<DOMString>,
+                     content_type: Option<Mime>,
                      last_modified: Option<String>,
                      activity: DocumentActivity,
                      source: DocumentSource,
@@ -59,7 +60,7 @@ impl XMLDocument {
                url: Option<ServoUrl>,
                origin: MutableOrigin,
                doctype: IsHTMLDocument,
-               content_type: Option<DOMString>,
+               content_type: Option<Mime>,
                last_modified: Option<String>,
                activity: DocumentActivity,
                source: DocumentSource,

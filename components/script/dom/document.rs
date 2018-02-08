@@ -2199,7 +2199,7 @@ impl Document {
                          url: Option<ServoUrl>,
                          origin: MutableOrigin,
                          is_html_document: IsHTMLDocument,
-                         content_type: Option<DOMString>,
+                         content_type: Option<Mime>,
                          last_modified: Option<String>,
                          activity: DocumentActivity,
                          source: DocumentSource,
@@ -2224,7 +2224,7 @@ impl Document {
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
             content_type: match content_type {
-                Some(string) => string.parse().unwrap(),
+                Some(Mime_data) => Mime_data,
                 None => Mime::from(match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
                     IsHTMLDocument::HTMLDocument => Mime(TopLevel::Text, SubLevel::Html, vec![]),
@@ -2341,7 +2341,7 @@ impl Document {
                url: Option<ServoUrl>,
                origin: MutableOrigin,
                doctype: IsHTMLDocument,
-               content_type: Option<DOMString>,
+               content_type: Option<Mime>,
                last_modified: Option<String>,
                activity: DocumentActivity,
                source: DocumentSource,
@@ -2891,7 +2891,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-content_type
     fn ContentType(&self) -> DOMString {
-        DOMString::from_string(self.content_type.0.to_string() + "/" + &self.content_type.1.to_string()).clone()
+        DOMString::from(self.content_type.to_string())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
@@ -2971,8 +2971,8 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
 
-        let ns = if self.is_html_document || ((self.content_type.0 == TopLevel::Application) &&
-                                               (self.content_type.1.as_str() == "xhtml+xml")) {
+        let is_xhtml = self.content_type.0 == TopLevel::Application && self.content_type.1.as_str() == "xhtml+xml";
+        let ns = if self.is_html_document || is_xhtml {
             ns!(html)
         } else {
             ns!()

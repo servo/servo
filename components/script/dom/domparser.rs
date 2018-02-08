@@ -20,6 +20,7 @@ use dom::document::DocumentSource;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use mime::{Mime, TopLevel, SubLevel};
 use script_traits::DocumentActivity;
 
 #[dom_struct]
@@ -54,7 +55,7 @@ impl DOMParserMethods for DOMParser {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<DomRoot<Document>> {
         let url = self.window.get_url();
-        let content_type = DOMString::from(ty.as_str());
+        let content_type = ty.as_str().parse().unwrap_or(Mime(TopLevel::Text, SubLevel::Html, vec![]));
         let doc = self.window.Document();
         let loader = DocumentLoader::new(&*doc.loader());
         match ty {
