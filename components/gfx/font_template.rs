@@ -40,13 +40,33 @@ impl FontTemplateDescriptor {
     ///
     /// The smaller the score, the better the fonts match. 0 indicates an exact match. This must
     /// be commutative (distance(A, B) == distance(B, A)).
+    ///
+    /// The policy is to care most about differences in italicness, then weight, then stretch
     #[inline]
     fn distance_from(&self, other: &FontTemplateDescriptor) -> u32 {
-        if self.stretch != other.stretch || self.italic != other.italic {
-            // A value higher than all weights.
-            return 1000
+        let italic_part = if self.italic == other.italic { 0 } else { 1000 };
+        // 0 <= weightPart <= 800
+        let weight_part = ((self.weight.0 as i16) - (other.weight.0 as i16)).abs() as u32;
+        // 0 <= stretchPart <= 8
+        let stretch_part = (self.stretch_number() - other.stretch_number()).abs() as u32;
+        italic_part + weight_part + stretch_part
+    }
+
+    /// Returns a number between 1 and 9 for the stretch property.
+    /// 1 is ultra_condensed, 5 is normal, and 9 is ultra_expanded
+    #[inline]
+    fn stretch_number(&self) -> i32 {
+        match self.stretch {
+            font_stretch::T::UltraCondensed => 1,
+            font_stretch::T::ExtraCondensed => 2,
+            font_stretch::T::Condensed      => 3,
+            font_stretch::T::SemiCondensed  => 4,
+            font_stretch::T::Normal         => 5,
+            font_stretch::T::SemiExpanded   => 6,
+            font_stretch::T::Expanded       => 7,
+            font_stretch::T::ExtraExpanded  => 8,
+            font_stretch::T::UltraExpanded  => 9,
         }
-        ((self.weight.0 as i16) - (other.weight.0 as i16)).abs() as u32
     }
 }
 
