@@ -16,6 +16,7 @@ use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 pub mod animated;
 pub mod computed;
@@ -65,6 +66,18 @@ where
 #[cfg_attr(feature = "servo", derive(Deserialize, MallocSizeOf, Serialize))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum Impossible {}
+
+// FIXME(nox): This should be derived but the derive code cannot cope
+// with uninhabited enums.
+impl ComputeSquaredDistance for Impossible {
+    #[inline]
+    fn compute_squared_distance(
+        &self,
+        _other: &Self,
+    ) -> Result<SquaredDistance, ()> {
+        match *self {}
+    }
+}
 
 impl Parse for Impossible {
     fn parse<'i, 't>(
