@@ -7,7 +7,7 @@
 use app_units::AU_PER_PX;
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::{CssStringWriter, Parser, RGBA, Token, BasicParseErrorKind};
+use cssparser::{Parser, RGBA, Token, BasicParseErrorKind};
 use euclid::Size2D;
 use euclid::TypedScale;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
@@ -28,7 +28,7 @@ use style_traits::{CSSPixel, CssWriter, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::Origin;
-use values::{CSSFloat, CustomIdent, KeyframesName};
+use values::{CSSFloat, CustomIdent, KeyframesName, serialize_atom_identifier};
 use values::computed::{self, ToComputedValue};
 use values::computed::font::FontSize;
 use values::specified::{Integer, Length, Number};
@@ -352,15 +352,11 @@ pub enum MediaExpressionValue {
     /// feature's `mData` member.
     Enumerated(i16),
     /// An identifier.
-    ///
-    /// TODO(emilio): Maybe atomize?
-    Ident(String),
+    Ident(Atom),
 }
 
 impl MediaExpressionValue {
     fn from_css_value(for_expr: &Expression, css_value: &nsCSSValue) -> Option<Self> {
-        use gecko::conversions::string_from_chars_pointer;
-
         // NB: If there's a null value, that means that we don't support the
         // feature.
         if css_value.mUnit == nsCSSUnit::eCSSUnit_Null {
@@ -397,13 +393,10 @@ impl MediaExpressionValue {
                 Some(MediaExpressionValue::Enumerated(value))
             }
             nsMediaFeature_ValueType::eIdent => {
-                debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_Ident);
-                let string = unsafe {
-                    let buffer = *css_value.mValue.mString.as_ref();
-                    debug_assert!(!buffer.is_null());
-                    string_from_chars_pointer(buffer.offset(1) as *const u16)
-                };
-                Some(MediaExpressionValue::Ident(string))
+                debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_AtomIdent);
+                Some(MediaExpressionValue::Ident(Atom::from(unsafe {
+                    *css_value.mValue.mAtom.as_ref()
+                })))
             }
             nsMediaFeature_ValueType::eIntRatio => {
                 let array = unsafe { css_value.array_unchecked() };
@@ -436,7 +429,7 @@ impl MediaExpressionValue {
             },
             MediaExpressionValue::Resolution(ref r) => r.to_css(dest),
             MediaExpressionValue::Ident(ref ident) => {
-                CssStringWriter::new(dest).write_str(ident)
+                serialize_atom_identifier(ident, dest)
             }
             MediaExpressionValue::Enumerated(value) => unsafe {
                 use std::{slice, str};
@@ -561,7 +554,7 @@ fn parse_feature_value<'i, 't>(
             MediaExpressionValue::Enumerated(value)
         }
         nsMediaFeature_ValueType::eIdent => {
-            MediaExpressionValue::Ident(input.expect_ident()?.as_ref().to_owned())
+            MediaExpressionValue::Ident(Atom::from(input.expect_ident()?.as_ref()))
         }
     };
 
