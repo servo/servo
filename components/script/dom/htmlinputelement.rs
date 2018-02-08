@@ -48,6 +48,7 @@ use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::default::Default;
 use std::mem;
 use std::ops::Range;
 use style::attr::AttrValue;
@@ -443,6 +444,7 @@ impl TextControlElement for HTMLInputElement {
     }
 }
 
+
 impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_getter!(Accept, "accept");
@@ -803,6 +805,8 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     do_broadcast(doc.upcast(), broadcaster, owner.r(), group)
 }
 
+
+
 // https://html.spec.whatwg.org/multipage/#radio-button-group
 fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
                  group: Option<&Atom>) -> bool {
@@ -1103,6 +1107,16 @@ impl HTMLInputElement {
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(&self, &self.textinput)
     }
+
+    //Helper function to check if text_cursor has to be updated or not.
+    fn update_text_contents(&self, value: DOMString, update_text_cursor: bool) -> ErrorResult {
+        let output = self.SetValue(value);
+        let mut textinput = self.textinput.borrow_mut();
+        if !update_text_cursor {
+            textinput.edit_point = Default::default();
+        }
+        output
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -1112,7 +1126,6 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-
         match attr.local_name() {
             &local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -1181,23 +1194,23 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value)
+                                self.update_text_contents(old_idl_value, false)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             }
 
                             // Step 2
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
-                                self.SetValue(self.upcast::<Element>()
+                                self.update_text_contents(self.upcast::<Element>()
                                                   .get_attribute(&ns!(), &local_name!("value"))
                                                   .map_or(DOMString::from(""),
-                                                          |a| DOMString::from(a.summarize().value)))
+                                                          |a| DOMString::from(a.summarize().value)), false)
                                     .expect("Failed to set input value on type change to ValueMode::Value.");
                                 self.value_dirty.set(false);
                             }
 
                             // Step 3
                             (_, _, ValueMode::Filename) if old_value_mode != ValueMode::Filename => {
-                                self.SetValue(DOMString::from(""))
+                                self.update_text_contents(DOMString::from(""), false)
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             }
                             _ => {}
