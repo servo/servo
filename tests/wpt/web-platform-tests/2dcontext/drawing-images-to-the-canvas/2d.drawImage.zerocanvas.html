@@ -8,34 +8,29 @@
 <body class="show_output">
 
 <h1>2d.drawImage.zerocanvas</h1>
-<p class="desc"></p>
+<p class="desc">drawImage with zero-sized canvas as the source shoud throw exception</p>
 
 
 <p class="output">Actual output:</p>
 <canvas id="c" class="output" width="100" height="50"><p class="fallback">FAIL (fallback content)</p></canvas>
-<p class="output expectedtext">Expected output:<p><img src="/images/green-100x50.png" class="output expected" id="expected" alt="">
+
 <ul id="d"></ul>
 <script>
-var t = async_test("");
+var t = async_test("drawImage with zero-sized canvas as the source shoud throw exception");
 _addTest(function(canvas, ctx) {
-
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 50);
 
 var canvas2 = document.createElement('canvas');
 canvas2.width = 0;
-canvas2.height = 10;
-ctx.drawImage(canvas2, 0, 0);
+canvas2.height = 50;
+assert_throws("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
 
-canvas2.width = 10;
+canvas2.width = 50;
 canvas2.height = 0;
-ctx.drawImage(canvas2, 0, 0);
+assert_throws("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
 
 canvas2.width = 0;
 canvas2.height = 0;
-ctx.drawImage(canvas2, 0, 0);
-
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
+assert_throws("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
 
 
 });

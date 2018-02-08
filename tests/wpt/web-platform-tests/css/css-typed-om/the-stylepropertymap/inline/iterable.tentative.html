@@ -42,9 +42,9 @@ test(t => {
 
   assert_array_equals(keys, ['--A', '--B', '--C']);
   assert_style_value_array_equals(values, [
-    new CSSUnparsedValue(' A'),
-    new CSSUnparsedValue(' B'),
-    new CSSUnparsedValue(' C'),
+    new CSSUnparsedValue([' A']),
+    new CSSUnparsedValue([' B']),
+    new CSSUnparsedValue([' C']),
   ])
 }, 'StylePropertyMap iterator returns custom properties with the correct CSSStyleValue');
 
