@@ -65,7 +65,7 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use std::sync::mpsc::RecvTimeoutError;
+use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
@@ -563,6 +563,16 @@ pub struct InitialScriptState {
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
+}
+
+/// This trait allows creating a `ScriptThread` without depending on the `script`
+/// crate.
+pub trait ScriptThreadFactory {
+    /// Type of message sent from script to layout.
+    type Message;
+    /// Create a `ScriptThread`.
+    fn create(state: InitialScriptState, load_data: LoadData)
+        -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// Whether the sandbox attribute is present for an iframe element

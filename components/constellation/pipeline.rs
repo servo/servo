@@ -26,9 +26,7 @@ use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToCon
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
-use script_traits::{TimerSchedulerMsg, WindowSizeData};
-use script::script_thread::ScriptThreadFactory;
-use script::dom::document::Document;
+use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;

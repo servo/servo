@@ -92,7 +92,7 @@ use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
-use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg};
+use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
@@ -539,14 +539,6 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
             }
         }
     }
-}
-
-pub trait ScriptThreadFactory {
-    /// Type of message sent from script to layout.
-    type Message;
-    /// Create a `ScriptThread`.
-    fn create(state: InitialScriptState, load_data: LoadData)
-              -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 impl ScriptThreadFactory for ScriptThread {
