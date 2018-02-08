@@ -394,6 +394,85 @@ where
     invalidations: StylesheetInvalidationSet,
 }
 
+/// This macro defines methods common to DocumentStylesheetSet and
+/// AuthorStylesheetSet.
+///
+/// We could simplify the setup moving invalidations to SheetCollection, but
+/// that would imply not sharing invalidations across origins of the same
+/// documents, which is slightly annoying.
+macro_rules! sheet_set_methods {
+    ($set_name:expr) => {
+        fn collect_invalidations_for(
+            &mut self,
+            device: Option<&Device>,
+            sheet: &S,
+            guard: &SharedRwLockReadGuard,
+        ) {
+            if let Some(device) = device {
+                self.invalidations.collect_invalidations_for(device, sheet, guard);
+            }
+        }
+
+        /// Appends a new stylesheet to the current set.
+        ///
+        /// No device implies not computing invalidations.
+        pub fn append_stylesheet(
+            &mut self,
+            device: Option<&Device>,
+            sheet: S,
+            guard: &SharedRwLockReadGuard
+        ) {
+            debug!(concat!($set_name, "::append_stylesheet"));
+            self.collect_invalidations_for(device, &sheet, guard);
+            let collection = self.collection_for(&sheet, guard);
+            collection.append(sheet);
+        }
+
+        /// Prepend a new stylesheet to the current set.
+        pub fn prepend_stylesheet(
+            &mut self,
+            device: Option<&Device>,
+            sheet: S,
+            guard: &SharedRwLockReadGuard
+        ) {
+            debug!(concat!($set_name, "::prepend_stylesheet"));
+            self.collect_invalidations_for(device, &sheet, guard);
+
+            let collection = self.collection_for(&sheet, guard);
+            collection.prepend(sheet);
+        }
+
+        /// Insert a given stylesheet before another stylesheet in the document.
+        pub fn insert_stylesheet_before(
+            &mut self,
+            device: Option<&Device>,
+            sheet: S,
+            before_sheet: S,
+            guard: &SharedRwLockReadGuard,
+        ) {
+            debug!(concat!($set_name, "::insert_stylesheet_before"));
+            self.collect_invalidations_for(device, &sheet, guard);
+
+            let collection = self.collection_for(&sheet, guard);
+            collection.insert_before(sheet, &before_sheet);
+        }
+
+        /// Remove a given stylesheet from the set.
+        pub fn remove_stylesheet(
+            &mut self,
+            device: Option<&Device>,
+            sheet: S,
+            guard: &SharedRwLockReadGuard,
+        ) {
+            debug!(concat!($set_name, "::remove_stylesheet"));
+            self.collect_invalidations_for(device, &sheet, guard);
+
+            let collection = self.collection_for(&sheet, guard);
+            collection.remove(&sheet)
+        }
+    }
+}
+
 impl<S> DocumentStylesheetSet<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
@@ -406,6 +485,17 @@ where
         }
     }
 
+    fn collection_for(
+        &mut self,
+        sheet: &S,
+        guard: &SharedRwLockReadGuard,
+    ) -> &mut SheetCollection<S> {
+        let origin = sheet.contents(guard).origin;
+        self.collections.borrow_mut_for_origin(&origin)
+    }
+
+    sheet_set_methods!("DocumentStylesheetSet");
+
     /// Returns the number of stylesheets in the set.
     pub fn len(&self) -> usize {
         self.collections.iter_origins().fold(0, |s, (item, _)| s + item.len())
@@ -414,77 +504,6 @@ where
     /// Returns the `index`th stylesheet in the set for the given origin.
     pub fn get(&self, origin: Origin, index: usize) -> Option<&S> {
         self.collections.borrow_for_origin(&origin).get(index)
-    }
-
-    fn collect_invalidations_for(
-        &mut self,
-        device: Option<&Device>,
-        sheet: &S,
-        guard: &SharedRwLockReadGuard,
-    ) {
-        if let Some(device) = device {
-            self.invalidations.collect_invalidations_for(device, sheet, guard);
-        }
-    }
-
-    /// Appends a new stylesheet to the current set.
-    ///
-    /// No device implies not computing invalidations.
-    pub fn append_stylesheet(
-        &mut self,
-        device: Option<&Device>,
-        sheet: S,
-        guard: &SharedRwLockReadGuard
-    ) {
-        debug!("DocumentStylesheetSet::append_stylesheet");
-        self.collect_invalidations_for(device, &sheet, guard);
-        let origin = sheet.contents(guard).origin;
-        self.collections.borrow_mut_for_origin(&origin).append(sheet);
-    }
-
-    /// Prepend a new stylesheet to the current set.
-    pub fn prepend_stylesheet(
-        &mut self,
-        device: Option<&Device>,
-        sheet: S,
-        guard: &SharedRwLockReadGuard
-    ) {
-        debug!("DocumentStylesheetSet::prepend_stylesheet");
-        self.collect_invalidations_for(device, &sheet, guard);
-
-        let origin = sheet.contents(guard).origin;
-        self.collections.borrow_mut_for_origin(&origin).prepend(sheet)
-    }
-
-    /// Insert a given stylesheet before another stylesheet in the document.
-    pub fn insert_stylesheet_before(
-        &mut self,
-        device: Option<&Device>,
-        sheet: S,
-        before_sheet: S,
-        guard: &SharedRwLockReadGuard,
-    ) {
-        debug!("DocumentStylesheetSet::insert_stylesheet_before");
-        self.collect_invalidations_for(device, &sheet, guard);
-
-        let origin = sheet.contents(guard).origin;
-        self.collections
-            .borrow_mut_for_origin(&origin)
-            .insert_before(sheet, &before_sheet)
-    }
-
-    /// Remove a given stylesheet from the set.
-    pub fn remove_stylesheet(
-        &mut self,
-        device: Option<&Device>,
-        sheet: S,
-        guard: &SharedRwLockReadGuard,
-    ) {
-        debug!("StylesheetSet::remove_stylesheet");
-        self.collect_invalidations_for(device, &sheet, guard);
-
-        let origin = sheet.contents(guard).origin;
-        self.collections.borrow_mut_for_origin(&origin).remove(&sheet)
     }
 
     /// Returns whether the given set has changed from the last flush.
