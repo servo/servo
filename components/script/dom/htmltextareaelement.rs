@@ -335,6 +335,14 @@ impl HTMLTextAreaElement {
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(&self, &self.textinput)
     }
+
+    // Helper function to check if text_cursor is to be updated or not
+    fn update_text_contents(&self, update_text_cursor: bool) {
+        if !update_text_cursor {
+            let mut textinput = self.textinput.borrow_mut();
+            textinput.edit_point = Default::default();
+        }
+    }
 }
 
 
@@ -428,6 +436,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
         if !self.value_dirty.get() {
             self.reset();
+            self.update_text_contents(false);
         }
     }
 
