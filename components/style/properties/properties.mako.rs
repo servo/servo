@@ -206,59 +206,22 @@ pub mod animated_properties {
 <%
     from itertools import groupby
 
-    copyTypes = set([
-        "AlignContent",
-        "AlignItems",
-        "AlignSelf",
-        "BackgroundRepeat",
-        "BorderImageRepeat",
-        "BorderStyle",
-        "Contain",
-        "FontStyleAdjust",
-        "FontSynthesis",
-        "FontWeight",
-        "GridAutoFlow",
-        "ImageOrientation",
-        "InitialLetter",
-        "Integer",
-        "IntegerOrAuto",
-        "JustifyContent",
-        "JustifyItems",
-        "JustifySelf",
-        "MozForceBrokenImageIcon",
-        "MozScriptLevel",
-        "MozScriptMinSize",
-        "MozScriptSizeMultiplier",
-        "NonNegativeNumber",
-        "Opacity",
-        "OutlineStyle",
-        "OverscrollBehavior",
-        "Percentage",
-        "PositiveIntegerOrAuto",
-        "SVGPaintOrder",
-        "ScrollSnapType",
-        "TextDecorationLine",
-        "TouchAction",
-        "TransformStyle",
-        "XSpan",
-        "XTextZoom",
-    ])
+    # After this code, `data.longhands` is sorted in the following order:
+    # - first all keyword variants and all variants known to be Copy,
+    # - second all the other variants, such as all variants with the same field
+    #   have consecutive discriminants.
+    # The variable `variants` contain the same entries as `data.longhands` in
+    # the same order, but must exist separately to the data source, because
+    # we then need to add three additional variants `WideKeywordDeclaration`,
+    # `VariableDeclaration` and `CustomDeclaration`.
 
     variants = []
     for property in data.longhands:
-        if property.predefined_type and not property.is_vector:
-            copy = property.predefined_type in copyTypes
-            ty = "::values::specified::{}".format(property.predefined_type)
-        else:
-            copy = bool(property.keyword) and not property.is_vector
-            ty = "longhands::{}::SpecifiedValue".format(property.ident)
-        if property.boxed:
-            ty = "Box<{}>".format(ty)
         variants.append({
             "name": property.camel_case,
-            "type": ty,
+            "type": property.specified_type(),
             "doc": "`" + property.name + "`",
-            "copy": copy,
+            "copy": property.specified_is_copy(),
         })
 
     groups = {}
@@ -335,24 +298,31 @@ impl Clone for PropertyDeclaration {
             [copy, others] = [list(g) for _, g in groupby(variants, key=lambda x: not x["copy"])]
         %>
 
+        let self_tag = unsafe {
+            (*(self as *const _ as *const PropertyDeclarationVariantRepr<()>)).tag
+        };
+        if self_tag <= LonghandId::${copy[-1]["name"]} as u16 {
+            #[derive(Clone, Copy)]
+            #[repr(u16)]
+            enum CopyVariants {
+                % for v in copy:
+                _${v["name"]}(${v["type"]}),
+                % endfor
+            }
+
+            unsafe {
+                let mut out = mem::uninitialized();
+                ptr::write(
+                    &mut out as *mut _ as *mut CopyVariants,
+                    *(self as *const _ as *const CopyVariants),
+                );
+                return out;
+            }
+        }
+
         match *self {
             ${" |\n".join("{}(..)".format(v["name"]) for v in copy)} => {
-                #[derive(Clone, Copy)]
-                #[repr(u16)]
-                enum CopyVariants {
-                    % for v in copy:
-                    _${v["name"]}(${v["type"]}),
-                    % endfor
-                }
-
-                unsafe {
-                    let mut out = mem::uninitialized();
-                    ptr::write(
-                        &mut out as *mut _ as *mut CopyVariants,
-                        *(self as *const _ as *const CopyVariants),
-                    );
-                    out
-                }
+                unsafe { debug_unreachable!() }
             }
             % for ty, vs in groupby(others, key=lambda x: x["type"]):
             <%
