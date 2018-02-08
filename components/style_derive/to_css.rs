@@ -44,7 +44,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
                     #expr
 
                     for item in #binding.iter() {
-                        writer.item(item)?;
+                        writer.item(&item)?;
                     }
                 };
             } else {

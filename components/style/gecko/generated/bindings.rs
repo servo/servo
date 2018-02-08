@@ -18,6 +18,7 @@ use gecko_bindings::structs::mozilla::dom::CallerType;
 use gecko_bindings::structs::mozilla::AnonymousCounterStyle;
 use gecko_bindings::structs::mozilla::AtomArray;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
+use gecko_bindings::structs::mozilla::ServoStyleSet;
 use gecko_bindings::structs::mozilla::OriginFlags;
 use gecko_bindings::structs::mozilla::UniquePtr;
 use gecko_bindings::structs::ServoRawOffsetArc;
@@ -25,6 +26,7 @@ use gecko_bindings::structs::nsIContent;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::structs::nsIDocument_DocumentTheme;
 use gecko_bindings::structs::nsSimpleContentList;
+use gecko_bindings::structs::MediumFeaturesChangedResult;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
 use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
@@ -543,16 +545,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_SourceSizeList_Drop(ptr: RawServoSourceSizeListOwned);
-}
-extern "C" {
-    pub fn Gecko_RecordTraversalStatistics(
-        total: u32,
-        parallel: u32,
-        total_t: u32,
-        parallel_t: u32,
-        total_s: u32,
-        parallel_s: u32,
-    );
 }
 extern "C" {
     pub fn Gecko_IsSignificantChild(
@@ -2097,15 +2089,10 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_MediumFeaturesChanged(
-        set: RawServoStyleSetBorrowed,
-        viewport_units_used: *mut bool,
-    ) -> u8;
-}
-extern "C" {
-    pub fn Servo_StyleSet_SetDevice(
-        set: RawServoStyleSetBorrowed,
-        pres_context: RawGeckoPresContextOwned,
-    ) -> u8;
+        document_set: RawServoStyleSetBorrowed,
+        non_document_sets: *const nsTArray<*mut ServoStyleSet>,
+        may_affect_default_style: bool,
+    ) -> MediumFeaturesChangedResult;
 }
 extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data: RawServoStyleSetBorrowed);

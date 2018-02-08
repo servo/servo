@@ -52,6 +52,17 @@ impl FontTableMethods for FontTable {
     }
 }
 
+/// Data from the OS/2 table of an OpenType font.
+/// See https://www.microsoft.com/typography/otspec/os2.htm
+#[derive(Debug)]
+struct OS2Table {
+    us_weight_class: u16,
+    us_width_class: u16,
+    y_strikeout_size: i16,
+    y_strikeout_position: i16,
+    sx_height: i16,
+}
+
 #[derive(Debug)]
 pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
@@ -113,14 +124,17 @@ impl FontHandleMethods for FontHandle {
             }
         }
     }
+
     fn template(&self) -> Arc<FontTemplateData> {
         self.font_data.clone()
     }
+
     fn family_name(&self) -> String {
         unsafe {
             c_str_to_string((*self.face).family_name as *const c_char)
         }
     }
+
     fn face_name(&self) -> Option<String> {
         unsafe {
             let name = FT_Get_Postscript_Name(self.face) as *const c_char;
@@ -132,49 +146,43 @@ impl FontHandleMethods for FontHandle {
             }
         }
     }
+
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 }
     }
+
     fn boldness(&self) -> FontWeight {
-        let default_weight = FontWeight::normal();
-        unsafe {
-            let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
-            let valid = !os2.is_null() && (*os2).version != 0xffff;
-            if valid {
-                let weight =(*os2).usWeightClass as i32;
-                if weight < 10 {
-                    FontWeight::from_int(weight * 100).unwrap()
-                } else if weight >= 100 && weight < 1000 {
-                    FontWeight::from_int(weight / 100 * 100).unwrap()
-                } else {
-                    default_weight
-                }
+        if let Some(os2) = self.os2_table() {
+            let weight = os2.us_weight_class as i32;
+
+            if weight < 10 {
+                FontWeight::from_int(weight * 100).unwrap()
+            } else if weight >= 100 && weight < 1000 {
+                FontWeight::from_int(weight / 100 * 100).unwrap()
             } else {
-                default_weight
+                FontWeight::normal()
             }
+        } else {
+            FontWeight::normal()
         }
     }
+
     fn stretchiness(&self) -> FontStretch {
-        let default_stretch = FontStretch::Normal;
-        unsafe {
-            let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
-            let valid = !os2.is_null() && (*os2).version != 0xffff;
-            if valid {
-                match (*os2).usWidthClass {
-                    1 => FontStretch::UltraCondensed,
-                    2 => FontStretch::ExtraCondensed,
-                    3 => FontStretch::Condensed,
-                    4 => FontStretch::SemiCondensed,
-                    5 => FontStretch::Normal, // called medium in TrueType spec
-                    6 => FontStretch::SemiExpanded,
-                    7 => FontStretch::Expanded,
-                    8 => FontStretch::ExtraExpanded,
-                    9 => FontStretch::UltraExpanded,
-                    _ => default_stretch,
-                }
-            } else {
-                default_stretch
+        if let Some(os2) = self.os2_table() {
+            match os2.us_width_class {
+                1 => FontStretch::UltraCondensed,
+                2 => FontStretch::ExtraCondensed,
+                3 => FontStretch::Condensed,
+                4 => FontStretch::SemiCondensed,
+                5 => FontStretch::Normal,
+                6 => FontStretch::SemiExpanded,
+                7 => FontStretch::Expanded,
+                8 => FontStretch::ExtraExpanded,
+                9 => FontStretch::UltraExpanded,
+                _ => FontStretch::Normal
             }
+        } else {
+            FontStretch::Normal
         }
     }
 
@@ -251,14 +259,11 @@ impl FontHandleMethods for FontHandle {
         let mut strikeout_size = Au(0);
         let mut strikeout_offset = Au(0);
         let mut x_height = Au(0);
-        unsafe {
-            let os2 = FT_Get_Sfnt_Table(face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
-            let valid = !os2.is_null() && (*os2).version != 0xffff;
-            if valid {
-               strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as f64);
-               strikeout_offset = self.font_units_to_au((*os2).yStrikeoutPosition as f64);
-               x_height = self.font_units_to_au((*os2).sxHeight as f64);
-            }
+
+        if let Some(os2) = self.os2_table() {
+            strikeout_size = self.font_units_to_au(os2.y_strikeout_size as f64);
+            strikeout_offset = self.font_units_to_au(os2.y_strikeout_position as f64);
+            x_height = self.font_units_to_au(os2.sx_height as f64);
         }
 
         let average_advance = self.glyph_index('0')
@@ -340,5 +345,24 @@ impl<'a> FontHandle {
         assert_eq!(metrics.x_ppem, metrics.y_ppem);
 
         Au::from_f64_px(value * x_scale)
+    }
+
+    fn os2_table(&self) -> Option<OS2Table> {
+        unsafe {
+            let os2 = FT_Get_Sfnt_Table(self.face_rec_mut(), FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
+            let valid = !os2.is_null() && (*os2).version != 0xffff;
+
+            if !valid {
+                return None
+            }
+
+            Some(OS2Table {
+                us_weight_class: (*os2).usWeightClass,
+                us_width_class: (*os2).usWidthClass,
+                y_strikeout_size: (*os2).yStrikeoutSize,
+                y_strikeout_position: (*os2).yStrikeoutPosition,
+                sx_height: (*os2).sxHeight,
+            })
+        }
     }
 }

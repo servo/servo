@@ -13,7 +13,7 @@
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
-<script src="/common/css-paint-tests.js"></script>
+<script src="/common/worklet-reftest.js"></script>
 <body>
 <p>This test result should show a rect with black border, where the rect is
 filled with green on the lower right corner. The registerPaint('failureIndicator')
@@ -63,7 +63,7 @@ registerPaint('geometry', class {
 </script>
 
 <script>
-    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
 </script>
 </body>
 </html>

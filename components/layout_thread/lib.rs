@@ -68,6 +68,7 @@ use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::context::malloc_size_of_persistent_local_context;
+use layout::display_list::ToLayout;
 use layout::display_list::WebRenderDisplayListConverter;
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
@@ -706,7 +707,7 @@ impl LayoutThread {
                 let mut txn = webrender_api::Transaction::new();
                 txn.scroll_node_with_id(
                     webrender_api::LayoutPoint::from_untyped(&point),
-                    webrender_api::IdType::ExternalScrollId(state.scroll_id),
+                    webrender_api::ScrollNodeIdType::ExternalScrollId(state.scroll_id),
                     webrender_api::ScrollClamping::ToContentBounds
                 );
                 self.webrender_api.send_transaction(self.webrender_document, txn);
@@ -986,7 +987,7 @@ impl LayoutThread {
                         }
                     };
 
-                    let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
+                    let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
                     build_state.root_stacking_context.bounds = origin;
                     build_state.root_stacking_context.overflow = origin;
 
@@ -1364,7 +1365,7 @@ impl LayoutThread {
                     rw_data.display_list
                     .as_ref()
                     .expect("Tried to hit test with no display list")
-                    .text_index(opaque_node, &point_in_node)
+                    .text_index(opaque_node, point_in_node.to_layout())
                 );
             },
             ReflowGoal::NodeGeometryQuery(node) => {

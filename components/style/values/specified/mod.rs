@@ -6,7 +6,7 @@
 //!
 //! TODO(emilio): Enhance docs.
 
-use Namespace;
+use Prefix;
 use context::QuirksMode;
 use cssparser::{Parser, Token, serialize_identifier};
 use num_traits::One;
@@ -22,6 +22,7 @@ use super::computed::{Context, ToComputedValue};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackSize as GenericTrackSize, TrackList as GenericTrackList};
+use values::serialize_atom_identifier;
 use values::specified::calc::CalcNode;
 
 pub use properties::animated_properties::TransitionProperty;
@@ -40,7 +41,7 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior, Contain};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
-pub use self::counters::{CounterIncrement, CounterReset};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 #[cfg(feature = "gecko")]
@@ -748,8 +749,8 @@ pub type NamespaceId = ();
 /// `[namespace? `|`]? ident`
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct Attr {
-    /// Optional namespace
-    pub namespace: Option<(Namespace, NamespaceId)>,
+    /// Optional namespace prefix, with the actual namespace id.
+    pub namespace: Option<(Prefix, NamespaceId)>,
     /// Attribute name
     pub attribute: String,
 }
@@ -761,35 +762,18 @@ impl Parse for Attr {
     }
 }
 
-#[cfg(feature = "gecko")]
-/// Get the namespace id from the namespace map
-fn get_id_for_namespace(namespace: &Namespace, context: &ParserContext) -> Result<NamespaceId, ()> {
-    let namespaces_map = match context.namespaces {
-        Some(map) => map,
-        None => {
-            // If we don't have a namespace map (e.g. in inline styles)
-            // we can't parse namespaces
-            return Err(());
-        }
-    };
-
-    match namespaces_map.prefixes.get(&namespace.0) {
-        Some(entry) => Ok(entry.1),
-        None => Err(()),
-    }
-}
-
-#[cfg(feature = "servo")]
-/// Get the namespace id from the namespace map
-fn get_id_for_namespace(_: &Namespace, _: &ParserContext) -> Result<NamespaceId, ()> {
-    Ok(())
+/// Get the Namespace id from the namespace map.
+fn get_id_for_namespace(prefix: &Prefix, context: &ParserContext) -> Option<NamespaceId> {
+    Some(context.namespaces.as_ref()?.prefixes.get(prefix)?.1)
 }
 
 impl Attr {
     /// Parse contents of attr() assuming we have already parsed `attr` and are
     /// within a parse_nested_block()
-    pub fn parse_function<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                  -> Result<Attr, ParseError<'i>> {
+    pub fn parse_function<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Attr, ParseError<'i>> {
         // Syntax is `[namespace? `|`]? ident`
         // no spaces allowed
         let first = input.try(|i| i.expect_ident_cloned()).ok();
@@ -804,11 +788,14 @@ impl Attr {
                     };
 
                     let ns_with_id = if let Some(ns) = first {
-                        let ns = Namespace::from(ns.as_ref());
-                        let id: Result<_, ParseError> =
-                            get_id_for_namespace(&ns, context)
-                            .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                        Some((ns, id?))
+                        let ns = Prefix::from(ns.as_ref());
+                        let id = match get_id_for_namespace(&ns, context) {
+                            Some(id) => id,
+                            None => return Err(location.new_custom_error(
+                                StyleParseErrorKind::UnspecifiedError
+                            )),
+                        };
+                        Some((ns, id))
                     } else {
                         None
                     };
@@ -819,7 +806,7 @@ impl Attr {
                 }
                 // In the case of attr(foobar    ) we don't want to error out
                 // because of the trailing whitespace
-                Token::WhiteSpace(_) => (),
+                Token::WhiteSpace(..) => {},
                 ref t => return Err(input.new_unexpected_token_error(t.clone())),
             }
         }
@@ -841,8 +828,8 @@ impl ToCss for Attr {
         W: Write,
     {
         dest.write_str("attr(")?;
-        if let Some(ref ns) = self.namespace {
-            serialize_identifier(&ns.0.to_string(), dest)?;
+        if let Some((ref prefix, _id)) = self.namespace {
+            serialize_atom_identifier(prefix, dest)?;
             dest.write_str("|")?;
         }
         serialize_identifier(&self.attribute, dest)?;

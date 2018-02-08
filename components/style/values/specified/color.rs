@@ -315,7 +315,7 @@ impl Color {
         if let Some(unit) = unit {
             written += (&mut serialization[written..]).write(unit.as_bytes()).unwrap();
         }
-        debug_assert!(written == 6);
+        debug_assert_eq!(written, 6);
         parse_hash_color(&serialization).map_err(|()| {
             location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
         })

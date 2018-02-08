@@ -19,7 +19,7 @@
     #xor { background-image: paint(xor); }
 </style>
 <script src="/common/reftest-wait.js"></script>
-<script src="/common/css-paint-tests.js"></script>
+<script src="/common/worklet-reftest.js"></script>
 <body>
 <div id="source-over"></div>
 <div id="source-in"></div>
@@ -67,7 +67,7 @@ for (var i = 0; i < compositeOps.length; i++) {
 </script>
 
 <script>
-    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
 </script>
 </body>
 </html>

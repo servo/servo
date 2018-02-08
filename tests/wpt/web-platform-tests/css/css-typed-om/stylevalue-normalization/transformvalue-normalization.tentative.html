@@ -124,13 +124,18 @@ const gTestCases = [
     desc: 'skew() with only X'
   },
   {
+    cssText: 'skew(90deg, 0deg)',
+    expected: new CSSSkew(CSS.deg(90), CSS.deg(0)),
+    desc: 'skew() with X and Y which is 0 value'
+  },
+  {
     cssText: 'skew(90deg, 45deg)',
     expected: new CSSSkew(CSS.deg(90), CSS.deg(45)),
     desc: 'skew() with X and Y'
   },
   {
     cssText: 'skewX(90deg)',
-    expected: new CSSSkew(CSS.deg(90), CSS.deg(0)),
+    expected: new CSSSkewX(CSS.deg(90)),
     desc: 'skewX()'
   },
   {
@@ -153,12 +158,13 @@ for (const {cssText, expected, desc} of gTestCases) {
 
 test(t => {
   test_transform_normalization(t,
-      'translate(1px) rotateX(90deg) perspective(1px) skew(90deg) scale3d(1, 2, 3)',
+      'translate(1px) rotateX(90deg) perspective(1px) skew(90deg) skewX(20deg) scale3d(1, 2, 3)',
       new CSSTransformValue([
         new CSSTranslate(CSS.px(1), CSS.px(0)),
         new CSSRotate(CSS.number(1), CSS.number(0), CSS.number(0), CSS.deg(90)),
         new CSSPerspective(CSS.px(1)),
         new CSSSkew(CSS.deg(90), CSS.deg(0)),
+        new CSSSkewX(CSS.deg(20)),
         new CSSScale(CSS.number(1), CSS.number(2), CSS.number(3)),
       ]));
 }, 'Normalizing a <transform-list> returns a CSSTransformValue containing all the transforms');

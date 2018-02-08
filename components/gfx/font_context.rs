@@ -9,7 +9,7 @@ use font_cache_thread::FontCacheThread;
 use font_template::FontTemplateDescriptor;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use platform::font::FontHandle;
-use platform::font_context::FontContextHandle;
+pub use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;

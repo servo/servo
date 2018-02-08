@@ -11,25 +11,25 @@
 'use strict';
 
 test(() => {
-  assert_equals(new CSSUnparsedValue('lem', 'on', 'ade').toString(), 'lemonade');
+  assert_equals(new CSSUnparsedValue(['lem', 'on', 'ade']).toString(), 'lemonade');
 }, 'CSSUnparsedValue containing strings serializes to its concatenated contents');
 
 test(() => {
-  assert_equals(new CSSUnparsedValue(
+  assert_equals(new CSSUnparsedValue([
       new CSSVariableReferenceValue('--A',
-        new CSSUnparsedValue(new CSSVariableReferenceValue('--B'))),
-      new CSSVariableReferenceValue('--C')).toString(),
+        new CSSUnparsedValue([new CSSVariableReferenceValue('--B')])),
+      new CSSVariableReferenceValue('--C')]).toString(),
     'var(--A,var(--B))var(--C)');
 }, 'CSSUnparsedValue containing variable references serializes its ' +
    'concatenated contents');
 
 test(() => {
-  assert_equals(new CSSUnparsedValue('foo', 'bar ',
+  assert_equals(new CSSUnparsedValue(['foo', 'bar ',
       new CSSVariableReferenceValue('--A',
-        new CSSUnparsedValue('baz ',
-          new CSSVariableReferenceValue('--B'), 'lemon')),
+        new CSSUnparsedValue(['baz ',
+          new CSSVariableReferenceValue('--B'), 'lemon'])),
       new CSSVariableReferenceValue('--C',
-        new CSSUnparsedValue('ade'))).toString(),
+        new CSSUnparsedValue(['ade']))]).toString(),
     'foobar var(--A,baz var(--B)lemon)var(--C,ade)');
 }, 'CSSUnparsedValue containing mix of strings and variable references ' +
    'serializes to its concatenated contents');

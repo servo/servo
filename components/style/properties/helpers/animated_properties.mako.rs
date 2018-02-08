@@ -2871,25 +2871,6 @@ impl ToAnimatedZero for AnimatedFilter {
     }
 }
 
-// FIXME(nox): This should be derived.
-impl ComputeSquaredDistance for AnimatedFilter {
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            % for func in FILTER_FUNCTIONS:
-            (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            % endfor
-            % if product == "gecko":
-            (&Filter::DropShadow(ref this), &Filter::DropShadow(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            % endif
-            _ => Err(()),
-        }
-    }
-}
-
 impl Animate for AnimatedFilterList {
     #[inline]
     fn animate(

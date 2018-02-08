@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token, serialize_identifier};
+use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")]
 use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
@@ -21,6 +21,7 @@ use str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRuleType;
 use values::computed::font::FamilyName;
+use values::serialize_atom_identifier;
 
 /// A @font-feature-values block declaration.
 /// It is `<ident>: <integer>+`.
@@ -41,7 +42,7 @@ impl<T: ToCss> ToCss for FFVDeclaration<T> {
     where
         W: Write,
     {
-        serialize_identifier(&self.name.to_string(), dest)?;
+        serialize_atom_identifier(&self.name, dest)?;
         dest.write_str(": ")?;
         self.value.to_css(dest)?;
         dest.write_str(";")

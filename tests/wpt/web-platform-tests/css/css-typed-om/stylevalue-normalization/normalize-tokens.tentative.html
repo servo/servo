@@ -29,22 +29,22 @@ const gTestCases = [
   {
     value: 'var(--A, 1em)',
     expectedResult: [
-      new CSSVariableReferenceValue('--A', new CSSUnparsedValue(' 1em')),
+      new CSSVariableReferenceValue('--A', new CSSUnparsedValue([' 1em'])),
     ]
   },
   {
     value: 'var(--A, var(--B))',
     expectedResult: [
-      new CSSVariableReferenceValue('--A', new CSSUnparsedValue(' ', new CSSVariableReferenceValue('--B'))),
+      new CSSVariableReferenceValue('--A', new CSSUnparsedValue([' ', new CSSVariableReferenceValue('--B')])),
     ]
   },
   {
     value: 'calc(42px + var(--foo, 15em) + var(--bar, var(--far) + 15px))',
     expectedResult: [
       'calc(42px + ',
-      new CSSVariableReferenceValue('--foo', new CSSUnparsedValue(' 15em')),
+      new CSSVariableReferenceValue('--foo', new CSSUnparsedValue([' 15em'])),
       ' + ',
-      new CSSVariableReferenceValue('--bar', new CSSUnparsedValue(' ', new CSSVariableReferenceValue('--far'), ' + 15px')),
+      new CSSVariableReferenceValue('--bar', new CSSUnparsedValue([' ', new CSSVariableReferenceValue('--far'), ' + 15px'])),
       ')',
     ]
   },
@@ -52,11 +52,11 @@ const gTestCases = [
 
 for (const {value, expectedResult} of gTestCases) {
   test(t => {
-    assert_string_normalizes_to(t, 'color', value, new CSSUnparsedValue(...expectedResult));
+    assert_string_normalizes_to(t, 'color', value, new CSSUnparsedValue(expectedResult));
   }, 'Normalizing "' + value + '" on a CSS property returns correct CSSUnparsedValue');
 
   test(t => {
-    assert_string_normalizes_to(t, '--X', value, new CSSUnparsedValue(...expectedResult));
+    assert_string_normalizes_to(t, '--X', value, new CSSUnparsedValue(expectedResult));
   }, 'Normalizing "' + value + '" on a custom property returns correct CSSUnparsedValue');
 }
 

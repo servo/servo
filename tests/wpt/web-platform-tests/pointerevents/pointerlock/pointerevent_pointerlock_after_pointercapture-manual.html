@@ -20,7 +20,7 @@
                 var test_pointerEvent = setup_pointerevent_test("no pointercapture while pointerlock", ['mouse']);
                 var div1 = document.getElementById("div1");
                 var div2 = document.getElementById("div2");
-                
+
                 on_event(div1, 'pointerdown', function(event) {
                     div2.setPointerCapture(event.pointerId);
                 });
@@ -33,8 +33,11 @@
                         test_pointerEvent.done(); 
                     }
                 });
+                on_event(document, 'contextmenu', function(event) {
+                    event.preventDefault();
+                });
                 on_event(div2, 'pointermove', function(event) {
-                    if (got_capture && !lock_requested) {
+                    if (event.button == 2 && got_capture && !lock_requested) {
                         div1.requestPointerLock();
                         lock_requested = true;
                     }
@@ -45,6 +48,9 @@
                 on_event(div2, 'lostpointercapture', function(event) {
                     lost_capture = true;
                 });
+                on_event(document,"pointerlockerror", function() {
+                    assert_unreached("Pointer lock error");
+                })
             }
         </script>
     </head>
@@ -56,6 +62,8 @@
             <ol>
                  <li>Press left button down on the green rectangle and hold it.</li>
                  <li>Move the mouse inside the green rectangle.</li>
+                 <li>Click right button while keeping left button down</li>
+                 <li>Keep moving the mouse inside the green rectangle.</li>
             </ol>
 
             Test passes if the pointer capture is released on the yellow rectangle when the green rectangle gets the pointer lock.

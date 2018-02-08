@@ -7,11 +7,11 @@
 //! [images]: https://drafts.csswg.org/css-images/#image-values
 
 use Atom;
-use cssparser::serialize_identifier;
 use custom_properties;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
+use values::serialize_atom_identifier;
 
 /// An [image].
 ///
@@ -151,7 +151,7 @@ impl ToCss for PaintWorklet {
         W: Write,
     {
         dest.write_str("paint(")?;
-        serialize_identifier(&*self.name.to_string(), dest)?;
+        serialize_atom_identifier(&self.name, dest)?;
         for argument in &self.arguments {
             dest.write_str(", ")?;
             argument.to_css(dest)?;
@@ -200,7 +200,7 @@ impl<G, R, U> ToCss for Image<G, R, U>
             Image::PaintWorklet(ref paint_worklet) => paint_worklet.to_css(dest),
             Image::Element(ref selector) => {
                 dest.write_str("-moz-element(#")?;
-                serialize_identifier(&selector.to_string(), dest)?;
+                serialize_atom_identifier(selector, dest)?;
                 dest.write_str(")")
             },
         }

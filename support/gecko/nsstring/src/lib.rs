@@ -387,7 +387,7 @@ macro_rules! define_string_types {
                     // data.
                     let this: &$StringRepr = mem::transmute(self);
                     if this.data.is_null() {
-                        debug_assert!(this.length == 0);
+                        debug_assert_eq!(this.length, 0);
                         // Use an arbitrary non-null value as the pointer
                         slice::from_raw_parts(0x1 as *const $char_t, 0)
                     } else {

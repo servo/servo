@@ -313,7 +313,7 @@ impl WebGLTexture {
     }
 
     fn is_cube_complete(&self) -> bool {
-        debug_assert!(self.face_count.get() == 6);
+        debug_assert_eq!(self.face_count.get(), 6);
 
         let image_info = self.base_image_info().unwrap();
         if !image_info.is_defined() {

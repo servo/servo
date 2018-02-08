@@ -600,6 +600,27 @@ fn test_textinput_set_selection_with_direction() {
     assert!(textinput.selection_origin.is_some());
     assert_eq!(textinput.selection_origin.unwrap().line, 0);
     assert_eq!(textinput.selection_origin.unwrap().index, 6);
+
+    textinput = text_input(Lines::Multiple, "\n\n");
+    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    assert_eq!(textinput.edit_point.line, 1);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.selection_direction, SelectionDirection::Forward);
+
+    assert!(textinput.selection_origin.is_some());
+    assert_eq!(textinput.selection_origin.unwrap().line, 0);
+    assert_eq!(textinput.selection_origin.unwrap().index, 0);
+
+    textinput = text_input(Lines::Multiple, "\n");
+    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    assert_eq!(textinput.edit_point.line, 1);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.selection_direction, SelectionDirection::Forward);
+
+    assert!(textinput.selection_origin.is_some());
+    assert_eq!(textinput.selection_origin.unwrap().line, 0);
+    assert_eq!(textinput.selection_origin.unwrap().index, 0);
+
 }
 
 #[test]
@@ -629,4 +650,11 @@ fn test_selection_bounds() {
     assert_eq!(TextPoint { line: 0, index: 6 }, textinput.selection_end());
     assert_eq!(3, textinput.selection_start_offset());
     assert_eq!(6, textinput.selection_end_offset());
+
+    textinput = text_input(Lines::Multiple, "\n\n");
+    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_origin_or_edit_point());
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
+    assert_eq!(TextPoint { line: 1, index: 0 }, textinput.selection_end());
+
 }

@@ -1213,7 +1213,7 @@ fn clone_single_transform_function(
 
     let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
                                             -> Vec<TransformOperation> {
-        debug_assert!(value.mUnit == structs::nsCSSUnit::eCSSUnit_SharedList);
+        debug_assert_eq!(value.mUnit, structs::nsCSSUnit::eCSSUnit_SharedList);
         let value_list = unsafe {
             value.mValue.mSharedList.as_ref()
                     .as_mut().expect("List pointer should be non-null").mHead.as_ref()
@@ -1804,7 +1804,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleUnit;
         // z-index is never a calc(). If it were, we'd be leaking here, so
         // assert that it isn't.
-        debug_assert!(self.gecko.mZIndex.unit() != nsStyleUnit::eStyleUnit_Calc);
+        debug_assert_ne!(self.gecko.mZIndex.unit(), nsStyleUnit::eStyleUnit_Calc);
         unsafe {
             self.gecko.mZIndex.copy_from_unchecked(&other.gecko.mZIndex);
         }
@@ -1837,7 +1837,7 @@ fn static_assert() {
     }
 
     pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
-        debug_assert!(v.0 != ::values::specified::align::AlignFlags::AUTO);
+        debug_assert_ne!(v.0, ::values::specified::align::AlignFlags::AUTO);
         self.gecko.mJustifyItems = v.into();
     }
 
@@ -2885,7 +2885,7 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator + Clone
     {
         let v = v.into_iter();
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
@@ -2910,7 +2910,7 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator + Clone
     {
         let v = v.into_iter();
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
@@ -2966,7 +2966,7 @@ fn static_assert() {
 
         let v = v.into_iter();
 
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
         self.gecko.mAnimations.ensure_len(input_len);
 
@@ -3364,7 +3364,7 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
-        debug_assert!(v.len() != 0);
+        debug_assert_ne!(v.len(), 0);
         self.gecko.mAnimations.ensure_len(v.len());
 
         self.gecko.mAnimationNameCount = v.len() as u32;
@@ -3957,7 +3957,7 @@ fn static_assert() {
             if ty == DimensionType::eAuto as u8 {
                 LengthOrPercentageOrAuto::Auto
             } else {
-                debug_assert!(ty == DimensionType::eLengthPercentage as u8);
+                debug_assert_eq!(ty, DimensionType::eLengthPercentage as u8);
                 value.into()
             }
         }
@@ -3965,11 +3965,11 @@ fn static_assert() {
         longhands::background_size::computed_value::T(
             self.gecko.${image_layers_field}.mLayers.iter().map(|ref layer| {
                 if DimensionType::eCover as u8 == layer.mSize.mWidthType {
-                    debug_assert!(layer.mSize.mHeightType == DimensionType::eCover as u8);
+                    debug_assert_eq!(layer.mSize.mHeightType, DimensionType::eCover as u8);
                     return BackgroundSize::Cover
                 }
                 if DimensionType::eContain as u8 == layer.mSize.mWidthType {
-                    debug_assert!(layer.mSize.mHeightType == DimensionType::eContain as u8);
+                    debug_assert_eq!(layer.mSize.mHeightType, DimensionType::eContain as u8);
                     return BackgroundSize::Contain
                 }
                 BackgroundSize::Explicit {
@@ -4368,28 +4368,28 @@ fn static_assert() {
             ClipRectOrAuto::auto()
         } else {
             let left = if self.gecko.mClipFlags & NS_STYLE_CLIP_LEFT_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.x == 0);
+                debug_assert_eq!(self.gecko.mClip.x, 0);
                 None
             } else {
                 Some(Au(self.gecko.mClip.x).into())
             };
 
             let top = if self.gecko.mClipFlags & NS_STYLE_CLIP_TOP_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.y == 0);
+                debug_assert_eq!(self.gecko.mClip.y, 0);
                 None
             } else {
                 Some(Au(self.gecko.mClip.y).into())
             };
 
             let bottom = if self.gecko.mClipFlags & NS_STYLE_CLIP_BOTTOM_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.height == 1 << 30); // NS_MAXSIZE
+                debug_assert_eq!(self.gecko.mClip.height, 1 << 30); // NS_MAXSIZE
                 None
             } else {
                 Some(Au(self.gecko.mClip.y + self.gecko.mClip.height).into())
             };
 
             let right = if self.gecko.mClipFlags & NS_STYLE_CLIP_RIGHT_AUTO as u8 != 0 {
-                debug_assert!(self.gecko.mClip.width == 1 << 30); // NS_MAXSIZE
+                debug_assert_eq!(self.gecko.mClip.width, 1 << 30); // NS_MAXSIZE
                 None
             } else {
                 Some(Au(self.gecko.mClip.x + self.gecko.mClip.width).into())
@@ -5459,8 +5459,7 @@ clip-path
     }
 
     pub fn set_content(&mut self, v: longhands::content::computed_value::T, device: &Device) {
-        use properties::longhands::content::computed_value::T;
-        use properties::longhands::content::computed_value::ContentItem;
+        use values::computed::counters::{Content, ContentItem};
         use values::generics::CounterStyleOrNone;
         use gecko_bindings::structs::nsStyleContentData;
         use gecko_bindings::structs::nsStyleContentType;
@@ -5494,8 +5493,8 @@ clip-path
         }
 
         match v {
-            T::None |
-            T::Normal => {
+            Content::None |
+            Content::Normal => {
                 // Ensure destructors run, otherwise we could leak.
                 if !self.gecko.mContents.is_empty() {
                     unsafe {
@@ -5503,14 +5502,14 @@ clip-path
                     }
                 }
             },
-            T::MozAltContent => {
+            Content::MozAltContent => {
                 unsafe {
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko, 1);
                     *self.gecko.mContents[0].mContent.mString.as_mut() = ptr::null_mut();
                 }
                 self.gecko.mContents[0].mType = eStyleContentType_AltContent;
             },
-            T::Items(items) => {
+            Content::Items(items) => {
                 unsafe {
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko,
                                                       items.len() as u32);
@@ -5522,8 +5521,8 @@ clip-path
                     unsafe {
                         *self.gecko.mContents[i].mContent.mString.as_mut() = ptr::null_mut();
                     }
-                    match item {
-                        ContentItem::String(value) => {
+                    match *item {
+                        ContentItem::String(ref value) => {
                             self.gecko.mContents[i].mType = eStyleContentType_String;
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
@@ -5531,17 +5530,18 @@ clip-path
                                     as_utf16_and_forget(&value);
                             }
                         }
-                        ContentItem::Attr(attr) => {
+                        ContentItem::Attr(ref attr) => {
                             self.gecko.mContents[i].mType = eStyleContentType_Attr;
-                            let s = if let Some((_, ns)) = attr.namespace {
-                                format!("{}|{}", ns, attr.attribute)
-                            } else {
-                                attr.attribute.into()
-                            };
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
-                                *self.gecko.mContents[i].mContent.mString.as_mut() =
-                                    as_utf16_and_forget(&s);
+                                *self.gecko.mContents[i].mContent.mString.as_mut() = match attr.namespace {
+                                    Some((_, ns)) => {
+                                        as_utf16_and_forget(&format!("{}|{}", ns, attr.attribute))
+                                    },
+                                    None => {
+                                        as_utf16_and_forget(&attr.attribute)
+                                    }
+                                };
                             }
                         }
                         ContentItem::OpenQuote
@@ -5552,13 +5552,13 @@ clip-path
                             => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
-                        ContentItem::Counter(name, style) => {
+                        ContentItem::Counter(ref name, ref style) => {
                             set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counter, &name, "", style, device);
+                                                 eStyleContentType_Counter, &name, "", style.clone(), device);
                         }
-                        ContentItem::Counters(name, sep, style) => {
+                        ContentItem::Counters(ref name, ref sep, ref style) => {
                             set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counters, &name, &sep, style, device);
+                                                 eStyleContentType_Counters, &name, &sep, style.clone(), device);
                         }
                         ContentItem::Url(ref url) => {
                             unsafe {
@@ -5586,22 +5586,22 @@ clip-path
     pub fn clone_content(&self) -> longhands::content::computed_value::T {
         use gecko::conversions::string_from_chars_pointer;
         use gecko_bindings::structs::nsStyleContentType::*;
-        use properties::longhands::content::computed_value::{T, ContentItem};
+        use values::computed::counters::{Content, ContentItem};
         use values::Either;
         use values::generics::CounterStyleOrNone;
         use values::specified::url::SpecifiedUrl;
         use values::specified::Attr;
 
         if self.gecko.mContents.is_empty() {
-            return T::Normal;
+            return Content::Normal;
         }
 
         if self.gecko.mContents.len() == 1 &&
            self.gecko.mContents[0].mType == eStyleContentType_AltContent {
-            return T::MozAltContent;
+            return Content::MozAltContent;
         }
 
-        T::Items(
+        Content::Items(
             self.gecko.mContents.iter().map(|gecko_content| {
                 match gecko_content.mType {
                     eStyleContentType_OpenQuote => ContentItem::OpenQuote,
@@ -5611,7 +5611,7 @@ clip-path
                     eStyleContentType_String => {
                         let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
                         let string = unsafe { string_from_chars_pointer(*gecko_chars) };
-                        ContentItem::String(string)
+                        ContentItem::String(string.into_boxed_str())
                     },
                     eStyleContentType_Attr => {
                         let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
@@ -5641,10 +5641,10 @@ clip-path
                                 unreachable!("counter function shouldn't have single string type"),
                         };
                         if gecko_content.mType == eStyleContentType_Counter {
-                            ContentItem::Counter(ident, style)
+                            ContentItem::Counter(ident.into_boxed_str(), style)
                         } else {
                             let separator = gecko_function.mSeparator.to_string();
-                            ContentItem::Counters(ident, separator, style)
+                            ContentItem::Counters(ident.into_boxed_str(), separator.into_boxed_str(), style)
                         }
                     },
                     eStyleContentType_Image => {
@@ -5659,7 +5659,7 @@ clip-path
                     },
                     _ => panic!("Found unexpected value in style struct for content property"),
                 }
-            }).collect()
+            }).collect::<Vec<_>>().into_boxed_slice()
         )
     }
 

@@ -378,7 +378,7 @@ pub unsafe trait CoordDataMut : CoordData {
     /// Gets the `Calc` value mutably, asserts in debug builds if the unit is
     /// not `Calc`.
     unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
-        debug_assert!(self.unit() == nsStyleUnit::eStyleUnit_Calc);
+        debug_assert_eq!(self.unit(), nsStyleUnit::eStyleUnit_Calc);
         &mut *(*self.union().mPointer.as_mut() as *mut nsStyleCoord_Calc)
     }
 
@@ -451,7 +451,7 @@ pub unsafe trait CoordData {
     /// Pretend inner value is a calc; obtain it.
     /// Ensure that the unit is Calc before calling this.
     unsafe fn get_calc_value(&self) -> nsStyleCoord_CalcValue {
-        debug_assert!(self.unit() == nsStyleUnit::eStyleUnit_Calc);
+        debug_assert_eq!(self.unit(), nsStyleUnit::eStyleUnit_Calc);
         (*self.as_calc())._base
     }
 
@@ -459,7 +459,7 @@ pub unsafe trait CoordData {
     #[inline]
     /// Pretend the inner value is a calc expression, and obtain it.
     unsafe fn as_calc(&self) -> &nsStyleCoord_Calc {
-        debug_assert!(self.unit() == nsStyleUnit::eStyleUnit_Calc);
+        debug_assert_eq!(self.unit(), nsStyleUnit::eStyleUnit_Calc);
         &*(*self.union().mPointer.as_ref() as *const nsStyleCoord_Calc)
     }
 }

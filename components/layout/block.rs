@@ -485,7 +485,7 @@ pub enum MarginsMayCollapseFlag {
     MarginsMayNotCollapse,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum FormattingContextType {
     None,
     Block,
@@ -1472,7 +1472,7 @@ impl BlockFlow {
     fn assign_inline_position_for_formatting_context(&mut self,
                                                      layout_context: &LayoutContext,
                                                      content_box: LogicalRect<Au>) {
-        debug_assert!(self.formatting_context_type() != FormattingContextType::None);
+        debug_assert_ne!(self.formatting_context_type(), FormattingContextType::None);
 
         if !self.base.restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW) {
             return

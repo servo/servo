@@ -5,6 +5,7 @@
 <script src="resources/testharness-helpers.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script>
 
 /*
@@ -26,11 +27,12 @@ const settings = [{cors: false, main: 'default', imported: 'default'},
                   {cors: true,  main: 'time',    imported: 'default'},
                   {cors: true,  main: 'time',    imported: 'time'   }];
 
+const host_info = get_host_info();
 settings.reduce((p, s) => {
   return p.then(promise_test(function(t) {
     var path = !s.cors ? ''
-                       : 'https://www1.web-platform.test:8443/' +
-                         'service-workers/service-worker/resources/';
+                       : host_info.HTTPS_REMOTE_ORIGIN +
+                         '/service-workers/service-worker/resources/';
     var script = 'resources/bytecheck-worker.py' +
                  '?main=' + s.main +
                  '&imported=' + s.imported +

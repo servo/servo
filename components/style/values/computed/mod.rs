@@ -4,7 +4,9 @@
 
 //! Computed values.
 
-use {Atom, Namespace};
+use Atom;
+#[cfg(feature = "servo")]
+use Prefix;
 use context::QuirksMode;
 use euclid::Size2D;
 use font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
@@ -46,7 +48,7 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior, Contain};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
-pub use self::counters::{CounterIncrement, CounterReset};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
@@ -58,7 +60,7 @@ pub use super::{Auto, Either, None_};
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
-pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPercentage};
+pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength, NonNegativeLengthOrPercentage};
 pub use self::list::{ListStyleImage, Quotes};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
@@ -414,7 +416,8 @@ trivial_to_computed_value!(u32);
 trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(BorderStyle);
 trivial_to_computed_value!(CursorKind);
-trivial_to_computed_value!(Namespace);
+#[cfg(feature = "servo")]
+trivial_to_computed_value!(Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
 

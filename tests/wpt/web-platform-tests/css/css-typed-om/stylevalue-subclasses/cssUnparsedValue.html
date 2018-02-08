@@ -37,7 +37,7 @@ const gTestArguments = [
 
 for (const {args, description} of gTestArguments) {
   test(() => {
-    const result = new CSSUnparsedValue(...args);
+    const result = new CSSUnparsedValue(args);
 
     assert_not_equals(result, null,
         'A CSSUnparsedValue should be created');
