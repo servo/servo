@@ -41,7 +41,7 @@ use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{DataValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
+use stylesheet_set::{AuthorStylesEnabled, DataValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -592,8 +592,8 @@ impl Stylist {
     }
 
     /// Sets whether author style is enabled or not.
-    pub fn set_author_style_disabled(&mut self, disabled: bool) {
-        self.stylesheets.set_author_style_disabled(disabled);
+    pub fn set_author_styles_enabled(&mut self, enabled: AuthorStylesEnabled) {
+        self.stylesheets.set_author_styles_enabled(enabled);
     }
 
     /// Returns whether we've recorded any stylesheet change so far.

@@ -135,6 +135,7 @@ use style::selector_parser::{PseudoElementCascadeType, SelectorImpl};
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::{Atom, WeakAtom};
 use style::style_adjuster::StyleAdjuster;
+use style::stylesheet_set::AuthorStylesEnabled;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
 use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MediaRule};
 use style::stylesheets::{NamespaceRule, Origin, OriginSet, PageRule, StyleRule};
@@ -1252,7 +1253,13 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     data.stylist.force_stylesheet_origins_dirty(OriginSet::from(changed_origins));
-    data.stylist.set_author_style_disabled(author_style_disabled);
+    let enabled =
+        if author_style_disabled {
+            AuthorStylesEnabled::No
+        } else {
+            AuthorStylesEnabled::Yes
+        };
+    data.stylist.set_author_styles_enabled(enabled);
 }
 
 #[no_mangle]

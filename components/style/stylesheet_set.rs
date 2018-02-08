@@ -124,6 +124,16 @@ impl Default for DataValidity {
     }
 }
 
+/// Whether author styles are enabled.
+///
+/// This is used to support Gecko.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AuthorStylesEnabled {
+    Yes,
+    No,
+}
+
 /// A struct to iterate over the different stylesheets to be flushed.
 pub struct StylesheetFlusher<'a, S>
 where
@@ -132,7 +142,7 @@ where
     origins_dirty: OriginSet,
     collections: &'a mut PerOrigin<SheetCollection<S>>,
     origin_data_validity: PerOrigin<DataValidity>,
-    author_style_disabled: bool,
+    author_styles_enabled: AuthorStylesEnabled,
     had_invalidations: bool,
 }
 
@@ -199,7 +209,9 @@ where
             "origin_data_validity should be a subset of origins_dirty!"
         );
 
-        if self.author_style_disabled && origin == Origin::Author {
+        if self.author_styles_enabled == AuthorStylesEnabled::No &&
+            origin == Origin::Author
+        {
             return PerOriginFlusher {
                 iter: [].iter_mut(),
                 validity,
@@ -400,8 +412,8 @@ where
     /// The invalidations for stylesheets added or removed from this document.
     invalidations: StylesheetInvalidationSet,
 
-    /// Has author style been disabled?
-    author_style_disabled: bool,
+    /// Whether author styles are enabled.
+    author_styles_enabled: AuthorStylesEnabled,
 }
 
 impl<S> DocumentStylesheetSet<S>
@@ -413,7 +425,7 @@ where
         Self {
             collections: Default::default(),
             invalidations: StylesheetInvalidationSet::new(),
-            author_style_disabled: false,
+            author_styles_enabled: AuthorStylesEnabled::Yes,
         }
     }
 
@@ -425,12 +437,6 @@ where
     /// Returns the `index`th stylesheet in the set for the given origin.
     pub fn get(&self, origin: Origin, index: usize) -> Option<&S> {
         self.collections.borrow_for_origin(&origin).get(index)
-    }
-
-    /// Returns whether author styles have been disabled for the current
-    /// stylesheet set.
-    pub fn author_style_disabled(&self) -> bool {
-        self.author_style_disabled
     }
 
     fn collect_invalidations_for(
@@ -505,12 +511,12 @@ where
     }
 
     /// Notes that the author style has been disabled for this document.
-    pub fn set_author_style_disabled(&mut self, disabled: bool) {
-        debug!("DocumentStylesheetSet::set_author_style_disabled");
-        if self.author_style_disabled == disabled {
+    pub fn set_author_styles_enabled(&mut self, enabled: AuthorStylesEnabled) {
+        debug!("DocumentStylesheetSet::set_author_styles_enabled");
+        if self.author_styles_enabled == enabled {
             return;
         }
-        self.author_style_disabled = disabled;
+        self.author_styles_enabled = enabled;
         self.invalidations.invalidate_fully();
         self.collections.borrow_mut_for_origin(&Origin::Author)
             .set_data_validity_at_least(DataValidity::FullyInvalid)
@@ -554,7 +560,7 @@ where
 
         StylesheetFlusher {
             collections: &mut self.collections,
-            author_style_disabled: self.author_style_disabled,
+            author_styles_enabled: self.author_styles_enabled,
             had_invalidations,
             origins_dirty,
             origin_data_validity,
