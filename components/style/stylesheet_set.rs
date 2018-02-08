@@ -370,7 +370,7 @@ where
 
 /// The set of stylesheets effective for a given document.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-pub struct StylesheetSet<S>
+pub struct DocumentStylesheetSet<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
@@ -387,13 +387,13 @@ where
     author_style_disabled: bool,
 }
 
-impl<S> StylesheetSet<S>
+impl<S> DocumentStylesheetSet<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     /// Create a new empty StylesheetSet.
     pub fn new() -> Self {
-        StylesheetSet {
+        Self {
             collections: Default::default(),
             invalidations: StylesheetInvalidationSet::new(),
             origins_dirty: OriginSet::empty(),
@@ -438,7 +438,7 @@ where
         sheet: S,
         guard: &SharedRwLockReadGuard
     ) {
-        debug!("StylesheetSet::append_stylesheet");
+        debug!("DocumentStylesheetSet::append_stylesheet");
         self.collect_invalidations_for(device, &sheet, guard);
         let origin = sheet.contents(guard).origin;
         self.collections.borrow_mut_for_origin(&origin).append(sheet);
@@ -451,7 +451,7 @@ where
         sheet: S,
         guard: &SharedRwLockReadGuard
     ) {
-        debug!("StylesheetSet::prepend_stylesheet");
+        debug!("DocumentStylesheetSet::prepend_stylesheet");
         self.collect_invalidations_for(device, &sheet, guard);
 
         let origin = sheet.contents(guard).origin;
@@ -466,7 +466,7 @@ where
         before_sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
-        debug!("StylesheetSet::insert_stylesheet_before");
+        debug!("DocumentStylesheetSet::insert_stylesheet_before");
         self.collect_invalidations_for(device, &sheet, guard);
 
         let origin = sheet.contents(guard).origin;
@@ -491,7 +491,7 @@ where
 
     /// Notes that the author style has been disabled for this document.
     pub fn set_author_style_disabled(&mut self, disabled: bool) {
-        debug!("StylesheetSet::set_author_style_disabled");
+        debug!("DocumentStylesheetSet::set_author_style_disabled");
         if self.author_style_disabled == disabled {
             return;
         }
@@ -517,7 +517,7 @@ where
     {
         use std::mem;
 
-        debug!("StylesheetSet::flush");
+        debug!("DocumentStylesheetSet::flush");
 
         let had_invalidations =
             self.invalidations.flush(document_element, snapshots);
@@ -546,7 +546,7 @@ where
     pub fn flush_without_invalidation(&mut self) -> OriginSet {
         use std::mem;
 
-        debug!("StylesheetSet::flush_without_invalidation");
+        debug!("DocumentStylesheetSet::flush_without_invalidation");
 
         self.invalidations.clear();
         mem::replace(&mut self.origins_dirty, OriginSet::empty())

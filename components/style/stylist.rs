@@ -41,7 +41,7 @@ use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetFlusher};
+use stylesheet_set::{OriginValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -328,21 +328,21 @@ impl DocumentCascadeData {
     }
 }
 
-/// A wrapper over a StylesheetSet that can be `Sync`, since it's only used and
-/// exposed via mutable methods in the `Stylist`.
+/// A wrapper over a DocumentStylesheetSet that can be `Sync`, since it's only
+/// used and exposed via mutable methods in the `Stylist`.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-struct StylistStylesheetSet(StylesheetSet<StylistSheet>);
+struct StylistStylesheetSet(DocumentStylesheetSet<StylistSheet>);
 // Read above to see why this is fine.
 unsafe impl Sync for StylistStylesheetSet {}
 
 impl StylistStylesheetSet {
     fn new() -> Self {
-        StylistStylesheetSet(StylesheetSet::new())
+        StylistStylesheetSet(DocumentStylesheetSet::new())
     }
 }
 
 impl ops::Deref for StylistStylesheetSet {
-    type Target = StylesheetSet<StylistSheet>;
+    type Target = DocumentStylesheetSet<StylistSheet>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

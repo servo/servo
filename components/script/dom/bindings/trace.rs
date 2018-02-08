@@ -105,7 +105,7 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
-use style::stylesheet_set::StylesheetSet;
+use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
 use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule, ViewportRule};
 use style::stylesheets::keyframes_rule::Keyframe;
@@ -659,7 +659,7 @@ unsafe impl JSTraceable for StyleLocked<MediaList> {
     }
 }
 
-unsafe impl<S> JSTraceable for StylesheetSet<S>
+unsafe impl<S> JSTraceable for DocumentStylesheetSet<S>
 where
     S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
 {
