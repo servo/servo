@@ -41,7 +41,7 @@ use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{OriginValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
+use stylesheet_set::{DataValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -240,12 +240,12 @@ impl DocumentCascadeData {
     {
         debug_assert_ne!(origin, Origin::UserAgent);
 
-        let validity = flusher.origin_validity(origin);
+        let validity = flusher.data_validity(origin);
 
         match validity {
-            OriginValidity::Valid => {},
-            OriginValidity::CascadeInvalid => cascade_data.clear_cascade_data(),
-            OriginValidity::FullyInvalid => cascade_data.clear(),
+            DataValidity::Valid => {},
+            DataValidity::CascadeInvalid => cascade_data.clear_cascade_data(),
+            DataValidity::FullyInvalid => cascade_data.clear(),
         }
 
         let guard = guards.for_origin(origin);

@@ -105,7 +105,7 @@ where
 /// The validity of the data in a given cascade origin.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-pub enum OriginValidity {
+pub enum DataValidity {
     /// The origin is clean, all the data already there is valid, though we may
     /// have new sheets at the end.
     Valid = 0,
@@ -118,9 +118,9 @@ pub enum OriginValidity {
     FullyInvalid = 2,
 }
 
-impl Default for OriginValidity {
+impl Default for DataValidity {
     fn default() -> Self {
-        OriginValidity::Valid
+        DataValidity::Valid
     }
 }
 
@@ -131,7 +131,7 @@ where
 {
     origins_dirty: OriginSet,
     collections: &'a mut PerOrigin<SheetCollection<S>>,
-    origin_data_validity: PerOrigin<OriginValidity>,
+    origin_data_validity: PerOrigin<DataValidity>,
     author_style_disabled: bool,
     had_invalidations: bool,
 }
@@ -157,7 +157,7 @@ where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     /// The data validity for a given origin.
-    pub fn origin_validity(&self, origin: Origin) -> OriginValidity {
+    pub fn data_validity(&self, origin: Origin) -> DataValidity {
         *self.origin_data_validity.borrow_for_origin(&origin)
     }
 
@@ -191,11 +191,11 @@ where
     where
         'a: 'b
     {
-        let validity = self.origin_validity(origin);
+        let validity = self.data_validity(origin);
         let origin_dirty = self.origins_dirty.contains(origin.into());
 
         debug_assert!(
-            origin_dirty || validity == OriginValidity::Valid,
+            origin_dirty || validity == DataValidity::Valid,
             "origin_data_validity should be a subset of origins_dirty!"
         );
 
@@ -230,7 +230,7 @@ where
     S: StylesheetInDocument + PartialEq + 'static
 {
     iter: slice::IterMut<'a, StylesheetSetEntry<S>>,
-    validity: OriginValidity,
+    validity: DataValidity,
 }
 
 impl<'a, S> Iterator for PerOriginFlusher<'a, S>
@@ -253,9 +253,9 @@ where
             }
 
             let rebuild_kind = match self.validity {
-                OriginValidity::Valid => continue,
-                OriginValidity::CascadeInvalid => SheetRebuildKind::CascadeOnly,
-                OriginValidity::FullyInvalid => SheetRebuildKind::Full,
+                DataValidity::Valid => continue,
+                DataValidity::CascadeInvalid => SheetRebuildKind::CascadeOnly,
+                DataValidity::FullyInvalid => SheetRebuildKind::Full,
             };
 
             return Some((&potential_sheet.sheet, rebuild_kind));
@@ -277,10 +277,10 @@ where
     /// The validity of the data that was already there for a given origin.
     ///
     /// Note that an origin may appear on `origins_dirty`, but still have
-    /// `OriginValidity::Valid`, if only sheets have been appended into it (in
+    /// `DataValidity::Valid`, if only sheets have been appended into it (in
     /// which case the existing data is valid, but the origin needs to be
     /// rebuilt).
-    data_validity: OriginValidity,
+    data_validity: DataValidity,
 
     /// Whether anything in the collection has changed. Note that this is
     /// different from `data_validity`, in the sense that after a sheet append,
@@ -295,7 +295,7 @@ where
     fn default() -> Self {
         Self {
             entries: vec![],
-            data_validity: OriginValidity::Valid,
+            data_validity: DataValidity::Valid,
             dirty: false,
         }
     }
@@ -330,7 +330,7 @@ where
         // rebuilding the world when sites quickly append and remove a stylesheet.
         // See bug 1434756.
         if sheet.committed {
-            self.set_data_validity_at_least(OriginValidity::FullyInvalid);
+            self.set_data_validity_at_least(DataValidity::FullyInvalid);
         } else {
             self.dirty = true;
         }
@@ -361,14 +361,14 @@ where
 
         // Inserting stylesheets somewhere but at the end changes the validity
         // of the cascade data, but not the invalidation data.
-        self.set_data_validity_at_least(OriginValidity::CascadeInvalid);
+        self.set_data_validity_at_least(DataValidity::CascadeInvalid);
         self.entries.insert(index, StylesheetSetEntry::new(sheet));
     }
 
-    fn set_data_validity_at_least(&mut self, validity: OriginValidity) {
+    fn set_data_validity_at_least(&mut self, validity: DataValidity) {
         use std::cmp;
 
-        debug_assert_ne!(validity, OriginValidity::Valid);
+        debug_assert_ne!(validity, DataValidity::Valid);
 
         self.dirty = true;
         self.data_validity = cmp::max(validity, self.data_validity);
@@ -378,7 +378,7 @@ where
         debug_assert!(!self.contains(&sheet));
         // Inserting stylesheets somewhere but at the end changes the validity
         // of the cascade data, but not the invalidation data.
-        self.set_data_validity_at_least(OriginValidity::CascadeInvalid);
+        self.set_data_validity_at_least(DataValidity::CascadeInvalid);
         self.entries.insert(0, StylesheetSetEntry::new(sheet));
     }
 
@@ -513,7 +513,7 @@ where
         self.author_style_disabled = disabled;
         self.invalidations.invalidate_fully();
         self.collections.borrow_mut_for_origin(&Origin::Author)
-            .set_data_validity_at_least(OriginValidity::FullyInvalid)
+            .set_data_validity_at_least(DataValidity::FullyInvalid)
     }
 
     /// Returns whether the given set has changed from the last flush.
@@ -539,17 +539,17 @@ where
             self.invalidations.flush(document_element, snapshots);
 
         let mut origins_dirty = OriginSet::empty();
-        let mut origin_data_validity = PerOrigin::<OriginValidity>::default();
+        let mut origin_data_validity = PerOrigin::<DataValidity>::default();
         for (collection, origin) in self.collections.iter_mut_origins() {
             let was_dirty = mem::replace(&mut collection.dirty, false);
             if !was_dirty {
-                debug_assert_eq!(collection.data_validity, OriginValidity::Valid);
+                debug_assert_eq!(collection.data_validity, DataValidity::Valid);
                 continue;
             }
 
             origins_dirty |= origin;
             *origin_data_validity.borrow_mut_for_origin(&origin) =
-                mem::replace(&mut collection.data_validity, OriginValidity::Valid);
+                mem::replace(&mut collection.data_validity, DataValidity::Valid);
         }
 
         StylesheetFlusher {
@@ -594,7 +594,7 @@ where
             // We don't know what happened, assume the worse.
             self.collections
                 .borrow_mut_for_origin(&origin)
-                .set_data_validity_at_least(OriginValidity::FullyInvalid);
+                .set_data_validity_at_least(DataValidity::FullyInvalid);
         }
     }
 }
