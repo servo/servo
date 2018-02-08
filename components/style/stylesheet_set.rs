@@ -587,3 +587,29 @@ where
         }
     }
 }
+
+/// The set of stylesheets effective for a given XBL binding or Shadow Root.
+pub struct AuthorStylesheetSet<S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    /// The actual style sheets.
+    collection: SheetCollection<S>,
+    /// The set of invalidations scheduled for this collection.
+    invalidations: StylesheetInvalidationSet,
+}
+
+impl<S> AuthorStylesheetSet<S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    fn collection_for(
+        &mut self,
+        _sheet: &S,
+        _guard: &SharedRwLockReadGuard,
+    ) -> &mut SheetCollection<S> {
+        &mut self.collection
+    }
+
+    sheet_set_methods!("AuthorStylesheetSet");
+}
