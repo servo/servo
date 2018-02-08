@@ -444,7 +444,6 @@ impl TextControlElement for HTMLInputElement {
     }
 }
 
-
 impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_getter!(Accept, "accept");
@@ -804,8 +803,6 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
 
     do_broadcast(doc.upcast(), broadcaster, owner.r(), group)
 }
-
-
 
 // https://html.spec.whatwg.org/multipage/#radio-button-group
 fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
