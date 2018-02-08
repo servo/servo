@@ -32,9 +32,8 @@ use std::default::Default;
 use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContext as CssParserContext;
-use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Stylesheet};
-use style_traits::ParsingMode;
+use style_traits::{HTML_SPACE_CHARACTERS, ParsingMode};
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]

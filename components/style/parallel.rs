@@ -24,11 +24,12 @@
 
 use arrayvec::ArrayVec;
 use context::{StyleContext, ThreadLocalStyleContext};
-use dom::{OpaqueNode, SendNode, TElement};
+use dom::{SendNode, TElement};
 use itertools::Itertools;
 use rayon;
 use scoped_tls::ScopedTLS;
 use smallvec::SmallVec;
+use style_traits::OpaqueNode;
 use traversal::{DomTraversal, PerLevelTraversalData};
 
 /// The minimum stack size for a thread in the styling pool, in kilobytes.

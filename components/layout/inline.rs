@@ -20,7 +20,6 @@ use fragment::FragmentFlags;
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
-use gfx::font_context::FontContext;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
@@ -43,6 +42,7 @@ use style::values::computed::box_::VerticalAlign;
 use style::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use style::values::specified::text::TextOverflowSide;
 use text;
+use text::FontContext;
 use traversal::PreorderFlowTraversal;
 use unicode_bidi as bidi;
 

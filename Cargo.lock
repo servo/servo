@@ -998,7 +998,7 @@ dependencies = [
  "servo_url 0.0.1",
  "simd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "style 0.0.1",
+ "style_traits 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "truetype 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2447,6 +2447,7 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "style 0.0.1",
+ "style_traits 0.0.1",
  "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
 ]
 
@@ -2974,6 +2975,7 @@ dependencies = [
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
+ "servo_url 0.0.1",
  "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
 ]
 

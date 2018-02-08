@@ -22,8 +22,10 @@ use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
+use style_traits;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
+use style_traits::values::font::EffectiveSources;
 use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
 use values::specified::font::SpecifiedFontFeatureSettings;
@@ -146,12 +148,6 @@ pub fn parse_font_face_block<R>(context: &ParserContext,
 #[cfg(feature = "servo")]
 pub struct FontFace<'a>(&'a FontFaceRuleData);
 
-/// A list of effective sources that we send over through IPC to the font cache.
-#[cfg(feature = "servo")]
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct EffectiveSources(Vec<Source>);
-
 #[cfg(feature = "servo")]
 impl<'a> FontFace<'a> {
     /// Returns the list of effective sources for that font-face, that is the
@@ -170,19 +166,12 @@ impl<'a> FontFace<'a> {
             } else {
                 true
             }
-        }).cloned().collect())
-    }
-}
-
-#[cfg(feature = "servo")]
-impl Iterator for EffectiveSources {
-    type Item = Source;
-    fn next(&mut self) -> Option<Source> {
-        self.0.pop()
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.0.len(), Some(self.0.len()))
+        }).map(|source| {
+            match *source {
+                Source::Url(ref url) => style_traits::values::font::Source::Url(url.url.url().map(|x| x.clone())),
+                Source::Local(ref name) => style_traits::values::font::Source::Local(name.name.clone()),
+            }
+        }).collect())
     }
 }
 

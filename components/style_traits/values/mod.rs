@@ -4,6 +4,8 @@
 
 //! Helper types and traits for the handling of CSS values.
 
+pub mod font;
+
 use app_units::Au;
 use cssparser::{ParseError, Parser, Token, UnicodeRange, serialize_string};
 use cssparser::ToCss as CssparserToCss;

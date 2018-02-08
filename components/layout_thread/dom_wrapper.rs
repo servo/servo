@@ -65,7 +65,7 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
+use style::dom::{DomChildren, LayoutIterator, NodeInfo};
 use style::dom::{TDocument, TElement, TNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
@@ -74,6 +74,7 @@ use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, P
 use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
+use style_traits::OpaqueNode;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
     let ptr = data.ptr.as_ptr() as *mut StyleData;

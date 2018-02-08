@@ -13,29 +13,10 @@ use std::convert::AsRef;
 use std::fmt::{self, Write};
 use std::iter::{Filter, Peekable};
 use std::str::Split;
-
-/// A static slice of characters.
-pub type StaticCharVec = &'static [char];
+use style_traits::{char_is_whitespace, HTML_SPACE_CHARACTERS};
 
 /// A static slice of `str`s.
 pub type StaticStringVec = &'static [&'static str];
-
-/// A "space character" according to:
-///
-/// <https://html.spec.whatwg.org/multipage/#space-character>
-pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
-    '\u{0020}',
-    '\u{0009}',
-    '\u{000a}',
-    '\u{000c}',
-    '\u{000d}',
-];
-
-/// Whether a character is a HTML whitespace character.
-#[inline]
-pub fn char_is_whitespace(c: char) -> bool {
-    HTML_SPACE_CHARACTERS.contains(&c)
-}
 
 /// Whether all the string is HTML whitespace.
 #[inline]
@@ -49,7 +30,7 @@ fn not_empty(&split: &&str) -> bool { !split.is_empty() }
 /// Split a string on HTML whitespace.
 #[inline]
 pub fn split_html_space_chars<'a>(s: &'a str) ->
-                                  Filter<Split<'a, StaticCharVec>, fn(&&str) -> bool> {
+                                  Filter<Split<'a, &'static [char]>, fn(&&str) -> bool> {
     s.split(HTML_SPACE_CHARACTERS).filter(not_empty as fn(&&str) -> bool)
 }
 

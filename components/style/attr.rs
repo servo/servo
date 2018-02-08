@@ -18,9 +18,10 @@ use servo_url::ServoUrl;
 use shared_lock::Locked;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::str::FromStr;
-use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
+use str::{read_exponent, read_fraction};
 use str::{read_numbers, split_commas, split_html_space_chars};
 use str::str_join;
+use style_traits::HTML_SPACE_CHARACTERS;
 use values::specified::Length;
 
 // Duplicated from script::dom::values.

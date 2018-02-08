@@ -25,8 +25,8 @@ use servo_config::prefs::PREFS;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
-use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, StylesheetContents, CssRule, CssRules, Origin, ViewportRule};
+use style_traits::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct HTMLMetaElement {

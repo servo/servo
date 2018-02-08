@@ -21,8 +21,7 @@ use platform::macos::font_context::FontContextHandle;
 use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
-use style::computed_values::font_stretch::T as FontStretch;
-use style::computed_values::font_weight::T as FontWeight;
+use style_traits::values::font::{FontStretch, FontWeight};
 use text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;

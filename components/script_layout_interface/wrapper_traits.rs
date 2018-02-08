@@ -20,11 +20,11 @@ use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, TElement, TNode};
-use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylist::RuleInclusion;
+use style_traits::OpaqueNode;
 use webrender_api::ClipId;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

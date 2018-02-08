@@ -6,7 +6,7 @@
 
 use context::{ElementCascadeInputs, StyleContext, SharedStyleContext};
 use data::{ElementData, ElementStyles};
-use dom::{NodeInfo, OpaqueNode, TElement, TNode};
+use dom::{NodeInfo, TElement, TNode};
 use invalidation::element::restyle_hints::RestyleHint;
 use matching::{ChildCascadeRequirement, MatchMethods};
 use selector_parser::PseudoElement;
@@ -14,6 +14,7 @@ use selectors::NthIndexCache;
 use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
 use style_resolver::{PseudoElementResolution, StyleResolverForElement};
+use style_traits::OpaqueNode;
 use stylist::RuleInclusion;
 use traversal_flags::TraversalFlags;
 

@@ -9,7 +9,7 @@
 use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr, SourceLocation};
-use dom::{OpaqueNode, TElement, TNode};
+use dom::{TElement, TNode};
 use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
 use invalidation::element::document_state::InvalidationMatchingData;
@@ -23,7 +23,7 @@ use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use style_traits::{ParseError, StyleParseErrorKind};
+use style_traits::{OpaqueNode, ParseError, StyleParseErrorKind};
 
 /// A pseudo-element, both public and private.
 ///

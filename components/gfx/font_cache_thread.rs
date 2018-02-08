@@ -25,8 +25,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::u32;
-use style::font_face::{EffectiveSources, Source};
-use style::values::computed::font::{SingleFontFamily, FamilyName};
+use style_traits::values::font::{EffectiveSources, Source};
 use webrender_api;
 
 /// A list of font templates that make up a given font family.
@@ -105,7 +104,7 @@ impl FontTemplates {
 /// Commands that the FontContext sends to the font cache thread.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Command {
-    GetFontTemplate(SingleFontFamily, FontTemplateDescriptor, IpcSender<Reply>),
+    GetFontTemplate(LowercaseString, FontTemplateDescriptor, IpcSender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
     GetFontInstance(webrender_api::FontKey, Au, IpcSender<webrender_api::FontInstanceKey>),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
@@ -124,7 +123,7 @@ pub enum Reply {
 struct FontCache {
     port: IpcReceiver<Command>,
     channel_to_self: IpcSender<Command>,
-    generic_fonts: HashMap<SingleFontFamily, LowercaseString>,
+    generic_fonts: HashMap<LowercaseString, LowercaseString>,
     local_families: HashMap<LowercaseString, FontTemplates>,
     web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
@@ -134,20 +133,20 @@ struct FontCache {
     font_instances: HashMap<(webrender_api::FontKey, Au), webrender_api::FontInstanceKey>,
 }
 
-fn populate_generic_fonts() -> HashMap<SingleFontFamily, LowercaseString> {
+fn populate_generic_fonts() -> HashMap<LowercaseString, LowercaseString> {
     let mut generic_fonts = HashMap::with_capacity(5);
 
-    append_map(&mut generic_fonts, SingleFontFamily::Generic(atom!("serif")), "Times New Roman");
-    append_map(&mut generic_fonts, SingleFontFamily::Generic(atom!("sans-serif")), SANS_SERIF_FONT_FAMILY);
-    append_map(&mut generic_fonts, SingleFontFamily::Generic(atom!("cursive")), "Apple Chancery");
-    append_map(&mut generic_fonts, SingleFontFamily::Generic(atom!("fantasy")), "Papyrus");
-    append_map(&mut generic_fonts, SingleFontFamily::Generic(atom!("monospace")), "Menlo");
+    append_map(&mut generic_fonts, LowercaseString::new("serif"), "Times New Roman");
+    append_map(&mut generic_fonts, LowercaseString::new("sans-serif"), SANS_SERIF_FONT_FAMILY);
+    append_map(&mut generic_fonts, LowercaseString::new("cursive"), "Apple Chancery");
+    append_map(&mut generic_fonts, LowercaseString::new("fantasy"), "Papyrus");
+    append_map(&mut generic_fonts, LowercaseString::new("monospace"), "Menlo");
 
-    fn append_map(generic_fonts: &mut HashMap<SingleFontFamily, LowercaseString>,
-                  font_family: SingleFontFamily,
+    fn append_map(generic_fonts: &mut HashMap<LowercaseString, LowercaseString>,
+                  font_family: LowercaseString,
                   mapped_name: &str) {
         let family_name = {
-            let opt_system_default = system_default_family(font_family.name());
+            let opt_system_default = system_default_family(&font_family);
             match opt_system_default {
                 Some(system_default) => LowercaseString::new(&system_default),
                 None => LowercaseString::new(mapped_name)
@@ -230,7 +229,7 @@ impl FontCache {
         match src {
             Source::Url(url_source) => {
                 // https://drafts.csswg.org/css-fonts/#font-fetching-requirements
-                let url = match url_source.url.url() {
+                let url = match url_source {
                     Some(url) => url.clone(),
                     None => return,
                 };
@@ -292,7 +291,7 @@ impl FontCache {
                 });
             }
             Source::Local(ref font) => {
-                let font_face_name = LowercaseString::new(&font.name);
+                let font_face_name = LowercaseString::new(&font);
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                 let mut found = false;
                 for_each_variation(&font_face_name, |path| {
@@ -320,9 +319,9 @@ impl FontCache {
         });
     }
 
-    fn transform_family(&self, family: &SingleFontFamily) -> LowercaseString {
-        match self.generic_fonts.get(family) {
-            None => LowercaseString::new(family.name()),
+    fn transform_family(&self, family_name: &LowercaseString) -> LowercaseString {
+        match self.generic_fonts.get(family_name) {
+            None => LowercaseString::new(family_name),
             Some(mapped_family) => (*mapped_family).clone()
         }
     }
@@ -351,9 +350,9 @@ impl FontCache {
         }
     }
 
-    fn find_font_in_web_family(&mut self, family: &SingleFontFamily, desc: &FontTemplateDescriptor)
+    fn find_font_in_web_family(&mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
-        let family_name = LowercaseString::new(family.name());
+        let family_name = LowercaseString::new(family_name);
 
         if self.web_families.contains_key(&family_name) {
             let templates = self.web_families.get_mut(&family_name).unwrap();
@@ -385,11 +384,11 @@ impl FontCache {
         }
     }
 
-    fn find_font_template(&mut self, family: &SingleFontFamily, desc: &FontTemplateDescriptor)
+    fn find_font_template(&mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
                             -> Option<FontTemplateInfo> {
-        let template = self.find_font_in_web_family(family, desc)
+        let template = self.find_font_in_web_family(family_name, desc)
             .or_else(|| {
-                let transformed_family = self.transform_family(family);
+                let transformed_family = self.transform_family(family_name);
                 self.find_font_in_local_family(&transformed_family, desc)
             });
 
@@ -453,11 +452,11 @@ impl FontCacheThread {
         }
     }
 
-    pub fn find_font_template(&self, family: SingleFontFamily, desc: FontTemplateDescriptor)
+    pub fn find_font_template(&self, family_name: &str, desc: FontTemplateDescriptor)
                                                 -> Option<FontTemplateInfo> {
         let (response_chan, response_port) =
             ipc::channel().expect("failed to create IPC channel");
-        self.chan.send(Command::GetFontTemplate(family, desc, response_chan))
+        self.chan.send(Command::GetFontTemplate(LowercaseString::new(family_name), desc, response_chan))
             .expect("failed to send message to font cache thread");
 
         let reply = response_port.recv()
@@ -487,8 +486,8 @@ impl FontCacheThread {
         }
     }
 
-    pub fn add_web_font(&self, family: FamilyName, sources: EffectiveSources, sender: IpcSender<()>) {
-        self.chan.send(Command::AddWebFont(LowercaseString::new(&family.name), sources, sender)).unwrap();
+    pub fn add_web_font(&self, family_name: &str, sources: EffectiveSources, sender: IpcSender<()>) {
+        self.chan.send(Command::AddWebFont(LowercaseString::new(family_name), sources, sender)).unwrap();
     }
 
     pub fn get_font_instance(&self, key: webrender_api::FontKey, size: Au) -> webrender_api::FontInstanceKey {

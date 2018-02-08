@@ -1875,12 +1875,14 @@ pub use gecko_properties::style_structs;
 /// The module where all the style structs are defined.
 #[cfg(feature = "servo")]
 pub mod style_structs {
+    use app_units::Au;
     use fnv::FnvHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
     use logical_geometry::WritingMode;
     use media_queries::Device;
     use values::computed::NonNegativeLength;
+    use style_traits::values::font::{FontStretch, FontStyleStruct, FontVariantCaps, FontWeight};
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -1918,6 +1920,41 @@ pub mod style_structs {
                 % for longhand in style_struct.longhands:
                     && self.${longhand.ident} == other.${longhand.ident}
                 % endfor
+            }
+        }
+
+        impl FontStyleStruct for Font {
+            fn get_size(&self) -> Au {
+                self.font_size.size()
+            }
+
+            fn get_hash(&self) -> u64 {
+                self.hash
+            }
+
+            fn get_font_stretch(&self) -> FontStretch {
+                self.font_stretch.into()
+            }
+
+            fn get_font_variant_caps(&self) -> FontVariantCaps {
+                self.font_variant_caps.into()
+            }
+
+            fn get_font_weight(&self) -> FontWeight {
+                self.font_weight
+            }
+
+            fn each_font_family<F>(&self, mut f: F)
+            where F: FnMut(&str)
+            {
+                for ref family in self.font_family.0.iter() {
+                    f(family.name());
+                }
+            }
+
+            fn is_oblique_or_italic(&self) -> bool {
+                self.font_style == longhands::font_style::computed_value::T::Oblique ||
+                self.font_style == longhands::font_style::computed_value::T::Italic
             }
         }
         % endif

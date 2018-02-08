@@ -8,7 +8,7 @@
 use Atom;
 use bezier::Bezier;
 use context::SharedStyleContext;
-use dom::{OpaqueNode, TElement};
+use dom::{TElement};
 use font_metrics::FontMetricsProvider;
 use properties::{self, CascadeFlags, ComputedValues, LonghandId};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
@@ -18,6 +18,7 @@ use rule_tree::CascadeLevel;
 use servo_arc::Arc;
 use std::sync::mpsc::Sender;
 use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
+use style_traits::OpaqueNode;
 use timer::Timer;
 use values::computed::Time;
 use values::computed::transform::TimingFunction;

@@ -411,7 +411,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
         stylesheet.effective_font_face_rules(&device, guard, |rule| {
             if let Some(font_face) = rule.font_face() {
                 let effective_sources = font_face.effective_sources();
-                font_cache_thread.add_web_font(font_face.family().clone(),
+                font_cache_thread.add_web_font(&font_face.family().name,
                                                effective_sources,
                                                sender.clone());
                 receiver.recv().unwrap();
@@ -422,7 +422,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
             if let Some(font_face) = rule.font_face() {
                 let effective_sources = font_face.effective_sources();
                 outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-                font_cache_thread.add_web_font(font_face.family().clone(),
+                font_cache_thread.add_web_font(&font_face.family().name,
                                               effective_sources,
                                               (*font_cache_sender).clone());
             }

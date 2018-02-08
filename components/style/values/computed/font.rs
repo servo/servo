@@ -4,9 +4,13 @@
 
 //! Computed values for font properties
 
-use Atom;
 use app_units::Au;
+use Atom;
 use byteorder::{BigEndian, ByteOrder};
+#[cfg(feature = "servo")]
+use computed_values::font_stretch::T as ComputedFontStretch;
+#[cfg(feature = "servo")]
+use computed_values::font_variant_caps::T as ComputedFontVariantCaps;
 use cssparser::{CssStringWriter, Parser, serialize_identifier};
 #[cfg(feature = "gecko")]
 use gecko_bindings::{bindings, structs};
@@ -20,9 +24,12 @@ use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
+#[cfg(feature = "servo")]
+use style_traits::values::font::{FontStretch, FontVariantCaps};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue, Integer, Number};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::font::{FontSettings, FeatureTagValue, VariationValue};
 use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
@@ -30,14 +37,7 @@ use values::specified::length::{FontBaseSize, NoCalcLength};
 pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::{XTextZoom, XLang, MozScriptSizeMultiplier, FontSynthesis};
 
-/// As of CSS Fonts Module Level 3, only the following values are
-/// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
-///
-/// However, system fonts may provide other values. Pango
-/// may provide 350, 380, and 1000 (on top of the existing values), for example.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct FontWeight(pub u16);
+pub use style_traits::values::font::{FontWeight};
 
 #[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -90,61 +90,6 @@ impl From<specified::KeywordSize> for KeywordInfo {
             kw: x,
             factor: 1.,
             offset: Au(0).into(),
-        }
-    }
-}
-
-impl FontWeight {
-    /// Value for normal
-    pub fn normal() -> Self {
-        FontWeight(400)
-    }
-
-    /// Value for bold
-    pub fn bold() -> Self {
-        FontWeight(700)
-    }
-
-    /// Convert from an integer to Weight
-    pub fn from_int(n: i32) -> Result<Self, ()> {
-        if n >= 100 && n <= 900 && n % 100 == 0 {
-            Ok(FontWeight(n as u16))
-        } else {
-            Err(())
-        }
-    }
-
-    /// Convert from an Gecko weight
-    pub fn from_gecko_weight(weight: u16) -> Self {
-        // we allow a wider range of weights than is parseable
-        // because system fonts may provide custom values
-        FontWeight(weight)
-    }
-
-    /// Weither this weight is bold
-    pub fn is_bold(&self) -> bool {
-        self.0 > 500
-    }
-
-    /// Return the bolder weight
-    pub fn bolder(self) -> Self {
-        if self.0 < 400 {
-            FontWeight(400)
-        } else if self.0 < 600 {
-            FontWeight(700)
-        } else {
-            FontWeight(900)
-        }
-    }
-
-    /// Returns the lighter weight
-    pub fn lighter(self) -> Self {
-        if self.0 < 600 {
-            FontWeight(100)
-        } else if self.0 < 800 {
-            FontWeight(400)
-        } else {
-            FontWeight(700)
         }
     }
 }
@@ -823,5 +768,38 @@ impl ToComputedValue for specified::MozScriptLevel {
 
     fn from_computed_value(other: &i8) -> Self {
         specified::MozScriptLevel::MozAbsolute(*other as i32)
+    }
+}
+#[cfg(feature = "servo")]
+impl ComputeSquaredDistance for FontWeight {
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        Ok(SquaredDistance::Sqrt((self.0 as f64 - other.0 as f64).abs() as f64))
+    }
+}
+
+#[cfg(feature = "servo")]
+impl From<ComputedFontStretch> for FontStretch {
+    fn from(value: ComputedFontStretch) -> FontStretch {
+        match value {
+            ComputedFontStretch::Normal => FontStretch::Normal,
+            ComputedFontStretch::UltraCondensed => FontStretch::UltraCondensed,
+            ComputedFontStretch::ExtraCondensed => FontStretch::ExtraCondensed,
+            ComputedFontStretch::Condensed => FontStretch::Condensed,
+            ComputedFontStretch::SemiCondensed => FontStretch::SemiCondensed,
+            ComputedFontStretch::SemiExpanded => FontStretch::SemiExpanded,
+            ComputedFontStretch::Expanded => FontStretch::Expanded,
+            ComputedFontStretch::ExtraExpanded => FontStretch::ExtraExpanded,
+            ComputedFontStretch::UltraExpanded => FontStretch::UltraExpanded,
+        }
+    }
+}
+
+#[cfg(feature = "servo")]
+impl From<ComputedFontVariantCaps> for FontVariantCaps {
+    fn from(value: ComputedFontVariantCaps) -> FontVariantCaps {
+        match value {
+            ComputedFontVariantCaps::Normal => FontVariantCaps::Normal,
+            ComputedFontVariantCaps::SmallCaps => FontVariantCaps::SmallCaps,
+        }
     }
 }

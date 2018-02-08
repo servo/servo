@@ -14,7 +14,7 @@ use dom::node::window_from_node;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use servo_atoms::Atom;
-use style::str::HTML_SPACE_CHARACTERS;
+use style_traits::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct DOMTokenList {

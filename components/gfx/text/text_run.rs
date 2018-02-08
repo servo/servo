@@ -11,7 +11,7 @@ use std::cell::Cell;
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
-use style::str::char_is_whitespace;
+use style_traits::char_is_whitespace;
 use text::glyph::{ByteIndex, GlyphStore};
 use unicode_bidi as bidi;
 use webrender_api;
