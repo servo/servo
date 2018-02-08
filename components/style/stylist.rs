@@ -41,7 +41,7 @@ use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{AuthorStylesEnabled, DataValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
+use stylesheet_set::{DataValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -332,6 +332,16 @@ impl DocumentCascadeData {
     }
 }
 
+/// Whether author styles are enabled.
+///
+/// This is used to support Gecko.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+pub enum AuthorStylesEnabled {
+    Yes,
+    No,
+}
+
 /// A wrapper over a DocumentStylesheetSet that can be `Sync`, since it's only
 /// used and exposed via mutable methods in the `Stylist`.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
@@ -397,6 +407,9 @@ pub struct Stylist {
     /// cascade level.
     cascade_data: DocumentCascadeData,
 
+    /// Whether author styles are enabled.
+    author_styles_enabled: AuthorStylesEnabled,
+
     /// The rule tree, that stores the results of selector matching.
     rule_tree: RuleTree,
 
@@ -437,6 +450,7 @@ impl Stylist {
             quirks_mode,
             stylesheets: StylistStylesheetSet::new(),
             cascade_data: Default::default(),
+            author_styles_enabled: AuthorStylesEnabled::Yes,
             rule_tree: RuleTree::new(),
             num_rebuilds: 0,
         }
@@ -593,7 +607,7 @@ impl Stylist {
 
     /// Sets whether author style is enabled or not.
     pub fn set_author_styles_enabled(&mut self, enabled: AuthorStylesEnabled) {
-        self.stylesheets.set_author_styles_enabled(enabled);
+        self.author_styles_enabled = enabled;
     }
 
     /// Returns whether we've recorded any stylesheet change so far.
@@ -1221,8 +1235,11 @@ impl Stylist {
 
         let only_default_rules =
             rule_inclusion == RuleInclusion::DefaultOnly;
-        let matches_user_and_author_rules =
+        let matches_user_rules =
             rule_hash_target.matches_user_and_author_rules();
+        let matches_author_rules =
+            matches_user_rules &&
+            self.author_styles_enabled == AuthorStylesEnabled::Yes;
 
         // Step 1: Normal user-agent rules.
         if let Some(map) = self.cascade_data.user_agent.cascade_data.normal_rules(pseudo_element) {
@@ -1260,7 +1277,7 @@ impl Stylist {
         //      rule_hash_target.matches_user_and_author_rules())
         //
         // Which may be more what you would probably expect.
-        if matches_user_and_author_rules {
+        if matches_user_rules {
             // Step 3a: User normal rules.
             if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
@@ -1280,7 +1297,7 @@ impl Stylist {
         // particular, normally document rules override ::slotted() rules, but
         // for !important it should be the other way around. So probably we need
         // to add some sort of AuthorScoped cascade level or something.
-        if !only_default_rules {
+        if matches_author_rules && !only_default_rules {
             // Match slotted rules in reverse order, so that the outer slotted
             // rules come before the inner rules (and thus have less priority).
             let mut slots = SmallVec::<[_; 3]>::new();
@@ -1308,9 +1325,9 @@ impl Stylist {
 
         // FIXME(emilio): It looks very wrong to match XBL / Shadow DOM rules
         // even for getDefaultComputedStyle!
+        //
+        // Also, this doesn't account for the author_styles_enabled stuff.
         let cut_off_inheritance = element.each_xbl_stylist(|stylist| {
-            // ServoStyleSet::CreateXBLServoStyleSet() loads XBL style sheets
-            // under eAuthorSheetFeatures level.
             if let Some(map) = stylist.cascade_data.author.normal_rules(pseudo_element) {
                 // NOTE(emilio): This is needed because the XBL stylist may
                 // think it has a different quirks mode than the document.
@@ -1337,9 +1354,7 @@ impl Stylist {
             }
         });
 
-        if matches_user_and_author_rules && !only_default_rules &&
-            !cut_off_inheritance
-        {
+        if matches_author_rules && !only_default_rules && !cut_off_inheritance {
             // Step 3c: Author normal rules.
             if let Some(map) = self.cascade_data.author.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(

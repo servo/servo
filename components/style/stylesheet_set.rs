@@ -124,16 +124,6 @@ impl Default for DataValidity {
     }
 }
 
-/// Whether author styles are enabled.
-///
-/// This is used to support Gecko.
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum AuthorStylesEnabled {
-    Yes,
-    No,
-}
-
 /// A struct to iterate over the different stylesheets to be flushed.
 pub struct StylesheetFlusher<'a, S>
 where
@@ -142,7 +132,6 @@ where
     origins_dirty: OriginSet,
     collections: &'a mut PerOrigin<SheetCollection<S>>,
     origin_data_validity: PerOrigin<DataValidity>,
-    author_styles_enabled: AuthorStylesEnabled,
     had_invalidations: bool,
 }
 
@@ -209,14 +198,6 @@ where
             "origin_data_validity should be a subset of origins_dirty!"
         );
 
-        if self.author_styles_enabled == AuthorStylesEnabled::No &&
-            origin == Origin::Author
-        {
-            return PerOriginFlusher {
-                iter: [].iter_mut(),
-                validity,
-            }
-        }
         PerOriginFlusher {
             iter: self.collections.borrow_mut_for_origin(&origin).entries.iter_mut(),
             validity,
@@ -411,9 +392,6 @@ where
 
     /// The invalidations for stylesheets added or removed from this document.
     invalidations: StylesheetInvalidationSet,
-
-    /// Whether author styles are enabled.
-    author_styles_enabled: AuthorStylesEnabled,
 }
 
 impl<S> DocumentStylesheetSet<S>
@@ -425,7 +403,6 @@ where
         Self {
             collections: Default::default(),
             invalidations: StylesheetInvalidationSet::new(),
-            author_styles_enabled: AuthorStylesEnabled::Yes,
         }
     }
 
@@ -510,18 +487,6 @@ where
         self.collections.borrow_mut_for_origin(&origin).remove(&sheet)
     }
 
-    /// Notes that the author style has been disabled for this document.
-    pub fn set_author_styles_enabled(&mut self, enabled: AuthorStylesEnabled) {
-        debug!("DocumentStylesheetSet::set_author_styles_enabled");
-        if self.author_styles_enabled == enabled {
-            return;
-        }
-        self.author_styles_enabled = enabled;
-        self.invalidations.invalidate_fully();
-        self.collections.borrow_mut_for_origin(&Origin::Author)
-            .set_data_validity_at_least(DataValidity::FullyInvalid)
-    }
-
     /// Returns whether the given set has changed from the last flush.
     pub fn has_changed(&self) -> bool {
         self.collections.iter_origins().any(|(collection, _)| collection.dirty)
@@ -560,7 +525,6 @@ where
 
         StylesheetFlusher {
             collections: &mut self.collections,
-            author_styles_enabled: self.author_styles_enabled,
             had_invalidations,
             origins_dirty,
             origin_data_validity,
