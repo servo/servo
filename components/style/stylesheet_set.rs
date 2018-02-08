@@ -367,6 +367,9 @@ where
 
     fn set_data_validity_at_least(&mut self, validity: OriginValidity) {
         use std::cmp;
+
+        debug_assert_ne!(validity, OriginValidity::Valid);
+
         self.dirty = true;
         self.data_validity = cmp::max(validity, self.data_validity);
     }
