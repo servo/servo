@@ -335,23 +335,41 @@ impl Clone for PropertyDeclaration {
             [copy, others] = [list(g) for _, g in groupby(variants, key=lambda x: not x["copy"])]
         %>
 
+        let self_tag = unsafe {
+            (*(self as *const _ as *const PropertyDeclarationVariantRepr<()>)).tag
+        };
+        if self_tag <= LonghandId::${copy[-1]["name"]} as u16 {
+            #[derive(Clone, Copy)]
+            #[repr(u16)]
+            enum CopyVariants {
+                % for v in copy:
+                _${v["name"]}(${v["type"]}),
+                % endfor
+            }
+
+            unsafe {
+                let mut out = mem::uninitialized();
+                ptr::write(
+                    &mut out as *mut _ as *mut CopyVariants,
+                    *(self as *const _ as *const CopyVariants),
+                );
+                return out;
+            }
+        }
+
         match *self {
             ${" |\n".join("{}(..)".format(v["name"]) for v in copy)} => {
-                #[derive(Clone, Copy)]
-                #[repr(u16)]
-                enum CopyVariants {
-                    % for v in copy:
-                    _${v["name"]}(${v["type"]}),
-                    % endfor
-                }
+                #[cfg(debug_assertions)]
+                unreachable!();
+                #[cfg(not(debug_assertions))]
+                {
+                    #[inline(always)]
+                    unsafe fn unreachable() -> ! {
+                        enum Void {}
+                        match *(&() as *const _ as *const Void) {}
+                    }
 
-                unsafe {
-                    let mut out = mem::uninitialized();
-                    ptr::write(
-                        &mut out as *mut _ as *mut CopyVariants,
-                        *(self as *const _ as *const CopyVariants),
-                    );
-                    out
+                    unsafe { unreachable() }
                 }
             }
             % for ty, vs in groupby(others, key=lambda x: x["type"]):
