@@ -660,7 +660,19 @@ ${helpers.predefined_type(
     products="gecko",
     gecko_pref="layout.css.shape-outside.enabled",
     animation_value_type="ComputedValue",
+    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-image-threshold-property",
+)}
+
+${helpers.predefined_type(
+    "shape-margin",
+    "NonNegativeLengthOrPercentage",
+    "computed::NonNegativeLengthOrPercentage::zero()",
+    products="gecko",
+    gecko_pref="layout.css.shape-outside.enabled",
+    animation_value_type="NonNegativeLengthOrPercentage",
+    flags="APPLIES_TO_FIRST_LETTER",
+    spec="https://drafts.csswg.org/css-shapes/#shape-margin-property",
 )}
 
 ${helpers.predefined_type(
