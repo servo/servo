@@ -457,6 +457,11 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                     // TODO(pcwalton): Specify which frame's load completed.
                     self.compositor.window.load_end(top_level_browsing_context);
                 },
+                (EmbedderMsg::Panic(top_level_browsing_context, reason, backtrace),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.handle_panic(top_level_browsing_context, reason, backtrace);
+                },
+
             }
         }
     }

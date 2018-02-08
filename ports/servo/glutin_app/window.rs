@@ -1354,6 +1354,10 @@ impl WindowMethods for Window {
     fn supports_clipboard(&self) -> bool {
         true
     }
+
+    fn handle_panic(&self, _: BrowserId, _reason: String, _backtrace: Option<String>) {
+        // Nothing to do here yet. The crash has already been reported on the console.
+    }
 }
 
 fn glutin_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {

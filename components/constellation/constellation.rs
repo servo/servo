@@ -1482,7 +1482,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_panic(&mut self,
                     top_level_browsing_context_id: TopLevelBrowsingContextId,
                     reason: String,
-                    _backtrace: Option<String>)
+                    backtrace: Option<String>)
     {
         if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
@@ -1495,7 +1495,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
 
-        // FIXME: report to embedder: (top_level_browsing_context_id, reason, backtrace);
+        self.embedder_proxy.send(EmbedderMsg::Panic(top_level_browsing_context_id, reason, backtrace));
 
         let (window_size, pipeline_id) = {
             let browsing_context = self.browsing_contexts.get(&browsing_context_id);
