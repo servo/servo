@@ -240,6 +240,10 @@ impl DocumentCascadeData {
     {
         debug_assert_ne!(origin, Origin::UserAgent);
 
+        if !flusher.origin_dirty(origin) {
+            return Ok(());
+        }
+
         let validity = flusher.data_validity(origin);
 
         match validity {
