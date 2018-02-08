@@ -22,7 +22,7 @@ test(() => {
 
 test(() => {
   const result = new CSSVariableReferenceValue('--foo',
-      new CSSUnparsedValue('lemon'));
+      new CSSUnparsedValue(['lemon']));
 
   assert_not_equals(result, null,
       'A CSSVariableReferenceValue should be created');
@@ -30,7 +30,7 @@ test(() => {
       'Variable member should be same as passed in the constructor');
   assert_not_equals(result.fallback, null,
       'Fallback member should not be null');
-  assert_style_value_equals(result.fallback, new CSSUnparsedValue('lemon'),
+  assert_style_value_equals(result.fallback, new CSSUnparsedValue(['lemon']),
       'Fallback member should be as same as passed in the constructor');
 }, 'CSSVariableReferenceValue can be constructed with fallback');
 
