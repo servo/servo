@@ -175,11 +175,14 @@ where
         debug_assert_eq!(origin, Origin::UserAgent);
 
         // We could iterate over `origin_sheets(origin)` to ensure state is
-        // consistent (that the `dirty` member of the Entry is reset to
-        // `false`).
+        // consistent (that the `committed` member of the Entry is reset to
+        // `true`).
         //
         // In practice it doesn't matter for correctness given our use of it
         // (that this is UA only).
+        //
+        // FIXME(emilio): I think it does matter and that we effectively don't
+        // support removing UA sheets since #19927...
         self.collections.borrow_for_origin(&origin).iter()
     }
 
@@ -244,7 +247,8 @@ where
 
             let committed = mem::replace(&mut potential_sheet.committed, true);
             if !committed {
-                // If the sheet was uncommitted, we need to do a full rebuild anyway.
+                // If the sheet was uncommitted, we need to do a full rebuild
+                // anyway.
                 return Some((&potential_sheet.sheet, SheetRebuildKind::Full))
             }
 
@@ -277,6 +281,11 @@ where
     /// which case the existing data is valid, but the origin needs to be
     /// rebuilt).
     data_validity: OriginValidity,
+
+    /// Whether anything in the collection has changed. Note that this is
+    /// different from `data_validity`, in the sense that after a sheet append,
+    /// the data validity is still `Valid`, but we need to be marked as dirty.
+    dirty: bool,
 }
 
 impl<S> Default for SheetCollection<S>
@@ -287,6 +296,7 @@ where
         Self {
             entries: vec![],
             data_validity: OriginValidity::Valid,
+            dirty: false,
         }
     }
 }
@@ -321,6 +331,8 @@ where
         // See bug 1434756.
         if sheet.committed {
             self.set_data_validity_at_least(OriginValidity::FullyInvalid);
+        } else {
+            self.dirty = true;
         }
     }
 
@@ -331,9 +343,13 @@ where
     /// Appends a given sheet into the collection.
     fn append(&mut self, sheet: S) {
         debug_assert!(!self.contains(&sheet));
-        self.entries.push(StylesheetSetEntry::new(sheet))
+        self.entries.push(StylesheetSetEntry::new(sheet));
         // Appending sheets doesn't alter the validity of the existing data, so
         // we don't need to change `data_validity` here.
+        //
+        // But we need to be marked as dirty, otherwise we'll never add the new
+        // sheet!
+        self.dirty = true;
     }
 
     fn insert_before(&mut self, sheet: S, before_sheet: &S) {
@@ -351,6 +367,7 @@ where
 
     fn set_data_validity_at_least(&mut self, validity: OriginValidity) {
         use std::cmp;
+        self.dirty = true;
         self.data_validity = cmp::max(validity, self.data_validity);
     }
 
@@ -380,9 +397,6 @@ where
     /// The invalidations for stylesheets added or removed from this document.
     invalidations: StylesheetInvalidationSet,
 
-    /// The origins whose stylesheets have changed so far.
-    origins_dirty: OriginSet,
-
     /// Has author style been disabled?
     author_style_disabled: bool,
 }
@@ -396,7 +410,6 @@ where
         Self {
             collections: Default::default(),
             invalidations: StylesheetInvalidationSet::new(),
-            origins_dirty: OriginSet::empty(),
             author_style_disabled: false,
         }
     }
@@ -426,7 +439,6 @@ where
         if let Some(device) = device {
             self.invalidations.collect_invalidations_for(device, sheet, guard);
         }
-        self.origins_dirty |= sheet.contents(guard).origin;
     }
 
     /// Appends a new stylesheet to the current set.
@@ -497,12 +509,13 @@ where
         }
         self.author_style_disabled = disabled;
         self.invalidations.invalidate_fully();
-        self.origins_dirty |= Origin::Author;
+        self.collections.borrow_mut_for_origin(&Origin::Author)
+            .set_data_validity_at_least(OriginValidity::FullyInvalid)
     }
 
     /// Returns whether the given set has changed from the last flush.
     pub fn has_changed(&self) -> bool {
-        !self.origins_dirty.is_empty()
+        self.collections.iter_origins().any(|(collection, _)| collection.dirty)
     }
 
     /// Flush the current set, unmarking it as dirty, and returns a
@@ -522,12 +535,16 @@ where
         let had_invalidations =
             self.invalidations.flush(document_element, snapshots);
 
-        let origins_dirty =
-            mem::replace(&mut self.origins_dirty, OriginSet::empty());
-
+        let mut origins_dirty = OriginSet::empty();
         let mut origin_data_validity = PerOrigin::<OriginValidity>::default();
-        for origin in origins_dirty.iter() {
-            let collection = self.collections.borrow_mut_for_origin(&origin);
+        for (collection, origin) in self.collections.iter_mut_origins() {
+            let was_dirty = mem::replace(&mut collection.dirty, false);
+            if !was_dirty {
+                debug_assert_eq!(collection.data_validity, OriginValidity::Valid);
+                continue;
+            }
+
+            origins_dirty |= origin;
             *origin_data_validity.borrow_mut_for_origin(&origin) =
                 mem::replace(&mut collection.data_validity, OriginValidity::Valid);
         }
@@ -549,7 +566,12 @@ where
         debug!("DocumentStylesheetSet::flush_without_invalidation");
 
         self.invalidations.clear();
-        mem::replace(&mut self.origins_dirty, OriginSet::empty())
+        for (collection, origin) in self.collections.iter_mut_origins() {
+            collection.dirty = false;
+            // NOTE(emilio): I think this should also poke at the data validity
+            // and such, but it doesn't really matter given we don't use that
+            // collection for style resolution anyway.
+        }
     }
 
     /// Return an iterator over the flattened view of all the stylesheets.
@@ -565,7 +587,6 @@ where
     /// something external may have invalidated it.
     pub fn force_dirty(&mut self, origins: OriginSet) {
         self.invalidations.invalidate_fully();
-        self.origins_dirty |= origins;
         for origin in origins.iter() {
             // We don't know what happened, assume the worse.
             self.collections
