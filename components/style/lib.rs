@@ -118,7 +118,6 @@ pub mod shared_lock;
 pub mod sharing;
 pub mod style_resolver;
 pub mod stylist;
-#[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod str;
 pub mod style_adjuster;
 pub mod stylesheet_set;
@@ -153,6 +152,9 @@ use style_traits::{CssWriter, ToCss};
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
+
+// uses a macro from properties
+#[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 
 #[cfg(feature = "gecko")]
 #[allow(unsafe_code, missing_docs)]

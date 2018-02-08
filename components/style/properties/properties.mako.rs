@@ -3870,3 +3870,26 @@ macro_rules! longhand_properties_idents {
         }
     }
 }
+
+% for effect_name in ["repaint", "reflow", "reflow_and_bubble", "rebuild_and_reflow_inline", "rebuild_and_reflow"]:
+    macro_rules! restyle_damage_${effect_name} {
+        ($old: ident, $new: ident, $damage: ident, [ $($effect:expr),* ]) => ({
+            if 
+                % for style_struct in data.active_style_structs():
+                    % for longhand in style_struct.longhands:
+                        % if effect_name in longhand.restyle_damage.split() and not longhand.logical:
+                            $old.get_${style_struct.name_lower}().${longhand.ident} != $new.get_${style_struct.name_lower}().${longhand.ident} || 
+                        % endif
+                    % endfor
+                % endfor
+
+                false {
+                    $damage.insert($($effect)|*);
+                    true
+            } else {
+                false
+            }
+            
+        })
+    }
+% endfor
