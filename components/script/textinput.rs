@@ -171,7 +171,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: min_length,
             selection_direction: selection_direction,
         };
-        i.set_content(initial);
+        i.set_content(initial, true);
         i
     }
 
@@ -840,7 +840,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
-    pub fn set_content(&mut self, content: DOMString) {
+    pub fn set_content(&mut self, content: DOMString, update_text_cursor: bool) {
         self.lines = if self.multiline {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
             content.replace("\r\n", "\n")
@@ -850,8 +850,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             vec!(content)
         };
-        self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
-        self.edit_point.index = min(self.edit_point.index, self.current_line_length());
+        if update_text_cursor {
+            self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
+            self.edit_point.index = min(self.edit_point.index, self.current_line_length());
+        } else {
+            self.edit_point = Default::default();
+        }
         self.selection_origin = None;
         self.assert_ok_selection();
     }

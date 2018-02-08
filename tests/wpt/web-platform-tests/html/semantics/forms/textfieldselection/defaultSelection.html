@@ -5,10 +5,17 @@
 <script src="/resources/testharnessreport.js"></script>
 <textarea>g
 </textarea>
+<input type="text" value="foo">
 <script>
 test(function() {
     let textarea = document.querySelector('textarea');
     assert_equals(textarea.selectionStart, 0);
     assert_equals(textarea.selectionEnd, 0);
-},"Default selectionStart and selectionEnd");
+}, "Default selectionStart and selectionEnd for textarea");
+
+test(function() {
+    let textarea = document.querySelector('input');
+    assert_equals(textarea.selectionStart, 0);
+    assert_equals(textarea.selectionEnd, 0);
+}, "Default selectionStart and selectionEnd for input");
 </script>
