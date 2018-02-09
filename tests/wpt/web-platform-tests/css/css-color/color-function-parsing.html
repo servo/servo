@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: color() parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#color-function">
+<meta name="assert" content="Tests basic parsing of the color function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="test"></div>
+<script>
+    const div = document.querySelector("#test");
+    function testColorFunction(description, rule, expectedValue) {
+        test(function() {
+            div.style.color = "black";
+            div.style.color = rule;
+            assert_equals(getComputedStyle(div).color, expectedValue);
+        }, description);
+    }
+
+    testColorFunction("Basic sRGB white", "color(srgb 1 1 1)", "color(srgb 1 1 1)");
+    testColorFunction("White with lots of space", "color(    srgb         1      1 1       )", "color(srgb 1 1 1)");
+    testColorFunction("sRGB color", "color(srgb 0.25 0.5 0.75)", "color(srgb 0.25 0.5 0.75)");
+    testColorFunction("Different case for sRGB", "color(SrGb 0.25 0.5 0.75)", "color(srgb 0.25 0.5 0.75)");
+    testColorFunction("sRGB color with unnecessary decimals", "color(srgb 1.00000 0.500000 0.20)", "color(srgb 1 0.5 0.2)");
+    testColorFunction("sRGB white with 0.5 alpha", "color(srgb 1 1 1 / 0.5)", "color(srgb 1 1 1 / 0.5)");
+    testColorFunction("sRGB white with 0 alpha", "color(srgb 1 1 1 / 0)", "color(srgb 1 1 1 / 0)");
+    testColorFunction("sRGB white with 50% alpha", "color(srgb 1 1 1 / 50%)", "color(srgb 1 1 1 / 0.5)");
+    testColorFunction("sRGB white with 0% alpha", "color(srgb 1 1 1 / 0%)", "color(srgb 1 1 1 / 0)");
+    testColorFunction("One missing component is 0", "color(srgb 1 1)", "color(srgb 1 1 0)");
+    testColorFunction("Two missing components are 0", "color(srgb 1)", "color(srgb 1 0 0)");
+    testColorFunction("All components missing", "color(srgb)", "color(srgb 0 0 0)");
+    testColorFunction("Display P3 color", "color(display-p3 0.6 0.7 0.8)", "color(display-p3 0.6 0.7 0.8)");
+    testColorFunction("Different case for Display P3", "color(dIspLaY-P3 0.6 0.7 0.8)", "color(display-p3 0.6 0.7 0.8)");
+
+    testColorFunction("Unknown color space should fallback", "color(unknown 1 2 3, red)", "color(unknown 1 2 3, red)");
+
+    testColorFunction("sRGB color with negative component should clamp to 0", "color(srgb -0.25 0.5 0.75)", "color(srgb 0 0.5 0.75)");
+    testColorFunction("sRGB color with component > 1 should clamp", "color(srgb 0.25 1.5 0.75)", "color(srgb 0.25 1 0.75)");
+    testColorFunction("Display P3 color with negative component should clamp to 0", "color(display-p3 0.5 -199 0.75)", "color(display-p3 0.5 0 0.75)");
+    testColorFunction("Display P3 color with component > 1 should clamp", "color(display-p3 184 1.00001 2347329746587)", "color(display-p3 1 1 1)");
+    testColorFunction("Alpha > 1 should clamp", "color(srgb 0.1 0.2 0.3 / 1.9)", "color(srgb 0.1 0.2 0.3)");
+    testColorFunction("Negative alpha should clamp", "color(srgb 1 1 1 / -0.2)", "color(srgb 1 1 1 / 0)");
+
+    // Invalid properties
+    testColorFunction("Empty", "color()", "rgb(0, 0, 0)");
+    testColorFunction("Bad color space", "color(banana 1 1 1)", "rgb(0, 0, 0)");
+    testColorFunction("Bad Display P3 color space", "color(displayp3 1 1 1)", "rgb(0, 0, 0)");
+    testColorFunction("No color space", "color(1 1 1)", "rgb(0, 0, 0)");
+    testColorFunction("Too many parameters", "color(srgb 1 1 1 1)", "rgb(0, 0, 0)");
+    testColorFunction("Way too many parameters", "color(srgb 1 1 1 1 1)", "rgb(0, 0, 0)");
+    testColorFunction("Bad parameters", "color(srgb 1 eggs 1)", "rgb(0, 0, 0)");
+    testColorFunction("Bad alpha", "color(srgb 1 1 1 / bacon)", "rgb(0, 0, 0)");
+    testColorFunction("Junk after alpha", "color(srgb 1 1 1 / 1 cucumber)", "rgb(0, 0, 0)");
+</script>

@@ -37,7 +37,18 @@
        checkInvalidValues("auto")
        checkInvalidValues("auto right")
        checkInvalidValues("auto auto")
-    }, "Verify 'auto' value is invalid as first longhand value.");
+       checkInvalidValues("center auto")
+    }, "Verify 'auto' value is invalid.");
+
+    test(function() {
+       checkInvalidValues("legacy")
+       checkInvalidValues("legacy start")
+       checkInvalidValues("end legacy")
+       checkInvalidValues("legacy left")
+       checkInvalidValues("center legacy")
+       checkInvalidValues("start legacy center")
+    }, "Verify 'legacy' value is invalid.");
+
 
     test(function() {
         checkInvalidValues("")

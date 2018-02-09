@@ -48,6 +48,12 @@
     }, "Verify 'auto' values are invalid");
 
     test(function() {
+        checkInvalidValues("self-start")
+        checkInvalidValues("center self-end")
+        checkInvalidValues("self-end start")
+    }, "Verify self-position values are invalid");
+
+    test(function() {
         checkInvalidValues("")
     }, "Verify empty declaration is invalid");
 </script>
