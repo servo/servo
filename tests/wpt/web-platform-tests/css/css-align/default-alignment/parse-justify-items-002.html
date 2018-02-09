@@ -19,39 +19,39 @@ document.body.appendChild(container);
 test(function() {
     element = document.createElement("div");
     document.body.appendChild(element);
-    checkValues(element, "justifyItems", "justify-items", "", "legacy");
+    checkValues(element, "justifyItems", "justify-items", "", "normal");
 }, "Test 'initial' value when nothing is specified");
 
 test(function() {
     container.style.display = "";
-    checkInitialValues(element, "justifyItems", "justify-items", "center", "legacy");
+    checkInitialValues(element, "justifyItems", "justify-items", "center", "normal");
 }, "Test justify-items: 'initial'");
 
 test(function() {
     container.style.display = "grid";
-    checkInitialValues(element, "justifyItems", "justify-items", "safe start", "legacy");
+    checkInitialValues(element, "justifyItems", "justify-items", "safe start", "normal");
 }, "Test grid items justify-items: 'initial'");
 
 test(function() {
     container.style.display = "flex";
-    checkInitialValues(element, "justifyItems", "justify-items", "unsafe end", "legacy");
+    checkInitialValues(element, "justifyItems", "justify-items", "unsafe end", "normal");
 }, "Test flex items justify-items: 'initial'");
 
 test(function() {
     container.style.display = "";
     element.style.position = "absolute";
-    checkInitialValues(element, "justifyItems", "justify-items", "start", "legacy");
+    checkInitialValues(element, "justifyItems", "justify-items", "start", "normal");
 }, "Test absolute positioned elements justify-items: 'initial'");
 
 test(function() {
     container.style.display = "grid";
     element.style.position = "absolute";
-    checkInitialValues(element, "justifyItems", "justify-items", "end", "legacy");
+    checkInitialValues(element, "justifyItems", "justify-items", "end", "normal");
 }, "Test absolute positioned grid items justify-items: 'initial'");
 
 test(function() {
     container.style.display = "flex";
     element.style.position = "absolute";
-    checkInitialValues(element, "justifyItems", "justify-items", "end", "legacy");
+    checkInitialValues(element, "justifyItems", "justify-items", "end", "normal");
 }, "Test absolute positioned flex items justify-items: 'initial'");
 </script>

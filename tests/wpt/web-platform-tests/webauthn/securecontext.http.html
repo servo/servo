@@ -17,7 +17,7 @@ standardSetup(function() {
     // Example 1
     // http://example.com/ opened in a top-level browsing context is not a secure context, as it was not delivered over an authenticated and encrypted channel.
     test (() => {
-        assert_false (typeof navigator.credentials.create === "function");
+        assert_false (typeof navigator.credentials === "object" && typeof navigator.credentials.create === "function");
     }, "no navigator.credentials.create in non-secure context");
 
     // Example 4: TODO
