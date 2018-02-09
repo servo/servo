@@ -20,7 +20,6 @@ use dom::document::DocumentSource;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use mime::{Mime, TopLevel, SubLevel};
 use script_traits::DocumentActivity;
 
 #[dom_struct]
