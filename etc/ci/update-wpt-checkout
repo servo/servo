@@ -59,7 +59,7 @@ function cleanup() {
 # Build Servo and run the full WPT testsuite, saving the results to a log file.
 function unsafe_run_tests() {
     # Run the full testsuite and record the new test results.
-    ./mach test-wpt --release --processes 12 --log-raw "${1}" \
+    ./mach test-wpt --release --processes 6 --log-raw "${1}" \
            --always-succeed || return 1
 }
 
