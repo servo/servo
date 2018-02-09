@@ -58,9 +58,9 @@ extern crate smallvec;
 extern crate string_cache;
 #[cfg(feature = "url")]
 extern crate url;
+extern crate void;
 #[cfg(feature = "webrender_api")]
 extern crate webrender_api;
-extern crate void;
 #[cfg(feature = "servo")]
 extern crate xml5ever;
 

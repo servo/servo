@@ -364,7 +364,8 @@ pub enum AnimationValue {
 impl AnimationValue {
     /// Returns the longhand id this animated value corresponds to.
     pub fn id(&self) -> LonghandId {
-        match *self {
+        let id = unsafe { *(self as *const _ as *const LonghandId) };
+        debug_assert_eq!(id, match *self {
             % for prop in data.longhands:
             % if prop.animatable:
             AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
@@ -372,7 +373,8 @@ impl AnimationValue {
             AnimationValue::${prop.camel_case}(void) => void::unreachable(void),
             % endif
             % endfor
-        }
+        });
+        id
     }
 
     /// "Uncompute" this animation value in order to be used inside the CSS
