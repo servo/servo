@@ -41,7 +41,8 @@ use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{DataValidity, SheetRebuildKind, DocumentStylesheetSet, StylesheetFlusher};
+use stylesheet_set::{DataValidity, SheetRebuildKind, DocumentStylesheetSet};
+use stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -227,46 +228,6 @@ impl DocumentCascadeData {
         }
     }
 
-    fn rebuild_origin<'a, S>(
-        device: &Device,
-        quirks_mode: QuirksMode,
-        flusher: &mut StylesheetFlusher<'a, S>,
-        guards: &StylesheetGuards,
-        origin: Origin,
-        cascade_data: &mut CascadeData,
-    ) -> Result<(), FailedAllocationError>
-    where
-        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
-    {
-        debug_assert_ne!(origin, Origin::UserAgent);
-
-        if !flusher.origin_dirty(origin) {
-            return Ok(());
-        }
-
-        let validity = flusher.data_validity(origin);
-
-        match validity {
-            DataValidity::Valid => {},
-            DataValidity::CascadeInvalid => cascade_data.clear_cascade_data(),
-            DataValidity::FullyInvalid => cascade_data.clear(),
-        }
-
-        let guard = guards.for_origin(origin);
-        for (stylesheet, rebuild_kind) in flusher.origin_sheets(origin) {
-            cascade_data.add_stylesheet(
-                device,
-                quirks_mode,
-                stylesheet,
-                guard,
-                rebuild_kind,
-                /* precomputed_pseudo_element_decls = */ None,
-            )?;
-        }
-
-        Ok(())
-    }
-
     /// Rebuild the cascade data for the given document stylesheets, and
     /// optionally with a set of user agent stylesheets.  Returns Err(..)
     /// to signify OOM.
@@ -274,21 +235,17 @@ impl DocumentCascadeData {
         &mut self,
         device: &Device,
         quirks_mode: QuirksMode,
-        mut flusher: StylesheetFlusher<'a, S>,
+        mut flusher: DocumentStylesheetFlusher<'a, S>,
         guards: &StylesheetGuards,
     ) -> Result<(), FailedAllocationError>
     where
         S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
     {
-        debug_assert!(!flusher.nothing_to_do());
-
         // First do UA sheets.
         {
-            if flusher.origin_dirty(Origin::UserAgent) {
+            if flusher.flush_origin(Origin::UserAgent).dirty() {
                 let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
-                let origin_sheets =
-                    flusher.manual_origin_sheets(Origin::UserAgent);
-
+                let origin_sheets = flusher.origin_sheets(Origin::UserAgent);
                 let ua_cascade_data = ua_cache.lookup(
                     origin_sheets,
                     device,
@@ -302,23 +259,19 @@ impl DocumentCascadeData {
         }
 
         // Now do the user sheets.
-        Self::rebuild_origin(
+        self.user.rebuild(
             device,
             quirks_mode,
-            &mut flusher,
-            guards,
-            Origin::User,
-            &mut self.user,
+            flusher.flush_origin(Origin::User),
+            guards.ua_or_user,
         )?;
 
         // And now the author sheets.
-        Self::rebuild_origin(
+        self.author.rebuild(
             device,
             quirks_mode,
-            &mut flusher,
-            guards,
-            Origin::Author,
-            &mut self.author,
+            flusher.flush_origin(Origin::Author),
+            guards.author,
         )?;
 
         Ok(())
@@ -2047,6 +2000,45 @@ impl CascadeData {
             num_declarations: 0,
         }
     }
+
+    /// Rebuild the cascade data from a given SheetCollection, incrementally if
+    /// possible.
+    fn rebuild<'a, S>(
+        &mut self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        collection: SheetCollectionFlusher<S>,
+        guard: &SharedRwLockReadGuard,
+    ) -> Result<(), FailedAllocationError>
+    where
+        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+    {
+        if !collection.dirty() {
+            return Ok(());
+        }
+
+        let validity = collection.data_validity();
+
+        match validity {
+            DataValidity::Valid => {},
+            DataValidity::CascadeInvalid => self.clear_cascade_data(),
+            DataValidity::FullyInvalid => self.clear(),
+        }
+
+        for (stylesheet, rebuild_kind) in collection {
+            self.add_stylesheet(
+                device,
+                quirks_mode,
+                stylesheet,
+                guard,
+                rebuild_kind,
+                /* precomputed_pseudo_element_decls = */ None,
+            )?;
+        }
+
+        Ok(())
+    }
+
 
     /// Returns the invalidation map.
     pub fn invalidation_map(&self) -> &InvalidationMap {

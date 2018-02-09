@@ -9,7 +9,7 @@ use invalidation::stylesheets::StylesheetInvalidationSet;
 use media_queries::Device;
 use selector_parser::SnapshotMap;
 use shared_lock::SharedRwLockReadGuard;
-use std::slice;
+use std::{mem, slice};
 use stylesheets::{Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
 
 /// Entry for a StylesheetSet.
@@ -125,13 +125,11 @@ impl Default for DataValidity {
 }
 
 /// A struct to iterate over the different stylesheets to be flushed.
-pub struct StylesheetFlusher<'a, S>
+pub struct DocumentStylesheetFlusher<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
-    origins_dirty: OriginSet,
     collections: &'a mut PerOrigin<SheetCollection<S>>,
-    origin_data_validity: PerOrigin<DataValidity>,
     had_invalidations: bool,
 }
 
@@ -151,82 +149,59 @@ impl SheetRebuildKind {
     }
 }
 
-impl<'a, S> StylesheetFlusher<'a, S>
+impl<'a, S> DocumentStylesheetFlusher<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
-    /// The data validity for a given origin.
-    pub fn data_validity(&self, origin: Origin) -> DataValidity {
-        *self.origin_data_validity.borrow_for_origin(&origin)
+    /// Returns a flusher for `origin`.
+    pub fn flush_origin(&mut self, origin: Origin) -> SheetCollectionFlusher<S> {
+        self.collections.borrow_mut_for_origin(&origin).flush()
     }
 
-    /// Whether the origin data is dirty in any way.
-    pub fn origin_dirty(&self, origin: Origin) -> bool {
-        self.origins_dirty.contains(origin.into())
-    }
-
-    /// Returns an iterator over the stylesheets of a given origin, assuming all
-    /// of them will be flushed.
-    pub fn manual_origin_sheets<'b>(&'b mut self, origin: Origin) -> StylesheetCollectionIterator<'b, S>
-    where
-        'a: 'b
-    {
-        debug_assert_eq!(origin, Origin::UserAgent);
-
-        // We could iterate over `origin_sheets(origin)` to ensure state is
-        // consistent (that the `committed` member of the Entry is reset to
-        // `true`).
-        //
-        // In practice it doesn't matter for correctness given our use of it
-        // (that this is UA only).
-        //
-        // FIXME(emilio): I think it does matter and that we effectively don't
-        // support removing UA sheets since #19927...
-        self.collections.borrow_for_origin(&origin).iter()
-    }
-
-    /// Returns a flusher for the dirty origin `origin`.
-    pub fn origin_sheets<'b>(&'b mut self, origin: Origin) -> PerOriginFlusher<'b, S>
-    where
-        'a: 'b
-    {
-        let validity = self.data_validity(origin);
-        let origin_dirty = self.origins_dirty.contains(origin.into());
-
-        debug_assert!(
-            origin_dirty || validity == DataValidity::Valid,
-            "origin_data_validity should be a subset of origins_dirty!"
-        );
-
-        PerOriginFlusher {
-            iter: self.collections.borrow_mut_for_origin(&origin).entries.iter_mut(),
-            validity,
-        }
-    }
-
-    /// Returns whether running the whole flushing process would be a no-op.
-    pub fn nothing_to_do(&self) -> bool {
-        self.origins_dirty.is_empty()
+    /// Returns the list of stylesheets for `origin`.
+    ///
+    /// Only used for UA sheets.
+    pub fn origin_sheets(&mut self, origin: Origin) -> StylesheetCollectionIterator<S> {
+        self.collections.borrow_mut_for_origin(&origin).iter()
     }
 
     /// Returns whether any DOM invalidations were processed as a result of the
     /// stylesheet flush.
+    #[inline]
     pub fn had_invalidations(&self) -> bool {
         self.had_invalidations
     }
 }
 
-/// A flusher struct for a given origin, that takes care of returning the
+/// A flusher struct for a given collection, that takes care of returning the
 /// appropriate stylesheets that need work.
-pub struct PerOriginFlusher<'a, S>
+pub struct SheetCollectionFlusher<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static
 {
     iter: slice::IterMut<'a, StylesheetSetEntry<S>>,
     validity: DataValidity,
+    dirty: bool,
 }
 
-impl<'a, S> Iterator for PerOriginFlusher<'a, S>
+impl<'a, S> SheetCollectionFlusher<'a, S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    /// Whether the collection was originally dirty.
+    #[inline]
+    pub fn dirty(&self) -> bool {
+        self.dirty
+    }
+
+    /// What the state of the sheet data is.
+    #[inline]
+    pub fn data_validity(&self) -> DataValidity {
+        self.validity
+    }
+}
+
+impl<'a, S> Iterator for SheetCollectionFlusher<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
@@ -379,6 +354,17 @@ where
     fn iter(&self) -> StylesheetCollectionIterator<S> {
         StylesheetCollectionIterator(self.entries.iter())
     }
+
+    fn flush(&mut self) -> SheetCollectionFlusher<S> {
+        let dirty = mem::replace(&mut self.dirty, false);
+        let validity = mem::replace(&mut self.data_validity, DataValidity::Valid);
+
+        SheetCollectionFlusher {
+            iter: self.entries.iter_mut(),
+            dirty,
+            validity,
+        }
+    }
 }
 
 /// The set of stylesheets effective for a given document.
@@ -420,7 +406,7 @@ macro_rules! sheet_set_methods {
             &mut self,
             device: Option<&Device>,
             sheet: S,
-            guard: &SharedRwLockReadGuard
+            guard: &SharedRwLockReadGuard,
         ) {
             debug!(concat!($set_name, "::append_stylesheet"));
             self.collect_invalidations_for(device, &sheet, guard);
@@ -433,7 +419,7 @@ macro_rules! sheet_set_methods {
             &mut self,
             device: Option<&Device>,
             sheet: S,
-            guard: &SharedRwLockReadGuard
+            guard: &SharedRwLockReadGuard,
         ) {
             debug!(concat!($set_name, "::prepend_stylesheet"));
             self.collect_invalidations_for(device, &sheet, guard);
@@ -477,7 +463,7 @@ impl<S> DocumentStylesheetSet<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
-    /// Create a new empty StylesheetSet.
+    /// Create a new empty DocumentStylesheetSet.
     pub fn new() -> Self {
         Self {
             collections: Default::default(),
@@ -512,58 +498,41 @@ where
     }
 
     /// Flush the current set, unmarking it as dirty, and returns a
-    /// `StylesheetFlusher` in order to rebuild the stylist.
-    pub fn flush<'a, E>(
-        &'a mut self,
+    /// `DocumentStylesheetFlusher` in order to rebuild the stylist.
+    pub fn flush<E>(
+        &mut self,
         document_element: Option<E>,
         snapshots: Option<&SnapshotMap>,
-    ) -> StylesheetFlusher<'a, S>
+    ) -> DocumentStylesheetFlusher<S>
     where
         E: TElement,
     {
-        use std::mem;
-
         debug!("DocumentStylesheetSet::flush");
 
         let had_invalidations =
             self.invalidations.flush(document_element, snapshots);
 
-        let mut origins_dirty = OriginSet::empty();
-        let mut origin_data_validity = PerOrigin::<DataValidity>::default();
-        for (collection, origin) in self.collections.iter_mut_origins() {
-            let was_dirty = mem::replace(&mut collection.dirty, false);
-            if !was_dirty {
-                debug_assert_eq!(collection.data_validity, DataValidity::Valid);
-                continue;
-            }
-
-            origins_dirty |= origin;
-            *origin_data_validity.borrow_mut_for_origin(&origin) =
-                mem::replace(&mut collection.data_validity, DataValidity::Valid);
-        }
-
-        StylesheetFlusher {
+        DocumentStylesheetFlusher {
             collections: &mut self.collections,
             had_invalidations,
-            origins_dirty,
-            origin_data_validity,
         }
     }
 
     /// Flush stylesheets, but without running any of the invalidation passes.
     #[cfg(feature = "servo")]
     pub fn flush_without_invalidation(&mut self) -> OriginSet {
-        use std::mem;
-
         debug!("DocumentStylesheetSet::flush_without_invalidation");
 
+        let mut origins = OriginSet::empty();
         self.invalidations.clear();
+
         for (collection, origin) in self.collections.iter_mut_origins() {
-            collection.dirty = false;
-            // NOTE(emilio): I think this should also poke at the data validity
-            // and such, but it doesn't really matter given we don't use that
-            // collection for style resolution anyway.
+            if collection.flush().dirty() {
+                origins |= origin;
+            }
         }
+
+        origins
     }
 
     /// Return an iterator over the flattened view of all the stylesheets.
@@ -599,6 +568,17 @@ where
     invalidations: StylesheetInvalidationSet,
 }
 
+/// A struct to flush an author style sheet collection.
+pub struct AuthorStylesheetFlusher<'a, S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    /// The actual flusher for the collection.
+    pub sheets: SheetCollectionFlusher<'a, S>,
+    /// Whether any sheet invalidation matched.
+    pub had_invalidations: bool,
+}
+
 impl<S> AuthorStylesheetSet<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
@@ -612,4 +592,23 @@ where
     }
 
     sheet_set_methods!("AuthorStylesheetSet");
+
+    /// Flush the stylesheets for this author set.
+    ///
+    /// `host` is the root of the affected subtree, like the shadow host, for
+    /// example.
+    pub fn flush<E>(
+        &mut self,
+        host: Option<E>,
+        snapshots: Option<&SnapshotMap>,
+    ) -> AuthorStylesheetFlusher<S>
+    where
+        E: TElement,
+    {
+        let had_invalidations = self.invalidations.flush(host, snapshots);
+        AuthorStylesheetFlusher {
+            sheets: self.collection.flush(),
+            had_invalidations,
+        }
+    }
 }
