@@ -52,7 +52,8 @@
                               animation_value_type="NonNegativeLength",
                               logical=is_logical,
                               flags="APPLIES_TO_FIRST_LETTER",
-                              allow_quirks=not is_logical)}
+                              allow_quirks=not is_logical,
+                              servo_restyle_damage = "reflow rebuild_and_reflow_inline")}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',

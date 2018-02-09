@@ -18,5 +18,6 @@
                               allow_quirks=not side[1],
                               animation_value_type="ComputedValue", logical = side[1], spec = spec,
                               flags="APPLIES_TO_FIRST_LETTER",
-                              allowed_in_page_rule=True)}
+                              allowed_in_page_rule=True,
+                              servo_restyle_damage = "reflow")}
 % endfor

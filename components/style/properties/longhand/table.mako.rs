@@ -8,7 +8,8 @@
 
 ${helpers.single_keyword("table-layout", "auto fixed",
                          gecko_ffi_name="mLayoutStrategy", animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-tables/#propdef-table-layout")}
+                         spec="https://drafts.csswg.org/css-tables/#propdef-table-layout",
+                         servo_restyle_damage = "reflow")}
 
 ${helpers.predefined_type("-x-span",
                           "XSpan",

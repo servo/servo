@@ -24,11 +24,13 @@ ${helpers.single_keyword("writing-mode",
                                               tb=vertical-rl   tb-rl=vertical-rl",
                          servo_pref="layout.writing-mode.enabled",
                          animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode")}
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword("direction", "ltr rtl", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
-                         needs_conversion=True)}
+                         needs_conversion=True,
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword("text-orientation",
                          "mixed upright sideways",

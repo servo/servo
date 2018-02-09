@@ -21,5 +21,6 @@
                               logical = side[1],
                               spec = spec,
                               flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER",
-                              allow_quirks=not side[1])}
+                              allow_quirks=not side[1],
+                              servo_restyle_damage = "reflow rebuild_and_reflow_inline")}
 % endfor

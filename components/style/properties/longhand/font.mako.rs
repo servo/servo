@@ -12,7 +12,8 @@ ${helpers.predefined_type("font-family",
                           initial_value="computed::FontFamily::serif()",
                           animation_value_type="discrete",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-family")}
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-family",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword_system("font-style",
                                 "normal italic oblique",
@@ -20,7 +21,8 @@ ${helpers.single_keyword_system("font-style",
                                 gecko_ffi_name="mFont.style",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
                                 flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                                animation_value_type="discrete")}
+                                animation_value_type="discrete",
+                                servo_restyle_damage="rebuild_and_reflow")}
 
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
@@ -37,7 +39,8 @@ ${helpers.single_keyword_system("font-variant-caps",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                                 custom_consts=font_variant_caps_custom_consts,
                                 flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                                animation_value_type="discrete")}
+                                animation_value_type="discrete",
+                                servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("font-weight",
                           "FontWeight",
@@ -45,7 +48,8 @@ ${helpers.predefined_type("font-weight",
                           initial_specified_value="specified::FontWeight::Normal",
                           animation_value_type="ComputedValue",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight")}
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("font-size",
                           "FontSize",
@@ -54,7 +58,8 @@ ${helpers.predefined_type("font-size",
                           animation_value_type="NonNegativeLength",
                           allow_quirks=True,
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-size")}
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-size",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("font-size-adjust",
                           "FontSizeAdjust",
@@ -82,7 +87,8 @@ ${helpers.single_keyword_system("font-stretch",
                                 cast_type='i16',
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
                                 flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                                animation_value_type="ComputedValue")}
+                                animation_value_type="ComputedValue",
+                                servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword_system("font-kerning",
                                 "auto none normal",

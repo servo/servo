@@ -11,7 +11,8 @@ ${helpers.predefined_type("line-height",
                           "computed::LineHeight::normal()",
                           animation_value_type="LineHeight",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height")}
+                          spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height",
+                          servo_restyle_damage = "reflow")}
 
 // CSS Text Module Level 3
 
@@ -21,7 +22,8 @@ ${helpers.single_keyword("text-transform",
                          extra_gecko_values="full-width",
                          animation_value_type="discrete",
                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                         spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
+                         spec="https://drafts.csswg.org/css-text/#propdef-text-transform",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword("hyphens", "manual none auto",
                          gecko_enum_prefix="StyleHyphens",
@@ -41,7 +43,7 @@ ${helpers.predefined_type("text-indent",
                           "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
                           animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
-                          allow_quirks=True)}
+                          allow_quirks=True, servo_restyle_damage = "reflow")}
 
 // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
 // name per CSS-TEXT 6.2.
@@ -50,14 +52,16 @@ ${helpers.single_keyword("overflow-wrap",
                          gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
-                         alias="word-wrap")}
+                         alias="word-wrap",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
 ${helpers.single_keyword("word-break",
                          "normal break-all keep-all",
                          gecko_constant_prefix="NS_STYLE_WORDBREAK",
                          animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-text/#propdef-word-break")}
+                         spec="https://drafts.csswg.org/css-text/#propdef-word-break",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
 <%helpers:single_keyword
@@ -70,6 +74,7 @@ ${helpers.single_keyword("word-break",
     gecko_pref="layout.css.text-justify.enabled"
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-text-justify"
+    servo_restyle_damage="rebuild_and_reflow"
 >
     % if product == 'gecko':
     impl ToComputedValue for SpecifiedValue {
@@ -113,21 +118,24 @@ ${helpers.predefined_type("text-align",
                           "computed::TextAlign::start()",
                           animation_value_type="discrete",
                           flags="APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-text/#propdef-text-align")}
+                          spec="https://drafts.csswg.org/css-text/#propdef-text-align",
+                          servo_restyle_damage = "reflow")}
 
 ${helpers.predefined_type("letter-spacing",
                           "LetterSpacing",
                           "computed::LetterSpacing::normal()",
                           animation_value_type="ComputedValue",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing")}
+                          spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("word-spacing",
                           "WordSpacing",
                           "computed::WordSpacing::normal()",
                           animation_value_type="ComputedValue",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
+                          spec="https://drafts.csswg.org/css-text/#propdef-word-spacing",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 <%helpers:single_keyword
     name="white-space"
@@ -139,6 +147,7 @@ ${helpers.predefined_type("word-spacing",
     // Only allowed for UA sheets, which set it !important.
     flags="APPLIES_TO_PLACEHOLDER"
     spec="https://drafts.csswg.org/css-text/#propdef-white-space"
+    servo_restyle_damage="rebuild_and_reflow"
 >
     % if product != "gecko":
     impl SpecifiedValue {
@@ -544,7 +553,8 @@ ${helpers.single_keyword("text-combine-upright", "none all",
 ${helpers.single_keyword("text-rendering",
                          "auto optimizespeed optimizelegibility geometricprecision",
                          animation_value_type="discrete",
-                         spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty")}
+                         spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 // FIXME Firefox expects the initial value of this property to change depending
 // on the value of the layout.css.control-characters.visible pref.
