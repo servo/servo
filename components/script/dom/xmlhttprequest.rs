@@ -1271,10 +1271,7 @@ impl XMLHttpRequest {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7
         };
-        let mime_type = self.final_mime_type();
-        let content_type = mime_type.map(|mime|{
-            DOMString::from(format!("{}", mime))
-        });
+        let content_type = self.final_mime_type();
         Document::new(win,
                       HasBrowsingContext::No,
                       parsed_url,
