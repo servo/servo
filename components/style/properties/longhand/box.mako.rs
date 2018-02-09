@@ -405,7 +405,8 @@ ${helpers.predefined_type("rotate", "Rotate",
                           boxed=True,
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           gecko_pref="layout.css.individual-transform.enabled",
-                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms")}
+                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+                          restyle_damage = "reflow")}
 
 ${helpers.predefined_type("scale", "Scale",
                           "generics::transform::Scale::None",
@@ -413,7 +414,8 @@ ${helpers.predefined_type("scale", "Scale",
                           boxed=True,
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           gecko_pref="layout.css.individual-transform.enabled",
-                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms")}
+                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms,
+                          restyle_damage = "reflow"")}
 
 ${helpers.predefined_type("translate", "Translate",
                           "generics::transform::Translate::None",
@@ -421,7 +423,8 @@ ${helpers.predefined_type("translate", "Translate",
                           boxed=True,
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           gecko_pref="layout.css.individual-transform.enabled",
-                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms")}
+                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+                          restyle_damage = "reflow")}
 
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
