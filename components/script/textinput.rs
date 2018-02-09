@@ -4,6 +4,8 @@
 
 //! Common handling of keyboard input and state management for text input controls
 
+extern crate backtrace;
+use self::backtrace::Backtrace;
 use clipboard_provider::ClipboardProvider;
 use dom::bindings::str::DOMString;
 use dom::keyboardevent::KeyboardEvent;
@@ -171,7 +173,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: min_length,
             selection_direction: selection_direction,
         };
-        i.set_content(initial, true);
+        i.set_content(initial, false);
         i
     }
 
@@ -850,11 +852,13 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             vec!(content)
         };
+        println!("Edit Point: {:?}  update_text_cursor:{}",self.edit_point,update_text_cursor );
+        println!("modifying edit_point: {:?}", Backtrace::new());
         if update_text_cursor {
             self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
             self.edit_point.index = min(self.edit_point.index, self.current_line_length());
         } else {
-            self.edit_point = Default::default();
+            
         }
         self.selection_origin = None;
         self.assert_ok_selection();

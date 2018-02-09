@@ -48,7 +48,6 @@ use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::default::Default;
 use std::mem;
 use std::ops::Range;
 use style::attr::AttrValue;
@@ -902,7 +901,7 @@ impl HTMLInputElement {
     pub fn reset(&self) {
         match self.input_type() {
             InputType::Radio | InputType::Checkbox => {
-                self.update_checked_state(self.DefaultChecked(), false);
+                self.update_checked_state(self.DefaultChecked(), true);
                 self.checked_changed.set(false);
             },
             InputType::Image => (),
@@ -991,7 +990,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
-    fn sanitize_value(&self, update_text_cursor: bool ) {
+    fn sanitize_value(&self) {
         match self.input_type() {
             InputType::Text | InputType::Search | InputType::Tel | InputType::Password => {
                 self.textinput.borrow_mut().single_line_content_mut().strip_newlines();
@@ -1037,7 +1036,7 @@ impl HTMLInputElement {
                     let content = textinput.single_line_content_mut();
                     content.make_ascii_lowercase();
                 } else {
-                    textinput.set_content("#000000".into(), update_text_cursor);
+                    textinput.set_content("#000000".into(), true);
                 }
             }
             InputType::Time => {
@@ -1084,7 +1083,9 @@ impl HTMLInputElement {
                 // Step 3.
                 self.value_dirty.set(true);
                 // Step 4.
-                self.sanitize_value(update_text_cursor);
+                if update_text_cursor {
+                    self.sanitize_value();
+                }
                 // Step 5.
                 if *self.textinput.borrow().single_line_content() != old_value {
                     self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward);
@@ -1214,7 +1215,7 @@ impl VirtualMethods for HTMLInputElement {
                         }
 
                         // Step 6
-                        self.sanitize_value(false);
+                        self.sanitize_value();
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
@@ -1240,8 +1241,8 @@ impl VirtualMethods for HTMLInputElement {
             &local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
-                    value.map_or(DOMString::new(), DOMString::from), false);
-                self.sanitize_value(false);
+                    value.map_or(DOMString::new(), DOMString::from), true);
+                self.sanitize_value();
                 self.update_placeholder_shown_state();
             },
             &local_name!("name") if self.input_type() == InputType::Radio => {
