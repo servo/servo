@@ -142,7 +142,7 @@ use style::stylesheets::{StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
-use style::stylist::{add_size_of_ua_cache, RuleInclusion, Stylist};
+use style::stylist::{add_size_of_ua_cache, AuthorStylesEnabled, RuleInclusion, Stylist};
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::DomTraversal;
@@ -1247,12 +1247,25 @@ pub unsafe extern "C" fn Servo_StyleSet_FlushStyleSheets(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     raw_data: RawServoStyleSetBorrowed,
-    author_style_disabled: bool,
     changed_origins: OriginFlags,
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     data.stylist.force_stylesheet_origins_dirty(OriginSet::from(changed_origins));
-    data.stylist.set_author_style_disabled(author_style_disabled);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_SetAuthorStyleDisabled(
+    raw_data: RawServoStyleSetBorrowed,
+    author_style_disabled: bool,
+) {
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let enabled =
+        if author_style_disabled {
+            AuthorStylesEnabled::No
+        } else {
+            AuthorStylesEnabled::Yes
+        };
+    data.stylist.set_author_styles_enabled(enabled);
 }
 
 #[no_mangle]
