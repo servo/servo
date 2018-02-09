@@ -195,14 +195,6 @@ pub mod shorthands {
     %>
 }
 
-/// A module with all the code related to animated properties.
-///
-/// This needs to be "included" by mako at least after all longhand modules,
-/// given they populate the global data.
-pub mod animated_properties {
-    <%include file="/helpers/animated_properties.mako.rs" />
-}
-
 <%
     from itertools import groupby
 
@@ -411,6 +403,14 @@ impl PropertyDeclaration {
             % endfor
         }
     }
+}
+
+/// A module with all the code related to animated properties.
+///
+/// This needs to be "included" by mako at least after all longhand modules,
+/// given they populate the global data.
+pub mod animated_properties {
+    <%include file="/helpers/animated_properties.mako.rs" />
 }
 
 /// A longhand or shorthand porperty

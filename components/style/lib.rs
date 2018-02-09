@@ -78,6 +78,7 @@ extern crate uluru;
 extern crate unicode_bidi;
 #[allow(unused_extern_crates)]
 extern crate unicode_segmentation;
+extern crate void;
 
 #[macro_use]
 mod macros;

@@ -58,6 +58,7 @@ use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 use values::specified::font::FontTag;
+use void::{self, Void};
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
 pub trait RepeatableListAnimatable: Animate {}
@@ -343,16 +344,20 @@ unsafe impl HasSimpleFFI for AnimationValueMap {}
 /// this (is a similar path to that of PropertyDeclaration).
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[repr(u16)]
 pub enum AnimationValue {
     % for prop in data.longhands:
-        % if prop.animatable:
-            /// ${prop.name}
-            % if prop.is_animatable_with_computed_value:
-                ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
-            % else:
-                ${prop.camel_case}(<longhands::${prop.ident}::computed_value::T as ToAnimatedValue>::AnimatedValue),
-            % endif
-        % endif
+    % if prop.animatable:
+    /// `${prop.name}`
+    % if prop.is_animatable_with_computed_value:
+    ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
+    % else:
+    ${prop.camel_case}(<longhands::${prop.ident}::computed_value::T as ToAnimatedValue>::AnimatedValue),
+    % endif
+    % else:
+    /// `${prop.name}` (not animatable)
+    ${prop.camel_case}(Void),
+    % endif
     % endfor
 }
 
@@ -362,7 +367,9 @@ impl AnimationValue {
         match *self {
             % for prop in data.longhands:
             % if prop.animatable:
-                AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
+            AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
+            % else:
+            AnimationValue::${prop.camel_case}(void) => void::unreachable(void),
             % endif
             % endfor
         }
@@ -374,24 +381,26 @@ impl AnimationValue {
         use properties::longhands;
         match *self {
             % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimationValue::${prop.camel_case}(ref from) => {
-                        PropertyDeclaration::${prop.camel_case}(
-                            % if prop.boxed:
-                            Box::new(
-                            % endif
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                                % if prop.is_animatable_with_computed_value:
-                                    from
-                                % else:
-                                    &ToAnimatedValue::from_animated_value(from.clone())
-                                % endif
-                                ))
-                            % if prop.boxed:
-                            )
-                            % endif
-                    }
-                % endif
+            % if prop.animatable:
+            AnimationValue::${prop.camel_case}(ref from) => {
+                PropertyDeclaration::${prop.camel_case}(
+                    % if prop.boxed:
+                    Box::new(
+                    % endif
+                        longhands::${prop.ident}::SpecifiedValue::from_computed_value(
+                        % if prop.is_animatable_with_computed_value:
+                            from
+                        % else:
+                            &ToAnimatedValue::from_animated_value(from.clone())
+                        % endif
+                        ))
+                    % if prop.boxed:
+                    )
+                    % endif
+            }
+            % else:
+            AnimationValue::${prop.camel_case}(void) => void::unreachable(void),
+            % endif
             % endfor
         }
     }
