@@ -7,7 +7,8 @@
 <% data.new_style_struct("List", inherited=True) %>
 
 ${helpers.single_keyword("list-style-position", "outside inside", animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-position")}
+                         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-position",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:
 //
@@ -47,7 +48,8 @@ ${helpers.predefined_type("list-style-image",
                           initial_specified_value="specified::ListStyleImage::none()",
                           animation_value_type="discrete",
                           boxed=product == "gecko",
-                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
+                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("quotes",
                           "Quotes",
