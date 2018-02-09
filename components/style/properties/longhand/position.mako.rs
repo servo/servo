@@ -235,6 +235,7 @@ ${helpers.predefined_type("order", "Integer", "0",
             allow_quirks=not logical,
             spec=spec % size,
             animation_value_type="MozLength",
+            restyle_damage = "reflow_and_bubble"
         )}
         ${helpers.predefined_type(
             "max-%s" % size,
@@ -245,6 +246,7 @@ ${helpers.predefined_type("order", "Integer", "0",
             allow_quirks=not logical,
             spec=spec % size,
             animation_value_type="MaxLength",
+            restyle_damage = "reflow_and_bubble"
         )}
     % else:
         // servo versions (no keyword support)
@@ -263,7 +265,8 @@ ${helpers.predefined_type("order", "Integer", "0",
                                   spec=spec % ("min-%s" % size),
                                   animation_value_type="ComputedValue",
                                   logical=logical,
-                                  allow_quirks=not logical)}
+                                  allow_quirks=not logical,
+                                  restyle_damage = "reflow_and_bubble")}
         ${helpers.predefined_type("max-%s" % size,
                                   "LengthOrPercentageOrNone",
                                   "computed::LengthOrPercentageOrNone::None",
@@ -271,7 +274,8 @@ ${helpers.predefined_type("order", "Integer", "0",
                                   spec=spec % ("min-%s" % size),
                                   animation_value_type="ComputedValue",
                                   logical=logical,
-                                  allow_quirks=not logical)}
+                                  allow_quirks=not logical,
+                                  restyle_damage = "reflow_and_bubble")}
     % endif
 % endfor
 
