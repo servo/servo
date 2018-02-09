@@ -1272,7 +1272,6 @@ impl XMLHttpRequest {
             Err(_) => None // Step 7
         };
         let content_type = self.final_mime_type();
-
         Document::new(win,
                       HasBrowsingContext::No,
                       parsed_url,

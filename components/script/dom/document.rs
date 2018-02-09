@@ -2224,7 +2224,7 @@ impl Document {
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
             content_type: match content_type {
-                Some(Mime_data) => Mime_data,
+                Some(mime_data) => mime_data,
                 None => Mime::from(match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
                     IsHTMLDocument::HTMLDocument => Mime(TopLevel::Text, SubLevel::Html, vec![]),

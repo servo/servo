@@ -55,7 +55,7 @@ impl DOMParserMethods for DOMParser {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<DomRoot<Document>> {
         let url = self.window.get_url();
-        let content_type = ty.as_str().parse().unwrap_or(Mime(TopLevel::Text, SubLevel::Html, vec![]));
+        let content_type = ty.as_str().parse().expect("Supported type is not a MIME type");
         let doc = self.window.Document();
         let loader = DocumentLoader::new(&*doc.loader());
         match ty {
