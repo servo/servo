@@ -333,7 +333,7 @@ impl HTMLTextAreaElement {
 
         if old_value != textinput.get_content() {
             // Step 4
-            textinput.clear_selection_to_limit(Direction::Forward);
+            textinput.clear_selection_to_limit(Direction::Forward, update_text_cursor);
         } else {
             textinput.selection_origin = old_selection;
         }

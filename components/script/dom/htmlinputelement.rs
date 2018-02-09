@@ -1088,7 +1088,7 @@ impl HTMLInputElement {
                 }
                 // Step 5.
                 if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward);
+                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward, update_text_cursor);
                 }
             }
             ValueMode::Default |
@@ -1219,7 +1219,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
-                            self.textinput.borrow_mut().clear_selection_to_limit(Direction::Backward);
+                            self.textinput.borrow_mut().clear_selection_to_limit(Direction::Backward, true);
                         }
                     },
                     AttributeMutation::Removed => {
