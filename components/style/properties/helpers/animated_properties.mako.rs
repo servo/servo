@@ -363,6 +363,7 @@ pub enum AnimationValue {
 
 impl AnimationValue {
     /// Returns the longhand id this animated value corresponds to.
+    #[inline]
     pub fn id(&self) -> LonghandId {
         let id = unsafe { *(self as *const _ as *const LonghandId) };
         debug_assert_eq!(id, match *self {

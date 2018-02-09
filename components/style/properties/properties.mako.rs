@@ -1739,6 +1739,7 @@ impl fmt::Debug for PropertyDeclaration {
 
 impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.
+    #[inline]
     pub fn id(&self) -> PropertyDeclarationId {
         match *self {
             PropertyDeclaration::Custom(ref declaration) => {
