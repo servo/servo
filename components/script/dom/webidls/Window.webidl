@@ -196,8 +196,3 @@ partial interface Window {
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
 };
-
-// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-partial interface Window {
-    [SameObject, Pref="dom.worklet.enabled"] readonly attribute Worklet paintWorklet;
-};

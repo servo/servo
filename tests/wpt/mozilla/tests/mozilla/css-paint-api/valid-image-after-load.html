@@ -30,7 +30,7 @@ if (window.testRunner) {
 var blob = new Blob([document.getElementById('code').textContent],
                     {type: 'text/javascript'});
 var frame_cnt = 0;
-paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
     var el = document.getElementById('output');
     el.style.backgroundImage = 'paint(green)';
     requestAnimationFrame(function() {
