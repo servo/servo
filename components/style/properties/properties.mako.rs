@@ -206,31 +206,35 @@ pub mod animated_properties {
 <%
     from itertools import groupby
 
+    # After this code, `data.longhands` is sorted in the following order:
+    # - first all keyword variants and all variants known to be Copy,
+    # - second all the other variants, such as all variants with the same field
+    #   have consecutive discriminants.
+    # The variable `variants` contain the same entries as `data.longhands` in
+    # the same order, but must exist separately to the data source, because
+    # we then need to add three additional variants `WideKeywordDeclaration`,
+    # `VariableDeclaration` and `CustomDeclaration`.
+
     variants = []
     for property in data.longhands:
-        if property.predefined_type and not property.is_vector:
-            ty = "::values::specified::{}".format(property.predefined_type)
-        else:
-            ty = "longhands::{}::SpecifiedValue".format(property.ident)
-        if property.boxed:
-            ty = "Box<{}>".format(ty)
         variants.append({
             "name": property.camel_case,
-            "type": ty,
+            "type": property.specified_type(),
             "doc": "`" + property.name + "`",
+            "copy": property.specified_is_copy(),
         })
 
     groups = {}
     keyfunc = lambda x: x["type"]
     sortkeys = {}
     for ty, group in groupby(sorted(variants, key=keyfunc), keyfunc):
-        group = [v["name"] for v in group]
+        group = list(group)
         groups[ty] = group
         for v in group:
             if len(group) == 1:
-                sortkeys[v] = (1, v, "")
+                sortkeys[v["name"]] = (not v["copy"], 1, v["name"], "")
             else:
-                sortkeys[v] = (len(group), ty, v)
+                sortkeys[v["name"]] = (not v["copy"], len(group), ty, v["name"])
     variants.sort(key=lambda x: sortkeys[x["name"]])
 
     # It is extremely important to sort the `data.longhands` array here so
@@ -250,21 +254,24 @@ pub mod animated_properties {
             "name": "CSSWideKeyword",
             "type": "WideKeywordDeclaration",
             "doc": "A CSS-wide keyword.",
+            "copy": False,
         },
         {
             "name": "WithVariables",
             "type": "VariableDeclaration",
             "doc": "An unparsed declaration.",
+            "copy": False,
         },
         {
             "name": "Custom",
             "type": "CustomDeclaration",
             "doc": "A custom property declaration.",
+            "copy": False,
         },
     ]
     for v in extra:
         variants.append(v)
-        groups[v["type"]] = [v["name"]]
+        groups[v["type"]] = [v]
 %>
 
 /// Servo's representation for a property declaration.
@@ -287,14 +294,46 @@ impl Clone for PropertyDeclaration {
     fn clone(&self) -> Self {
         use self::PropertyDeclaration::*;
 
+        <%
+            [copy, others] = [list(g) for _, g in groupby(variants, key=lambda x: not x["copy"])]
+        %>
+
+        let self_tag = unsafe {
+            (*(self as *const _ as *const PropertyDeclarationVariantRepr<()>)).tag
+        };
+        if self_tag <= LonghandId::${copy[-1]["name"]} as u16 {
+            #[derive(Clone, Copy)]
+            #[repr(u16)]
+            enum CopyVariants {
+                % for v in copy:
+                _${v["name"]}(${v["type"]}),
+                % endfor
+            }
+
+            unsafe {
+                let mut out = mem::uninitialized();
+                ptr::write(
+                    &mut out as *mut _ as *mut CopyVariants,
+                    *(self as *const _ as *const CopyVariants),
+                );
+                return out;
+            }
+        }
+
         match *self {
-            % for ty, variants in groups.iteritems():
-            % if len(variants) == 1:
-            ${variants[0]}(ref value) => {
-                ${variants[0]}(value.clone())
+            ${" |\n".join("{}(..)".format(v["name"]) for v in copy)} => {
+                unsafe { debug_unreachable!() }
+            }
+            % for ty, vs in groupby(others, key=lambda x: x["type"]):
+            <%
+                vs = list(vs)
+            %>
+            % if len(vs) == 1:
+            ${vs[0]["name"]}(ref value) => {
+                ${vs[0]["name"]}(value.clone())
             }
             % else:
-            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+            ${" |\n".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 unsafe {
                     let mut out = ManuallyDrop::new(mem::uninitialized());
                     ptr::write(
@@ -327,8 +366,8 @@ impl PartialEq for PropertyDeclaration {
                 return false;
             }
             match *self {
-                % for ty, variants in groups.iteritems():
-                ${" | ".join("{}(ref this)".format(v) for v in variants)} => {
+                % for ty, vs in groupby(variants, key=lambda x: x["type"]):
+                ${" |\n".join("{}(ref this)".format(v["name"]) for v in vs)} => {
                     let other_repr =
                         &*(other as *const _ as *const PropertyDeclarationVariantRepr<${ty}>);
                     *this == other_repr.value
@@ -346,8 +385,8 @@ impl MallocSizeOf for PropertyDeclaration {
         use self::PropertyDeclaration::*;
 
         match *self {
-            % for ty, variants in groups.iteritems():
-            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+            % for ty, vs in groupby(variants, key=lambda x: x["type"]):
+            ${" | ".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 value.size_of(ops)
             }
             % endfor
@@ -365,8 +404,8 @@ impl PropertyDeclaration {
 
         let mut dest = CssWriter::new(dest);
         match *self {
-            % for ty, variants in groups.iteritems():
-            ${" | ".join("{}(ref value)".format(v) for v in variants)} => {
+            % for ty, vs in groupby(variants, key=lambda x: x["type"]):
+            ${" | ".join("{}(ref value)".format(v["name"]) for v in vs)} => {
                 value.to_css(&mut dest)
             }
             % endfor
