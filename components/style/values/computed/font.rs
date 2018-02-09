@@ -475,7 +475,7 @@ impl SingleFontFamily {
                 let mut serialization = String::new();
                 serialize_atom_identifier(&name, &mut serialization).unwrap();
                 SingleFontFamily::FamilyName(FamilyName {
-                    name: name.clone(),
+                    name,
                     syntax: FamilyNameSyntax::Identifiers(serialization),
                 })
             },
