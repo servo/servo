@@ -901,7 +901,7 @@ impl HTMLInputElement {
     pub fn reset(&self) {
         match self.input_type() {
             InputType::Radio | InputType::Checkbox => {
-                self.update_checked_state(self.DefaultChecked(), true);
+                self.update_checked_state(self.DefaultChecked(), false);
                 self.checked_changed.set(false);
             },
             InputType::Image => (),
