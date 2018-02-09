@@ -285,7 +285,8 @@ ${helpers.single_keyword("box-sizing",
                          spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
                          gecko_enum_prefix="StyleBoxSizing",
                          custom_consts={ "content-box": "Content", "border-box": "Border" },
-                         animation_value_type="discrete")}
+                         animation_value_type="discrete",
+                         servo_restyle_damage = "reflow")}
 
 ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                          products="gecko", animation_value_type="discrete",

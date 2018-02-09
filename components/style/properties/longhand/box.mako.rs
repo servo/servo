@@ -174,6 +174,7 @@ ${helpers.predefined_type(
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align",
+    servo_restyle_damage = "reflow"
 )}
 
 // CSS 2.1, Section 11 - Visual effects
@@ -210,12 +211,14 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
                          flags="APPLIES_TO_PLACEHOLDER",
-                         spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
+                         spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
+                         servo_restyle_damage = "reflow")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 <%helpers:longhand name="overflow-y" animation_value_type="discrete"
                    flags="APPLIES_TO_PLACEHOLDER",
-                   spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
+                   spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y"
+                   servo_restyle_damage = "reflow">
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
 
