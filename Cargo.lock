@@ -2344,7 +2344,6 @@ dependencies = [
  "angle 0.5.0 (git+https://github.com/servo/angle?branch=servo)",
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "audio-video-metadata 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth_traits 0.0.1",
