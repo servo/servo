@@ -17,7 +17,7 @@ use context::LayoutContext;
 use display_list::ToLayout;
 use display_list::background::{compute_background_image_size, tile_image_axis};
 use display_list::background::{convert_linear_gradient, convert_radial_gradient};
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Transform3D, TypedSize2D, Vector2D, rect};
+use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedSize2D, Vector2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, FlowFlags};
 use flow_ref::FlowRef;
@@ -76,9 +76,9 @@ use style_traits::cursor::CursorKind;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{self, BorderRadius, BorderSide, BoxShadowClipMode, ClipMode, ColorF};
 use webrender_api::{ComplexClipRegion, ExternalScrollId, FilterOp, GlyphInstance, ImageBorder};
-use webrender_api::{ImageRendering, LayoutRect, LayoutSize, LayoutVector2D, LineStyle, LocalClip};
-use webrender_api::{NinePatchDescriptor, NormalBorder, ScrollPolicy, ScrollSensitivity};
-use webrender_api::StickyOffsetBounds;
+use webrender_api::{ImageRendering, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
+use webrender_api::{LineStyle, LocalClip, NinePatchDescriptor, NormalBorder, ScrollPolicy};
+use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -2421,7 +2421,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let perspective = self.fragment
             .perspective_matrix(&border_box)
-            .unwrap_or_else(Transform3D::identity);
+            .unwrap_or(LayoutTransform::identity());
         let transform = transform.pre_mul(&perspective).inverse();
 
         let origin = &border_box.origin;
@@ -2723,10 +2723,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
         let content_size = Size2D::new(content_size.x, content_size.y);
 
-        let external_id = ExternalScrollId(
-            self.fragment.unique_id(),
-            state.pipeline_id.to_webrender()
-        );
+        let external_id =
+            ExternalScrollId(self.fragment.unique_id(), state.pipeline_id.to_webrender());
         let new_clip_scroll_index = state.add_clip_scroll_node(ClipScrollNode {
             parent_index: self.clipping_and_scrolling().scrolling,
             clip: clip,
