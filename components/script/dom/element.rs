@@ -350,14 +350,14 @@ impl Element {
 
     /// style will be `None` for elements in a `display: none` subtree. otherwise, the element has a
     /// layout box iff it doesn't have `display: none`.
-    fn style(&self) -> Option<Arc<ComputedValues>> {
+    pub fn style(&self) -> Option<Arc<ComputedValues>> {
         window_from_node(self).style_query(
             self.upcast::<Node>().to_trusted_node_address()
         )
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    fn has_css_layout_box(&self) -> bool {
+    pub fn has_css_layout_box(&self) -> bool {
         self.style()
             .map_or(false, |s| !s.get_box().clone_display().is_none())
     }
