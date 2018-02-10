@@ -566,35 +566,49 @@ fn animate_discrete<T: Clone>(this: &T, other: &T, procedure: Procedure) -> Resu
 
 impl Animate for AnimationValue {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let value = match (self, other) {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            % if prop.animation_value_type != "discrete":
-            (
-                &AnimationValue::${prop.camel_case}(ref this),
-                &AnimationValue::${prop.camel_case}(ref other),
-            ) => {
-                AnimationValue::${prop.camel_case}(
-                    this.animate(other, procedure)?,
-                )
-            },
-            % else:
-            (
-                &AnimationValue::${prop.camel_case}(ref this),
-                &AnimationValue::${prop.camel_case}(ref other),
-            ) => {
-                AnimationValue::${prop.camel_case}(
-                    animate_discrete(this, other, procedure)?
-                )
-            },
-            % endif
-            % endif
-            % endfor
-            _ => {
+        use self::AnimationValue::*;
+
+        Ok(unsafe {
+            #[repr(C)]
+            struct AnimationValueVariantRepr<T> {
+                tag: u16,
+                value: T
+            }
+
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
                 panic!("Unexpected AnimationValue::animate call");
             }
-        };
-        Ok(value)
+
+            match *self {
+                <% keyfunc = lambda x: (x.animated_type(), x.animation_value_type == "discrete") %>
+                % for (ty, discrete), props in groupby(animated, key=keyfunc):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+                    % if discrete:
+                    let value = animate_discrete(this, &other_repr.value, procedure)?;
+                    % else:
+                    let value = this.animate(&other_repr.value, procedure)?;
+                    % endif
+
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        AnimationValueVariantRepr {
+                            tag: this_tag,
+                            value,
+                        },
+                    );
+                    out
+                }
+                % endfor
+                ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                    void::unreachable(void)
+                }
+            }
+        })
     }
 }
 
