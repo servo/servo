@@ -27,7 +27,7 @@ use properties::{LonghandId, ShorthandId};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
-use std::cmp;
+use std::{cmp, mem, ptr};
 use std::fmt::{self, Write};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -360,6 +360,16 @@ pub enum AnimationValue {
     % endfor
 }
 
+<%
+    animated = []
+    unanimated = []
+    for prop in data.longhands:
+        if prop.animatable:
+            animated.append(prop)
+        else:
+            unanimated.append(prop)
+%>
+
 impl AnimationValue {
     /// Returns the longhand id this animated value corresponds to.
     #[inline]
@@ -381,29 +391,42 @@ impl AnimationValue {
     /// cascade.
     pub fn uncompute(&self) -> PropertyDeclaration {
         use properties::longhands;
+        use self::AnimationValue::*;
+
+        use super::PropertyDeclarationVariantRepr;
+
         match *self {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            AnimationValue::${prop.camel_case}(ref from) => {
-                PropertyDeclaration::${prop.camel_case}(
-                    % if prop.boxed:
-                    Box::new(
-                    % endif
-                        longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                        % if prop.is_animatable_with_computed_value:
-                            from
-                        % else:
-                            &ToAnimatedValue::from_animated_value(from.clone())
-                        % endif
-                        ))
-                    % if prop.boxed:
-                    )
-                    % endif
+            <% keyfunc = lambda x: (x.base_type(), x.specified_type(), x.boxed, x.is_animatable_with_computed_value) %>
+            % for (ty, specified, boxed, computed), props in groupby(animated, key=keyfunc):
+            <% props = list(props) %>
+            ${" |\n".join("{}(ref value)".format(prop.camel_case) for prop in props)} => {
+                % if not computed:
+                let ref value = ToAnimatedValue::from_animated_value(value.clone());
+                % endif
+                let value = ${ty}::from_computed_value(&value);
+                % if boxed:
+                let value = Box::new(value);
+                % endif
+                % if len(props) == 1:
+                PropertyDeclaration::${props[0].camel_case}(value)
+                % else:
+                unsafe {
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut PropertyDeclarationVariantRepr<${specified}>,
+                        PropertyDeclarationVariantRepr {
+                            tag: *(self as *const _ as *const u16),
+                            value,
+                        },
+                    );
+                    out
+                }
+                % endif
             }
-            % else:
-            AnimationValue::${prop.camel_case}(void) => void::unreachable(void),
-            % endif
             % endfor
+            ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                void::unreachable(void)
+            }
         }
     }
 
