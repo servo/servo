@@ -58,6 +58,7 @@ extern crate smallvec;
 extern crate string_cache;
 #[cfg(feature = "url")]
 extern crate url;
+extern crate void;
 #[cfg(feature = "webrender_api")]
 extern crate webrender_api;
 #[cfg(feature = "servo")]
@@ -67,6 +68,7 @@ use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
 use std::ops::Range;
 use std::os::raw::c_void;
+use void::Void;
 
 /// A C function that takes a pointer to a heap allocation and returns its size.
 type VoidPtrToSizeFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
@@ -743,6 +745,13 @@ impl MallocSizeOf for selectors::parser::AncestorHashes {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let selectors::parser::AncestorHashes { ref packed_hashes } = *self;
         packed_hashes.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for Void {
+    #[inline]
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        void::unreachable(*self)
     }
 }
 

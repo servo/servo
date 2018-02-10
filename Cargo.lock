@@ -1562,6 +1562,7 @@ dependencies = [
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
  "xml5ever 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2926,6 +2927,7 @@ dependencies = [
  "uluru 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "walkdir 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

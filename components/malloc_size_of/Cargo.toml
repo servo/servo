@@ -26,3 +26,4 @@ string_cache = { version = "0.7", optional = true }
 url = { version = "1.2", optional = true }
 webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"], optional = true }
 xml5ever = { version = "0.12", optional = true }
+void = "1.0.2"

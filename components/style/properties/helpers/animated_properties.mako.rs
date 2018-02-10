@@ -4,7 +4,10 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% from data import to_idl_name, SYSTEM_FONT_LONGHANDS %>
+<%
+    from data import to_idl_name, SYSTEM_FONT_LONGHANDS
+    from itertools import groupby
+%>
 
 use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
@@ -24,7 +27,7 @@ use properties::{LonghandId, ShorthandId};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
-use std::cmp;
+use std::{cmp, mem, ptr};
 use std::fmt::{self, Write};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -58,6 +61,7 @@ use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 use values::specified::font::FontTag;
+use void::{self, Void};
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
 pub trait RepeatableListAnimatable: Animate {}
@@ -343,56 +347,86 @@ unsafe impl HasSimpleFFI for AnimationValueMap {}
 /// this (is a similar path to that of PropertyDeclaration).
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[repr(u16)]
 pub enum AnimationValue {
     % for prop in data.longhands:
-        % if prop.animatable:
-            /// ${prop.name}
-            % if prop.is_animatable_with_computed_value:
-                ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
-            % else:
-                ${prop.camel_case}(<longhands::${prop.ident}::computed_value::T as ToAnimatedValue>::AnimatedValue),
-            % endif
-        % endif
+    % if prop.animatable:
+    /// `${prop.name}`
+    ${prop.camel_case}(${prop.animated_type()}),
+    % else:
+    /// `${prop.name}` (not animatable)
+    ${prop.camel_case}(Void),
+    % endif
     % endfor
 }
 
+<%
+    animated = []
+    unanimated = []
+    for prop in data.longhands:
+        if prop.animatable:
+            animated.append(prop)
+        else:
+            unanimated.append(prop)
+%>
+
 impl AnimationValue {
     /// Returns the longhand id this animated value corresponds to.
+    #[inline]
     pub fn id(&self) -> LonghandId {
-        match *self {
+        let id = unsafe { *(self as *const _ as *const LonghandId) };
+        debug_assert_eq!(id, match *self {
             % for prop in data.longhands:
             % if prop.animatable:
-                AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
+            AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
+            % else:
+            AnimationValue::${prop.camel_case}(void) => void::unreachable(void),
             % endif
             % endfor
-        }
+        });
+        id
     }
 
     /// "Uncompute" this animation value in order to be used inside the CSS
     /// cascade.
     pub fn uncompute(&self) -> PropertyDeclaration {
         use properties::longhands;
+        use self::AnimationValue::*;
+
+        use super::PropertyDeclarationVariantRepr;
+
         match *self {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimationValue::${prop.camel_case}(ref from) => {
-                        PropertyDeclaration::${prop.camel_case}(
-                            % if prop.boxed:
-                            Box::new(
-                            % endif
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                                % if prop.is_animatable_with_computed_value:
-                                    from
-                                % else:
-                                    &ToAnimatedValue::from_animated_value(from.clone())
-                                % endif
-                                ))
-                            % if prop.boxed:
-                            )
-                            % endif
-                    }
+            <% keyfunc = lambda x: (x.base_type(), x.specified_type(), x.boxed, x.is_animatable_with_computed_value) %>
+            % for (ty, specified, boxed, computed), props in groupby(animated, key=keyfunc):
+            <% props = list(props) %>
+            ${" |\n".join("{}(ref value)".format(prop.camel_case) for prop in props)} => {
+                % if not computed:
+                let ref value = ToAnimatedValue::from_animated_value(value.clone());
                 % endif
+                let value = ${ty}::from_computed_value(&value);
+                % if boxed:
+                let value = Box::new(value);
+                % endif
+                % if len(props) == 1:
+                PropertyDeclaration::${props[0].camel_case}(value)
+                % else:
+                unsafe {
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut PropertyDeclarationVariantRepr<${specified}>,
+                        PropertyDeclarationVariantRepr {
+                            tag: *(self as *const _ as *const u16),
+                            value,
+                        },
+                    );
+                    out
+                }
+                % endif
+            }
             % endfor
+            ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                void::unreachable(void)
+            }
         }
     }
 
@@ -530,65 +564,83 @@ fn animate_discrete<T: Clone>(this: &T, other: &T, procedure: Procedure) -> Resu
     }
 }
 
+#[repr(C)]
+struct AnimationValueVariantRepr<T> {
+    tag: u16,
+    value: T
+}
+
 impl Animate for AnimationValue {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let value = match (self, other) {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            % if prop.animation_value_type != "discrete":
-            (
-                &AnimationValue::${prop.camel_case}(ref this),
-                &AnimationValue::${prop.camel_case}(ref other),
-            ) => {
-                AnimationValue::${prop.camel_case}(
-                    this.animate(other, procedure)?,
-                )
-            },
-            % else:
-            (
-                &AnimationValue::${prop.camel_case}(ref this),
-                &AnimationValue::${prop.camel_case}(ref other),
-            ) => {
-                AnimationValue::${prop.camel_case}(
-                    animate_discrete(this, other, procedure)?
-                )
-            },
-            % endif
-            % endif
-            % endfor
-            _ => {
+        Ok(unsafe {
+            use self::AnimationValue::*;
+
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
                 panic!("Unexpected AnimationValue::animate call");
             }
-        };
-        Ok(value)
+
+            match *self {
+                <% keyfunc = lambda x: (x.animated_type(), x.animation_value_type == "discrete") %>
+                % for (ty, discrete), props in groupby(animated, key=keyfunc):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+                    % if discrete:
+                    let value = animate_discrete(this, &other_repr.value, procedure)?;
+                    % else:
+                    let value = this.animate(&other_repr.value, procedure)?;
+                    % endif
+
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        AnimationValueVariantRepr {
+                            tag: this_tag,
+                            value,
+                        },
+                    );
+                    out
+                }
+                % endfor
+                ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                    void::unreachable(void)
+                }
+            }
+        })
     }
 }
 
+<%
+    nondiscrete = []
+    for prop in animated:
+        if prop.animation_value_type != "discrete":
+            nondiscrete.append(prop)
+%>
+
 impl ComputeSquaredDistance for AnimationValue {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match *self {
-            % for i, prop in enumerate([p for p in data.longhands if p.animatable and p.animation_value_type == "discrete"]):
-            % if i > 0:
-            |
-            % endif
-            AnimationValue::${prop.camel_case}(..)
-            % endfor
-            => return Err(()),
-            _ => (),
-        }
-        match (self, other) {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            % if prop.animation_value_type != "discrete":
-            (&AnimationValue::${prop.camel_case}(ref this), &AnimationValue::${prop.camel_case}(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            % endif
-            % endif
-            % endfor
-            _ => {
-                panic!("computed values should be of the same property");
-            },
+        unsafe {
+            use self::AnimationValue::*;
+
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
+                panic!("Unexpected AnimationValue::compute_squared_distance call");
+            }
+
+            match *self {
+                % for ty, props in groupby(nondiscrete, key=lambda x: x.animated_type()):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+
+                    this.compute_squared_distance(&other_repr.value)
+                }
+                % endfor
+                _ => Err(()),
+            }
         }
     }
 }
