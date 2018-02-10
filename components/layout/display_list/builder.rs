@@ -1203,7 +1203,6 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Image(Box::new(ImageDisplayItem {
             base: base,
             webrender_image: webrender_image,
-            image_data: None,
             stretch_size: placement.tile_size.to_layout(),
             tile_spacing: placement.tile_spacing.to_layout(),
             image_rendering: style.get_inheritedbox().image_rendering.to_layout(),
@@ -2000,7 +1999,6 @@ impl FragmentDisplayListBuilding for Fragment {
                     state.add_display_item(DisplayItem::Image(Box::new(ImageDisplayItem {
                         base: base,
                         webrender_image: WebRenderImageInfo::from_image(image),
-                        image_data: Some(Arc::new(image.bytes.clone())),
                         stretch_size: stacking_relative_content_box.size.to_layout(),
                         tile_spacing: LayoutSize::zero(),
                         image_rendering: self.style.get_inheritedbox().image_rendering.to_layout(),
@@ -2041,7 +2039,6 @@ impl FragmentDisplayListBuilding for Fragment {
                         format: format,
                         key: Some(image_key),
                     },
-                    image_data: None,
                     stretch_size: stacking_relative_content_box.size.to_layout(),
                     tile_spacing: LayoutSize::zero(),
                     image_rendering: ImageRendering::Auto,
