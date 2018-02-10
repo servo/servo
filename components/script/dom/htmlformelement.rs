@@ -620,7 +620,7 @@ impl HTMLFormElement {
         ret
     }
 
-    pub fn reset(&self, _reset_method_flag: ResetFrom) {
+    pub fn reset(&self, _reset_method_flag: ResetFrom ) {
         // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
             return;
@@ -651,7 +651,7 @@ impl HTMLFormElement {
                     child.downcast::<HTMLSelectElement>().unwrap().reset();
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                    child.downcast::<HTMLTextAreaElement>().unwrap().reset();
+                    child.downcast::<HTMLTextAreaElement>().unwrap().reset(true);
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
