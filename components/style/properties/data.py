@@ -229,6 +229,11 @@ class Longhand(object):
     def enabled_in_content(self):
         return self.enabled_in == "content"
 
+    def base_type(self):
+        if self.predefined_type and not self.is_vector:
+            return "::values::specified::{}".format(self.predefined_type)
+        return "longhands::{}::SpecifiedValue".format(self.ident)
+
     def specified_type(self):
         if self.predefined_type and not self.is_vector:
             ty = "::values::specified::{}".format(self.predefined_type)
@@ -280,6 +285,13 @@ class Longhand(object):
                 "XTextZoom",
             }
         return bool(self.keyword)
+
+    def animated_type(self):
+        assert self.animatable
+        computed = "<{} as ToComputedValue>::ComputedValue".format(self.base_type())
+        if self.is_animatable_with_computed_value:
+            return computed
+        return "<{} as ToAnimatedValue>::AnimatedValue".format(computed)
 
 
 class Shorthand(object):

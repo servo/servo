@@ -4,7 +4,10 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% from data import to_idl_name, SYSTEM_FONT_LONGHANDS %>
+<%
+    from data import to_idl_name, SYSTEM_FONT_LONGHANDS
+    from itertools import groupby
+%>
 
 use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
@@ -349,11 +352,7 @@ pub enum AnimationValue {
     % for prop in data.longhands:
     % if prop.animatable:
     /// `${prop.name}`
-    % if prop.is_animatable_with_computed_value:
-    ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
-    % else:
-    ${prop.camel_case}(<longhands::${prop.ident}::computed_value::T as ToAnimatedValue>::AnimatedValue),
-    % endif
+    ${prop.camel_case}(${prop.animated_type()}),
     % else:
     /// `${prop.name}` (not animatable)
     ${prop.camel_case}(Void),
