@@ -2840,7 +2840,7 @@ extern "C" {
     pub fn Servo_DeclarationBlock_RemoveProperty(
         declarations: RawServoDeclarationBlockBorrowed,
         property: *const nsACString,
-    );
+    ) -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_RemovePropertyById(
