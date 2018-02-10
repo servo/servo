@@ -73,6 +73,12 @@ pub struct FontHandle {
     can_do_fast_shaping: bool,
 }
 
+impl PartialEq for FontHandle {
+    fn eq(&self, other: &FontHandle) -> bool {
+        self.font_data == other.font_data
+    }
+}
+
 impl Drop for FontHandle {
     fn drop(&mut self) {
         assert!(!self.face.is_null());

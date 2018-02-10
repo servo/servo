@@ -39,6 +39,12 @@ pub struct FontTemplateData {
     pub font_data: Option<Arc<Vec<u8>>>
 }
 
+impl PartialEq for FontTemplateData {
+    fn eq(&self, other: &FontTemplateData) -> bool {
+        self.identifier == other.identifier
+    }
+}
+
 unsafe impl Send for FontTemplateData {}
 unsafe impl Sync for FontTemplateData {}
 

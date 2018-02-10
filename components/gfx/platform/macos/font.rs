@@ -65,6 +65,12 @@ pub struct FontHandle {
     can_do_fast_shaping: bool,
 }
 
+impl PartialEq for FontHandle {
+    fn eq(&self, other: &FontHandle) -> bool {
+        self.font_data == other.font_data
+    }
+}
+
 impl FontHandle {
     /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
     /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.

@@ -240,6 +240,12 @@ pub struct FontHandle {
     scaled_du_to_px: f32,
 }
 
+impl PartialEq for FontHandle {
+    fn eq(&self, other: &FontHandle) -> bool {
+        self.font_data == other.font_data
+    }
+}
+
 impl FontHandle {
 }
 

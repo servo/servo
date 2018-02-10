@@ -11,7 +11,10 @@ use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
 use std::u32;
-use style::computed_values::{font_stretch, font_weight};
+use style::computed_values::font_stretch::T as FontStretch;
+use style::computed_values::font_style::T as FontStyle;
+use style::properties::style_structs::Font as FontStyleStruct;
+use style::values::computed::font::FontWeight;
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.
@@ -19,14 +22,14 @@ use style::computed_values::{font_stretch, font_weight};
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Serialize)]
 pub struct FontTemplateDescriptor {
-    pub weight: font_weight::T,
-    pub stretch: font_stretch::T,
+    pub weight: FontWeight,
+    pub stretch: FontStretch,
     pub italic: bool,
 }
 
 impl FontTemplateDescriptor {
     #[inline]
-    pub fn new(weight: font_weight::T, stretch: font_stretch::T, italic: bool)
+    pub fn new(weight: FontWeight, stretch: FontStretch, italic: bool)
                -> FontTemplateDescriptor {
         FontTemplateDescriptor {
             weight: weight,
@@ -57,15 +60,25 @@ impl FontTemplateDescriptor {
     #[inline]
     fn stretch_number(&self) -> i32 {
         match self.stretch {
-            font_stretch::T::UltraCondensed => 1,
-            font_stretch::T::ExtraCondensed => 2,
-            font_stretch::T::Condensed      => 3,
-            font_stretch::T::SemiCondensed  => 4,
-            font_stretch::T::Normal         => 5,
-            font_stretch::T::SemiExpanded   => 6,
-            font_stretch::T::Expanded       => 7,
-            font_stretch::T::ExtraExpanded  => 8,
-            font_stretch::T::UltraExpanded  => 9,
+            FontStretch::UltraCondensed => 1,
+            FontStretch::ExtraCondensed => 2,
+            FontStretch::Condensed      => 3,
+            FontStretch::SemiCondensed  => 4,
+            FontStretch::Normal         => 5,
+            FontStretch::SemiExpanded   => 6,
+            FontStretch::Expanded       => 7,
+            FontStretch::ExtraExpanded  => 8,
+            FontStretch::UltraExpanded  => 9,
+        }
+    }
+}
+
+impl<'a> From<&'a FontStyleStruct> for FontTemplateDescriptor {
+    fn from(style: &'a FontStyleStruct) -> Self {
+        FontTemplateDescriptor {
+            weight: style.font_weight,
+            stretch: style.font_stretch,
+            italic: style.font_style == FontStyle::Italic || style.font_style == FontStyle::Oblique,
         }
     }
 }

@@ -13,6 +13,12 @@ pub struct FontTemplateData {
     pub identifier: Atom,
 }
 
+impl PartialEq for FontTemplateData {
+    fn eq(&self, other: &FontTemplateData) -> bool {
+        self.identifier == other.identifier
+    }
+}
+
 impl FontTemplateData {
     pub fn new(identifier: Atom,
                font_data: Option<Vec<u8>>) -> Result<FontTemplateData, io::Error> {
