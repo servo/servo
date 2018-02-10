@@ -564,16 +564,16 @@ fn animate_discrete<T: Clone>(this: &T, other: &T, procedure: Procedure) -> Resu
     }
 }
 
+#[repr(C)]
+struct AnimationValueVariantRepr<T> {
+    tag: u16,
+    value: T
+}
+
 impl Animate for AnimationValue {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        use self::AnimationValue::*;
-
         Ok(unsafe {
-            #[repr(C)]
-            struct AnimationValueVariantRepr<T> {
-                tag: u16,
-                value: T
-            }
+            use self::AnimationValue::*;
 
             let this_tag = *(self as *const _ as *const u16);
             let other_tag = *(other as *const _ as *const u16);
@@ -612,31 +612,35 @@ impl Animate for AnimationValue {
     }
 }
 
+<%
+    nondiscrete = []
+    for prop in animated:
+        if prop.animation_value_type != "discrete":
+            nondiscrete.append(prop)
+%>
+
 impl ComputeSquaredDistance for AnimationValue {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match *self {
-            % for i, prop in enumerate([p for p in data.longhands if p.animatable and p.animation_value_type == "discrete"]):
-            % if i > 0:
-            |
-            % endif
-            AnimationValue::${prop.camel_case}(..)
-            % endfor
-            => return Err(()),
-            _ => (),
-        }
-        match (self, other) {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            % if prop.animation_value_type != "discrete":
-            (&AnimationValue::${prop.camel_case}(ref this), &AnimationValue::${prop.camel_case}(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            % endif
-            % endif
-            % endfor
-            _ => {
-                panic!("computed values should be of the same property");
-            },
+        unsafe {
+            use self::AnimationValue::*;
+
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
+                panic!("Unexpected AnimationValue::compute_squared_distance call");
+            }
+
+            match *self {
+                % for ty, props in groupby(nondiscrete, key=lambda x: x.animated_type()):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+
+                    this.compute_squared_distance(&other_repr.value)
+                }
+                % endfor
+                _ => Err(()),
+            }
         }
     }
 }
