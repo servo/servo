@@ -2874,8 +2874,8 @@ fn remove_property(
 pub unsafe extern "C" fn Servo_DeclarationBlock_RemoveProperty(
     declarations: RawServoDeclarationBlockBorrowed,
     property: *const nsACString,
-) {
-    remove_property(declarations, get_property_id_from_property!(property, ()));
+) -> bool {
+    remove_property(declarations, get_property_id_from_property!(property, false))
 }
 
 #[no_mangle]
