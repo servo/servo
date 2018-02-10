@@ -14,7 +14,7 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-use euclid::{Transform3D, Vector2D, TypedRect, SideOffsets2D};
+use euclid::{Vector2D, TypedRect, SideOffsets2D};
 use euclid::num::{One, Zero};
 use gfx_traits::{self, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
@@ -33,8 +33,8 @@ use text::glyph::ByteIndex;
 use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipMode, ColorF};
 use webrender_api::{ComplexClipRegion, ExtendMode, ExternalScrollId, FilterOp, FontInstanceKey};
 use webrender_api::{GlyphInstance, GradientStop, ImageBorder, ImageKey, ImageRendering};
-use webrender_api::{LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D, LineStyle, LocalClip};
-use webrender_api::{MixBlendMode, NormalBorder, ScrollPolicy, ScrollSensitivity};
+use webrender_api::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D, LineStyle};
+use webrender_api::{LocalClip, MixBlendMode, NormalBorder, ScrollPolicy, ScrollSensitivity};
 use webrender_api::{StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
@@ -209,13 +209,13 @@ pub struct StackingContext {
     pub mix_blend_mode: MixBlendMode,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Option<Transform3D<f32>>,
+    pub transform: Option<LayoutTransform>,
 
     /// The transform style of this stacking context.
     pub transform_style: TransformStyle,
 
     /// The perspective matrix to be applied to children.
-    pub perspective: Option<Transform3D<f32>>,
+    pub perspective: Option<LayoutTransform>,
 
     /// The scroll policy of this layer.
     pub scroll_policy: ScrollPolicy,
@@ -234,9 +234,9 @@ impl StackingContext {
                z_index: i32,
                filters: Vec<FilterOp>,
                mix_blend_mode: MixBlendMode,
-               transform: Option<Transform3D<f32>>,
+               transform: Option<LayoutTransform>,
                transform_style: TransformStyle,
-               perspective: Option<Transform3D<f32>>,
+               perspective: Option<LayoutTransform>,
                scroll_policy: ScrollPolicy,
                parent_clipping_and_scrolling: ClippingAndScrolling)
                -> StackingContext {
@@ -1028,7 +1028,7 @@ pub trait SimpleMatrixDetection {
     fn is_identity_or_simple_translation(&self) -> bool;
 }
 
-impl SimpleMatrixDetection for Transform3D<f32> {
+impl SimpleMatrixDetection for LayoutTransform {
     #[inline]
     fn is_identity_or_simple_translation(&self) -> bool {
         let (_0, _1) = (Zero::zero(), One::one());

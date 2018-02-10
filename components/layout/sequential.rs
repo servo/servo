@@ -17,6 +17,7 @@ use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
+use webrender_api::LayoutPoint;
 
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
@@ -98,7 +99,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
                 if let Some(matrix) = kid.as_block()
                        .fragment
                        .transform_matrix(&relative_position) {
-                    let transform_matrix = matrix.transform_point2d(&Point2D::zero());
+                    let transform_matrix = matrix.transform_point2d(&LayoutPoint::zero());
                     stacking_context_position = stacking_context_position +
                                                 Vector2D::new(Au::from_f32_px(transform_matrix.x),
                                                               Au::from_f32_px(transform_matrix.y))
