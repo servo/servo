@@ -1494,19 +1494,16 @@ impl Stylist {
         E: TElement,
     {
         use font_metrics::get_metrics_provider_for_product;
+        use std::iter;
 
         // FIXME(emilio): Why do we even need the rule node? We should probably
         // just avoid allocating it and calling `apply_declarations` directly,
         // maybe...
-        //
-        // Also the `vec!` is super-wasteful.
-        let v = vec![ApplicableDeclarationBlock::from_declarations(
-            declarations.clone(),
-            CascadeLevel::StyleAttributeNormal
-        )];
-
         let rule_node =
-            self.rule_tree.insert_ordered_rules(v.into_iter().map(|a| a.order_and_level()));
+            self.rule_tree.insert_ordered_rules(iter::once((
+                StyleSource::Declarations(declarations),
+                CascadeLevel::StyleAttributeNormal,
+            )));
 
         // This currently ignores visited styles.  It appears to be used for
         // font styles in <canvas> via Servo_StyleSet_ResolveForDeclarations.
