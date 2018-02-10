@@ -18,6 +18,7 @@ use font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, Fract
 use font::{GPOS, GSUB, KERN};
 use platform::font_template::FontTemplateData;
 use platform::macos::font_context::FontContextHandle;
+use servo_atoms::Atom;
 use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
@@ -317,5 +318,9 @@ impl FontHandleMethods for FontHandle {
         result.and_then(|data| {
             Some(FontTable::wrap(data))
         })
+    }
+
+    fn identifier(&self) -> Atom {
+        self.font_data.identifier.clone()
     }
 }

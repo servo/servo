@@ -15,6 +15,7 @@ use font::{FontTableTag, FractionalPixel};
 use platform::font_template::FontTemplateData;
 use platform::windows::font_context::FontContextHandle;
 use platform::windows::font_list::font_from_atom;
+use servo_atoms::Atom;
 use std::sync::Arc;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
@@ -373,5 +374,9 @@ impl FontHandleMethods for FontHandle {
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         self.face.get_font_table(tag).map(|bytes| FontTable { data: bytes })
+    }
+
+    fn identifier(&self) -> Atom {
+        self.font_data.identifier.clone()
     }
 }
