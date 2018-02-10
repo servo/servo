@@ -472,22 +472,28 @@ impl RuleTree {
 /// where it likely did not result from a rigorous performance analysis.)
 const RULE_TREE_GC_INTERVAL: usize = 300;
 
-/// The cascade level these rules are relevant at, as per[1].
+/// The cascade level these rules are relevant at, as per[1][2][3].
+///
+/// Presentational hints for SVG and HTML are in the "author-level
+/// zero-specificity" level, that is, right after user rules, and before author
+/// rules.
 ///
 /// The order of variants declared here is significant, and must be in
 /// _ascending_ order of precedence.
 ///
 /// [1]: https://drafts.csswg.org/css-cascade/#cascade-origin
+/// [2]: https://drafts.csswg.org/css-cascade/#preshint
+/// [3]: https://html.spec.whatwg.org/multipage/#presentational-hints
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
     UANormal = 0,
-    /// Presentational hints.
-    PresHints,
     /// User normal rules.
     UserNormal,
+    /// Presentational hints.
+    PresHints,
     /// Author normal rules.
     AuthorNormal,
     /// Style attribute normal rules.

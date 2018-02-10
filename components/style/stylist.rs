@@ -1157,7 +1157,10 @@ impl Stylist {
 
     /// Returns the applicable CSS declarations for the given element.
     ///
-    /// This corresponds to `ElementRuleCollector` in WebKit.
+    /// This corresponds to `ElementRuleCollector` in WebKit, and should push to
+    /// elements in the list in the order defined by:
+    ///
+    /// https://drafts.csswg.org/css-cascade/#cascade-origin
     pub fn push_applicable_declarations<E, F>(
         &self,
         element: E,
@@ -1194,7 +1197,7 @@ impl Stylist {
             matches_user_rules &&
             self.author_styles_enabled == AuthorStylesEnabled::Yes;
 
-        // Step 1: Normal user-agent rules.
+        // Normal user-agent rules.
         if let Some(map) = self.cascade_data.user_agent.cascade_data.normal_rules(pseudo_element) {
             map.get_all_matching_rules(
                 element,
@@ -1206,8 +1209,33 @@ impl Stylist {
             );
         }
 
+        // NB: the following condition, although it may look somewhat
+        // inaccurate, would be equivalent to something like:
+        //
+        //     element.matches_user_and_author_rules() ||
+        //     (is_implemented_pseudo &&
+        //      rule_hash_target.matches_user_and_author_rules())
+        //
+        // Which may be more what you would probably expect.
+        if matches_user_rules {
+            // User normal rules.
+            if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
+                map.get_all_matching_rules(
+                    element,
+                    rule_hash_target,
+                    applicable_declarations,
+                    context,
+                    flags_setter,
+                    CascadeLevel::UserNormal,
+                );
+            }
+        }
+
         if pseudo_element.is_none() && !only_default_rules {
-            // Step 2: Presentational hints.
+            // Presentational hints.
+            //
+            // These go before author rules, but after user rules, see:
+            // https://drafts.csswg.org/css-cascade/#preshint
             let length_before_preshints = applicable_declarations.len();
             element.synthesize_presentational_hints_for_legacy_attributes(
                 context.visited_handling(),
@@ -1222,29 +1250,7 @@ impl Stylist {
             }
         }
 
-        // NB: the following condition, although it may look somewhat
-        // inaccurate, would be equivalent to something like:
-        //
-        //     element.matches_user_and_author_rules() ||
-        //     (is_implemented_pseudo &&
-        //      rule_hash_target.matches_user_and_author_rules())
-        //
-        // Which may be more what you would probably expect.
-        if matches_user_rules {
-            // Step 3a: User normal rules.
-            if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
-                map.get_all_matching_rules(
-                    element,
-                    rule_hash_target,
-                    applicable_declarations,
-                    context,
-                    flags_setter,
-                    CascadeLevel::UserNormal,
-                );
-            }
-        }
-
-        // Step 3b: XBL / Shadow DOM rules.
+        // XBL / Shadow DOM rules, which are author rules too.
         //
         // TODO(emilio): Cascade order here is wrong for Shadow DOM. In
         // particular, normally document rules override ::slotted() rules, but
@@ -1308,7 +1314,7 @@ impl Stylist {
         });
 
         if matches_author_rules && !only_default_rules && !cut_off_inheritance {
-            // Step 3c: Author normal rules.
+            // Author normal rules.
             if let Some(map) = self.cascade_data.author.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
                     element,
@@ -1322,7 +1328,7 @@ impl Stylist {
         }
 
         if !only_default_rules {
-            // Step 4: Normal style attributes.
+            // Style attribute ("Normal override declarations").
             if let Some(sa) = style_attribute {
                 applicable_declarations.push(
                     ApplicableDeclarationBlock::from_declarations(
@@ -1332,7 +1338,6 @@ impl Stylist {
                 );
             }
 
-            // Step 5: SMIL override.
             // Declarations from SVG SMIL animation elements.
             if let Some(so) = smil_override {
                 applicable_declarations.push(
@@ -1343,9 +1348,9 @@ impl Stylist {
                 );
             }
 
-            // Step 6: Animations.
-            // The animations sheet (CSS animations, script-generated animations,
-            // and CSS transitions that are no longer tied to CSS markup)
+            // The animations sheet (CSS animations, script-generated
+            // animations, and CSS transitions that are no longer tied to CSS
+            // markup).
             if let Some(anim) = animation_rules.0 {
                 applicable_declarations.push(
                     ApplicableDeclarationBlock::from_declarations(
@@ -1357,13 +1362,12 @@ impl Stylist {
         }
 
         //
-        // Steps 7-10 correspond to !important rules, and are handled during
-        // rule tree insertion.
+        // !important rules are handled during rule tree insertion.
         //
 
         if !only_default_rules {
-            // Step 11: Transitions.
-            // The transitions sheet (CSS transitions that are tied to CSS markup)
+            // The transitions sheet (CSS transitions that are tied to CSS
+            // markup).
             if let Some(anim) = animation_rules.1 {
                 applicable_declarations.push(
                     ApplicableDeclarationBlock::from_declarations(
