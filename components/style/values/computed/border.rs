@@ -88,7 +88,7 @@ impl ToAnimatedZero for BorderCornerRadius {
 /// The computed value of the `border-image-repeat` property:
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeatKeyword);
 
 impl BorderImageRepeat {
