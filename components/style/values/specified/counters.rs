@@ -82,7 +82,7 @@ type CounterStyleType = CounterStyleOrNone;
 /// The specified value for the `content` property.
 ///
 /// https://drafts.csswg.org/css-content/#propdef-content
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum Content {
     /// `normal` reserved keyword.
     Normal,
