@@ -322,8 +322,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem], total_length: Au) -> 
     }
 
     // Step 3: Evenly space stops without position.
-    // Note: Remove the + 2 if fix_gradient_stops is changed.
-    let mut stops = Vec::with_capacity(stop_items.len() + 2);
+    let mut stops = Vec::with_capacity(stop_items.len());
     let mut stop_run = None;
     for (i, stop) in stop_items.iter().enumerate() {
         let offset = match stop.position {
@@ -427,14 +426,7 @@ pub fn convert_linear_gradient(
     // This is the length of the gradient line.
     let length = Au::from_f32_px((delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
-    let mut stops = convert_gradient_stops(stops, length);
-
-    // Only clamped gradients need to be fixed because in repeating gradients
-    // there is no "first" or "last" stop because they repeat infinitly in
-    // both directions, so the rendering is always correct.
-    if !repeating {
-        fix_gradient_stops(&mut stops);
-    }
+    let stops = convert_gradient_stops(stops, length);
 
     let center = Point2D::new(size.width / 2, size.height / 2);
 
@@ -473,50 +465,13 @@ pub fn convert_radial_gradient(
         },
     };
 
-    let mut stops = convert_gradient_stops(stops, radius.width);
-    // Repeating gradients have no last stops that can be ignored. So
-    // fixup is not necessary but may actually break the gradient.
-    if !repeating {
-        fix_gradient_stops(&mut stops);
-    }
+    let stops = convert_gradient_stops(stops, radius.width);
 
     display_list::RadialGradient {
         center: center.to_layout(),
         radius: radius.to_layout(),
         stops: stops,
         extend_mode: as_gradient_extend_mode(repeating),
-    }
-}
-
-#[inline]
-/// Duplicate the first and last stops if necessary.
-///
-/// Explanation by pyfisch:
-/// If the last stop is at the same position as the previous stop the
-/// last color is ignored by webrender. This differs from the spec
-/// (I think so). The  implementations of Chrome and Firefox seem
-/// to have the same problem but work fine if the position of the last
-/// stop is smaller than 100%. (Otherwise they ignore the last stop.)
-///
-/// Similarly the first stop is duplicated if it is not placed
-/// at the start of the virtual gradient ray.
-fn fix_gradient_stops(stops: &mut Vec<GradientStop>) {
-    if stops.first().unwrap().offset > 0.0 {
-        let color = stops.first().unwrap().color;
-        stops.insert(
-            0,
-            GradientStop {
-                offset: 0.0,
-                color: color,
-            },
-        )
-    }
-    if stops.last().unwrap().offset < 1.0 {
-        let color = stops.last().unwrap().color;
-        stops.push(GradientStop {
-            offset: 1.0,
-            color: color,
-        })
     }
 }
 
