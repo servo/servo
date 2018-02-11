@@ -24,7 +24,6 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")]
 use properties::PropertyId;
 use properties::{LonghandId, ShorthandId};
-use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::{cmp, ptr};
@@ -142,21 +141,40 @@ impl TransitionProperty {
 
     /// Parse a transition-property value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
+        // enum and use PropertyId when stable Rust allows destructors in
+        // statics.
+        pub enum StaticId {
+            All,
+            Longhand(LonghandId),
+            Shorthand(ShorthandId),
+        }
+        ascii_case_insensitive_phf_map! {
+            static_id -> StaticId = {
+                "all" => StaticId::All,
+                % for prop in data.shorthands_except_all():
+                "${prop.name}" => StaticId::Shorthand(ShorthandId::${prop.camel_case}),
+                % endfor
+                % for prop in data.longhands:
+                "${prop.name}" => StaticId::Longhand(LonghandId::${prop.camel_case}),
+                % endfor
+            }
+        }
+
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
-        match_ignore_ascii_case! { &ident,
-            "all" => Ok(TransitionProperty::All),
-            % for prop in data.shorthands_except_all():
-                "${prop.name}" => Ok(TransitionProperty::Shorthand(ShorthandId::${prop.camel_case})),
-            % endfor
-            % for prop in data.longhands:
-                "${prop.name}" => Ok(TransitionProperty::Longhand(LonghandId::${prop.camel_case})),
-            % endfor
-            "none" => Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
-            _ => CustomIdent::from_ident(location, ident, &[]).map(TransitionProperty::Unsupported),
-        }
-    }
 
+        Ok(match static_id(&ident) {
+            Some(&StaticId::All) => TransitionProperty::All,
+            Some(&StaticId::Longhand(id)) => TransitionProperty::Longhand(id),
+            Some(&StaticId::Shorthand(id)) => TransitionProperty::Shorthand(id),
+            None => {
+                TransitionProperty::Unsupported(
+                    CustomIdent::from_ident(location, ident, &["none"])?,
+                )
+            },
+        })
+    }
 
     /// Convert TransitionProperty to nsCSSPropertyID.
     #[cfg(feature = "gecko")]
