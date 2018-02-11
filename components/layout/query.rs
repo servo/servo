@@ -7,6 +7,7 @@
 use app_units::Au;
 use construct::ConstructionResult;
 use context::LayoutContext;
+use display_list::IndexableText;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
 use flow::{Flow, GetBaseFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
@@ -50,6 +51,8 @@ pub struct LayoutThreadData {
 
     /// The root stacking context.
     pub display_list: Option<Arc<DisplayList>>,
+
+    pub indexable_text: IndexableText,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
