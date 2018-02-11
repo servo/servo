@@ -20,15 +20,11 @@ use gfx_traits::{self, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
-use range::Range;
 use servo_geometry::MaxRect;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::f32;
 use std::fmt;
-use std::sync::Arc;
-use text::TextRun;
-use text::glyph::ByteIndex;
 use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipMode, ColorF};
 use webrender_api::{ComplexClipRegion, ExtendMode, ExternalScrollId, FilterOp, FontInstanceKey};
 use webrender_api::{GlyphInstance, GradientStop, ImageBorder, ImageKey, ImageRendering};
@@ -101,25 +97,6 @@ impl DisplayList {
             Some(_) => unreachable!("Root element of display list not stacking context."),
             None => LayoutRect::zero(),
         }
-    }
-
-    // Returns the text index within a node for the point of interest.
-    pub fn text_index(&self, node: OpaqueNode, point_in_item: LayoutPoint) -> Option<usize> {
-        for item in &self.list {
-            match item {
-                &DisplayItem::Text(ref text) => {
-                    let base = item.base();
-                    if base.metadata.node == node {
-                        let point = point_in_item + item.base().bounds.origin.to_vector();
-                        let offset = point - text.baseline_origin;
-                        return Some(text.text_run.range_index_of_advance(&text.range, offset.x));
-                    }
-                },
-                _ => {},
-            }
-        }
-
-        None
     }
 
     pub fn print(&self) {
@@ -650,16 +627,6 @@ pub struct SolidColorDisplayItem {
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
-
-    /// The text run.
-    #[ignore_malloc_size_of = "Because it is non-owning"]
-    pub text_run: Arc<TextRun>,
-
-    /// The range of text within the text run.
-    pub range: Range<ByteIndex>,
-
-    /// The position of the start of the baseline of this text.
-    pub baseline_origin: LayoutPoint,
     /// A collection of (non-whitespace) glyphs to be displayed.
     pub glyphs: Vec<GlyphInstance>,
     /// Reference to the font to be used.

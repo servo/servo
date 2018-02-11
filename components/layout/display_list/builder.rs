@@ -332,6 +332,9 @@ pub struct DisplayListBuildState<'a> {
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
     pub iframe_sizes: Vec<(BrowsingContextId, TypedSize2D<f32, CSSPixel>)>,
+
+    /// Stores text runs to answer text queries used to place a cursor inside text.
+    pub indexable_text: IndexableText,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -350,6 +353,7 @@ impl<'a> DisplayListBuildState<'a> {
             current_stacking_context_id: StackingContextId::root(),
             current_clipping_and_scrolling: root_clip_indices,
             iframe_sizes: Vec::new(),
+            indexable_text: IndexableText::default(),
         }
     }
 
@@ -2142,7 +2146,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Create display items for text decorations.
         let text_decorations = self.style().get_inheritedtext().text_decorations_in_effect;
 
-        let stacking_relative_content_box = LogicalRect::from_physical(
+        let logical_stacking_relative_content_box = LogicalRect::from_physical(
             self.style.writing_mode,
             *stacking_relative_content_box,
             container_size,
@@ -2150,9 +2154,10 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Underline
         if text_decorations.underline {
-            let mut stacking_relative_box = stacking_relative_content_box;
-            stacking_relative_box.start.b =
-                stacking_relative_content_box.start.b + metrics.ascent - metrics.underline_offset;
+            let mut stacking_relative_box = logical_stacking_relative_content_box;
+            stacking_relative_box.start.b = logical_stacking_relative_content_box.start.b +
+                metrics.ascent -
+                metrics.underline_offset;
             stacking_relative_box.size.block = metrics.underline_size;
             self.build_display_list_for_text_decoration(
                 state,
@@ -2164,7 +2169,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Overline
         if text_decorations.overline {
-            let mut stacking_relative_box = stacking_relative_content_box;
+            let mut stacking_relative_box = logical_stacking_relative_content_box;
             stacking_relative_box.size.block = metrics.underline_size;
             self.build_display_list_for_text_decoration(
                 state,
@@ -2181,11 +2186,16 @@ impl FragmentDisplayListBuilding for Fragment {
             baseline_origin,
         );
         if !glyphs.is_empty() {
-            state.add_display_item(DisplayItem::Text(Box::new(TextDisplayItem {
-                base: base.clone(),
+            let indexable_text = IndexableTextItem {
+                origin: stacking_relative_content_box.origin,
                 text_run: text_fragment.run.clone(),
                 range: text_fragment.range,
-                baseline_origin: baseline_origin.to_layout(),
+                baseline_origin,
+            };
+            state.indexable_text.insert(self.node, indexable_text);
+
+            state.add_display_item(DisplayItem::Text(Box::new(TextDisplayItem {
+                base: base.clone(),
                 glyphs: glyphs,
                 font_key: text_fragment.run.font_key,
                 text_color: text_color.to_layout(),
@@ -2197,7 +2207,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Line-Through
         if text_decorations.line_through {
-            let mut stacking_relative_box = stacking_relative_content_box;
+            let mut stacking_relative_box = logical_stacking_relative_content_box;
             stacking_relative_box.start.b =
                 stacking_relative_box.start.b + metrics.ascent - metrics.strikeout_offset;
             stacking_relative_box.size.block = metrics.strikeout_size;
@@ -3197,4 +3207,43 @@ pub struct BackgroundPlacement {
     /// A clip area. While the background is rendered according to all the
     /// measures above it is only shown within these bounds.
     css_clip: Rect<Au>,
+}
+
+pub struct IndexableTextItem {
+    /// The placement of the text item on the plane.
+    pub origin: Point2D<Au>,
+    /// The text run.
+    pub text_run: Arc<TextRun>,
+    /// The range of text within the text run.
+    pub range: Range<ByteIndex>,
+    /// The position of the start of the baseline of this text.
+    pub baseline_origin: Point2D<Au>,
+}
+
+#[derive(Default)]
+pub struct IndexableText {
+    inner: FnvHashMap<OpaqueNode, IndexableTextItem>,
+}
+
+impl IndexableText {
+    fn insert(&mut self, node: OpaqueNode, item: IndexableTextItem) {
+        // Guard against duplicate nodes.
+        if self.inner.insert(node, item).is_some() {
+            debug!(
+                "TODO(#20020): Text indexing for {:?} is broken because of multiple text runs.",
+                node
+            );
+        };
+    }
+
+    // Returns the text index within a node for the point of interest.
+    pub fn text_index(&self, node: OpaqueNode, point_in_item: Point2D<Au>) -> Option<usize> {
+        if let Some(item) = self.inner.get(&node) {
+            let point = point_in_item + item.origin.to_vector();
+            let offset = point - item.baseline_origin;
+            Some(item.text_run.range_index_of_advance(&item.range, offset.x))
+        } else {
+            None
+        }
+    }
 }
