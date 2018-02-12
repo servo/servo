@@ -3012,28 +3012,24 @@ pub struct IndexableTextItem {
 
 #[derive(Default)]
 pub struct IndexableText {
-    inner: FnvHashMap<OpaqueNode, IndexableTextItem>,
+    inner: FnvHashMap<OpaqueNode, Vec<IndexableTextItem>>,
 }
 
 impl IndexableText {
     fn insert(&mut self, node: OpaqueNode, item: IndexableTextItem) {
-        // Guard against duplicate nodes.
-        if self.inner.insert(node, item).is_some() {
-            debug!(
-                "TODO(#20020): Text indexing for {:?} is broken because of multiple text runs.",
-                node
-            );
-        };
+        if let Some(items) = self.inner.get_mut(&node) {
+            items.push(item);
+            return;
+        }
+        self.inner.insert(node, vec![item]);
     }
 
     // Returns the text index within a node for the point of interest.
     pub fn text_index(&self, node: OpaqueNode, point_in_item: Point2D<Au>) -> Option<usize> {
-        if let Some(item) = self.inner.get(&node) {
-            let point = point_in_item + item.origin.to_vector();
-            let offset = point - item.baseline_origin;
-            Some(item.text_run.range_index_of_advance(&item.range, offset.x))
-        } else {
-            None
-        }
+        let item = self.inner.get(&node)?;
+        // TODO(#20020): access all elements
+        let point = point_in_item + item[0].origin.to_vector();
+        let offset = point - item[0].baseline_origin;
+        Some(item[0].text_run.range_index_of_advance(&item[0].range, offset.x))
     }
 }
