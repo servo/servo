@@ -86,7 +86,7 @@ use std::mem;
 use std::ops::DerefMut;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use stylist::Stylist;
+use stylist::CascadeData;
 
 /// A simple wrapper over `nsIDocument`.
 #[derive(Clone, Copy)]
@@ -429,12 +429,12 @@ impl<'lb> GeckoXBLBinding<'lb> {
         }
     }
 
-    fn each_xbl_stylist<F>(&self, f: &mut F)
+    fn each_xbl_cascade_data<F>(&self, f: &mut F)
     where
-        F: FnMut(AtomicRef<'lb, Stylist>),
+        F: FnMut(AtomicRef<'lb, CascadeData>, QuirksMode),
     {
         if let Some(base) = self.base_binding() {
-            base.each_xbl_stylist(f);
+            base.each_xbl_cascade_data(f);
         }
 
         let raw_data = unsafe {
@@ -443,7 +443,8 @@ impl<'lb> GeckoXBLBinding<'lb> {
 
         if let Some(raw_data) = raw_data {
             let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
-            f(AtomicRef::map(data, |d| &d.stylist));
+            let quirks_mode = data.stylist.quirks_mode();
+            f(AtomicRef::map(data, |d| d.stylist.author_cascade_data()), quirks_mode);
         }
     }
 }
@@ -1374,10 +1375,10 @@ impl<'le> TElement for GeckoElement<'le> {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 
-    fn each_xbl_stylist<'a, F>(&self, mut f: F) -> bool
+    fn each_xbl_cascade_data<'a, F>(&self, mut f: F) -> bool
     where
         'le: 'a,
-        F: FnMut(AtomicRef<'a, Stylist>),
+        F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
     {
         // Walk the binding scope chain, starting with the binding attached to
         // our content, up till we run out of scopes or we get cut off.
@@ -1388,7 +1389,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
         while let Some(element) = current {
             if let Some(binding) = element.get_xbl_binding() {
-                binding.each_xbl_stylist(&mut f);
+                binding.each_xbl_cascade_data(&mut f);
 
                 // If we're not looking at our original element, allow the
                 // binding to cut off style inheritance.
@@ -1416,8 +1417,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
         self.get_xbl_binding_with_content()
-            .map(|b| unsafe { b.anon_content().as_ref() }.unwrap())
-            .map(GeckoNode::from_content)
+            .map(|b| unsafe { GeckoNode::from_content(&*b.anon_content()) })
     }
 
     fn get_css_transitions_info(

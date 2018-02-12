@@ -31,7 +31,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use stylist::{CascadeData, Stylist};
+use stylist::CascadeData;
 use traversal_flags::TraversalFlags;
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
@@ -751,10 +751,10 @@ pub trait TElement
     /// Implements Gecko's `nsBindingManager::WalkRules`.
     ///
     /// Returns whether to cut off the inheritance.
-    fn each_xbl_stylist<'a, F>(&self, _: F) -> bool
+    fn each_xbl_cascade_data<'a, F>(&self, _: F) -> bool
     where
         Self: 'a,
-        F: FnMut(AtomicRef<'a, Stylist>),
+        F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
     {
         false
     }
@@ -768,24 +768,11 @@ pub trait TElement
         Self: 'a,
         F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
     {
-        let cut_off_inheritance = self.each_xbl_stylist(|stylist| {
-            let quirks_mode = stylist.quirks_mode();
-            f(
-                AtomicRef::map(stylist, |stylist| stylist.author_cascade_data()),
-                quirks_mode,
-            )
-        });
+        let cut_off_inheritance = self.each_xbl_cascade_data(&mut f);
 
         let mut current = self.assigned_slot();
         while let Some(slot) = current {
-            slot.each_xbl_stylist(|stylist| {
-                let quirks_mode = stylist.quirks_mode();
-                f(
-                    AtomicRef::map(stylist, |stylist| stylist.author_cascade_data()),
-                    quirks_mode,
-                )
-            });
-
+            slot.each_xbl_cascade_data(&mut f);
             current = slot.assigned_slot();
         }
 
@@ -794,8 +781,9 @@ pub trait TElement
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a FnvHashMap.
     #[cfg(feature = "gecko")]
-    fn get_css_transitions_info(&self)
-                                -> FnvHashMap<LonghandId, Arc<AnimationValue>>;
+    fn get_css_transitions_info(
+        &self,
+    ) -> FnvHashMap<LonghandId, Arc<AnimationValue>>;
 
     /// Does a rough (and cheap) check for whether or not transitions might need to be updated that
     /// will quickly return false for the common case of no transitions specified or running. If

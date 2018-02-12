@@ -1268,8 +1268,8 @@ impl Stylist {
             }
 
             for slot in slots.iter().rev() {
-                slot.each_xbl_stylist(|stylist| {
-                    if let Some(map) = stylist.cascade_data.author.slotted_rules(pseudo_element) {
+                slot.each_xbl_cascade_data(|cascade_data, _quirks_mode| {
+                    if let Some(map) = cascade_data.slotted_rules(pseudo_element) {
                         map.get_all_matching_rules(
                             element,
                             rule_hash_target,
@@ -1287,8 +1287,8 @@ impl Stylist {
         // even for getDefaultComputedStyle!
         //
         // Also, this doesn't account for the author_styles_enabled stuff.
-        let cut_off_inheritance = element.each_xbl_stylist(|stylist| {
-            if let Some(map) = stylist.cascade_data.author.normal_rules(pseudo_element) {
+        let cut_off_inheritance = element.each_xbl_cascade_data(|cascade_data, quirks_mode| {
+            if let Some(map) = cascade_data.normal_rules(pseudo_element) {
                 // NOTE(emilio): This is needed because the XBL stylist may
                 // think it has a different quirks mode than the document.
                 //
@@ -1299,7 +1299,7 @@ impl Stylist {
                     context.matching_mode(),
                     context.bloom_filter,
                     context.nth_index_cache.as_mut().map(|s| &mut **s),
-                    stylist.quirks_mode,
+                    quirks_mode,
                 );
                 matching_context.pseudo_element_matching_fn = context.pseudo_element_matching_fn;
 
