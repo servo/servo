@@ -42,7 +42,6 @@ packages = [
   "syn",
   "quote",
   "unicode-xid",
-  "synstructure",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

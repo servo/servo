@@ -4,17 +4,17 @@
 
 use cg;
 use quote;
-use syn;
+use syn::{self, Ident};
 use synstructure::BindStyle;
 
 pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let name = &input.ident;
-    let trait_path = &["values", "animated", "ToAnimatedValue"];
+    let trait_path = parse_quote!(values::animated::ToAnimatedValue);
     let (impl_generics, ty_generics, mut where_clause, animated_value_type) =
-        cg::fmap_trait_parts(&input, trait_path, "AnimatedValue");
+        cg::fmap_trait_parts(&input, &trait_path, Ident::from("AnimatedValue"));
 
     let to_body = cg::fmap_match(&input, BindStyle::Move, |binding| {
-        where_clause.add_trait_bound(&binding.field.ty);
+        where_clause.add_trait_bound(&binding.ast().ty);
         quote!(::values::animated::ToAnimatedValue::to_animated_value(#binding))
     });
     let from_body = cg::fmap_match(&input, BindStyle::Move, |binding| {

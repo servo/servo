@@ -6,52 +6,54 @@ use animate::AnimationVariantAttrs;
 use cg;
 use quote::Tokens;
 use syn::{DeriveInput, Path};
+use synstructure;
 
 pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
-    let trait_path = &["values", "distance", "ComputeSquaredDistance"];
+    let trait_path = parse_quote!(values::distance::ComputeSquaredDistance);
     let (impl_generics, ty_generics, mut where_clause) =
-        cg::trait_parts(&input, trait_path);
+        cg::trait_parts(&input, &trait_path);
 
     let input_attrs = cg::parse_input_attrs::<DistanceInputAttrs>(&input);
-    let variants = cg::variants(&input);
-    let mut match_body = quote!();
-    let mut append_error_clause = variants.len() > 1;
-    match_body.append_all(variants.iter().map(|variant| {
-        let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(variant);
+    let s = synstructure::Structure::new(&input);
+    let mut append_error_clause = s.variants().len() > 1;
+
+    let mut match_body = s.variants().iter().fold(quote!(), |body, variant| {
+        let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
         if attrs.error {
             append_error_clause = true;
-            return None;
+            return body;
         }
-        let name = cg::variant_ctor(&input, variant);
-        let (this_pattern, this_info) = cg::ref_pattern(&name, &variant, "this");
-        let (other_pattern, other_info) = cg::ref_pattern(&name, &variant, "other");
+
+        let (this_pattern, this_info) = cg::ref_pattern(&variant, "this");
+        let (other_pattern, other_info) = cg::ref_pattern(&variant, "other");
         let sum = if this_info.is_empty() {
             quote! { ::values::distance::SquaredDistance::Value(0.) }
         } else {
             let mut sum = quote!();
             sum.append_separated(this_info.iter().zip(&other_info).map(|(this, other)| {
-                where_clause.add_trait_bound(&this.field.ty);
+                where_clause.add_trait_bound(&this.ast().ty);
                 quote! {
                     ::values::distance::ComputeSquaredDistance::compute_squared_distance(#this, #other)?
                 }
-            }), "+");
+            }), quote!(+));
             sum
         };
-        Some(quote! {
+        quote! {
+            #body
             (&#this_pattern, &#other_pattern) => {
                 Ok(#sum)
             }
-        })
-    }));
+        }
+    });
 
     if append_error_clause {
         if let Some(fallback) = input_attrs.fallback {
-            match_body.append(quote! {
+            match_body.append_all(quote! {
                 (this, other) => #fallback(this, other)
             });
         } else {
-            match_body.append(quote! { _ => Err(()) });
+            match_body.append_all(quote! { _ => Err(()) });
         }
     }
 

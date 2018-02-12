@@ -5,20 +5,23 @@
 use cg;
 use darling::{Error, FromMetaItem};
 use quote::Tokens;
-use syn::{self, DeriveInput, Ident};
+use syn::{self, Ident};
 use synstructure;
 
-pub fn derive(input: DeriveInput) -> Tokens {
+pub fn derive(input: syn::DeriveInput) -> Tokens {
     let name = &input.ident;
-    let trait_path = &["style_traits", "ToCss"];
+    let trait_path = parse_quote!(style_traits::ToCss);
     let (impl_generics, ty_generics, mut where_clause) =
-        cg::trait_parts(&input, trait_path);
+        cg::trait_parts(&input, &trait_path);
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
-    let style = synstructure::BindStyle::Ref.into();
-    let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
-        let identifier = cg::to_css_identifier(variant.ident.as_ref());
-        let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
+    let s = synstructure::Structure::new(&input);
+
+    let match_body = s.each_variant(|variant| {
+        let bindings = variant.bindings();
+        let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
+        let ast = variant.ast();
+        let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
         let separator = if variant_attrs.comma { ", " } else { " " };
 
         if variant_attrs.dimension {
@@ -49,9 +52,9 @@ pub fn derive(input: DeriveInput) -> Tokens {
                 };
             } else {
                 for binding in bindings {
-                    let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.field);
+                    let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
                     if !attrs.ignore_bound {
-                        where_clause.add_trait_bound(&binding.field.ty);
+                        where_clause.add_trait_bound(&binding.ast().ty);
                     }
                     expr = quote! {
                         #expr
@@ -107,7 +110,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
     };
 
     if input_attrs.derive_debug {
-        impls.append(quote! {
+        impls.append_all(quote! {
             impl #impl_generics ::std::fmt::Debug for #name #ty_generics #where_clause {
                 fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                     ::style_traits::ToCss::to_css(
@@ -137,7 +140,7 @@ pub struct CssVariantAttrs {
     pub iterable: bool,
     pub comma: bool,
     pub dimension: bool,
-    pub keyword: Option<Ident>,
+    pub keyword: Option<String>,
     pub aliases: Option<String>,
 }
 
@@ -157,7 +160,7 @@ impl FromMetaItem for Function {
     }
 
     fn from_string(name: &str) -> Result<Self, Error> {
-        let name = syn::parse_ident(name).map_err(Error::custom)?;
+        let name = Ident::from(name);
         Ok(Self { name: Some(name) })
     }
 }

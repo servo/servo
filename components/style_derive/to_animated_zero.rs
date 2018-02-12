@@ -6,31 +6,30 @@ use animate::{AnimationVariantAttrs, AnimationFieldAttrs};
 use cg;
 use quote;
 use syn;
-use synstructure::{self, BindStyle};
+use synstructure;
 
 pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let name = &input.ident;
-    let trait_path = &["values", "animated", "ToAnimatedZero"];
+    let trait_path = parse_quote!(values::animated::ToAnimatedZero);
     let (impl_generics, ty_generics, mut where_clause) =
-        cg::trait_parts(&input, trait_path);
+        cg::trait_parts(&input, &trait_path);
 
-    let bind_opts = BindStyle::Ref.into();
-    let to_body = synstructure::each_variant(&input, &bind_opts, |bindings, variant| {
-        let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(variant);
+    let s = synstructure::Structure::new(&input);
+    let to_body = s.each_variant(|variant| {
+        let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
         if attrs.error {
             return Some(quote! { Err(()) });
         }
-        let name = cg::variant_ctor(&input, variant);
-        let (mapped, mapped_bindings) = cg::value(&name, variant, "mapped");
-        let bindings_pairs = bindings.into_iter().zip(mapped_bindings);
+        let (mapped, mapped_bindings) = cg::value(variant, "mapped");
+        let bindings_pairs = variant.bindings().into_iter().zip(mapped_bindings);
         let mut computations = quote!();
         computations.append_all(bindings_pairs.map(|(binding, mapped_binding)| {
-            let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&binding.field);
+            let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&binding.ast());
             if field_attrs.constant {
-                if cg::is_parameterized(&binding.field.ty, where_clause.params, None) {
-                    where_clause.inner.predicates.push(cg::where_predicate(
-                        binding.field.ty.clone(),
-                        &["std", "clone", "Clone"],
+                if cg::is_parameterized(&binding.ast().ty, &where_clause.params, None) {
+                    where_clause.add_predicate(cg::where_predicate(
+                        binding.ast().ty.clone(),
+                        &parse_quote!(std::clone::Clone),
                         None,
                     ));
                 }
@@ -38,14 +37,14 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                     let #mapped_binding = ::std::clone::Clone::clone(#binding);
                 }
             } else {
-                where_clause.add_trait_bound(&binding.field.ty);
+                where_clause.add_trait_bound(&binding.ast().ty);
                 quote! {
                     let #mapped_binding =
                         ::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;
                 }
             }
         }));
-        computations.append(quote! { Ok(#mapped) });
+        computations.append_all(quote! { Ok(#mapped) });
         Some(computations)
     });
 
