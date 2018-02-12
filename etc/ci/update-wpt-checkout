@@ -116,7 +116,7 @@ EOF
     curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
          -H "Content-Type: application/json" \
          --data @prdata.json \
-         https://api.github.com/repos/servo/servo/pulls || return 4
+         https://api.github.com/repos/servo/servo/pulls || return 5
 }
 
 function pull_from_upstream() {
@@ -164,6 +164,8 @@ function main() {
         if [[ "${code}" == "255" ]]; then
             echo "No changes to sync."
             return 0
+        elif [[ "${code}" != "" ]]; then
+            return "${code}"
         fi
     fi
 
