@@ -203,6 +203,34 @@ impl TableFlow {
         }
         self.spacing().horizontal() * (num_columns as i32 + 1)
     }
+
+    fn column_styles(&self) -> Vec<ColumnStyle> {
+        let mut styles = vec![];
+        for group in self.block_flow.base.child_iter()
+                       .filter(|kid| kid.is_table_colgroup()) {
+            // XXXManishearth these as_foo methods should return options
+            // so that we can filter_map
+            let group = group.as_table_colgroup();
+            let colgroup_style = group.fragment.as_ref().map(|f| f.style());
+
+            // The colgroup's span attribute is only relevant when
+            // it has no children
+            // https://html.spec.whatwg.org/multipage/#forming-a-table
+            if group.cols.is_empty() {
+                let span = group.fragment.as_ref().map(|f| f.column_span()).unwrap_or(1);
+                styles.push(ColumnStyle { span, colgroup_style, col_style: None });
+            } else {
+                for col in &group.cols {
+                    styles.push(ColumnStyle {
+                        span: col.column_span(),
+                        colgroup_style,
+                        col_style: Some(col.style()),
+                    })
+                }
+            }
+        }
+        styles
+    }
 }
 
 impl Flow for TableFlow {
@@ -527,6 +555,13 @@ impl Flow for TableFlow {
     fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
         self.block_flow.print_extra_flow_children(print_tree);
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+struct ColumnStyle<'a> {
+    span: u32,
+    colgroup_style: Option<&'a ComputedValues>,
+    col_style: Option<&'a ComputedValues>,
 }
 
 impl fmt::Debug for TableFlow {
