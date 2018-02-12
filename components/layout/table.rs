@@ -860,18 +860,58 @@ enum NextBlockCollapsedBorders<'a> {
     FromTable(CollapsedBorder),
 }
 
-/// Iterator over all the rows of a table
-struct TableRowIterator<'a> {
+/// Iterator over all the rows of a table, which also
+/// provides the Fragment for rowgroups if any
+struct TableRowAndGroupIterator<'a> {
     kids: MutFlowListIterator<'a>,
-    grandkids: Option<MutFlowListIterator<'a>>,
+    group: Option<(&'a Fragment, MutFlowListIterator<'a>)>
 }
+
+impl<'a> TableRowAndGroupIterator<'a> {
+    fn new(base: &'a mut BaseFlow) -> Self {
+        TableRowAndGroupIterator {
+            kids: base.child_iter_mut(),
+            group: None,
+        }
+    }
+}
+
+impl<'a> Iterator for TableRowAndGroupIterator<'a> {
+    type Item = (Option<&'a Fragment>, &'a mut TableRowFlow);
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        // If we're inside a rowgroup, iterate through the rowgroup's children.
+        if let Some(ref mut group) = self.group {
+            if let Some(grandkid) = group.1.next() {
+                return Some((Some(group.0), grandkid.as_mut_table_row()))
+            }
+        }
+        // Otherwise, iterate through the table's children.
+        self.group = None;
+        match self.kids.next() {
+            Some(kid) => {
+                if kid.is_table_rowgroup() {
+                    let mut rowgroup = kid.as_mut_table_rowgroup();
+                    let iter = rowgroup.block_flow.base.child_iter_mut();
+                    self.group = Some((&rowgroup.block_flow.fragment, iter));
+                    self.next()
+                } else if kid.is_table_row() {
+                    Some((None, kid.as_mut_table_row()))
+                } else {
+                    self.next() // Skip children that are not rows or rowgroups
+                }
+            }
+            None => None
+        }
+    }
+}
+
+/// Iterator over all the rows of a table
+struct TableRowIterator<'a>(TableRowAndGroupIterator<'a>);
 
 impl<'a> TableRowIterator<'a> {
     fn new(base: &'a mut BaseFlow) -> Self {
-        TableRowIterator {
-            kids: base.child_iter_mut(),
-            grandkids: None,
-        }
+        TableRowIterator(TableRowAndGroupIterator::new(base))
     }
 }
 
@@ -879,26 +919,6 @@ impl<'a> Iterator for TableRowIterator<'a> {
     type Item = &'a mut TableRowFlow;
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        // If we're inside a rowgroup, iterate through the rowgroup's children.
-        if let Some(ref mut grandkids) = self.grandkids {
-            if let Some(grandkid) = grandkids.next() {
-                return Some(grandkid.as_mut_table_row())
-            }
-        }
-        // Otherwise, iterate through the table's children.
-        self.grandkids = None;
-        match self.kids.next() {
-            Some(kid) => {
-                if kid.is_table_rowgroup() {
-                    self.grandkids = Some(kid.mut_base().child_iter_mut());
-                    self.next()
-                } else if kid.is_table_row() {
-                    Some(kid.as_mut_table_row())
-                } else {
-                    self.next() // Skip children that are not rows or rowgroups
-                }
-            }
-            None => None
-        }
+        self.0.next().map(|n| n.1)
     }
 }
