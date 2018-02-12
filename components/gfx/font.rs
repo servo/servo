@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use euclid::{Point2D, Rect, Size2D};
-use font_context::FontContext;
+use font_context::{FontContext, FontSource};
 use font_template::FontTemplateDescriptor;
 use ordered_float::NotNaN;
 use platform::font::{FontHandle, FontTable};
@@ -341,23 +341,33 @@ impl FontGroup {
     /// `codepoint`. If no such font is found, returns the first available font or fallback font
     /// (which will cause a "glyph not found" character to be rendered). If no font at all can be
     /// found, returns None.
-    pub fn find_by_codepoint(&mut self, mut font_context: &mut FontContext, codepoint: char) -> Option<FontRef> {
+    pub fn find_by_codepoint<S: FontSource>(
+        &mut self,
+        mut font_context: &mut FontContext<S>,
+        codepoint: char
+    ) -> Option<FontRef> {
         self.find(&mut font_context, |font| font.borrow().has_glyph_for(codepoint))
             .or_else(|| self.first(&mut font_context))
     }
 
-    pub fn first(&mut self, mut font_context: &mut FontContext) -> Option<FontRef> {
+    pub fn first<S: FontSource>(
+        &mut self,
+        mut font_context: &mut FontContext<S>
+    ) -> Option<FontRef> {
         self.find(&mut font_context, |_| true)
     }
 
     /// Find a font which returns true for `predicate`. This method mutates because we may need to
     /// load new font data in the process of finding a suitable font.
-    fn find<P>(
+    fn find<S, P>(
         &mut self,
-        mut font_context: &mut FontContext,
+        mut font_context: &mut FontContext<S>,
         mut predicate: P
     ) -> Option<FontRef>
-    where P: FnMut(&FontRef) -> bool {
+    where
+        S: FontSource,
+        P: FnMut(&FontRef) -> bool
+    {
         self.families.iter_mut()
             .filter_map(|family| family.font(&mut font_context))
             .find(|f| predicate(f))
@@ -392,7 +402,7 @@ impl FontGroupFamily {
     /// Returns the font within this family which matches the style. We'll fetch the data from the
     /// `FontContext` the first time this method is called, and return a cached reference on
     /// subsequent calls.
-    fn font(&mut self, font_context: &mut FontContext) -> Option<FontRef> {
+    fn font<S: FontSource>(&mut self, font_context: &mut FontContext<S>) -> Option<FontRef> {
         if !self.loaded {
             self.font = font_context.font(&self.descriptor, &self.family);
             self.loaded = true;
