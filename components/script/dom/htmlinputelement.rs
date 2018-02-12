@@ -552,36 +552,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) -> ErrorResult {
-        match self.value_mode() {
-            ValueMode::Value => {
-                // Steps 1-2.
-                let old_value = mem::replace(self.textinput.borrow_mut().single_line_content_mut(), value);
-                // Step 3.
-                self.value_dirty.set(true);
-                // Step 4.
-                self.sanitize_value();
-                // Step 5.
-                if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward);
-                }
-            }
-            ValueMode::Default |
-            ValueMode::DefaultOn => {
-                self.upcast::<Element>().set_string_attribute(&local_name!("value"), value);
-            }
-            ValueMode::Filename => {
-                if value.is_empty() {
-                    let window = window_from_node(self);
-                    let fl = FileList::new(&window, vec![]);
-                    self.filelist.set(Some(&fl));
-                } else {
-                    return Err(Error::InvalidState);
-                }
-            }
-        }
-
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        Ok(())
+        self.update_text_contents(value, true)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
@@ -937,7 +908,7 @@ impl HTMLInputElement {
             _ => ()
         }
 
-        self.SetValue(self.DefaultValue())
+        self.update_text_contents(self.DefaultValue(), true)
             .expect("Failed to reset input value to default.");
         self.value_dirty.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1065,7 +1036,7 @@ impl HTMLInputElement {
                     let content = textinput.single_line_content_mut();
                     content.make_ascii_lowercase();
                 } else {
-                    textinput.set_content("#000000".into());
+                    textinput.set_content("#000000".into(), true);
                 }
             }
             InputType::Time => {
@@ -1103,6 +1074,41 @@ impl HTMLInputElement {
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(&self, &self.textinput)
     }
+
+    fn update_text_contents(&self, value: DOMString, update_text_cursor: bool) -> ErrorResult {
+        match self.value_mode() {
+            ValueMode::Value => {
+                // Steps 1-2.
+                let old_value = mem::replace(self.textinput.borrow_mut().single_line_content_mut(), value);
+                // Step 3.
+                self.value_dirty.set(true);
+                // Step 4.
+                if update_text_cursor {
+                    self.sanitize_value();
+                }
+                // Step 5.
+                if *self.textinput.borrow().single_line_content() != old_value {
+                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward, update_text_cursor);
+                }
+            }
+            ValueMode::Default |
+            ValueMode::DefaultOn => {
+                self.upcast::<Element>().set_string_attribute(&local_name!("value"), value);
+            }
+            ValueMode::Filename => {
+                if value.is_empty() {
+                    let window = window_from_node(self);
+                    let fl = FileList::new(&window, vec![]);
+                    self.filelist.set(Some(&fl));
+                } else {
+                    return Err(Error::InvalidState);
+                }
+            }
+        }
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        Ok(())
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -1112,7 +1118,6 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-
         match attr.local_name() {
             &local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -1214,7 +1219,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
-                            self.textinput.borrow_mut().clear_selection_to_limit(Direction::Backward);
+                            self.textinput.borrow_mut().clear_selection_to_limit(Direction::Backward, true);
                         }
                     },
                     AttributeMutation::Removed => {
@@ -1236,7 +1241,7 @@ impl VirtualMethods for HTMLInputElement {
             &local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
-                    value.map_or(DOMString::new(), DOMString::from));
+                    value.map_or(DOMString::new(), DOMString::from), true);
                 self.sanitize_value();
                 self.update_placeholder_shown_state();
             },

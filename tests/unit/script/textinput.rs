@@ -27,7 +27,7 @@ fn test_set_content_ignores_max_length() {
         Lines::Single, DOMString::from(""), DummyClipboardContext::new(""), Some(1), None, SelectionDirection::None
     );
 
-    textinput.set_content(DOMString::from("mozilla rocks"));
+    textinput.set_content(DOMString::from("mozilla rocks"), true);
     assert_eq!(textinput.get_content(), DOMString::from("mozilla rocks"));
 }
 
@@ -492,7 +492,7 @@ fn test_textinput_set_content() {
     let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(textinput.get_content(), "abc\nde\nf");
 
-    textinput.set_content(DOMString::from("abc\nf"));
+    textinput.set_content(DOMString::from("abc\nf"), true);
     assert_eq!(textinput.get_content(), "abc\nf");
 
     assert_eq!(textinput.edit_point.line, 0);
@@ -500,7 +500,7 @@ fn test_textinput_set_content() {
     textinput.adjust_horizontal(3, Selection::Selected);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 3);
-    textinput.set_content(DOMString::from("de"));
+    textinput.set_content(DOMString::from("de"), true);
     assert_eq!(textinput.get_content(), "de");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);
@@ -636,6 +636,10 @@ fn test_textinput_unicode_handling() {
 #[test]
 fn test_selection_bounds() {
     let mut textinput = text_input(Lines::Single, "abcdef");
+
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_origin_or_edit_point());
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_end());
 
     textinput.set_selection_range(2, 5, SelectionDirection::Forward);
     assert_eq!(TextPoint { line: 0, index: 2 }, textinput.selection_origin_or_edit_point());
