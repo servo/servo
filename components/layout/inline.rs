@@ -7,7 +7,7 @@
 use ServoArc;
 use app_units::{Au, MIN_AU};
 use block::AbsoluteAssignBSizesTraversal;
-use context::LayoutContext;
+use context::{LayoutContext, LayoutFontContext};
 use display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use display_list::StackingContextCollectionState;
 use euclid::{Point2D, Size2D};
@@ -20,7 +20,6 @@ use fragment::FragmentFlags;
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
-use gfx::font_context::FontContext;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
@@ -1132,7 +1131,7 @@ impl InlineFlow {
     /// Computes the minimum metrics for each line. This is done during flow construction.
     ///
     /// `style` is the style of the block.
-    pub fn minimum_line_metrics(&self, font_context: &mut FontContext, style: &ComputedValues)
+    pub fn minimum_line_metrics(&self, font_context: &mut LayoutFontContext, style: &ComputedValues)
                                 -> LineMetrics {
         InlineFlow::minimum_line_metrics_for_fragments(&self.fragments.fragments,
                                                        font_context,
@@ -1144,7 +1143,7 @@ impl InlineFlow {
     ///
     /// `style` is the style of the block that these fragments belong to.
     pub fn minimum_line_metrics_for_fragments(fragments: &[Fragment],
-                                              font_context: &mut FontContext,
+                                              font_context: &mut LayoutFontContext,
                                               style: &ComputedValues)
                                               -> LineMetrics {
         // As a special case, if this flow contains only hypothetical fragments, then the entire

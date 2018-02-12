@@ -7,10 +7,10 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
+use context::LayoutFontContext;
 use fragment::{Fragment, ScannedTextFlags};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::font::{FontRef, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
-use gfx::font_context::FontContext;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
@@ -68,7 +68,7 @@ impl TextRunScanner {
     }
 
     pub fn scan_for_runs(&mut self,
-                         font_context: &mut FontContext,
+                         font_context: &mut LayoutFontContext,
                          mut fragments: LinkedList<Fragment>)
                          -> InlineFragments {
         debug!("TextRunScanner: scanning {} fragments for text runs...", fragments.len());
@@ -136,7 +136,7 @@ impl TextRunScanner {
     /// for correct painting order. Since we compress several leaf fragments here, the mapping must
     /// be adjusted.
     fn flush_clump_to_list(&mut self,
-                           mut font_context: &mut FontContext,
+                           mut font_context: &mut LayoutFontContext,
                            out_fragments: &mut Vec<Fragment>,
                            paragraph_bytes_processed: &mut usize,
                            bidi_levels: Option<&[bidi::Level]>,
@@ -459,7 +459,7 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 ///
 /// Panics if no font can be found for the given font style.
 #[inline]
-pub fn font_metrics_for_style(mut font_context: &mut FontContext, style: ::ServoArc<FontStyleStruct>)
+pub fn font_metrics_for_style(mut font_context: &mut LayoutFontContext, style: ::ServoArc<FontStyleStruct>)
                               -> FontMetrics {
     let font_group = font_context.font_group(style);
     let font = font_group.borrow_mut().first(&mut font_context);
