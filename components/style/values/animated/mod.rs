@@ -15,7 +15,6 @@ use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 #[cfg(feature = "servo")]
 use values::computed::ComputedUrl;
-use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
 use values::computed::NonNegativeLength as ComputedNonNegativeLength;
@@ -261,20 +260,6 @@ trivial_to_animated_value!(SpecifiedUrl);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
-
-impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.max(1.).into()
-    }
-}
 
 impl ToAnimatedValue for ComputedNonNegativeLength {
     type AnimatedValue = Self;

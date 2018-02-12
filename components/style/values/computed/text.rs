@@ -9,7 +9,6 @@ use properties::StyleBuilder;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 use values::{CSSInteger, CSSFloat};
-use values::animated::ToAnimatedZero;
 use values::computed::{NonNegativeLength, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
@@ -30,11 +29,6 @@ pub type WordSpacing = Spacing<LengthOrPercentage>;
 
 /// A computed value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLength>;
-
-impl ToAnimatedZero for LineHeight {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
-}
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 /// text-overflow.

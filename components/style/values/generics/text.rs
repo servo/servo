@@ -121,6 +121,11 @@ pub enum LineHeight<Number, LengthOrPercentage> {
     Length(LengthOrPercentage),
 }
 
+impl<N, L> ToAnimatedZero for LineHeight<N, L> {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+}
+
 impl<N, L> LineHeight<N, L> {
     /// Returns `normal`.
     #[inline]

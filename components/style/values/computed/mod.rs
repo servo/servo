@@ -460,6 +460,20 @@ impl From<NonNegativeNumber> for CSSFloat {
 /// A wrapper of Number, but the value >= 1.
 pub type GreaterThanOrEqualToOneNumber = GreaterThanOrEqualToOne<CSSFloat>;
 
+impl ToAnimatedValue for GreaterThanOrEqualToOneNumber {
+    type AnimatedValue = CSSFloat;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.max(1.).into()
+    }
+}
+
 impl From<CSSFloat> for GreaterThanOrEqualToOneNumber {
     #[inline]
     fn from(number: CSSFloat) -> GreaterThanOrEqualToOneNumber {
