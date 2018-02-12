@@ -9,7 +9,6 @@ use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_
 use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
@@ -17,7 +16,6 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLin
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -27,6 +25,7 @@ use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::str::DOMString;
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
+use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::imagedata::ImageData;
@@ -543,18 +542,11 @@ impl CanvasRenderingContext2D {
                         Some(ref canvas) => &**canvas,
                     };
 
-                    let window = window_from_node(canvas);
+                    let canvas_element = canvas.upcast::<Element>();
 
-                    let style = window.GetComputedStyle(canvas.upcast(), None);
-
-                    let element_not_rendered =
-                        !canvas.upcast::<Node>().is_in_doc() ||
-                        style.GetPropertyValue(DOMString::from("display")) == "none";
-
-                    if element_not_rendered {
-                        Ok(RGBA::new(0, 0, 0, 255))
-                    } else {
-                        self.parse_color(&style.GetPropertyValue(DOMString::from("color")))
+                    match canvas_element.style() {
+                        Some(ref s) if canvas_element.has_css_layout_box() => Ok(s.get_color().color),
+                        _ => Ok(RGBA::new(0, 0, 0, 255))
                     }
                 },
                 _ => Err(())
