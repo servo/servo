@@ -19,7 +19,6 @@ use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqua
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
 use values::computed::NonNegativeLength as ComputedNonNegativeLength;
-use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::specified::url::SpecifiedUrl;
 
@@ -303,20 +302,6 @@ impl ToAnimatedValue for ComputedNonNegativeLength {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         ComputedNonNegativeLength::new(animated.px().max(0.))
-    }
-}
-
-impl ToAnimatedValue for ComputedNonNegativeLengthOrPercentage {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.clamp_to_non_negative().into()
     }
 }
 
