@@ -19,7 +19,6 @@ use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqua
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
 use values::computed::NonNegativeLength as ComputedNonNegativeLength;
-use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::specified::url::SpecifiedUrl;
 
 pub mod color;
@@ -262,20 +261,6 @@ trivial_to_animated_value!(SpecifiedUrl);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
-
-impl ToAnimatedValue for ComputedNonNegativeNumber {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.max(0.).into()
-    }
-}
 
 impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
     type AnimatedValue = Self;

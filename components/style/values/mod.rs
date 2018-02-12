@@ -64,7 +64,7 @@ where
 
 /// Convenience void type to disable some properties and values through types.
 #[cfg_attr(feature = "servo", derive(Deserialize, MallocSizeOf, Serialize))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum Impossible {}
 
 // FIXME(nox): This should be derived but the derive code cannot cope

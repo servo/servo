@@ -429,6 +429,20 @@ pub type Number = CSSFloat;
 /// A wrapper of Number, but the value >= 0.
 pub type NonNegativeNumber = NonNegative<CSSFloat>;
 
+impl ToAnimatedValue for NonNegativeNumber {
+    type AnimatedValue = CSSFloat;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.max(0.).into()
+    }
+}
+
 impl From<CSSFloat> for NonNegativeNumber {
     #[inline]
     fn from(number: CSSFloat) -> NonNegativeNumber {
