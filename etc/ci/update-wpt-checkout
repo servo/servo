@@ -116,7 +116,7 @@ EOF
     curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
          -H "Content-Type: application/json" \
          --data @prdata.json \
-         https://api.github.com/repos/servo/servo/pulls || return 4
+         https://api.github.com/repos/servo/servo/pulls || return 5
 }
 
 function pull_from_upstream() {
