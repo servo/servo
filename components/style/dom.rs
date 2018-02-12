@@ -754,7 +754,7 @@ pub trait TElement
     fn each_xbl_cascade_data<'a, F>(&self, _: F) -> bool
     where
         Self: 'a,
-        F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
+        F: FnMut(&'a CascadeData, QuirksMode),
     {
         false
     }
@@ -766,7 +766,7 @@ pub trait TElement
     fn each_applicable_non_document_style_rule_data<'a, F>(&self, mut f: F) -> bool
     where
         Self: 'a,
-        F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
+        F: FnMut(&'a CascadeData, QuirksMode),
     {
         let cut_off_inheritance = self.each_xbl_cascade_data(&mut f);
 

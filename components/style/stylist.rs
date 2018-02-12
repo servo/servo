@@ -1983,7 +1983,8 @@ pub struct CascadeData {
 }
 
 impl CascadeData {
-    fn new() -> Self {
+    /// Creates an empty `CascadeData`.
+    pub fn new() -> Self {
         Self {
             normal_rules: ElementAndPseudoRules::default(),
             slotted_rules: None,
@@ -2005,7 +2006,7 @@ impl CascadeData {
 
     /// Rebuild the cascade data from a given SheetCollection, incrementally if
     /// possible.
-    fn rebuild<'a, S>(
+    pub fn rebuild<'a, S>(
         &mut self,
         device: &Device,
         quirks_mode: QuirksMode,
@@ -2281,7 +2282,7 @@ impl CascadeData {
 
     /// Returns whether all the media-feature affected values matched before and
     /// match now in the given stylesheet.
-    fn media_feature_affected_matches<S>(
+    pub fn media_feature_affected_matches<S>(
         &self,
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
