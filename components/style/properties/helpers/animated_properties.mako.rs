@@ -547,37 +547,58 @@ impl AnimationValue {
         extra_custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
         initial: &ComputedValues
     ) -> Option<Self> {
-        use properties::LonghandId;
+        use super::PropertyDeclarationVariantRepr;
+
+        <%
+            keyfunc = lambda x: (
+                x.specified_type(),
+                x.animated_type(),
+                x.boxed,
+                not x.is_animatable_with_computed_value,
+                x.style_struct.inherited,
+                x.ident in SYSTEM_FONT_LONGHANDS and product == "gecko",
+            )
+        %>
 
         let animatable = match *decl {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            PropertyDeclaration::${prop.camel_case}(ref val) => {
-                context.for_non_inherited_property =
-                    % if prop.style_struct.inherited:
-                        None;
-                    % else:
-                        Some(LonghandId::${prop.camel_case});
-                    % endif
-            % if prop.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
-                if let Some(sf) = val.get_system() {
-                    longhands::system_font::resolve_system_font(sf, context);
+            % for (specified_ty, ty, boxed, to_animated, inherit, system), props in groupby(animated, key=keyfunc):
+            ${" |\n".join("PropertyDeclaration::{}(ref value)".format(prop.camel_case) for prop in props)} => {
+                let decl_repr = unsafe {
+                    &*(decl as *const _ as *const PropertyDeclarationVariantRepr<${specified_ty}>)
+                };
+                % if inherit:
+                context.for_non_inherited_property = None;
+                % else:
+                context.for_non_inherited_property = unsafe {
+                    Some(*(&decl_repr.tag as *const u16 as *const LonghandId))
+                };
+                % endif
+                % if system:
+                if let Some(sf) = value.get_system() {
+                    longhands::system_font::resolve_system_font(sf, context)
                 }
-            % endif
-            % if prop.boxed:
-            let computed = (**val).to_computed_value(context);
-            % else:
-            let computed = val.to_computed_value(context);
-            % endif
-            AnimationValue::${prop.camel_case}(
-            % if prop.is_animatable_with_computed_value:
-                computed
-            % else:
-                computed.to_animated_value()
-            % endif
-            )
-            },
-            % endif
+                % endif
+                % if boxed:
+                let value = (**value).to_computed_value(context);
+                % else:
+                let value = value.to_computed_value(context);
+                % endif
+                % if to_animated:
+                let value = value.to_animated_value();
+                % endif
+
+                unsafe {
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        AnimationValueVariantRepr {
+                            tag: decl_repr.tag,
+                            value,
+                        },
+                    );
+                    out
+                }
+            }
             % endfor
             PropertyDeclaration::CSSWideKeyword(ref declaration) => {
                 match declaration.id {
