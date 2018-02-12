@@ -11,7 +11,6 @@
 use app_units::Au;
 use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
-use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 #[cfg(feature = "servo")]
@@ -22,7 +21,6 @@ use values::computed::MozLength as ComputedMozLength;
 use values::computed::NonNegativeLength as ComputedNonNegativeLength;
 use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
-use values::computed::PositiveInteger as ComputedPositiveInteger;
 use values::specified::url::SpecifiedUrl;
 
 pub mod color;
@@ -305,20 +303,6 @@ impl ToAnimatedValue for ComputedNonNegativeLength {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         ComputedNonNegativeLength::new(animated.px().max(0.))
-    }
-}
-
-impl ToAnimatedValue for ComputedPositiveInteger {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        max(animated.0, 1).into()
     }
 }
 
