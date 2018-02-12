@@ -11,7 +11,6 @@ readme = "README.md"
 
 [dependencies]
 libc = "0.2"
-ordermap = "0.3"
 
 [dev-dependencies]
 rand = "0.3"
