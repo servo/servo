@@ -10,36 +10,35 @@
 
 //! A crate for deriving the MallocSizeOf trait.
 
-#[cfg(not(test))] extern crate proc_macro;
 #[macro_use] extern crate quote;
-extern crate syn;
-extern crate synstructure;
+#[macro_use] extern crate syn;
 
 #[cfg(not(test))]
-#[proc_macro_derive(MallocSizeOf, attributes(ignore_malloc_size_of))]
-pub fn expand_token_stream(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    expand_string(&input.to_string()).parse().unwrap()
-}
+#[macro_use] extern crate synstructure;
 
-fn expand_string(input: &str) -> String {
-    let mut type_ = syn::parse_macro_input(input).unwrap();
+#[cfg(test)]
+extern crate synstructure;
 
-    let style = synstructure::BindStyle::Ref.into();
-    let match_body = synstructure::each_field(&mut type_, &style, |binding| {
-        let ignore = binding.field.attrs.iter().any(|attr| match attr.value {
-            syn::MetaItem::Word(ref ident) |
-            syn::MetaItem::List(ref ident, _) if ident == "ignore_malloc_size_of" => {
+
+#[cfg(not(test))]
+decl_derive!([MallocSizeOf, attributes(ignore_malloc_size_of)] => malloc_size_of_derive);
+
+fn malloc_size_of_derive(s: synstructure::Structure) -> quote::Tokens {
+    let match_body = s.each(|binding| {
+        let ignore = binding.ast().attrs.iter().any(|attr| match attr.interpret_meta().unwrap() {
+            syn::Meta::Word(ref ident) |
+            syn::Meta::List(syn::MetaList { ref ident, .. }) if ident == "ignore_malloc_size_of" => {
                 panic!("#[ignore_malloc_size_of] should have an explanation, \
                         e.g. #[ignore_malloc_size_of = \"because reasons\"]");
             }
-            syn::MetaItem::NameValue(ref ident, _) if ident == "ignore_malloc_size_of" => {
+            syn::Meta::NameValue(syn::MetaNameValue { ref ident, .. }) if ident == "ignore_malloc_size_of" => {
                 true
             }
             _ => false,
         });
         if ignore {
             None
-        } else if let syn::Ty::Array(..) = binding.field.ty {
+        } else if let syn::Type::Array(..) = binding.ast().ty {
             Some(quote! {
                 for item in #binding.iter() {
                     sum += ::malloc_size_of::MallocSizeOf::size_of(item, ops);
@@ -52,21 +51,13 @@ fn expand_string(input: &str) -> String {
         }
     });
 
-    let name = &type_.ident;
-    let (impl_generics, ty_generics, where_clause) = type_.generics.split_for_impl();
-    let mut where_clause = where_clause.clone();
-    for param in &type_.generics.ty_params {
-        where_clause.predicates.push(syn::WherePredicate::BoundPredicate(syn::WhereBoundPredicate {
-            bound_lifetimes: Vec::new(),
-            bounded_ty: syn::Ty::Path(None, param.ident.clone().into()),
-            bounds: vec![syn::TyParamBound::Trait(
-                syn::PolyTraitRef {
-                    bound_lifetimes: Vec::new(),
-                    trait_ref: syn::parse_path("::malloc_size_of::MallocSizeOf").unwrap(),
-                },
-                syn::TraitBoundModifier::None
-            )],
-        }))
+    let ast = s.ast();
+    let name = &ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+    let mut where_clause = where_clause.unwrap_or(&parse_quote!(where)).clone();
+    for param in ast.generics.type_params() {
+        let ident = param.ident;
+        where_clause.predicates.push(parse_quote!(#ident: ::malloc_size_of::MallocSizeOf));
     }
 
     let tokens = quote! {
@@ -83,13 +74,16 @@ fn expand_string(input: &str) -> String {
         }
     };
 
-    tokens.to_string()
+    tokens
 }
 
 #[test]
 fn test_struct() {
-    let mut source = "struct Foo<T> { bar: Bar, baz: T, #[ignore_malloc_size_of = \"\"] z: Arc<T> }";
-    let mut expanded = expand_string(source);
+    let source =
+        syn::parse_str("struct Foo<T> { bar: Bar, baz: T, #[ignore_malloc_size_of = \"\"] z: Arc<T> }").unwrap();
+    let source = synstructure::Structure::new(&source);
+
+    let expanded = malloc_size_of_derive(source).to_string();
     let mut no_space = expanded.replace(" ", "");
     macro_rules! match_count {
         ($e: expr, $count: expr) => {
@@ -103,8 +97,9 @@ fn test_struct() {
     match_count!("impl<T> ::malloc_size_of::MallocSizeOf for Foo<T> where T: ::malloc_size_of::MallocSizeOf {", 1);
     match_count!("sum += ::malloc_size_of::MallocSizeOf::size_of(", 2);
 
-    source = "struct Bar([Baz; 3]);";
-    expanded = expand_string(source);
+    let source = syn::parse_str("struct Bar([Baz; 3]);").unwrap();
+    let source = synstructure::Structure::new(&source);
+    let expanded = malloc_size_of_derive(source).to_string();
     no_space = expanded.replace(" ", "");
     match_count!("for item in", 1);
 }
@@ -112,6 +107,7 @@ fn test_struct() {
 #[should_panic(expected = "should have an explanation")]
 #[test]
 fn test_no_reason() {
-    expand_string("struct A { #[ignore_malloc_size_of] b: C }");
+    let input = syn::parse_str("struct A { #[ignore_malloc_size_of] b: C }").unwrap();
+    malloc_size_of_derive(synstructure::Structure::new(&input));
 }
 
