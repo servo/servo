@@ -171,6 +171,12 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         panic!("called as_mut_table_colgroup() on a non-tablecolgroup flow")
     }
 
+    /// If this is a table colgroup flow, returns the underlying object. Fails
+    /// otherwise.
+    fn as_table_colgroup(&self) -> &TableColGroupFlow {
+        panic!("called as_table_colgroup() on a non-tablecolgroup flow")
+    }
+
     /// If this is a table rowgroup flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
     fn as_mut_table_rowgroup(&mut self) -> &mut TableRowGroupFlow {
