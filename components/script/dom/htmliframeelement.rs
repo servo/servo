@@ -457,6 +457,22 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     make_getter!(FrameBorder, "frameborder");
     // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:attr-iframe-frameborder
     make_setter!(SetFrameBorder, "frameborder");
+
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-name
+    fn SetName(&self, name: DOMString) {
+        if let Some(window) = self.GetContentWindow() {
+            window.set_name(name)
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-name
+    fn Name(&self) -> DOMString {
+        if let Some(window) = self.GetContentWindow() {
+            window.get_name()
+        } else {
+            DOMString::new()
+        }
+    }
 }
 
 impl VirtualMethods for HTMLIFrameElement {
@@ -497,6 +513,11 @@ impl VirtualMethods for HTMLIFrameElement {
                     debug!("iframe src set while in browsing context.");
                     self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
                 }
+            },
+            &local_name!("name") => {
+                let new_value = mutation.new_value(attr);
+                let value = new_value.as_ref().map_or("", |v| &v);
+                self.SetName(DOMString::from(value.to_owned()));
             },
             _ => {},
         }
