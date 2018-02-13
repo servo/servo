@@ -285,9 +285,20 @@ pub struct Window {
     /// The Webrender Document id associated with this window.
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_document: DocumentId,
+
+    /// Flag to identify whether mutation observers are present(true)/absent(false)
+    exists_mut_observer: Cell<bool>,
 }
 
 impl Window {
+    pub fn get_exists_mut_observer(&self) -> bool {
+        self.exists_mut_observer.get()
+    }
+
+    pub fn set_exists_mut_observer(&self) {
+        self.exists_mut_observer.set(true);
+    }
+
     #[allow(unsafe_code)]
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
@@ -1814,6 +1825,7 @@ impl Window {
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
             webrender_document,
+            exists_mut_observer: Cell::new(false),
         });
 
         unsafe {
