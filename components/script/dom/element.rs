@@ -357,7 +357,7 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    fn has_css_layout_box(&self) -> bool {
+    pub fn has_css_layout_box(&self) -> bool {
         self.style()
             .map_or(false, |s| !s.get_box().clone_display().is_none())
     }
