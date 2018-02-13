@@ -84,6 +84,7 @@ enum ProcessingMode {
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     top_level_browsing_context_id: Cell<Option<TopLevelBrowsingContextId>>,
+    name: DomRefCell<DOMString>,
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     pipeline_id: Cell<Option<PipelineId>>,
     pending_pipeline_id: Cell<Option<PipelineId>>,
@@ -322,6 +323,7 @@ impl HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             browsing_context_id: Cell::new(None),
             top_level_browsing_context_id: Cell::new(None),
+            name: DomRefCell::new(DOMString::new()),
             pipeline_id: Cell::new(None),
             pending_pipeline_id: Cell::new(None),
             sandbox: Default::default(),
@@ -709,6 +711,18 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         } else {
             false
         }
+    }
+
+    fn SetName(&self, name: DOMString) {
+        window_from_node(self).window_proxy().set_name(name.clone());
+        if let Some(window) = self.GetContentWindow() {
+            let mut child_window = &*window;
+            child_window.set_name(name.clone())
+        }
+    }
+
+    fn Name(&self) -> DOMString {
+        window_from_node(self).window_proxy().get_name()
     }
 }
 
