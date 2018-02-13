@@ -39,6 +39,9 @@ packages = [
   "bitflags",
   "lazy_static",
   "winapi",
+  "syn",
+  "quote",
+  "unicode-xid",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

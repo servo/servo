@@ -4,29 +4,29 @@
 
 use cg;
 use quote::Tokens;
-use syn::DeriveInput;
+use syn::{Ident, DeriveInput};
 use synstructure::BindStyle;
 
 pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
-    let trait_path = &["values", "computed", "ToComputedValue"];
+    let trait_path = parse_quote!(values::computed::ToComputedValue);
     let (impl_generics, ty_generics, mut where_clause, computed_value_type) =
-        cg::fmap_trait_parts(&input, trait_path, "ComputedValue");
+        cg::fmap_trait_parts(&input, &trait_path, Ident::from("ComputedValue"));
 
     let to_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
-        let attrs = cg::parse_field_attrs::<ComputedValueAttrs>(&binding.field);
+        let attrs = cg::parse_field_attrs::<ComputedValueAttrs>(&binding.ast());
         if attrs.clone {
-            if cg::is_parameterized(&binding.field.ty, where_clause.params, None) {
-                where_clause.inner.predicates.push(cg::where_predicate(
-                    binding.field.ty.clone(),
-                    &["std", "clone", "Clone"],
+            if cg::is_parameterized(&binding.ast().ty, &where_clause.params, None) {
+                where_clause.add_predicate(cg::where_predicate(
+                    binding.ast().ty.clone(),
+                    &parse_quote!(std::clone::Clone),
                     None,
                 ));
             }
             quote! { ::std::clone::Clone::clone(#binding) }
         } else {
             if !attrs.ignore_bound {
-                where_clause.add_trait_bound(&binding.field.ty);
+                where_clause.add_trait_bound(&binding.ast().ty);
             }
             quote! {
                 ::values::computed::ToComputedValue::to_computed_value(#binding, context)
@@ -34,7 +34,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
         }
     });
     let from_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
-        let attrs = cg::parse_field_attrs::<ComputedValueAttrs>(&binding.field);
+        let attrs = cg::parse_field_attrs::<ComputedValueAttrs>(&binding.ast());
         if attrs.clone {
             quote! { ::std::clone::Clone::clone(#binding) }
         } else {
