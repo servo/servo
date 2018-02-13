@@ -10,9 +10,7 @@ interface HTMLIFrameElement : HTMLElement {
   // [CEReactions]
   //         attribute DOMString srcdoc;
 
-  // https://github.com/servo/servo/issues/14453
-  // [CEReactions]
-  // attribute DOMString name;
+  attribute DOMString name;
 
   [SameObject, PutForwards=value]
            readonly attribute DOMTokenList sandbox;

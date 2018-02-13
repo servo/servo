@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::error::{Error, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::root::{Dom, DomRoot, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{WindowProxyHandler, get_array_index_from_id, AsVoidPtr};
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
@@ -55,6 +57,8 @@ pub struct WindowProxy {
     /// In the case that this is a top-level window, this is our id.
     top_level_browsing_context_id: TopLevelBrowsingContextId,
 
+    /// The name of the browsing context
+    name: DomRefCell<DOMString>,
     /// The pipeline id of the currently active document.
     /// May be None, when the currently active document is in another script thread.
     /// We do not try to keep the pipeline id for documents in other threads,
@@ -80,10 +84,12 @@ impl WindowProxy {
                          parent: Option<&WindowProxy>)
                          -> WindowProxy
     {
+        let name = frame_element.map_or(DOMString::new(), |e| e.get_string_attribute(&local_name!("name")));
         WindowProxy {
             reflector: Reflector::new(),
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
+            name: DomRefCell::new(name),
             currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
             frame_element: frame_element.map(Dom::from_ref),
@@ -275,6 +281,14 @@ impl WindowProxy {
 
     pub fn currently_active(&self) -> Option<PipelineId> {
         self.currently_active.get()
+    }
+
+    pub fn get_name(&self) -> DOMString {
+        self.name.borrow().clone()
+    }
+
+    pub fn set_name(&self, name: DOMString) {
+        *self.name.borrow_mut() = name;
     }
 }
 
