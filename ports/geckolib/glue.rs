@@ -709,10 +709,11 @@ pub extern "C" fn Servo_AnimationValue_Serialize(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Shorthand_AnimationValues_Serialize(shorthand_property: nsCSSPropertyID,
-                                                            values: RawGeckoServoAnimationValueListBorrowed,
-                                                            buffer: *mut nsAString)
-{
+pub unsafe extern "C" fn Servo_Shorthand_AnimationValues_Serialize(
+    shorthand_property: nsCSSPropertyID,
+    values: RawGeckoServoAnimationValueListBorrowed,
+    buffer: *mut nsAString,
+) {
     let property_id = get_property_id_from_nscsspropertyid!(shorthand_property, ());
     let shorthand = match property_id.as_shorthand() {
         Ok(shorthand) => shorthand,
@@ -724,14 +725,12 @@ pub extern "C" fn Servo_Shorthand_AnimationValues_Serialize(shorthand_property: 
     // about its lifetime. (longhands_to_css() expects &PropertyDeclaration
     // iterator.)
     let declarations: Vec<PropertyDeclaration> =
-        values.iter().map(|v| AnimationValue::as_arc(unsafe { &&*v.mRawPtr }).uncompute()).collect();
+        values.iter().map(|v| AnimationValue::as_arc(&&*v.mRawPtr).uncompute()).collect();
 
-    let mut string = String::new();
-    let rv = shorthand.longhands_to_css(declarations.iter(), &mut CssWriter::new(&mut string));
-    if rv.is_ok() {
-        let buffer = unsafe { buffer.as_mut().unwrap() };
-        buffer.assign_utf8(&string);
-    }
+    let _ = shorthand.longhands_to_css(
+        declarations.iter(),
+        &mut CssWriter::new(&mut *buffer),
+    );
 }
 
 #[no_mangle]
