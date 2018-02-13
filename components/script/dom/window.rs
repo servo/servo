@@ -32,10 +32,8 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSSt
 use dom::customelementregistry::CustomElementRegistry;
 use dom::document::{AnimationFrameCallback, Document};
 use dom::element::Element;
-use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use dom::history::History;
-use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
@@ -54,18 +52,17 @@ use euclid::{Point2D, Vector2D, Rect, Size2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
-use msg::constellation_msg::{FrameType, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::{ResourceThreads, ReferrerPolicy};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
-use open;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{TrustedNodeAddress, PendingImageState};
@@ -76,14 +73,13 @@ use script_layout_interface::rpc::{NodeScrollIdResponse, ResolvedStyleResponse, 
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, Runtime};
 use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use script_thread::{ScriptThread, SendableMainThreadScriptChan};
-use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowserEvent};
+use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
 use servo_arc;
 use servo_config::opts;
-use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
@@ -200,7 +196,7 @@ pub struct Window {
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
-    parent_info: Option<(PipelineId, FrameType)>,
+    parent_info: Option<PipelineId>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -343,7 +339,7 @@ impl Window {
         &self.script_chan.0
     }
 
-    pub fn parent_info(&self) -> Option<(PipelineId, FrameType)> {
+    pub fn parent_info(&self) -> Option<PipelineId> {
         self.parent_info
     }
 
@@ -520,7 +516,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert(&self, s: DOMString) {
-        // Right now, just print to the console
+        // Print to the console.
         // Ensure that stderr doesn't trample through the alert() we use to
         // communicate test results (see executorservo.py in wptrunner).
         {
@@ -990,17 +986,6 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-window-status
     fn SetStatus(&self, status: DOMString) {
         *self.status.borrow_mut() = status
-    }
-
-    // check-tidy: no specs after this line
-    fn OpenURLInDefaultBrowser(&self, href: DOMString) -> ErrorResult {
-        let url = ServoUrl::parse(&href).map_err(|e| {
-            Error::Type(format!("Couldn't parse URL: {}", e))
-        })?;
-        match open::that(url.as_str()) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(Error::Type(format!("Couldn't open URL: {}", e))),
-        }
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
@@ -1682,31 +1667,7 @@ impl Window {
 
     // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
     pub fn is_top_level(&self) -> bool {
-        match self.parent_info {
-            Some((_, FrameType::IFrame)) => false,
-            _ => true,
-        }
-    }
-
-    /// Returns whether this window is mozbrowser.
-    pub fn is_mozbrowser(&self) -> bool {
-        PREFS.is_mozbrowser_enabled() && self.parent_info().is_none()
-    }
-
-    /// Returns whether mozbrowser is enabled and `obj` has been created
-    /// in a top-level `Window` global.
-    #[allow(unsafe_code)]
-    pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
-        GlobalScope::from_object(obj.get())
-            .downcast::<Window>()
-            .map_or(false, |window| window.is_mozbrowser())
-    }
-
-    #[allow(unsafe_code)]
-    pub fn dispatch_mozbrowser_event(&self, event: MozBrowserEvent) {
-        assert!(PREFS.is_mozbrowser_enabled());
-        let custom_event = build_mozbrowser_custom_event(&self, event);
-        custom_event.upcast::<Event>().fire(self.upcast());
+        self.parent_info.is_none()
     }
 
     pub fn evaluate_media_queries_and_report_changes(&self) {
@@ -1769,7 +1730,7 @@ impl Window {
         timer_event_chan: IpcSender<TimerEvent>,
         layout_chan: Sender<Msg>,
         pipelineid: PipelineId,
-        parent_info: Option<(PipelineId, FrameType)>,
+        parent_info: Option<PipelineId>,
         window_size: Option<WindowSizeData>,
         origin: MutableOrigin,
         navigation_start: u64,

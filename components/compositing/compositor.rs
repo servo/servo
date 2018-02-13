@@ -18,10 +18,9 @@ use nonzero::NonZero;
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
-use script_traits::{TouchpadPressurePhase, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
+use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use servo_config::opts;
-use servo_config::prefs::PREFS;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
 use std::fs::File;
@@ -862,31 +861,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(identifier, point);
         self.send_touch_event(TouchEventType::Cancel, identifier, point);
-    }
-
-    pub fn on_touchpad_pressure_event(&self,
-                                  point: TypedPoint2D<f32, DevicePixel>,
-                                  pressure: f32,
-                                  phase: TouchpadPressurePhase) {
-        match PREFS.get("dom.forcetouch.enabled").as_boolean() {
-            Some(true) => {},
-            _ => return,
-        }
-
-        let results = self.hit_test_at_point(point);
-        if let Some(item) = results.items.first() {
-            let event = TouchpadPressureEvent(
-                item.point_in_viewport.to_untyped(),
-                pressure,
-                phase,
-                Some(UntrustedNodeAddress(item.tag.0 as *const c_void)),
-            );
-            let pipeline_id = PipelineId::from_webrender(item.pipeline);
-            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({}).", e);
-            }
-        }
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>

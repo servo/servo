@@ -77,7 +77,7 @@ use malloc_size_of::MallocSizeOfOps;
 use mem::malloc_size_of_including_self;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -91,13 +91,12 @@ use script_runtime::{ScriptPort, get_reports, new_rt_and_cx, Runtime};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
-use script_traits::{MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
+use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
-use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
+use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
@@ -154,7 +153,7 @@ struct InProgressLoad {
     /// The top level ancestor browsing context.
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The parent pipeline and frame type associated with this load, if any.
-    parent_info: Option<(PipelineId, FrameType)>,
+    parent_info: Option<PipelineId>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
@@ -180,7 +179,7 @@ impl InProgressLoad {
     fn new(id: PipelineId,
            browsing_context_id: BrowsingContextId,
            top_level_browsing_context_id: TopLevelBrowsingContextId,
-           parent_info: Option<(PipelineId, FrameType)>,
+           parent_info: Option<PipelineId>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
@@ -981,7 +980,7 @@ impl ScriptThread {
                         let origin = if new_layout_info.load_data.url.as_str() != "about:blank" {
                             MutableOrigin::new(new_layout_info.load_data.url.origin())
                         } else if let Some(parent) = new_layout_info.parent_info
-                                .and_then(|(pipeline_id, _)| self.documents.borrow()
+                                .and_then(|pipeline_id| self.documents.borrow()
                                 .find_document(pipeline_id)) {
                             parent.origin().clone()
                         } else if let Some(creator) = new_layout_info.load_data.creator_pipeline_id
@@ -1169,7 +1168,6 @@ impl ScriptThread {
                     NotifyVisibilityChange(id, ..) => Some(id),
                     Navigate(id, ..) => Some(id),
                     PostMessage(id, ..) => Some(id),
-                    MozBrowserEvent(id, ..) => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
                     WebDriverScriptCommand(id, ..) => Some(id),
@@ -1289,12 +1287,6 @@ impl ScriptThread {
                 self.handle_visibility_change_complete_msg(parent_pipeline_id, browsing_context_id, visible),
             ConstellationControlMsg::PostMessage(pipeline_id, origin, data) =>
                 self.handle_post_message_msg(pipeline_id, origin, data),
-            ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     top_level_browsing_context_id,
-                                                     event) =>
-                self.handle_mozbrowser_event_msg(parent_pipeline_id,
-                                                 top_level_browsing_context_id,
-                                                 event),
             ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
                                                       browsing_context_id,
                                                       new_pipeline_id,
@@ -1693,27 +1685,6 @@ impl ScriptThread {
         }
     }
 
-    /// Handles a mozbrowser event, for example see:
-    /// <https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart>
-    fn handle_mozbrowser_event_msg(&self,
-                                   parent_pipeline_id: PipelineId,
-                                   top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
-                                   event: MozBrowserEvent) {
-        let doc = match { self.documents.borrow().find_document(parent_pipeline_id) } {
-            None => return warn!("Mozbrowser event after pipeline {} closed.", parent_pipeline_id),
-            Some(doc) => doc,
-        };
-
-        match top_level_browsing_context_id {
-            None => doc.window().dispatch_mozbrowser_event(event),
-            Some(top_level_browsing_context_id) => match doc.find_mozbrowser_iframe(top_level_browsing_context_id) {
-                None => warn!("Mozbrowser event after iframe {}/{} closed.",
-                              parent_pipeline_id, top_level_browsing_context_id),
-                Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
-            },
-        }
-    }
-
     fn handle_update_pipeline_id(&self,
                                  parent_pipeline_id: PipelineId,
                                  browsing_context_id: BrowsingContextId,
@@ -2027,7 +1998,7 @@ impl ScriptThread {
         result_receiver.recv().expect("Failed to get frame id from constellation.")
     }
 
-    fn ask_constellation_for_parent_info(&self, pipeline_id: PipelineId) -> Option<(PipelineId, FrameType)> {
+    fn ask_constellation_for_parent_info(&self, pipeline_id: PipelineId) -> Option<PipelineId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetParentInfo(pipeline_id, result_sender);
         self.script_sender.send((pipeline_id, msg)).expect("Failed to send to constellation.");
@@ -2050,12 +2021,9 @@ impl ScriptThread {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
-        let parent = match self.ask_constellation_for_parent_info(pipeline_id) {
-            Some((parent_id, FrameType::IFrame)) => self.remote_window_proxy(global_to_clone,
-                                                                             top_level_browsing_context_id,
-                                                                             parent_id),
-            _ => None,
-        };
+        let parent = self.ask_constellation_for_parent_info(pipeline_id).and_then(|parent_id| {
+            self.remote_window_proxy(global_to_clone, top_level_browsing_context_id, parent_id)
+        });
         let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone,
                                                               browsing_context_id,
                                                               top_level_browsing_context_id,
@@ -2074,22 +2042,21 @@ impl ScriptThread {
                           window: &Window,
                           browsing_context_id: BrowsingContextId,
                           top_level_browsing_context_id: TopLevelBrowsingContextId,
-                          parent_info: Option<(PipelineId, FrameType)>)
+                          parent_info: Option<PipelineId>)
                           -> DomRoot<WindowProxy>
     {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             window_proxy.set_currently_active(&*window);
             return DomRoot::from_ref(window_proxy);
         }
-        let iframe = match parent_info {
-            Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, browsing_context_id),
-            _ => None,
-        };
+        let iframe = parent_info.and_then(|parent_id| {
+            self.documents.borrow().find_iframe(parent_id, browsing_context_id)
+        });
         let parent = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
-            (Some((parent_id, FrameType::IFrame)), _) => self.remote_window_proxy(window.upcast(),
-                                                                                  top_level_browsing_context_id,
-                                                                                  parent_id),
+            (Some(parent_id), _) => self.remote_window_proxy(window.upcast(),
+                                                              top_level_browsing_context_id,
+                                                              parent_id),
             _ => None,
         };
         let window_proxy = WindowProxy::new(&window,
@@ -2376,19 +2343,6 @@ impl ScriptThread {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
                     }
                 }
-            }
-
-            TouchpadPressureEvent(_point, pressure, phase, node_address) => {
-                let doc = match { self.documents.borrow().find_document(pipeline_id) } {
-                    Some(doc) => doc,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                doc.handle_touchpad_pressure_event(
-                    self.js_runtime.rt(),
-                    pressure,
-                    phase,
-                    node_address
-                );
             }
 
             KeyEvent(ch, key, state, modifiers) => {

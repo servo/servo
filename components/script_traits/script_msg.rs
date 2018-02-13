@@ -9,7 +9,6 @@ use IFrameLoadInfo;
 use IFrameLoadInfoWithData;
 use LayoutControlMsg;
 use LoadData;
-use MozBrowserEvent;
 use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
 use canvas_traits::canvas::CanvasMsg;
@@ -17,7 +16,7 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Point2D, Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
@@ -89,7 +88,7 @@ pub enum ScriptMsg {
     /// Get the browsing context id for a given pipeline.
     GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Get the parent info for a given pipeline.
-    GetParentInfo(PipelineId, IpcSender<Option<(PipelineId, FrameType)>>),
+    GetParentInfo(PipelineId, IpcSender<Option<PipelineId>>),
     /// <head> tag finished parsing
     HeadParsed,
     /// All pending loads are complete, and the `load` event for this pipeline
@@ -102,8 +101,6 @@ pub enum ScriptMsg {
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
     PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
-    /// Dispatch a mozbrowser event to the parent of a mozbrowser iframe.
-    MozBrowserEvent(PipelineId, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
     /// Gets the length of the joint session history from the constellation.

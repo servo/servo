@@ -23,7 +23,7 @@ use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::{LoadData, TouchEventType, TouchpadPressurePhase};
+use script_traits::{LoadData, TouchEventType};
 use servo::ipc_channel::ipc::IpcSender;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -517,12 +517,6 @@ impl Window {
                 let id = TouchId(touch.id as i32);
                 let point = TypedPoint2D::new(touch.location.0 as f32, touch.location.1 as f32);
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
-            }
-            Event::TouchpadPressure(pressure, stage) => {
-                let m = self.mouse_pos.get();
-                let point = TypedPoint2D::new(m.x as f32, m.y as f32);
-                let phase = glutin_pressure_stage_to_touchpad_pressure_phase(stage);
-                self.event_queue.borrow_mut().push(WindowEvent::TouchpadPressure(point, pressure, phase));
             }
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
@@ -1360,6 +1354,10 @@ impl WindowMethods for Window {
     fn supports_clipboard(&self) -> bool {
         true
     }
+
+    fn handle_panic(&self, _: BrowserId, _reason: String, _backtrace: Option<String>) {
+        // Nothing to do here yet. The crash has already been reported on the console.
+    }
 }
 
 fn glutin_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
@@ -1368,16 +1366,6 @@ fn glutin_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
         TouchPhase::Moved => TouchEventType::Move,
         TouchPhase::Ended => TouchEventType::Up,
         TouchPhase::Cancelled => TouchEventType::Cancel,
-    }
-}
-
-fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPressurePhase {
-    if stage < 1 {
-        TouchpadPressurePhase::BeforeClick
-    } else if stage < 2 {
-        TouchpadPressurePhase::AfterFirstClick
-    } else {
-        TouchpadPressurePhase::AfterSecondClick
     }
 }
 

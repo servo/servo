@@ -311,10 +311,6 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 }
             }
 
-            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
-                self.compositor.on_touchpad_pressure_event(cursor, pressure, stage);
-            }
-
             WindowEvent::KeyEvent(ch, key, state, modifiers) => {
                 let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
                 if let Err(e) = self.constellation_chan.send(msg) {
@@ -461,6 +457,11 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                     // TODO(pcwalton): Specify which frame's load completed.
                     self.compositor.window.load_end(top_level_browsing_context);
                 },
+                (EmbedderMsg::Panic(top_level_browsing_context, reason, backtrace),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.handle_panic(top_level_browsing_context, reason, backtrace);
+                },
+
             }
         }
     }

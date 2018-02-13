@@ -146,6 +146,8 @@ pub enum EmbedderMsg {
     LoadStart(TopLevelBrowsingContextId),
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
+    /// A pipeline panicked. First string is the reason, second one is the backtrace.
+    Panic(TopLevelBrowsingContextId, String, Option<String>),
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.
@@ -237,6 +239,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
             EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
+            EmbedderMsg::Panic(..) => write!(f, "Panic"),
         }
     }
 }

@@ -257,11 +257,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "browserhtml"
-version = "0.1.17"
-source = "git+https://github.com/browserhtml/browserhtml?branch=crate#84913eafd817c92fbb6bdbb8a8f7480baddee3d3"
-
-[[package]]
 name = "byteorder"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1972,11 +1967,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "open"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "openssl"
 version = "0.9.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2376,7 +2366,6 @@ dependencies = [
  "net_traits 0.0.1",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.14.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "open 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2569,7 +2558,6 @@ dependencies = [
  "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
  "compositing 0.0.1",
  "euclid 0.16.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3532,7 +3520,6 @@ dependencies = [
 "checksum blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e73bda0f4c71c63a047351070097f3f507e6718e86b9ee525173371ef7b94b73"
 "checksum brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "fe87b40996b84fdc56e57c165d93079f4b50cb806598118e692ddfaa3d3c57c0"
 "checksum brotli-decompressor 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "313f4b6cc0b365d6b88eda5aa40175ee34ac6efa9a79e0b3b8202eca90247ba8"
-"checksum browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)" = "<none>"
 "checksum byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "652805b7e73fada9d85e9a6682a4abd490cb52d96aeecc12e33a0de34dfd0d23"
 "checksum bytes 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c129aff112dcc562970abb69e2508b40850dd24c274761bb50fb8a0067ba6c27"
 "checksum caseless 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8950b075cff75cdabadee97148a8b5816c7cf62e5948a6005b5255d564b42fe7"
@@ -3665,7 +3652,6 @@ dependencies = [
 "checksum offscreen_gl_context 0.14.3 (registry+https://github.com/rust-lang/crates.io-index)" = "eeb69c6b9fff6f2166af94c72cf6333b8bb883910809a396b53a881fd6b5e913"
 "checksum ogg 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7137bf02687385302f4c0aecd77cfce052b69f5b4ee937be778e125c62f67e30"
 "checksum ogg_metadata 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fc665717454399cba557c55ad226148996e9266ee291f8a37a98bb2cded0a490"
-"checksum open 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3478ed1686bd1300c8a981a940abc92b06fac9cbef747f4c668d4e032ff7b842"
 "checksum openssl 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)" = "419ef26bb651d72b6c5a603bcc4e4856a362460e62352dfffa53de91d2e81181"
 "checksum openssl-sys 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)" = "5483bdc56756041ba6aa37c9cb59cc2219f012a2a1377d97ad35556ac6676ee7"
 "checksum ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "da12c96037889ae0be29dd2bdd260e5a62a7df24e6466d5a15bb8131c1c200a8"

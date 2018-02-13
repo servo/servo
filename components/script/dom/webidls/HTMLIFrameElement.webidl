@@ -46,13 +46,3 @@ partial interface HTMLIFrameElement {
   // [CEReactions, TreatNullAs=EmptyString]
   // attribute DOMString marginWidth;
 };
-
-partial interface HTMLIFrameElement {
-    [CEReactions, Func="::dom::window::Window::global_is_mozbrowser"]
-    attribute boolean mozbrowser;
-
-    [CEReactions, Func="::dom::window::Window::global_is_mozbrowser"]
-    attribute boolean mozprivatebrowsing;
-};
-
-HTMLIFrameElement implements BrowserElement;

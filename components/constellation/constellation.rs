@@ -43,9 +43,6 @@
 //! +------------+                      +------------+
 //! ```
 //
-//! Complicating matters, there are also mozbrowser iframes, which are top-level
-//! iframes with a parent.
-//!
 //! The constellation also maintains channels to threads, including:
 //!
 //! * The script and layout threads.
@@ -59,8 +56,7 @@
 //! to track the evolving state of the browsing context tree.
 //!
 //! The constellation acts as a logger, tracking any `warn!` messages from threads,
-//! and converting any `error!` or `panic!` into a crash report, which is filed
-//! using an appropriate `mozbrowsererror` event.
+//! and converting any `error!` or `panic!` into a crash report.
 //!
 //! Since there is only one constellation, and its responsibilities include crash reporting,
 //! it is very important that it does not panic.
@@ -116,7 +112,7 @@ use ipc_channel::router::ROUTER;
 use itertools::Itertools;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
@@ -133,8 +129,8 @@ use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData}
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ScriptToConstellationChan, ServiceWorkerMsg, webdriver_msg};
-use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
-use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WindowSizeType};
+use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
+use script_traits::{WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -658,7 +654,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     pipeline_id: PipelineId,
                     browsing_context_id: BrowsingContextId,
                     top_level_browsing_context_id: TopLevelBrowsingContextId,
-                    parent_info: Option<(PipelineId, FrameType)>,
+                    parent_info: Option<PipelineId>,
                     initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
                     // TODO: we have to provide ownership of the LoadData
                     // here, because it will be send on an ipc channel,
@@ -690,7 +686,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         },
                     }
                 } else if let Some(parent) = parent_info
-                        .and_then(|(pipeline_id, _)| self.pipelines.get(&pipeline_id)) {
+                        .and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
                     (Some(parent.event_loop.clone()), None)
                 } else if let Some(creator) = load_data.creator_pipeline_id
                         .and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
@@ -708,7 +704,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         let parent_visibility = parent_info
-            .and_then(|(parent_pipeline_id, _)| self.pipelines.get(&parent_pipeline_id))
+            .and_then(|parent_pipeline_id| self.pipelines.get(&parent_pipeline_id))
             .map(|pipeline| pipeline.visible);
 
         let prev_visibility = self.browsing_contexts.get(&browsing_context_id)
@@ -824,12 +820,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         )
     }
 
-    /// Is the joint session future empty?
-    fn joint_session_future_is_empty(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> bool {
-        self.all_browsing_contexts_iter(top_level_browsing_context_id)
-            .all(|browsing_context| browsing_context.next.is_empty())
-    }
-
     #[cfg(feature = "unstable")]
     /// The joint session past is the merge of the session past of every
     /// browsing_context, sorted reverse chronologically.
@@ -866,12 +856,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         )
     }
 
-    /// Is the joint session past empty?
-    fn joint_session_past_is_empty(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> bool {
-        self.all_browsing_contexts_iter(top_level_browsing_context_id)
-            .all(|browsing_context| browsing_context.prev.is_empty())
-    }
-
     /// Create a new browsing context and update the internal bookkeeping.
     fn new_browsing_context(&mut self,
                  browsing_context_id: BrowsingContextId,
@@ -885,7 +869,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If a child browsing_context, add it to the parent pipeline.
         let parent_info = self.pipelines.get(&pipeline_id)
             .and_then(|pipeline| pipeline.parent_info);
-        if let Some((parent_id, _)) = parent_info {
+        if let Some(parent_id) = parent_info {
             if let Some(parent) = self.pipelines.get_mut(&parent_id) {
                 parent.add_child(browsing_context_id);
             }
@@ -1172,10 +1156,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::PostMessage(browsing_context_id, origin, data) => {
                 debug!("constellation got postMessage message");
                 self.handle_post_message_msg(browsing_context_id, origin, data);
-            }
-            FromScriptMsg::MozBrowserEvent(pipeline_id, event) => {
-                debug!("constellation got mozbrowser event message");
-                self.handle_mozbrowser_event_msg(pipeline_id, source_top_ctx_id, event);
             }
             FromScriptMsg::Focus => {
                 debug!("constellation got focus message");
@@ -1515,8 +1495,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
 
-        // Notify the browser chrome that the pipeline has failed
-        self.trigger_mozbrowsererror(top_level_browsing_context_id, reason, backtrace);
+        self.embedder_proxy.send(EmbedderMsg::Panic(top_level_browsing_context_id, reason, backtrace));
 
         let (window_size, pipeline_id) = {
             let browsing_context = self.browsing_contexts.get(&browsing_context_id);
@@ -1656,7 +1635,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let (browsing_context_id, parent_id) = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => match pipeline.parent_info {
-                Some((parent_id, _)) => (pipeline.browsing_context_id, parent_id),
+                Some(parent_id) => (pipeline.browsing_context_id, parent_id),
                 None => return debug!("Pipeline {} has no parent.", pipeline_id),
             },
             None => return warn!("Pipeline {} loaded after closure.", pipeline_id),
@@ -1732,7 +1711,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.new_pipeline(load_info.info.new_pipeline_id,
                           load_info.info.browsing_context_id,
                           load_info.info.top_level_browsing_context_id,
-                          Some((load_info.info.parent_pipeline_id, load_info.info.frame_type)),
+                          Some(load_info.info.parent_pipeline_id),
                           window_size,
                           load_data.clone(),
                           load_info.sandbox,
@@ -1752,7 +1731,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
-            frame_type,
             replace,
             browsing_context_id,
             top_level_browsing_context_id,
@@ -1772,7 +1750,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Pipeline::new(new_pipeline_id,
                           browsing_context_id,
                           top_level_browsing_context_id,
-                          Some((parent_pipeline_id, frame_type)),
+                          Some(parent_pipeline_id),
                           script_sender,
                           layout_sender,
                           self.compositor_proxy.clone(),
@@ -1841,27 +1819,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_alert(&mut self,
                     top_level_browsing_context_id: TopLevelBrowsingContextId,
-                    message: String,
+                    _message: String,
                     sender: IpcSender<bool>) {
-        let browser_pipeline_id = self.browsing_contexts.get(&BrowsingContextId::from(top_level_browsing_context_id))
-            .and_then(|browsing_context| self.pipelines.get(&browsing_context.pipeline_id))
-            .and_then(|pipeline| pipeline.parent_info)
-            .map(|(browser_pipeline_id, _)| browser_pipeline_id);
-        let mozbrowser_modal_prompt = PREFS.is_mozbrowser_enabled() && browser_pipeline_id.is_some();
-
-        if mozbrowser_modal_prompt {
-            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
-            let prompt_type = String::from("alert");
-            let title = String::from("Alert");
-            let return_value = String::from("");
-            let event = MozBrowserEvent::ShowModalPrompt(prompt_type, title, message, return_value);
-            match browser_pipeline_id.and_then(|id| self.pipelines.get(&id)) {
-                None => warn!("Alert sent after browser pipeline closure."),
-                Some(pipeline) => pipeline.trigger_mozbrowser_event(Some(top_level_browsing_context_id), event),
-            }
-        }
-
-        let result = sender.send(!mozbrowser_modal_prompt);
+        // FIXME: forward alert event to embedder
+        // https://github.com/servo/servo/issues/19992
+        let result = sender.send(true);
         if let Err(e) = result {
             let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
             let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
@@ -1902,7 +1864,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         };
         match parent_info {
-            Some((parent_pipeline_id, _)) => {
+            Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
                 let msg = ConstellationControlMsg::Navigate(parent_pipeline_id,
@@ -2131,22 +2093,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_mozbrowser_event_msg(&mut self,
-                                   pipeline_id: PipelineId,
-                                   top_level_browsing_context_id: TopLevelBrowsingContextId,
-                                   event: MozBrowserEvent) {
-        assert!(PREFS.is_mozbrowser_enabled());
-
-        // Find the script channel for the given parent pipeline,
-        // and pass the event to that script thread.
-        // If the pipeline lookup fails, it is because we have torn down the pipeline,
-        // so it is reasonable to silently ignore the event.
-        match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.trigger_mozbrowser_event(Some(top_level_browsing_context_id), event),
-            None => warn!("Pipeline {:?} handling mozbrowser event after closure.", pipeline_id),
-        }
-    }
-
     fn handle_get_pipeline(&mut self,
                            browsing_context_id: BrowsingContextId,
                            resp_chan: IpcSender<Option<PipelineId>>) {
@@ -2175,7 +2121,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(pipeline) => (pipeline.browsing_context_id, pipeline.parent_info),
             None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
         };
-        let (parent_pipeline_id, _) = match parent_info {
+        let parent_pipeline_id = match parent_info {
             Some(info) => info,
             None => return debug!("Pipeline {:?} focus has no parent.", pipeline_id),
         };
@@ -2234,7 +2180,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Visibity change for closed pipeline {:?}.", pipeline_id),
             Some(pipeline) => (pipeline.browsing_context_id, pipeline.parent_info),
         };
-        if let Some((parent_pipeline_id, _)) = parent_pipeline_info {
+        if let Some(parent_pipeline_id) = parent_pipeline_info {
             let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
                                                                                  browsing_context_id,
                                                                                  visibility);
@@ -2430,7 +2376,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
-        if let Some((parent_pipeline_id, frame_type)) = parent_info {
+        if let Some(parent_pipeline_id) = parent_info {
             let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
                 browsing_context_id, pipeline_id, UpdatePipelineIdReason::Traversal);
             let result = match self.pipelines.get(&parent_pipeline_id) {
@@ -2439,12 +2385,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
             if let Err(e) = result {
                 self.handle_send_error(parent_pipeline_id, e);
-            }
-
-            // If this is a mozbrowser iframe, send a mozbrowser location change event.
-            // This is the result of a back/forward traversal.
-            if frame_type == FrameType::MozBrowserIFrame {
-                self.trigger_mozbrowserlocationchange(top_level_id);
             }
         }
     }
@@ -2579,11 +2519,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.notify_history_changed(change.top_level_browsing_context_id);
         }
 
-        // If the navigation is for a top-level browsing context, inform mozbrowser
-        if change.browsing_context_id == change.top_level_browsing_context_id {
-            self.trigger_mozbrowserlocationchange(change.top_level_browsing_context_id);
-        }
-
         self.update_frame_tree_if_active(change.top_level_browsing_context_id);
     }
 
@@ -2592,7 +2527,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // Notify the parent (if there is one).
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            if let Some((parent_pipeline_id, _)) = pipeline.parent_info {
+            if let Some(parent_pipeline_id) = pipeline.parent_info {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
                     let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
                         pipeline.browsing_context_id, pipeline_id, UpdatePipelineIdReason::Navigation);
@@ -2759,7 +2694,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(ancestor) = self.pipelines.get(&ancestor_id) {
                 if let Some(browsing_context) = self.browsing_contexts.get(&ancestor.browsing_context_id) {
                     if browsing_context.pipeline_id == ancestor_id {
-                        if let Some((parent_id, FrameType::IFrame)) = ancestor.parent_info {
+                        if let Some(parent_id) = ancestor.parent_info {
                             ancestor_id = parent_id;
                             continue;
                         } else {
@@ -2887,7 +2822,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let parent_info = self.pipelines.get(&browsing_context.pipeline_id)
             .and_then(|pipeline| pipeline.parent_info);
 
-        if let Some((parent_pipeline_id, _)) = parent_info {
+        if let Some(parent_pipeline_id) = parent_info {
             match self.pipelines.get_mut(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child closed after parent.", parent_pipeline_id),
                 Some(parent_pipeline) => parent_pipeline.remove_child(browsing_context_id),
@@ -2982,13 +2917,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some((ref mut rng, probability)) = self.random_pipeline_closure {
             if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
-                    // Don't kill the mozbrowser pipeline
-                    if PREFS.is_mozbrowser_enabled() && pipeline.parent_info.is_none() {
-                        info!("Not closing mozbrowser pipeline {}.", pipeline_id);
-                    } else if
-                        self.pending_changes.iter().any(|change| change.new_pipeline_id == pipeline.id) &&
-                        probability <= rng.gen::<f32>()
-                    {
+                    if self.pending_changes.iter().any(|change| change.new_pipeline_id == pipeline.id) &&
+                        probability <= rng.gen::<f32>() {
                         // We tend not to close pending pipelines, as that almost always
                         // results in pipelines being closed early in their lifecycle,
                         // and not stressing the constellation as much.
@@ -3027,26 +2957,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     /// Re-send the frame tree to the compositor.
-    fn update_frame_tree_if_active(&mut self, mut top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        // This might be a mozbrowser iframe, so we need to climb the parent hierarchy,
-        // even though it's a top-level browsing context.
-        // FIXME(paul): to remove once mozbrowser API is removed.
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let mut pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => return warn!("Sending frame tree for discarded browsing context {}.", browsing_context_id),
-        };
-
-        while let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            match pipeline.parent_info {
-                Some((parent_id, _)) => pipeline_id = parent_id,
-                None => {
-                    top_level_browsing_context_id = pipeline.top_level_browsing_context_id;
-                    break;
-                },
-            }
-        }
-
+    fn update_frame_tree_if_active(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         // Only send the frame tree if it's the active one or if no frame tree
         // has been sent yet.
         if self.active_browser_id.is_none() || Some(top_level_browsing_context_id) == self.active_browser_id {
@@ -3067,77 +2978,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree));
         }
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
-    // Note that this is a no-op if the pipeline is not a mozbrowser iframe
-    fn trigger_mozbrowserlocationchange(&self,
-                                        top_level_browsing_context_id: TopLevelBrowsingContextId)
-    {
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => return warn!("mozbrowser location change on closed browsing context {}.", browsing_context_id),
-        };
-        let (url, parent_info) = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => (pipeline.url.clone(), pipeline.parent_info),
-            None => return warn!("mozbrowser location change on closed pipeline {}.", pipeline_id),
-        };
-        let parent_id = match parent_info {
-            Some((parent_id, FrameType::MozBrowserIFrame)) => parent_id,
-            _ => return debug!("mozbrowser location change on a regular iframe {}", browsing_context_id),
-        };
-        let can_go_forward = !self.joint_session_future_is_empty(top_level_browsing_context_id);
-        let can_go_back = !self.joint_session_past_is_empty(top_level_browsing_context_id);
-        let event = MozBrowserEvent::LocationChange(url.to_string(), can_go_back, can_go_forward);
-        match self.pipelines.get(&parent_id) {
-            Some(parent) => parent.trigger_mozbrowser_event(Some(top_level_browsing_context_id), event),
-            None => return warn!("mozbrowser location change on closed parent {}", parent_id),
-        };
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
-    fn trigger_mozbrowsererror(&mut self,
-                               top_level_browsing_context_id: TopLevelBrowsingContextId,
-                               reason: String,
-                               backtrace: Option<String>)
-    {
-        if !PREFS.is_mozbrowser_enabled() { return; }
-
-        let mut report = String::new();
-        for (thread_name, warning) in self.handled_warnings.drain(..) {
-            report.push_str("\nWARNING: ");
-            if let Some(thread_name) = thread_name {
-                report.push_str("<");
-                report.push_str(&*thread_name);
-                report.push_str(">: ");
-            }
-            report.push_str(&*warning);
-        }
-        report.push_str("\nERROR: ");
-        report.push_str(&*reason);
-        if let Some(backtrace) = backtrace {
-            report.push_str("\n\n");
-            report.push_str(&*backtrace);
-        }
-
-        let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, reason, report);
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => return warn!("Mozbrowser error after top-level browsing context closed."),
-        };
-        let parent_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => match pipeline.parent_info {
-                Some((parent_id, FrameType::MozBrowserIFrame)) => parent_id,
-                _ => return pipeline.trigger_mozbrowser_event(None, event),
-            },
-            None => return warn!("Mozbrowser error on a closed pipeline {}", pipeline_id),
-        };
-        match self.pipelines.get(&parent_id) {
-            None => warn!("Mozbrowser error after parent pipeline {} closed.", parent_id),
-            Some(parent) => parent.trigger_mozbrowser_event(Some(top_level_browsing_context_id), event),
-        };
     }
 
     fn focused_pipeline_is_descendant_of(&self, browsing_context_id: BrowsingContextId) -> bool {

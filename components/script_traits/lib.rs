@@ -48,13 +48,12 @@ use hyper::method::Method;
 use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
-use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
 use profile_traits::time as profile_time;
@@ -186,7 +185,7 @@ impl LoadData {
 pub struct NewLayoutInfo {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is a root pipeline.
-    pub parent_info: Option<(PipelineId, FrameType)>,
+    pub parent_info: Option<PipelineId>,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
     /// Id of the browsing context associated with this pipeline.
@@ -287,9 +286,6 @@ pub enum ConstellationControlMsg {
     Navigate(PipelineId, BrowsingContextId, LoadData, bool),
     /// Post a message to a given window.
     PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
-    /// Requests the script thread forward a mozbrowser event to a mozbrowser iframe it owns,
-    /// or to the window if no browsing context id is provided.
-    MozBrowserEvent(PipelineId, Option<TopLevelBrowsingContextId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
     UpdatePipelineId(PipelineId, BrowsingContextId, PipelineId, UpdatePipelineIdReason),
@@ -346,7 +342,6 @@ impl fmt::Debug for ConstellationControlMsg {
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
             PostMessage(..) => "PostMessage",
-            MozBrowserEvent(..) => "MozBrowserEvent",
             UpdatePipelineId(..) => "UpdatePipelineId",
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
@@ -445,21 +440,8 @@ pub enum CompositorEvent {
     MouseMoveEvent(Option<Point2D<f32>>, Option<UntrustedNodeAddress>),
     /// A touch event was generated with a touch ID and location.
     TouchEvent(TouchEventType, TouchId, Point2D<f32>, Option<UntrustedNodeAddress>),
-    /// Touchpad pressure event
-    TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase, Option<UntrustedNodeAddress>),
     /// A key was pressed.
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
-}
-
-/// Touchpad pressure phase for `TouchpadPressureEvent`.
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum TouchpadPressurePhase {
-    /// Pressure before a regular click.
-    BeforeClick,
-    /// Pressure after a regular click.
-    AfterFirstClick,
-    /// Pressure after a "forceTouch" click
-    AfterSecondClick,
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.
@@ -524,7 +506,7 @@ pub struct InitialScriptState {
     pub id: PipelineId,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, FrameType)>,
+    pub parent_info: Option<PipelineId>,
     /// The ID of the browsing context this script is part of.
     pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level browsing context this script is part of.
@@ -592,14 +574,11 @@ pub struct IFrameLoadInfo {
     /// The ID for this iframe's nested browsing context.
     pub browsing_context_id: BrowsingContextId,
     /// The ID for the top-level ancestor browsing context of this iframe's nested browsing context.
-    /// Note: this is the same as the browsing_context_id for mozbrowser iframes.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
-    /// Whether this iframe is a mozbrowser iframe
-    pub frame_type: FrameType,
     /// Wether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub replace: bool,
@@ -616,94 +595,6 @@ pub struct IFrameLoadInfoWithData {
     pub old_pipeline_id: Option<PipelineId>,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
-}
-
-// https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
-/// The events fired in a Browser API context (`<iframe mozbrowser>`)
-#[derive(Deserialize, Serialize)]
-pub enum MozBrowserEvent {
-    /// Sent when the scroll position within a browser `<iframe>` changes.
-    AsyncScroll,
-    /// Sent when window.close() is called within a browser `<iframe>`.
-    Close,
-    /// Sent when a browser `<iframe>` tries to open a context menu. This allows
-    /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
-    ContextMenu,
-    /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
-    /// Includes a human-readable description, and a machine-readable report.
-    Error(MozBrowserErrorType, String, String),
-    /// Sent when the favicon of a browser `<iframe>` changes.
-    IconChange(String, String, String),
-    /// Sent when the browser `<iframe>` has reached the server.
-    Connected,
-    /// Sent when the browser `<iframe>` has finished loading all its assets.
-    LoadEnd,
-    /// Sent when the browser `<iframe>` starts to load a new page.
-    LoadStart,
-    /// Sent when a browser `<iframe>`'s location changes.
-    LocationChange(String, bool, bool),
-    /// Sent when a new tab is opened within a browser `<iframe>` as a result of the user
-    /// issuing a command to open a link target in a new tab (for example ctrl/cmd + click.)
-    /// Includes the URL.
-    OpenTab(String),
-    /// Sent when a new window is opened within a browser `<iframe>`.
-    /// Includes the URL, target browsing context name, and features.
-    OpenWindow(String, Option<String>, Option<String>),
-    /// Sent when the SSL state changes within a browser `<iframe>`.
-    SecurityChange(HttpsState),
-    /// Sent when alert(), confirm(), or prompt() is called within a browser `<iframe>`.
-    ShowModalPrompt(String, String, String, String), // TODO(simartin): Handle unblock()
-    /// Sent when the document.title changes within a browser `<iframe>`.
-    TitleChange(String),
-    /// Sent when an HTTP authentification is requested.
-    UsernameAndPasswordRequired,
-    /// Sent when a link to a search engine is found.
-    OpenSearch,
-    /// Sent when visibility state changes.
-    VisibilityChange(bool),
-}
-
-impl MozBrowserEvent {
-    /// Get the name of the event as a `& str`
-    pub fn name(&self) -> &'static str {
-        match *self {
-            MozBrowserEvent::AsyncScroll => "mozbrowserasyncscroll",
-            MozBrowserEvent::Close => "mozbrowserclose",
-            MozBrowserEvent::Connected => "mozbrowserconnected",
-            MozBrowserEvent::ContextMenu => "mozbrowsercontextmenu",
-            MozBrowserEvent::Error(_, _, _) => "mozbrowsererror",
-            MozBrowserEvent::IconChange(_, _, _) => "mozbrowsericonchange",
-            MozBrowserEvent::LoadEnd => "mozbrowserloadend",
-            MozBrowserEvent::LoadStart => "mozbrowserloadstart",
-            MozBrowserEvent::LocationChange(_, _, _) => "mozbrowserlocationchange",
-            MozBrowserEvent::OpenTab(_) => "mozbrowseropentab",
-            MozBrowserEvent::OpenWindow(_, _, _) => "mozbrowseropenwindow",
-            MozBrowserEvent::SecurityChange(_) => "mozbrowsersecuritychange",
-            MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",
-            MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
-            MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
-            MozBrowserEvent::OpenSearch => "mozbrowseropensearch",
-            MozBrowserEvent::VisibilityChange(_) => "mozbrowservisibilitychange",
-        }
-    }
-}
-
-// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
-/// The different types of Browser error events
-#[derive(Deserialize, Serialize)]
-pub enum MozBrowserErrorType {
-    // For the moment, we are just reporting panics, using the "fatal" type.
-    /// A fatal error
-    Fatal,
-}
-
-impl MozBrowserErrorType {
-    /// Get the name of the error type as a `& str`
-    pub fn name(&self) -> &'static str {
-        match *self {
-            MozBrowserErrorType::Fatal => "fatal",
-        }
-    }
 }
 
 /// Specifies whether the script or layout thread needs to be ticked for animation.
