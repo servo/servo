@@ -15,6 +15,7 @@ import os.path as path
 import platform
 import sys
 import shutil
+import stat
 
 from time import time
 
@@ -368,6 +369,68 @@ class MachCommands(CommandBase):
                 for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
                     shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                 servo_exe_dir)
+                msvc_redist_dir = None
+                vs_platform = os.environ.get("PLATFORM", "").lower()
+                vc_dir = os.environ.get("VCINSTALLDIR", "")
+                vs_version = os.environ.get("VisualStudioVersion", "")
+                msvc_deps = [
+                    "api-ms-win-crt-runtime-l1-1-0.dll",
+                    "msvcp140.dll",
+                    "vcruntime140.dll",
+                ]
+                # Check if it's Visual C++ Build Tools or Visual Studio 2015
+                vs14_vcvars = path.join(vc_dir, "vcvarsall.bat")
+                is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
+                if is_vs14:
+                    msvc_redist_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
+                elif vs_version == "15.0":
+                    redist_dir = path.join(os.environ.get("VCINSTALLDIR", ""), "Redist", "MSVC")
+                    if os.path.isdir(redist_dir):
+                        for p in os.listdir(redist_dir)[::-1]:
+                            redist_path = path.join(redist_dir, p)
+                            if os.path.isdir(redist_path):
+                                print(redist_path)
+                            for v in ["VC141", "VC150"]:
+                                # there are two possible paths
+                                # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
+                                redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
+                                redist2 = path.join(redist_path, "onecore", vs_platform, "Microsoft.{}.CRT".format(v))
+                                if os.path.isdir(redist1):
+                                    msvc_redist_dir = redist1
+                                    break
+                                elif os.path.isdir(redist2):
+                                    msvc_redist_dir = redist2
+                                    break
+                            if msvc_redist_dir:
+                                break
+
+                if msvc_redist_dir:
+                    redist_dirs = [
+                        msvc_redist_dir,
+                        path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
+                    ]
+
+                    print("Visual Studio Redist path: {}".format(msvc_redist_dir))
+                    print("Windows SDK version: {}".format(os.environ.get("WindowsSDKVersion", "")))
+                    print("Windows SDK Redist path: {}".format(redist_dirs[1]))
+                    for p in os.listdir(redist_dirs[1]):
+                        print("    " + p)
+
+                    for msvc_dll in msvc_deps:
+                        dll_found = False
+                        for dll_dir in redist_dirs:
+                            dll = path.join(dll_dir, msvc_dll)
+                            servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
+                            if os.path.isfile(dll):
+                                if os.path.isfile(servo_dir_dll):
+                                    # avoid permission denied error when overwrite dll in servo build directory
+                                    os.chmod(servo_dir_dll, stat.S_IWUSR)
+                                shutil.copy(dll, servo_exe_dir)
+                                dll_found = True
+                                break
+                        if not dll_found:
+                            print("DLL file `{}` not found!".format(msvc_dll))
+                            status = 1
 
             elif sys.platform == "darwin":
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools

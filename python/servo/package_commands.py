@@ -139,8 +139,11 @@ def copy_dependencies(binary_path, lib_path):
 
 def copy_windows_dependencies(binary_path, destination):
     deps = [
+        "api-ms-win-crt-runtime-l1-1-0.dll",
         "libcryptoMD.dll",
         "libsslMD.dll",
+        "msvcp140.dll",
+        "vcruntime140.dll",
     ]
     for d in deps:
         shutil.copy(path.join(binary_path, d), destination)
@@ -327,13 +330,12 @@ class PackageCommands(CommandBase):
 
             print("Copying files")
             dir_to_temp = path.join(dir_to_msi, 'temp')
-            dir_to_temp_servo = path.join(dir_to_temp, 'servo')
-            dir_to_resources = path.join(dir_to_temp_servo, 'resources')
+            dir_to_resources = path.join(dir_to_temp, 'resources')
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_temp_servo, 'browserhtml'))
-            shutil.copy(binary_path, dir_to_temp_servo)
-            shutil.copy("{}.manifest".format(binary_path), dir_to_temp_servo)
-            copy_windows_dependencies(target_dir, dir_to_temp_servo)
+            shutil.copytree(browserhtml_path, path.join(dir_to_temp, 'browserhtml'))
+            shutil.copy(binary_path, dir_to_temp)
+            shutil.copy("{}.manifest".format(binary_path), dir_to_temp)
+            copy_windows_dependencies(target_dir, dir_to_temp)
 
             change_prefs(dir_to_resources, "windows")
 
@@ -344,7 +346,7 @@ class PackageCommands(CommandBase):
             wxs_path = path.join(dir_to_msi, "Servo.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=target_dir,
-                dir_to_temp=dir_to_temp_servo,
+                dir_to_temp=dir_to_temp,
                 resources_path=dir_to_resources))
 
             # run candle and light
@@ -365,8 +367,9 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + path.join(dir_to_msi, "Servo.msi"))
 
             print("Creating ZIP")
-            shutil.make_archive(path.join(dir_to_msi, "Servo"), "zip", dir_to_temp)
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.zip"))
+            zip_path = path.join(dir_to_msi, "Servo.zip")
+            archive_deterministically(dir_to_temp, zip_path, prepend_path='servo/')
+            print("Packaged Servo into " + zip_path)
 
             print("Cleaning up")
             delete(dir_to_temp)
