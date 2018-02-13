@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSSOM: Modify selectorText in a shadow tree stylesheet</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container { color: red }
+  .subtree * { color: pink }
+</style>
+<div id="container">
+  <div id="host"></div>
+</div>
+<script>
+  const root = host.attachShadow({mode:"open"});
+  root.innerHTML = "<style>nomatch { color: green }</style><div>Green</div>";
+  const div = root.querySelector("div");
+
+  test(() => {
+    assert_equals(getComputedStyle(div).color, "rgb(255, 0, 0)", "Color should initial be red.");
+  }, "Check initial color.");
+
+  test(() => {
+    // The combination of the .subtree and CSSOM selector style invalidations
+    // caused the Blink implementation to fail an assertion.
+    container.className = "subtree";
+    root.styleSheets[0].cssRules[0].selectorText = "div";
+    assert_equals(getComputedStyle(div).color, "rgb(0, 128, 0)", "Color should be green after stylesheet change.");
+  }, "Check that color changes correctly after shadow stylesheet selector and #container class is changed.");
+</script>

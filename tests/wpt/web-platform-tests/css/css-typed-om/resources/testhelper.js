@@ -57,6 +57,9 @@ function assert_style_value_equals(a, b) {
     case 'CSSSkewX':
       assert_style_value_equals(a.ax, b.ax);
       break;
+    case 'CSSSkewY':
+      assert_style_value_equals(a.ay, b.ay);
+      break;
     case 'CSSPerspective':
       assert_style_value_equals(a.length, b.length);
       break;

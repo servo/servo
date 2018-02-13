@@ -5,6 +5,8 @@
 <div id=log></div>
 <form id=form><input name=foo></form>
 <select id=select><option name=bar></select>
+<div id=dupe>
+<div id=dupe>
 <script>
 test(function() {
   var collection = document.getElementById('form').elements;
@@ -22,4 +24,10 @@ test(function() {
   });
 }, 'HTMLOptionsCollection legacycaller should not be supported');
 
+test(function() {
+  var collection = document.all('dupe', 0);
+  // If the second argument were used, it would return the first item of the
+  // collection instead of the whole collection.
+  assert_equals(collection.length, 2, 'length');
+}, 'HTMLAllCollection legacycaller with two arguments should not be supported');
 </script>

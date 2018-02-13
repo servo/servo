@@ -32,7 +32,7 @@
 
 <div id="log"></div>
 
-<h3>writing-mode: vertical-lr;</h3>
+<h3>item writing-mode: vertical-lr;</h3>
 
 <pre>grid-template-rows: auto;</pre>
 
@@ -139,7 +139,7 @@
   <div data-expected-height="25"></div>
 </div>
 
-<h3>writing-mode: vertical-rl;</h3>
+<h3>item writing-mode: vertical-rl;</h3>
 
 <pre>grid-template-rows: auto;</pre>
 
@@ -246,3 +246,216 @@
   <div data-expected-height="25"></div>
 </div>
 
+<h3>grid container writing-mode: vertical-lr; &amp; item writing-mode: horizontal-tb;</h3>
+
+<pre>grid-template-rows: auto;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: auto;">
+  <div class="horizontalTB" data-expected-width="100">XXXXXXXXXX</div>
+  <div data-expected-width="100"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px);</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="0">XXXXXXXXXX</div>
+  <div data-expected-width="0"></div>
+</div>
+
+<pre>grid-template-rows: 25px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: 25px;">
+  <div class="horizontalTB" data-expected-width="25">XXXXXXXXXX</div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px);</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="0">XXXXXXXXXX</div>
+  <div data-expected-width="0"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px);</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="25">XXXXXXXXXX</div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="10" style="width: 10px;">XXXXXXXXXX</div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="10" style="width: 10px;">XXXXXXXXXX</div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item margin width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="0" style="margin: 0px 5px;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item margin width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="15" style="margin: 0px 5px;"></div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item padding width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="10" style="padding: 0px 5px;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item padding width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="25" style="padding: 0px 5px;"></div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item border width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="10" style="border: solid 5px blue;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item border width: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="25" style="border: solid 5px blue;"></div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item width + margin + border + padding: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="8" style="width: 4px; margin: 1px; padding: 1px; border: solid 1px blue;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item width + margin + border + padding: 10px;</pre>
+
+<div class="grid verticalLR" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="8" style="width: 4px; margin: 1px; padding: 1px; border: solid 1px blue;"></div>
+  <div data-expected-width="25"></div>
+</div>
+
+<h3>grid container writing-mode: vertical-rl; &amp; item writing-mode: horizontal-tb;</h3>
+
+<pre>grid-template-rows: auto;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: auto;">
+  <div class="horizontalTB" data-expected-width="100">XXXXXXXXXX</div>
+  <div data-expected-width="100"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px);</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="0">XXXXXXXXXX</div>
+  <div data-expected-width="0"></div>
+</div>
+
+<pre>grid-template-rows: 25px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: 25px;">
+  <div class="horizontalTB" data-expected-width="25">XXXXXXXXXX</div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px);</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="0">XXXXXXXXXX</div>
+  <div data-expected-width="0"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px);</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="25">XXXXXXXXXX</div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="10" style="width: 10px;">XXXXXXXXXX</div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="10" style="width: 10px;">XXXXXXXXXX</div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item margin width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="0" style="margin: 0px 5px;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item margin width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="15" style="margin: 0px 5px;"></div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item padding width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="10" style="padding: 0px 5px;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item padding width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="25" style="padding: 0px 5px;"></div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item border width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="10" style="border: solid 5px blue;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item border width: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="25" style="border: solid 5px blue;"></div>
+  <div data-expected-width="25"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 0px); item width + margin + border + padding: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 0px);">
+  <div class="horizontalTB" data-expected-width="8" style="width: 4px; margin: 1px; padding: 1px; border: solid 1px blue;"></div>
+  <div data-expected-width="10"></div>
+</div>
+
+<pre>grid-template-rows: minmax(auto, 25px); item width + margin + border + padding: 10px;</pre>
+
+<div class="grid verticalRL" style="grid-template-rows: minmax(auto, 25px);">
+  <div class="horizontalTB" data-expected-width="8" style="width: 4px; margin: 1px; padding: 1px; border: solid 1px blue;"></div>
+  <div data-expected-width="25"></div>
+</div>

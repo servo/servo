@@ -17,6 +17,12 @@ test_invalid_value("rotate", "100px");
 test_invalid_value("rotate", "100 400deg");
 test_invalid_value("rotate", "100 200 400deg");
 test_invalid_value("rotate", "100 200 300 500 400deg");
+
+test_invalid_value("rotate", "x y 45deg");
+test_invalid_value("rotate", "45deg x y");
+test_invalid_value("rotate", "z");
+test_invalid_value("rotate", "1 2");
+test_invalid_value("rotate", "1 2 3");
 </script>
 </body>
 </html>

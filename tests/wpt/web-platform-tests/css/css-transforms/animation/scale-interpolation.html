@@ -28,13 +28,13 @@
       test_interpolation({
         property: 'scale',
         from: '26 17 9',
-        to: '2',
+        to: '2 1',
       }, [
         {at: -1, expect: '50 33 17'},
         {at: 0, expect: '26 17 9'},
         {at: 0.125, expect: '23 15 8'},
         {at: 0.875, expect: '5 3 2'},
-        {at: 1, expect: '2'},
+        {at: 1, expect: '2 1'},
         {at: 2, expect: '-22 -15 -7'}
       ]);
 

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Cookies: ServiceWorker IDL tests</title>
+<link rel="help" href="https://github.com/WICG/cookie-store">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+(async () => {
+  const scope = 'does/not/exist';
+
+  let registration = await navigator.serviceWorker.getRegistration(scope);
+  if (registration)
+    await registration.unregister();
+  registration = await navigator.serviceWorker.register(
+      'idlharness_serviceworker.js', {scope});
+
+  fetch_tests_from_worker(registration.installing);
+})();
+</script>

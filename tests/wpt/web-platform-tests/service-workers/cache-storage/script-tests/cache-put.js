@@ -335,4 +335,12 @@ cache_test(function(cache) {
         });
   }, 'Cache.put should store Response.redirect() correctly');
 
+cache_test(async (cache) => {
+    var request = new Request(test_url);
+    var response = new Response(new Blob([test_body]));
+    await cache.put(request, response);
+    var cachedResponse = await cache.match(request);
+    assert_equals(await cachedResponse.text(), test_body);
+  }, 'Cache.put called with simple Request and blob Response');
+
 done();

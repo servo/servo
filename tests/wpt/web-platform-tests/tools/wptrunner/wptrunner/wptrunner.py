@@ -218,6 +218,7 @@ def run_tests(config, test_paths, product, **kwargs):
                     browser_kwargs = get_browser_kwargs(test_type,
                                                         run_info,
                                                         ssl_env=ssl_env,
+                                                        config=test_environment.config,
                                                         **kwargs)
 
                     executor_cls = executor_classes.get(test_type)
