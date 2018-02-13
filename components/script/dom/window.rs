@@ -1019,6 +1019,20 @@ impl WindowMethods for Window {
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner.or_init(|| TestRunner::new(self.upcast()))
     }
+
+    // https://fetch.spec.whatwg.org/multipage/browsers.html#browsing-context-names
+    fn SetName(&self, name: DOMString) {
+        self.window_proxy().set_name(name.clone());
+        if let Some(parent) = self.window_proxy().parent() {
+            let mut parent_window = &*parent;
+            parent_window.set_name(name.clone())
+        }
+    }
+
+    // https://fetch.spec.whatwg.org/multipage/browsers.html#browsing-context-names
+    fn Name(&self) -> DOMString {
+        self.window_proxy().get_name()
+    }
 }
 
 impl Window {

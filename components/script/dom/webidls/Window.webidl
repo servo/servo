@@ -10,8 +10,7 @@
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
 
-  // https://github.com/servo/servo/issues/14453
-  // attribute DOMString name;
+  attribute DOMString name;
 
   [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
   readonly attribute History history;
