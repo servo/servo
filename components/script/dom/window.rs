@@ -30,11 +30,12 @@ use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::customelementregistry::CustomElementRegistry;
-use dom::document::{AnimationFrameCallback, Document};
+use dom::document::{AnimationFrameCallback, Document, WindowNamedGetterFilter};
 use dom::element::Element;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use dom::history::History;
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
@@ -54,7 +55,7 @@ use euclid::{Point2D, Vector2D, Rect, Size2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{HandleObject, HandleValue, MutableHandleObject, JSAutoCompartment, JSContext, JSObject};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
 use layout_image::fetch_image_for_layout;
@@ -82,6 +83,7 @@ use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, Win
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
 use servo_arc;
+use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -95,6 +97,7 @@ use std::env;
 use std::fs;
 use std::io::{Write, stderr, stdout};
 use std::mem;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -840,6 +843,63 @@ impl WindowMethods for Window {
                                  CSSStyleOwner::Element(Dom::from_ref(element)),
                                  pseudo,
                                  CSSModificationAccess::Readonly)
+    }
+
+    // https://heycam.github.io/webidl/#named-properties-object
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    unsafe fn CreateNamedPropertiesObject(_cx: *mut JSContext, _proto: MutableHandleObject) {
+        unimplemented!("Wow!")
+    }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273).
+        //
+        // See also Document::SupportedPropertyNames.
+        vec![]
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    unsafe fn NamedGetter(
+        &self,
+        cx: *mut JSContext,
+        name: DOMString,
+    ) -> Option<NonNull<JSObject>> {
+        // TODO: Return child windows, like iframes and such. When this is
+        // fixed, please implement IndexedGetter properly too.
+        let document = self.Document();
+        if !document.is_html_document() {
+            return None;
+        }
+
+        // TODO(emilio): There is a missing fast-path here for when we know
+        // there aren't any named items with a given `name`. In that case, we
+        // can return `document.get_element_by_id(name)` (unless there are many
+        // of those elements), which is much faster.
+        let name = Atom::from(name);
+
+        let filter = WindowNamedGetterFilter { name };
+
+        let root = document.upcast();
+        {
+            let mut named_elements = document.upcast::<Node>()
+                .traverse_preorder()
+                .filter_map(DomRoot::downcast::<Element>)
+                .filter(|element| filter.filter(&element, &root));
+
+            let first_element = named_elements.next()?;
+            if named_elements.next().is_none() {
+                return Some(NonNull::new_unchecked(
+                    first_element.reflector().get_jsobject().get()
+                ));
+            }
+        }
+
+        let collection =
+            HTMLCollection::create(self, root, Box::new(filter));
+        Some(NonNull::new_unchecked(collection.reflector().get_jsobject().get()))
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
@@ -1613,6 +1673,7 @@ impl Window {
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
     pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<DomRoot<Window>> {
+        // TODO: When this is fixed, also implement NamedGetter properly.
         None
     }
 
