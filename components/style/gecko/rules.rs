@@ -21,7 +21,7 @@ use std::fmt::{self, Write};
 use std::str;
 use str::CssStringWriter;
 use values::computed::font::FamilyName;
-use values::specified::font::SpecifiedFontFeatureSettings;
+use values::specified::font::{FontTag, FontVariationSettings, SpecifiedFontFeatureSettings};
 
 /// A @font-face rule
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
@@ -50,6 +50,14 @@ impl ToNsCssValue for FontWeight {
     }
 }
 
+impl ToNsCssValue for FontTag {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        let mut raw = [0u8; 4];
+        (&mut raw[..]).write_u32::<BigEndian>(self.0).unwrap();
+        nscssvalue.set_string(str::from_utf8(&raw).unwrap());
+    }
+}
+
 impl ToNsCssValue for SpecifiedFontFeatureSettings {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         if self.0.is_empty() {
@@ -58,15 +66,24 @@ impl ToNsCssValue for SpecifiedFontFeatureSettings {
         }
 
         nscssvalue.set_pair_list(self.0.into_iter().map(|entry| {
-            let mut feature = nsCSSValue::null();
-            let mut raw = [0u8; 4];
-            (&mut raw[..]).write_u32::<BigEndian>(entry.tag.0).unwrap();
-            feature.set_string(str::from_utf8(&raw).unwrap());
-
             let mut index = nsCSSValue::null();
             index.set_integer(entry.value.value());
+            (entry.tag.into(), index)
+        }))
+    }
+}
 
-            (feature, index)
+impl ToNsCssValue for FontVariationSettings {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        if self.0.is_empty() {
+            nscssvalue.set_normal();
+            return;
+        }
+
+        nscssvalue.set_pair_list(self.0.into_iter().map(|entry| {
+            let mut value = nsCSSValue::null();
+            value.set_number(entry.value.into());
+            (entry.tag.into(), value)
         }))
     }
 }
