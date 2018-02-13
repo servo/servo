@@ -4,7 +4,10 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% from data import to_idl_name, SYSTEM_FONT_LONGHANDS %>
+<%
+    from data import to_idl_name, SYSTEM_FONT_LONGHANDS
+    from itertools import groupby
+%>
 
 use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
@@ -21,11 +24,11 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")]
 use properties::PropertyId;
 use properties::{LonghandId, ShorthandId};
-use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
-use std::cmp;
+use std::{cmp, ptr};
 use std::fmt::{self, Write};
+use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::{CssWriter, ParseError, ToCss};
 use super::ComputedValues;
@@ -58,6 +61,7 @@ use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 use values::specified::font::FontTag;
+use void::{self, Void};
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
 pub trait RepeatableListAnimatable: Animate {}
@@ -137,21 +141,42 @@ impl TransitionProperty {
 
     /// Parse a transition-property value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
+        // enum and use PropertyId when stable Rust allows destructors in
+        // statics.
+        //
+        // FIXME: This should handle aliases too.
+        pub enum StaticId {
+            All,
+            Longhand(LonghandId),
+            Shorthand(ShorthandId),
+        }
+        ascii_case_insensitive_phf_map! {
+            static_id -> StaticId = {
+                "all" => StaticId::All,
+                % for prop in data.shorthands_except_all():
+                "${prop.name}" => StaticId::Shorthand(ShorthandId::${prop.camel_case}),
+                % endfor
+                % for prop in data.longhands:
+                "${prop.name}" => StaticId::Longhand(LonghandId::${prop.camel_case}),
+                % endfor
+            }
+        }
+
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
-        match_ignore_ascii_case! { &ident,
-            "all" => Ok(TransitionProperty::All),
-            % for prop in data.shorthands_except_all():
-                "${prop.name}" => Ok(TransitionProperty::Shorthand(ShorthandId::${prop.camel_case})),
-            % endfor
-            % for prop in data.longhands:
-                "${prop.name}" => Ok(TransitionProperty::Longhand(LonghandId::${prop.camel_case})),
-            % endfor
-            "none" => Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
-            _ => CustomIdent::from_ident(location, ident, &[]).map(TransitionProperty::Unsupported),
-        }
-    }
 
+        Ok(match static_id(&ident) {
+            Some(&StaticId::All) => TransitionProperty::All,
+            Some(&StaticId::Longhand(id)) => TransitionProperty::Longhand(id),
+            Some(&StaticId::Shorthand(id)) => TransitionProperty::Shorthand(id),
+            None => {
+                TransitionProperty::Unsupported(
+                    CustomIdent::from_ident(location, ident, &["none"])?,
+                )
+            },
+        })
+    }
 
     /// Convert TransitionProperty to nsCSSPropertyID.
     #[cfg(feature = "gecko")]
@@ -341,58 +366,177 @@ unsafe impl HasSimpleFFI for AnimationValueMap {}
 ///
 /// FIXME: We need to add a path for custom properties, but that's trivial after
 /// this (is a similar path to that of PropertyDeclaration).
-#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Debug)]
+#[repr(u16)]
 pub enum AnimationValue {
     % for prop in data.longhands:
-        % if prop.animatable:
-            /// ${prop.name}
-            % if prop.is_animatable_with_computed_value:
-                ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
-            % else:
-                ${prop.camel_case}(<longhands::${prop.ident}::computed_value::T as ToAnimatedValue>::AnimatedValue),
-            % endif
-        % endif
+    % if prop.animatable:
+    /// `${prop.name}`
+    ${prop.camel_case}(${prop.animated_type()}),
+    % else:
+    /// `${prop.name}` (not animatable)
+    ${prop.camel_case}(Void),
+    % endif
     % endfor
+}
+
+<%
+    animated = []
+    unanimated = []
+    for prop in data.longhands:
+        if prop.animatable:
+            animated.append(prop)
+        else:
+            unanimated.append(prop)
+%>
+
+#[repr(C)]
+struct AnimationValueVariantRepr<T> {
+    tag: u16,
+    value: T
+}
+
+impl Clone for AnimationValue {
+    #[inline]
+    fn clone(&self) -> Self {
+        use self::AnimationValue::*;
+
+        <%
+            [copy, others] = [list(g) for _, g in groupby(animated, key=lambda x: not x.specified_is_copy())]
+        %>
+
+        let self_tag = unsafe { *(self as *const _ as *const u16) };
+        if self_tag <= LonghandId::${copy[-1].camel_case} as u16 {
+            #[derive(Clone, Copy)]
+            #[repr(u16)]
+            enum CopyVariants {
+                % for prop in copy:
+                _${prop.camel_case}(${prop.animated_type()}),
+                % endfor
+            }
+
+            unsafe {
+                let mut out = mem::uninitialized();
+                ptr::write(
+                    &mut out as *mut _ as *mut CopyVariants,
+                    *(self as *const _ as *const CopyVariants),
+                );
+                return out;
+            }
+        }
+
+        match *self {
+            % for ty, props in groupby(others, key=lambda x: x.animated_type()):
+            <% props = list(props) %>
+            ${" |\n".join("{}(ref value)".format(prop.camel_case) for prop in props)} => {
+                % if len(props) == 1:
+                ${props[0].camel_case}(value.clone())
+                % else:
+                unsafe {
+                    let mut out = ManuallyDrop::new(mem::uninitialized());
+                    ptr::write(
+                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        AnimationValueVariantRepr {
+                            tag: *(self as *const _ as *const u16),
+                            value: value.clone(),
+                        },
+                    );
+                    ManuallyDrop::into_inner(out)
+                }
+                % endif
+            }
+            % endfor
+            _ => unsafe { debug_unreachable!() }
+        }
+    }
+}
+
+impl PartialEq for AnimationValue {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        use self::AnimationValue::*;
+
+        unsafe {
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
+                return false;
+            }
+
+            match *self {
+                % for ty, props in groupby(animated, key=lambda x: x.animated_type()):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+                    *this == other_repr.value
+                }
+                % endfor
+                ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                    void::unreachable(void)
+                }
+            }
+        }
+    }
 }
 
 impl AnimationValue {
     /// Returns the longhand id this animated value corresponds to.
+    #[inline]
     pub fn id(&self) -> LonghandId {
-        match *self {
+        let id = unsafe { *(self as *const _ as *const LonghandId) };
+        debug_assert_eq!(id, match *self {
             % for prop in data.longhands:
             % if prop.animatable:
-                AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
+            AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
+            % else:
+            AnimationValue::${prop.camel_case}(void) => void::unreachable(void),
             % endif
             % endfor
-        }
+        });
+        id
     }
 
     /// "Uncompute" this animation value in order to be used inside the CSS
     /// cascade.
     pub fn uncompute(&self) -> PropertyDeclaration {
         use properties::longhands;
+        use self::AnimationValue::*;
+
+        use super::PropertyDeclarationVariantRepr;
+
         match *self {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimationValue::${prop.camel_case}(ref from) => {
-                        PropertyDeclaration::${prop.camel_case}(
-                            % if prop.boxed:
-                            Box::new(
-                            % endif
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                                % if prop.is_animatable_with_computed_value:
-                                    from
-                                % else:
-                                    &ToAnimatedValue::from_animated_value(from.clone())
-                                % endif
-                                ))
-                            % if prop.boxed:
-                            )
-                            % endif
-                    }
+            <% keyfunc = lambda x: (x.base_type(), x.specified_type(), x.boxed, x.is_animatable_with_computed_value) %>
+            % for (ty, specified, boxed, computed), props in groupby(animated, key=keyfunc):
+            <% props = list(props) %>
+            ${" |\n".join("{}(ref value)".format(prop.camel_case) for prop in props)} => {
+                % if not computed:
+                let ref value = ToAnimatedValue::from_animated_value(value.clone());
                 % endif
+                let value = ${ty}::from_computed_value(&value);
+                % if boxed:
+                let value = Box::new(value);
+                % endif
+                % if len(props) == 1:
+                PropertyDeclaration::${props[0].camel_case}(value)
+                % else:
+                unsafe {
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut PropertyDeclarationVariantRepr<${specified}>,
+                        PropertyDeclarationVariantRepr {
+                            tag: *(self as *const _ as *const u16),
+                            value,
+                        },
+                    );
+                    out
+                }
+                % endif
+            }
             % endfor
+            ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                void::unreachable(void)
+            }
         }
     }
 
@@ -403,37 +547,58 @@ impl AnimationValue {
         extra_custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
         initial: &ComputedValues
     ) -> Option<Self> {
-        use properties::LonghandId;
+        use super::PropertyDeclarationVariantRepr;
+
+        <%
+            keyfunc = lambda x: (
+                x.specified_type(),
+                x.animated_type(),
+                x.boxed,
+                not x.is_animatable_with_computed_value,
+                x.style_struct.inherited,
+                x.ident in SYSTEM_FONT_LONGHANDS and product == "gecko",
+            )
+        %>
 
         let animatable = match *decl {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            PropertyDeclaration::${prop.camel_case}(ref val) => {
-                context.for_non_inherited_property =
-                    % if prop.style_struct.inherited:
-                        None;
-                    % else:
-                        Some(LonghandId::${prop.camel_case});
-                    % endif
-            % if prop.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
-                if let Some(sf) = val.get_system() {
-                    longhands::system_font::resolve_system_font(sf, context);
+            % for (specified_ty, ty, boxed, to_animated, inherit, system), props in groupby(animated, key=keyfunc):
+            ${" |\n".join("PropertyDeclaration::{}(ref value)".format(prop.camel_case) for prop in props)} => {
+                let decl_repr = unsafe {
+                    &*(decl as *const _ as *const PropertyDeclarationVariantRepr<${specified_ty}>)
+                };
+                % if inherit:
+                context.for_non_inherited_property = None;
+                % else:
+                context.for_non_inherited_property = unsafe {
+                    Some(*(&decl_repr.tag as *const u16 as *const LonghandId))
+                };
+                % endif
+                % if system:
+                if let Some(sf) = value.get_system() {
+                    longhands::system_font::resolve_system_font(sf, context)
                 }
-            % endif
-            % if prop.boxed:
-            let computed = (**val).to_computed_value(context);
-            % else:
-            let computed = val.to_computed_value(context);
-            % endif
-            AnimationValue::${prop.camel_case}(
-            % if prop.is_animatable_with_computed_value:
-                computed
-            % else:
-                computed.to_animated_value()
-            % endif
-            )
-            },
-            % endif
+                % endif
+                % if boxed:
+                let value = (**value).to_computed_value(context);
+                % else:
+                let value = value.to_computed_value(context);
+                % endif
+                % if to_animated:
+                let value = value.to_animated_value();
+                % endif
+
+                unsafe {
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        AnimationValueVariantRepr {
+                            tag: decl_repr.tag,
+                            value,
+                        },
+                    );
+                    out
+                }
+            }
             % endfor
             PropertyDeclaration::CSSWideKeyword(ref declaration) => {
                 match declaration.id {
@@ -532,63 +697,75 @@ fn animate_discrete<T: Clone>(this: &T, other: &T, procedure: Procedure) -> Resu
 
 impl Animate for AnimationValue {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let value = match (self, other) {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            % if prop.animation_value_type != "discrete":
-            (
-                &AnimationValue::${prop.camel_case}(ref this),
-                &AnimationValue::${prop.camel_case}(ref other),
-            ) => {
-                AnimationValue::${prop.camel_case}(
-                    this.animate(other, procedure)?,
-                )
-            },
-            % else:
-            (
-                &AnimationValue::${prop.camel_case}(ref this),
-                &AnimationValue::${prop.camel_case}(ref other),
-            ) => {
-                AnimationValue::${prop.camel_case}(
-                    animate_discrete(this, other, procedure)?
-                )
-            },
-            % endif
-            % endif
-            % endfor
-            _ => {
+        Ok(unsafe {
+            use self::AnimationValue::*;
+
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
                 panic!("Unexpected AnimationValue::animate call");
             }
-        };
-        Ok(value)
+
+            match *self {
+                <% keyfunc = lambda x: (x.animated_type(), x.animation_value_type == "discrete") %>
+                % for (ty, discrete), props in groupby(animated, key=keyfunc):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+                    % if discrete:
+                    let value = animate_discrete(this, &other_repr.value, procedure)?;
+                    % else:
+                    let value = this.animate(&other_repr.value, procedure)?;
+                    % endif
+
+                    let mut out = mem::uninitialized();
+                    ptr::write(
+                        &mut out as *mut _ as *mut AnimationValueVariantRepr<${ty}>,
+                        AnimationValueVariantRepr {
+                            tag: this_tag,
+                            value,
+                        },
+                    );
+                    out
+                }
+                % endfor
+                ${" |\n".join("{}(void)".format(prop.camel_case) for prop in unanimated)} => {
+                    void::unreachable(void)
+                }
+            }
+        })
     }
 }
 
+<%
+    nondiscrete = []
+    for prop in animated:
+        if prop.animation_value_type != "discrete":
+            nondiscrete.append(prop)
+%>
+
 impl ComputeSquaredDistance for AnimationValue {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match *self {
-            % for i, prop in enumerate([p for p in data.longhands if p.animatable and p.animation_value_type == "discrete"]):
-            % if i > 0:
-            |
-            % endif
-            AnimationValue::${prop.camel_case}(..)
-            % endfor
-            => return Err(()),
-            _ => (),
-        }
-        match (self, other) {
-            % for prop in data.longhands:
-            % if prop.animatable:
-            % if prop.animation_value_type != "discrete":
-            (&AnimationValue::${prop.camel_case}(ref this), &AnimationValue::${prop.camel_case}(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            % endif
-            % endif
-            % endfor
-            _ => {
-                panic!("computed values should be of the same property");
-            },
+        unsafe {
+            use self::AnimationValue::*;
+
+            let this_tag = *(self as *const _ as *const u16);
+            let other_tag = *(other as *const _ as *const u16);
+            if this_tag != other_tag {
+                panic!("Unexpected AnimationValue::compute_squared_distance call");
+            }
+
+            match *self {
+                % for ty, props in groupby(nondiscrete, key=lambda x: x.animated_type()):
+                ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
+                    let other_repr =
+                        &*(other as *const _ as *const AnimationValueVariantRepr<${ty}>);
+
+                    this.compute_squared_distance(&other_repr.value)
+                }
+                % endfor
+                _ => Err(()),
+            }
         }
     }
 }

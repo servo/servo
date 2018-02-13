@@ -146,28 +146,6 @@ impl Parse for Content {
     }
 }
 
-impl ToCss for Content {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-        where W: Write,
-    {
-        match *self {
-            Content::Normal => dest.write_str("normal"),
-            Content::None => dest.write_str("none"),
-            #[cfg(feature = "gecko")]
-            Content::MozAltContent => dest.write_str("-moz-alt-content"),
-            Content::Items(ref content) => {
-                let mut iter = content.iter();
-                iter.next().unwrap().to_css(dest)?;
-                for c in iter {
-                    dest.write_str(" ")?;
-                    c.to_css(dest)?;
-                }
-                Ok(())
-            }
-        }
-    }
-}
-
 impl ToCss for ContentItem {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
         where W: Write,

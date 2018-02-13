@@ -68,8 +68,8 @@ macro_rules! try_match_ident_ignore_ascii_case {
 macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]
-        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq)]
-        #[derive(ToAnimatedZero, ToComputedValue, ToCss)]
+        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf)]
+        #[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
         pub struct $name;
 
         impl fmt::Debug for $name {
@@ -86,8 +86,6 @@ macro_rules! define_keyword_type {
                 input.expect_ident_matching($css).map(|_| $name).map_err(|e| e.into())
             }
         }
-
-        impl $crate::values::animated::AnimatedValueAsComputed for $name {}
     };
 }
 

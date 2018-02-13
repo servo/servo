@@ -17,7 +17,6 @@ cssparser = "0.23.0"
 euclid = "0.16"
 hashglobe = { path = "../hashglobe" }
 mozjs = { version = "0.1.8", features = ["promises"], optional = true }
-ordermap = "0.3"
 selectors = { path = "../selectors" }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
@@ -26,3 +25,4 @@ string_cache = { version = "0.7", optional = true }
 url = { version = "1.2", optional = true }
 webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"], optional = true }
 xml5ever = { version = "0.12", optional = true }
+void = "1.0.2"

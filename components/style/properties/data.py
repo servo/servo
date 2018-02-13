@@ -229,6 +229,70 @@ class Longhand(object):
     def enabled_in_content(self):
         return self.enabled_in == "content"
 
+    def base_type(self):
+        if self.predefined_type and not self.is_vector:
+            return "::values::specified::{}".format(self.predefined_type)
+        return "longhands::{}::SpecifiedValue".format(self.ident)
+
+    def specified_type(self):
+        if self.predefined_type and not self.is_vector:
+            ty = "::values::specified::{}".format(self.predefined_type)
+        else:
+            ty = "longhands::{}::SpecifiedValue".format(self.ident)
+        if self.boxed:
+            ty = "Box<{}>".format(ty)
+        return ty
+
+    def specified_is_copy(self):
+        if self.is_vector or self.boxed:
+            return False
+        if self.predefined_type:
+            return self.predefined_type in {
+                "AlignContent",
+                "AlignItems",
+                "AlignSelf",
+                "BackgroundRepeat",
+                "BorderImageRepeat",
+                "BorderStyle",
+                "Contain",
+                "FontStyleAdjust",
+                "FontSynthesis",
+                "FontWeight",
+                "GridAutoFlow",
+                "ImageOrientation",
+                "InitialLetter",
+                "Integer",
+                "IntegerOrAuto",
+                "JustifyContent",
+                "JustifyItems",
+                "JustifySelf",
+                "MozForceBrokenImageIcon",
+                "MozScriptLevel",
+                "MozScriptMinSize",
+                "MozScriptSizeMultiplier",
+                "NonNegativeNumber",
+                "Opacity",
+                "OutlineStyle",
+                "OverscrollBehavior",
+                "Percentage",
+                "PositiveIntegerOrAuto",
+                "SVGPaintOrder",
+                "ScrollSnapType",
+                "TextDecorationLine",
+                "TouchAction",
+                "TransformStyle",
+                "XSpan",
+                "XTextZoom",
+            }
+        return bool(self.keyword)
+
+    def animated_type(self):
+        assert self.animatable
+        computed = "<{} as ToComputedValue>::ComputedValue".format(self.base_type())
+        if self.is_animatable_with_computed_value:
+            return computed
+        return "<{} as ToAnimatedValue>::AnimatedValue".format(computed)
+
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,

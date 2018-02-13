@@ -133,7 +133,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
 ${helpers.predefined_type("paint-order", "SVGPaintOrder", "computed::SVGPaintOrder::normal()",
                           products="gecko",
                           animation_value_type="discrete",
-                          gecko_pref="svg.paint-order.enabled",
                           spec="https://www.w3.org/TR/SVG2/painting.html#PaintOrder")}
 
 ${helpers.predefined_type("-moz-context-properties",

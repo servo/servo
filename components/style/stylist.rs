@@ -41,7 +41,8 @@ use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetFlusher};
+use stylesheet_set::{DataValidity, SheetRebuildKind, DocumentStylesheetSet};
+use stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -76,6 +77,9 @@ impl UserAgentCascadeDataCache {
         }
     }
 
+    // FIXME(emilio): This may need to be keyed on quirks-mode too, though there
+    // aren't class / id selectors on those sheets, usually, so it's probably
+    // ok...
     fn lookup<'a, I, S>(
         &'a mut self,
         sheets: I,
@@ -227,42 +231,6 @@ impl DocumentCascadeData {
         }
     }
 
-    fn rebuild_origin<'a, S>(
-        device: &Device,
-        quirks_mode: QuirksMode,
-        flusher: &mut StylesheetFlusher<'a, S>,
-        guards: &StylesheetGuards,
-        origin: Origin,
-        cascade_data: &mut CascadeData,
-    ) -> Result<(), FailedAllocationError>
-    where
-        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
-    {
-        debug_assert_ne!(origin, Origin::UserAgent);
-
-        let validity = flusher.origin_validity(origin);
-
-        match validity {
-            OriginValidity::Valid => {},
-            OriginValidity::CascadeInvalid => cascade_data.clear_cascade_data(),
-            OriginValidity::FullyInvalid => cascade_data.clear(),
-        }
-
-        let guard = guards.for_origin(origin);
-        for (stylesheet, rebuild_kind) in flusher.origin_sheets(origin) {
-            cascade_data.add_stylesheet(
-                device,
-                quirks_mode,
-                stylesheet,
-                guard,
-                rebuild_kind,
-                /* precomputed_pseudo_element_decls = */ None,
-            )?;
-        }
-
-        Ok(())
-    }
-
     /// Rebuild the cascade data for the given document stylesheets, and
     /// optionally with a set of user agent stylesheets.  Returns Err(..)
     /// to signify OOM.
@@ -270,21 +238,17 @@ impl DocumentCascadeData {
         &mut self,
         device: &Device,
         quirks_mode: QuirksMode,
-        mut flusher: StylesheetFlusher<'a, S>,
+        mut flusher: DocumentStylesheetFlusher<'a, S>,
         guards: &StylesheetGuards,
     ) -> Result<(), FailedAllocationError>
     where
         S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
     {
-        debug_assert!(!flusher.nothing_to_do());
-
         // First do UA sheets.
         {
-            if flusher.origin_dirty(Origin::UserAgent) {
+            if flusher.flush_origin(Origin::UserAgent).dirty() {
                 let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
-                let origin_sheets =
-                    flusher.manual_origin_sheets(Origin::UserAgent);
-
+                let origin_sheets = flusher.origin_sheets(Origin::UserAgent);
                 let ua_cascade_data = ua_cache.lookup(
                     origin_sheets,
                     device,
@@ -298,23 +262,19 @@ impl DocumentCascadeData {
         }
 
         // Now do the user sheets.
-        Self::rebuild_origin(
+        self.user.rebuild(
             device,
             quirks_mode,
-            &mut flusher,
-            guards,
-            Origin::User,
-            &mut self.user,
+            flusher.flush_origin(Origin::User),
+            guards.ua_or_user,
         )?;
 
         // And now the author sheets.
-        Self::rebuild_origin(
+        self.author.rebuild(
             device,
             quirks_mode,
-            &mut flusher,
-            guards,
-            Origin::Author,
-            &mut self.author,
+            flusher.flush_origin(Origin::Author),
+            guards.author,
         )?;
 
         Ok(())
@@ -328,21 +288,31 @@ impl DocumentCascadeData {
     }
 }
 
-/// A wrapper over a StylesheetSet that can be `Sync`, since it's only used and
-/// exposed via mutable methods in the `Stylist`.
+/// Whether author styles are enabled.
+///
+/// This is used to support Gecko.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+pub enum AuthorStylesEnabled {
+    Yes,
+    No,
+}
+
+/// A wrapper over a DocumentStylesheetSet that can be `Sync`, since it's only
+/// used and exposed via mutable methods in the `Stylist`.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-struct StylistStylesheetSet(StylesheetSet<StylistSheet>);
+struct StylistStylesheetSet(DocumentStylesheetSet<StylistSheet>);
 // Read above to see why this is fine.
 unsafe impl Sync for StylistStylesheetSet {}
 
 impl StylistStylesheetSet {
     fn new() -> Self {
-        StylistStylesheetSet(StylesheetSet::new())
+        StylistStylesheetSet(DocumentStylesheetSet::new())
     }
 }
 
 impl ops::Deref for StylistStylesheetSet {
-    type Target = StylesheetSet<StylistSheet>;
+    type Target = DocumentStylesheetSet<StylistSheet>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -393,6 +363,9 @@ pub struct Stylist {
     /// cascade level.
     cascade_data: DocumentCascadeData,
 
+    /// Whether author styles are enabled.
+    author_styles_enabled: AuthorStylesEnabled,
+
     /// The rule tree, that stores the results of selector matching.
     rule_tree: RuleTree,
 
@@ -433,6 +406,7 @@ impl Stylist {
             quirks_mode,
             stylesheets: StylistStylesheetSet::new(),
             cascade_data: Default::default(),
+            author_styles_enabled: AuthorStylesEnabled::Yes,
             rule_tree: RuleTree::new(),
             num_rebuilds: 0,
         }
@@ -588,8 +562,8 @@ impl Stylist {
     }
 
     /// Sets whether author style is enabled or not.
-    pub fn set_author_style_disabled(&mut self, disabled: bool) {
-        self.stylesheets.set_author_style_disabled(disabled);
+    pub fn set_author_styles_enabled(&mut self, enabled: AuthorStylesEnabled) {
+        self.author_styles_enabled = enabled;
     }
 
     /// Returns whether we've recorded any stylesheet change so far.
@@ -1175,18 +1149,19 @@ impl Stylist {
 
     /// Sets the quirks mode of the document.
     pub fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
-        // FIXME(emilio): We don't seem to change the quirks mode dynamically
-        // during multiple layout passes, but this is totally bogus, in the
-        // sense that it's updated asynchronously.
-        //
-        // This should probably be an argument to `update`, and use the quirks
-        // mode info in the `SharedLayoutContext`.
+        if self.quirks_mode == quirks_mode {
+            return;
+        }
         self.quirks_mode = quirks_mode;
+        self.force_stylesheet_origins_dirty(OriginSet::all());
     }
 
     /// Returns the applicable CSS declarations for the given element.
     ///
-    /// This corresponds to `ElementRuleCollector` in WebKit.
+    /// This corresponds to `ElementRuleCollector` in WebKit, and should push to
+    /// elements in the list in the order defined by:
+    ///
+    /// https://drafts.csswg.org/css-cascade/#cascade-origin
     pub fn push_applicable_declarations<E, F>(
         &self,
         element: E,
@@ -1217,10 +1192,13 @@ impl Stylist {
 
         let only_default_rules =
             rule_inclusion == RuleInclusion::DefaultOnly;
-        let matches_user_and_author_rules =
+        let matches_user_rules =
             rule_hash_target.matches_user_and_author_rules();
+        let matches_author_rules =
+            matches_user_rules &&
+            self.author_styles_enabled == AuthorStylesEnabled::Yes;
 
-        // Step 1: Normal user-agent rules.
+        // Normal user-agent rules.
         if let Some(map) = self.cascade_data.user_agent.cascade_data.normal_rules(pseudo_element) {
             map.get_all_matching_rules(
                 element,
@@ -1232,8 +1210,33 @@ impl Stylist {
             );
         }
 
+        // NB: the following condition, although it may look somewhat
+        // inaccurate, would be equivalent to something like:
+        //
+        //     element.matches_user_and_author_rules() ||
+        //     (is_implemented_pseudo &&
+        //      rule_hash_target.matches_user_and_author_rules())
+        //
+        // Which may be more what you would probably expect.
+        if matches_user_rules {
+            // User normal rules.
+            if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
+                map.get_all_matching_rules(
+                    element,
+                    rule_hash_target,
+                    applicable_declarations,
+                    context,
+                    flags_setter,
+                    CascadeLevel::UserNormal,
+                );
+            }
+        }
+
         if pseudo_element.is_none() && !only_default_rules {
-            // Step 2: Presentational hints.
+            // Presentational hints.
+            //
+            // These go before author rules, but after user rules, see:
+            // https://drafts.csswg.org/css-cascade/#preshint
             let length_before_preshints = applicable_declarations.len();
             element.synthesize_presentational_hints_for_legacy_attributes(
                 context.visited_handling(),
@@ -1248,35 +1251,13 @@ impl Stylist {
             }
         }
 
-        // NB: the following condition, although it may look somewhat
-        // inaccurate, would be equivalent to something like:
-        //
-        //     element.matches_user_and_author_rules() ||
-        //     (is_implemented_pseudo &&
-        //      rule_hash_target.matches_user_and_author_rules())
-        //
-        // Which may be more what you would probably expect.
-        if matches_user_and_author_rules {
-            // Step 3a: User normal rules.
-            if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
-                map.get_all_matching_rules(
-                    element,
-                    rule_hash_target,
-                    applicable_declarations,
-                    context,
-                    flags_setter,
-                    CascadeLevel::UserNormal,
-                );
-            }
-        }
-
-        // Step 3b: XBL / Shadow DOM rules.
+        // XBL / Shadow DOM rules, which are author rules too.
         //
         // TODO(emilio): Cascade order here is wrong for Shadow DOM. In
         // particular, normally document rules override ::slotted() rules, but
         // for !important it should be the other way around. So probably we need
         // to add some sort of AuthorScoped cascade level or something.
-        if !only_default_rules {
+        if matches_author_rules && !only_default_rules {
             // Match slotted rules in reverse order, so that the outer slotted
             // rules come before the inner rules (and thus have less priority).
             let mut slots = SmallVec::<[_; 3]>::new();
@@ -1287,8 +1268,8 @@ impl Stylist {
             }
 
             for slot in slots.iter().rev() {
-                slot.each_xbl_stylist(|stylist| {
-                    if let Some(map) = stylist.cascade_data.author.slotted_rules(pseudo_element) {
+                slot.each_xbl_cascade_data(|cascade_data, _quirks_mode| {
+                    if let Some(map) = cascade_data.slotted_rules(pseudo_element) {
                         map.get_all_matching_rules(
                             element,
                             rule_hash_target,
@@ -1304,10 +1285,10 @@ impl Stylist {
 
         // FIXME(emilio): It looks very wrong to match XBL / Shadow DOM rules
         // even for getDefaultComputedStyle!
-        let cut_off_inheritance = element.each_xbl_stylist(|stylist| {
-            // ServoStyleSet::CreateXBLServoStyleSet() loads XBL style sheets
-            // under eAuthorSheetFeatures level.
-            if let Some(map) = stylist.cascade_data.author.normal_rules(pseudo_element) {
+        //
+        // Also, this doesn't account for the author_styles_enabled stuff.
+        let cut_off_inheritance = element.each_xbl_cascade_data(|cascade_data, quirks_mode| {
+            if let Some(map) = cascade_data.normal_rules(pseudo_element) {
                 // NOTE(emilio): This is needed because the XBL stylist may
                 // think it has a different quirks mode than the document.
                 //
@@ -1318,7 +1299,7 @@ impl Stylist {
                     context.matching_mode(),
                     context.bloom_filter,
                     context.nth_index_cache.as_mut().map(|s| &mut **s),
-                    stylist.quirks_mode,
+                    quirks_mode,
                 );
                 matching_context.pseudo_element_matching_fn = context.pseudo_element_matching_fn;
 
@@ -1333,10 +1314,8 @@ impl Stylist {
             }
         });
 
-        if matches_user_and_author_rules && !only_default_rules &&
-            !cut_off_inheritance
-        {
-            // Step 3c: Author normal rules.
+        if matches_author_rules && !only_default_rules && !cut_off_inheritance {
+            // Author normal rules.
             if let Some(map) = self.cascade_data.author.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
                     element,
@@ -1350,7 +1329,7 @@ impl Stylist {
         }
 
         if !only_default_rules {
-            // Step 4: Normal style attributes.
+            // Style attribute ("Normal override declarations").
             if let Some(sa) = style_attribute {
                 applicable_declarations.push(
                     ApplicableDeclarationBlock::from_declarations(
@@ -1360,7 +1339,6 @@ impl Stylist {
                 );
             }
 
-            // Step 5: SMIL override.
             // Declarations from SVG SMIL animation elements.
             if let Some(so) = smil_override {
                 applicable_declarations.push(
@@ -1371,9 +1349,9 @@ impl Stylist {
                 );
             }
 
-            // Step 6: Animations.
-            // The animations sheet (CSS animations, script-generated animations,
-            // and CSS transitions that are no longer tied to CSS markup)
+            // The animations sheet (CSS animations, script-generated
+            // animations, and CSS transitions that are no longer tied to CSS
+            // markup).
             if let Some(anim) = animation_rules.0 {
                 applicable_declarations.push(
                     ApplicableDeclarationBlock::from_declarations(
@@ -1385,13 +1363,12 @@ impl Stylist {
         }
 
         //
-        // Steps 7-10 correspond to !important rules, and are handled during
-        // rule tree insertion.
+        // !important rules are handled during rule tree insertion.
         //
 
         if !only_default_rules {
-            // Step 11: Transitions.
-            // The transitions sheet (CSS transitions that are tied to CSS markup)
+            // The transitions sheet (CSS transitions that are tied to CSS
+            // markup).
             if let Some(anim) = animation_rules.1 {
                 applicable_declarations.push(
                     ApplicableDeclarationBlock::from_declarations(
@@ -1522,19 +1499,16 @@ impl Stylist {
         E: TElement,
     {
         use font_metrics::get_metrics_provider_for_product;
+        use std::iter;
 
         // FIXME(emilio): Why do we even need the rule node? We should probably
         // just avoid allocating it and calling `apply_declarations` directly,
         // maybe...
-        //
-        // Also the `vec!` is super-wasteful.
-        let v = vec![ApplicableDeclarationBlock::from_declarations(
-            declarations.clone(),
-            CascadeLevel::StyleAttributeNormal
-        )];
-
         let rule_node =
-            self.rule_tree.insert_ordered_rules(v.into_iter().map(|a| a.order_and_level()));
+            self.rule_tree.insert_ordered_rules(iter::once((
+                StyleSource::Declarations(declarations),
+                CascadeLevel::StyleAttributeNormal,
+            )));
 
         // This currently ignores visited styles.  It appears to be used for
         // font styles in <canvas> via Servo_StyleSet_ResolveForDeclarations.
@@ -2028,6 +2002,45 @@ impl CascadeData {
             num_declarations: 0,
         }
     }
+
+    /// Rebuild the cascade data from a given SheetCollection, incrementally if
+    /// possible.
+    fn rebuild<'a, S>(
+        &mut self,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        collection: SheetCollectionFlusher<S>,
+        guard: &SharedRwLockReadGuard,
+    ) -> Result<(), FailedAllocationError>
+    where
+        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+    {
+        if !collection.dirty() {
+            return Ok(());
+        }
+
+        let validity = collection.data_validity();
+
+        match validity {
+            DataValidity::Valid => {},
+            DataValidity::CascadeInvalid => self.clear_cascade_data(),
+            DataValidity::FullyInvalid => self.clear(),
+        }
+
+        for (stylesheet, rebuild_kind) in collection {
+            self.add_stylesheet(
+                device,
+                quirks_mode,
+                stylesheet,
+                guard,
+                rebuild_kind,
+                /* precomputed_pseudo_element_decls = */ None,
+            )?;
+        }
+
+        Ok(())
+    }
+
 
     /// Returns the invalidation map.
     pub fn invalidation_map(&self) -> &InvalidationMap {

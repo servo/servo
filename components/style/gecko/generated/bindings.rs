@@ -2130,9 +2130,14 @@ extern "C" {
     );
 }
 extern "C" {
-    pub fn Servo_StyleSet_NoteStyleSheetsChanged(
+    pub fn Servo_StyleSet_SetAuthorStyleDisabled(
         set: RawServoStyleSetBorrowed,
         author_style_disabled: bool,
+    );
+}
+extern "C" {
+    pub fn Servo_StyleSet_NoteStyleSheetsChanged(
+        set: RawServoStyleSetBorrowed,
         changed_origins: OriginFlags,
     );
 }
@@ -2835,7 +2840,7 @@ extern "C" {
     pub fn Servo_DeclarationBlock_RemoveProperty(
         declarations: RawServoDeclarationBlockBorrowed,
         property: *const nsACString,
-    );
+    ) -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_RemovePropertyById(

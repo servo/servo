@@ -233,7 +233,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
         if !self.value_dirty.get() {
-            self.reset();
+            self.reset(false);
         }
     }
 
@@ -306,9 +306,10 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
 
 impl HTMLTextAreaElement {
-    pub fn reset(&self) {
+    pub fn reset(&self,  update_text_cursor: bool) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
-        self.update_text_contents(self.DefaultValue(), false);
+
+        self.update_text_contents(self.DefaultValue(), update_text_cursor);
         self.value_dirty.set(false);
     }
 
@@ -432,7 +433,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.children_changed(mutation);
         }
         if !self.value_dirty.get() {
-            self.reset();
+            self.reset(false);
         }
     }
 
@@ -483,7 +484,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.super_type().unwrap().pop();
 
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:stack-of-open-elements
-        self.reset();
+        self.reset(false);
     }
 }
 

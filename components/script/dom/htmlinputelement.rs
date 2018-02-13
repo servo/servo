@@ -908,7 +908,7 @@ impl HTMLInputElement {
             _ => ()
         }
 
-        self.update_text_contents(self.DefaultValue(), false)
+        self.update_text_contents(self.DefaultValue(), true)
             .expect("Failed to reset input value to default.");
         self.value_dirty.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);

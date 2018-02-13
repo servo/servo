@@ -286,10 +286,20 @@ impl ToCss for FamilyName {
                 write!(CssStringWriter::new(dest), "{}", self.name)?;
                 dest.write_char('"')
             }
-            FamilyNameSyntax::Identifiers(ref serialization) => {
-                // Note that `serialization` is already escaped/
-                // serialized appropriately.
-                dest.write_str(&*serialization)
+            FamilyNameSyntax::Identifiers => {
+                let mut first = true;
+                for ident in self.name.to_string().split(' ') {
+                    if first {
+                        first = false;
+                    } else {
+                        dest.write_char(' ')?;
+                    }
+                    debug_assert!(!ident.is_empty(), "Family name with leading, \
+                                  trailing, or consecutive white spaces should \
+                                  have been marked quoted by the parser");
+                    serialize_identifier(ident, dest)?;
+                }
+                Ok(())
             }
         }
     }
@@ -305,9 +315,8 @@ pub enum FamilyNameSyntax {
     Quoted,
 
     /// The family name was specified in an unquoted form as a sequence of
-    /// identifiers.  The `String` is the serialization of the sequence of
     /// identifiers.
-    Identifiers(String),
+    Identifiers,
 }
 
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
@@ -406,8 +415,6 @@ impl SingleFontFamily {
         }
 
         let mut value = first_ident.as_ref().to_owned();
-        let mut serialization = String::new();
-        serialize_identifier(&first_ident, &mut serialization).unwrap();
 
         // These keywords are not allowed by themselves.
         // The only way this value can be valid with with another keyword.
@@ -415,18 +422,23 @@ impl SingleFontFamily {
             let ident = input.expect_ident()?;
             value.push(' ');
             value.push_str(&ident);
-            serialization.push(' ');
-            serialize_identifier(&ident, &mut serialization).unwrap();
         }
         while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
             value.push(' ');
             value.push_str(&ident);
-            serialization.push(' ');
-            serialize_identifier(&ident, &mut serialization).unwrap();
         }
+        let syntax = if value.starts_with(' ') || value.ends_with(' ') || value.contains("  ") {
+            // For font family names which contains special white spaces, e.g.
+            // `font-family: \ a\ \ b\ \ c\ ;`, it is tricky to serialize them
+            // as identifiers correctly. Just mark them quoted so we don't need
+            // to worry about them in serialization code.
+            FamilyNameSyntax::Quoted
+        } else {
+            FamilyNameSyntax::Identifiers
+        };
         Ok(SingleFontFamily::FamilyName(FamilyName {
             name: Atom::from(value),
-            syntax: FamilyNameSyntax::Identifiers(serialization),
+            syntax
         }))
     }
 
@@ -461,7 +473,6 @@ impl SingleFontFamily {
     /// Get the corresponding font-family with family name
     fn from_font_family_name(family: &structs::FontFamilyName) -> SingleFontFamily {
         use gecko_bindings::structs::FontFamilyType;
-        use values::serialize_atom_identifier;
 
         match family.mType {
             FontFamilyType::eFamily_sans_serif => SingleFontFamily::Generic(atom!("sans-serif")),
@@ -472,11 +483,9 @@ impl SingleFontFamily {
             FontFamilyType::eFamily_moz_fixed => SingleFontFamily::Generic(Atom::from("-moz-fixed")),
             FontFamilyType::eFamily_named => {
                 let name = Atom::from(&*family.mName);
-                let mut serialization = String::new();
-                serialize_atom_identifier(&name, &mut serialization).unwrap();
                 SingleFontFamily::FamilyName(FamilyName {
                     name,
-                    syntax: FamilyNameSyntax::Identifiers(serialization),
+                    syntax: FamilyNameSyntax::Identifiers,
                 })
             },
             FontFamilyType::eFamily_named_quoted => SingleFontFamily::FamilyName(FamilyName {
