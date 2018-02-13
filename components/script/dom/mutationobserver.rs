@@ -67,6 +67,7 @@ impl MutationObserver {
     }
 
     pub fn Constructor(global: &Window, callback: Rc<MutationCallback>) -> Fallible<DomRoot<MutationObserver>> {
+        global.set_exists_mut_observer();
         let observer = MutationObserver::new(global, callback);
         ScriptThread::add_mutation_observer(&*observer);
         Ok(observer)
@@ -105,6 +106,9 @@ impl MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+        if !target.global().as_window().get_exists_mut_observer(){
+            ()
+        }
         // Step 1
         let mut interestedObservers: Vec<(DomRoot<MutationObserver>, Option<DOMString>)> = vec![];
         // Step 2 & 3

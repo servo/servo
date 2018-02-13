@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+</head>
+<body>
+    <p id="pid1" style='color:red;'>Paragraph tag</p>
+    <p id="pid2" style='color:red;'>Paragraph tag</p>
+<script>
+window.onload = function(){
+    var start_test = function(targetNode) {
+        var start = Date.now();
+        targetNode.setAttribute('style', 'color:blue;');
+        var stop = Date.now();
+        console.log('Time taken:'+ (stop - start));
+    };
+    var targetNode1 = document.getElementById("pid1");
+    var targetNode2 = document.getElementById("pid2");
+    var config = { attributes: true, childList: true };
+    console.log('Mutation Observer Algorithm performance testing...');
+
+    console.log('\nMutation performed without observer ->');
+    start_test(targetNode1);
+
+    console.log('\nMutation performed with observer ->');
+    var callback = function(mutationsList) {
+        for(var mutation of mutationsList) {
+            if (mutation.type == 'childList') {
+                console.log('A child node has been added or removed.');
+            }
+            else if (mutation.type == 'attributes') {
+                console.log('The ' + mutation.attributeName + ' attribute was modified.');
+            }
+        }
+    };
+    var observer = new MutationObserver(callback);
+    observer.observe(targetNode2, config);
+    start_test(targetNode2);
+}
+</script>
+</body>
+</html>
