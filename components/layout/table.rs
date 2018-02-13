@@ -19,12 +19,14 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
+use servo_arc::Arc;
 use std::cmp;
 use std::fmt;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Background;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -211,20 +213,23 @@ impl TableFlow {
             // XXXManishearth these as_foo methods should return options
             // so that we can filter_map
             let group = group.as_table_colgroup();
-            let colgroup_style = group.fragment.as_ref().map(|f| f.style());
+            let colgroup_style = group.fragment.as_ref()
+                                      .map(|f| f.style().clone_background());
 
             // The colgroup's span attribute is only relevant when
             // it has no children
             // https://html.spec.whatwg.org/multipage/tables.html#forming-a-table
             if group.cols.is_empty() {
-                let span = group.fragment.as_ref().map(|f| f.column_span()).unwrap_or(1);
+                let span = group.fragment.as_ref()
+                                .map(|f| f.column_span()).unwrap_or(1);
                 styles.push(ColumnStyle { span, colgroup_style, col_style: None });
             } else {
                 for col in &group.cols {
+                    // XXXManishearth Arc-cloning colgroup_style is suboptimal
                     styles.push(ColumnStyle {
                         span: col.column_span(),
-                        colgroup_style,
-                        col_style: Some(col.style()),
+                        colgroup_style: colgroup_style.clone(),
+                        col_style: Some(col.style().clone_background()),
                     })
                 }
             }
@@ -557,11 +562,18 @@ impl Flow for TableFlow {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-struct ColumnStyle<'a> {
+#[derive(Debug)]
+// XXXManishearth We might be able to avoid the Arc<T>s if
+// the table is structured such that the columns always come
+// first in the flow tree, at which point we can 
+// reuse the iterator that we use for colgroups
+// for rows (and have no borrowing issues between
+// holding on to both ColumnStyle<'table> and 
+// the rows)
+struct ColumnStyle {
     span: u32,
-    colgroup_style: Option<&'a ComputedValues>,
-    col_style: Option<&'a ComputedValues>,
+    colgroup_style: Option<Arc<Background>>,
+    col_style: Option<Arc<Background>>,
 }
 
 impl fmt::Debug for TableFlow {
@@ -920,5 +932,50 @@ impl<'a> Iterator for TableRowIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|n| n.1)
+    }
+}
+
+/// An iterator over table cells, yielding all relevant style objects
+/// for each cell
+///
+/// Used for correctly handling table layers from
+/// https://drafts.csswg.org/css2/tables.html#table-layers
+struct TableCellStyleIterator<'table> {
+    column_styles: Vec<ColumnStyle>,
+    row_iterator: TableRowAndGroupIterator<'table>,
+    row_info: Option<TableCellStyleIteratorRowInfo<'table>>,
+    column_index: u32,
+    /// The index of the current column in column_styles
+    column_index_relative: u32,
+    /// In case of multispan columns, where we are in the
+    /// span of the current <col> element
+    column_index_relative_offset: u32,
+}
+
+struct TableCellStyleIteratorRowInfo<'table> {
+    row: &'table Fragment,
+    rowgroup: Option<&'table Fragment>,
+    cell_iterator: MutFlowListIterator<'table>,
+}
+
+impl<'table> TableCellStyleIterator<'table> {
+    fn new(table: &'table mut TableFlow) -> Self {
+        let column_styles = table.column_styles();
+        let mut row_iterator = TableRowAndGroupIterator::new(&mut table.block_flow.base);
+        let row_info = if let Some((group, row)) = row_iterator.next() {
+            Some(TableCellStyleIteratorRowInfo {
+                row: &row.block_flow.fragment,
+                rowgroup: group,
+                cell_iterator: row.block_flow.base.child_iter_mut()
+            })
+        } else {
+            None
+        };
+        TableCellStyleIterator {
+            column_styles, row_iterator, row_info,
+            column_index: 0,
+            column_index_relative: 0,
+            column_index_relative_offset: 0,
+        }
     }
 }
