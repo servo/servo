@@ -88,7 +88,7 @@ promise_test(t => {
         assert_not_equals(viewPropDesc.get, undefined, 'view should have a getter');
         assert_equals(viewPropDesc.set, undefined, 'view should not have a setter');
         assert_not_equals(byobRequest.view, undefined, 'has a non-undefined view property');
-        assert_equals(byobRequest.constructor.length, 2, 'constructor has 1 parameter');
+        assert_equals(byobRequest.constructor.length, 0, 'constructor has 0 parameters');
         assert_equals(byobRequest.respond.length, 1, 'respond has 1 parameter');
         assert_equals(byobRequest.respondWithNewView.length, 1, 'releaseLock has 1 parameter');
 

@@ -1,6 +1,6 @@
 import pytest
 
-from tests.actions.support.mouse import get_center
+from tests.actions.support.mouse import get_inview_center, get_viewport_rect
 from tests.actions.support.refine import get_events, filter_dict
 from tests.support.asserts import assert_move_to_coordinates
 
@@ -63,7 +63,7 @@ def test_dblclick_at_coordinates(dblclick_session, mouse_chain, click_pause):
 
 def test_dblclick_with_pause_after_second_pointerdown(dblclick_session, mouse_chain):
         outer = dblclick_session.find.css("#outer", all=False)
-        center = get_center(outer.rect)
+        center = get_inview_center(outer.rect, get_viewport_rect(dblclick_session))
         mouse_chain \
             .pointer_move(int(center["x"]), int(center["y"])) \
             .click() \
@@ -88,7 +88,7 @@ def test_dblclick_with_pause_after_second_pointerdown(dblclick_session, mouse_ch
 
 def test_no_dblclick(dblclick_session, mouse_chain):
         outer = dblclick_session.find.css("#outer", all=False)
-        center = get_center(outer.rect)
+        center = get_inview_center(outer.rect, get_viewport_rect(dblclick_session))
         mouse_chain \
             .pointer_move(int(center["x"]), int(center["y"])) \
             .click() \

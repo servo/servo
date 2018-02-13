@@ -36,12 +36,18 @@ test(function () {
     customElements.define('autonomous-custom-element', AutonomousCustomElement);
     customElements.define('is-custom-element', IsCustomElement);
 
-    var instance = document.createElement('autonomous-custom-element', { is: "is-custom-element"});
+    var instance = document.createElement('autonomous-custom-element', { is: 'is-custom-element'});
 
     assert_true(instance instanceof AutonomousCustomElement);
     assert_equals(instance.localName, 'autonomous-custom-element');
     assert_equals(instance.namespaceURI, 'http://www.w3.org/1999/xhtml', 'A custom element HTML must use HTML namespace');
 
+    var instance2 = document.createElement('undefined-element', { is: 'is-custom-element'});
+    assert_false(instance2.matches(':defined'));
+    class DefinedLater extends HTMLElement {}
+    customElements.define('undefined-element', DefinedLater);
+    document.body.appendChild(instance2);
+    assert_true(instance2 instanceof DefinedLater);
 }, 'document.createElement must create an instance of autonomous custom elements when it has is attribute');
 
 function assert_reports(expected, testFunction, message) {

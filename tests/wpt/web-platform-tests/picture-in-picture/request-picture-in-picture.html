@@ -9,5 +9,21 @@
 <script>
 promise_test(t => {
   return requestPictureInPictureWithTrustedClick(document.createElement('video'));
-});
+}, 'request Picture-in-Picture resolves on user click');
+
+promise_test(t => {
+  return promise_rejects(t, 'NotAllowedError',
+      document.createElement('video').requestPictureInPicture());
+}, 'request Picture-in-Picture requires a user gesture');
+
+promise_test(t => {
+  return callWithTrustedClick(() => {
+    const first = document.createElement('video').requestPictureInPicture();
+    const second = document.createElement('video').requestPictureInPicture();
+    return Promise.all([
+      first,
+      promise_rejects(t, 'NotAllowedError', second)
+    ]);
+  });
+}, 'request Picture-in-Picture consumes user gesture');
 </script>

@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Cookies: IDL tests</title>
+<link rel="help" href="https://github.com/WICG/cookie-store"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const urls = ['/interfaces/html.idl', 'cookie-store.idl'];
+  const [html, cookie_store] = await Promise.all(
+    urls.map(url => fetch(url).then(response => response.text())));
+
+  const idl_array = new IdlArray();
+
+  // Dependencies of HTML
+  idl_array.add_untested_idls('interface Document {};');
+  idl_array.add_untested_idls('interface LinkStyle {};');
+  idl_array.add_untested_idls(html);
+
+  idl_array.add_untested_idls(
+    `[Global=ServiceWorker, Exposed=ServiceWorker]
+     interface ServiceWorkerGlobalScope {};`);
+
+  idl_array.add_idls(cookie_store);
+
+  idl_array.add_objects({
+    CookieStore: [self.cookieStore],
+  });
+  idl_array.test();
+}, 'Interface test');
+</script>

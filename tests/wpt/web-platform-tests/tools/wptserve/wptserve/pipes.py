@@ -392,6 +392,12 @@ def template(request, content, escape_type="html"):
             value = request.headers
         elif field == "GET":
             value = FirstWrapper(request.GET)
+        elif field == "domains":
+            if ('not_domains' in request.server.config and
+                    tokens[1][1] in request.server.config['not_domains']):
+                value = request.server.config['not_domains']
+            else:
+                value = request.server.config['domains']
         elif field in request.server.config:
             value = request.server.config[tokens[0][1]]
         elif field == "location":
