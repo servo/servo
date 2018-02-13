@@ -30,6 +30,7 @@ use style::properties::style_structs::Background;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
+use table_cell::TableCellFlow;
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_row::TableRowFlow;
 use table_wrapper::TableLayout;
@@ -979,3 +980,47 @@ impl<'table> TableCellStyleIterator<'table> {
         }
     }
 }
+
+struct TableCellStyleInfo<'table> {
+    cell: &'table mut TableCellFlow,
+    colgroup_style: Option<Arc<Background>>,
+    col_style: Option<Arc<Background>>,
+    rowgroup_style: Option<&'table Background>,
+    row_style: &'table Background,
+}
+
+impl<'table> Iterator for TableCellStyleIterator<'table> {
+    type Item = TableCellStyleInfo<'table>;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(ref mut row_info) = self.row_info {
+            if let Some(ref mut cell) = row_info.cell_iterator.next() {
+                // unimplemented
+                return None;
+            } else {
+                // next row
+                if let Some((group, row)) = self.row_iterator.next() {
+                    *row_info = TableCellStyleIteratorRowInfo {
+                        row: &row.block_flow.fragment,
+                        rowgroup: group,
+                        cell_iterator: row.block_flow.base.child_iter_mut()
+                    };
+                    self.column_index = 0;
+                    self.column_index_relative = 0;
+                    self.column_index_relative_offset = 0;
+                    // FIXME self.next() really should be up here but
+                    // can't be without NLL, so instead it's at the
+                    // end of the function
+                } else {
+                    // out of rows
+                    return None
+                }
+            }
+        } else {
+            // empty table
+            return None
+        }
+        self.next()
+    }
+}
+
