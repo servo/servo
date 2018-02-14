@@ -800,17 +800,24 @@ for (const t of testData) {
     test(() => {
       let customized = new t.klass();
       assert_equals(customized.constructor, t.klass);
+      assert_equals(customized.cloneNode().constructor, t.klass,
+                    'Cloning a customized built-in element should succeed.');
     }, `${t.tag}: Operator 'new' should instantiate a customized built-in element`);
 
     test(() => {
       let customized = document.createElement(t.tag, { is: name });
       assert_equals(customized.constructor, t.klass);
+      assert_equals(customized.cloneNode().constructor, t.klass,
+                    'Cloning a customized built-in element should succeed.');
     }, `${t.tag}: document.createElement() should instantiate a customized built-in element`);
 
     if (t.parsing == 'document') {
       let test = async_test(`${t.tag}: document parser should instantiate a customized built-in element`);
       window.addEventListener('load', test.step_func_done(() => {
-        assert_equals(document.querySelector(t.tag).constructor, t.klass);
+        let customized = document.querySelector(t.tag);
+        assert_equals(customized.constructor, t.klass);
+        assert_equals(customized.cloneNode().constructor, t.klass,
+                      'Cloning a customized built-in element should succeed.');
       }));
       return;
     }
@@ -823,6 +830,8 @@ for (const t of testData) {
       }
       let customized = document.getElementById(name);
       assert_equals(customized.constructor, t.klass);
+      assert_equals(customized.cloneNode().constructor, t.klass,
+                    'Cloning a customized built-in element should succeed.');
     }, `${t.tag}: innerHTML should instantiate a customized built-in element`);
 
   }, `${t.tag}: Define a customized built-in element`);

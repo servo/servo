@@ -102,17 +102,22 @@ your `%Path%` [Environment Variable](http://www.computerhope.com/issues/ch000549
 and read the [Windows Notes](#windows-notes) section below.
 
 To get the tests running, you need to set up the test domains in your
-[`hosts` file](http://en.wikipedia.org/wiki/Hosts_%28file%29%23Location_in_the_file_system). The
-following entries are required:
+[`hosts` file](http://en.wikipedia.org/wiki/Hosts_%28file%29%23Location_in_the_file_system).
 
+The necessary content can be generated with `./wpt make-hosts-file`; on
+Windows, you will need to preceed the prior command with `python` or
+the path to the Python binary (`python wpt make-hosts-file`).
+
+For example, on most UNIX-like systems, you can setup the hosts file with:
+
+```bash
+./wpt make-hosts-file | sudo tee -a /etc/hosts
 ```
-127.0.0.1   web-platform.test
-127.0.0.1   www.web-platform.test
-127.0.0.1   www1.web-platform.test
-127.0.0.1   www2.web-platform.test
-127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
-127.0.0.1   xn--lve-6lad.web-platform.test
-0.0.0.0     nonexistent-origin.web-platform.test
+
+And on Windows (note this requires an Administrator privileged shell):
+
+```bash
+python wpt make-hosts-file >> %SystemRoot%\System32\drivers\etc\hosts
 ```
 
 If you are behind a proxy, you also need to make sure the domains above are

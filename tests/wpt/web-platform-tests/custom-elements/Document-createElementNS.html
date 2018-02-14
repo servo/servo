@@ -38,6 +38,7 @@ test(() => {
   let element = document.createElementNS('http://www.w3.org/1999/xhtml', 'p:address', { is: 'my-builtin'});
   assert_true(element instanceof MyBuiltinElement);
   assert_equals(element.prefix, 'p');
+  assert_false(element.hasAttribute('is'));
 }, 'builtin: document.createElementNS should create custom elements with prefixes.');
 
 test(() => {
@@ -46,6 +47,7 @@ test(() => {
   customElements.define('my-builtin2', MyBuiltinElement2, { extends: 'address'});
   let element = document.createElementNS('urn:example', 'address', { is: 'my-builtin2' });
   assert_false(element instanceof MyBuiltinElement2);
+  assert_false(element.hasAttribute('is'));
 }, 'builtin: document.createElementNS should check namespaces.');
 </script>
 </body>

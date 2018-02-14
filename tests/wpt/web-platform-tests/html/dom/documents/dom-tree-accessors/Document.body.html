@@ -216,4 +216,12 @@ test(function() {
   assert_equals(f2.nextSibling, f1, "New frameset should have replaced the body");
 }, "Setting document.body to a frameset will replace the first existing body/frameset.");
 
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElement("test"));
+  var new_body = doc.createElement("body");
+  doc.body = new_body;
+  assert_equals(doc.documentElement.firstChild, new_body, "new_body should be inserted");
+  assert_equals(doc.body, null, "Getter should return null when the root is not html");
+}, "Setting document.body to a new body element when the root element is a test element.");
 </script>

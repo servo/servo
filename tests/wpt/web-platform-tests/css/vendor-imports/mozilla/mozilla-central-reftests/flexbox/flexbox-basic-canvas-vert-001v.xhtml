@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test checks that canvas elements behave correctly as flex items.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>
+      CSS Test: Testing flexbox layout algorithm property on canvas flex items in a vertical flex container
+      (with a vertical writing-mode on the canvas flex items).
+    </title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm"/>
+    <link rel="match" href="flexbox-basic-canvas-vert-001-ref.xhtml"/>
+    <style>
+      div.flexbox {
+        height: 200px;
+        background: lightgreen;
+        display: flex;
+        justify-content: space-between;
+        flex-direction: column;
+        float: left;
+        margin-right: 10px;
+        font: 8px monospace;
+      }
+      canvas {
+        width: 20px;
+        height: 10px;
+        min-height: 0;
+        border: 1px dotted green;
+        writing-mode: vertical-lr;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- A) One flex item -->
+    <div class="flexbox">
+      <canvas/>
+    </div>
+
+    <!-- B) Text and a canvas (ensure they aren't merged into one flex item) -->
+    <div class="flexbox">
+      a b <canvas/>
+    </div>
+
+    <!-- C) Two canvas elements, getting stretched by different ratios, from 0.
+
+         Space-to-be-distributed = 200px - borders = 200 - (1 + 1) - (1 + 1)
+                                 = 196px
+
+         1st element gets 5/8 of space: 5/8 * 196px = 122.5px
+         1st element gets 3/8 of space: 3/8 * 196px = 73.5px
+      -->
+    <div class="flexbox">
+      <canvas style="flex: 5"/>
+      <canvas style="flex: 3"/>
+    </div>
+
+    <!-- D) Two canvas elements, getting stretched by different ratios, from
+         different flex bases.
+
+         Space-to-be-distributed = 200px - (33 + 1 + 1) - (13 + 1 + 1) = 150px
+         1st element gets 2/5 of space: 33px + 2/5 * 150px = 93px
+         1st element gets 3/5 of space: 13px + 3/5 * 150px = 103px
+      -->
+    <div class="flexbox">
+      <canvas style="height: 33px; flex: 2 auto"/>
+      <canvas style="height: 13px; flex: 3 auto"/>
+    </div>
+
+    <!-- E) Two flex items, getting shrunk by different amounts.
+
+         Space-to-be-distributed = 200px - (150 + 1 + 1) - (100 + 1 + 1) = -54px
+         First element scaled flex ratio = 4 * 150 = 600
+         Second element scaled flex ratio = 3 * 100 = 300
+           * So, total flexibility is 600 + 300 = 900
+
+         1st element gets 600/900 of space: 150 + 600/900 * -54 = 114px
+         2nd element gets 300/900 of space: 100 + 300/900 * -54 = 82px
+      -->
+    <div class="flexbox">
+      <canvas style="height: 150px; flex: 1 4 auto"/>
+      <canvas style="height: 100px; flex: 1 3 auto"/>
+    </div>
+
+    <!-- F) Making sure we don't grow past max-height -->
+    <!-- Same as (D), except we've added a max-height on the second element.
+      -->
+    <div class="flexbox">
+      <canvas style="height: 33px; flex: 2 auto"/>
+      <canvas style="height: 13px; max-height: 90px; flex: 3 auto"/>
+    </div>
+
+    <!-- G) Making sure we grow at least as large as min-height -->
+    <!-- Same as (C), except we've added a min-height on the second element.
+      -->
+    <div class="flexbox">
+      <canvas style="height: 33px; flex: 2 auto"/>
+      <canvas style="height: 13px; min-height: 150px; flex: 3 auto"/>
+    </div>
+
+  </body>
+</html>

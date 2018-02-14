@@ -39,6 +39,15 @@ test(function() {
   var xmlString = (new XMLSerializer()).serializeToString(root);
   assert_equals(xmlString, '<root xmlns="urn:bar"><outer xmlns=""><inner>value1</inner></outer></root>');
 }, 'Check if there is no redundant empty namespace declaration.');
+
+test(function() {
+  var serializer = new XMLSerializer();
+  var root = createXmlDoc().documentElement;
+  root.firstChild.setAttribute('attr1', 'value1\tvalue2\r\n');
+  var xmlString = serializer.serializeToString(root);
+  assert_equals(xmlString, '<root><child1 attr1="value1&#9;value2&#xD;&#xA;">value1</child1></root>');
+}, 'check XMLSerializer.serializeToString escapes attribute values for roundtripping');
+
 </script>
  </body>
 </html>

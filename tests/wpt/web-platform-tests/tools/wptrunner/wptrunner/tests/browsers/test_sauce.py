@@ -20,6 +20,9 @@ def test_sauceconnect_success():
         exists.return_value = True
 
         sauce_connect = sauce.SauceConnect(
+            config={
+                "domains": {"": "example.net"}
+            },
             sauce_user="aaa",
             sauce_key="bbb",
             sauce_tunnel_id="ccc",
@@ -46,6 +49,9 @@ def test_sauceconnect_failure_exit(readyfile, returncode):
         exists.return_value = readyfile
 
         sauce_connect = sauce.SauceConnect(
+            config={
+                "domains": {"": "example.net"}
+            },
             sauce_user="aaa",
             sauce_key="bbb",
             sauce_tunnel_id="ccc",
@@ -68,6 +74,9 @@ def test_sauceconnect_failure_never_ready():
         exists.return_value = False
 
         sauce_connect = sauce.SauceConnect(
+            config={
+                "domains": {"": "example.net"}
+            },
             sauce_user="aaa",
             sauce_key="bbb",
             sauce_tunnel_id="ccc",
@@ -82,3 +91,34 @@ def test_sauceconnect_failure_never_ready():
         # Check we actually kill it after termination fails
         Popen.return_value.terminate.assert_called()
         Popen.return_value.kill.assert_called()
+
+
+def test_sauceconnect_tunnel_domains():
+    with mock.patch.object(sauce.SauceConnect, "upload_prerun_exec"),\
+            mock.patch.object(sauce.subprocess, "Popen") as Popen,\
+            mock.patch.object(sauce.os.path, "exists") as exists:
+        Popen.return_value.poll.return_value = None
+        Popen.return_value.returncode = None
+        exists.return_value = True
+
+        sauce_connect = sauce.SauceConnect(
+            config={
+                "domains": {"foo": "foo.bar.example.com", "": "example.net"}
+            },
+            sauce_user="aaa",
+            sauce_key="bbb",
+            sauce_tunnel_id="ccc",
+            sauce_connect_binary="ddd")
+
+        sauce_connect.__enter__(None)
+
+        Popen.assert_called_once()
+        args, kwargs = Popen.call_args
+        cmd = args[0]
+        assert "--tunnel-domains" in cmd
+        i = cmd.index("--tunnel-domains")
+        rest = cmd[i+1:]
+        assert len(rest) >= 1
+        if len(rest) > 1:
+            assert rest[1].startswith("-"), "--tunnel-domains takes a comma separated list (not a space separated list)"
+        assert set(rest[0].split(",")) == {"foo.bar.example.com", "example.net"}

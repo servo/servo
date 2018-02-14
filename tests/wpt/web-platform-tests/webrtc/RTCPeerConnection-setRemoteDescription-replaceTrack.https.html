@@ -14,7 +14,7 @@
     const caller = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
+      const sender = caller.addTrack(tracks[0], streams[0]);
       return sender.replaceTrack(tracks[1])
       .then(t.step_func(() => {
         assert_equals(sender.track, tracks[1]);
@@ -30,7 +30,7 @@
     const caller = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
+      const sender = caller.addTrack(tracks[0], streams[0]);
       return sender.replaceTrack(null)
       .then(t.step_func(() => {
         assert_equals(sender.track, null);
@@ -46,7 +46,7 @@
     const caller = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
+      const sender = caller.addTrack(tracks[0], streams[0]);
       assert_equals(sender.track, tracks[0]);
       sender.replaceTrack(tracks[1]);
       // replaceTrack() is asynchronous, there should be no synchronously
@@ -64,7 +64,7 @@
     const caller = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
+      const sender = caller.addTrack(tracks[0], streams[0]);
       caller.close();
       return sender.replaceTrack(tracks[1])
       .then(t.step_func(() => {
@@ -86,7 +86,7 @@
     const caller = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
+      const sender = caller.addTrack(tracks[0], streams[0]);
       caller.removeTrack(sender);
       // replaceTrack() should fail because the sender should be inactive after
       // removeTrack().
@@ -110,7 +110,7 @@
     const caller = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
+      const sender = caller.addTrack(tracks[0], streams[0]);
       let p = sender.replaceTrack(tracks[1])
       caller.removeTrack(sender);
       // replaceTrack() should fail because it executes steps in parallel and

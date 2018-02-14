@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates the values of the redirectStart/End in resource timing for a same-origin resource redirect.</title>
+<link rel="author" title="Intel" href="http://www.intel.com/" />
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+
+<script>
+    setup({explicit_done: true});
+    function onload_test() {
+        const context = new PerformanceContext(performance);
+        const entry = context.getEntriesByName(document.getElementById('frameContext').src, 'resource')[0];
+
+        test_greater_than(entry.redirectStart, 0, 'redirectStart should be greater than 0 in same-origin redirect.');
+        test_equals(entry.redirectStart, entry.startTime, 'redirectStart should be equal to startTime in same-origin redirect.');
+        test_noless_than(entry.redirectEnd, entry.redirectStart, 'redirectEnd should be no less than redirectStart in same-origin redirect.');
+        test_noless_than(entry.fetchStart, entry.redirectEnd, 'fetchStart should be no less than redirectEnd in same-origin redirect.');
+        done();
+    }
+</script>
+
+</head>
+<body>
+<iframe id="frameContext" src="" style="width: 250px; height: 250px;"></iframe>
+<script>
+    let destUrl = '/common/redirect.py';
+    destUrl += '?location=/resource-timing/resources/blank_page_green.htm';
+
+    const frameContext = document.getElementById('frameContext');
+    frameContext.onload = onload_test;
+    frameContext.src = destUrl;
+</script>
+</body>
+</html>
