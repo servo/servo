@@ -20,8 +20,7 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use servo_arc::Arc;
-use std::cmp;
-use std::fmt;
+use std::{cmp, fmt, ptr};
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
@@ -1074,12 +1073,20 @@ impl<'table> TableCellStyleInfo<'table> {
         };
         {
             let cell_flow = &self.cell.block_flow;
+            let mut bg_ptr = ptr::null();
+
             // XXXManishearth the color should be resolved relative to the style itself
             // which we don't have here
-            let build_dl = |bg, state: &mut &mut DisplayListBuildState| {
+            let mut build_dl = |bg, state: &mut &mut DisplayListBuildState| {
+                // Don't redraw backgrounds that we've already drawn
+                if bg_ptr == bg as *const _ {
+                    return;
+                }
                 cell_flow.build_display_list_for_background_if_applicable_with_background(
                     state, bg, table_style.resolve_color(bg.background_color)
-                )
+                );
+
+                bg_ptr = bg as *const _;
             };
 
 
