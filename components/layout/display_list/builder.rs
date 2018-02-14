@@ -531,6 +531,18 @@ pub trait FragmentDisplayListBuilding {
         absolute_bounds: &Rect<Au>,
     );
 
+    /// Same as build_display_list_for_background_if_applicable, but lets you
+    /// override the actual background used
+    fn build_display_list_for_background_if_applicable_with_background(
+        &self,
+        state: &mut DisplayListBuildState,
+        style: &ComputedValues,
+        background: &style_structs::Background,
+        background_color: RGBA,
+        display_list_section: DisplayListSection,
+        absolute_bounds: &Rect<Au>,
+    );
+
     /// Determines where to place an element background image or gradient.
     ///
     /// Photos have their resolution as intrinsic size while gradients have
@@ -930,12 +942,27 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list_section: DisplayListSection,
         absolute_bounds: &Rect<Au>,
     ) {
+        let background = style.get_background();
+        let background_color = style.resolve_color(background.background_color);
+        // XXXManishearth the below method should ideally use an iterator over
+        // backgrounds
+        self.build_display_list_for_background_if_applicable_with_background(
+            state, style, background, background_color, display_list_section, absolute_bounds)
+    }
+
+    fn build_display_list_for_background_if_applicable_with_background(
+        &self,
+        state: &mut DisplayListBuildState,
+        style: &ComputedValues,
+        background: &style_structs::Background,
+        background_color: RGBA,
+        display_list_section: DisplayListSection,
+        absolute_bounds: &Rect<Au>,
+    ) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a fragment".
-        let background = style.get_background();
-        let background_color = style.resolve_color(background.background_color);
 
         // 'background-clip' determines the area within which the background is painted.
         // http://dev.w3.org/csswg/css-backgrounds-3/#the-background-clip
