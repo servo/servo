@@ -3,33 +3,26 @@
 <title></title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<textarea>g</textarea>
-<input type="text" value="foo">
-</input>
+<textarea>foo</textarea>
+<input type="text" value="foo"></input>
 <script>
-test(function() {
-    let textarea = document.querySelector('textarea');
-    assert_equals(textarea.selectionStart, 0);
-    assert_equals(textarea.selectionEnd, 0);
-}, "Default selectionStart and selectionEnd for textarea");
 
-test(function() {
-    let textarea = document.querySelector('input');
-    assert_equals(textarea.selectionStart, 0);
-    assert_equals(textarea.selectionEnd, 0);
-}, "Default selectionStart and selectionEnd for input");
+for (let el of [document.querySelector("textarea"), document.querySelector("input")]) {
+    test(function() {
+        assert_equals(el.selectionStart, 0);
+        assert_equals(el.selectionEnd, 0);
+    }, `Default selectionStart and selectionEnd for ${el}`);
 
-test(function() {
-    let textarea = document.querySelector('textarea');
-    textarea.value="g";
-    assert_equals(textarea.selectionStart, 0);
-    assert_equals(textarea.selectionEnd, 0);
-}, "selectionStart and selectionEnd do not change when same value set again");
+    test(function() {
+        el.value="foo";
+        assert_equals(el.selectionStart, 0);
+        assert_equals(el.selectionEnd, 0);
+    }, `selectionStart and selectionEnd do not change when same value set again for ${el}`);
 
-test(function() {
-    let textarea = document.querySelector('textarea');
-    textarea.value="G";
-    assert_equals(textarea.selectionStart, 1);
-    assert_equals(textarea.selectionEnd, 1);
-}, "selectionStart and selectionEnd change when value changed to upper case");
+    test(function() {
+        el.value="Foo";
+        assert_equals(el.selectionStart, 3);
+        assert_equals(el.selectionEnd, 3);
+    }, `selectionStart and selectionEnd change when value changed to upper case for ${el}`);
+  }
 </script>
