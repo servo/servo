@@ -764,143 +764,140 @@ impl PropertyDeclarationBlock {
             }
 
             // Step 3.3
-            let shorthands = declaration.shorthands();
-            if !shorthands.is_empty() {
-                // Step 3.3.1 is done by checking already_serialized while
-                // iterating below.
+            // Step 3.3.1 is done by checking already_serialized while
+            // iterating below.
 
-                // Step 3.3.2
-                for &shorthand in shorthands {
-                    let properties = shorthand.longhands();
+            // Step 3.3.2
+            for &shorthand in declaration.shorthands() {
+                let properties = shorthand.longhands();
 
-                    // Substep 2 & 3
-                    let mut current_longhands = SmallVec::<[_; 10]>::new();
-                    let mut important_count = 0;
-                    let mut found_system = None;
+                // Substep 2 & 3
+                let mut current_longhands = SmallVec::<[_; 10]>::new();
+                let mut important_count = 0;
+                let mut found_system = None;
 
-                    let is_system_font =
-                        shorthand == ShorthandId::Font &&
-                        self.declarations.iter().any(|l| {
-                            !already_serialized.contains(l.id()) &&
-                            l.get_system().is_some()
-                        });
+                let is_system_font =
+                    shorthand == ShorthandId::Font &&
+                    self.declarations.iter().any(|l| {
+                        !already_serialized.contains(l.id()) &&
+                        l.get_system().is_some()
+                    });
 
-                    if is_system_font {
-                        for (longhand, importance) in self.declaration_importance_iter() {
-                            if longhand.get_system().is_some() || longhand.is_default_line_height() {
-                                current_longhands.push(longhand);
-                                if found_system.is_none() {
-                                   found_system = longhand.get_system();
-                                }
-                                if importance.important() {
-                                    important_count += 1;
-                                }
+                if is_system_font {
+                    for (longhand, importance) in self.declaration_importance_iter() {
+                        if longhand.get_system().is_some() || longhand.is_default_line_height() {
+                            current_longhands.push(longhand);
+                            if found_system.is_none() {
+                               found_system = longhand.get_system();
                             }
-                        }
-                    } else {
-                        for (longhand, importance) in self.declaration_importance_iter() {
-                            if longhand.id().is_longhand_of(shorthand) {
-                                current_longhands.push(longhand);
-                                if importance.important() {
-                                    important_count += 1;
-                                }
+                            if importance.important() {
+                                important_count += 1;
                             }
-                        }
-                        // Substep 1:
-                        //
-                        // Assuming that the PropertyDeclarationBlock contains no
-                        // duplicate entries, if the current_longhands length is
-                        // equal to the properties length, it means that the
-                        // properties that map to shorthand are present in longhands
-                        if current_longhands.len() != properties.len() {
-                            continue;
                         }
                     }
-
-                    // Substep 4
-                    let is_important = important_count > 0;
-                    if is_important && important_count != current_longhands.len() {
+                } else {
+                    for (longhand, importance) in self.declaration_importance_iter() {
+                        if longhand.id().is_longhand_of(shorthand) {
+                            current_longhands.push(longhand);
+                            if importance.important() {
+                                important_count += 1;
+                            }
+                        }
+                    }
+                    // Substep 1:
+                    //
+                    // Assuming that the PropertyDeclarationBlock contains no
+                    // duplicate entries, if the current_longhands length is
+                    // equal to the properties length, it means that the
+                    // properties that map to shorthand are present in longhands
+                    if current_longhands.len() != properties.len() {
                         continue;
                     }
-                    let importance = if is_important {
-                        Importance::Important
-                    } else {
-                        Importance::Normal
-                    };
-
-                    // Substep 5 - Let value be the result of invoking serialize
-                    // a CSS value of current longhands.
-                    let appendable_value =
-                        match shorthand.get_shorthand_appendable_value(current_longhands.iter().cloned()) {
-                            None => continue,
-                            Some(appendable_value) => appendable_value,
-                        };
-
-                    // We avoid re-serializing if we're already an
-                    // AppendableValue::Css.
-                    let mut v = CssString::new();
-                    let value = match (appendable_value, found_system) {
-                        (AppendableValue::Css { css, with_variables }, _) => {
-                            debug_assert!(!css.is_empty());
-                            AppendableValue::Css {
-                                css: css,
-                                with_variables: with_variables,
-                            }
-                        }
-                        #[cfg(feature = "gecko")]
-                        (_, Some(sys)) => {
-                            sys.to_css(&mut CssWriter::new(&mut v))?;
-                            AppendableValue::Css {
-                                css: CssStringBorrow::from(&v),
-                                with_variables: false,
-                            }
-                        }
-                        (other, _) => {
-                            append_declaration_value(&mut v, other)?;
-
-                            // Substep 6
-                            if v.is_empty() {
-                                continue;
-                            }
-
-                            AppendableValue::Css {
-                                css: CssStringBorrow::from(&v),
-                                with_variables: false,
-                            }
-                        }
-                    };
-
-                    // Substeps 7 and 8
-                    // We need to check the shorthand whether it's an alias property or not.
-                    // If it's an alias property, it should be serialized like its longhand.
-                    if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) {
-                        append_serialization::<Cloned<slice::Iter< _>>, _>(
-                             dest,
-                             &property,
-                             value,
-                             importance,
-                             &mut is_first_serialization)?;
-                    } else {
-                        append_serialization::<Cloned<slice::Iter< _>>, _>(
-                             dest,
-                             &shorthand,
-                             value,
-                             importance,
-                             &mut is_first_serialization)?;
-                    }
-
-                    for current_longhand in &current_longhands {
-                        // Substep 9
-                        already_serialized.insert(current_longhand.id());
-                    }
-
-                    // FIXME(https://github.com/w3c/csswg-drafts/issues/1774)
-                    // The specification does not include an instruction to abort
-                    // the shorthand loop at this point, but doing so both matches
-                    // Gecko and makes sense since shorthands are checked in
-                    // preferred order.
-                    break;
                 }
+
+                // Substep 4
+                let is_important = important_count > 0;
+                if is_important && important_count != current_longhands.len() {
+                    continue;
+                }
+                let importance = if is_important {
+                    Importance::Important
+                } else {
+                    Importance::Normal
+                };
+
+                // Substep 5 - Let value be the result of invoking serialize
+                // a CSS value of current longhands.
+                let appendable_value =
+                    match shorthand.get_shorthand_appendable_value(current_longhands.iter().cloned()) {
+                        None => continue,
+                        Some(appendable_value) => appendable_value,
+                    };
+
+                // We avoid re-serializing if we're already an
+                // AppendableValue::Css.
+                let mut v = CssString::new();
+                let value = match (appendable_value, found_system) {
+                    (AppendableValue::Css { css, with_variables }, _) => {
+                        debug_assert!(!css.is_empty());
+                        AppendableValue::Css {
+                            css: css,
+                            with_variables: with_variables,
+                        }
+                    }
+                    #[cfg(feature = "gecko")]
+                    (_, Some(sys)) => {
+                        sys.to_css(&mut CssWriter::new(&mut v))?;
+                        AppendableValue::Css {
+                            css: CssStringBorrow::from(&v),
+                            with_variables: false,
+                        }
+                    }
+                    (other, _) => {
+                        append_declaration_value(&mut v, other)?;
+
+                        // Substep 6
+                        if v.is_empty() {
+                            continue;
+                        }
+
+                        AppendableValue::Css {
+                            css: CssStringBorrow::from(&v),
+                            with_variables: false,
+                        }
+                    }
+                };
+
+                // Substeps 7 and 8
+                // We need to check the shorthand whether it's an alias property or not.
+                // If it's an alias property, it should be serialized like its longhand.
+                if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) {
+                    append_serialization::<Cloned<slice::Iter< _>>, _>(
+                         dest,
+                         &property,
+                         value,
+                         importance,
+                         &mut is_first_serialization)?;
+                } else {
+                    append_serialization::<Cloned<slice::Iter< _>>, _>(
+                         dest,
+                         &shorthand,
+                         value,
+                         importance,
+                         &mut is_first_serialization)?;
+                }
+
+                for current_longhand in &current_longhands {
+                    // Substep 9
+                    already_serialized.insert(current_longhand.id());
+                }
+
+                // FIXME(https://github.com/w3c/csswg-drafts/issues/1774)
+                // The specification does not include an instruction to abort
+                // the shorthand loop at this point, but doing so both matches
+                // Gecko and makes sense since shorthands are checked in
+                // preferred order.
+                break;
             }
 
             // Step 3.3.4
