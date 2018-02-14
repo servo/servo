@@ -413,9 +413,111 @@ pub mod animated_properties {
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
-/// A longhand or shorthand porperty
+/// A longhand or shorthand property.
 #[derive(Clone, Copy, Debug)]
 pub struct NonCustomPropertyId(usize);
+
+impl NonCustomPropertyId {
+    #[cfg(feature = "gecko")]
+    fn to_nscsspropertyid(self) -> nsCSSPropertyID {
+        static MAP: [nsCSSPropertyID; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
+            % for property in data.longhands:
+                ${helpers.to_nscsspropertyid(property.ident)},
+            % endfor
+            % for property in data.shorthands:
+                ${helpers.to_nscsspropertyid(property.ident)},
+            % endfor
+            % for property in data.all_aliases():
+                ${helpers.alias_to_nscsspropertyid(property.ident)},
+            % endfor
+        ];
+
+        MAP[self.0]
+    }
+
+    fn allowed_in(self, context: &ParserContext) -> bool {
+        debug_assert!(
+            matches!(
+                context.rule_type(),
+                CssRuleType::Keyframe | CssRuleType::Page | CssRuleType::Style
+            ),
+            "Declarations are only expected inside a keyframe, page, or style rule."
+        );
+
+        <% id_set = static_non_custom_property_id_set %>
+
+        ${id_set("DISALLOWED_IN_KEYFRAME_BLOCK", lambda p: not p.allowed_in_keyframe_block)}
+        ${id_set("DISALLOWED_IN_PAGE_RULE", lambda p: not p.allowed_in_page_rule)}
+        match context.rule_type() {
+            CssRuleType::Keyframe if DISALLOWED_IN_KEYFRAME_BLOCK.contains(self) => {
+                return false;
+            }
+            CssRuleType::Page if DISALLOWED_IN_PAGE_RULE.contains(self) => {
+                return false;
+            }
+            _ => {}
+        }
+
+        // The semantics of these are kinda hard to reason about, what follows
+        // is a description of the different combinations that can happen with
+        // these three sets.
+        //
+        // Experimental properties are generally controlled by prefs, but an
+        // experimental property explicitly enabled in certain context (UA or
+        // chrome sheets) is always usable in the context regardless of the
+        // pref value.
+        //
+        // Non-experimental properties are either normal properties which are
+        // usable everywhere, or internal-only properties which are only usable
+        // in certain context they are explicitly enabled in.
+        ${id_set("ENABLED_IN_UA_SHEETS", lambda p: p.explicitly_enabled_in_ua_sheets())}
+        ${id_set("ENABLED_IN_CHROME", lambda p: p.explicitly_enabled_in_chrome())}
+        ${id_set("EXPERIMENTAL", lambda p: p.experimental(product))}
+        ${id_set("ALWAYS_ENABLED", lambda p: (not p.experimental(product)) and p.enabled_in_content())}
+
+        let passes_pref_check = || {
+            % if product == "servo":
+                static PREF_NAME: [Option< &str>; ${len(data.longhands) + len(data.shorthands)}] = [
+                    % for property in data.longhands + data.shorthands:
+                        % if property.servo_pref:
+                            Some("${property.servo_pref}"),
+                        % else:
+                            None,
+                        % endif
+                    % endfor
+                ];
+                let pref = match PREF_NAME[self.0] {
+                    None => return true,
+                    Some(pref) => pref,
+                };
+
+                PREFS.get(pref).as_boolean().unwrap_or(false)
+            % else:
+                unsafe { structs::nsCSSProps_gPropertyEnabled[self.to_nscsspropertyid() as usize] }
+            % endif
+        };
+
+        if ALWAYS_ENABLED.contains(self) {
+            return true
+        }
+
+        if EXPERIMENTAL.contains(self) && passes_pref_check() {
+            return true
+        }
+
+        if context.stylesheet_origin == Origin::UserAgent &&
+            ENABLED_IN_UA_SHEETS.contains(self)
+        {
+            return true
+        }
+
+        if context.chrome_rules_enabled() && ENABLED_IN_CHROME.contains(self) {
+            return true
+        }
+
+        false
+    }
+}
 
 impl From<LonghandId> for NonCustomPropertyId {
     fn from(id: LonghandId) -> Self {
@@ -816,14 +918,9 @@ impl LonghandId {
 
     /// Converts from a LonghandId to an adequate nsCSSPropertyID.
     #[cfg(feature = "gecko")]
+    #[inline]
     pub fn to_nscsspropertyid(self) -> nsCSSPropertyID {
-        match self {
-            % for property in data.longhands:
-            LonghandId::${property.camel_case} => {
-                ${helpers.to_nscsspropertyid(property.ident)}
-            }
-            % endfor
-        }
+        NonCustomPropertyId::from(self).to_nscsspropertyid()
     }
 
     #[cfg(feature = "gecko")]
@@ -1038,14 +1135,9 @@ impl ShorthandId {
 
     /// Converts from a ShorthandId to an adequate nsCSSPropertyID.
     #[cfg(feature = "gecko")]
+    #[inline]
     pub fn to_nscsspropertyid(self) -> nsCSSPropertyID {
-        match self {
-            % for property in data.shorthands:
-            ShorthandId::${property.camel_case} => {
-                ${helpers.to_nscsspropertyid(property.ident)}
-            }
-            % endfor
-        }
+        NonCustomPropertyId::from(self).to_nscsspropertyid()
     }
 
     /// Get the longhand ids that form this shorthand.
@@ -1521,19 +1613,6 @@ impl PropertyId {
         }
     }
 
-    /// Returns an nsCSSPropertyID.
-    #[cfg(feature = "gecko")]
-    #[allow(non_upper_case_globals)]
-    pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
-        match *self {
-            PropertyId::Longhand(id) => Ok(id.to_nscsspropertyid()),
-            PropertyId::Shorthand(id) => Ok(id.to_nscsspropertyid()),
-            PropertyId::LonghandAlias(_, alias) => Ok(alias.to_nscsspropertyid()),
-            PropertyId::ShorthandAlias(_, alias) => Ok(alias.to_nscsspropertyid()),
-            _ => Err(())
-        }
-    }
-
     /// Given this property id, get it either as a shorthand or as a
     /// `PropertyDeclarationId`.
     pub fn as_shorthand(&self) -> Result<ShorthandId, PropertyDeclarationId> {
@@ -1571,86 +1650,7 @@ impl PropertyId {
             PropertyId::LonghandAlias(_, alias_id) => alias_id.into(),
         };
 
-        debug_assert!(
-            matches!(
-                context.rule_type(),
-                CssRuleType::Keyframe | CssRuleType::Page | CssRuleType::Style
-            ),
-            "Declarations are only expected inside a keyframe, page, or style rule."
-        );
-
-        <% id_set = static_non_custom_property_id_set %>
-
-        ${id_set("DISALLOWED_IN_KEYFRAME_BLOCK", lambda p: not p.allowed_in_keyframe_block)}
-        ${id_set("DISALLOWED_IN_PAGE_RULE", lambda p: not p.allowed_in_page_rule)}
-        match context.rule_type() {
-            CssRuleType::Keyframe if DISALLOWED_IN_KEYFRAME_BLOCK.contains(id) => {
-                return false;
-            }
-            CssRuleType::Page if DISALLOWED_IN_PAGE_RULE.contains(id) => {
-                return false;
-            }
-            _ => {}
-        }
-
-        // The semantics of these are kinda hard to reason about, what follows
-        // is a description of the different combinations that can happen with
-        // these three sets.
-        //
-        // Experimental properties are generally controlled by prefs, but an
-        // experimental property explicitly enabled in certain context (UA or
-        // chrome sheets) is always usable in the context regardless of the
-        // pref value.
-        //
-        // Non-experimental properties are either normal properties which are
-        // usable everywhere, or internal-only properties which are only usable
-        // in certain context they are explicitly enabled in.
-        ${id_set("ENABLED_IN_UA_SHEETS", lambda p: p.explicitly_enabled_in_ua_sheets())}
-        ${id_set("ENABLED_IN_CHROME", lambda p: p.explicitly_enabled_in_chrome())}
-        ${id_set("EXPERIMENTAL", lambda p: p.experimental(product))}
-        ${id_set("ALWAYS_ENABLED", lambda p: (not p.experimental(product)) and p.enabled_in_content())}
-
-        let passes_pref_check = || {
-            % if product == "servo":
-                static PREF_NAME: [Option< &str>; ${len(data.longhands) + len(data.shorthands)}] = [
-                    % for property in data.longhands + data.shorthands:
-                        % if property.servo_pref:
-                            Some("${property.servo_pref}"),
-                        % else:
-                            None,
-                        % endif
-                    % endfor
-                ];
-                let pref = match PREF_NAME[id.0] {
-                    None => return true,
-                    Some(pref) => pref,
-                };
-
-                PREFS.get(pref).as_boolean().unwrap_or(false)
-            % else:
-                unsafe { structs::nsCSSProps_gPropertyEnabled[self.to_nscsspropertyid().unwrap() as usize] }
-            % endif
-        };
-
-        if ALWAYS_ENABLED.contains(id) {
-            return true
-        }
-
-        if EXPERIMENTAL.contains(id) && passes_pref_check() {
-            return true
-        }
-
-        if context.stylesheet_origin == Origin::UserAgent &&
-            ENABLED_IN_UA_SHEETS.contains(id)
-        {
-            return true
-        }
-
-        if context.chrome_rules_enabled() && ENABLED_IN_CHROME.contains(id) {
-            return true
-        }
-
-        false
+        id.allowed_in(context)
     }
 }
 
@@ -3856,23 +3856,6 @@ impl fmt::Debug for AliasId {
             % endfor
         };
         formatter.write_str(name)
-    }
-}
-
-impl AliasId {
-    /// Returns an nsCSSPropertyID.
-    #[cfg(feature = "gecko")]
-    #[allow(non_upper_case_globals)]
-    pub fn to_nscsspropertyid(&self) -> nsCSSPropertyID {
-        use gecko_bindings::structs::*;
-
-        match *self {
-            % for property in data.all_aliases():
-                AliasId::${property.camel_case} => {
-                    ${helpers.alias_to_nscsspropertyid(property.ident)}
-                },
-            % endfor
-        }
     }
 }
 
