@@ -18,6 +18,7 @@ use rule_cache::RuleCacheConditions;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
 use std::cell::RefCell;
+use std::cmp;
 use std::f32;
 use std::fmt::{self, Write};
 #[cfg(feature = "servo")]
@@ -25,6 +26,7 @@ use std::sync::Arc;
 use style_traits::{CssWriter, ToCss};
 use style_traits::cursor::CursorKind;
 use super::{CSSFloat, CSSInteger};
+use super::animated::ToAnimatedValue;
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackSize as GenericTrackSize, TrackList as GenericTrackList};
@@ -427,6 +429,20 @@ pub type Number = CSSFloat;
 /// A wrapper of Number, but the value >= 0.
 pub type NonNegativeNumber = NonNegative<CSSFloat>;
 
+impl ToAnimatedValue for NonNegativeNumber {
+    type AnimatedValue = CSSFloat;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.max(0.).into()
+    }
+}
+
 impl From<CSSFloat> for NonNegativeNumber {
     #[inline]
     fn from(number: CSSFloat) -> NonNegativeNumber {
@@ -443,6 +459,20 @@ impl From<NonNegativeNumber> for CSSFloat {
 
 /// A wrapper of Number, but the value >= 1.
 pub type GreaterThanOrEqualToOneNumber = GreaterThanOrEqualToOne<CSSFloat>;
+
+impl ToAnimatedValue for GreaterThanOrEqualToOneNumber {
+    type AnimatedValue = CSSFloat;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.max(1.).into()
+    }
+}
 
 impl From<CSSFloat> for GreaterThanOrEqualToOneNumber {
     #[inline]
@@ -510,6 +540,20 @@ impl IntegerOrAuto {
 
 /// A wrapper of Integer, but only accept a value >= 1.
 pub type PositiveInteger = GreaterThanOrEqualToOne<CSSInteger>;
+
+impl ToAnimatedValue for PositiveInteger {
+    type AnimatedValue = CSSInteger;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        cmp::max(animated, 1).into()
+    }
+}
 
 impl From<CSSInteger> for PositiveInteger {
     #[inline]

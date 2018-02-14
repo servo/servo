@@ -11,18 +11,13 @@
 use app_units::Au;
 use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
-use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 #[cfg(feature = "servo")]
 use values::computed::ComputedUrl;
-use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
 use values::computed::NonNegativeLength as ComputedNonNegativeLength;
-use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
-use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
-use values::computed::PositiveInteger as ComputedPositiveInteger;
 use values::specified::url::SpecifiedUrl;
 
 pub mod color;
@@ -266,34 +261,6 @@ trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
 
-impl ToAnimatedValue for ComputedNonNegativeNumber {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.max(0.).into()
-    }
-}
-
-impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.max(1.).into()
-    }
-}
-
 impl ToAnimatedValue for ComputedNonNegativeLength {
     type AnimatedValue = Self;
 
@@ -305,34 +272,6 @@ impl ToAnimatedValue for ComputedNonNegativeLength {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         ComputedNonNegativeLength::new(animated.px().max(0.))
-    }
-}
-
-impl ToAnimatedValue for ComputedPositiveInteger {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        max(animated.0, 1).into()
-    }
-}
-
-impl ToAnimatedValue for ComputedNonNegativeLengthOrPercentage {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.clamp_to_non_negative().into()
     }
 }
 
