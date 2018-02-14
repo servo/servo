@@ -996,8 +996,8 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                 let rowgroup_style = row_info.rowgroup.map(|r| r.style().get_background());
                 let row_style = row_info.row.style().get_background();
                 let cell = cell.as_mut_table_cell();
-                let (col_style, colgroup_style) = if let Some(column_style)
-                        = self.column_styles.get(self.column_index_relative as usize) {
+                let (col_style, colgroup_style) = if let Some(column_style) =
+                        self.column_styles.get(self.column_index_relative as usize) {
                     let styles = (column_style.col_style.clone(), column_style.colgroup_style.clone());
                     // FIXME incoming_rowspan
                     let cell_span = cell.fragment().column_span();
@@ -1008,8 +1008,8 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                         // move to the next column
                         self.column_index_relative += 1;
                         self.column_index_relative_offset -= current_col.span;
-                        if let Some(column_style)
-                            = self.column_styles.get(self.column_index_relative as usize) {
+                        if let Some(column_style) =
+                            self.column_styles.get(self.column_index_relative as usize) {
                             current_col = column_style;
                         } else {
                             break;
@@ -1052,4 +1052,3 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
         self.next()
     }
 }
-

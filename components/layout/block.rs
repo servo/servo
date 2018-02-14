@@ -38,6 +38,7 @@ use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloated
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow, FragmentationContext, FlowFlags};
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow, FragmentFlags};
+use gfx::display_list::DisplayListSection;
 use gfx_traits::print_tree::PrintTree;
 use incremental::RelayoutMode;
 use layout_debug;
@@ -1792,6 +1793,23 @@ impl BlockFlow {
             MaybeAuto::from_style(offsets.block_end, containing_block_size.inline),
             MaybeAuto::from_style(offsets.inline_start, containing_block_size.inline));
         as_margins.to_physical(writing_mode)
+    }
+
+    pub fn background_border_section(&self) -> DisplayListSection {
+        if self.base.flags.is_float() {
+            DisplayListSection::BackgroundAndBorders
+        } else if self.base
+            .flags
+            .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+        {
+            if self.fragment.establishes_stacking_context() {
+                DisplayListSection::BackgroundAndBorders
+            } else {
+                DisplayListSection::BlockBackgroundsAndBorders
+            }
+        } else {
+            DisplayListSection::BlockBackgroundsAndBorders
+        }
     }
 
 }
