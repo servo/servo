@@ -1052,4 +1052,3 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
         self.next()
     }
 }
-

@@ -2863,20 +2863,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         state: &mut DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
     ) {
-        let background_border_section = if self.base.flags.is_float() {
-            DisplayListSection::BackgroundAndBorders
-        } else if self.base
-            .flags
-            .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
-        {
-            if self.fragment.establishes_stacking_context() {
-                DisplayListSection::BackgroundAndBorders
-            } else {
-                DisplayListSection::BlockBackgroundsAndBorders
-            }
-        } else {
-            DisplayListSection::BlockBackgroundsAndBorders
-        };
+        let background_border_section = self.background_border_section();
 
         state.processing_scrolling_overflow_element = self.has_scrolling_overflow();
 
