@@ -4,23 +4,24 @@
 <meta charset='utf-8'>
 </head>
 <body>
-    <p id="pid1" style='color:red;'>Paragraph tag</p>
-    <p id="pid2" style='color:red;'>Paragraph tag</p>
 <script>
 window.onload = function(){
-    var start_test = function(targetNode) {
+
+	var script = document.createElement("script");
+	script.setAttribute("attr", "val");
+
+    var start_test = function(targetNode,attr,val) {
         var start = performance.now();
-        targetNode.setAttribute('style', 'color:blue;');
+        targetNode.setAttribute(attr, val);
         var stop = performance.now();
         console.log('Time taken:'+ (stop - start));
     };
-    var targetNode1 = document.getElementById("pid1");
-    var targetNode2 = document.getElementById("pid2");
+    
     var config = { attributes: true, childList: true };
     console.log('Mutation Observer Algorithm performance testing...');
 
     console.log('\nMutation performed without observer ->');
-    start_test(targetNode1);
+    start_test(script,"attr","val1");
 
     console.log('\nMutation performed with observer ->');
     var callback = function(mutationsList) {
@@ -34,8 +35,8 @@ window.onload = function(){
         }
     };
     var observer = new MutationObserver(callback);
-    observer.observe(targetNode2, config);
-    start_test(targetNode2);
+    observer.observe(script, config);
+    start_test(script,"attr","val2");
 }
 </script>
 </body>
