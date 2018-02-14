@@ -6,10 +6,9 @@
 
 use euclid::{Transform3D, Vector3D};
 use num_traits::Zero;
-use super::{CSSFloat, Either};
+use super::CSSFloat;
 use values::animated::ToAnimatedZero;
 use values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
-use values::computed::{LengthOrNumber, LengthOrPercentageOrNumber};
 use values::generics::transform::{self, Matrix as GenericMatrix, Matrix3D as GenericMatrix3D};
 use values::generics::transform::{Transform as GenericTransform, TransformOperation as GenericTransformOperation};
 use values::generics::transform::Rotate as GenericRotate;
@@ -26,9 +25,7 @@ pub type TransformOperation = GenericTransformOperation<
     Number,
     Length,
     Integer,
-    LengthOrNumber,
     LengthOrPercentage,
-    LengthOrPercentageOrNumber,
 >;
 /// A computed CSS `transform`
 pub type Transform = GenericTransform<TransformOperation>;
@@ -56,12 +53,8 @@ impl TransformOrigin {
 
 /// computed value of matrix3d()
 pub type Matrix3D = GenericMatrix3D<Number>;
-/// computed value of matrix3d() in -moz-transform
-pub type PrefixedMatrix3D = GenericMatrix3D<Number, LengthOrPercentageOrNumber, LengthOrNumber>;
 /// computed value of matrix()
 pub type Matrix = GenericMatrix<Number>;
-/// computed value of matrix() in -moz-transform
-pub type PrefixedMatrix = GenericMatrix<Number, LengthOrPercentageOrNumber>;
 
 // we rustfmt_skip here because we want the matrices to look like
 // matrices instead of being split across lines
@@ -96,21 +89,6 @@ impl Matrix3D {
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
-impl PrefixedMatrix3D {
-    #[inline]
-    /// Get an identity matrix
-    pub fn identity() -> Self {
-        Self {
-            m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
-            m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
-            m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
-            m41: Either::First(0.), m42: Either::First(0.),
-            m43: Either::First(Length::new(0.)), m44: 1.0
-        }
-    }
-}
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
 impl Matrix {
     #[inline]
     /// Get an identity matrix
@@ -132,20 +110,6 @@ impl From<Matrix> for Matrix3D {
             m21: m.c, m22: m.d, m23: 0.0, m24: 0.0,
             m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
             m41: m.e, m42: m.f, m43: 0.0, m44: 1.0
-        }
-    }
-}
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
-impl PrefixedMatrix {
-    #[inline]
-    /// Get an identity matrix
-    pub fn identity() -> Self {
-        Self {
-            a: 1.,                    c: 0., /*            0      0 */
-            b: 0.,                    d: 1., /*            0      0 */
-            /* 0                      0                    1      0 */
-            e: Either::First(0.), f: Either::First(0.), /* 0      1 */
         }
     }
 }
@@ -213,17 +177,7 @@ impl ToAnimatedZero for TransformOperation {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
             GenericTransformOperation::Matrix3D(..) => Ok(GenericTransformOperation::Matrix3D(Matrix3D::identity())),
-            GenericTransformOperation::PrefixedMatrix3D(..) => {
-                Ok(GenericTransformOperation::PrefixedMatrix3D(
-                    PrefixedMatrix3D::identity(),
-                ))
-            },
             GenericTransformOperation::Matrix(..) => Ok(GenericTransformOperation::Matrix(Matrix::identity())),
-            GenericTransformOperation::PrefixedMatrix(..) => {
-                Ok(GenericTransformOperation::PrefixedMatrix(
-                    PrefixedMatrix::identity(),
-                ))
-            },
             GenericTransformOperation::Skew(sx, sy) => {
                 Ok(GenericTransformOperation::Skew(
                     sx.to_animated_zero()?,
