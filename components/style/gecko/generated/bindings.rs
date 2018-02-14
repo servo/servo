@@ -1472,6 +1472,9 @@ extern "C" {
     pub fn Gecko_CSSValue_SetInt(css_value: nsCSSValueBorrowedMut, integer: i32, unit: nsCSSUnit);
 }
 extern "C" {
+    pub fn Gecko_CSSValue_SetFloat(css_value: nsCSSValueBorrowedMut, value: f32, unit: nsCSSUnit);
+}
+extern "C" {
     pub fn Gecko_CSSValue_SetPair(
         css_value: nsCSSValueBorrowedMut,
         xvalue: nsCSSValueBorrowed,

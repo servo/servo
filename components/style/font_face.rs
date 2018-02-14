@@ -26,7 +26,7 @@ use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
-use values::specified::font::SpecifiedFontFeatureSettings;
+use values::specified::font::{SpecifiedFontFeatureSettings, FontVariationSettings};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -235,6 +235,12 @@ macro_rules! is_descriptor_enabled {
             mozilla::StylePrefs_sFontDisplayEnabled
         }
     };
+    ("font-variation-settings") => {
+        unsafe {
+            use gecko_bindings::structs::mozilla;
+            mozilla::StylePrefs_sFontVariationsEnabled
+        }
+    };
     ($name: tt) => { true }
 }
 
@@ -245,7 +251,7 @@ macro_rules! font_face_descriptors_common {
         /// Data inside a `@font-face` rule.
         ///
         /// <https://drafts.csswg.org/css-fonts/#font-face-rule>
-        #[derive(Clone, Debug, Eq, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
         pub struct FontFaceRuleData {
             $(
                 #[$doc]
@@ -403,6 +409,11 @@ font_face_descriptors! {
         /// The feature settings of this font face.
         "font-feature-settings" feature_settings / mFontFeatureSettings: SpecifiedFontFeatureSettings = {
             font_feature_settings::SpecifiedValue::normal()
+        },
+
+        /// The variation settings of this font face.
+        "font-variation-settings" variation_settings / mFontVariationSettings: FontVariationSettings = {
+            font_variation_settings::SpecifiedValue::normal()
         },
 
         /// The language override of this font face.

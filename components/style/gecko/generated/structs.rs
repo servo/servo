@@ -10231,6 +10231,10 @@ pub mod root {
             pub static mut StylePrefs_sGridTemplateSubgridValueEnabled: bool;
         }
         extern "C" {
+            #[link_name = "\u{1}_ZN7mozilla10StylePrefs22sFontVariationsEnabledE"]
+            pub static mut StylePrefs_sFontVariationsEnabled: bool;
+        }
+        extern "C" {
             #[link_name = "\u{1}_ZN7mozilla10StylePrefs22sEmulateMozBoxWithFlexE"]
             pub static mut StylePrefs_sEmulateMozBoxWithFlex: bool;
         }
@@ -11885,6 +11889,7 @@ pub mod root {
             pub mSrc: root::nsCSSValue,
             pub mUnicodeRange: root::nsCSSValue,
             pub mFontFeatureSettings: root::nsCSSValue,
+            pub mFontVariationSettings: root::nsCSSValue,
             pub mFontLanguageOverride: root::nsCSSValue,
             pub mDisplay: root::nsCSSValue,
         }
@@ -11896,7 +11901,7 @@ pub mod root {
         fn bindgen_test_layout_CSSFontFaceDescriptors() {
             assert_eq!(
                 ::std::mem::size_of::<CSSFontFaceDescriptors>(),
-                144usize,
+                160usize,
                 concat!("Size of: ", stringify!(CSSFontFaceDescriptors))
             );
             assert_eq!(
@@ -11992,10 +11997,23 @@ pub mod root {
             );
             assert_eq!(
                 unsafe {
-                    &(*(::std::ptr::null::<CSSFontFaceDescriptors>())).mFontLanguageOverride
+                    &(*(::std::ptr::null::<CSSFontFaceDescriptors>())).mFontVariationSettings
                         as *const _ as usize
                 },
                 112usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(CSSFontFaceDescriptors),
+                    "::",
+                    stringify!(mFontVariationSettings)
+                )
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<CSSFontFaceDescriptors>())).mFontLanguageOverride
+                        as *const _ as usize
+                },
+                128usize,
                 concat!(
                     "Offset of field: ",
                     stringify!(CSSFontFaceDescriptors),
@@ -12007,7 +12025,7 @@ pub mod root {
                 unsafe {
                     &(*(::std::ptr::null::<CSSFontFaceDescriptors>())).mDisplay as *const _ as usize
                 },
-                128usize,
+                144usize,
                 concat!(
                     "Offset of field: ",
                     stringify!(CSSFontFaceDescriptors),
@@ -21749,9 +21767,10 @@ pub mod root {
         eCSSFontDesc_Src = 4,
         eCSSFontDesc_UnicodeRange = 5,
         eCSSFontDesc_FontFeatureSettings = 6,
-        eCSSFontDesc_FontLanguageOverride = 7,
-        eCSSFontDesc_Display = 8,
-        eCSSFontDesc_COUNT = 9,
+        eCSSFontDesc_FontVariationSettings = 7,
+        eCSSFontDesc_FontLanguageOverride = 8,
+        eCSSFontDesc_Display = 9,
+        eCSSFontDesc_COUNT = 10,
     }
     #[repr(i32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -37537,7 +37556,7 @@ pub mod root {
     fn bindgen_test_layout_nsCSSFontFaceStyleDecl() {
         assert_eq!(
             ::std::mem::size_of::<nsCSSFontFaceStyleDecl>(),
-            176usize,
+            192usize,
             concat!("Size of: ", stringify!(nsCSSFontFaceStyleDecl))
         );
         assert_eq!(
@@ -37599,7 +37618,7 @@ pub mod root {
     fn bindgen_test_layout_nsCSSFontFaceRule() {
         assert_eq!(
             ::std::mem::size_of::<nsCSSFontFaceRule>(),
-            240usize,
+            256usize,
             concat!("Size of: ", stringify!(nsCSSFontFaceRule))
         );
         assert_eq!(
