@@ -531,6 +531,13 @@ impl Flow for TableFlow {
         };
 
         self.block_flow.build_display_list_for_block(state, border_painting_mode);
+
+        let column_styles = self.column_styles();
+        let iter = TableCellStyleIterator::new(&mut self.block_flow.base, column_styles);
+        let cv = self.block_flow.fragment.style();
+        for mut style in iter {
+            style.build_display_list(state, cv)
+        }
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
@@ -959,9 +966,8 @@ struct TableCellStyleIteratorRowInfo<'table> {
 }
 
 impl<'table> TableCellStyleIterator<'table> {
-    fn new(table: &'table mut TableFlow) -> Self {
-        let column_styles = table.column_styles();
-        let mut row_iterator = TableRowAndGroupIterator::new(&mut table.block_flow.base);
+    fn new(base: &'table mut BaseFlow, column_styles: Vec<ColumnStyle>) -> Self {
+        let mut row_iterator = TableRowAndGroupIterator::new(base);
         let row_info = if let Some((group, row)) = row_iterator.next() {
             Some(TableCellStyleIteratorRowInfo {
                 row: &row.block_flow.fragment,
@@ -1000,7 +1006,7 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                         self.column_styles.get(self.column_index_relative as usize) {
                     let styles = (column_style.col_style.clone(), column_style.colgroup_style.clone());
                     // FIXME incoming_rowspan
-                    let cell_span = cell.fragment().column_span();
+                    let cell_span = cell.column_span;
 
                     let mut current_col = column_style;
                     self.column_index_relative_offset += cell_span;
@@ -1050,5 +1056,47 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
             return None
         }
         self.next()
+    }
+}
+
+impl<'table> TableCellStyleInfo<'table> {
+    fn build_display_list(&mut self, mut state: &mut DisplayListBuildState, table_style: &'table ComputedValues) {
+        if !self.cell.visible {
+            return
+        }
+        let border_painting_mode = match self.cell.block_flow
+                                             .fragment
+                                             .style
+                                             .get_inheritedtable()
+                                             .border_collapse {
+            border_collapse::T::Separate => BorderPaintingMode::Separate,
+            border_collapse::T::Collapse => BorderPaintingMode::Collapse(&self.cell.collapsed_borders),
+        };
+        {
+            let cell_flow = &self.cell.block_flow;
+            // XXXManishearth the color should be resolved relative to the style itself
+            // which we don't have here
+            let build_dl = |bg, state: &mut &mut DisplayListBuildState| {
+                cell_flow.build_display_list_for_background_if_applicable_with_background(
+                    state, bg, table_style.resolve_color(bg.background_color)
+                )
+            };
+
+
+            build_dl(table_style.get_background(), &mut state);
+
+            if let Some(ref bg) = self.colgroup_style {
+                build_dl(&bg, &mut state);
+            }
+            if let Some(ref bg) = self.col_style {
+                build_dl(&bg, &mut state);
+            }
+            if let Some(ref bg) = self.rowgroup_style {
+                build_dl(bg, &mut state);
+            }
+            build_dl(self.row_style, &mut state);
+        }
+
+        self.cell.block_flow.build_display_list_for_block(state, border_painting_mode)
     }
 }

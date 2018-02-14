@@ -2330,6 +2330,12 @@ pub trait BlockFlowDisplayListBuilding {
         border_painting_mode: BorderPaintingMode,
     );
 
+    fn build_display_list_for_background_if_applicable_with_background(
+        &self,
+        state: &mut DisplayListBuildState,
+        background: &style_structs::Background,
+        background_color: RGBA);
+
     fn block_stacking_context_type(
         &self,
         flags: StackingContextCollectionFlags,
@@ -2890,6 +2896,22 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             .build_display_items_for_debugging_tint(state, self.fragment.node);
 
         state.processing_scrolling_overflow_element = false;
+    }
+
+    fn build_display_list_for_background_if_applicable_with_background(
+        &self,
+        state: &mut DisplayListBuildState,
+        background: &style_structs::Background,
+        background_color: RGBA) {
+        let stacking_relative_border_box =
+            self.base.stacking_relative_border_box_for_display_list(&self.fragment);
+        let background_border_section = self.background_border_section();
+
+        self.fragment.build_display_list_for_background_if_applicable_with_background(
+            state, self.fragment.style(), background, background_color,
+            background_border_section, &stacking_relative_border_box
+        )
+
     }
 
     #[inline]

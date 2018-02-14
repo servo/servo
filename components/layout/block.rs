@@ -1811,7 +1811,6 @@ impl BlockFlow {
             DisplayListSection::BlockBackgroundsAndBorders
         }
     }
-
 }
 
 impl Flow for BlockFlow {
