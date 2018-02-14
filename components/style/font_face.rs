@@ -331,8 +331,7 @@ macro_rules! font_face_descriptors {
             $( #[$m_doc: meta] $m_name: tt $m_ident: ident / $m_gecko_ident: ident: $m_ty: ty, )*
         ]
         optional descriptors = [
-            $( #[$o_doc: meta] $o_name: tt $o_ident: ident / $o_gecko_ident: ident: $o_ty: ty =
-                $o_initial: expr, )*
+            $( #[$o_doc: meta] $o_name: tt $o_ident: ident / $o_gecko_ident: ident: $o_ty: ty, )*
         ]
     ) => {
         font_face_descriptors_common! {
@@ -364,21 +363,11 @@ macro_rules! font_face_descriptors {
                     self.0 .$m_ident.as_ref().unwrap()
                 }
             )*
-            $(
-                #[$o_doc]
-                pub fn $o_ident(&self) -> $o_ty {
-                    if let Some(ref value) = self.0 .$o_ident {
-                        value.clone()
-                    } else {
-                        $o_initial
-                    }
-                }
-            )*
         }
     }
 }
 
-/// css-name rust_identifier: Type = initial_value,
+/// css-name rust_identifier: Type,
 #[cfg(feature = "gecko")]
 font_face_descriptors! {
     mandatory descriptors = [
@@ -390,36 +379,28 @@ font_face_descriptors! {
     ]
     optional descriptors = [
         /// The style of this font face
-        "font-style" style / mStyle: font_style::T = font_style::T::normal,
+        "font-style" style / mStyle: font_style::T,
 
         /// The weight of this font face
-        "font-weight" weight / mWeight: FontWeight = FontWeight::Normal,
+        "font-weight" weight / mWeight: FontWeight,
 
         /// The stretch of this font face
-        "font-stretch" stretch / mStretch: font_stretch::T = font_stretch::T::normal,
+        "font-stretch" stretch / mStretch: font_stretch::T,
 
         /// The display of this font face
-        "font-display" display / mDisplay: FontDisplay = FontDisplay::Auto,
+        "font-display" display / mDisplay: FontDisplay,
 
         /// The ranges of code points outside of which this font face should not be used.
-        "unicode-range" unicode_range / mUnicodeRange: Vec<UnicodeRange> = vec![
-            UnicodeRange { start: 0, end: 0x10FFFF }
-        ],
+        "unicode-range" unicode_range / mUnicodeRange: Vec<UnicodeRange>,
 
         /// The feature settings of this font face.
-        "font-feature-settings" feature_settings / mFontFeatureSettings: SpecifiedFontFeatureSettings = {
-            font_feature_settings::SpecifiedValue::normal()
-        },
+        "font-feature-settings" feature_settings / mFontFeatureSettings: SpecifiedFontFeatureSettings,
 
         /// The variation settings of this font face.
-        "font-variation-settings" variation_settings / mFontVariationSettings: FontVariationSettings = {
-            font_variation_settings::SpecifiedValue::normal()
-        },
+        "font-variation-settings" variation_settings / mFontVariationSettings: FontVariationSettings,
 
         /// The language override of this font face.
-        "font-language-override" language_override / mFontLanguageOverride: font_language_override::SpecifiedValue = {
-            font_language_override::SpecifiedValue::Normal
-        },
+        "font-language-override" language_override / mFontLanguageOverride: font_language_override::SpecifiedValue,
     ]
 }
 
