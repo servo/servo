@@ -945,7 +945,6 @@ struct TableCellStyleIterator<'table> {
     column_styles: Vec<ColumnStyle>,
     row_iterator: TableRowAndGroupIterator<'table>,
     row_info: Option<TableCellStyleIteratorRowInfo<'table>>,
-    column_index: u32,
     /// The index of the current column in column_styles
     column_index_relative: u32,
     /// In case of multispan columns, where we are in the
@@ -974,7 +973,6 @@ impl<'table> TableCellStyleIterator<'table> {
         };
         TableCellStyleIterator {
             column_styles, row_iterator, row_info,
-            column_index: 0,
             column_index_relative: 0,
             column_index_relative_offset: 0,
         }
@@ -994,9 +992,41 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(ref mut row_info) = self.row_info {
-            if let Some(ref mut cell) = row_info.cell_iterator.next() {
-                // unimplemented
-                return None;
+            if let Some(cell) = row_info.cell_iterator.next() {
+                let rowgroup_style = row_info.rowgroup.map(|r| r.style().get_background());
+                let row_style = row_info.row.style().get_background();
+                let cell = cell.as_mut_table_cell();
+                let (col_style, colgroup_style) = if let Some(column_style)
+                        = self.column_styles.get(self.column_index_relative as usize) {
+                    let styles = (column_style.col_style.clone(), column_style.colgroup_style.clone());
+                    // FIXME incoming_rowspan
+                    let cell_span = cell.fragment().column_span();
+
+                    let mut current_col = column_style;
+                    self.column_index_relative_offset += cell_span;
+                    while self.column_index_relative_offset >= current_col.span {
+                        // move to the next column
+                        self.column_index_relative += 1;
+                        self.column_index_relative_offset -= current_col.span;
+                        if let Some(column_style)
+                            = self.column_styles.get(self.column_index_relative as usize) {
+                            current_col = column_style;
+                        } else {
+                            break;
+                        }
+                    }
+                    styles
+                } else {
+                    (None, None)
+                };
+
+                return Some(TableCellStyleInfo {
+                    cell,
+                    colgroup_style,
+                    col_style,
+                    rowgroup_style,
+                    row_style
+                })
             } else {
                 // next row
                 if let Some((group, row)) = self.row_iterator.next() {
@@ -1005,7 +1035,6 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                         rowgroup: group,
                         cell_iterator: row.block_flow.base.child_iter_mut()
                     };
-                    self.column_index = 0;
                     self.column_index_relative = 0;
                     self.column_index_relative_offset = 0;
                     // FIXME self.next() really should be up here but
