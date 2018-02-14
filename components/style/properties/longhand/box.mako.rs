@@ -395,7 +395,7 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type("transform", "Transform",
                           "generics::transform::Transform::none()",
-                          extra_prefixes="webkit",
+                          extra_prefixes="webkit moz",
                           animation_value_type="ComputedValue",
                           gecko_ffi_name="mSpecifiedTransform",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",

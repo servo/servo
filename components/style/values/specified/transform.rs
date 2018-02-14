@@ -18,8 +18,7 @@ use values::generics::transform::Rotate as GenericRotate;
 use values::generics::transform::Scale as GenericScale;
 use values::generics::transform::TransformOperation as GenericTransformOperation;
 use values::generics::transform::Translate as GenericTranslate;
-use values::specified::{self, Angle, Number, Length, Integer};
-use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
+use values::specified::{self, Angle, Number, Length, Integer, LengthOrPercentage};
 use values::specified::position::{Side, X, Y};
 
 pub use values::generics::transform::TransformStyle;
@@ -30,9 +29,7 @@ pub type TransformOperation = GenericTransformOperation<
     Number,
     Length,
     Integer,
-    LengthOrNumber,
     LengthOrPercentage,
-    LengthOrPercentageOrNumber,
 >;
 
 /// A specified CSS `transform`
@@ -49,7 +46,6 @@ impl Transform {
     fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        prefixed: bool,
     ) -> Result<Self, ParseError<'i>> {
         use style_traits::{Separator, Space};
 
@@ -75,19 +71,11 @@ impl Transform {
                         input.expect_comma()?;
                         let d = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        if !prefixed {
-                            // Standard matrix parsing.
-                            let e = Number::parse(context, input)?;
-                            input.expect_comma()?;
-                            let f = Number::parse(context, input)?;
-                            Ok(GenericTransformOperation::Matrix(Matrix { a, b, c, d, e, f }))
-                        } else {
-                            // Non-standard prefixed matrix parsing for -moz-transform.
-                            let e = LengthOrPercentageOrNumber::parse(context, input)?;
-                            input.expect_comma()?;
-                            let f = LengthOrPercentageOrNumber::parse(context, input)?;
-                            Ok(GenericTransformOperation::PrefixedMatrix(Matrix { a, b, c, d, e, f }))
-                        }
+                        // Standard matrix parsing.
+                        let e = Number::parse(context, input)?;
+                        input.expect_comma()?;
+                        let f = Number::parse(context, input)?;
+                        Ok(GenericTransformOperation::Matrix(Matrix { a, b, c, d, e, f }))
                     },
                     "matrix3d" => {
                         let m11 = Number::parse(context, input)?;
@@ -114,37 +102,20 @@ impl Transform {
                         input.expect_comma()?;
                         let m34 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        if !prefixed {
-                            // Standard matrix3d parsing.
-                            let m41 = Number::parse(context, input)?;
-                            input.expect_comma()?;
-                            let m42 = Number::parse(context, input)?;
-                            input.expect_comma()?;
-                            let m43 = Number::parse(context, input)?;
-                            input.expect_comma()?;
-                            let m44 = Number::parse(context, input)?;
-                            Ok(GenericTransformOperation::Matrix3D(Matrix3D {
-                                m11, m12, m13, m14,
-                                m21, m22, m23, m24,
-                                m31, m32, m33, m34,
-                                m41, m42, m43, m44,
-                            }))
-                        } else {
-                            // Non-standard prefixed matrix parsing for -moz-transform.
-                            let m41 = LengthOrPercentageOrNumber::parse(context, input)?;
-                            input.expect_comma()?;
-                            let m42 = LengthOrPercentageOrNumber::parse(context, input)?;
-                            input.expect_comma()?;
-                            let m43 = LengthOrNumber::parse(context, input)?;
-                            input.expect_comma()?;
-                            let m44 = Number::parse(context, input)?;
-                            Ok(GenericTransformOperation::PrefixedMatrix3D(Matrix3D {
-                                m11, m12, m13, m14,
-                                m21, m22, m23, m24,
-                                m31, m32, m33, m34,
-                                m41, m42, m43, m44,
-                            }))
-                        }
+                        // Standard matrix3d parsing.
+                        let m41 = Number::parse(context, input)?;
+                        input.expect_comma()?;
+                        let m42 = Number::parse(context, input)?;
+                        input.expect_comma()?;
+                        let m43 = Number::parse(context, input)?;
+                        input.expect_comma()?;
+                        let m44 = Number::parse(context, input)?;
+                        Ok(GenericTransformOperation::Matrix3D(Matrix3D {
+                            m11, m12, m13, m14,
+                            m21, m22, m23, m24,
+                            m31, m32, m33, m34,
+                            m41, m42, m43, m44,
+                        }))
                     },
                     "translate" => {
                         let sx = specified::LengthOrPercentage::parse(context, input)?;
@@ -259,16 +230,6 @@ impl Transform {
             })
         })?))
     }
-
-    /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
-    /// in the nondiagonal homogeneous components of matrix and matrix3d.
-    #[inline]
-    pub fn parse_prefixed<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        Transform::parse_internal(context, input, true)
-    }
 }
 
 impl Parse for Transform {
@@ -276,7 +237,7 @@ impl Parse for Transform {
         context: &ParserContext,
         input: &mut Parser<'i, 't>
     ) -> Result<Self, ParseError<'i>> {
-        Transform::parse_internal(context, input, false)
+        Transform::parse_internal(context, input)
     }
 }
 
