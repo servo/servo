@@ -304,6 +304,50 @@ impl PropertyDeclarationBlock {
         })
     }
 
+    fn shorthand_to_css(
+        &self,
+        shorthand: ShorthandId,
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
+        // Step 1.2.1 of
+        // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-getpropertyvalue
+        let mut list = SmallVec::<[&_; 10]>::new();
+        let mut important_count = 0;
+
+        // Step 1.2.2
+        for &longhand in shorthand.longhands() {
+            // Step 1.2.2.1
+            let declaration = self.get(PropertyDeclarationId::Longhand(longhand));
+
+            // Step 1.2.2.2 & 1.2.2.3
+            match declaration {
+                Some((declaration, importance)) => {
+                    list.push(declaration);
+                    if importance.important() {
+                        important_count += 1;
+                    }
+                },
+                None => return Ok(()),
+            }
+        }
+
+        // If there is one or more longhand with important, and one or more
+        // without important, we don't serialize it as a shorthand.
+        if important_count > 0 && important_count != list.len() {
+            return Ok(());
+        }
+
+        // Step 1.2.3
+        // We don't print !important when serializing individual properties,
+        // so we treat this as a normal-importance property
+        match shorthand.get_shorthand_appendable_value(list.iter().cloned()) {
+            Some(appendable_value) => {
+                append_declaration_value(dest, appendable_value)
+            }
+            None => return Ok(()),
+        }
+    }
+
     /// Find the value of the given property in this block and serialize it
     ///
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-getpropertyvalue>
@@ -311,53 +355,17 @@ impl PropertyDeclarationBlock {
         // Step 1.1: done when parsing a string to PropertyId
 
         // Step 1.2
-        match property.as_shorthand() {
-            Ok(shorthand) => {
-                // Step 1.2.1
-                let mut list = Vec::new();
-                let mut important_count = 0;
+        let longhand_or_custom = match property.as_shorthand() {
+            Ok(shorthand) => return self.shorthand_to_css(shorthand, dest),
+            Err(longhand_or_custom) => longhand_or_custom,
+        };
 
-                // Step 1.2.2
-                for &longhand in shorthand.longhands() {
-                    // Step 1.2.2.1
-                    let declaration = self.get(PropertyDeclarationId::Longhand(longhand));
-
-                    // Step 1.2.2.2 & 1.2.2.3
-                    match declaration {
-                        Some((declaration, importance)) => {
-                            list.push(declaration);
-                            if importance.important() {
-                                important_count += 1;
-                            }
-                        },
-                        None => return Ok(()),
-                    }
-                }
-
-                // If there is one or more longhand with important, and one or more
-                // without important, we don't serialize it as a shorthand.
-                if important_count > 0 && important_count != list.len() {
-                    return Ok(());
-                }
-
-                // Step 1.2.3
-                // We don't print !important when serializing individual properties,
-                // so we treat this as a normal-importance property
-                match shorthand.get_shorthand_appendable_value(list) {
-                    Some(appendable_value) =>
-                        append_declaration_value(dest, appendable_value),
-                    None => return Ok(()),
-                }
-            }
-            Err(longhand_or_custom) => {
-                if let Some((value, _importance)) = self.get(longhand_or_custom) {
-                    // Step 2
-                    value.to_css(dest)
-                } else {
-                    // Step 3
-                    Ok(())
-                }
-            }
+        if let Some((value, _importance)) = self.get(longhand_or_custom) {
+            // Step 2
+            value.to_css(dest)
+        } else {
+            // Step 3
+            Ok(())
         }
     }
 
