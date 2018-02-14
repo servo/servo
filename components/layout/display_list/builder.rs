@@ -661,6 +661,18 @@ pub trait FragmentDisplayListBuilding {
         clip: &Rect<Au>,
     );
 
+    /// build_display_list, but don't update the restyle damage
+    ///
+    /// Must be paired with a self.restyle_damage.remove(REPAINT) somewhere
+    fn build_display_list_no_damage(
+        &self,
+        state: &mut DisplayListBuildState,
+        stacking_relative_border_box: Rect<Au>,
+        border_painting_mode: BorderPaintingMode,
+        display_list_section: DisplayListSection,
+        clip: &Rect<Au>,
+    );
+
     /// Builds the display items necessary to paint the selection and/or caret for this fragment,
     /// if any.
     fn build_display_items_for_selection_if_necessary(
@@ -695,7 +707,7 @@ pub trait FragmentDisplayListBuilding {
 
     /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(
-        &mut self,
+        &self,
         state: &mut DisplayListBuildState,
         stacking_relative_border_box: &Rect<Au>,
         clip: &Rect<Au>,
@@ -1721,6 +1733,18 @@ impl FragmentDisplayListBuilding for Fragment {
         clip: &Rect<Au>,
     ) {
         self.restyle_damage.remove(ServoRestyleDamage::REPAINT);
+        self.build_display_list_no_damage(state, stacking_relative_border_box,
+                                border_painting_mode, display_list_section, clip)
+    }
+    fn build_display_list_no_damage(
+        &self,
+        state: &mut DisplayListBuildState,
+        stacking_relative_border_box: Rect<Au>,
+        border_painting_mode: BorderPaintingMode,
+        display_list_section: DisplayListSection,
+        clip: &Rect<Au>,
+    ) {
+        
         if self.style().get_inheritedbox().visibility != Visibility::Visible {
             return;
         }
@@ -1839,7 +1863,7 @@ impl FragmentDisplayListBuilding for Fragment {
     }
 
     fn build_fragment_type_specific_display_items(
-        &mut self,
+        &self,
         state: &mut DisplayListBuildState,
         stacking_relative_border_box: &Rect<Au>,
         clip: &Rect<Au>,
@@ -1963,7 +1987,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     state.add_display_item(item);
                 }
             },
-            SpecificFragmentInfo::Image(ref mut image_fragment) => {
+            SpecificFragmentInfo::Image(ref image_fragment) => {
                 // Place the image into the display list.
                 if let Some(ref image) = image_fragment.image {
                     let base = state.create_base_display_item(
@@ -2329,7 +2353,11 @@ pub trait BlockFlowDisplayListBuilding {
         state: &mut DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
     );
-
+    fn build_display_list_for_block_no_damage(
+        &self,
+        state: &mut DisplayListBuildState,
+        border_painting_mode: BorderPaintingMode,
+    );
     fn build_display_list_for_background_if_applicable_with_background(
         &self,
         state: &mut DisplayListBuildState,
@@ -2873,8 +2901,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.collect_stacking_contexts_for_children(state);
     }
 
-    fn build_display_list_for_block(
-        &mut self,
+    fn build_display_list_for_block_no_damage(
+        &self,
         state: &mut DisplayListBuildState,
         border_painting_mode: BorderPaintingMode,
     ) {
@@ -2884,7 +2912,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let stacking_relative_border_box
             = self.base.stacking_relative_border_box_for_display_list(&self.fragment);
         // Add the box that starts the block context.
-        self.fragment.build_display_list(
+        self.fragment.build_display_list_no_damage(
             state,
             stacking_relative_border_box,
             border_painting_mode,
@@ -2896,6 +2924,15 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             .build_display_items_for_debugging_tint(state, self.fragment.node);
 
         state.processing_scrolling_overflow_element = false;
+    }
+
+    fn build_display_list_for_block(
+        &mut self,
+        state: &mut DisplayListBuildState,
+        border_painting_mode: BorderPaintingMode,
+    ) {
+        self.fragment.restyle_damage.remove(ServoRestyleDamage::REPAINT);
+        self.build_display_list_for_block_no_damage(state, border_painting_mode);
     }
 
     fn build_display_list_for_background_if_applicable_with_background(

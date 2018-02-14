@@ -1777,7 +1777,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn has_scrolling_overflow(&mut self) -> bool {
+    pub fn has_scrolling_overflow(&self) -> bool {
         self.flags.contains(BlockFlowFlags::HAS_SCROLLING_OVERFLOW)
     }
 
