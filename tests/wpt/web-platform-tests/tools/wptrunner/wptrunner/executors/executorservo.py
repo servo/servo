@@ -13,6 +13,8 @@ from collections import defaultdict
 
 from mozprocess import ProcessHandler
 
+from tools.serve.serve import make_hosts_file
+
 from .base import (ExecutorException,
                    Protocol,
                    RefTestImplementation,
@@ -30,18 +32,10 @@ webdriver = None
 
 extra_timeout = 5  # seconds
 
-hosts_text = """127.0.0.1 web-platform.test
-127.0.0.1 www.web-platform.test
-127.0.0.1 www1.web-platform.test
-127.0.0.1 www2.web-platform.test
-127.0.0.1 xn--n8j6ds53lwwkrqhv28a.web-platform.test
-127.0.0.1 xn--lve-6lad.web-platform.test
-"""
-
-def make_hosts_file():
+def write_hosts_file(config):
     hosts_fd, hosts_path = tempfile.mkstemp()
     with os.fdopen(hosts_fd, "w") as f:
-        f.write(hosts_text)
+        f.write(make_hosts_file(config, "127.0.0.1"))
     return hosts_path
 
 
@@ -57,7 +51,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_data = None
         self.result_flag = None
         self.protocol = Protocol(self, browser)
-        self.hosts_path = make_hosts_file()
+        self.hosts_path = write_hosts_file(server_config)
 
     def teardown(self):
         try:

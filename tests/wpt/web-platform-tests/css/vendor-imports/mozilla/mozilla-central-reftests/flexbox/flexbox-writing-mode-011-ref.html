@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="stylesheet" type="text/css" href="support/ahem.css">
+  <style>
+  .container {
+    display: block;
+    float: left;
+    border: 2px solid purple;
+    padding: 2px;
+    margin-bottom: 2em;
+    height: 500px;
+    width: 150px;
+  }
+
+  span {
+    display: block;
+    background: lightgrey;
+    border: 2px solid black;
+    /* If browser supports it, signal the inline direction with border color: */
+    border-block-start-color: orange;
+    border-inline-start-color: lime;
+
+    margin: 11px 13px 17px 7px;
+    inline-size: 6px;
+
+    /* This really floats to top ('logical left'), since all the containers
+       have a vertical writing mode. */
+    float: left;
+  }
+
+  .small { font: 12px Ahem; }
+  .big   { font: 20px Ahem; }
+
+  .hl  { writing-mode: horizontal-tb;  direction: ltr; }
+  .hr  { writing-mode: horizontal-tb;  direction: rtl; }
+  .vl  { writing-mode: vertical-lr;    direction: ltr; }
+  .vr  { writing-mode: vertical-rl;    direction: ltr; }
+  .vl_rtl { writing-mode: vertical-lr; direction: rtl; }
+  .vr_rtl { writing-mode: vertical-rl; direction: rtl; }
+
+
+  .container > .vl,     .container > .vr,
+  .container > .vl_rtl, .container > .vr_rtl {
+    /* In the testcase, these items are stretched horizontally
+       via the default "align-self:stretch" behavior, and because
+       they have a width of "auto".
+       (The rest of the items have a non-auto width from "inline-size"
+       and their horizontal writing-mode, so those ones do not stretch.) */
+    width: 126px;
+  }
+  </style>
+</head>
+<body>
+
+<div class="container vl">
+  <span class="hl small">a b c</span>
+  <span class="hl big">d e</span>
+  <span class="hr small">a b c</span>
+  <span class="hr big">d e</span>
+  <span class="vl small">a b c</span>
+  <span class="vl big">d e</span>
+</div>
+<div class="container vl">
+  <span class="vr small">a b c</span>
+  <span class="vr big">d e</span>
+  <span class="vl_rtl small">a b c</span>
+  <span class="vl_rtl big">d e</span>
+  <span class="vr_rtl small">a b c</span>
+  <span class="vr_rtl big">d e</span>
+</div>
+<div class="container vr">
+  <span class="hl small">a b c</span>
+  <span class="hl big">d e</span>
+  <span class="hr small">a b c</span>
+  <span class="hr big">d e</span>
+  <span class="vl small">a b c</span>
+  <span class="vl big">d e</span>
+</div>
+<div class="container vr">
+  <span class="vr small">a b c</span>
+  <span class="vr big">d e</span>
+  <span class="vl_rtl small">a b c</span>
+  <span class="vl_rtl big">d e</span>
+  <span class="vr_rtl small">a b c</span>
+  <span class="vr_rtl big">d e</span>
+</div>
+
+</body>
+</html>

@@ -18,14 +18,6 @@ serve = None
 sslutils = None
 
 
-hostnames = ["web-platform.test",
-             "www.web-platform.test",
-             "www1.web-platform.test",
-             "www2.web-platform.test",
-             "xn--n8j6ds53lwwkrqhv28a.web-platform.test",
-             "xn--lve-6lad.web-platform.test"]
-
-
 def do_delayed_imports(logger, test_paths):
     global serve, sslutils
 

@@ -14,16 +14,17 @@
     <style id="styleElement" type="text/css">
         @import url("support/a-green.css");
         @import url("support/a-green.css") screen;
+        @page { background-color: red; }
     </style>
 </head>
 <body>
     <div id="log"></div>
 
     <script type="text/javascript">
-        var rule, ruleWithMedia;
+        var styleSheet, ruleList, rule, ruleWithMedia;
         setup(function() {
-            var styleSheet = document.getElementById("styleElement").sheet;
-            var ruleList = styleSheet.cssRules;
+            styleSheet = document.getElementById("styleElement").sheet;
+            ruleList = styleSheet.cssRules;
             rule = ruleList[0];
             ruleWithMedia = ruleList[1];
         });
@@ -87,7 +88,18 @@
         test(function() {
             ruleWithMedia.media = "print";
             assert_equals(ruleWithMedia.media.mediaText, "print");
-        }, "MediaList mediaText attribute should be updated");
+        }, "CSSImportRule : MediaList mediaText attribute should be updated due to [PutForwards]");
+
+        test(function() {
+            var ruleWithPage = ruleList[2];
+            ruleWithPage.style = "background-color: green;"
+            assert_equals(ruleWithPage.style.cssText, "background-color: green;");
+        }, "CSSStyleDeclaration cssText attribute should be updated due to [PutForwards]");
+
+        test(function() {
+            styleSheet.media = "screen";
+            assert_equals(styleSheet.media.mediaText, "screen");
+        }, "StyleSheet : MediaList mediaText attribute should be updated due to [PutForwards]");
     </script>
 </body>
 </html>

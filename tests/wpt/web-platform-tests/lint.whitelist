@@ -794,6 +794,8 @@ CSS-COLLIDING-REF-NAME: css/CSS2/visufx/overflow-applies-to-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/ui/overflow-applies-to-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/visuren/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/linebox/inline-formatting-context-001-ref.xht
+CSS-COLLIDING-REF-NAME: css/css-transforms/individual-transform/individual-transform-1-ref.html
+CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/transforms/individual-transform-1-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
