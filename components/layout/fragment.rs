@@ -57,12 +57,12 @@ use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
 use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::counters::ContentItem;
 use style::values::generics::box_::VerticalAlign;
 use style::values::generics::transform;
+use style_traits::char_is_whitespace;
 use text;
 use text::TextRunScanner;
 use webrender_api;

@@ -961,36 +961,6 @@ impl ToAnimatedZero for FontStretch {
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
-/// We should treat font stretch as real number in order to interpolate this property.
-/// <https://drafts.csswg.org/css-fonts-3/#font-stretch-animation>
-impl From<FontStretch> for f64 {
-    fn from(stretch: FontStretch) -> f64 {
-        use self::FontStretch::*;
-        match stretch {
-            UltraCondensed => 1.0,
-            ExtraCondensed => 2.0,
-            Condensed => 3.0,
-            SemiCondensed => 4.0,
-            Normal => 5.0,
-            SemiExpanded => 6.0,
-            Expanded => 7.0,
-            ExtraExpanded => 8.0,
-            UltraExpanded => 9.0,
-        }
-    }
-}
-
-impl Into<FontStretch> for f64 {
-    fn into(self) -> FontStretch {
-        use properties::longhands::font_stretch::computed_value::T::*;
-        let index = (self + 0.5).floor().min(9.0).max(1.0);
-        static FONT_STRETCH_ENUM_MAP: [FontStretch; 9] =
-            [ UltraCondensed, ExtraCondensed, Condensed, SemiCondensed, Normal,
-              SemiExpanded, Expanded, ExtraExpanded, UltraExpanded ];
-        FONT_STRETCH_ENUM_MAP[(index - 1.0) as usize]
-    }
-}
-
 /// <https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def>
 impl Animate for FontVariationSettings {
     #[inline]

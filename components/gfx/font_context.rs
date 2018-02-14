@@ -16,13 +16,12 @@ use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::default::Default;
+use std::fmt;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use style::computed_values::font_style::T as FontStyle;
-use style::computed_values::font_variant_caps::T as FontVariantCaps;
-use style::properties::style_structs;
+use style_traits::values::font::{FontStyleStruct, FontVariantCaps};
 use webrender_api;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8;      // Matches FireFox (see gfxFont.h)
@@ -47,7 +46,9 @@ static FONT_CACHE_EPOCH: AtomicUsize = ATOMIC_USIZE_INIT;
 /// paint code. It talks directly to the font cache thread where
 /// required.
 #[derive(Debug)]
-pub struct FontContext {
+pub struct FontContext<T: 'static>
+    where T: fmt::Debug + FontStyleStruct + PartialEq
+{
     platform_handle: FontContextHandle,
     font_cache_thread: FontCacheThread,
 
@@ -56,13 +57,15 @@ pub struct FontContext {
     fallback_font_cache: Vec<FallbackFontCacheEntry>,
 
     layout_font_group_cache:
-        HashMap<LayoutFontGroupCacheKey, Rc<FontGroup>, BuildHasherDefault<FnvHasher>>,
+        HashMap<LayoutFontGroupCacheKey<T>, Rc<FontGroup>, BuildHasherDefault<FnvHasher>>,
 
     epoch: usize,
 }
 
-impl FontContext {
-    pub fn new(font_cache_thread: FontCacheThread) -> FontContext {
+impl<T> FontContext<T>
+    where T: fmt::Debug + FontStyleStruct + PartialEq
+{
+    pub fn new(font_cache_thread: FontCacheThread) -> FontContext<T> {
         let handle = FontContextHandle::new();
         FontContext {
             platform_handle: handle,
@@ -113,13 +116,13 @@ impl FontContext {
     /// Create a group of fonts for use in layout calculations. May return
     /// a cached font if this font instance has already been used by
     /// this context.
-    pub fn layout_font_group_for_style(&mut self, style: ServoArc<style_structs::Font>)
+    pub fn layout_font_group_for_style(&mut self, style: ServoArc<T>)
                                        -> Rc<FontGroup> {
         self.expire_font_caches_if_necessary();
 
         let layout_font_group_cache_key = LayoutFontGroupCacheKey {
             pointer: style.clone(),
-            size: style.font_size.size(),
+            size: style.size(),
         };
         if let Some(ref cached_font_group) = self.layout_font_group_cache.get(
                 &layout_font_group_cache_key) {
@@ -129,18 +132,17 @@ impl FontContext {
         // TODO: The font context holds a strong ref to the cached fonts
         // so they will never be released. Find out a good time to drop them.
 
-        let desc = FontTemplateDescriptor::new(style.font_weight,
-                                               style.font_stretch,
-                                               style.font_style == FontStyle::Italic ||
-                                                style.font_style == FontStyle::Oblique);
+        let desc = FontTemplateDescriptor::new(style.font_weight(),
+                                               style.font_stretch(),
+                                               style.is_oblique_or_italic());
 
         let mut fonts: SmallVec<[Rc<RefCell<Font>>; 8]> = SmallVec::new();
 
-        for family in style.font_family.0.iter() {
+        style.each_font_family(|family_name| {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
             for cached_font_entry in &self.layout_font_cache {
-                if cached_font_entry.family == family.name() {
+                if cached_font_entry.family == family_name {
                     match cached_font_entry.font {
                         None => {
                             cache_hit = true;
@@ -149,8 +151,8 @@ impl FontContext {
                         Some(ref cached_font_ref) => {
                             let cached_font = (*cached_font_ref).borrow();
                             if cached_font.descriptor == desc &&
-                               cached_font.requested_pt_size == style.font_size.size() &&
-                               cached_font.variant == style.font_variant_caps {
+                               cached_font.requested_pt_size == style.size() &&
+                               cached_font.variant == style.font_variant_caps() {
                                 fonts.push((*cached_font_ref).clone());
                                 cache_hit = true;
                                 break;
@@ -161,14 +163,14 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let template_info = self.font_cache_thread.find_font_template(family.clone(),
+                let template_info = self.font_cache_thread.find_font_template(family_name,
                                                                              desc.clone());
                 match template_info {
                     Some(template_info) => {
                         let layout_font = self.create_layout_font(template_info.font_template,
                                                                   desc.clone(),
-                                                                  style.font_size.size(),
-                                                                  style.font_variant_caps,
+                                                                  style.size(),
+                                                                  style.font_variant_caps(),
                                                                   template_info.font_key);
                         let font = match layout_font {
                             Ok(layout_font) => {
@@ -181,27 +183,28 @@ impl FontContext {
                         };
 
                         self.layout_font_cache.push(LayoutFontCacheEntry {
-                            family: family.name().to_owned(),
+                            family: family_name.to_owned(),
                             font: font
                         });
                     }
                     None => {
                         self.layout_font_cache.push(LayoutFontCacheEntry {
-                            family: family.name().to_owned(),
+                            family: family_name.to_owned(),
                             font: None,
                         });
                     }
                 }
             }
-        }
+
+        });
 
         // Add a last resort font as a fallback option.
         let mut cache_hit = false;
         for cached_font_entry in &self.fallback_font_cache {
             let cached_font = cached_font_entry.font.borrow();
             if cached_font.descriptor == desc &&
-                        cached_font.requested_pt_size == style.font_size.size() &&
-                        cached_font.variant == style.font_variant_caps {
+                        cached_font.requested_pt_size == style.size() &&
+                        cached_font.variant == style.font_variant_caps() {
                 fonts.push(cached_font_entry.font.clone());
                 cache_hit = true;
                 break;
@@ -212,8 +215,8 @@ impl FontContext {
             let template_info = self.font_cache_thread.last_resort_font_template(desc.clone());
             let layout_font = self.create_layout_font(template_info.font_template,
                                                       desc.clone(),
-                                                      style.font_size.size(),
-                                                      style.font_variant_caps,
+                                                      style.size(),
+                                                      style.font_variant_caps(),
                                                       template_info.font_key);
             match layout_font {
                 Ok(layout_font) => {
@@ -233,7 +236,9 @@ impl FontContext {
     }
 }
 
-impl MallocSizeOf for FontContext {
+impl<T> MallocSizeOf for FontContext<T>
+    where T: fmt::Debug + FontStyleStruct + PartialEq
+{
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         // FIXME(njn): Measure other fields eventually.
         self.platform_handle.size_of(ops)
@@ -241,22 +246,28 @@ impl MallocSizeOf for FontContext {
 }
 
 #[derive(Debug)]
-struct LayoutFontGroupCacheKey {
-    pointer: ServoArc<style_structs::Font>,
+struct LayoutFontGroupCacheKey<T: 'static>
+    where T: fmt::Debug + FontStyleStruct + PartialEq
+{
+    pointer: ServoArc<T>,
     size: Au,
 }
 
-impl PartialEq for LayoutFontGroupCacheKey {
-    fn eq(&self, other: &LayoutFontGroupCacheKey) -> bool {
+impl<T> PartialEq for LayoutFontGroupCacheKey<T>
+    where T: fmt::Debug + FontStyleStruct + PartialEq
+{
+    fn eq(&self, other: &LayoutFontGroupCacheKey<T>) -> bool {
         self.pointer == other.pointer && self.size == other.size
     }
 }
 
-impl Eq for LayoutFontGroupCacheKey {}
+impl<T> Eq for LayoutFontGroupCacheKey<T> where T: fmt::Debug + FontStyleStruct + PartialEq {}
 
-impl Hash for LayoutFontGroupCacheKey {
+impl<T> Hash for LayoutFontGroupCacheKey<T>
+    where T: fmt::Debug + FontStyleStruct + PartialEq
+{
     fn hash<H>(&self, hasher: &mut H) where H: Hasher {
-        self.pointer.hash.hash(hasher)
+        self.pointer.hash().hash(hasher)
     }
 }
 

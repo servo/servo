@@ -9,8 +9,8 @@
 use app_units::Au;
 use fragment::{Fragment, ScannedTextFlags};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use gfx;
 use gfx::font::{FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
-use gfx::font_context::FontContext;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
@@ -33,6 +33,8 @@ use style::values::generics::text::LineHeight;
 use unicode_bidi as bidi;
 use unicode_script::{Script, get_script};
 use xi_unicode::LineBreakLeafIter;
+
+pub type FontContext = gfx::font_context::FontContext<style_structs::Font>;
 
 /// Returns the concatenated text of a list of unscanned text fragments.
 fn text(fragments: &LinkedList<Fragment>) -> String {

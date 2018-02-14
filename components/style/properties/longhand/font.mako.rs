@@ -24,23 +24,31 @@ ${helpers.single_keyword_system("font-style",
                                 animation_value_type="discrete",
                                 servo_restyle_damage="rebuild_and_reflow")}
 
+% if product == "gecko":
+    <% font_variant_caps_custom_consts = { "small-caps": "SMALLCAPS",
+                                        "all-small-caps": "ALLSMALL",
+                                        "petite-caps": "PETITECAPS",
+                                        "all-petite-caps": "ALLPETITE",
+                                        "titling-caps": "TITLING" } %>
 
-<% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
-                                      "all-small-caps": "ALLSMALL",
-                                      "petite-caps": "PETITECAPS",
-                                      "all-petite-caps": "ALLPETITE",
-                                      "titling-caps": "TITLING" } %>
-
-${helpers.single_keyword_system("font-variant-caps",
-                                "normal small-caps",
-                                extra_gecko_values="all-small-caps petite-caps all-petite-caps unicase titling-caps",
-                                gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
-                                gecko_ffi_name="mFont.variantCaps",
-                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
-                                custom_consts=font_variant_caps_custom_consts,
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                                animation_value_type="discrete",
-                                servo_restyle_damage="rebuild_and_reflow")}
+    ${helpers.single_keyword_system("font-variant-caps",
+                                    "normal small-caps all-small-caps petite-caps all-petite-caps unicase titling-caps",
+                                    gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
+                                    gecko_ffi_name="mFont.variantCaps",
+                                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
+                                    custom_consts=font_variant_caps_custom_consts,
+                                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                    animation_value_type="discrete")}
+% else:
+    ${helpers.predefined_type("font-variant-caps",
+                              "FontVariantCaps",
+                              initial_value="computed::FontVariantCaps::Normal",
+                              initial_specified_value="specified::FontVariantCaps::get_initial_specified_value()",
+                              animation_value_type="discrete",
+                              flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                              spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
+                              servo_restyle_damage="rebuild_and_reflow")}
+%endif
 
 ${helpers.predefined_type("font-weight",
                           "FontWeight",
@@ -78,17 +86,14 @@ ${helpers.predefined_type("font-synthesis",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis")}
 
-${helpers.single_keyword_system("font-stretch",
-                                "normal ultra-condensed extra-condensed condensed \
-                                 semi-condensed semi-expanded expanded extra-expanded \
-                                 ultra-expanded",
-                                gecko_ffi_name="mFont.stretch",
-                                gecko_constant_prefix="NS_FONT_STRETCH",
-                                cast_type='i16',
-                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                                animation_value_type="ComputedValue",
-                                servo_restyle_damage="rebuild_and_reflow")}
+${helpers.predefined_type("font-stretch",
+                          "FontStretch",
+                          initial_value="computed::FontStretch::Normal",
+                          initial_specified_value="specified::FontStretch::get_initial_specified_value()",
+                          animation_value_type="ComputedValue",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword_system("font-kerning",
                                 "auto none normal",

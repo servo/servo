@@ -4,7 +4,7 @@
 
 #[cfg(not(target_os = "macos"))] extern crate gfx;
 #[cfg(not(target_os = "macos"))] extern crate servo_atoms;
-#[cfg(not(target_os = "macos"))] extern crate style;
+#[cfg(not(target_os = "macos"))] extern crate style_traits;
 
 // Test doesn't yet run on Mac, see https://github.com/servo/servo/pull/19928 for explanation.
 #[cfg(not(target_os = "macos"))]
@@ -16,8 +16,8 @@ fn test_font_template_descriptor() {
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::PathBuf;
-    use style::computed_values::font_stretch::T as FontStretch;
-    use style::values::computed::font::FontWeight;
+    use style_traits::values::font::FontStretch;
+    use style_traits::values::font::FontWeight;
 
     fn descriptor(filename: &str) -> FontTemplateDescriptor {
         let mut path: PathBuf = [

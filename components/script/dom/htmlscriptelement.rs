@@ -40,7 +40,8 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
-use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
+use style::str::StaticStringVec;
+use style_traits::HTML_SPACE_CHARACTERS;
 use uuid::Uuid;
 
 #[dom_struct]

@@ -81,10 +81,10 @@ use std::iter;
 use std::mem;
 use std::ops::Range;
 use style::context::QuirksMode;
-use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
 use style::thread_state;
+use style_traits::OpaqueNode;
 use uuid::Uuid;
 
 //

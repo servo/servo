@@ -21,7 +21,8 @@ extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 #[cfg(feature = "servo")] extern crate webrender_api;
 extern crate servo_arc;
-#[cfg(feature = "servo")] extern crate servo_atoms;
+extern crate servo_atoms;
+#[cfg(feature = "servo")] extern crate servo_url;
 
 #[cfg(feature = "servo")] pub use webrender_api::DevicePixel;
 
@@ -228,4 +229,41 @@ impl ParsingMode {
 pub trait SpeculativePainter: Send + Sync {
     /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn speculatively_draw_a_paint_image(&self, properties: Vec<(Atom, String)>, arguments: Vec<String>);
+}
+/// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
+/// back into a non-opaque representation. The only safe operation that can be
+/// performed on this node is to compare it to another opaque handle or to another
+/// OpaqueNode.
+///
+/// Layout and Graphics use this to safely represent nodes for comparison purposes.
+/// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
+/// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
+/// locality reasons. Using `OpaqueNode` enforces this invariant.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf, Deserialize, Serialize))]
+pub struct OpaqueNode(pub usize);
+
+impl OpaqueNode {
+    /// Returns the address of this node, for debugging purposes.
+    #[inline]
+    pub fn id(&self) -> usize {
+        self.0
+    }
+}
+
+/// A "space character" according to:
+///
+/// <https://html.spec.whatwg.org/multipage/#space-character>
+pub static HTML_SPACE_CHARACTERS: &'static [char] = &[
+    '\u{0020}',
+    '\u{0009}',
+    '\u{000a}',
+    '\u{000c}',
+    '\u{000d}',
+];
+
+/// Whether a character is a HTML whitespace character.
+#[inline]
+pub fn char_is_whitespace(c: char) -> bool {
+    HTML_SPACE_CHARACTERS.contains(&c)
 }

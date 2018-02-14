@@ -37,7 +37,7 @@ use webrender_api::{LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D, LineSty
 use webrender_api::{MixBlendMode, NormalBorder, ScrollPolicy, ScrollSensitivity};
 use webrender_api::{StickyOffsetBounds, TransformStyle};
 
-pub use style::dom::OpaqueNode;
+pub use style_traits::OpaqueNode;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.

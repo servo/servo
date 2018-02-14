@@ -437,6 +437,8 @@ macro_rules! define_css_keyword_enum {
     };
 }
 
+pub mod font;
+
 /// Helper types for the handling of specified values.
 pub mod specified {
     use ParsingMode;

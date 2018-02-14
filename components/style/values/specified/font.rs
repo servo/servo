@@ -18,6 +18,9 @@ use properties::longhands::system_font::SystemFont;
 use std::ascii::AsciiExt;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::values::font::FontStretch as ComputedFontStretch;
+#[cfg(feature = "servo")]
+use style_traits::values::font::FontVariantCaps as ComputedFontVariantCaps;
 use values::CustomIdent;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{SingleFontFamily, FontFamilyList, FamilyName};
@@ -27,6 +30,77 @@ use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
 const DEFAULT_SCRIPT_SIZE_MULTIPLIER: f64 = 0.71;
+
+/// A specified font-stretch value
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+pub enum FontStretch {
+    /// Keyword variant
+    Keyword(ComputedFontStretch),
+    /// System font variant
+    System(SystemFont)
+}
+
+impl FontStretch {
+    /// Get the initial specified value
+    pub fn get_initial_specified_value() -> Self {
+        FontStretch::Keyword(ComputedFontStretch::Normal)
+    }
+}
+
+impl Parse for FontStretch {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontStretch, ParseError<'i>> {
+        ComputedFontStretch::parse(input).map(|computed_value| FontStretch::Keyword(computed_value))
+    }
+}
+
+impl ToComputedValue for FontStretch {
+    type ComputedValue = ComputedFontStretch;
+
+    fn to_computed_value(&self, _ctx: &Context) -> ComputedFontStretch {
+        match *self {
+            FontStretch::Keyword(computed_value) => computed_value.clone(),
+            #[cfg(feature = "gecko")]
+            FontStretch::System(_) => {
+                context.cached_system_font.as_ref().unwrap().font_stretch
+            },
+            #[cfg(not(feature = "gecko"))]
+            FontStretch::System(_) => unreachable!(),
+        }
+    }
+
+    fn from_computed_value(computed_value: &ComputedFontStretch) -> Self {
+        FontStretch::Keyword(computed_value.clone())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+/// A specified font-variant-caps value
+pub struct FontVariantCaps(ComputedFontVariantCaps);
+
+impl FontVariantCaps {
+    /// Get the initial specified value
+    pub fn get_initial_specified_value() -> FontVariantCaps {
+        FontVariantCaps(ComputedFontVariantCaps::Normal)
+    }
+}
+
+impl Parse for FontVariantCaps {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontVariantCaps, ParseError<'i>> {
+        ComputedFontVariantCaps::parse(input).map(|computed_value| FontVariantCaps(computed_value))
+    }
+}
+
+impl ToComputedValue for FontVariantCaps {
+    type ComputedValue = ComputedFontVariantCaps;
+
+    fn to_computed_value(&self, _ctx: &Context) -> ComputedFontVariantCaps {
+        self.0
+    }
+
+    fn from_computed_value(computed_value: &ComputedFontVariantCaps) -> Self {
+        FontVariantCaps(computed_value.clone())
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
 /// A specified font-weight value

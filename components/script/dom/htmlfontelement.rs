@@ -18,7 +18,8 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use servo_atoms::Atom;
 use style::attr::AttrValue;
-use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
+use style::str::read_numbers;
+use style_traits::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct HTMLFontElement {
