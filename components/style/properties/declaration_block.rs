@@ -369,7 +369,7 @@ impl PropertyDeclarationBlock {
         }
     }
 
-    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority>
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-getpropertypriority>
     pub fn property_priority(&self, property: &PropertyId) -> Importance {
         // Step 1: done when parsing a string to PropertyId
 
@@ -583,7 +583,7 @@ impl PropertyDeclarationBlock {
         updated_at_least_one
     }
 
-    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty>
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-removeproperty>
     ///
     /// Returns whether any declaration was actually removed.
     pub fn remove_property(&mut self, property: &PropertyId) -> bool {
