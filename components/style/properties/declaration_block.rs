@@ -306,7 +306,7 @@ impl PropertyDeclarationBlock {
 
     /// Find the value of the given property in this block and serialize it
     ///
-    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue>
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-getpropertyvalue>
     pub fn property_value_to_css(&self, property: &PropertyId, dest: &mut CssStringWriter) -> fmt::Result {
         // Step 1.1: done when parsing a string to PropertyId
 
@@ -617,8 +617,7 @@ impl PropertyDeclarationBlock {
         dest: &mut CssStringWriter,
         computed_values: Option<&ComputedValues>,
         custom_properties_block: Option<&PropertyDeclarationBlock>,
-    ) -> fmt::Result
-    {
+    ) -> fmt::Result {
         match property.as_shorthand() {
             Err(_longhand_or_custom) => {
                 if self.declarations.len() == 1 {
