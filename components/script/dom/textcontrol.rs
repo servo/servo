@@ -257,7 +257,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     fn direction(&self) -> SelectionDirection {
-        self.textinput.borrow().selection_direction
+        self.textinput.borrow().selection_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#set-the-selection-range

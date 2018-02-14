@@ -39947,6 +39947,12 @@
      {}
     ]
    ],
+   "mozilla/textcontrol-selection-cannot-exceed-content.html": [
+    [
+     "/_mozilla/mozilla/textcontrol-selection-cannot-exceed-content.html",
+     {}
+    ]
+   ],
    "mozilla/timeout-in-discarded-document.html": [
     [
      "/_mozilla/mozilla/timeout-in-discarded-document.html",
@@ -71954,6 +71960,10 @@
   ],
   "mozilla/textcontent.html": [
    "094fbd794b78520d6c2d8aae549557bed3529a7a",
+   "testharness"
+  ],
+  "mozilla/textcontrol-selection-cannot-exceed-content.html": [
+   "f8b982ba0abb23f8e53ef28413e8da2f8dd7ca17",
    "testharness"
   ],
   "mozilla/timeout-in-discarded-document.html": [
