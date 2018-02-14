@@ -1155,6 +1155,19 @@ impl BaseFlow {
         self.speculated_float_placement_out.left > Au(0) ||
             self.speculated_float_placement_out.right > Au(0)
     }
+
+
+    /// Compute the fragment position relative to the parent stacking context. If the fragment
+    /// itself establishes a stacking context, then the origin of its position will be (0, 0)
+    /// for the purposes of this computation.
+    pub fn stacking_relative_border_box_for_display_list(&self, fragment: &Fragment) -> Rect<Au> {
+        fragment.stacking_relative_border_box(
+            &self.stacking_relative_position,
+            &self.early_absolute_position_info.relative_containing_block_size,
+            self.early_absolute_position_info.relative_containing_block_mode,
+            CoordinateSystem::Own,
+        )
+    }
 }
 
 impl<'a> ImmutableFlowUtils for &'a Flow {

@@ -60,7 +60,7 @@ use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::position::T as StylePosition;
 use style::computed_values::visibility::T as Visibility;
-use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
+use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect};
 use style::properties::ComputedValues;
 use style::properties::style_structs;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -651,17 +651,11 @@ pub trait FragmentDisplayListBuilding {
     /// * `state`: The display building state, including the display list currently
     ///   under construction and other metadata useful for constructing it.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
-    /// * `stacking_relative_flow_origin`: Position of the origin of the owning flow with respect
-    ///   to its nearest ancestor stacking context.
-    /// * `relative_containing_block_size`: The size of the containing block that
-    ///   `position: relative` makes use of.
     /// * `clip`: The region to clip the display items to.
     fn build_display_list(
         &mut self,
         state: &mut DisplayListBuildState,
-        stacking_relative_flow_origin: &Vector2D<Au>,
-        relative_containing_block_size: &LogicalSize<Au>,
-        relative_containing_block_mode: WritingMode,
+        stacking_relative_border_box: Rect<Au>,
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
         clip: &Rect<Au>,
@@ -1721,9 +1715,7 @@ impl FragmentDisplayListBuilding for Fragment {
     fn build_display_list(
         &mut self,
         state: &mut DisplayListBuildState,
-        stacking_relative_flow_origin: &Vector2D<Au>,
-        relative_containing_block_size: &LogicalSize<Au>,
-        relative_containing_block_mode: WritingMode,
+        stacking_relative_border_box: Rect<Au>,
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
         clip: &Rect<Au>,
@@ -1733,19 +1725,9 @@ impl FragmentDisplayListBuilding for Fragment {
             return;
         }
 
-        // Compute the fragment position relative to the parent stacking context. If the fragment
-        // itself establishes a stacking context, then the origin of its position will be (0, 0)
-        // for the purposes of this computation.
-        let stacking_relative_border_box = self.stacking_relative_border_box(
-            stacking_relative_flow_origin,
-            relative_containing_block_size,
-            relative_containing_block_mode,
-            CoordinateSystem::Own,
-        );
-
         debug!(
-            "Fragment::build_display_list at rel={:?}, abs={:?}, flow origin={:?}: {:?}",
-            self.border_box, stacking_relative_border_box, stacking_relative_flow_origin, self
+            "Fragment::build_display_list at rel={:?}, abs={:?}: {:?}",
+            self.border_box, stacking_relative_border_box, self
         );
 
         // Check the clip rect. If there's nothing to render at all, don't even construct display
@@ -2893,17 +2875,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let background_border_section = self.background_border_section();
 
         state.processing_scrolling_overflow_element = self.has_scrolling_overflow();
-
+        let stacking_relative_border_box
+            = self.base.stacking_relative_border_box_for_display_list(&self.fragment);
         // Add the box that starts the block context.
         self.fragment.build_display_list(
             state,
-            &self.base.stacking_relative_position,
-            &self.base
-                .early_absolute_position_info
-                .relative_containing_block_size,
-            self.base
-                .early_absolute_position_info
-                .relative_containing_block_mode,
+            stacking_relative_border_box,
             border_painting_mode,
             background_border_section,
             &self.base.clip,
@@ -3006,15 +2983,11 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         index: usize,
     ) {
         let fragment = self.fragments.fragments.get_mut(index).unwrap();
+        let stacking_relative_border_box
+            = self.base.stacking_relative_border_box_for_display_list(fragment);
         fragment.build_display_list(
             state,
-            &self.base.stacking_relative_position,
-            &self.base
-                .early_absolute_position_info
-                .relative_containing_block_size,
-            self.base
-                .early_absolute_position_info
-                .relative_containing_block_mode,
+            stacking_relative_border_box,
             BorderPaintingMode::Separate,
             DisplayListSection::Content,
             &self.base.clip,
@@ -3066,17 +3039,11 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
     fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState) {
         // Draw the marker, if applicable.
         for marker in &mut self.marker_fragments {
+            let stacking_relative_border_box
+                = self.block_flow.base.stacking_relative_border_box_for_display_list(marker);
             marker.build_display_list(
                 state,
-                &self.block_flow.base.stacking_relative_position,
-                &self.block_flow
-                    .base
-                    .early_absolute_position_info
-                    .relative_containing_block_size,
-                self.block_flow
-                    .base
-                    .early_absolute_position_info
-                    .relative_containing_block_mode,
+                stacking_relative_border_box,
                 BorderPaintingMode::Separate,
                 DisplayListSection::Content,
                 &self.block_flow.base.clip,
