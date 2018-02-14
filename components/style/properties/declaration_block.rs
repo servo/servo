@@ -626,61 +626,50 @@ impl PropertyDeclarationBlock {
         computed_values: Option<&ComputedValues>,
         custom_properties_block: Option<&PropertyDeclarationBlock>,
     ) -> fmt::Result {
-        match property.as_shorthand() {
-            Err(_longhand_or_custom) => {
-                if self.declarations.len() == 1 {
-                    let declaration = &self.declarations[0];
-                    let custom_properties = if let Some(cv) = computed_values {
-                        // If there are extra custom properties for this
-                        // declaration block, factor them in too.
-                        if let Some(block) = custom_properties_block {
-                            // FIXME(emilio): This is not super-efficient
-                            // here...
-                            block.cascade_custom_properties(cv.custom_properties())
-                        } else {
-                            cv.custom_properties().cloned()
-                        }
-                    } else {
-                        None
-                    };
+        if let Ok(shorthand) = property.as_shorthand() {
+            return self.shorthand_to_css(shorthand, dest);
+        }
 
-                    match (declaration, computed_values) {
-                        // If we have a longhand declaration with variables, those variables will be
-                        // stored as unparsed values. As a temporary measure to produce sensible results
-                        // in Gecko's getKeyframes() implementation for CSS animations, if
-                        // |computed_values| is supplied, we use it to expand such variable
-                        // declarations. This will be fixed properly in Gecko bug 1391537.
-                        (
-                            &PropertyDeclaration::WithVariables(ref declaration),
-                            Some(ref _computed_values),
-                        ) => {
-                            declaration.value.substitute_variables(
-                                declaration.id,
-                                custom_properties.as_ref(),
-                                QuirksMode::NoQuirks,
-                            ).to_css(dest)
-                        },
-                        (ref d, _) => d.to_css(dest),
-                    }
-                } else {
-                    Err(fmt::Error)
-                }
+        // FIXME(emilio): Should this assert, or assert that the declaration is
+        // the property we expect?
+        let declaration = match self.declarations.get(0) {
+            Some(d) => d,
+            None => return Err(fmt::Error),
+        };
+
+        let custom_properties = if let Some(cv) = computed_values {
+            // If there are extra custom properties for this declaration block,
+            // factor them in too.
+            if let Some(block) = custom_properties_block {
+                // FIXME(emilio): This is not super-efficient here, and all this
+                // feels like a hack anyway...
+                block.cascade_custom_properties(cv.custom_properties())
+            } else {
+                cv.custom_properties().cloned()
             }
-            Ok(shorthand) => {
-                if !self.declarations.iter().all(|decl| decl.shorthands().contains(&shorthand)) {
-                    return Err(fmt::Error)
-                }
-                let iter = self.declarations.iter();
-                match shorthand.get_shorthand_appendable_value(iter) {
-                    Some(AppendableValue::Css { css, .. }) => {
-                        css.append_to(dest)
-                    },
-                    Some(AppendableValue::DeclarationsForShorthand(_, decls)) => {
-                        shorthand.longhands_to_css(decls, &mut CssWriter::new(dest))
-                    }
-                    _ => Ok(())
-                }
-            }
+        } else {
+            None
+        };
+
+        match (declaration, computed_values) {
+            // If we have a longhand declaration with variables, those variables
+            // will be stored as unparsed values.
+            //
+            // As a temporary measure to produce sensible results in Gecko's
+            // getKeyframes() implementation for CSS animations, if
+            // |computed_values| is supplied, we use it to expand such variable
+            // declarations. This will be fixed properly in Gecko bug 1391537.
+            (
+                &PropertyDeclaration::WithVariables(ref declaration),
+                Some(ref _computed_values),
+            ) => {
+                declaration.value.substitute_variables(
+                    declaration.id,
+                    custom_properties.as_ref(),
+                    QuirksMode::NoQuirks,
+                ).to_css(dest)
+            },
+            (ref d, _) => d.to_css(dest),
         }
     }
 
