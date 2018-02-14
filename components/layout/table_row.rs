@@ -9,7 +9,7 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list::BlockFlowDisplayListBuilding;
 use display_list::{DisplayListBuildState, StackingContextCollectionFlags};
 use display_list::StackingContextCollectionState;
 use euclid::Point2D;
@@ -467,17 +467,8 @@ impl Flow for TableRowFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        let border_painting_mode = match self.block_flow
-                                             .fragment
-                                             .style
-                                             .get_inheritedtable()
-                                             .border_collapse {
-            BorderCollapse::Separate => BorderPaintingMode::Separate,
-            BorderCollapse::Collapse => BorderPaintingMode::Hidden,
-        };
-
-        self.block_flow.build_display_list_for_block(state, border_painting_mode);
+    fn build_display_list(&mut self, _: &mut DisplayListBuildState) { 
+        // handled in TableCellStyleInfo::build_display_list
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
