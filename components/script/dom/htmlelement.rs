@@ -17,10 +17,12 @@ use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::document::{Document, FocusType};
+use dom::documentfragment::DocumentFragment;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{AttributeMutation, Element};
 use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmlinputelement::{HTMLInputElement, InputType};
@@ -28,6 +30,7 @@ use dom::htmllabelelement::HTMLLabelElement;
 use dom::node::{Node, NodeFlags};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::ReflowReason;
 use dom_struct::dom_struct;
@@ -421,9 +424,62 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-    fn SetInnerText(&self, _: DOMString) {
-        // XXX (ferjm) implement this.
+    fn SetInnerText(&self, input: DOMString) {
+        // Step 1.
+        let document = document_from_node(self);
+
+        // Step 2.
+        let fragment = DocumentFragment::new(&document);
+
+        // Step 3. The given value is already named 'input'.
+
+        // Step 4.
+        let mut position = input.chars().peekable();
+
+        // Step 5.
+        let mut text = String::new();
+
+        // Step 6.
+        while let Some(ch) = position.next() {
+            match ch {
+                '\u{000A}' | '\u{000D}' => {
+                    if ch == '\u{000D}' && position.peek() == Some(&'\u{000A}') {
+                        // a \r\n pair should only generate one <br>,
+                        // so just skip the \r.
+                        position.next();
+                    }
+
+                    if !text.is_empty() {
+                        append_text_node_to_fragment(&document, &fragment, text);
+                        text = String::new();
+                    }
+
+                    let br = HTMLBRElement::new(local_name!("br"), None, &document);
+                    fragment.upcast::<Node>().AppendChild(&br.upcast()).unwrap();
+                },
+                _ => {
+                    text.push(ch);
+                }
+            }
+        }
+
+        if !text.is_empty() {
+            append_text_node_to_fragment(&document, &fragment, text);
+        }
+
+        // Step 7.
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
     }
+}
+
+fn append_text_node_to_fragment(
+    document: &Document,
+    fragment: &DocumentFragment,
+    text: String
+) {
+    let text = Text::new(DOMString::from(text), document);
+    let node = DomRoot::upcast::<Node>(text);
+    fragment.upcast::<Node>().AppendChild(&node).unwrap();
 }
 
 // https://html.spec.whatwg.org/multipage/#attr-data-*
