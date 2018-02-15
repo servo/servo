@@ -1736,6 +1736,7 @@ impl FragmentDisplayListBuilding for Fragment {
         self.build_display_list_no_damage(state, stacking_relative_border_box,
                                 border_painting_mode, display_list_section, clip)
     }
+
     fn build_display_list_no_damage(
         &self,
         state: &mut DisplayListBuildState,
@@ -1743,8 +1744,7 @@ impl FragmentDisplayListBuilding for Fragment {
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
         clip: &Rect<Au>,
-    ) {
-        
+    ) {        
         if self.style().get_inheritedbox().visibility != Visibility::Visible {
             return;
         }
