@@ -380,3 +380,16 @@ where
         }
     }
 }
+
+impl<T> ToAnimatedZero for Size2D<T>
+where
+    T: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Size2D::new(
+            self.width.to_animated_zero()?,
+            self.height.to_animated_zero()?,
+        ))
+    }
+}
