@@ -132,18 +132,18 @@ impl Event {
 
         // Step 3. The "invoke" algorithm is only used on `target` separately,
         // so we don't put it in the path.
-        rooted_vec!(let mut event_path);
+        pinned!(mut event_path[Vec<Dom<_>>]);
 
         // Step 4.
         if let Some(target_node) = target.downcast::<Node>() {
             for ancestor in target_node.ancestors() {
-                event_path.push(Dom::from_ref(ancestor.upcast::<EventTarget>()));
+                event_path.push(ancestor.upcast::<EventTarget>());
             }
             let top_most_ancestor_or_target =
                 DomRoot::from_ref(event_path.r().last().cloned().unwrap_or(target));
             if let Some(document) = DomRoot::downcast::<Document>(top_most_ancestor_or_target) {
                 if self.type_() != atom!("load") && document.browsing_context().is_some() {
-                    event_path.push(Dom::from_ref(document.window().upcast()));
+                    event_path.push(document.window().upcast::<EventTarget>());
                 }
             }
         }

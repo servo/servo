@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethod
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
+use dom::bindings::pin::UntracedDefault;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
@@ -35,7 +36,6 @@ use microtask::Microtask;
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
-use std::mem;
 use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
@@ -648,16 +648,15 @@ impl CustomElementReactionStack {
     }
 
     pub fn pop_current_element_queue(&self) {
-        rooted_vec!(let mut stack);
-        mem::swap(&mut *stack, &mut *self.stack.borrow_mut());
-
-        if let Some(current_queue) = stack.last() {
-            current_queue.invoke_reactions();
+        pinned!(mut queue[ElementQueue]);
+        {
+            let mut stack = self.stack.borrow_mut();
+            if let Some(last) = stack.last_mut() {
+                queue.swap(last);
+            }
+            stack.pop();
         }
-        stack.pop();
-
-        mem::swap(&mut *self.stack.borrow_mut(), &mut *stack);
-        self.stack.borrow_mut().append(&mut *stack);
+        queue.invoke_reactions();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
@@ -779,6 +778,16 @@ impl CustomElementReactionStack {
 #[must_root]
 struct ElementQueue {
     queue: DomRefCell<VecDeque<Dom<Element>>>,
+}
+
+// FIXME(nox): Derive that.
+impl UntracedDefault for ElementQueue {
+    #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
+    #[inline]
+    unsafe fn untraced_default() -> Self {
+        ElementQueue::new()
+    }
 }
 
 impl ElementQueue {

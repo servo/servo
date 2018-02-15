@@ -1052,12 +1052,14 @@ impl VirtualMethods for HTMLFormElement {
 
         // Collect the controls to reset because reset_form_owner
         // will mutably borrow self.controls
-        rooted_vec!(let mut to_reset);
-        to_reset.extend(self.controls.borrow().iter()
-                        .filter(|c| !c.is_in_same_home_subtree(self))
-                        .map(|c| c.clone()));
+        pinned!(mut to_reset[Vec<Dom<_>>] <-
+            self.controls
+                .borrow()
+                .iter()
+                .filter(|c| !c.is_in_same_home_subtree(self))
+        );
 
-        for control in to_reset.iter() {
+        for control in &**to_reset {
             control.as_maybe_form_control()
                        .expect("Element must be a form control")
                        .reset_form_owner();

@@ -1598,10 +1598,10 @@ impl Node {
                 parent.ranges.increase_above(parent, index, count);
             }
         }
-        rooted_vec!(let mut new_nodes);
+        pinned!(mut new_nodes[Vec<_>]);
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
-            new_nodes.extend(node.children().map(|kid| Dom::from_ref(&*kid)));
+            new_nodes.extend(node.children());
             // Step 4.
             for kid in new_nodes.r() {
                 Node::remove(*kid, node, SuppressObserver::Suppressed);
@@ -1671,12 +1671,12 @@ impl Node {
             Node::adopt(node, &*parent.owner_doc());
         }
         // Step 2.
-        rooted_vec!(let removed_nodes <- parent.children());
+        pinned!(mut removed_nodes[Vec<_>] <- parent.children());
         // Step 3.
-        rooted_vec!(let mut added_nodes);
+        pinned!(mut added_nodes[Vec<_>]);
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment = node.type_id() {
-                added_nodes.extend(node.children().map(|child| Dom::from_ref(&*child)));
+                added_nodes.extend(node.children());
                 added_nodes.r()
             } else {
                 ref_slice(node)
@@ -2203,9 +2203,9 @@ impl NodeMethods for Node {
         };
 
         // Step 12.
-        rooted_vec!(let mut nodes);
+        pinned!(mut nodes[Vec<_>]);
         let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
-            nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
+            nodes.extend(node.children());
             nodes.r()
         } else {
             ref_slice(&node)

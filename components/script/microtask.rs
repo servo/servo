@@ -17,7 +17,6 @@ use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
 use script_thread::ScriptThread;
 use std::cell::Cell;
-use std::mem;
 use std::rc::Rc;
 
 /// A collection of microtasks in FIFO order.
@@ -71,12 +70,9 @@ impl MicrotaskQueue {
 
         // Steps 2-7
         while !self.microtask_queue.borrow().is_empty() {
-            rooted_vec!(let mut pending_queue);
-            mem::swap(
-                &mut *pending_queue,
-                &mut *self.microtask_queue.borrow_mut());
+            pinned!(pending_queue[Vec<_>] := &mut *self.microtask_queue.borrow_mut());
 
-            for job in pending_queue.iter() {
+            for job in &*pending_queue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {

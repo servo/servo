@@ -43,7 +43,6 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::error::Error;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, Reflector};
-use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
@@ -840,22 +839,6 @@ impl<'a, T: 'static + JSTraceable> RootedVec<'a, T> {
         unsafe {
             RootedTraceableSet::add(root);
         }
-        RootedVec {
-            root: root,
-        }
-    }
-}
-
-impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, Dom<T>> {
-    /// Create a vector of items of type Dom<T> that is rooted for
-    /// the lifetime of this struct
-    pub fn from_iter<I>(root: &'a mut RootableVec<Dom<T>>, iter: I) -> Self
-        where I: Iterator<Item = DomRoot<T>>
-    {
-        unsafe {
-            RootedTraceableSet::add(root);
-        }
-        root.v.extend(iter.map(|item| Dom::from_ref(&*item)));
         RootedVec {
             root: root,
         }

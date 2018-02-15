@@ -28,8 +28,7 @@ impl GamepadButtonList {
     }
 
     pub fn new_from_vr(global: &GlobalScope, buttons: &[WebVRGamepadButton]) -> DomRoot<GamepadButtonList> {
-        rooted_vec!(let list <- buttons.iter()
-                                       .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
+        pinned!(mut list[Vec<_>] <- buttons.iter().map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
 
         reflect_dom_object(Box::new(GamepadButtonList::new_inherited(list.r())),
                            global,

@@ -1176,10 +1176,10 @@ impl Document {
             }
         }
 
-        rooted_vec!(let mut target_touches);
+        pinned!(mut target_touches[Vec<_>]);
         let touches = {
             let touches = self.active_touch_points.borrow();
-            target_touches.extend(touches.iter().filter(|t| t.Target() == target).cloned());
+            target_touches.extend(touches.iter().filter(|t| t.Target() == target));
             TouchList::new(window, touches.r())
         };
 

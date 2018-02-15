@@ -97,7 +97,6 @@ use std::borrow::Cow;
 use std::cell::{Cell, Ref};
 use std::default::Default;
 use std::fmt;
-use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
 use style::CaseSensitivityExt;
@@ -338,10 +337,10 @@ impl Element {
     pub fn invoke_reactions(&self) {
         // TODO: This is not spec compliant, as this will allow some reactions to be processed
         // after clear_reaction_queue has been called.
-        rooted_vec!(let mut reactions);
+        pinned!(mut reactions[Vec<_>]);
         while !self.custom_element_reaction_queue.borrow().is_empty() {
-            mem::swap(&mut *reactions, &mut *self.custom_element_reaction_queue.borrow_mut());
-            for reaction in reactions.iter() {
+            reactions.swap(&mut *self.custom_element_reaction_queue.borrow_mut());
+            for reaction in &**reactions {
                 reaction.invoke(self);
             }
             reactions.clear();

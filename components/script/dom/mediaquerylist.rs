@@ -134,16 +134,16 @@ impl WeakMediaQueryListVec {
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
     pub fn evaluate_and_report_changes(&self) {
-        rooted_vec!(let mut mql_list);
+        pinned!(mut mql_list[Vec<Dom<_>>]);
         self.cell.borrow_mut().update(|mql| {
             let mql = mql.root().unwrap();
             if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
-                mql_list.push(Dom::from_ref(&*mql));
+                mql_list.push(mql);
             }
         });
         // Sending change events for all changed Media Queries
-        for mql in mql_list.iter() {
+        for mql in &**mql_list {
             let event = MediaQueryListEvent::new(&mql.global(),
                                                  atom!("change"),
                                                  false, false,

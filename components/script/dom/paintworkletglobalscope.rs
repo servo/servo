@@ -269,8 +269,12 @@ impl PaintWorkletGlobalScope {
         // TODO: Step 10
         // Steps 11-12
         debug!("Invoking paint function {}.", name);
-        rooted_vec!(let arguments_values <- arguments.iter().cloned()
-                    .map(|argument| CSSStyleValue::new(self.upcast(), argument)));
+        pinned!(mut arguments_values[Vec<Dom<_>>] <-
+            arguments
+                .iter()
+                .cloned()
+                .map(|argument| CSSStyleValue::new(self.upcast(), argument))
+        );
         let arguments_value_vec: Vec<JSVal> = arguments_values.iter()
             .map(|argument| ObjectValue(argument.reflector().get_jsobject().get()))
             .collect();

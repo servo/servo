@@ -6,6 +6,7 @@
 //! script thread, the dom, and the worker threads.
 
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use dom::bindings::pin;
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::root::trace_roots;
 use dom::bindings::settings_stack;
@@ -143,6 +144,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     LiveDOMReferences::initialize();
     let runtime = RustRuntime::new().unwrap();
 
+    pin::initialize();
     JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
 
     // Needed for debug assertions about whether GC is running.
@@ -426,6 +428,7 @@ unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void
     }
     debug!("starting custom root handler");
     trace_thread(tr);
+    pin::trace(tr);
     trace_traceables(tr);
     trace_roots(tr);
     trace_refcounted_objects(tr);

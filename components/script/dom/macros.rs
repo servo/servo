@@ -3,6 +3,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #[macro_export]
+macro_rules! pin {
+    (ref mut $name:ident) => {
+        pin!($name[_]);
+    };
+    (ref mut $name:ident[$ty:ty]) => {
+        #[allow(unsafe_code)]
+        let ref mut $name = unsafe {
+            $crate::dom::bindings::pin::Pin::<$ty>::new()
+        };
+    };
+}
+
+#[macro_export]
+macro_rules! pinned {
+    (mut $name:ident) => {
+        pinned!(mut $name[_]);
+    };
+    (mut $name:ident[$ty:ty]) => {
+        pin!(ref mut $name[$crate::dom::bindings::pin::Mut<$ty>]);
+        let mut $name = $crate::dom::bindings::pin::Pin::<$crate::dom::bindings::pin::Mut<$ty>>::pin_default(
+            $name,
+        );
+    };
+    (mut $name:ident[$ty:ty] <- $expr:expr) => {
+        pinned!(mut $name[$ty]);
+        <$crate::dom::bindings::pin::Pinned<$crate::dom::bindings::pin::Mut<$ty>> as ::std::iter::Extend<_>>::extend(
+            &mut $name,
+            $expr,
+        );
+    };
+    ($name:ident[$ty:ty] := $expr:expr) => {
+        pin!(ref mut $name[$ty]);
+        let $name = $crate::dom::bindings::pin::Pin::<$ty>::pin($name, $expr);
+    };
+}
+
+#[macro_export]
 macro_rules! make_getter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
