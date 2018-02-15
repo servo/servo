@@ -14,7 +14,7 @@ use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list::{DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
-use flow_list::MutFlowListIterator;
+use flow_list::{FlowListIterator, MutFlowListIterator};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
@@ -882,20 +882,66 @@ enum NextBlockCollapsedBorders<'a> {
 /// Iterator over all the rows of a table, which also
 /// provides the Fragment for rowgroups if any
 struct TableRowAndGroupIterator<'a> {
-    kids: MutFlowListIterator<'a>,
-    group: Option<(&'a Fragment, MutFlowListIterator<'a>)>
+    kids: FlowListIterator<'a>,
+    group: Option<(&'a Fragment, FlowListIterator<'a>)>
 }
 
 impl<'a> TableRowAndGroupIterator<'a> {
-    fn new(base: &'a mut BaseFlow) -> Self {
+    fn new(base: &'a BaseFlow) -> Self {
         TableRowAndGroupIterator {
-            kids: base.child_iter_mut(),
+            kids: base.child_iter(),
             group: None,
         }
     }
 }
 
 impl<'a> Iterator for TableRowAndGroupIterator<'a> {
+    type Item = (Option<&'a Fragment>, &'a TableRowFlow);
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        // If we're inside a rowgroup, iterate through the rowgroup's children.
+        if let Some(ref mut group) = self.group {
+            if let Some(grandkid) = group.1.next() {
+                return Some((Some(group.0), grandkid.as_table_row()))
+            }
+        }
+        // Otherwise, iterate through the table's children.
+        self.group = None;
+        match self.kids.next() {
+            Some(kid) => {
+                if kid.is_table_rowgroup() {
+                    let mut rowgroup = kid.as_table_rowgroup();
+                    let iter = rowgroup.block_flow.base.child_iter();
+                    self.group = Some((&rowgroup.block_flow.fragment, iter));
+                    self.next()
+                } else if kid.is_table_row() {
+                    Some((None, kid.as_table_row()))
+                } else {
+                    self.next() // Skip children that are not rows or rowgroups
+                }
+            }
+            None => None
+        }
+    }
+}
+
+/// Iterator over all the rows of a table, which also
+/// provides the Fragment for rowgroups if any
+struct MutTableRowAndGroupIterator<'a> {
+    kids: MutFlowListIterator<'a>,
+    group: Option<(&'a Fragment, MutFlowListIterator<'a>)>
+}
+
+impl<'a> MutTableRowAndGroupIterator<'a> {
+    fn new(base: &'a mut BaseFlow) -> Self {
+        MutTableRowAndGroupIterator {
+            kids: base.child_iter_mut(),
+            group: None,
+        }
+    }
+}
+
+impl<'a> Iterator for MutTableRowAndGroupIterator<'a> {
     type Item = (Option<&'a Fragment>, &'a mut TableRowFlow);
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -926,11 +972,11 @@ impl<'a> Iterator for TableRowAndGroupIterator<'a> {
 }
 
 /// Iterator over all the rows of a table
-struct TableRowIterator<'a>(TableRowAndGroupIterator<'a>);
+struct TableRowIterator<'a>(MutTableRowAndGroupIterator<'a>);
 
 impl<'a> TableRowIterator<'a> {
     fn new(base: &'a mut BaseFlow) -> Self {
-        TableRowIterator(TableRowAndGroupIterator::new(base))
+        TableRowIterator(MutTableRowAndGroupIterator::new(base))
     }
 }
 
@@ -961,7 +1007,7 @@ struct TableCellStyleIterator<'table> {
 struct TableCellStyleIteratorRowInfo<'table> {
     row: &'table Fragment,
     rowgroup: Option<&'table Fragment>,
-    cell_iterator: MutFlowListIterator<'table>,
+    cell_iterator: FlowListIterator<'table>,
 }
 
 impl<'table> TableCellStyleIterator<'table> {
@@ -971,7 +1017,7 @@ impl<'table> TableCellStyleIterator<'table> {
             Some(TableCellStyleIteratorRowInfo {
                 row: &row.block_flow.fragment,
                 rowgroup: group,
-                cell_iterator: row.block_flow.base.child_iter_mut()
+                cell_iterator: row.block_flow.base.child_iter()
             })
         } else {
             None
@@ -985,7 +1031,7 @@ impl<'table> TableCellStyleIterator<'table> {
 }
 
 struct TableCellStyleInfo<'table> {
-    cell: &'table mut TableCellFlow,
+    cell: &'table TableCellFlow,
     colgroup_style: Option<Arc<Background>>,
     col_style: Option<Arc<Background>>,
     rowgroup_style: Option<&'table Background>,
@@ -1000,7 +1046,7 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
             if let Some(cell) = row_info.cell_iterator.next() {
                 let rowgroup_style = row_info.rowgroup.map(|r| r.style().get_background());
                 let row_style = row_info.row.style().get_background();
-                let cell = cell.as_mut_table_cell();
+                let cell = cell.as_table_cell();
                 let (col_style, colgroup_style) = if let Some(column_style) =
                         self.column_styles.get(self.column_index_relative as usize) {
                     let styles = (column_style.col_style.clone(), column_style.colgroup_style.clone());
@@ -1038,7 +1084,7 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                     *row_info = TableCellStyleIteratorRowInfo {
                         row: &row.block_flow.fragment,
                         rowgroup: group,
-                        cell_iterator: row.block_flow.base.child_iter_mut()
+                        cell_iterator: row.block_flow.base.child_iter()
                     };
                     self.column_index_relative = 0;
                     self.column_index_relative_offset = 0;
@@ -1059,7 +1105,7 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
 }
 
 impl<'table> TableCellStyleInfo<'table> {
-    fn build_display_list(&mut self, mut state: &mut DisplayListBuildState, table_style: &'table ComputedValues) {
+    fn build_display_list(&self, mut state: &mut DisplayListBuildState, table_style: &'table ComputedValues) {
         if !self.cell.visible {
             return
         }
@@ -1103,7 +1149,7 @@ impl<'table> TableCellStyleInfo<'table> {
             }
             build_dl(self.row_style, &mut state);
         }
-
-        self.cell.block_flow.build_display_list_for_block(state, border_painting_mode)
+        // the restyle damage will be set in TableCellFlow::build_display_list()
+        self.cell.block_flow.build_display_list_for_block_no_damage(state, border_painting_mode)
     }
 }
