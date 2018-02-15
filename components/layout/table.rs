@@ -19,13 +19,11 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
-use servo_arc::Arc;
 use std::{cmp, fmt, ptr};
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::properties::style_structs::Background;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -214,7 +212,7 @@ impl TableFlow {
             // so that we can filter_map
             let group = group.as_table_colgroup();
             let colgroup_style = group.fragment.as_ref()
-                                      .map(|f| f.style().clone_background());
+                                      .map(|f| f.style());
 
             // The colgroup's span attribute is only relevant when
             // it has no children
@@ -228,8 +226,8 @@ impl TableFlow {
                     // XXXManishearth Arc-cloning colgroup_style is suboptimal
                     styles.push(ColumnStyle {
                         span: col.column_span(),
-                        colgroup_style: colgroup_style.clone(),
-                        col_style: Some(col.style().clone_background()),
+                        colgroup_style: colgroup_style,
+                        col_style: Some(col.style()),
                     })
                 }
             }
@@ -531,11 +529,9 @@ impl Flow for TableFlow {
 
         self.block_flow.build_display_list_for_block(state, border_painting_mode);
 
-        let column_styles = self.column_styles();
-        let iter = TableCellStyleIterator::new(&mut self.block_flow.base, column_styles);
-        let cv = self.block_flow.fragment.style();
+        let iter = TableCellStyleIterator::new(&self);
         for mut style in iter {
-            style.build_display_list(state, cv)
+            style.build_display_list(state)
         }
     }
 
@@ -577,10 +573,10 @@ impl Flow for TableFlow {
 // for rows (and have no borrowing issues between
 // holding on to both ColumnStyle<'table> and 
 // the rows)
-struct ColumnStyle {
+struct ColumnStyle<'table> {
     span: u32,
-    colgroup_style: Option<Arc<Background>>,
-    col_style: Option<Arc<Background>>,
+    colgroup_style: Option<&'table ComputedValues>,
+    col_style: Option<&'table ComputedValues>,
 }
 
 impl fmt::Debug for TableFlow {
@@ -994,9 +990,10 @@ impl<'a> Iterator for TableRowIterator<'a> {
 /// Used for correctly handling table layers from
 /// https://drafts.csswg.org/css2/tables.html#table-layers
 struct TableCellStyleIterator<'table> {
-    column_styles: Vec<ColumnStyle>,
+    column_styles: Vec<ColumnStyle<'table>>,
     row_iterator: TableRowAndGroupIterator<'table>,
     row_info: Option<TableCellStyleIteratorRowInfo<'table>>,
+    table_style: &'table ComputedValues,
     /// The index of the current column in column_styles
     column_index_relative: u32,
     /// In case of multispan columns, where we are in the
@@ -1011,8 +1008,9 @@ struct TableCellStyleIteratorRowInfo<'table> {
 }
 
 impl<'table> TableCellStyleIterator<'table> {
-    fn new(base: &'table mut BaseFlow, column_styles: Vec<ColumnStyle>) -> Self {
-        let mut row_iterator = TableRowAndGroupIterator::new(base);
+    fn new(table: &'table TableFlow) -> Self {
+        let column_styles = table.column_styles();
+        let mut row_iterator = TableRowAndGroupIterator::new(&table.block_flow.base);
         let row_info = if let Some((group, row)) = row_iterator.next() {
             Some(TableCellStyleIteratorRowInfo {
                 row: &row.block_flow.fragment,
@@ -1026,16 +1024,18 @@ impl<'table> TableCellStyleIterator<'table> {
             column_styles, row_iterator, row_info,
             column_index_relative: 0,
             column_index_relative_offset: 0,
+            table_style: table.block_flow.fragment.style(),
         }
     }
 }
 
 struct TableCellStyleInfo<'table> {
     cell: &'table TableCellFlow,
-    colgroup_style: Option<Arc<Background>>,
-    col_style: Option<Arc<Background>>,
-    rowgroup_style: Option<&'table Background>,
-    row_style: &'table Background,
+    table_style: &'table ComputedValues,
+    colgroup_style: Option<&'table ComputedValues>,
+    col_style: Option<&'table ComputedValues>,
+    rowgroup_style: Option<&'table ComputedValues>,
+    row_style: &'table ComputedValues,
 }
 
 impl<'table> Iterator for TableCellStyleIterator<'table> {
@@ -1044,8 +1044,8 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(ref mut row_info) = self.row_info {
             if let Some(cell) = row_info.cell_iterator.next() {
-                let rowgroup_style = row_info.rowgroup.map(|r| r.style().get_background());
-                let row_style = row_info.row.style().get_background();
+                let rowgroup_style = row_info.rowgroup.map(|r| r.style());
+                let row_style = row_info.row.style();
                 let cell = cell.as_table_cell();
                 let (col_style, colgroup_style) = if let Some(column_style)
                         = self.column_styles.get(self.column_index_relative as usize) {
@@ -1076,7 +1076,8 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                     colgroup_style,
                     col_style,
                     rowgroup_style,
-                    row_style
+                    row_style,
+                    table_style: self.table_style,
                 })
             } else {
                 // next row
@@ -1105,7 +1106,7 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
 }
 
 impl<'table> TableCellStyleInfo<'table> {
-    fn build_display_list(&self, mut state: &mut DisplayListBuildState, table_style: &'table ComputedValues) {
+    fn build_display_list(&self, mut state: &mut DisplayListBuildState) {
         if !self.cell.visible {
             return
         }
@@ -1119,33 +1120,33 @@ impl<'table> TableCellStyleInfo<'table> {
         };
         {
             let cell_flow = &self.cell.block_flow;
-            let mut bg_ptr = ptr::null();
+            let mut sty_ptr = ptr::null();
 
-            // XXXManishearth the color should be resolved relative to the style itself
-            // which we don't have here
-            let mut build_dl = |bg, state: &mut &mut DisplayListBuildState| {
+            let mut build_dl = |sty: &ComputedValues, state: &mut &mut DisplayListBuildState| {
                 // Don't redraw backgrounds that we've already drawn
-                if bg_ptr == bg as *const _ {
+                if sty_ptr == sty as *const _ {
                     return;
                 }
+                let background = sty.get_background();
+                let background_color = sty.resolve_color(background.background_color);
                 cell_flow.build_display_list_for_background_if_applicable_with_background(
-                    state, bg, table_style.resolve_color(bg.background_color)
+                    state, background, background_color
                 );
 
-                bg_ptr = bg as *const _;
+                sty_ptr = sty as *const _;
             };
 
 
-            build_dl(table_style.get_background(), &mut state);
+            build_dl(self.table_style, &mut state);
 
-            if let Some(ref bg) = self.colgroup_style {
-                build_dl(&bg, &mut state);
+            if let Some(ref sty) = self.colgroup_style {
+                build_dl(&sty, &mut state);
             }
-            if let Some(ref bg) = self.col_style {
-                build_dl(&bg, &mut state);
+            if let Some(ref sty) = self.col_style {
+                build_dl(&sty, &mut state);
             }
-            if let Some(ref bg) = self.rowgroup_style {
-                build_dl(bg, &mut state);
+            if let Some(ref sty) = self.rowgroup_style {
+                build_dl(sty, &mut state);
             }
             build_dl(self.row_style, &mut state);
         }
