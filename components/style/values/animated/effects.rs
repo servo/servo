@@ -13,7 +13,7 @@ use values::Impossible;
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::RGBA;
 use values::computed::{Angle, Number};
-use values::computed::length::{Length, NonNegativeLength};
+use values::computed::length::Length;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
@@ -33,7 +33,7 @@ pub type TextShadowList = ShadowList<SimpleShadow>;
 pub struct ShadowList<Shadow>(Vec<Shadow>);
 
 /// An animated value for a single `box-shadow`.
-pub type BoxShadow = GenericBoxShadow<Option<RGBA>, Length, NonNegativeLength, Length>;
+pub type BoxShadow = GenericBoxShadow<Option<RGBA>, Length, Length, Length>;
 
 /// An animated value for the `filter` property.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
@@ -42,14 +42,14 @@ pub struct FilterList(pub Vec<Filter>);
 
 /// An animated value for a single `filter`.
 #[cfg(feature = "gecko")]
-pub type Filter = GenericFilter<Angle, Number, NonNegativeLength, SimpleShadow>;
+pub type Filter = GenericFilter<Angle, Number, Length, SimpleShadow>;
 
 /// An animated value for a single `filter`.
 #[cfg(not(feature = "gecko"))]
-pub type Filter = GenericFilter<Angle, Number, NonNegativeLength, Impossible>;
+pub type Filter = GenericFilter<Angle, Number, Length, Impossible>;
 
 /// An animated value for the `drop-shadow()` filter.
-pub type SimpleShadow = GenericSimpleShadow<Option<RGBA>, Length, NonNegativeLength>;
+pub type SimpleShadow = GenericSimpleShadow<Option<RGBA>, Length, Length>;
 
 impl ToAnimatedValue for ComputedBoxShadowList {
     type AnimatedValue = BoxShadowList;
