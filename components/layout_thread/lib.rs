@@ -1427,7 +1427,7 @@ impl LayoutThread {
             ReflowGoal::ElementInnerTextQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.element_inner_text_response =
-                    process_element_inner_text_query(node, &rw_data.display_list);
+                    process_element_inner_text_query(node, &rw_data.indexable_text);
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {}
         }

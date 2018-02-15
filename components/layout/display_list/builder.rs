@@ -3017,11 +3017,12 @@ pub struct IndexableText {
 
 impl IndexableText {
     fn insert(&mut self, node: OpaqueNode, item: IndexableTextItem) {
-        if let Some(items) = self.inner.get_mut(&node) {
-            items.push(item);
-            return;
-        }
-        self.inner.insert(node, vec![item]);
+        let entries = self.inner.entry(node).or_insert(Vec::new());
+        entries.push(item);
+    }
+
+    pub fn get(&self, node: OpaqueNode) -> Option<&[IndexableTextItem]> {
+        self.inner.get(&node).map(|x| x.as_slice())
     }
 
     // Returns the text index within a node for the point of interest.
