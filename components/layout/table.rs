@@ -994,15 +994,12 @@ struct TableCellStyleIterator<'table> {
     row_iterator: TableRowAndGroupIterator<'table>,
     row_info: Option<TableCellStyleIteratorRowInfo<'table>>,
     table_style: &'table ComputedValues,
-    /// The index of the current column in column_styles
-    column_index_relative: u32,
-    /// In case of multispan columns, where we are in the
-    /// span of the current <col> element
-    column_index_relative_offset: u32,
+    column_index: TableCellColumnIndexData,
+
 }
 
 struct TableCellStyleIteratorRowInfo<'table> {
-    row: &'table Fragment,
+    row: &'table TableRowFlow,
     rowgroup: Option<&'table Fragment>,
     cell_iterator: FlowListIterator<'table>,
 }
@@ -1013,7 +1010,7 @@ impl<'table> TableCellStyleIterator<'table> {
         let mut row_iterator = TableRowAndGroupIterator::new(&table.block_flow.base);
         let row_info = if let Some((group, row)) = row_iterator.next() {
             Some(TableCellStyleIteratorRowInfo {
-                row: &row.block_flow.fragment,
+                row: &row,
                 rowgroup: group,
                 cell_iterator: row.block_flow.base.child_iter()
             })
@@ -1022,8 +1019,7 @@ impl<'table> TableCellStyleIterator<'table> {
         };
         TableCellStyleIterator {
             column_styles, row_iterator, row_info,
-            column_index_relative: 0,
-            column_index_relative_offset: 0,
+            column_index: Default::default(),
             table_style: table.block_flow.fragment.style(),
         }
     }
@@ -1038,39 +1034,76 @@ struct TableCellStyleInfo<'table> {
     row_style: &'table ComputedValues,
 }
 
+struct TableCellColumnIndexData {
+    /// Which column this is in the table
+    pub absolute: u32,
+    /// The index of the current column in column_styles
+    /// (i.e. which <col> element it is)
+    pub relative: u32,
+    /// In case of multispan <col>s, where we are in the
+    /// span of the current <col> element
+    pub relative_offset: u32,
+}
+
+impl Default for TableCellColumnIndexData {
+    fn default() -> Self {
+        TableCellColumnIndexData {
+            absolute: 0,
+            relative: 0,
+            relative_offset: 0,
+        }
+    }
+}
+
+impl TableCellColumnIndexData {
+    /// Moves forward by `amount` columns, updating the various indices used
+    ///
+    /// This totally ignores rowspan -- if colspan and rowspan clash,
+    /// they just overlap, so we ignore it.
+    fn advance(&mut self, amount: u32, column_styles: &[ColumnStyle]) {
+        self.absolute += amount;
+        self.relative_offset += amount;
+        if let Some(mut current_col) =
+            column_styles.get(self.relative as usize) {
+            while self.relative_offset >= current_col.span {
+                // move to the next column
+                self.relative += 1;
+                self.relative_offset -= current_col.span;
+                if let Some(column_style) =
+                    column_styles.get(self.relative as usize) {
+                    current_col = column_style;
+                } else {
+                    // we ran out of column_styles,
+                    // so we don't need to update the indices
+                    break;
+                }
+            }
+        }
+    }
+}
+
 impl<'table> Iterator for TableCellStyleIterator<'table> {
     type Item = TableCellStyleInfo<'table>;
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(ref mut row_info) = self.row_info {
+        // FIXME We do this awkward .take() followed by shoving it back in
+        // because without NLL the row_info borrow lasts too long
+        if let Some(mut row_info) = self.row_info.take() {
             if let Some(cell) = row_info.cell_iterator.next() {
                 let rowgroup_style = row_info.rowgroup.map(|r| r.style());
-                let row_style = row_info.row.style();
+                let row_style = row_info.row.block_flow.fragment.style();
                 let cell = cell.as_table_cell();
                 let (col_style, colgroup_style) = if let Some(column_style) =
-                        self.column_styles.get(self.column_index_relative as usize) {
+                        self.column_styles.get(self.column_index.relative as usize) {
                     let styles = (column_style.col_style.clone(), column_style.colgroup_style.clone());
-                    // FIXME incoming_rowspan
-                    let cell_span = cell.column_span;
+                    self.column_index.advance(cell.column_span, &self.column_styles);
 
-                    let mut current_col = column_style;
-                    self.column_index_relative_offset += cell_span;
-                    while self.column_index_relative_offset >= current_col.span {
-                        // move to the next column
-                        self.column_index_relative += 1;
-                        self.column_index_relative_offset -= current_col.span;
-                        if let Some(column_style) =
-                            self.column_styles.get(self.column_index_relative as usize) {
-                            current_col = column_style;
-                        } else {
-                            break;
-                        }
-                    }
                     styles
                 } else {
                     (None, None)
                 };
-
+                // put row_info back in
+                self.row_info = Some(row_info);
                 return Some(TableCellStyleInfo {
                     cell,
                     colgroup_style,
@@ -1082,26 +1115,23 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
             } else {
                 // next row
                 if let Some((group, row)) = self.row_iterator.next() {
-                    *row_info = TableCellStyleIteratorRowInfo {
-                        row: &row.block_flow.fragment,
+                    self.row_info = Some(TableCellStyleIteratorRowInfo {
+                        row: &row,
                         rowgroup: group,
                         cell_iterator: row.block_flow.base.child_iter()
-                    };
-                    self.column_index_relative = 0;
-                    self.column_index_relative_offset = 0;
-                    // FIXME self.next() really should be up here but
-                    // can't be without NLL, so instead it's at the
-                    // end of the function
+                    });
+                    self.column_index = Default::default();
+                    self.next()
                 } else {
                     // out of rows
-                    return None
+                    // row_info stays None
+                    None
                 }
             }
         } else {
             // empty table
-            return None
+            None
         }
-        self.next()
     }
 }
 
