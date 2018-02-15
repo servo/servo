@@ -6,6 +6,7 @@ use cssparser::{ParseErrorKind, Parser, ParserInput, SourceLocation};
 use cssparser::ToCss as ParserToCss;
 use env_logger::Builder;
 use malloc_size_of::MallocSizeOfOps;
+use nsstring::nsCString;
 use selectors::{NthIndexCache, SelectorList};
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
@@ -92,7 +93,8 @@ use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ComputedStyleStrong, RustString};
-use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetParsingMode, nsAtom, nsCSSPropertyID};
+use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetLoadDataHolder};
+use style::gecko_bindings::structs::{SheetParsingMode, nsAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSCounterDesc};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::AtomArray;
@@ -145,6 +147,7 @@ use style::stylesheets::{DocumentRule, FontFaceRule, FontFeatureValuesRule, Impo
 use style::stylesheets::{KeyframesRule, MediaRule, NamespaceRule, Origin, OriginSet, PageRule};
 use style::stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::import_rule::ImportSheet;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
 use style::stylist::{add_size_of_ua_cache, AuthorStylesEnabled, RuleInclusion, Stylist};
@@ -163,7 +166,7 @@ use style::values::specified::gecko::{IntersectionObserverRootMargin, PixelOrPer
 use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::{CssWriter, ParsingMode, StyleParseErrorKind, ToCss};
 use super::error_reporter::ErrorReporter;
-use super::stylesheet_loader::StylesheetLoader;
+use super::stylesheet_loader::{AsyncStylesheetParser, StylesheetLoader};
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -1122,6 +1125,15 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     ).into_strong()
 }
 
+fn mode_to_origin(mode: SheetParsingMode) -> Origin {
+    match mode {
+        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
+        SheetParsingMode::eUserSheetFeatures => Origin::User,
+        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+        SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
+    }
+}
+
 /// Note: The load_data corresponds to this sheet, and is passed as the parent
 /// load data for child sheet loads. It may be null for certain cases where we
 /// know we won't have child loads.
@@ -1140,13 +1152,6 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let input: &str = unsafe { (*bytes).as_str_unchecked() };
 
-    let origin = match mode {
-        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
-        SheetParsingMode::eUserSheetFeatures => Origin::User,
-        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
-        SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
-    };
-
     let reporter = ErrorReporter::new(stylesheet, loader, extra_data);
     let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
     let loader = if loader.is_null() {
@@ -1163,10 +1168,42 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
 
 
     Arc::new(StylesheetContents::from_str(
-        input, url_data.clone(), origin,
+        input, url_data.clone(), mode_to_origin(mode),
         &global_style_data.shared_lock, loader, &reporter,
         quirks_mode.into(), line_number_offset)
     ).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_FromUTF8BytesAsync(
+    load_data: *mut SheetLoadDataHolder,
+    extra_data: *mut URLExtraData,
+    bytes: *const nsACString,
+    mode: SheetParsingMode,
+    line_number_offset: u32,
+    quirks_mode: nsCompatibility,
+) {
+    let (load_data, extra_data, bytes) = unsafe {
+        let mut b = nsCString::new();
+        b.assign(&*bytes);
+        (RefPtr::new(load_data), RefPtr::new(extra_data), b)
+    };
+    let async_parser = AsyncStylesheetParser::new(
+        load_data,
+        extra_data,
+        bytes,
+        mode_to_origin(mode),
+        quirks_mode.into(),
+        line_number_offset
+    );
+
+    if let Some(thread_pool) = STYLE_THREAD_POOL.style_thread_pool.as_ref() {
+        thread_pool.spawn(|| {
+            async_parser.parse();
+        });
+    } else {
+        async_parser.parse();
+    }
 }
 
 #[no_mangle]
@@ -2048,6 +2085,17 @@ pub extern "C" fn Servo_ImportRule_GetSheet(
 ) -> *const ServoStyleSheet {
     read_locked_arc(rule, |rule: &ImportRule| {
         rule.stylesheet.as_sheet().unwrap().raw() as *const ServoStyleSheet
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ImportRule_SetSheet(
+    rule: RawServoImportRuleBorrowed,
+    sheet: *mut ServoStyleSheet,
+) {
+    write_locked_arc(rule, |rule: &mut ImportRule| {
+        let sheet = unsafe { GeckoStyleSheet::new(sheet) };
+        rule.stylesheet = ImportSheet::new(sheet);
     })
 }
 

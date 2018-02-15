@@ -171,10 +171,9 @@ pub struct ImportRule {
     /// The `<url>` this `@import` rule is loading.
     pub url: CssUrl,
 
-    /// The stylesheet is always present.
-    ///
-    /// It contains an empty list of rules and namespace set that is updated
-    /// when it loads.
+    /// The stylesheet is always present. However, in the case of gecko async
+    /// parsing, we don't actually have a Gecko sheet at first, and so the
+    /// ImportSheet just has stub behavior until it appears.
     pub stylesheet: ImportSheet,
 
     /// The line and column of the rule's source code.
