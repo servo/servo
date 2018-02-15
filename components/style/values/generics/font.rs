@@ -4,6 +4,7 @@
 
 //! Generic types for font stuff.
 
+use app_units::Au;
 use byteorder::{ReadBytesExt, BigEndian};
 use cssparser::Parser;
 use num_traits::One;
@@ -157,5 +158,105 @@ impl Parse for FontTag {
 
         let mut raw = Cursor::new(tag.as_bytes());
         Ok(FontTag(raw.read_u32::<BigEndian>().unwrap()))
+    }
+}
+
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
+#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero)]
+/// Additional information for keyword-derived font sizes.
+pub struct KeywordInfo<Length> {
+    /// The keyword used
+    pub kw: KeywordSize,
+    /// A factor to be multiplied by the computed size of the keyword
+    pub factor: f32,
+    /// An additional Au offset to add to the kw*factor in the case of calcs
+    pub offset: Length,
+}
+
+impl<L> KeywordInfo<L>
+where
+    Au: Into<L>,
+{
+    /// KeywordInfo value for font-size: medium
+    pub fn medium() -> Self {
+        KeywordSize::Medium.into()
+    }
+}
+
+impl<L> From<KeywordSize> for KeywordInfo<L>
+where
+    Au: Into<L>,
+{
+    fn from(x: KeywordSize) -> Self {
+        KeywordInfo {
+            kw: x,
+            factor: 1.,
+            offset: Au(0).into(),
+        }
+    }
+}
+
+/// CSS font keywords
+#[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedValue, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(missing_docs)]
+pub enum KeywordSize {
+    XXSmall = 1, // This is to enable the NonZero optimization
+                 // which simplifies the representation of Option<KeywordSize>
+                 // in bindgen
+    XSmall,
+    Small,
+    Medium,
+    Large,
+    XLarge,
+    XXLarge,
+    // This is not a real font keyword and will not parse
+    // HTML font-size 7 corresponds to this value
+    XXXLarge,
+}
+
+impl KeywordSize {
+    /// Convert to an HTML <font size> value
+    pub fn html_size(&self) -> u8 {
+        match *self {
+            KeywordSize::XXSmall => 0,
+            KeywordSize::XSmall => 1,
+            KeywordSize::Small => 2,
+            KeywordSize::Medium => 3,
+            KeywordSize::Large => 4,
+            KeywordSize::XLarge => 5,
+            KeywordSize::XXLarge => 6,
+            KeywordSize::XXXLarge => 7,
+        }
+    }
+}
+
+impl Default for KeywordSize {
+    fn default() -> Self {
+        KeywordSize::Medium
+    }
+}
+
+impl ToCss for KeywordSize {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str(match *self {
+            KeywordSize::XXSmall => "xx-small",
+            KeywordSize::XSmall => "x-small",
+            KeywordSize::Small => "small",
+            KeywordSize::Medium => "medium",
+            KeywordSize::Large => "large",
+            KeywordSize::XLarge => "x-large",
+            KeywordSize::XXLarge => "xx-large",
+            KeywordSize::XXXLarge => {
+                debug_assert!(
+                    false,
+                    "We should never serialize specified values set via HTML presentation attributes"
+                );
+                "-servo-xxx-large"
+            },
+        })
     }
 }

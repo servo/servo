@@ -23,7 +23,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue, Integer, Number};
-use values::generics::font::{FontSettings, FeatureTagValue, VariationValue};
+use values::generics::font::{FontSettings, FeatureTagValue};
+use values::generics::font::{KeywordInfo as GenericKeywordInfo, VariationValue};
 use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
@@ -49,50 +50,8 @@ pub struct FontSize {
     pub keyword_info: Option<KeywordInfo>,
 }
 
-#[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedValue, ToAnimatedZero)]
-#[derive(Clone, Copy, Debug, PartialEq)]
-/// Additional information for keyword-derived font sizes.
-pub struct KeywordInfo {
-    /// The keyword used
-    pub kw: specified::KeywordSize,
-    /// A factor to be multiplied by the computed size of the keyword
-    pub factor: f32,
-    /// An additional Au offset to add to the kw*factor in the case of calcs
-    pub offset: NonNegativeLength,
-}
-
-impl KeywordInfo {
-    /// Computes the final size for this font-size keyword, accounting for
-    /// text-zoom.
-    pub fn to_computed_value(&self, context: &Context) -> NonNegativeLength {
-        let base = context.maybe_zoom_text(self.kw.to_computed_value(context));
-        base.scale_by(self.factor) + context.maybe_zoom_text(self.offset)
-    }
-
-    /// Given a parent keyword info (self), apply an additional factor/offset to it
-    pub fn compose(self, factor: f32, offset: NonNegativeLength) -> Self {
-        KeywordInfo {
-            kw: self.kw,
-            factor: self.factor * factor,
-            offset: self.offset.scale_by(factor) + offset,
-        }
-    }
-
-    /// KeywordInfo value for font-size: medium
-    pub fn medium() -> Self {
-        specified::KeywordSize::Medium.into()
-    }
-}
-
-impl From<specified::KeywordSize> for KeywordInfo {
-    fn from(x: specified::KeywordSize) -> Self {
-        KeywordInfo {
-            kw: x,
-            factor: 1.,
-            offset: Au(0).into(),
-        }
-    }
-}
+/// Additional information for computed keyword-derived font sizes.
+pub type KeywordInfo = GenericKeywordInfo<NonNegativeLength>;
 
 impl FontWeight {
     /// Value for normal

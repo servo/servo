@@ -21,7 +21,8 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{SingleFontFamily, FontFamilyList, FamilyName};
-use values::generics::font::{FontSettings, FeatureTagValue, FontTag, VariationValue};
+use values::generics::font::{FontSettings, FontTag, FeatureTagValue};
+use values::generics::font::{KeywordInfo as GenericKeywordInfo, KeywordSize, VariationValue};
 use values::specified::{AllowQuirks, Integer, LengthOrPercentage, NoCalcLength, Number};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
@@ -134,7 +135,7 @@ pub enum FontSize {
     /// go into the ratio, and the remaining units all computed together
     /// will go into the offset.
     /// See bug 1355707.
-    Keyword(computed::KeywordInfo),
+    Keyword(KeywordInfo),
     /// font-size: smaller
     Smaller,
     /// font-size: larger
@@ -340,27 +341,29 @@ impl Parse for FontSizeAdjust {
     }
 }
 
-/// CSS font keywords
-#[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedValue, ToAnimatedZero)]
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[allow(missing_docs)]
-pub enum KeywordSize {
-    XXSmall = 1, // This is to enable the NonZero optimization
-                 // which simplifies the representation of Option<KeywordSize>
-                 // in bindgen
-    XSmall,
-    Small,
-    Medium,
-    Large,
-    XLarge,
-    XXLarge,
-    // This is not a real font keyword and will not parse
-    // HTML font-size 7 corresponds to this value
-    XXXLarge,
+/// Additional information for specified keyword-derived font sizes.
+pub type KeywordInfo = GenericKeywordInfo<NonNegativeLength>;
+
+impl KeywordInfo {
+    /// Computes the final size for this font-size keyword, accounting for
+    /// text-zoom.
+    pub fn to_computed_value(&self, context: &Context) -> NonNegativeLength {
+        let base = context.maybe_zoom_text(self.kw.to_computed_value(context));
+        base.scale_by(self.factor) + context.maybe_zoom_text(self.offset)
+    }
+
+    /// Given a parent keyword info (self), apply an additional factor/offset to it
+    pub fn compose(self, factor: f32, offset: NonNegativeLength) -> Self {
+        KeywordInfo {
+            kw: self.kw,
+            factor: self.factor * factor,
+            offset: self.offset.scale_by(factor) + offset,
+        }
+    }
 }
 
 impl KeywordSize {
-    /// Parse a keyword size
+    /// Parses a keyword size.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         try_match_ident_ignore_ascii_case! { input,
             "xx-small" => Ok(KeywordSize::XXSmall),
@@ -371,46 +374,6 @@ impl KeywordSize {
             "x-large" => Ok(KeywordSize::XLarge),
             "xx-large" => Ok(KeywordSize::XXLarge),
         }
-    }
-
-    /// Convert to an HTML <font size> value
-    pub fn html_size(&self) -> u8 {
-        match *self {
-            KeywordSize::XXSmall => 0,
-            KeywordSize::XSmall => 1,
-            KeywordSize::Small => 2,
-            KeywordSize::Medium => 3,
-            KeywordSize::Large => 4,
-            KeywordSize::XLarge => 5,
-            KeywordSize::XXLarge => 6,
-            KeywordSize::XXXLarge => 7,
-        }
-    }
-}
-
-impl Default for KeywordSize {
-    fn default() -> Self {
-        KeywordSize::Medium
-    }
-}
-
-impl ToCss for KeywordSize {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str(match *self {
-            KeywordSize::XXSmall => "xx-small",
-            KeywordSize::XSmall => "x-small",
-            KeywordSize::Small => "small",
-            KeywordSize::Medium => "medium",
-            KeywordSize::Large => "large",
-            KeywordSize::XLarge => "x-large",
-            KeywordSize::XXLarge => "xx-large",
-            KeywordSize::XXXLarge => unreachable!("We should never serialize \
-                                      specified values set via
-                                      HTML presentation attributes"),
-        })
     }
 }
 
@@ -672,7 +635,7 @@ impl FontSize {
     #[inline]
     /// Get initial value for specified font size.
     pub fn medium() -> Self {
-        FontSize::Keyword(computed::KeywordInfo::medium())
+        FontSize::Keyword(KeywordInfo::medium())
     }
 
     /// Parses a font-size, with quirks.
