@@ -4,13 +4,14 @@
 
 //! Generic types for font stuff.
 
+use byteorder::{ReadBytesExt, BigEndian};
 use cssparser::Parser;
 use num_traits::One;
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
+use std::io::Cursor;
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::specified::font::FontTag;
 
 /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
@@ -115,5 +116,46 @@ impl<T: ToCss> ToCss for FontSettings<T> {
         }
 
         Ok(())
+    }
+}
+
+/// A font four-character tag, represented as a u32 for convenience.
+///
+/// See:
+///   https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
+///   https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-feature-settings
+///
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+pub struct FontTag(pub u32);
+
+impl ToCss for FontTag {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use byteorder::{BigEndian, ByteOrder};
+        use std::str;
+
+        let mut raw = [0u8; 4];
+        BigEndian::write_u32(&mut raw, self.0);
+        str::from_utf8(&raw).unwrap_or_default().to_css(dest)
+    }
+}
+
+impl Parse for FontTag {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let tag = input.expect_string()?;
+
+        // allowed strings of length 4 containing chars: <U+20, U+7E>
+        if tag.len() != 4 || tag.as_bytes().iter().any(|c| *c < b' ' || *c > b'~') {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+
+        let mut raw = Cursor::new(tag.as_bytes());
+        Ok(FontTag(raw.read_u32::<BigEndian>().unwrap()))
     }
 }

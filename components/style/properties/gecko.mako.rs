@@ -1452,8 +1452,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::generics::font::{FontSettings, ${tag_type}};
-        use values::specified::font::FontTag;
+        use values::generics::font::{FontSettings, FontTag, ${tag_type}};
 
         FontSettings(
             self.gecko.mFont.${gecko_ffi_name}.iter().map(|gecko_font_setting| {
