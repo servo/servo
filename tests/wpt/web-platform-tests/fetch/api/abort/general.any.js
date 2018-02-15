@@ -78,6 +78,7 @@ promise_test(async t => {
   assert_true(Boolean(request.signal), "Signal member is present & truthy");
   assert_equals(request.signal.constructor, AbortSignal);
   assert_not_equals(request.signal, signal, 'Request has a new signal, not a reference');
+  assert_true(request.signal.aborted, `Request's signal has aborted`);
 
   const fetchPromise = fetch(request);
 

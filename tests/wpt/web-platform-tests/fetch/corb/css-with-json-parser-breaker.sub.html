@@ -1,17 +1,20 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>CORB should not block text/css with a JSON parser breaker</title>
-<link rel="stylesheet" type="text/css"
-      href="http://{{domains[www1]}}:{{ports[http][0]}}/fetch/corb/resources/css-with-json-parser-breaker.css">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+
+<!-- www1 is cross-origin, so the HTTP response is CORB-eligible -->
+<link rel="stylesheet" type="text/css"
+      href="http://{{domains[www1]}}:{{ports[http][0]}}/fetch/corb/resources/css-with-json-parser-breaker.css">
+
 <body>
   <h1 id="header">Header example</h1>
   <p>Paragraph body</p>
 </body>
+
 <script>
-test(function() {
-  var style = getComputedStyle(document.getElementById('header'));
-  assert_equals(style.getPropertyValue('color'), 'rgb(255, 0, 0)');
-}, "CORB should not block text/css with a JSON parser breaker");
+var style = getComputedStyle(document.getElementById('header'));
+assert_equals(style.getPropertyValue('color'), 'rgb(255, 0, 0)');
+done();
 </script>

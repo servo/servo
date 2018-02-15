@@ -1,0 +1,17 @@
+<!doctype html>
+<title>MediaStreamTrack GetCapabilities</title>
+<p class="instructions">This test checks for the presence of
+<code>echoCancellation</code> and <code>deviceId</code> fields
+in <code>MediaStreamTrack.getCapabilities()</code> method.</p>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  promise_test(() => {
+  return navigator.mediaDevices.getUserMedia({audio: true})
+    .then(stream => {
+      var capabilities = stream.getAudioTracks()[0].getCapabilities();
+      assert_true(undefined !== capabilities.deviceId, "MediaTrackCapabilities's deviceId should exist.");
+      assert_true(undefined !== capabilities.echoCancellation, "MediaTrackCapabilities's echoCancellation should exist.");
+    });
+});
+</script>
