@@ -319,6 +319,18 @@
      {}
     ]
    ],
+   "css/background_color_root_zindex.html": [
+    [
+     "/_mozilla/css/background_color_root_zindex.html",
+     [
+      [
+       "/_mozilla/css/background_color_root_zindex_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/background_external_stylesheet.html": [
     [
      "/_mozilla/css/background_external_stylesheet.html",
@@ -8036,6 +8048,11 @@
     ]
    ],
    "css/background_clip_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/background_color_root_zindex_ref.html": [
     [
      {}
     ]
@@ -60942,6 +60959,14 @@
   ],
   "css/background_clip_ref.html": [
    "0e41943f5e91d9828c3eed9f990bed2c0758c6b7",
+   "support"
+  ],
+  "css/background_color_root_zindex.html": [
+   "a51fdd92212ec73a4350a15d7a956efb21bff0fd",
+   "reftest"
+  ],
+  "css/background_color_root_zindex_ref.html": [
+   "4e701ec8909e82dd2358b71c39093d6cfab60f09",
    "support"
   ],
   "css/background_external_stylesheet.html": [
