@@ -185,7 +185,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
         self.screenshot_cache = screenshot_cache
         self.implementation = RefTestImplementation(self)
         self.tempdir = tempfile.mkdtemp()
-        self.hosts_path = make_hosts_file()
+        self.hosts_path = write_hosts_file(server_config)
 
     def teardown(self):
         try:
