@@ -57,7 +57,7 @@ promise_test(t => {
 
 promise_test(t => {
     let url = '/media/foo.vtt';
-    // Add '?url' and tell the service worker to return a same-origin URL.
+    // Add '?url' and tell the service worker to fetch a same-origin URL.
     url += '?url=' + host_info.HTTPS_ORIGIN + '/media/foo.vtt';
     return load_track(url)
       .then(result => {
@@ -67,7 +67,7 @@ promise_test(t => {
 
 promise_test(t => {
     let url = '/media/foo.vtt';
-    // Add '?url' and tell the service worker to return a cross-origin URL.
+    // Add '?url' and tell the service worker to fetch a cross-origin URL.
     url += '?url=' + get_host_info().HTTPS_REMOTE_ORIGIN + '/media/foo.vtt';
     return load_track(url)
       .then(result => {
@@ -77,7 +77,7 @@ promise_test(t => {
 
 promise_test(t => {
     let url = '/media/foo.vtt';
-    // Add '?url' and tell the service worker to return a cross-origin URL that
+    // Add '?url' and tell the service worker to fetch a cross-origin URL that
     // doesn't support CORS.
     url += '?url=' + get_host_info().HTTPS_REMOTE_ORIGIN +
         '/media/foo-no-cors.vtt';
@@ -91,16 +91,82 @@ promise_test(t => {
 
 promise_test(t => {
     let url = '/media/foo.vtt';
-    // Add '?url' and tell the service worker to return a cross-origin URL.
+    // Add '?url' and tell the service worker to fetch a cross-origin URL.
     url += '?url=' + get_host_info().HTTPS_REMOTE_ORIGIN + '/media/foo.vtt';
     // Add '&mode' to tell the service worker to do a CORS request.
     url += '&mode=cors';
-    // Add '&credentials=anonymous' to allow Access-Control-Allow-Origin=*.
+    // Add '&credentials=anonymous' to allow Access-Control-Allow-Origin=* so
+    // that CORS will succeed if the service approves it.
     url += '&credentials=anonymous';
     return load_track(url)
       .then(result => {
           assert_equals(result, 'load event');
         });
   }, 'cross-origin text track with approved cors request should load');
+
+// Redirect tests.
+
+promise_test(t => {
+    let url = '/media/foo.vtt';
+    // Add '?url' and tell the service worker to fetch a same-origin URL that redirects...
+    redirector_url = host_info.HTTPS_ORIGIN + base_path() + 'resources/redirect.py?Redirect=';
+    // ... to a same-origin URL.
+    redirect_target = host_info.HTTPS_ORIGIN + '/media/foo.vtt';
+    url += '?url=' + encodeURIComponent(redirector_url + encodeURIComponent(redirect_target));
+    return load_track(url)
+      .then(result => {
+          assert_equals(result, 'load event');
+        });
+  }, 'same-origin text track that redirects same-origin should load');
+
+promise_test(t => {
+    let url = '/media/foo.vtt';
+    // Add '?url' and tell the service worker to fetch a same-origin URL that redirects...
+    redirector_url = host_info.HTTPS_ORIGIN + base_path() + 'resources/redirect.py?Redirect=';
+    // ... to a cross-origin URL.
+    redirect_target = host_info.HTTPS_REMOTE_ORIGIN + '/media/foo.vtt';
+    url += '?url=' + encodeURIComponent(redirector_url + encodeURIComponent(redirect_target));
+    return load_track(url)
+      .then(result => {
+          assert_equals(result, 'error event');
+        });
+  }, 'same-origin text track that redirects cross-origin should not load');
+
+
+promise_test(t => {
+    let url = '/media/foo.vtt';
+    // Add '?url' and tell the service worker to fetch a same-origin URL that redirects...
+    redirector_url = host_info.HTTPS_ORIGIN + base_path() + 'resources/redirect.py?Redirect=';
+    // ... to a cross-origin URL.
+    redirect_target = host_info.HTTPS_REMOTE_ORIGIN + '/media/foo-no-cors.vtt';
+    url += '?url=' + encodeURIComponent(redirector_url + encodeURIComponent(redirect_target));
+    // Add '&mode' to tell the service worker to do a CORS request.
+    url += '&mode=cors';
+    // Add '&credentials=anonymous' to allow Access-Control-Allow-Origin=* so
+    // that CORS will succeed if the server approves it.
+    url += '&credentials=anonymous';
+    return load_track(url)
+      .then(result => {
+          assert_equals(result, 'error event');
+        });
+  }, 'same-origin text track that redirects to a cross-origin text track with rejected cors should not load');
+
+promise_test(t => {
+    let url = '/media/foo.vtt';
+    // Add '?url' and tell the service worker to fetch a same-origin URL that redirects...
+    redirector_url = host_info.HTTPS_ORIGIN + base_path() + 'resources/redirect.py?Redirect=';
+    // ... to a cross-origin URL.
+    redirect_target = host_info.HTTPS_REMOTE_ORIGIN + '/media/foo.vtt';
+    url += '?url=' + encodeURIComponent(redirector_url + encodeURIComponent(redirect_target));
+    // Add '&mode' to tell the service worker to do a CORS request.
+    url += '&mode=cors';
+    // Add '&credentials=anonymous' to allow Access-Control-Allow-Origin=* so
+    // that CORS will succeed if the server approves it.
+    url += '&credentials=anonymous';
+    return load_track(url)
+      .then(result => {
+          assert_equals(result, 'load event');
+        });
+  }, 'same-origin text track that redirects to a cross-origin text track with approved cors should load');
 </script>
 </body>

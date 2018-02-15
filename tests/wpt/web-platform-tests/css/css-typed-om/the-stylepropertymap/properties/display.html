@@ -9,15 +9,14 @@
 <script src="../../resources/testhelper.js"></script>
 <script src="resources/testsuite.js"></script>
 <body>
-<div id="log">
+<div id="log"></div>
 <script>
 'use strict';
 
 runPropertyTests('display', [
-  {
-    specified: '<ident>',
-    examples: [new CSSKeywordValue('none'), new CSSKeywordValue('block')]
-  },
+  { syntax: 'none' },
+  { syntax: 'block' },
+  // and other keywords
 ]);
 
 </script>
