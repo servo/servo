@@ -463,7 +463,8 @@ impl<'a> DisplayListBuildState<'a> {
         // refer to the steps in CSS 2.1 Appendix E.
         // Steps 1 and 2: Borders and background for the root.
         while child_items.last().map_or(false, |child| {
-            child.section() == DisplayListSection::BackgroundAndBorders
+            (child.section() == DisplayListSection::BackgroundAndBorders) |
+            (child.section() == DisplayListSection::BlockBackgroundsAndBorders)
         }) {
             list.push(child_items.pop().unwrap());
         }
