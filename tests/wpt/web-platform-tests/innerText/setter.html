@@ -9,6 +9,7 @@
 // tests a not-rendered case.
 
 function setupTest(context, plain) {
+  var container = document.getElementById("container");
   // context is either a string or an element node
   if (typeof context === "string") {
     container.innerHTML = context;
