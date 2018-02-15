@@ -1089,6 +1089,16 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
         // FIXME We do this awkward .take() followed by shoving it back in
         // because without NLL the row_info borrow lasts too long
         if let Some(mut row_info) = self.row_info.take() {
+            if let Some(rowspan) = row_info.row.incoming_rowspan.get(self.column_index.absolute as usize) {
+                // we are not allowed to use this column as a starting point. Try the next one.
+                if *rowspan > 1 {
+                    self.column_index.advance(1, &self.column_styles);
+                    // put row_info back in
+                    self.row_info = Some(row_info);
+                    // try again
+                    return self.next();
+                }
+            }
             if let Some(cell) = row_info.cell_iterator.next() {
                 let rowgroup_style = row_info.rowgroup.map(|r| r.style());
                 let row_style = row_info.row.block_flow.fragment.style();
