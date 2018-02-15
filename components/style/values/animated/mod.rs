@@ -17,7 +17,6 @@ use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::ComputedUrl;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
-use values::computed::NonNegativeLength as ComputedNonNegativeLength;
 use values::specified::url::SpecifiedUrl;
 
 pub mod color;
@@ -261,20 +260,6 @@ trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
 
-impl ToAnimatedValue for ComputedNonNegativeLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedNonNegativeLength::new(animated.px().max(0.))
-    }
-}
-
 impl ToAnimatedValue for ComputedBorderCornerRadius {
     type AnimatedValue = Self;
 
@@ -378,5 +363,18 @@ where
             Some(ref value) => Ok(Some(value.to_animated_zero()?)),
             None => Ok(None),
         }
+    }
+}
+
+impl<T> ToAnimatedZero for Size2D<T>
+where
+    T: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Size2D::new(
+            self.width.to_animated_zero()?,
+            self.height.to_animated_zero()?,
+        ))
     }
 }

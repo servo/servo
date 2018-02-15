@@ -1452,8 +1452,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::generics::font::{FontSettings, ${tag_type}};
-        use values::specified::font::FontTag;
+        use values::generics::font::{FontSettings, FontTag, ${tag_type}};
 
         FontSettings(
             self.gecko.mFont.${gecko_ffi_name}.iter().map(|gecko_font_setting| {
@@ -2390,7 +2389,7 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: FontSize) {
-        use values::specified::font::KeywordSize;
+        use values::generics::font::KeywordSize;
         self.gecko.mSize = v.size().0;
         self.gecko.mScriptUnconstrainedSize = v.size().0;
         if let Some(info) = v.keyword_info {
@@ -2602,8 +2601,7 @@ fn static_assert() {
     }
 
     pub fn clone_font_size(&self) -> FontSize {
-        use values::computed::font::KeywordInfo;
-        use values::specified::font::KeywordSize;
+        use values::generics::font::{KeywordInfo, KeywordSize};
         let size = Au(self.gecko.mSize).into();
         let kw = match self.gecko.mFontSizeKeyword as u32 {
             structs::NS_STYLE_FONT_SIZE_XXSMALL => KeywordSize::XXSmall,

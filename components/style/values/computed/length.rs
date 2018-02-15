@@ -815,6 +815,20 @@ pub type LengthOrNormal = Either<Length, Normal>;
 /// A wrapper of Length, whose value must be >= 0.
 pub type NonNegativeLength = NonNegative<Length>;
 
+impl ToAnimatedValue for NonNegativeLength {
+    type AnimatedValue = Length;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        NonNegativeLength::new(animated.px().max(0.))
+    }
+}
+
 impl NonNegativeLength {
     /// Create a NonNegativeLength.
     #[inline]

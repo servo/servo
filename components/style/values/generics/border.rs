@@ -43,7 +43,7 @@ impl<L> BorderCornerRadius<L> {
 
 /// A generic value for the `border-spacing` property.
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct BorderSpacing<L>(pub Size<L>);
 
 impl<L> BorderSpacing<L> {

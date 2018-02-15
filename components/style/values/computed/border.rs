@@ -69,14 +69,6 @@ impl BorderCornerRadius {
     }
 }
 
-impl ToAnimatedZero for BorderSpacing {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        // FIXME(emilio): Why?
-        Err(())
-    }
-}
-
 impl ToAnimatedZero for BorderCornerRadius {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
