@@ -1207,6 +1207,7 @@ pub mod root {
                 pub mStrings: root::mozilla::css::URLValueData_RustOrGeckoString,
                 pub mUsingRustString: bool,
                 pub mLoadedImage: bool,
+                pub mCORSMode: root::mozilla::CORSMode,
             }
             pub type URLValueData_HasThreadSafeRefCnt = root::mozilla::TrueType;
             #[repr(C)]
@@ -1374,6 +1375,18 @@ pub mod root {
                         stringify!(URLValueData),
                         "::",
                         stringify!(mLoadedImage)
+                    )
+                );
+                assert_eq!(
+                    unsafe {
+                        &(*(::std::ptr::null::<URLValueData>())).mCORSMode as *const _ as usize
+                    },
+                    58usize,
+                    concat!(
+                        "Offset of field: ",
+                        stringify!(URLValueData),
+                        "::",
+                        stringify!(mCORSMode)
                     )
                 );
             }
@@ -2390,9 +2403,93 @@ pub mod root {
                 }
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
+            pub struct UserData {
+                pub _bindgen_opaque_blob: [u64; 2usize],
+            }
+            pub type UserData_destroyFunc = u64;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct UserData_Entry {
+                pub _bindgen_opaque_blob: [u64; 3usize],
+            }
+            #[test]
+            fn bindgen_test_layout_UserData_Entry() {
+                assert_eq!(
+                    ::std::mem::size_of::<UserData_Entry>(),
+                    24usize,
+                    concat!("Size of: ", stringify!(UserData_Entry))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<UserData_Entry>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(UserData_Entry))
+                );
+            }
+            impl Clone for UserData_Entry {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
+            #[test]
+            fn bindgen_test_layout_UserData() {
+                assert_eq!(
+                    ::std::mem::size_of::<UserData>(),
+                    16usize,
+                    concat!("Size of: ", stringify!(UserData))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<UserData>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(UserData))
+                );
+            }
+            impl Clone for UserData {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
+            #[repr(C)]
+            pub struct SourceSurface__bindgen_vtable(::std::os::raw::c_void);
+            /// This is the base class for source surfaces. These objects are surfaces
+            /// which may be used as a source in a SurfacePattern or a DrawSurface call.
+            /// They cannot be drawn to directly.
+            ///
+            /// Although SourceSurface has thread-safe refcount, some SourceSurface cannot
+            /// be used on random threads at the same time. Only DataSourceSurface can be
+            /// used on random threads now. This will be fixed in the future. Eventually
+            /// all SourceSurface should be thread-safe.
+            #[repr(C)]
+            #[derive(Debug)]
             pub struct SourceSurface {
-                _unused: [u8; 0],
+                pub vtable_: *const SourceSurface__bindgen_vtable,
+                pub _base: u64,
+                pub mUserData: root::mozilla::gfx::UserData,
+            }
+            #[test]
+            fn bindgen_test_layout_SourceSurface() {
+                assert_eq!(
+                    ::std::mem::size_of::<SourceSurface>(),
+                    32usize,
+                    concat!("Size of: ", stringify!(SourceSurface))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<SourceSurface>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(SourceSurface))
+                );
+                assert_eq!(
+                    unsafe {
+                        &(*(::std::ptr::null::<SourceSurface>())).mUserData as *const _ as usize
+                    },
+                    16usize,
+                    concat!(
+                        "Offset of field: ",
+                        stringify!(SourceSurface),
+                        "::",
+                        stringify!(mUserData)
+                    )
+                );
             }
         }
         pub mod layers {
@@ -5160,6 +5257,20 @@ pub mod root {
                 *self
             }
         }
+        pub mod external {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+            /// AtomicRefCounted<T> is like RefCounted<T>, with an atomically updated
+            /// reference counter.
+            ///
+            /// NOTE: Please do not use this class, use NS_INLINE_DECL_THREADSAFE_REFCOUNTING
+            /// instead.
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct AtomicRefCounted {
+                pub _address: u8,
+            }
+        }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct SupportsWeakPtr {
@@ -5644,6 +5755,10 @@ pub mod root {
         pub const StyleBackendType_Gecko: root::mozilla::StyleBackendType = 1;
         pub const StyleBackendType_Servo: root::mozilla::StyleBackendType = 2;
         pub type StyleBackendType = u8;
+        pub mod profiler {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+        }
         pub type TimeStampValue = u64;
         /// Instances of this class represent the length of an interval of time.
         /// Negative durations are allowed, meaning the end is before the start.
@@ -6572,6 +6687,25 @@ pub mod root {
             root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>;
         #[test]
         fn __bindgen_test_layout_DefaultDelete_open0_RawServoStyleSet_close0_instantiation() {
+            assert_eq!(
+                ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+                1usize,
+                concat!(
+                    "Size of template specialization: ",
+                    stringify!(root::mozilla::DefaultDelete)
+                )
+            );
+            assert_eq!(
+                ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+                1usize,
+                concat!(
+                    "Alignment of template specialization: ",
+                    stringify!(root::mozilla::DefaultDelete)
+                )
+            );
+        }
+        #[test]
+        fn __bindgen_test_layout_DefaultDelete_open0_RawServoAuthorStyles_close0_instantiation() {
             assert_eq!(
                 ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
                 1usize,
@@ -8052,7 +8186,7 @@ pub mod root {
         pub const SERVO_PREF_ENABLED_page_break_after: bool = false;
         pub const SERVO_PREF_ENABLED_page_break_before: bool = false;
         pub const SERVO_PREF_ENABLED_page_break_inside: bool = false;
-        pub const SERVO_PREF_ENABLED_paint_order: bool = true;
+        pub const SERVO_PREF_ENABLED_paint_order: bool = false;
         pub const SERVO_PREF_ENABLED_perspective: bool = false;
         pub const SERVO_PREF_ENABLED_perspective_origin: bool = false;
         pub const SERVO_PREF_ENABLED_place_content: bool = false;
@@ -11313,90 +11447,11 @@ pub mod root {
                 )
             );
         }
-        /// A PostTraversalTask is a task to be performed immediately after a Servo
-        /// traversal.  There are just a few tasks we need to perform, so we use this
-        /// class rather than Runnables, to avoid virtual calls and some allocations.
-        ///
-        /// A PostTraversalTask is only safe to run immediately after the Servo
-        /// traversal, since it can hold raw pointers to DOM objects.
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct PostTraversalTask {
-            pub mType: root::mozilla::PostTraversalTask_Type,
-            pub mTarget: *mut ::std::os::raw::c_void,
-            pub mResult: root::nsresult,
-        }
-        pub const PostTraversalTask_Type_ResolveFontFaceLoadedPromise:
-            root::mozilla::PostTraversalTask_Type = 0;
-        pub const PostTraversalTask_Type_RejectFontFaceLoadedPromise:
-            root::mozilla::PostTraversalTask_Type = 1;
-        pub const PostTraversalTask_Type_DispatchLoadingEventAndReplaceReadyPromise:
-            root::mozilla::PostTraversalTask_Type = 2;
-        pub const PostTraversalTask_Type_DispatchFontFaceSetCheckLoadingFinishedAfterDelay:
-            root::mozilla::PostTraversalTask_Type = 3;
-        pub const PostTraversalTask_Type_LoadFontEntry: root::mozilla::PostTraversalTask_Type = 4;
-        pub type PostTraversalTask_Type = i32;
-        #[test]
-        fn bindgen_test_layout_PostTraversalTask() {
-            assert_eq!(
-                ::std::mem::size_of::<PostTraversalTask>(),
-                24usize,
-                concat!("Size of: ", stringify!(PostTraversalTask))
-            );
-            assert_eq!(
-                ::std::mem::align_of::<PostTraversalTask>(),
-                8usize,
-                concat!("Alignment of ", stringify!(PostTraversalTask))
-            );
-            assert_eq!(
-                unsafe { &(*(::std::ptr::null::<PostTraversalTask>())).mType as *const _ as usize },
-                0usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(PostTraversalTask),
-                    "::",
-                    stringify!(mType)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<PostTraversalTask>())).mTarget as *const _ as usize
-                },
-                8usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(PostTraversalTask),
-                    "::",
-                    stringify!(mTarget)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<PostTraversalTask>())).mResult as *const _ as usize
-                },
-                16usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(PostTraversalTask),
-                    "::",
-                    stringify!(mResult)
-                )
-            );
-        }
-        impl Clone for PostTraversalTask {
-            fn clone(&self) -> Self {
-                *self
-            }
-        }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct ServoStyleRuleMap {
             _unused: [u8; 0],
         }
-        pub const StylistState_NotDirty: root::mozilla::StylistState = 0;
-        pub const StylistState_StyleSheetsDirty: root::mozilla::StylistState = 1;
-        pub const StylistState_XBLStyleSheetsDirty: root::mozilla::StylistState = 2;
-        pub type StylistState = u8;
         pub const OriginFlags_UserAgent: root::mozilla::OriginFlags = root::mozilla::OriginFlags(1);
         pub const OriginFlags_User: root::mozilla::OriginFlags = root::mozilla::OriginFlags(2);
         pub const OriginFlags_Author: root::mozilla::OriginFlags = root::mozilla::OriginFlags(4);
@@ -11430,183 +11485,6 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub struct OriginFlags(pub u8);
-        /// The set of style sheets that apply to a document, backed by a Servo
-        /// Stylist.  A ServoStyleSet contains ServoStyleSheets.
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct ServoStyleSet {
-            pub mKind: root::mozilla::ServoStyleSet_Kind,
-            pub mDocument: *mut root::nsIDocument,
-            pub mRawSet: root::mozilla::UniquePtr<root::RawServoStyleSet>,
-            pub mSheets: [u64; 9usize],
-            pub mAuthorStyleDisabled: bool,
-            pub mStylistState: root::mozilla::StylistState,
-            pub mUserFontSetUpdateGeneration: u64,
-            pub mUserFontCacheUpdateGeneration: u32,
-            pub mNeedsRestyleAfterEnsureUniqueInner: bool,
-            pub mNonInheritingStyleContexts: [u64; 7usize],
-            pub mPostTraversalTasks: root::nsTArray<root::mozilla::PostTraversalTask>,
-            pub mStyleRuleMap: root::mozilla::UniquePtr<root::mozilla::ServoStyleRuleMap>,
-        }
-        pub type ServoStyleSet_SnapshotTable = root::mozilla::ServoElementSnapshotTable;
-        pub const ServoStyleSet_Kind_Master: root::mozilla::ServoStyleSet_Kind = 0;
-        pub const ServoStyleSet_Kind_ForXBL: root::mozilla::ServoStyleSet_Kind = 1;
-        pub type ServoStyleSet_Kind = u8;
-        #[test]
-        fn bindgen_test_layout_ServoStyleSet() {
-            assert_eq!(
-                ::std::mem::size_of::<ServoStyleSet>(),
-                192usize,
-                concat!("Size of: ", stringify!(ServoStyleSet))
-            );
-            assert_eq!(
-                ::std::mem::align_of::<ServoStyleSet>(),
-                8usize,
-                concat!("Alignment of ", stringify!(ServoStyleSet))
-            );
-            assert_eq!(
-                unsafe { &(*(::std::ptr::null::<ServoStyleSet>())).mKind as *const _ as usize },
-                0usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mKind)
-                )
-            );
-            assert_eq!(
-                unsafe { &(*(::std::ptr::null::<ServoStyleSet>())).mDocument as *const _ as usize },
-                8usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mDocument)
-                )
-            );
-            assert_eq!(
-                unsafe { &(*(::std::ptr::null::<ServoStyleSet>())).mRawSet as *const _ as usize },
-                16usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mRawSet)
-                )
-            );
-            assert_eq!(
-                unsafe { &(*(::std::ptr::null::<ServoStyleSet>())).mSheets as *const _ as usize },
-                24usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mSheets)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mAuthorStyleDisabled as *const _
-                        as usize
-                },
-                96usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mAuthorStyleDisabled)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mStylistState as *const _ as usize
-                },
-                97usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mStylistState)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mUserFontSetUpdateGeneration
-                        as *const _ as usize
-                },
-                104usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mUserFontSetUpdateGeneration)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mUserFontCacheUpdateGeneration
-                        as *const _ as usize
-                },
-                112usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mUserFontCacheUpdateGeneration)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mNeedsRestyleAfterEnsureUniqueInner
-                        as *const _ as usize
-                },
-                116usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mNeedsRestyleAfterEnsureUniqueInner)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mNonInheritingStyleContexts
-                        as *const _ as usize
-                },
-                120usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mNonInheritingStyleContexts)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mPostTraversalTasks as *const _
-                        as usize
-                },
-                176usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mPostTraversalTasks)
-                )
-            );
-            assert_eq!(
-                unsafe {
-                    &(*(::std::ptr::null::<ServoStyleSet>())).mStyleRuleMap as *const _ as usize
-                },
-                184usize,
-                concat!(
-                    "Offset of field: ",
-                    stringify!(ServoStyleSet),
-                    "::",
-                    stringify!(mStyleRuleMap)
-                )
-            );
-        }
         #[repr(C)]
         #[derive(Debug)]
         pub struct CachedInheritingStyles {
@@ -12638,6 +12516,7 @@ pub mod root {
         NS_SUCCESS_UNORM_NOTFOUND = 7864337,
         NS_ERROR_NOT_IN_TREE = 2155348006,
         NS_OK_NO_NAME_CLAUSE_HANDLED = 7864354,
+        NS_ERROR_BLOCKED_BY_POLICY = 2155347971,
     }
     pub type nsrefcnt = root::MozRefCountType;
     #[repr(C)]
@@ -13232,11 +13111,6 @@ pub mod root {
     pub struct RefPtr_ConstRemovingRefPtrTraits {
         pub _address: u8,
     }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct JSContext {
-        _unused: [u8; 0],
-    }
     pub mod JS {
         #[allow(unused_imports)]
         use self::super::super::root;
@@ -13721,6 +13595,11 @@ pub mod root {
                 *self
             }
         }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct JSContext {
+        _unused: [u8; 0],
     }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
@@ -15648,8 +15527,10 @@ pub mod root {
         root::nsChangeHint(536870912);
     pub const nsChangeHint_nsChangeHint_UpdateTableCellSpans: root::nsChangeHint =
         root::nsChangeHint(1073741824);
+    pub const nsChangeHint_nsChangeHint_VisibilityChange: root::nsChangeHint =
+        root::nsChangeHint(2147483648);
     pub const nsChangeHint_nsChangeHint_AllHints: root::nsChangeHint =
-        root::nsChangeHint(2147483647);
+        root::nsChangeHint(4294967295);
     impl ::std::ops::BitOr<root::nsChangeHint> for root::nsChangeHint {
         type Output = Self;
         #[inline]
@@ -16089,6 +15970,40 @@ pub mod root {
             )
         );
     }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct ProfilerBacktrace {
+        _unused: [u8; 0],
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct ProfilerMarkerPayload {
+        _unused: [u8; 0],
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct ProfilerBacktraceDestructor {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_ProfilerBacktraceDestructor() {
+        assert_eq!(
+            ::std::mem::size_of::<ProfilerBacktraceDestructor>(),
+            1usize,
+            concat!("Size of: ", stringify!(ProfilerBacktraceDestructor))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<ProfilerBacktraceDestructor>(),
+            1usize,
+            concat!("Alignment of ", stringify!(ProfilerBacktraceDestructor))
+        );
+    }
+    impl Clone for ProfilerBacktraceDestructor {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    pub type UniqueProfilerBacktrace = root::mozilla::UniquePtr<root::ProfilerBacktrace>;
     pub const JSValueTag_JSVAL_TAG_MAX_DOUBLE: root::JSValueTag = 131056;
     pub const JSValueTag_JSVAL_TAG_INT32: root::JSValueTag = 131057;
     pub const JSValueTag_JSVAL_TAG_UNDEFINED: root::JSValueTag = 131059;
@@ -16992,40 +16907,6 @@ pub mod root {
             )
         );
     }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct ProfilerBacktrace {
-        _unused: [u8; 0],
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct ProfilerMarkerPayload {
-        _unused: [u8; 0],
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct ProfilerBacktraceDestructor {
-        pub _address: u8,
-    }
-    #[test]
-    fn bindgen_test_layout_ProfilerBacktraceDestructor() {
-        assert_eq!(
-            ::std::mem::size_of::<ProfilerBacktraceDestructor>(),
-            1usize,
-            concat!("Size of: ", stringify!(ProfilerBacktraceDestructor))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<ProfilerBacktraceDestructor>(),
-            1usize,
-            concat!("Alignment of ", stringify!(ProfilerBacktraceDestructor))
-        );
-    }
-    impl Clone for ProfilerBacktraceDestructor {
-        fn clone(&self) -> Self {
-            *self
-        }
-    }
-    pub type UniqueProfilerBacktrace = root::mozilla::UniquePtr<root::ProfilerBacktrace>;
     pub type gfxSize = [u64; 2usize];
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -21788,6 +21669,11 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
+    pub struct RawServoAuthorStyles {
+        _unused: [u8; 0],
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
     pub struct RawServoStyleSet {
         _unused: [u8; 0],
     }
@@ -22013,7 +21899,7 @@ pub mod root {
         pub mStateObjectContainer: root::nsCOMPtr,
         pub mStateObjectCached: root::nsCOMPtr,
         pub mInSyncOperationCount: u32,
-        pub mXPathEvaluator: root::RefPtr<root::mozilla::dom::XPathEvaluator>,
+        pub mXPathEvaluator: root::mozilla::UniquePtr<root::mozilla::dom::XPathEvaluator>,
         pub mAnonymousContents: root::nsTArray<root::RefPtr<root::mozilla::dom::AnonymousContent>>,
         pub mBlockDOMContentLoaded: u32,
         pub mDOMMediaQueryLists: root::mozilla::LinkedList,
@@ -25049,74 +24935,63 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn mFireAfterPaintEvents(&self) -> ::std::os::raw::c_uint {
+        pub fn mIsChrome(&self) -> ::std::os::raw::c_uint {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(33usize, 1u8) as u32) }
         }
         #[inline]
-        pub fn set_mFireAfterPaintEvents(&mut self, val: ::std::os::raw::c_uint) {
+        pub fn set_mIsChrome(&mut self, val: ::std::os::raw::c_uint) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
                 self._bitfield_1.set(33usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mIsChrome(&self) -> ::std::os::raw::c_uint {
+        pub fn mIsChromeOriginImage(&self) -> ::std::os::raw::c_uint {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(34usize, 1u8) as u32) }
         }
         #[inline]
-        pub fn set_mIsChrome(&mut self, val: ::std::os::raw::c_uint) {
+        pub fn set_mIsChromeOriginImage(&mut self, val: ::std::os::raw::c_uint) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
                 self._bitfield_1.set(34usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mIsChromeOriginImage(&self) -> ::std::os::raw::c_uint {
+        pub fn mPaintFlashing(&self) -> ::std::os::raw::c_uint {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(35usize, 1u8) as u32) }
         }
         #[inline]
-        pub fn set_mIsChromeOriginImage(&mut self, val: ::std::os::raw::c_uint) {
+        pub fn set_mPaintFlashing(&mut self, val: ::std::os::raw::c_uint) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
                 self._bitfield_1.set(35usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mPaintFlashing(&self) -> ::std::os::raw::c_uint {
+        pub fn mPaintFlashingInitialized(&self) -> ::std::os::raw::c_uint {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(36usize, 1u8) as u32) }
         }
         #[inline]
-        pub fn set_mPaintFlashing(&mut self, val: ::std::os::raw::c_uint) {
+        pub fn set_mPaintFlashingInitialized(&mut self, val: ::std::os::raw::c_uint) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
                 self._bitfield_1.set(36usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mPaintFlashingInitialized(&self) -> ::std::os::raw::c_uint {
+        pub fn mHasWarnedAboutPositionedTableParts(&self) -> ::std::os::raw::c_uint {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(37usize, 1u8) as u32) }
         }
         #[inline]
-        pub fn set_mPaintFlashingInitialized(&mut self, val: ::std::os::raw::c_uint) {
+        pub fn set_mHasWarnedAboutPositionedTableParts(&mut self, val: ::std::os::raw::c_uint) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
                 self._bitfield_1.set(37usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mHasWarnedAboutPositionedTableParts(&self) -> ::std::os::raw::c_uint {
-            unsafe { ::std::mem::transmute(self._bitfield_1.get(38usize, 1u8) as u32) }
-        }
-        #[inline]
-        pub fn set_mHasWarnedAboutPositionedTableParts(&mut self, val: ::std::os::raw::c_uint) {
-            unsafe {
-                let val: u32 = ::std::mem::transmute(val);
-                self._bitfield_1.set(38usize, 1u8, val as u64)
-            }
-        }
-        #[inline]
         pub fn mHasWarnedAboutTooLargeDashedOrDottedRadius(&self) -> ::std::os::raw::c_uint {
-            unsafe { ::std::mem::transmute(self._bitfield_1.get(39usize, 1u8) as u32) }
+            unsafe { ::std::mem::transmute(self._bitfield_1.get(38usize, 1u8) as u32) }
         }
         #[inline]
         pub fn set_mHasWarnedAboutTooLargeDashedOrDottedRadius(
@@ -25125,40 +25000,40 @@ pub mod root {
         ) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
-                self._bitfield_1.set(39usize, 1u8, val as u64)
+                self._bitfield_1.set(38usize, 1u8, val as u64)
             }
         }
         #[inline]
         pub fn mQuirkSheetAdded(&self) -> ::std::os::raw::c_uint {
-            unsafe { ::std::mem::transmute(self._bitfield_1.get(40usize, 1u8) as u32) }
+            unsafe { ::std::mem::transmute(self._bitfield_1.get(39usize, 1u8) as u32) }
         }
         #[inline]
         pub fn set_mQuirkSheetAdded(&mut self, val: ::std::os::raw::c_uint) {
+            unsafe {
+                let val: u32 = ::std::mem::transmute(val);
+                self._bitfield_1.set(39usize, 1u8, val as u64)
+            }
+        }
+        #[inline]
+        pub fn mNeedsPrefUpdate(&self) -> ::std::os::raw::c_uint {
+            unsafe { ::std::mem::transmute(self._bitfield_1.get(40usize, 1u8) as u32) }
+        }
+        #[inline]
+        pub fn set_mNeedsPrefUpdate(&mut self, val: ::std::os::raw::c_uint) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
                 self._bitfield_1.set(40usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mNeedsPrefUpdate(&self) -> ::std::os::raw::c_uint {
-            unsafe { ::std::mem::transmute(self._bitfield_1.get(41usize, 1u8) as u32) }
-        }
-        #[inline]
-        pub fn set_mNeedsPrefUpdate(&mut self, val: ::std::os::raw::c_uint) {
-            unsafe {
-                let val: u32 = ::std::mem::transmute(val);
-                self._bitfield_1.set(41usize, 1u8, val as u64)
-            }
-        }
-        #[inline]
         pub fn mHadNonBlankPaint(&self) -> ::std::os::raw::c_uint {
-            unsafe { ::std::mem::transmute(self._bitfield_1.get(42usize, 1u8) as u32) }
+            unsafe { ::std::mem::transmute(self._bitfield_1.get(41usize, 1u8) as u32) }
         }
         #[inline]
         pub fn set_mHadNonBlankPaint(&mut self, val: ::std::os::raw::c_uint) {
             unsafe {
                 let val: u32 = ::std::mem::transmute(val);
-                self._bitfield_1.set(42usize, 1u8, val as u64)
+                self._bitfield_1.set(41usize, 1u8, val as u64)
             }
         }
         #[inline]
@@ -25195,7 +25070,6 @@ pub mod root {
             mFontFeatureValuesDirty: ::std::os::raw::c_uint,
             mSuppressResizeReflow: ::std::os::raw::c_uint,
             mIsVisual: ::std::os::raw::c_uint,
-            mFireAfterPaintEvents: ::std::os::raw::c_uint,
             mIsChrome: ::std::os::raw::c_uint,
             mIsChromeOriginImage: ::std::os::raw::c_uint,
             mPaintFlashing: ::std::os::raw::c_uint,
@@ -25355,47 +25229,42 @@ pub mod root {
                 mIsVisual as u64
             });
             __bindgen_bitfield_unit.set(33usize, 1u8, {
-                let mFireAfterPaintEvents: u32 =
-                    unsafe { ::std::mem::transmute(mFireAfterPaintEvents) };
-                mFireAfterPaintEvents as u64
-            });
-            __bindgen_bitfield_unit.set(34usize, 1u8, {
                 let mIsChrome: u32 = unsafe { ::std::mem::transmute(mIsChrome) };
                 mIsChrome as u64
             });
-            __bindgen_bitfield_unit.set(35usize, 1u8, {
+            __bindgen_bitfield_unit.set(34usize, 1u8, {
                 let mIsChromeOriginImage: u32 =
                     unsafe { ::std::mem::transmute(mIsChromeOriginImage) };
                 mIsChromeOriginImage as u64
             });
-            __bindgen_bitfield_unit.set(36usize, 1u8, {
+            __bindgen_bitfield_unit.set(35usize, 1u8, {
                 let mPaintFlashing: u32 = unsafe { ::std::mem::transmute(mPaintFlashing) };
                 mPaintFlashing as u64
             });
-            __bindgen_bitfield_unit.set(37usize, 1u8, {
+            __bindgen_bitfield_unit.set(36usize, 1u8, {
                 let mPaintFlashingInitialized: u32 =
                     unsafe { ::std::mem::transmute(mPaintFlashingInitialized) };
                 mPaintFlashingInitialized as u64
             });
-            __bindgen_bitfield_unit.set(38usize, 1u8, {
+            __bindgen_bitfield_unit.set(37usize, 1u8, {
                 let mHasWarnedAboutPositionedTableParts: u32 =
                     unsafe { ::std::mem::transmute(mHasWarnedAboutPositionedTableParts) };
                 mHasWarnedAboutPositionedTableParts as u64
             });
-            __bindgen_bitfield_unit.set(39usize, 1u8, {
+            __bindgen_bitfield_unit.set(38usize, 1u8, {
                 let mHasWarnedAboutTooLargeDashedOrDottedRadius: u32 =
                     unsafe { ::std::mem::transmute(mHasWarnedAboutTooLargeDashedOrDottedRadius) };
                 mHasWarnedAboutTooLargeDashedOrDottedRadius as u64
             });
-            __bindgen_bitfield_unit.set(40usize, 1u8, {
+            __bindgen_bitfield_unit.set(39usize, 1u8, {
                 let mQuirkSheetAdded: u32 = unsafe { ::std::mem::transmute(mQuirkSheetAdded) };
                 mQuirkSheetAdded as u64
             });
-            __bindgen_bitfield_unit.set(41usize, 1u8, {
+            __bindgen_bitfield_unit.set(40usize, 1u8, {
                 let mNeedsPrefUpdate: u32 = unsafe { ::std::mem::transmute(mNeedsPrefUpdate) };
                 mNeedsPrefUpdate as u64
             });
-            __bindgen_bitfield_unit.set(42usize, 1u8, {
+            __bindgen_bitfield_unit.set(41usize, 1u8, {
                 let mHadNonBlankPaint: u32 = unsafe { ::std::mem::transmute(mHadNonBlankPaint) };
                 mHadNonBlankPaint as u64
             });
@@ -28694,8 +28563,8 @@ pub mod root {
         pub mLoadFlags: root::nsLoadFlags,
         pub mLockCount: u32,
         pub mAnimationConsumers: u32,
-        pub _bitfield_1: root::__BindgenBitfieldUnit<[u8; 1usize], u8>,
-        pub __bindgen_padding_0: [u8; 3usize],
+        pub _bitfield_1: root::__BindgenBitfieldUnit<[u8; 2usize], u8>,
+        pub __bindgen_padding_0: u16,
     }
     pub type imgRequestProxy_Image = root::mozilla::image::Image;
     pub type imgRequestProxy_ImageURL = root::mozilla::image::ImageURL;
@@ -28820,36 +28689,47 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn mDeferNotifications(&self) -> bool {
+        pub fn mPendingNotify(&self) -> bool {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 1u8) as u8) }
         }
         #[inline]
-        pub fn set_mDeferNotifications(&mut self, val: bool) {
+        pub fn set_mPendingNotify(&mut self, val: bool) {
             unsafe {
                 let val: u8 = ::std::mem::transmute(val);
                 self._bitfield_1.set(5usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mHadListener(&self) -> bool {
+        pub fn mValidating(&self) -> bool {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(6usize, 1u8) as u8) }
         }
         #[inline]
-        pub fn set_mHadListener(&mut self, val: bool) {
+        pub fn set_mValidating(&mut self, val: bool) {
             unsafe {
                 let val: u8 = ::std::mem::transmute(val);
                 self._bitfield_1.set(6usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mHadDispatch(&self) -> bool {
+        pub fn mHadListener(&self) -> bool {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u8) }
+        }
+        #[inline]
+        pub fn set_mHadListener(&mut self, val: bool) {
+            unsafe {
+                let val: u8 = ::std::mem::transmute(val);
+                self._bitfield_1.set(7usize, 1u8, val as u64)
+            }
+        }
+        #[inline]
+        pub fn mHadDispatch(&self) -> bool {
+            unsafe { ::std::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u8) }
         }
         #[inline]
         pub fn set_mHadDispatch(&mut self, val: bool) {
             unsafe {
                 let val: u8 = ::std::mem::transmute(val);
-                self._bitfield_1.set(7usize, 1u8, val as u64)
+                self._bitfield_1.set(8usize, 1u8, val as u64)
             }
         }
         #[inline]
@@ -28859,12 +28739,13 @@ pub mod root {
             mForceDispatchLoadGroup: bool,
             mListenerIsStrongRef: bool,
             mDecodeRequested: bool,
-            mDeferNotifications: bool,
+            mPendingNotify: bool,
+            mValidating: bool,
             mHadListener: bool,
             mHadDispatch: bool,
-        ) -> root::__BindgenBitfieldUnit<[u8; 1usize], u8> {
+        ) -> root::__BindgenBitfieldUnit<[u8; 2usize], u8> {
             let mut __bindgen_bitfield_unit: root::__BindgenBitfieldUnit<
-                [u8; 1usize],
+                [u8; 2usize],
                 u8,
             > = Default::default();
             __bindgen_bitfield_unit.set(0usize, 1u8, {
@@ -28890,14 +28771,18 @@ pub mod root {
                 mDecodeRequested as u64
             });
             __bindgen_bitfield_unit.set(5usize, 1u8, {
-                let mDeferNotifications: u8 = unsafe { ::std::mem::transmute(mDeferNotifications) };
-                mDeferNotifications as u64
+                let mPendingNotify: u8 = unsafe { ::std::mem::transmute(mPendingNotify) };
+                mPendingNotify as u64
             });
             __bindgen_bitfield_unit.set(6usize, 1u8, {
+                let mValidating: u8 = unsafe { ::std::mem::transmute(mValidating) };
+                mValidating as u64
+            });
+            __bindgen_bitfield_unit.set(7usize, 1u8, {
                 let mHadListener: u8 = unsafe { ::std::mem::transmute(mHadListener) };
                 mHadListener as u64
             });
-            __bindgen_bitfield_unit.set(7usize, 1u8, {
+            __bindgen_bitfield_unit.set(8usize, 1u8, {
                 let mHadDispatch: u8 = unsafe { ::std::mem::transmute(mHadDispatch) };
                 mHadDispatch as u64
             });
@@ -37181,18 +37066,6 @@ pub mod root {
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozPlaceholder: u32 = 8;
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_placeholder: u32 = 8;
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozColorSwatch: u32 = 12;
-    pub type nsCSSAnonBoxes_NonInheritingBase = u8;
-    pub const nsCSSAnonBoxes_NonInheriting_oofPlaceholder: root::nsCSSAnonBoxes_NonInheriting = 0;
-    pub const nsCSSAnonBoxes_NonInheriting_horizontalFramesetBorder:
-        root::nsCSSAnonBoxes_NonInheriting = 1;
-    pub const nsCSSAnonBoxes_NonInheriting_verticalFramesetBorder:
-        root::nsCSSAnonBoxes_NonInheriting = 2;
-    pub const nsCSSAnonBoxes_NonInheriting_framesetBlank: root::nsCSSAnonBoxes_NonInheriting = 3;
-    pub const nsCSSAnonBoxes_NonInheriting_tableColGroup: root::nsCSSAnonBoxes_NonInheriting = 4;
-    pub const nsCSSAnonBoxes_NonInheriting_tableCol: root::nsCSSAnonBoxes_NonInheriting = 5;
-    pub const nsCSSAnonBoxes_NonInheriting_pageBreak: root::nsCSSAnonBoxes_NonInheriting = 6;
-    pub const nsCSSAnonBoxes_NonInheriting__Count: root::nsCSSAnonBoxes_NonInheriting = 7;
-    pub type nsCSSAnonBoxes_NonInheriting = u8;
     /// templated hashtable class maps keys to interface pointers.
     /// See nsBaseHashtable for complete declaration.
     /// @param KeyClass a wrapper-class for the hashtable key, see nsHashKeys.h
@@ -38701,6 +38574,26 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_ProfilerBacktrace_ProfilerBacktraceDestructor_close0_instantiation(
+) {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::ProfilerBacktrace>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::ProfilerBacktrace>)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_BaseTimeDuration_open0_TimeDurationValueCalculator_close0_instantiation(
 ) {
         assert_eq!(
@@ -39125,26 +39018,6 @@ pub mod root {
             concat!(
                 "Alignment of template specialization: ",
                 stringify!(root::nsTArray<root::mozilla::StyleSetHandle>)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_UniquePtr_open0_ProfilerBacktrace_ProfilerBacktraceDestructor_close0_instantiation(
-) {
-        assert_eq!(
-            ::std::mem::size_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace>>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::mozilla::UniquePtr<root::ProfilerBacktrace>)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace>>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::mozilla::UniquePtr<root::ProfilerBacktrace>)
             )
         );
     }
@@ -41182,21 +41055,41 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_XPathEvaluator_close0_instantiation() {
+    fn __bindgen_test_layout_UniquePtr_open0_XPathEvaluator_DefaultDelete_open1_XPathEvaluator_close1_close0_instantiation(
+) {
         assert_eq!(
-            ::std::mem::size_of::<root::RefPtr<root::mozilla::dom::XPathEvaluator>>(),
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::mozilla::dom::XPathEvaluator>>(),
             8usize,
             concat!(
                 "Size of template specialization: ",
-                stringify!(root::RefPtr<root::mozilla::dom::XPathEvaluator>)
+                stringify!(root::mozilla::UniquePtr<root::mozilla::dom::XPathEvaluator>)
             )
         );
         assert_eq!(
-            ::std::mem::align_of::<root::RefPtr<root::mozilla::dom::XPathEvaluator>>(),
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::mozilla::dom::XPathEvaluator>>(),
             8usize,
             concat!(
                 "Alignment of template specialization: ",
-                stringify!(root::RefPtr<root::mozilla::dom::XPathEvaluator>)
+                stringify!(root::mozilla::UniquePtr<root::mozilla::dom::XPathEvaluator>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_XPathEvaluator_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
             )
         );
     }
@@ -41451,6 +41344,25 @@ pub mod root {
             concat!(
                 "Alignment of template specialization: ",
                 stringify!(root::nsAutoPtr<root::mozilla::LangGroupFontPrefs>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsTArray_open0_nsRect_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsTArray<root::nsRect>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsTArray<root::nsRect>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsTArray<root::nsRect>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsTArray<root::nsRect>)
             )
         );
     }
@@ -41794,25 +41706,6 @@ pub mod root {
             concat!(
                 "Alignment of template specialization: ",
                 stringify!(root::mozilla::DefaultDelete)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsTArray_open0_nsRect_close0_instantiation() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsTArray<root::nsRect>>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsTArray<root::nsRect>)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsTArray<root::nsRect>>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsTArray<root::nsRect>)
             )
         );
     }
@@ -45244,64 +45137,6 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_ServoStyleSheet_close1_close0_instantiation(
-) {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::ServoStyleSheet>>>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsTArray<root::RefPtr<root::mozilla::ServoStyleSheet>>)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsTArray<root::RefPtr<root::mozilla::ServoStyleSheet>>>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsTArray<root::RefPtr<root::mozilla::ServoStyleSheet>>)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_RefPtr_open0_ServoStyleContext_close0_instantiation() {
-        assert_eq!(
-            ::std::mem::size_of::<root::RefPtr<root::mozilla::ServoStyleContext>>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::RefPtr<root::mozilla::ServoStyleContext>)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::RefPtr<root::mozilla::ServoStyleContext>>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::RefPtr<root::mozilla::ServoStyleContext>)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsTArray_open0_PostTraversalTask_close0_instantiation() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsTArray<root::mozilla::PostTraversalTask>>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsTArray<root::mozilla::PostTraversalTask>)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsTArray<root::mozilla::PostTraversalTask>>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsTArray<root::mozilla::PostTraversalTask>)
-            )
-        );
-    }
-    #[test]
     fn __bindgen_test_layout_UniquePtr_open0_ServoStyleRuleMap_DefaultDelete_open1_ServoStyleRuleMap_close1_close0_instantiation(
 ) {
         assert_eq!(
@@ -45494,7 +45329,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_ServoStyleContext_close0_instantiation_1() {
+    fn __bindgen_test_layout_RefPtr_open0_ServoStyleContext_close0_instantiation() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::mozilla::ServoStyleContext>>(),
             8usize,

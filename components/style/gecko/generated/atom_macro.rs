@@ -884,6 +884,8 @@ cfg_if! {
             pub static nsGkAtoms_figcaption: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6figureE"]
             pub static nsGkAtoms_figure: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms7findbarE"]
+            pub static nsGkAtoms_findbar: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5fixedE"]
             pub static nsGkAtoms_fixed: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5flagsE"]
@@ -964,12 +966,20 @@ cfg_if! {
             pub static nsGkAtoms_glyphchar: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7glyphidE"]
             pub static nsGkAtoms_glyphid: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms16graphicsDocumentE"]
+            pub static nsGkAtoms_graphicsDocument: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms14graphicsObjectE"]
+            pub static nsGkAtoms_graphicsObject: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms14graphicsSymbolE"]
+            pub static nsGkAtoms_graphicsSymbol: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4gridE"]
             pub static nsGkAtoms_grid: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6grippyE"]
             pub static nsGkAtoms_grippy: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5groupE"]
             pub static nsGkAtoms_group: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms8groupboxE"]
+            pub static nsGkAtoms_groupbox: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms17groupingSeparatorE"]
             pub static nsGkAtoms_groupingSeparator: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms12groupingSizeE"]
@@ -1328,6 +1338,8 @@ cfg_if! {
             pub static nsGkAtoms_menubutton: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms10menuButtonE"]
             pub static nsGkAtoms_menuButton: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms11menucaptionE"]
+            pub static nsGkAtoms_menucaption: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms9menugroupE"]
             pub static nsGkAtoms_menugroup: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8menuitemE"]
@@ -1482,6 +1494,8 @@ cfg_if! {
             pub static nsGkAtoms_noscript: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7noshadeE"]
             pub static nsGkAtoms_noshade: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms12notificationE"]
+            pub static nsGkAtoms_notification: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms10novalidateE"]
             pub static nsGkAtoms_novalidate: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4_notE"]
@@ -4418,6 +4432,26 @@ cfg_if! {
             pub static nsGkAtoms_windows_theme_zune: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms21windows_theme_genericE"]
             pub static nsGkAtoms_windows_theme_generic: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms4aeroE"]
+            pub static nsGkAtoms_aero: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms9aero_liteE"]
+            pub static nsGkAtoms_aero_lite: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms9luna_blueE"]
+            pub static nsGkAtoms_luna_blue: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms10luna_oliveE"]
+            pub static nsGkAtoms_luna_olive: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms11luna_silverE"]
+            pub static nsGkAtoms_luna_silver: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms6royaleE"]
+            pub static nsGkAtoms_royale: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms4zuneE"]
+            pub static nsGkAtoms_zune: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms12windows_win7E"]
+            pub static nsGkAtoms_windows_win7: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms12windows_win8E"]
+            pub static nsGkAtoms_windows_win8: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms13windows_win10E"]
+            pub static nsGkAtoms_windows_win10: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms29_moz_scrollbar_start_backwardE"]
             pub static nsGkAtoms__moz_scrollbar_start_backward: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms28_moz_scrollbar_start_forwardE"]
@@ -6055,6 +6089,8 @@ cfg_if! {
             pub static nsGkAtoms_figcaption: *mut nsStaticAtom;
             #[link_name = "?figure@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_figure: *mut nsStaticAtom;
+            #[link_name = "?findbar@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_findbar: *mut nsStaticAtom;
             #[link_name = "?fixed@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_fixed: *mut nsStaticAtom;
             #[link_name = "?flags@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -6135,12 +6171,20 @@ cfg_if! {
             pub static nsGkAtoms_glyphchar: *mut nsStaticAtom;
             #[link_name = "?glyphid@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_glyphid: *mut nsStaticAtom;
+            #[link_name = "?graphicsDocument@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_graphicsDocument: *mut nsStaticAtom;
+            #[link_name = "?graphicsObject@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_graphicsObject: *mut nsStaticAtom;
+            #[link_name = "?graphicsSymbol@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_graphicsSymbol: *mut nsStaticAtom;
             #[link_name = "?grid@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_grid: *mut nsStaticAtom;
             #[link_name = "?grippy@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_grippy: *mut nsStaticAtom;
             #[link_name = "?group@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_group: *mut nsStaticAtom;
+            #[link_name = "?groupbox@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_groupbox: *mut nsStaticAtom;
             #[link_name = "?groupingSeparator@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_groupingSeparator: *mut nsStaticAtom;
             #[link_name = "?groupingSize@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -6499,6 +6543,8 @@ cfg_if! {
             pub static nsGkAtoms_menubutton: *mut nsStaticAtom;
             #[link_name = "?menuButton@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_menuButton: *mut nsStaticAtom;
+            #[link_name = "?menucaption@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_menucaption: *mut nsStaticAtom;
             #[link_name = "?menugroup@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_menugroup: *mut nsStaticAtom;
             #[link_name = "?menuitem@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -6653,6 +6699,8 @@ cfg_if! {
             pub static nsGkAtoms_noscript: *mut nsStaticAtom;
             #[link_name = "?noshade@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_noshade: *mut nsStaticAtom;
+            #[link_name = "?notification@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_notification: *mut nsStaticAtom;
             #[link_name = "?novalidate@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_novalidate: *mut nsStaticAtom;
             #[link_name = "?_not@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -9589,6 +9637,26 @@ cfg_if! {
             pub static nsGkAtoms_windows_theme_zune: *mut nsStaticAtom;
             #[link_name = "?windows_theme_generic@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_windows_theme_generic: *mut nsStaticAtom;
+            #[link_name = "?aero@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_aero: *mut nsStaticAtom;
+            #[link_name = "?aero_lite@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_aero_lite: *mut nsStaticAtom;
+            #[link_name = "?luna_blue@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_luna_blue: *mut nsStaticAtom;
+            #[link_name = "?luna_olive@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_luna_olive: *mut nsStaticAtom;
+            #[link_name = "?luna_silver@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_luna_silver: *mut nsStaticAtom;
+            #[link_name = "?royale@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_royale: *mut nsStaticAtom;
+            #[link_name = "?zune@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_zune: *mut nsStaticAtom;
+            #[link_name = "?windows_win7@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_windows_win7: *mut nsStaticAtom;
+            #[link_name = "?windows_win8@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_windows_win8: *mut nsStaticAtom;
+            #[link_name = "?windows_win10@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_windows_win10: *mut nsStaticAtom;
             #[link_name = "?_moz_scrollbar_start_backward@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms__moz_scrollbar_start_backward: *mut nsStaticAtom;
             #[link_name = "?_moz_scrollbar_start_forward@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -11226,6 +11294,8 @@ cfg_if! {
             pub static nsGkAtoms_figcaption: *mut nsStaticAtom;
             #[link_name = "\x01?figure@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_figure: *mut nsStaticAtom;
+            #[link_name = "\x01?findbar@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_findbar: *mut nsStaticAtom;
             #[link_name = "\x01?fixed@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_fixed: *mut nsStaticAtom;
             #[link_name = "\x01?flags@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -11306,12 +11376,20 @@ cfg_if! {
             pub static nsGkAtoms_glyphchar: *mut nsStaticAtom;
             #[link_name = "\x01?glyphid@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_glyphid: *mut nsStaticAtom;
+            #[link_name = "\x01?graphicsDocument@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_graphicsDocument: *mut nsStaticAtom;
+            #[link_name = "\x01?graphicsObject@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_graphicsObject: *mut nsStaticAtom;
+            #[link_name = "\x01?graphicsSymbol@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_graphicsSymbol: *mut nsStaticAtom;
             #[link_name = "\x01?grid@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_grid: *mut nsStaticAtom;
             #[link_name = "\x01?grippy@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_grippy: *mut nsStaticAtom;
             #[link_name = "\x01?group@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_group: *mut nsStaticAtom;
+            #[link_name = "\x01?groupbox@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_groupbox: *mut nsStaticAtom;
             #[link_name = "\x01?groupingSeparator@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_groupingSeparator: *mut nsStaticAtom;
             #[link_name = "\x01?groupingSize@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -11670,6 +11748,8 @@ cfg_if! {
             pub static nsGkAtoms_menubutton: *mut nsStaticAtom;
             #[link_name = "\x01?menuButton@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_menuButton: *mut nsStaticAtom;
+            #[link_name = "\x01?menucaption@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_menucaption: *mut nsStaticAtom;
             #[link_name = "\x01?menugroup@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_menugroup: *mut nsStaticAtom;
             #[link_name = "\x01?menuitem@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -11824,6 +11904,8 @@ cfg_if! {
             pub static nsGkAtoms_noscript: *mut nsStaticAtom;
             #[link_name = "\x01?noshade@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_noshade: *mut nsStaticAtom;
+            #[link_name = "\x01?notification@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_notification: *mut nsStaticAtom;
             #[link_name = "\x01?novalidate@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_novalidate: *mut nsStaticAtom;
             #[link_name = "\x01?_not@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -14760,6 +14842,26 @@ cfg_if! {
             pub static nsGkAtoms_windows_theme_zune: *mut nsStaticAtom;
             #[link_name = "\x01?windows_theme_generic@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_windows_theme_generic: *mut nsStaticAtom;
+            #[link_name = "\x01?aero@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_aero: *mut nsStaticAtom;
+            #[link_name = "\x01?aero_lite@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_aero_lite: *mut nsStaticAtom;
+            #[link_name = "\x01?luna_blue@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_luna_blue: *mut nsStaticAtom;
+            #[link_name = "\x01?luna_olive@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_luna_olive: *mut nsStaticAtom;
+            #[link_name = "\x01?luna_silver@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_luna_silver: *mut nsStaticAtom;
+            #[link_name = "\x01?royale@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_royale: *mut nsStaticAtom;
+            #[link_name = "\x01?zune@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_zune: *mut nsStaticAtom;
+            #[link_name = "\x01?windows_win7@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_windows_win7: *mut nsStaticAtom;
+            #[link_name = "\x01?windows_win8@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_windows_win8: *mut nsStaticAtom;
+            #[link_name = "\x01?windows_win10@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_windows_win10: *mut nsStaticAtom;
             #[link_name = "\x01?_moz_scrollbar_start_backward@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms__moz_scrollbar_start_backward: *mut nsStaticAtom;
             #[link_name = "\x01?_moz_scrollbar_start_forward@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -16400,6 +16502,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_figcaption as *mut _) } }};
 ("figure") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_figure as *mut _) } }};
+("findbar") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_findbar as *mut _) } }};
 ("fixed") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fixed as *mut _) } }};
 ("flags") =>
@@ -16480,12 +16584,20 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphchar as *mut _) } }};
 ("glyphid") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphid as *mut _) } }};
+("graphics-document") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_graphicsDocument as *mut _) } }};
+("graphics-object") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_graphicsObject as *mut _) } }};
+("graphics-symbol") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_graphicsSymbol as *mut _) } }};
 ("grid") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grid as *mut _) } }};
 ("grippy") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grippy as *mut _) } }};
 ("group") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_group as *mut _) } }};
+("groupbox") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupbox as *mut _) } }};
 ("grouping-separator") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupingSeparator as *mut _) } }};
 ("grouping-size") =>
@@ -16844,6 +16956,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubutton as *mut _) } }};
 ("menu-button") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuButton as *mut _) } }};
+("menucaption") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menucaption as *mut _) } }};
 ("menugroup") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menugroup as *mut _) } }};
 ("menuitem") =>
@@ -16998,6 +17112,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noscript as *mut _) } }};
 ("noshade") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noshade as *mut _) } }};
+("notification") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notification as *mut _) } }};
 ("novalidate") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_novalidate as *mut _) } }};
 ("not") =>
@@ -19934,6 +20050,26 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_zune as *mut _) } }};
 ("windows-theme-generic") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_generic as *mut _) } }};
+("aero") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aero as *mut _) } }};
+("aero-lite") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aero_lite as *mut _) } }};
+("luna-blue") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_luna_blue as *mut _) } }};
+("luna-olive") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_luna_olive as *mut _) } }};
+("luna-silver") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_luna_silver as *mut _) } }};
+("royale") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_royale as *mut _) } }};
+("zune") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zune as *mut _) } }};
+("windows-win7") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_win7 as *mut _) } }};
+("windows-win8") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_win8 as *mut _) } }};
+("windows-win10") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_win10 as *mut _) } }};
 ("-moz-scrollbar-start-backward") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_start_backward as *mut _) } }};
 ("-moz-scrollbar-start-forward") =>

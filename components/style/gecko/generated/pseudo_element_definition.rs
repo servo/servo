@@ -1728,7 +1728,7 @@ impl ToCss for PseudoElement {
                 dest.write_char('(')?;
                 let mut iter = args.iter();
                 if let Some(first) = iter.next() {
-                    serialize_atom_identifier(first, dest)?;
+                    serialize_atom_identifier(&first, dest)?;
                     for item in iter {
                         dest.write_str(", ")?;
                         serialize_atom_identifier(item, dest)?;

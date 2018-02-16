@@ -36,6 +36,8 @@ use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
+use style::gecko_bindings::bindings::{RawServoAuthorStyles, RawServoAuthorStylesBorrowed};
+use style::gecko_bindings::bindings::{RawServoAuthorStylesBorrowedMut, RawServoAuthorStylesOwned};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoFontFeatureValuesRule, RawServoFontFeatureValuesRuleBorrowed};
@@ -52,8 +54,6 @@ use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSet
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedDataBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ServoStyleContextBorrowed};
 use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
-use style::gecko_bindings::bindings::{RawServoAuthorStyles, RawServoAuthorStylesBorrowed};
-use style::gecko_bindings::bindings::{RawServoAuthorStylesBorrowedMut, RawServoAuthorStylesOwned};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString, nsCSSPropertyIDSetBorrowedMut};
 use style::gecko_bindings::bindings::Gecko_AddPropertyToSet;
