@@ -107,6 +107,7 @@ use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
+use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
@@ -121,7 +122,6 @@ use std::cell::{Cell, Ref, RefMut};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
-use std::iter::once;
 use std::mem;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -1184,7 +1184,6 @@ impl Document {
                                   .iter()
                                   .filter(|t| t.Target() == target)
                                   .cloned());
-        rooted_vec!(let changed_touches <- once(touch));
 
         let event = TouchEvent::new(window,
                                     DOMString::from(event_name),
@@ -1193,7 +1192,7 @@ impl Document {
                                     Some(window),
                                     0i32,
                                     &TouchList::new(window, touches.r()),
-                                    &TouchList::new(window, changed_touches.r()),
+                                    &TouchList::new(window, ref_slice(&&*touch)),
                                     &TouchList::new(window, target_touches.r()),
                                     // FIXME: modifier keys
                                     false,
