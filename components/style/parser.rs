@@ -113,6 +113,12 @@ impl<'a> ParserContext<'a> {
         }
     }
 
+    /// Whether we're in a @page rule.
+    #[inline]
+    pub fn in_page_rule(&self) -> bool {
+        self.rule_type.map_or(false, |rule_type| rule_type == CssRuleType::Page)
+    }
+
     /// Get the rule type, which assumes that one is available.
     pub fn rule_type(&self) -> CssRuleType {
         self.rule_type.expect("Rule type expected, but none was found.")

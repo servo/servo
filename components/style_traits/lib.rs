@@ -213,11 +213,13 @@ bitflags! {
 
 impl ParsingMode {
     /// Whether the parsing mode allows unitless lengths for non-zero values to be intpreted as px.
+    #[inline]
     pub fn allows_unitless_lengths(&self) -> bool {
         self.intersects(ParsingMode::ALLOW_UNITLESS_LENGTH)
     }
 
     /// Whether the parsing mode allows all numeric values.
+    #[inline]
     pub fn allows_all_numeric_values(&self) -> bool {
         self.intersects(ParsingMode::ALLOW_ALL_NUMERIC_VALUES)
     }
