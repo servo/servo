@@ -6,10 +6,16 @@ interface OrientationSensor : Sensor {
   void populateMatrix(RotationMatrixType targetMatrix);
 };
 
-[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+enum LocalCoordinateSystem { "device", "screen" };
+
+dictionary OrientationSensorOptions : SensorOptions {
+  LocalCoordinateSystem referenceFrame = "device";
+};
+
+[Constructor(optional OrientationSensorOptions sensorOptions), SecureContext, Exposed=Window]
 interface AbsoluteOrientationSensor : OrientationSensor {
 };
 
-[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+[Constructor(optional OrientationSensorOptions sensorOptions), SecureContext, Exposed=Window]
 interface RelativeOrientationSensor : OrientationSensor {
 };
