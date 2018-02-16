@@ -993,7 +993,6 @@ struct TableCellStyleIterator<'table> {
     column_styles: Vec<ColumnStyle<'table>>,
     row_iterator: TableRowAndGroupIterator<'table>,
     row_info: Option<TableCellStyleIteratorRowInfo<'table>>,
-    table_style: &'table ComputedValues,
     column_index: TableCellColumnIndexData,
 
 }
@@ -1020,14 +1019,12 @@ impl<'table> TableCellStyleIterator<'table> {
         TableCellStyleIterator {
             column_styles, row_iterator, row_info,
             column_index: Default::default(),
-            table_style: table.block_flow.fragment.style(),
         }
     }
 }
 
 struct TableCellStyleInfo<'table> {
     cell: &'table TableCellFlow,
-    table_style: &'table ComputedValues,
     colgroup_style: Option<&'table ComputedValues>,
     col_style: Option<&'table ComputedValues>,
     rowgroup_style: Option<&'table ComputedValues>,
@@ -1120,7 +1117,6 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                     col_style,
                     rowgroup_style,
                     row_style,
-                    table_style: self.table_style,
                 })
             } else {
                 // next row
@@ -1178,9 +1174,6 @@ impl<'table> TableCellStyleInfo<'table> {
 
                 sty_ptr = sty as *const _;
             };
-
-
-            build_dl(self.table_style, &mut state);
 
             if let Some(ref sty) = self.colgroup_style {
                 build_dl(&sty, &mut state);
