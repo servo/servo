@@ -251,11 +251,9 @@ impl Flow for TableCellFlow {
         // This is handled by TableCellStyleInfo::build_display_list()
         // when the containing table builds its display list
 
-        if self.visible {
-            // we skip setting the damage in TableCellStyleInfo::build_display_list()
-            // because we only have immutable access
-            self.block_flow.fragment.restyle_damage.remove(ServoRestyleDamage::REPAINT);
-        }
+        // we skip setting the damage in TableCellStyleInfo::build_display_list()
+        // because we only have immutable access
+        self.block_flow.fragment.restyle_damage.remove(ServoRestyleDamage::REPAINT);
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {

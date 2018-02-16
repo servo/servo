@@ -176,9 +176,12 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        debug!("build_display_list_table_rowgroup: same process as block flow");
-        self.block_flow.build_display_list(state);
+    fn build_display_list(&mut self, _: &mut DisplayListBuildState) {
+        use style::servo::restyle_damage::ServoRestyleDamage;
+
+        // we skip setting the damage in TableCellStyleInfo::build_display_list()
+        // because we only have immutable access
+        self.block_flow.fragment.restyle_damage.remove(ServoRestyleDamage::REPAINT);
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {

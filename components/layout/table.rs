@@ -1147,6 +1147,8 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
 
 impl<'table> TableCellStyleInfo<'table> {
     fn build_display_list(&self, mut state: &mut DisplayListBuildState) {
+        use style::computed_values::visibility::T as Visibility;
+
         if !self.cell.visible || self.cell.block_flow.fragment.style()
                                      .get_inheritedbox().visibility != Visibility::Visible {
             return
