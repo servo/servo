@@ -1148,7 +1148,8 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
 
 impl<'table> TableCellStyleInfo<'table> {
     fn build_display_list(&self, mut state: &mut DisplayListBuildState) {
-        if !self.cell.visible {
+        if !self.cell.visible || self.cell.block_flow.fragment.style()
+                                     .get_inheritedbox().visibility != Visibility::Visible {
             return
         }
         let border_painting_mode = match self.cell.block_flow
