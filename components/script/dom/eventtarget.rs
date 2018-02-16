@@ -428,9 +428,9 @@ impl EventTarget {
     }
 
     pub fn add_event_handler_rust(&self,
-                                        ty: &str,
+                                        ty: DOMString,
                                         source: RustEventHandler) {
-        self.add_event_listener_entry(DOMString::from_string(ty.to_string()), EventListenerEntry {
+        self.add_event_listener_entry(ty, EventListenerEntry {
             phase: ListenerPhase::Capturing,
             listener: EventListenerType::Rust(source),
         }, None);
