@@ -16,7 +16,6 @@ use std::cmp;
 use std::ops::{Add, Mul};
 use style_traits::{ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
-use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
 use values::{Auto, CSSFloat, Either, None_, Normal};
 use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
@@ -422,9 +421,11 @@ impl Mul<CSSFloat> for NoCalcLength {
 
 impl NoCalcLength {
     /// Parse a given absolute or relative dimension.
-    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str)
-                           -> Result<NoCalcLength, ()> {
-        let in_page_rule = context.rule_type.map_or(false, |rule_type| rule_type == CssRuleType::Page);
+    pub fn parse_dimension(
+        context: &ParserContext,
+        value: CSSFloat,
+        unit: &str,
+    ) -> Result<Self, ()> {
         match_ignore_ascii_case! { unit,
             "px" => Ok(NoCalcLength::Absolute(AbsoluteLength::Px(value))),
             "in" => Ok(NoCalcLength::Absolute(AbsoluteLength::In(value))),
@@ -440,25 +441,25 @@ impl NoCalcLength {
             "rem" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Rem(value))),
             // viewport percentages
             "vw" => {
-                if in_page_rule {
+                if context.in_page_rule() {
                     return Err(())
                 }
                 Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value)))
             },
             "vh" => {
-                if in_page_rule {
+                if context.in_page_rule() {
                     return Err(())
                 }
                 Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value)))
             },
             "vmin" => {
-                if in_page_rule {
+                if context.in_page_rule() {
                     return Err(())
                 }
                 Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value)))
             },
             "vmax" => {
-                if in_page_rule {
+                if context.in_page_rule() {
                     return Err(())
                 }
                 Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value)))
@@ -566,25 +567,21 @@ impl Length {
         Length::NoCalc(NoCalcLength::zero())
     }
 
-    /// Parse a given absolute or relative dimension.
-    pub fn parse_dimension(context: &ParserContext, value: CSSFloat, unit: &str)
-                           -> Result<Length, ()> {
-        NoCalcLength::parse_dimension(context, value, unit).map(Length::NoCalc)
-    }
-
     #[inline]
-    fn parse_internal<'i, 't>(context: &ParserContext,
-                              input: &mut Parser<'i, 't>,
-                              num_context: AllowedNumericType,
-                              allow_quirks: AllowQuirks)
-                              -> Result<Length, ParseError<'i>> {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        num_context: AllowedNumericType,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
             let location = input.current_source_location();
             let token = input.next()?;
             match *token {
                 Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    return Length::parse_dimension(context, value, unit)
+                    return NoCalcLength::parse_dimension(context, value, unit)
+                        .map(Length::NoCalc)
                         .map_err(|()| location.new_unexpected_token_error(token.clone()))
                 }
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
@@ -759,12 +756,12 @@ impl LengthOrPercentage {
         LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
-    fn parse_internal<'i, 't>(context: &ParserContext,
-                              input: &mut Parser<'i, 't>,
-                              num_context: AllowedNumericType,
-                              allow_quirks: AllowQuirks)
-                              -> Result<LengthOrPercentage, ParseError<'i>>
-    {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        num_context: AllowedNumericType,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
             let location = input.current_source_location();
@@ -861,11 +858,12 @@ impl From<computed::Percentage> for LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    fn parse_internal<'i, 't>(context: &ParserContext,
-                              input: &mut Parser<'i, 't>,
-                              num_context: AllowedNumericType,
-                              allow_quirks: AllowQuirks)
-                              -> Result<Self, ParseError<'i>> {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        num_context: AllowedNumericType,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
             let location = input.current_source_location();
@@ -968,12 +966,12 @@ pub enum LengthOrPercentageOrNone {
 }
 
 impl LengthOrPercentageOrNone {
-    fn parse_internal<'i, 't>(context: &ParserContext,
-                              input: &mut Parser<'i, 't>,
-                              num_context: AllowedNumericType,
-                              allow_quirks: AllowQuirks)
-                              -> Result<LengthOrPercentageOrNone, ParseError<'i>>
-    {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        num_context: AllowedNumericType,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
             let location = input.current_source_location();
