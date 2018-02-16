@@ -87,6 +87,7 @@ mod macros;
 pub mod applicable_declarations;
 #[allow(missing_docs)] // TODO.
 #[cfg(feature = "servo")] pub mod attr;
+pub mod author_styles;
 pub mod bezier;
 pub mod bloom;
 pub mod context;

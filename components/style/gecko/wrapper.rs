@@ -17,13 +17,14 @@
 use CaseSensitivityExt;
 use app_units::Au;
 use applicable_declarations::ApplicableDeclarationBlock;
-use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use author_styles::AuthorStyles;
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TDocument, TNode};
 use element_state::{ElementState, DocumentState};
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
-use gecko::data::PerDocumentStyleData;
+use gecko::data::GeckoStyleSheet;
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
@@ -431,20 +432,19 @@ impl<'lb> GeckoXBLBinding<'lb> {
 
     fn each_xbl_cascade_data<F>(&self, f: &mut F)
     where
-        F: FnMut(AtomicRef<'lb, CascadeData>, QuirksMode),
+        F: FnMut(&'lb CascadeData, QuirksMode),
     {
         if let Some(base) = self.base_binding() {
             base.each_xbl_cascade_data(f);
         }
 
-        let raw_data = unsafe {
-            bindings::Gecko_XBLBinding_GetRawServoStyleSet(self.0)
+        let data = unsafe {
+            bindings::Gecko_XBLBinding_GetRawServoStyles(self.0)
         };
 
-        if let Some(raw_data) = raw_data {
-            let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
-            let quirks_mode = data.stylist.quirks_mode();
-            f(AtomicRef::map(data, |d| d.stylist.author_cascade_data()), quirks_mode);
+        if let Some(data) = data {
+            let data: &'lb _ = AuthorStyles::<GeckoStyleSheet>::from_ffi(data);
+            f(&data.data, data.quirks_mode)
         }
     }
 }
@@ -1378,7 +1378,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn each_xbl_cascade_data<'a, F>(&self, mut f: F) -> bool
     where
         'le: 'a,
-        F: FnMut(AtomicRef<'a, CascadeData>, QuirksMode),
+        F: FnMut(&'a CascadeData, QuirksMode),
     {
         // Walk the binding scope chain, starting with the binding attached to
         // our content, up till we run out of scopes or we get cut off.

@@ -17,6 +17,7 @@ use std::iter;
 use std::mem;
 use std::ptr;
 use style::applicable_declarations::ApplicableDeclarationBlock;
+use style::author_styles::AuthorStyles;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
 use style::counter_style;
@@ -35,6 +36,8 @@ use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
+use style::gecko_bindings::bindings::{RawServoAuthorStyles, RawServoAuthorStylesBorrowed};
+use style::gecko_bindings::bindings::{RawServoAuthorStylesBorrowedMut, RawServoAuthorStylesOwned};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoFontFeatureValuesRule, RawServoFontFeatureValuesRuleBorrowed};
@@ -1121,9 +1124,70 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_AuthorStyles_Create() -> *mut RawServoAuthorStyles {
+    Box::into_raw(Box::new(AuthorStyles::<GeckoStyleSheet>::new())) as *mut _
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AuthorStyles_Drop(
+    styles: RawServoAuthorStylesOwned,
+) {
+    let _ = styles.into_box::<AuthorStyles<_>>();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_AuthorStyles_AppendStyleSheet(
+    styles: RawServoAuthorStylesBorrowedMut,
+    sheet: *const ServoStyleSheet,
+) {
+    let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let sheet = GeckoStyleSheet::new(sheet);
+    styles.stylesheets.append_stylesheet(None, sheet, &guard);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_AuthorStyles_ForceDirty(
+    styles: RawServoAuthorStylesBorrowedMut,
+) {
+    let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
+    styles.stylesheets.force_dirty();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_AuthorStyles_Flush(
+    styles: RawServoAuthorStylesBorrowedMut,
+    document_set: RawServoStyleSetBorrowed,
+) {
+    let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
+    // Try to avoid the atomic borrow below if possible.
+    if !styles.stylesheets.dirty() {
+        return;
+    }
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    let document_data =
+        PerDocumentStyleData::from_ffi(document_set).borrow();
+
+    let stylist = &document_data.stylist;
+
+    // TODO(emilio): This is going to need an element or something to do proper
+    // invalidation in Shadow roots.
+    styles.flush::<GeckoElement>(
+        stylist.device(),
+        stylist.quirks_mode(),
+        &guard,
+    );
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     document_set: RawServoStyleSetBorrowed,
-    non_document_sets: *const nsTArray<*mut structs::ServoStyleSet>,
+    non_document_styles: *mut nsTArray<RawServoAuthorStylesBorrowedMut>,
     may_affect_default_style: bool,
 ) -> structs::MediumFeaturesChangedResult {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1156,27 +1220,20 @@ pub unsafe extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     }
 
     let mut affects_non_document_rules = false;
-    for non_document_style_set in &**non_document_sets {
-        let non_document_data = &*(**non_document_style_set).mRawSet.mPtr;
-        let non_document_data =
-            mem::transmute::<&structs::RawServoStyleSet, &bindings::RawServoStyleSet>(non_document_data);
-        let mut non_document_data =
-            PerDocumentStyleData::from_ffi(non_document_data).borrow_mut();
-
-        let origins_changed =
-            non_document_data.stylist.media_features_change_changed_style(
-                &guards,
+    for author_styles in &mut **non_document_styles {
+        let author_styles =
+            AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(&mut *author_styles);
+        let affected_style = author_styles.stylesheets.iter().any(|sheet| {
+            !author_styles.data.media_feature_affected_matches(
+                sheet,
+                &guards.author,
                 document_data.stylist.device(),
-            );
-        if !origins_changed.is_empty() {
+                document_data.stylist.quirks_mode(),
+            )
+        });
+        if affected_style {
             affects_non_document_rules = true;
-            // XBL stylesets are rebuilt entirely, so we need to mark them
-            // dirty from here instead of going through the stylist
-            // force_origin_dirty stuff, which would be useless.
-            //
-            // FIXME(emilio, bug 1436059): This is super-hacky, make XBL /
-            // Shadow DOM not use a style set at all.
-            (**non_document_style_set).mStylistState = structs::StylistState_StyleSheetsDirty;
+            author_styles.stylesheets.force_dirty();
         }
     }
 
@@ -4930,19 +4987,25 @@ pub extern "C" fn Servo_ParseCounterStyleName(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_InvalidateStyleForDocStateChanges(
     root: RawGeckoElementBorrowed,
-    raw_style_sets: *const nsTArray<RawServoStyleSetBorrowed>,
+    document_style: RawServoStyleSetBorrowed,
+    non_document_styles: *const nsTArray<RawServoAuthorStylesBorrowed>,
     states_changed: u64,
 ) {
     use style::invalidation::element::document_state::DocumentStateInvalidationProcessor;
     use style::invalidation::element::invalidator::TreeStyleInvalidator;
 
-    let mut borrows = SmallVec::<[_; 20]>::with_capacity((*raw_style_sets).len());
-    for style_set in &**raw_style_sets {
-        borrows.push(PerDocumentStyleData::from_ffi(*style_set).borrow());
-    }
+    let document_data = PerDocumentStyleData::from_ffi(document_style).borrow();
+
+    let iter =
+        document_data.stylist.iter_origins().map(|(data, _origin)| data)
+        .chain((*non_document_styles).iter().map(|author_styles| {
+            let styles: &_ = AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
+            &styles.data
+        }));
+
     let root = GeckoElement(root);
     let mut processor = DocumentStateInvalidationProcessor::new(
-        borrows.iter().flat_map(|b| b.stylist.iter_origins().map(|(data, _origin)| data)),
+        iter,
         DocumentState::from_bits_truncate(states_changed),
         root.as_node().owner_doc().quirks_mode(),
     );
