@@ -3565,7 +3565,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NoteExplicitHints(
+pub unsafe extern "C" fn Servo_NoteExplicitHints(
     element: RawGeckoElementBorrowed,
     restyle_hint: nsRestyleHint,
     change_hint: nsChangeHint,
