@@ -692,32 +692,13 @@ impl<'le> GeckoElement<'le> {
         unsafe { Gecko_GetDocumentLWTheme(node.owner_doc().0) }
     }
 
-    /// Only safe to call on the main thread, with exclusive access to the element and
-    /// its ancestors.
-    /// This function is also called after display property changed for SMIL animation.
+    /// Only safe to call on the main thread, with exclusive access to the
+    /// element and its ancestors.
+    ///
+    /// This function is also called after display property changed for SMIL
+    /// animation.
     ///
     /// Also this function schedules style flush.
-    unsafe fn maybe_restyle<'a>(
-        &self,
-        data: &'a mut ElementData,
-        animation_only: bool,
-    ) -> bool {
-        if !data.has_styles() {
-            return false;
-        }
-
-        // Propagate the bit up the chain.
-        if animation_only {
-            bindings::Gecko_NoteAnimationOnlyDirtyElement(self.0);
-        } else {
-            bindings::Gecko_NoteDirtyElement(self.0);
-        }
-
-        // Ensure and return the RestyleData.
-        true
-    }
-
-    /// Set restyle and change hints to the element data.
     pub fn note_explicit_hints(
         &self,
         restyle_hint: nsRestyleHint,
@@ -737,8 +718,20 @@ impl<'le> GeckoElement<'le> {
 
         let mut maybe_data = self.mutate_data();
         let should_restyle = maybe_data.as_mut().map_or(false, |d| unsafe {
-            self.maybe_restyle(d, restyle_hint.has_animation_hint())
+            if !d.has_styles() {
+                return false;
+            }
+
+            // Propagate the bit up the chain.
+            if restyle_hint.has_animation_hint() {
+                bindings::Gecko_NoteAnimationOnlyDirtyElement(self.0);
+            } else {
+                bindings::Gecko_NoteDirtyElement(self.0);
+            }
+
+            true
         });
+
         if should_restyle {
             maybe_data
                 .as_mut()
