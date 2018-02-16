@@ -33,7 +33,7 @@ net_traits = {path = "../net_traits"}
 parking_lot = "0.4"
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
-rayon = "0.8"
+rayon = "1"
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
