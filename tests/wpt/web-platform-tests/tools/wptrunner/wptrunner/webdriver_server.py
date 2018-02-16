@@ -137,9 +137,9 @@ class ChromeDriverServer(WebDriverServer):
 
 class EdgeDriverServer(WebDriverServer):
     def __init__(self, logger, binary="microsoftwebdriver.exe", port=None,
-                 base_path="", args=None):
+                 base_path="", host="localhost", args=None):
         WebDriverServer.__init__(
-            self, logger, binary, port=port, base_path=base_path, args=args)
+            self, logger, binary, host=host, port=port, args=args)
 
     def make_command(self):
         return [self.binary,

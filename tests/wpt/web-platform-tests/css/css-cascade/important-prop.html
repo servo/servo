@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: Important</title>
+  <link rel="author" title="David Burns" href="http://www.theautomatedtester.co.uk">
+  <link rel="help" href="https://drafts.csswg.org/css-cascade/#importance">
+  <link rel="match" href="important-prop-ref.html">
+  <meta name="flags" content="">
+  <style>
+  @keyframes override{
+   from, to{background-color: #f00;}
+  }
+
+  .square {
+    color:#00f;
+    animation: override 1s infinite;
+    width: 100px;
+    height: 100px;
+  }
+  .green {
+    background-color:green !important;
+  }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div class="square green"></div>
+
+</body>
+</html>

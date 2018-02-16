@@ -1,6 +1,12 @@
-[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+[Constructor(optional GyroscopeSensorOptions sensorOptions), SecureContext, Exposed=Window]
 interface Gyroscope : Sensor {
   readonly attribute double? x;
   readonly attribute double? y;
   readonly attribute double? z;
+};
+
+enum LocalCoordinateSystem { "device", "screen" };
+
+dictionary GyroscopeSensorOptions : SensorOptions {
+  LocalCoordinateSystem referenceFrame = "device";
 };
