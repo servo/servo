@@ -66,6 +66,7 @@ impl DissimilarOriginWindow {
                 // FIXME(nox): The microtask queue is probably not important
                 // here, but this whole DOM interface is a hack anyway.
                 global_to_clone_from.microtask_queue().clone(),
+                Default::default(),
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),

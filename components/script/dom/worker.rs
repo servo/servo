@@ -78,6 +78,7 @@ impl Worker {
 
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
+        global.update_list(closing.clone());
         let worker = Worker::new(global, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(&*worker);
 

@@ -1772,6 +1772,7 @@ impl Window {
                 timer_event_chan,
                 origin,
                 microtask_queue,
+                Default::default(),
             ),
             script_chan,
             dom_manipulation_task_source,

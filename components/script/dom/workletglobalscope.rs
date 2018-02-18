@@ -72,6 +72,7 @@ impl WorkletGlobalScope {
                 timer_event_chan,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 Default::default(),
+                Default::default(),
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),

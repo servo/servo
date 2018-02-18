@@ -115,6 +115,7 @@ impl WorkerGlobalScope {
                 timer_event_chan,
                 MutableOrigin::new(init.origin),
                 Default::default(),
+                Default::default(),
             ),
             worker_id: init.worker_id,
             worker_url,
