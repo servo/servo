@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<form>
+<input value="test"></input>
+<textarea>test</textarea>
+</form>
+<script>
+    for (el of document.querySelectorAll("input, textarea")) {
+        test(function() {
+            assert_equals(el.selectionStart, 0);
+            assert_equals(el.selectionEnd, 0);
+            el.value="a";
+        }, `Default selectionStart and selectionEnd for ${el}`);
+    }
+
+    for (el of document.querySelectorAll("input, textarea")) {
+        test(function() {
+            assert_equals(el.selectionStart, 1);
+            assert_equals(el.selectionEnd, 1);
+        }, `Value of selectionStart and selectionEnd in ${el} after value change`);
+    }
+
+    document.querySelector("form").reset();
+
+    for (el of document.querySelectorAll("input, textarea")) {
+        test(function() {
+            assert_equals(el.selectionStart, 1);
+            assert_equals(el.selectionEnd, 1);
+        }, `Value of selectionStart and selectionEnd in ${el} after form reset with no change`);
+    }
+</script>

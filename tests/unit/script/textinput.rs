@@ -10,7 +10,7 @@
 use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
-use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
+use script::textinput::{ChangeEditPoint, TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
     TextInput::new(lines,
@@ -27,7 +27,7 @@ fn test_set_content_ignores_max_length() {
         Lines::Single, DOMString::from(""), DummyClipboardContext::new(""), Some(1), None, SelectionDirection::None
     );
 
-    textinput.set_content(DOMString::from("mozilla rocks"), true);
+    textinput.set_content(DOMString::from("mozilla rocks"), &ChangeEditPoint::Change);
     assert_eq!(textinput.get_content(), DOMString::from("mozilla rocks"));
 }
 
@@ -492,7 +492,7 @@ fn test_textinput_set_content() {
     let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(textinput.get_content(), "abc\nde\nf");
 
-    textinput.set_content(DOMString::from("abc\nf"), true);
+    textinput.set_content(DOMString::from("abc\nf"), &ChangeEditPoint::Change);
     assert_eq!(textinput.get_content(), "abc\nf");
 
     assert_eq!(textinput.edit_point.line, 0);
@@ -500,7 +500,7 @@ fn test_textinput_set_content() {
     textinput.adjust_horizontal(3, Selection::Selected);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 3);
-    textinput.set_content(DOMString::from("de"), true);
+    textinput.set_content(DOMString::from("de"), &ChangeEditPoint::Change);
     assert_eq!(textinput.get_content(), "de");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);

@@ -53,7 +53,7 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use style::str::split_commas;
-use textinput::{Direction, SelectionDirection, TextInput};
+use textinput::{ChangeEditPoint, Direction, SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 
@@ -552,7 +552,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) -> ErrorResult {
-        self.update_text_contents(value, true)
+        self.update_text_contents(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
@@ -908,8 +908,7 @@ impl HTMLInputElement {
             _ => ()
         }
 
-        self.update_text_contents(self.DefaultValue(), true)
-            .expect("Failed to reset input value to default.");
+        self.textinput.borrow_mut().set_content(self.DefaultValue(), &ChangeEditPoint::Change);
         self.value_dirty.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
@@ -1036,7 +1035,7 @@ impl HTMLInputElement {
                     let content = textinput.single_line_content_mut();
                     content.make_ascii_lowercase();
                 } else {
-                    textinput.set_content("#000000".into(), true);
+                    textinput.set_content("#000000".into(), &ChangeEditPoint::Change);
                 }
             }
             InputType::Time => {
@@ -1075,7 +1074,7 @@ impl HTMLInputElement {
         TextControlSelection::new(&self, &self.textinput)
     }
 
-    fn update_text_contents(&self, value: DOMString, update_text_cursor: bool) -> ErrorResult {
+    fn update_text_contents(&self, value: DOMString) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 // Steps 1-2.
@@ -1083,12 +1082,10 @@ impl HTMLInputElement {
                 // Step 3.
                 self.value_dirty.set(true);
                 // Step 4.
-                if update_text_cursor {
-                    self.sanitize_value();
-                }
+                self.sanitize_value();
                 // Step 5.
                 if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward, update_text_cursor);
+                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward, ChangeEditPoint::Change);
                 }
             }
             ValueMode::Default |
@@ -1219,7 +1216,8 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
-                            self.textinput.borrow_mut().clear_selection_to_limit(Direction::Backward, true);
+                            self.textinput.borrow_mut()
+                            .clear_selection_to_limit(Direction::Backward, ChangeEditPoint::Change);
                         }
                     },
                     AttributeMutation::Removed => {
@@ -1241,7 +1239,7 @@ impl VirtualMethods for HTMLInputElement {
             &local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
-                    value.map_or(DOMString::new(), DOMString::from), true);
+                    value.map_or(DOMString::new(), DOMString::from), &ChangeEditPoint::Change);
                 self.sanitize_value();
                 self.update_placeholder_shown_state();
             },
