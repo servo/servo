@@ -197,13 +197,11 @@ where
 }
 
 /// CSS font keywords
-#[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedValue, ToAnimatedZero)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
+#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero)]
 #[allow(missing_docs)]
 pub enum KeywordSize {
-    XXSmall = 1, // This is to enable the NonZero optimization
-                 // which simplifies the representation of Option<KeywordSize>
-                 // in bindgen
+    XXSmall,
     XSmall,
     Small,
     Medium,
@@ -217,17 +215,9 @@ pub enum KeywordSize {
 
 impl KeywordSize {
     /// Convert to an HTML <font size> value
-    pub fn html_size(&self) -> u8 {
-        match *self {
-            KeywordSize::XXSmall => 0,
-            KeywordSize::XSmall => 1,
-            KeywordSize::Small => 2,
-            KeywordSize::Medium => 3,
-            KeywordSize::Large => 4,
-            KeywordSize::XLarge => 5,
-            KeywordSize::XXLarge => 6,
-            KeywordSize::XXXLarge => 7,
-        }
+    #[inline]
+    pub fn html_size(self) -> u8 {
+        self as u8
     }
 }
 
