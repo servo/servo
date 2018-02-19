@@ -605,16 +605,6 @@ extern "C" {
     pub fn Servo_SourceSizeList_Drop(ptr: RawServoSourceSizeListOwned);
 }
 extern "C" {
-    pub fn Gecko_RecordTraversalStatistics(
-        total: u32,
-        parallel: u32,
-        total_t: u32,
-        parallel_t: u32,
-        total_s: u32,
-        parallel_s: u32,
-    );
-}
-extern "C" {
     pub fn Gecko_IsSignificantChild(
         node: RawGeckoNodeBorrowed,
         text_is_significant: bool,
@@ -2316,6 +2306,13 @@ extern "C" {
         self_: RawServoAuthorStylesBorrowedMut,
         document_styles: RawServoStyleSetBorrowed,
     );
+}
+extern "C" {
+    pub fn Servo_AuthorStyles_SizeOfIncludingThis(
+        malloc_size_of: MallocSizeOf,
+        malloc_enclosing_size_of: MallocSizeOf,
+        self_: RawServoAuthorStylesBorrowed,
+    ) -> usize;
 }
 extern "C" {
     pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);

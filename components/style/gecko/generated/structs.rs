@@ -911,8 +911,6 @@ pub mod root {
         }
         pub type pair_first_type<_T1> = _T1;
         pub type pair_second_type<_T2> = _T2;
-        pub type pair__PCCP = u8;
-        pub type pair__PCCFP = u8;
         #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct input_iterator_tag {
@@ -970,14 +968,6 @@ pub mod root {
         #[allow(unused_imports)]
         use self::super::super::root;
     }
-    pub type __int8_t = ::std::os::raw::c_schar;
-    pub type __uint8_t = ::std::os::raw::c_uchar;
-    pub type __int16_t = ::std::os::raw::c_short;
-    pub type __uint16_t = ::std::os::raw::c_ushort;
-    pub type __int32_t = ::std::os::raw::c_int;
-    pub type __uint32_t = ::std::os::raw::c_uint;
-    pub type __int64_t = ::std::os::raw::c_long;
-    pub type __uint64_t = ::std::os::raw::c_ulong;
     pub mod mozilla {
         #[allow(unused_imports)]
         use self::super::super::root;
@@ -3086,6 +3076,13 @@ pub mod root {
             pub const DocumentOrShadowRoot_Kind_ShadowRoot:
                 root::mozilla::dom::DocumentOrShadowRoot_Kind = 1;
             pub type DocumentOrShadowRoot_Kind = i32;
+            pub const DocumentOrShadowRoot_ElementsFromPointFlags_IGNORE_ROOT_SCROLL_FRAME:
+                root::mozilla::dom::DocumentOrShadowRoot_ElementsFromPointFlags = 1;
+            pub const DocumentOrShadowRoot_ElementsFromPointFlags_FLUSH_LAYOUT:
+                root::mozilla::dom::DocumentOrShadowRoot_ElementsFromPointFlags = 2;
+            pub const DocumentOrShadowRoot_ElementsFromPointFlags_IS_ELEMENT_FROM_POINT:
+                root::mozilla::dom::DocumentOrShadowRoot_ElementsFromPointFlags = 4;
+            pub type DocumentOrShadowRoot_ElementsFromPointFlags = u32;
             #[test]
             fn bindgen_test_layout_DocumentOrShadowRoot() {
                 assert_eq!(
@@ -6545,7 +6542,9 @@ pub mod root {
             83;
         pub const UseCounter_eUseCounter_XMLBaseAttribute: root::mozilla::UseCounter = 84;
         pub const UseCounter_eUseCounter_WindowContentUntrusted: root::mozilla::UseCounter = 85;
-        pub const UseCounter_eUseCounter_Count: root::mozilla::UseCounter = 86;
+        pub const UseCounter_eUseCounter_RegisterProtocolHandlerInsecure:
+            root::mozilla::UseCounter = 86;
+        pub const UseCounter_eUseCounter_Count: root::mozilla::UseCounter = 87;
         pub type UseCounter = i16;
         pub const LogLevel_Disabled: root::mozilla::LogLevel = 0;
         pub const LogLevel_Error: root::mozilla::LogLevel = 1;
@@ -17630,31 +17629,31 @@ pub mod root {
     pub struct RawServoSelectorList {
         _unused: [u8; 0],
     }
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_77 = 4;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_77 = 8;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_77 = 16;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_77 = 32;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_77 = 64;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_77 = 128;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_77 = 256;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_77 = 512;
-    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_77 = 1024;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_77 = 2048;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_77 = 4096;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_77 = 8192;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_77 = 16384;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_77 = 32768;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_77 = 61440;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_77 = 65536;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_77 = 131072;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_77 = 262144;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_77 = 524288;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_77 = 1048576;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_77 = 1572864;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_77 = 2097152;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_77 = 4194304;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_77 = 21;
-    pub type _bindgen_ty_77 = u32;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_83 = 4;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_83 = 8;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_83 = 16;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_83 = 32;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_83 = 64;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_83 = 128;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_83 = 256;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_83 = 512;
+    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_83 = 1024;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_83 = 2048;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_83 = 4096;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_83 = 8192;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_83 = 16384;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_83 = 32768;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_83 = 61440;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_83 = 65536;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_83 = 131072;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_83 = 262144;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_83 = 524288;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_83 = 1048576;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_83 = 1572864;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_83 = 2097152;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_83 = 4194304;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_83 = 21;
+    pub type _bindgen_ty_83 = u32;
     /// An internal interface that abstracts some DOMNode-related parts that both
     /// nsIContent and nsIDocument share.  An instance of this interface has a list
     /// of nsIContent children and provides access to them.
@@ -22183,13 +22182,6 @@ pub mod root {
     /// The callback function must not mutate any state for the given document.
     pub type nsIDocument_nsDocTestFunc =
         ::std::option::Option<unsafe extern "C" fn(aDocument: *const root::nsIDocument) -> bool>;
-    pub const nsIDocument_ElementsFromPointFlags_IGNORE_ROOT_SCROLL_FRAME:
-        root::nsIDocument_ElementsFromPointFlags = 1;
-    pub const nsIDocument_ElementsFromPointFlags_FLUSH_LAYOUT:
-        root::nsIDocument_ElementsFromPointFlags = 2;
-    pub const nsIDocument_ElementsFromPointFlags_IS_ELEMENT_FROM_POINT:
-        root::nsIDocument_ElementsFromPointFlags = 4;
-    pub type nsIDocument_ElementsFromPointFlags = u32;
     /// A class that represents an external resource load that has begun but
     /// doesn't have a document yet.  Observers can be registered on this object,
     /// and will be notified after the document is created.  Observers registered
@@ -22309,8 +22301,10 @@ pub mod root {
         root::nsIDocument_DeprecatedOperations = 29;
     pub const nsIDocument_DeprecatedOperations_eWindowContentUntrusted:
         root::nsIDocument_DeprecatedOperations = 30;
-    pub const nsIDocument_DeprecatedOperations_eDeprecatedOperationCount:
+    pub const nsIDocument_DeprecatedOperations_eRegisterProtocolHandlerInsecure:
         root::nsIDocument_DeprecatedOperations = 31;
+    pub const nsIDocument_DeprecatedOperations_eDeprecatedOperationCount:
+        root::nsIDocument_DeprecatedOperations = 32;
     pub type nsIDocument_DeprecatedOperations = u32;
     pub const nsIDocument_DocumentWarnings_eIgnoringWillChangeOverBudget:
         root::nsIDocument_DocumentWarnings = 0;
@@ -36435,27 +36429,27 @@ pub mod root {
             )
         );
     }
-    pub const ELEMENT_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_79 = 8388608;
-    pub const ELEMENT_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_79 = 16777216;
-    pub const ELEMENT_SHARED_RESTYLE_BIT_3: root::_bindgen_ty_79 = 33554432;
-    pub const ELEMENT_SHARED_RESTYLE_BIT_4: root::_bindgen_ty_79 = 67108864;
-    pub const ELEMENT_SHARED_RESTYLE_BITS: root::_bindgen_ty_79 = 125829120;
-    pub const ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_79 = 8388608;
-    pub const ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_79 =
+    pub const ELEMENT_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_85 = 8388608;
+    pub const ELEMENT_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_85 = 16777216;
+    pub const ELEMENT_SHARED_RESTYLE_BIT_3: root::_bindgen_ty_85 = 33554432;
+    pub const ELEMENT_SHARED_RESTYLE_BIT_4: root::_bindgen_ty_85 = 67108864;
+    pub const ELEMENT_SHARED_RESTYLE_BITS: root::_bindgen_ty_85 = 125829120;
+    pub const ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_85 = 8388608;
+    pub const ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_85 =
         16777216;
-    pub const ELEMENT_HAS_SNAPSHOT: root::_bindgen_ty_79 = 33554432;
-    pub const ELEMENT_HANDLED_SNAPSHOT: root::_bindgen_ty_79 = 67108864;
-    pub const ELEMENT_HAS_PENDING_RESTYLE: root::_bindgen_ty_79 = 8388608;
-    pub const ELEMENT_IS_POTENTIAL_RESTYLE_ROOT: root::_bindgen_ty_79 = 16777216;
-    pub const ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE: root::_bindgen_ty_79 = 33554432;
-    pub const ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT: root::_bindgen_ty_79 = 67108864;
-    pub const ELEMENT_IS_CONDITIONAL_RESTYLE_ANCESTOR: root::_bindgen_ty_79 = 134217728;
-    pub const ELEMENT_HAS_CHILD_WITH_LATER_SIBLINGS_HINT: root::_bindgen_ty_79 = 268435456;
-    pub const ELEMENT_PENDING_RESTYLE_FLAGS: root::_bindgen_ty_79 = 41943040;
-    pub const ELEMENT_POTENTIAL_RESTYLE_ROOT_FLAGS: root::_bindgen_ty_79 = 83886080;
-    pub const ELEMENT_ALL_RESTYLE_FLAGS: root::_bindgen_ty_79 = 260046848;
-    pub const ELEMENT_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_79 = 27;
-    pub type _bindgen_ty_79 = u32;
+    pub const ELEMENT_HAS_SNAPSHOT: root::_bindgen_ty_85 = 33554432;
+    pub const ELEMENT_HANDLED_SNAPSHOT: root::_bindgen_ty_85 = 67108864;
+    pub const ELEMENT_HAS_PENDING_RESTYLE: root::_bindgen_ty_85 = 8388608;
+    pub const ELEMENT_IS_POTENTIAL_RESTYLE_ROOT: root::_bindgen_ty_85 = 16777216;
+    pub const ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE: root::_bindgen_ty_85 = 33554432;
+    pub const ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT: root::_bindgen_ty_85 = 67108864;
+    pub const ELEMENT_IS_CONDITIONAL_RESTYLE_ANCESTOR: root::_bindgen_ty_85 = 134217728;
+    pub const ELEMENT_HAS_CHILD_WITH_LATER_SIBLINGS_HINT: root::_bindgen_ty_85 = 268435456;
+    pub const ELEMENT_PENDING_RESTYLE_FLAGS: root::_bindgen_ty_85 = 41943040;
+    pub const ELEMENT_POTENTIAL_RESTYLE_ROOT_FLAGS: root::_bindgen_ty_85 = 83886080;
+    pub const ELEMENT_ALL_RESTYLE_FLAGS: root::_bindgen_ty_85 = 260046848;
+    pub const ELEMENT_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_85 = 27;
+    pub type _bindgen_ty_85 = u32;
     pub type nsStyledElementBase = root::mozilla::dom::Element;
     #[repr(C)]
     pub struct nsStyledElement {
