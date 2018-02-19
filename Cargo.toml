@@ -29,3 +29,4 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+clipboard = { git = "https://github.com/Eijebong/rust-clipboard.git", branch = "test_servo" }

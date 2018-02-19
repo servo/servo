@@ -375,7 +375,7 @@ dependencies = [
 [[package]]
 name = "clipboard"
 version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/Eijebong/rust-clipboard.git?branch=test_servo#664b219a1cc698c7766828b1f0f5468f1727e614"
 dependencies = [
  "clipboard-win 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -459,7 +459,7 @@ dependencies = [
  "bluetooth_traits 0.0.1",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
- "clipboard 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clipboard 0.4.4 (git+https://github.com/Eijebong/rust-clipboard.git?branch=test_servo)",
  "compositing 0.0.1",
  "debugger 0.0.1",
  "devtools_traits 0.0.1",
@@ -3580,7 +3580,7 @@ dependencies = [
 "checksum chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7c20ebe0b2b08b0aeddba49c609fe7957ba2e33449882cb186a180bc60682fa9"
 "checksum clang-sys 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)" = "00048189ee171715296dfe3b2fcfd439563c7bfec0d98d3976ce3402d62c8f07"
 "checksum clap 2.28.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dc34bf7d5d66268b466b9852bca925ec1d2650654dab4da081e63fd230145c2e"
-"checksum clipboard 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3e23a13a0cedd3f923f0e33ca70694688ca0b31a950dbf16e81f4c8b52ded08d"
+"checksum clipboard 0.4.4 (git+https://github.com/Eijebong/rust-clipboard.git?branch=test_servo)" = "<none>"
 "checksum clipboard-win 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "14cc3e6c075926b96490d5f90d4a5af7be8012a4d8a8698e619655085a7641a3"
 "checksum cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)" = "56d741ea7a69e577f6d06b36b7dff4738f680593dc27a701ffa8506b73ce28bb"
 "checksum coco 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c06169f5beb7e31c7c67ebf5540b8b472d23e3eade3b2ec7d1f5b504a85f91bd"
