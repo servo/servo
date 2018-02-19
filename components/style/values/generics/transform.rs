@@ -19,24 +19,24 @@ use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 #[css(comma, function)]
-pub struct Matrix<T, U = T> {
+pub struct Matrix<T> {
     pub a: T,
     pub b: T,
     pub c: T,
     pub d: T,
-    pub e: U,
-    pub f: U,
+    pub e: T,
+    pub f: T,
 }
 
 #[allow(missing_docs)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
 #[css(comma, function = "matrix3d")]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub struct Matrix3D<T, U = T, V = T> {
+pub struct Matrix3D<T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,
     pub m21: T, pub m22: T, pub m23: T, pub m24: T,
     pub m31: T, pub m32: T, pub m33: T, pub m34: T,
-    pub m41: U, pub m42: U, pub m43: V, pub m44: T,
+    pub m41: T, pub m42: T, pub m43: T, pub m44: T,
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -200,17 +200,11 @@ impl TimingKeyword {
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// A single operation in the list of a `transform` value
-pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> {
     /// Represents a 2D 2x3 matrix.
     Matrix(Matrix<Number>),
-    /// Represents a 3D 4x4 matrix with percentage and length values.
-    /// For `moz-transform`.
-    PrefixedMatrix(Matrix<Number, LoPoNumber>),
     /// Represents a 3D 4x4 matrix.
     Matrix3D(Matrix3D<Number>),
-    /// Represents a 3D 4x4 matrix with percentage and length values.
-    /// For `moz-transform`.
-    PrefixedMatrix3D(Matrix3D<Number, LoPoNumber, LengthOrNumber>),
     /// A 2D skew.
     ///
     /// If the second angle is not provided it is assumed zero.
@@ -300,9 +294,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
                 Number,
                 Length,
                 Integer,
-                LengthOrNumber,
                 LengthOrPercentage,
-                LoPoNumber,
             >,
         >,
         #[compute(ignore_bound)]
@@ -313,9 +305,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
                 Number,
                 Length,
                 Integer,
-                LengthOrNumber,
                 LengthOrPercentage,
-                LoPoNumber,
             >,
         >,
         #[compute(clone)]
@@ -333,9 +323,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
                 Number,
                 Length,
                 Integer,
-                LengthOrNumber,
                 LengthOrPercentage,
-                LoPoNumber,
             >,
         >,
         #[compute(ignore_bound)]
@@ -346,9 +334,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
                 Number,
                 Length,
                 Integer,
-                LengthOrNumber,
                 LengthOrPercentage,
-                LoPoNumber,
             >,
         >,
         count: Integer,
@@ -360,8 +346,8 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
 /// A value of the `transform` property
 pub struct Transform<T>(pub Vec<T>);
 
-impl<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber>
-    TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+impl<Angle, Number, Length, Integer, LengthOrPercentage>
+    TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> {
     /// Check if it is any translate function
     pub fn is_translate(&self) -> bool {
         use self::TransformOperation::*;
@@ -450,8 +436,8 @@ pub trait ToMatrix {
     fn to_3d_matrix(&self, reference_box: Option<&Rect<Au>>) -> Result<Transform3D<f64>, ()>;
 }
 
-impl<Angle, Number, Length, Integer, LoN, LoP, LoPoNumber> ToMatrix
-    for TransformOperation<Angle, Number, Length, Integer, LoN, LoP, LoPoNumber>
+impl<Angle, Number, Length, Integer, LoP> ToMatrix
+    for TransformOperation<Angle, Number, Length, Integer, LoP>
 where
     Angle: Copy + AsRef<computed::angle::Angle>,
     Number: Copy + Into<f32> + Into<f64>,
@@ -464,8 +450,7 @@ where
         match *self {
             Translate3D(..) | TranslateZ(..) |
             Rotate3D(..) | RotateX(..) | RotateY(..) | RotateZ(..) |
-            Scale3D(..) | ScaleZ(..) |
-            Perspective(..) | Matrix3D(..) | PrefixedMatrix3D(..) => true,
+            Scale3D(..) | ScaleZ(..) | Perspective(..) | Matrix3D(..) => true,
             _ => false,
         }
     }
@@ -553,10 +538,6 @@ where
             },
             Matrix3D(m) => m.into(),
             Matrix(m) => m.into(),
-            PrefixedMatrix3D(_) | PrefixedMatrix(_) => {
-                unreachable!("-moz-transform` is not implemented in Servo yet, and DOMMatrix \
-                              doesn't support this")
-            },
             InterpolateMatrix { .. } | AccumulateMatrix { .. } => {
                 // TODO: Convert InterpolateMatrix/AccumulateMatrix into a valid Transform3D by
                 // the reference box and do interpolation on these two Transform3D matrices.

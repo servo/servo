@@ -392,7 +392,7 @@ macro_rules! try_parse_one {
                     spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties">
     pub fn parse_value<'i, 't>(
         _: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         use values::specified::OverscrollBehavior;
         let behavior_x = OverscrollBehavior::parse(input)?;
@@ -414,20 +414,5 @@ macro_rules! try_parse_one {
             }
             Ok(())
         }
-    }
-</%helpers:shorthand>
-
-<%helpers:shorthand name="-moz-transform" products="gecko"
-                    sub_properties="transform"
-                    gecko_pref="layout.css.prefixes.transforms"
-                    flags="SHORTHAND_ALIAS_PROPERTY"
-                    derive_serialize="True"
-                    spec="Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/transform">
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-        use values::specified::transform::Transform;
-        Ok(expanded! {
-            transform: Transform::parse_prefixed(context, input)?,
-        })
     }
 </%helpers:shorthand>
