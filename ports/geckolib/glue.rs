@@ -15,6 +15,7 @@ use std::env;
 use std::fmt::Write;
 use std::iter;
 use std::mem;
+use std::os::raw::c_void;
 use std::ptr;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::author_styles::AuthorStyles;
@@ -1182,6 +1183,26 @@ pub unsafe extern "C" fn Servo_AuthorStyles_Flush(
         stylist.quirks_mode(),
         &guard,
     );
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_AuthorStyles_SizeOfIncludingThis(
+    malloc_size_of: GeckoMallocSizeOf,
+    malloc_enclosing_size_of: GeckoMallocSizeOf,
+    styles: RawServoAuthorStylesBorrowed,
+) -> usize {
+    // We cannot `use` MallocSizeOf at the top level, otherwise the compiler
+    // would complain in `Servo_StyleSheet_SizeOfIncludingThis` for `size_of`
+    // there.
+    use malloc_size_of::MallocSizeOf;
+    let malloc_size_of = malloc_size_of.unwrap();
+    let malloc_size_of_this = malloc_size_of(styles as *const RawServoAuthorStyles as *const c_void);
+
+    let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi(styles);
+    let mut ops = MallocSizeOfOps::new(malloc_size_of,
+                                       Some(malloc_enclosing_size_of.unwrap()),
+                                       None);
+    malloc_size_of_this + styles.size_of(&mut ops)
 }
 
 #[no_mangle]
