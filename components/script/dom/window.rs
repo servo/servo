@@ -48,7 +48,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
 use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Vector2D, Rect, Size2D};
+use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -102,7 +102,7 @@ use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
-use style_traits::ParsingMode;
+use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use task::TaskCanceller;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
@@ -919,11 +919,12 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
-    fn ResizeTo(&self, x: i32, y: i32) {
+    fn ResizeTo(&self, width: i32, height: i32) {
         // Step 1
         //TODO determine if this operation is allowed
-        let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.send_to_constellation(ScriptMsg::ResizeTo(size));
+        let dpr = self.window_size.get().map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio);
+        let size = TypedSize2D::new(width, height).to_f32() * dpr;
+        self.send_to_constellation(ScriptMsg::ResizeTo(size.to_usize()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -937,8 +938,9 @@ impl WindowMethods for Window {
     fn MoveTo(&self, x: i32, y: i32) {
         // Step 1
         //TODO determine if this operation is allowed
-        let point = Point2D::new(x, y);
-        self.send_to_constellation(ScriptMsg::MoveTo(point));
+        let dpr = self.window_size.get().map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio);
+        let point = TypedPoint2D::new(x, y).to_f32() * dpr;
+        self.send_to_constellation(ScriptMsg::MoveTo(point.to_i32()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -1153,10 +1155,12 @@ impl Window {
         self.current_viewport.set(new_viewport)
     }
 
-    pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
-        let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
+    fn client_window(&self) -> (TypedSize2D<usize, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
+        let (send, recv) = ipc::channel::<(TypedSize2D<usize, DevicePixel>, TypedPoint2D<i32, DevicePixel>)>().unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
-        recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
+        let (size, point) = recv.recv().unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
+        let dpr = self.window_size.get().map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio);
+        ((size.to_f32() / dpr).to_usize(), (point.to_f32() / dpr).to_i32())
     }
 
     /// Advances the layout animation clock by `delta` milliseconds, and then

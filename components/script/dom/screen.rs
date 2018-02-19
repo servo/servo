@@ -11,9 +11,10 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::TypedSize2D;
 use ipc_channel::ipc;
 use script_traits::ScriptMsg;
+use style_traits::DevicePixel;
 
 #[dom_struct]
 pub struct Screen {
@@ -35,18 +36,18 @@ impl Screen {
                            ScreenBinding::Wrap)
     }
 
-    fn screen_size(&self) -> Size2D<u32> {
-        let (send, recv) = ipc::channel::<(Size2D<u32>)>().unwrap();
+    fn screen_size(&self) -> TypedSize2D<usize, DevicePixel> {
+        let (send, recv) = ipc::channel::<(TypedSize2D<usize, DevicePixel>)>().unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
-        recv.recv().unwrap_or(Size2D::zero())
+        recv.recv().unwrap_or(TypedSize2D::zero())
     }
 
-    fn screen_avail_size(&self) -> Size2D<u32> {
-        let (send, recv) = ipc::channel::<(Size2D<u32>)>().unwrap();
+    fn screen_avail_size(&self) -> TypedSize2D<usize, DevicePixel> {
+        let (send, recv) = ipc::channel::<(TypedSize2D<usize, DevicePixel>)>().unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
-        recv.recv().unwrap_or(Size2D::zero())
+        recv.recv().unwrap_or(TypedSize2D::zero())
     }
 }
 

@@ -5,7 +5,6 @@
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
 use compositor_thread::EventLoopWaker;
-use euclid::{Point2D, Size2D};
 use euclid::{TypedScale, TypedPoint2D, TypedSize2D};
 use gleam::gl;
 use ipc_channel::ipc::IpcSender;
@@ -124,20 +123,21 @@ pub trait WindowMethods {
     /// Returns the position and size of the window within the rendering area.
     fn window_rect(&self) -> DeviceUintRect;
     /// Returns the size of the window in density-independent "px" units.
-    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel>;
+    fn size(&self) -> TypedSize2D<f32, DevicePixel>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 
     /// Return the size of the window with head and borders and position of the window values
-    fn client_window(&self, ctx: TopLevelBrowsingContextId) -> (Size2D<u32>, Point2D<i32>);
+    fn client_window(&self, ctx: TopLevelBrowsingContextId) ->
+        (TypedSize2D<usize, DevicePixel>, TypedPoint2D<i32, DevicePixel>);
     /// Return the size of the screen (pixel)
-    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> Size2D<u32>;
+    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> TypedSize2D<usize, DevicePixel>;
     /// Return the available size of the screen (pixel)
-    fn screen_avail_size(&self, ctx: TopLevelBrowsingContextId) -> Size2D<u32>;
+    fn screen_avail_size(&self, ctx: TopLevelBrowsingContextId) -> TypedSize2D<usize, DevicePixel>;
     /// Set the size inside of borders and head
-    fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: Size2D<u32>);
+    fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: TypedSize2D<usize, DevicePixel>);
     /// Set the window position
-    fn set_position(&self, ctx: TopLevelBrowsingContextId, point: Point2D<i32>);
+    fn set_position(&self, ctx: TopLevelBrowsingContextId, point: TypedPoint2D<i32, DevicePixel>);
     /// Set fullscreen state
     fn set_fullscreen_state(&self, ctx: TopLevelBrowsingContextId, state: bool);
 

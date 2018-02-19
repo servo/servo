@@ -13,7 +13,7 @@ use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
 use canvas_traits::canvas::CanvasMsg;
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use euclid::{Point2D, Size2D, TypedSize2D};
+use euclid::{Size2D, TypedPoint2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TraversalDirection};
@@ -23,7 +23,7 @@ use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
-use style_traits::CSSPixel;
+use style_traits::{DevicePixel, CSSPixel};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 
@@ -136,11 +136,11 @@ pub enum ScriptMsg {
     /// Send a key event
     SendKeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Get Window Informations size and position
-    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    GetClientWindow(IpcSender<(TypedSize2D<usize, DevicePixel>, TypedPoint2D<i32, DevicePixel>)>),
     /// Move the window to a point
-    MoveTo(Point2D<i32>),
+    MoveTo(TypedPoint2D<i32, DevicePixel>),
     /// Resize the window to size
-    ResizeTo(Size2D<u32>),
+    ResizeTo(TypedSize2D<usize, DevicePixel>),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// A log entry, with the top-level browsing context id and thread name
@@ -155,9 +155,9 @@ pub enum ScriptMsg {
     /// Enter or exit fullscreen
     SetFullscreenState(bool),
     /// Get the screen size (pixel)
-    GetScreenSize(IpcSender<(Size2D<u32>)>),
+    GetScreenSize(IpcSender<(TypedSize2D<usize, DevicePixel>)>),
     /// Get the available screen size (pixel)
-    GetScreenAvailSize(IpcSender<(Size2D<u32>)>),
+    GetScreenAvailSize(IpcSender<(TypedSize2D<usize, DevicePixel>)>),
     /// Requests that the compositor shut down.
     Exit,
 }
