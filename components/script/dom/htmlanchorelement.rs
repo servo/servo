@@ -20,12 +20,14 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
+use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use keyboard_types::Key;
 use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use servo_url::ServoUrl;
@@ -109,6 +111,20 @@ impl VirtualMethods for HTMLAnchorElement {
                 .super_type()
                 .unwrap()
                 .parse_plain_attribute(name, value),
+        }
+    }
+
+    fn handle_event(&self, event: &Event) {
+        if let Some(s) = self.super_type() {
+            s.handle_event(event);
+        }
+
+        if let Some(key_event) = event.downcast::<KeyboardEvent>() {
+            if event.type_() == atom!("keydown") {
+                if let Key::Enter = key_event.key() {
+                    follow_hyperlink(self.upcast::<Element>(), Some(String::new()), None);
+                }
+            }
         }
     }
 }

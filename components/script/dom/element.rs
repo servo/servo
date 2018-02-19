@@ -2716,6 +2716,14 @@ impl VirtualMethods for Element {
         }
 
         let doc = document_from_node(self);
+
+        if self.is_focusable_area() &&
+            !self.disabled_state() &&
+            doc.get_focus_starting_point().is_none()
+        {
+            doc.set_focus_starting_point(&self);
+        }
+
         if let Some(ref value) = *self.id_attribute.borrow() {
             doc.register_named_element(self, value.clone());
         }
@@ -2735,6 +2743,10 @@ impl VirtualMethods for Element {
         }
 
         let doc = document_from_node(self);
+
+        // TODO: (cybai) Reset focus starting point if current element is current focus starting point
+        // .             and it's removed from the tree.
+
         let fullscreen = doc.GetFullscreenElement();
         if fullscreen.r() == Some(self) {
             doc.exit_fullscreen();

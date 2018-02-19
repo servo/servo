@@ -359,6 +359,8 @@ pub struct Document {
     load_event_end: Cell<u64>,
     unload_event_start: Cell<u64>,
     unload_event_end: Cell<u64>,
+    /// Current focus node element
+    focus_starting_point: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
     https_state: Cell<HttpsState>,
     /// The document's origin.
@@ -744,6 +746,20 @@ impl Document {
             }
         }
         self.reset_form_owner_for_listeners(&id);
+    }
+
+    pub fn reset_focus_starting_point(&self) {
+        self.focus_starting_point.set(None);
+    }
+
+    /// Set focus starting point
+    pub fn set_focus_starting_point(&self, element: &Element) {
+        self.focus_starting_point.set(Some(element));
+    }
+
+    /// Get focus starting point
+    pub fn get_focus_starting_point(&self) -> Option<DomRoot<Element>> {
+        self.focus_starting_point.get()
     }
 
     /// Associate an element present in this document with the provided id.
@@ -1411,6 +1427,15 @@ impl Document {
         let event = keyevent.upcast::<Event>();
         event.fire(target);
         let mut cancel_state = event.get_cancel_state();
+
+        if let Some(ref key_event) = event.downcast::<KeyboardEvent>() {
+            if event.type_() == atom!("keydown") {
+                if let Key::Tab = key_event.key() {
+                    self.sequential_focus_navigation(key_event);
+                    self.commit_focus_transaction(FocusType::Element);
+                }
+            }
+        }
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
         if keyboard_event.state == KeyState::Down &&
@@ -2416,6 +2441,135 @@ impl Document {
         self.window.layout().nodes_from_point_response()
     }
 
+    /// https://html.spec.whatwg.org/multipage/#sequential-focus-navigation
+    fn sequential_focus_navigation(&self, event: &KeyboardEvent) {
+        // Step 1
+        let starting_point = match self.get_currently_focused_area_from_top_level() {
+            Some(point) => {
+                match self.get_focus_starting_point() {
+                    Some(focused) => {
+                        // Step 2
+                        if focused
+                            .upcast::<Node>()
+                            .is_ancestor_of(self.upcast::<Node>())
+                        {
+                            Some(focused)
+                        } else {
+                            Some(point)
+                        }
+                    },
+                    _ => Some(point),
+                }
+            },
+            None => None,
+        };
+
+        // Step 3
+        let modifier = event.modifiers();
+        let direction = if modifier.is_empty() {
+            NavigationDirection::Forward
+        } else {
+            NavigationDirection::Backward
+        };
+
+        // TODO(cybai): Step 4
+        let selection_mechanism = SelectionMechanism::Sequential;
+
+        // Step 5
+        let candidate = self.sequential_search(starting_point, direction, selection_mechanism);
+
+        // Step 6, 7
+        if let Some(ref element) = candidate {
+            self.request_focus(element);
+        }
+
+        // TODO(cybai): Step 8, 9
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#sequential-navigation-search-algorithm
+    fn sequential_search(
+        &self,
+        starting_point: Option<DomRoot<Element>>,
+        direction: NavigationDirection,
+        // TODO(cybai): Use selection mechanism for searching
+        _selection_mechanism: SelectionMechanism,
+    ) -> Option<DomRoot<Element>> {
+        // Step 1-1
+        let next_focusable_element = self.find_next_focusable_element(starting_point, direction);
+
+        match next_focusable_element {
+            Some(element) => {
+                self.set_focus_starting_point(&element);
+                Some(element)
+            },
+            None => self.GetDocumentElement(),
+        }
+
+        // TODO(cybai): Step 1-2, 1-3, 2, 3
+    }
+
+    fn find_next_focusable_element(
+        &self,
+        starting_point: Option<DomRoot<Element>>,
+        direction: NavigationDirection,
+    ) -> Option<DomRoot<Element>> {
+        let mut elements = self
+            .upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(DomRoot::downcast::<Element>)
+            .filter(|element| element.is_focusable_area() && !element.disabled_state());
+
+        // Use a `prev_element` to memoize the previous element,
+        // in `forward` direction, we'll compare if the previous element
+        // is `starting point`, if yes, return current element
+        // in `backward` direction, we'll compare if the current element
+        // is `starting point`, if yes, return previous element
+        let first_element = elements.nth(0);
+        let mut prev_element: Option<DomRoot<Element>> = None;
+        for element in elements {
+            if let Some(ref point) = starting_point {
+                if let Some(prev) = prev_element {
+                    if prev == *point && direction == NavigationDirection::Forward {
+                        return Some(element);
+                    }
+
+                    if element == *point && direction == NavigationDirection::Backward {
+                        return Some(prev);
+                    }
+                }
+            }
+            prev_element = Some(element);
+        }
+
+        first_element
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#currently-focused-area-of-a-top-level-browsing-context
+    fn get_currently_focused_area_from_top_level(&self) -> Option<DomRoot<Element>> {
+        if !self.window.is_top_level() {
+            return None;
+        }
+
+        // TODO: Step 2-1
+
+        // Step 2-2, 2-3
+        // TODO: Need to loop 2-2 to find active document
+        match self.get_focused_element() {
+            Some(focused) => Some(focused),
+            None => {
+                if self.get_focus_starting_point().is_some() {
+                    return self.get_focus_starting_point();
+                }
+
+                if self.has_browsing_context {
+                    return self.GetDocumentElement();
+                }
+
+                None
+            },
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub fn lookup_custom_element_definition(
         &self,
@@ -2721,6 +2875,7 @@ impl Document {
             load_event_end: Cell::new(Default::default()),
             unload_event_start: Cell::new(Default::default()),
             unload_event_end: Cell::new(Default::default()),
+            focus_starting_point: MutNullableDom::new(None),
             https_state: Cell::new(HttpsState::None),
             origin: origin,
             referrer: referrer,
@@ -3271,6 +3426,22 @@ impl Document {
             }
         }
     }
+}
+
+/// Specifies the type of sequential focus direction
+#[derive(Eq, PartialEq)]
+enum NavigationDirection {
+    Forward,
+    Backward,
+}
+
+/// Specifies the type of selection mechanism for sequential focus
+enum SelectionMechanism {
+    // TODO(cybai): Temporarily allow dead code here. It should be removed
+    //              after implementing selection mechanism for sequential focus search
+    #[allow(dead_code)]
+    DOM,
+    Sequential,
 }
 
 impl Element {
