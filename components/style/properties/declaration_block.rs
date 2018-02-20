@@ -769,7 +769,13 @@ impl PropertyDeclarationBlock {
         // Step 1 -> dest = result list
 
         // Step 2
-        let mut already_serialized_longhands = LonghandIdSet::new();
+        //
+        // NOTE(emilio): We reuse this set for both longhands and shorthands
+        // with subtly different meaning. For longhands, only longhands that
+        // have actually been serialized (either by themselves, or as part of a
+        // shorthand) appear here. For shorthands, all the shorthands that we've
+        // attempted to serialize appear here.
+        let mut already_serialized = NonCustomPropertyIdSet::new();
 
         // Step 3
         for (declaration, importance) in self.declaration_importance_iter() {
@@ -794,7 +800,7 @@ impl PropertyDeclarationBlock {
             };
 
             // Step 3.2
-            if already_serialized_longhands.contains(longhand_id) {
+            if already_serialized.contains(longhand_id.into()) {
                 continue;
             }
 
@@ -804,6 +810,12 @@ impl PropertyDeclarationBlock {
 
             // Step 3.3.2
             for &shorthand in longhand_id.shorthands() {
+                // We already attempted to serialize this shorthand before.
+                if already_serialized.contains(shorthand.into()) {
+                    continue;
+                }
+                already_serialized.insert(shorthand.into());
+
                 // Substep 2 & 3
                 let mut current_longhands = SmallVec::<[_; 10]>::new();
                 let mut important_count = 0;
@@ -814,7 +826,7 @@ impl PropertyDeclarationBlock {
                     self.declarations.iter().any(|l| {
                         match l.id() {
                             PropertyDeclarationId::Longhand(id) => {
-                                if already_serialized_longhands.contains(id) {
+                                if already_serialized.contains(id.into()) {
                                     return false;
                                 }
 
@@ -931,7 +943,7 @@ impl PropertyDeclarationBlock {
                     };
 
                     // Substep 9
-                    already_serialized_longhands.insert(longhand_id);
+                    already_serialized.insert(longhand_id.into());
                 }
 
                 // FIXME(https://github.com/w3c/csswg-drafts/issues/1774)
@@ -943,10 +955,9 @@ impl PropertyDeclarationBlock {
             }
 
             // Step 3.3.4
-            if already_serialized_longhands.contains(longhand_id) {
+            if already_serialized.contains(longhand_id.into()) {
                 continue;
             }
-
 
             // Steps 3.3.5, 3.3.6 & 3.3.7
             // Need to specify an iterator type here even though it’s unused to work around
@@ -962,7 +973,7 @@ impl PropertyDeclarationBlock {
             )?;
 
             // Step 3.3.8
-            already_serialized_longhands.insert(longhand_id);
+            already_serialized.insert(longhand_id.into());
         }
 
         // Step 4

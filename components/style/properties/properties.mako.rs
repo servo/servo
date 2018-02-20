@@ -547,6 +547,20 @@ pub struct NonCustomPropertyIdSet {
 }
 
 impl NonCustomPropertyIdSet {
+    /// Creates an empty `NonCustomPropertyIdSet`.
+    pub fn new() -> Self {
+        Self {
+            storage: Default::default(),
+        }
+    }
+
+    /// Insert a non-custom-property in the set.
+    #[inline]
+    pub fn insert(&mut self, id: NonCustomPropertyId) {
+        let bit = id.0;
+        self.storage[bit / 32] |= 1 << (bit % 32);
+    }
+
     /// Return whether the given property is in the set
     #[inline]
     pub fn contains(&self, id: NonCustomPropertyId) -> bool {
