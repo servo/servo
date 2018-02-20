@@ -1093,7 +1093,6 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-
         match attr.local_name() {
             &local_name!("disabled") => {
                 let disabled_state = match mutation {

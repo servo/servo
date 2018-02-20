@@ -634,6 +634,10 @@ fn test_textinput_unicode_handling() {
 fn test_selection_bounds() {
     let mut textinput = text_input(Lines::Single, "abcdef");
 
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_origin_or_edit_point());
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_end());
+
     textinput.set_selection_range(2, 5, SelectionDirection::Forward);
     assert_eq!(TextPoint { line: 0, index: 2 }, textinput.selection_origin_or_edit_point());
     assert_eq!(TextPoint { line: 0, index: 2 }, textinput.selection_start());
