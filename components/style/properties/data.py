@@ -262,7 +262,6 @@ class Longhand(object):
                 "ImageOrientation",
                 "InitialLetter",
                 "Integer",
-                "IntegerOrAuto",
                 "JustifyContent",
                 "JustifyItems",
                 "JustifySelf",
@@ -283,6 +282,7 @@ class Longhand(object):
                 "TransformStyle",
                 "XSpan",
                 "XTextZoom",
+                "ZIndex",
             }
         return bool(self.keyword)
 
