@@ -292,8 +292,16 @@ impl PropertyDeclarationBlock {
 
     /// Get a declaration for a given property.
     ///
-    /// NOTE: This is linear time.
+    /// NOTE: This is linear time in the case of custom properties or in the
+    /// case the longhand is actually in the declaration block.
+    #[inline]
     pub fn get(&self, property: PropertyDeclarationId) -> Option<(&PropertyDeclaration, Importance)> {
+        if let PropertyDeclarationId::Longhand(id) = property {
+            if !self.contains(id) {
+                return None;
+            }
+        }
+
         self.declarations.iter().enumerate().find(|&(_, decl)| decl.id() == property).map(|(i, decl)| {
             let importance = if self.declarations_importance.get(i as u32) {
                 Importance::Important
