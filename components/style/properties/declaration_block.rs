@@ -207,11 +207,13 @@ impl fmt::Debug for PropertyDeclarationBlock {
 
 impl PropertyDeclarationBlock {
     /// Returns the number of declarations in the block.
+    #[inline]
     pub fn len(&self) -> usize {
         self.declarations.len()
     }
 
     /// Create an empty block
+    #[inline]
     pub fn new() -> Self {
         PropertyDeclarationBlock {
             declarations: Vec::new(),
@@ -229,31 +231,36 @@ impl PropertyDeclarationBlock {
         PropertyDeclarationBlock {
             declarations: vec![declaration],
             declarations_importance: SmallBitVec::from_elem(1, importance.important()),
-            longhands: longhands,
+            longhands,
         }
     }
 
     /// The declarations in this block
+    #[inline]
     pub fn declarations(&self) -> &[PropertyDeclaration] {
         &self.declarations
     }
 
     /// The `important` flags for declarations in this block
+    #[inline]
     pub fn declarations_importance(&self) -> &SmallBitVec {
         &self.declarations_importance
     }
 
     /// Iterate over `(PropertyDeclaration, Importance)` pairs
+    #[inline]
     pub fn declaration_importance_iter(&self) -> DeclarationImportanceIterator {
         DeclarationImportanceIterator::new(&self.declarations, &self.declarations_importance)
     }
 
     /// Iterate over `PropertyDeclaration` for Importance::Normal
+    #[inline]
     pub fn normal_declaration_iter(&self) -> NormalDeclarationIterator {
         NormalDeclarationIterator::new(&self.declarations, &self.declarations_importance)
     }
 
     /// Return an iterator of (AnimatableLonghand, AnimationValue).
+    #[inline]
     pub fn to_animation_value_iter<'a, 'cx, 'cx_a:'cx>(
         &'a self,
         context: &'cx mut Context<'cx_a>,
@@ -267,6 +274,7 @@ impl PropertyDeclarationBlock {
     ///
     /// This is based on the `declarations_importance` bit-vector,
     /// which should be maintained whenever `declarations` is changed.
+    #[inline]
     pub fn any_important(&self) -> bool {
         !self.declarations_importance.all_false()
     }
@@ -275,11 +283,13 @@ impl PropertyDeclarationBlock {
     ///
     /// This is based on the `declarations_importance` bit-vector,
     /// which should be maintained whenever `declarations` is changed.
+    #[inline]
     pub fn any_normal(&self) -> bool {
         !self.declarations_importance.all_true()
     }
 
     /// Returns whether this block contains a declaration of a given longhand.
+    #[inline]
     pub fn contains(&self, id: LonghandId) -> bool {
         self.longhands.contains(id)
     }
