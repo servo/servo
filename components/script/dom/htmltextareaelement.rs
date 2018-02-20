@@ -36,7 +36,7 @@ use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
-use textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
+use textinput::{ChangeEditPoint, Direction, KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -251,7 +251,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         let old_selection = textinput.selection_origin;
 
         // Step 2
-        textinput.set_content(value);
+        textinput.set_content(value, &ChangeEditPoint::Change);
 
         // Step 3
         self.value_dirty.set(true);
@@ -327,7 +327,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 impl HTMLTextAreaElement {
     pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
-        self.SetValue(self.DefaultValue());
+        let mut textinput = self.textinput.borrow_mut();
+        textinput.set_content(self.DefaultValue(), &ChangeEditPoint::Change);
         self.value_dirty.set(false);
     }
 
