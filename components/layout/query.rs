@@ -693,7 +693,7 @@ pub fn process_resolved_style_request<'a, N>(context: &LayoutContext,
         thread_local: &mut tlc,
     };
 
-    let styles = resolve_style(&mut context, element, RuleInclusion::All, false, pseudo.as_ref());
+    let styles = resolve_style(&mut context, element, RuleInclusion::All, pseudo.as_ref());
     let style = styles.primary();
     let longhand_id = match *property {
         PropertyId::LonghandAlias(id, _) |

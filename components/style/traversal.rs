@@ -300,7 +300,6 @@ pub fn resolve_style<E>(
     context: &mut StyleContext<E>,
     element: E,
     rule_inclusion: RuleInclusion,
-    ignore_existing_style: bool,
     pseudo: Option<&PseudoElement>,
 ) -> ElementStyles
 where
@@ -309,7 +308,6 @@ where
     use style_resolver::StyleResolverForElement;
 
     debug_assert!(rule_inclusion == RuleInclusion::DefaultOnly ||
-                  ignore_existing_style ||
                   pseudo.map_or(false, |p| p.is_before_or_after()) ||
                   element.borrow_data().map_or(true, |d| !d.has_styles()),
                   "Why are we here?");
@@ -321,7 +319,7 @@ where
     let mut style = None;
     let mut ancestor = element.traversal_parent();
     while let Some(current) = ancestor {
-        if rule_inclusion == RuleInclusion::All && !ignore_existing_style {
+        if rule_inclusion == RuleInclusion::All {
             if let Some(data) = current.borrow_data() {
                 if let Some(ancestor_style) = data.styles.get_primary() {
                     style = Some(ancestor_style.clone());
