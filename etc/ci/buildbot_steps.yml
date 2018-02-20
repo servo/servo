@@ -189,7 +189,6 @@ arm64:
   - bash ./etc/ci/manifest_changed.sh
 
 windows-msvc-dev:
-  - mach.bat clean-cargo-cache --keep 3 --force
   - mach.bat clean-nightlies --keep 3 --force
   - mach.bat build --dev
   - mach.bat test-unit
@@ -198,7 +197,6 @@ windows-msvc-dev:
   - mach.bat test-stylo
 
 windows-msvc-nightly:
-  - mach.bat clean-cargo-cache --keep 3 --force
   - mach.bat clean-nightlies --keep 3 --force
   - mach.bat build --release
   - mach.bat package --release
