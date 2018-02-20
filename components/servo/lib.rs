@@ -124,7 +124,8 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
-    embedder_receiver: EmbedderReceiver
+    embedder_receiver: EmbedderReceiver,
+    embedder_events: Vec<EmbedderMsg>,
 }
 
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
@@ -255,6 +256,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             compositor: compositor,
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
+            embedder_events: Vec::new(),
         }
     }
 
@@ -367,81 +369,15 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (EmbedderMsg::Status(top_level_browsing_context, message), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.status(top_level_browsing_context, message);
+                (msg, ShutdownState::NotShuttingDown) => {
+                    self.embedder_events.push(msg);
                 },
-
-                (EmbedderMsg::ChangePageTitle(top_level_browsing_context, title), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_page_title(top_level_browsing_context, title);
-                },
-
-                (EmbedderMsg::MoveTo(top_level_browsing_context, point),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_position(top_level_browsing_context, point);
-                },
-
-                (EmbedderMsg::ResizeTo(top_level_browsing_context, size),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_inner_size(top_level_browsing_context, size);
-                },
-
-                (EmbedderMsg::AllowNavigation(top_level_browsing_context,
-                                              url,
-                                              response_chan),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.allow_navigation(top_level_browsing_context, url, response_chan);
-                },
-
-                (EmbedderMsg::KeyEvent(top_level_browsing_context,
-                                       ch,
-                                       key,
-                                       state,
-                                       modified),
-                 ShutdownState::NotShuttingDown) => {
-                    if state == KeyState::Pressed {
-                        self.compositor.window.handle_key(top_level_browsing_context, ch, key, modified);
-                    }
-                },
-
-                (EmbedderMsg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_cursor(cursor)
-                },
-
-                (EmbedderMsg::NewFavicon(top_level_browsing_context, url), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_favicon(top_level_browsing_context, url);
-                },
-
-                (EmbedderMsg::HeadParsed(top_level_browsing_context, ), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.head_parsed(top_level_browsing_context, );
-                },
-
-                (EmbedderMsg::HistoryChanged(top_level_browsing_context, entries, current),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.history_changed(top_level_browsing_context, entries, current);
-                },
-
-                (EmbedderMsg::SetFullscreenState(top_level_browsing_context, state),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_fullscreen_state(top_level_browsing_context, state);
-                },
-
-                (EmbedderMsg::LoadStart(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.load_start(top_level_browsing_context);
-                },
-
-                (EmbedderMsg::LoadComplete(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
-                    // Inform the embedder that the load has finished.
-                    //
-                    // TODO(pcwalton): Specify which frame's load completed.
-                    self.compositor.window.load_end(top_level_browsing_context);
-                },
-                (EmbedderMsg::Panic(top_level_browsing_context, reason, backtrace),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.handle_panic(top_level_browsing_context, reason, backtrace);
-                },
-
             }
         }
+    }
+
+    pub fn get_events(&mut self) -> Vec<EmbedderMsg> {
+        ::std::mem::replace(&mut self.embedder_events, Vec::new())
     }
 
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
