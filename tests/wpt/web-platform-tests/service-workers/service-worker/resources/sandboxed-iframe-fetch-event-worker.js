@@ -10,6 +10,7 @@ self.addEventListener('message', function(event) {
           client_urls = client_urls.sort();
           event.data.port.postMessage(
               {clients: client_urls, requests: requests});
+          requests = [];
         }));
   });
 

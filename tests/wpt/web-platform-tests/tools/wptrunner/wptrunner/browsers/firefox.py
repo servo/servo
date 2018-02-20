@@ -117,6 +117,11 @@ def env_extras(**kwargs):
 
 
 def env_options():
+    # The server host is set to 127.0.0.1 as Firefox is configured (through the
+    # network.dns.localDomains preference set below) to resolve the test
+    # domains to localhost without relying on the network stack.
+    #
+    # https://github.com/w3c/web-platform-tests/pull/9480
     return {"host": "127.0.0.1",
             "external_host": "web-platform.test",
             "bind_hostname": "false",

@@ -15,8 +15,8 @@
 
 runPropertyTests('height', [
   { syntax: 'auto' },
-  { syntax: '<percentage>' },
-  { syntax: '<length>' },
+  { syntax: '<percentage>', specified: assert_is_equal_with_range_handling },
+  { syntax: '<length>', specified: assert_is_equal_with_range_handling },
 ]);
 
 </script>

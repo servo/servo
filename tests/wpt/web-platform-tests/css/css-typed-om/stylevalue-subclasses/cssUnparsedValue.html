@@ -5,6 +5,7 @@
 <meta name="assert" content="Test CSSUnparsedValue constructor and members">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../resources/testhelper.js"></script>
 <body>
 <div id="log">
 <script>
@@ -46,5 +47,45 @@ for (const {args, description} of gTestArguments) {
         'passed in the constructor');
   }, 'CSSUnparsedValue can be constructed from ' + description);
 }
+
+test(() => {
+  let result = new CSSUnparsedValue([new CSSVariableReferenceValue('--foo')]);
+
+  result[0] = 'A';
+  assert_equals(result[0], 'A', 'Item should be updated to new value');
+}, 'Can update item in CSSUnparsedValue to a string');
+
+test(() => {
+  let result = new CSSUnparsedValue(['foo']);
+
+  result[0] = new CSSVariableReferenceValue('--A');
+  assert_style_value_equals(result[0], new CSSVariableReferenceValue('--A'),
+      'Item should be updated to new value');
+}, 'Can update item in CSSUnparsedValue to a variable reference');
+
+test(() => {
+  let result = new CSSUnparsedValue([]);
+
+  result[0] = new CSSVariableReferenceValue('--A');
+  assert_equals(result.length, 1,
+      'Length of CSSUnparsedValue should have increased');
+  assert_style_value_equals(result[0], new CSSVariableReferenceValue('--A'),
+      'New item should be appended');
+
+  result[1] = 'foo';
+  assert_equals(result.length, 2,
+      'Length of CSSUnparsedValue should have increased');
+  assert_equals(result[1], 'foo', 'New item should be appended');
+}, 'Can append items to CSSUnparsedValue');
+
+test(() => {
+  const result = new CSSUnparsedValue(['foo', 'bar']);
+  assert_equals(result[3], undefined);
+}, 'Getting invalid index in CSSUnparsedValue returns undefined');
+
+test(() => {
+  let result = new CSSUnparsedValue(['foo', 'bar']);
+  assert_throws(new RangeError(), () => result[3] = 'foo');
+}, 'Setting invalid index in CSSUnparsedValue throws RangeError');
 
 </script>

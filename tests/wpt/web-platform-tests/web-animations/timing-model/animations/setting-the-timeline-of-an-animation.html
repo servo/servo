@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Setting the timeline of an animation</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#setting-the-timeline">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------
+//
+// Tests from no timeline to timeline
+//
+// ---------------------------------------------------------------------
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.currentTime = 50 * MS_PER_SEC;
+  assert_equals(animation.playState, 'paused');
+
+  animation.timeline = document.timeline;
+
+  assert_equals(animation.playState, 'paused');
+  assert_time_equals_literal(animation.currentTime, 50 * MS_PER_SEC);
+}, 'After setting timeline on paused animation it is still paused');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.currentTime = 200 * MS_PER_SEC;
+  assert_equals(animation.playState, 'paused');
+
+  animation.timeline = document.timeline;
+
+  assert_equals(animation.playState, 'paused');
+  assert_time_equals_literal(animation.currentTime, 200 * MS_PER_SEC);
+}, 'After setting timeline on animation paused outside active interval'
+   + ' it is still paused');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  assert_equals(animation.playState, 'idle');
+
+  animation.timeline = document.timeline;
+
+  assert_equals(animation.playState, 'idle');
+}, 'After setting timeline on an idle animation without a start time'
+   + ' it is still idle');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.startTime = document.timeline.currentTime;
+  assert_equals(animation.playState, 'idle');
+
+  animation.timeline = document.timeline;
+
+  assert_equals(animation.playState, 'running');
+}, 'After setting timeline on an idle animation with a start time'
+   + ' it is running');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.startTime = document.timeline.currentTime - 200 * MS_PER_SEC;
+  assert_equals(animation.playState, 'idle');
+
+  animation.timeline = document.timeline;
+
+  assert_equals(animation.playState, 'finished');
+}, 'After setting timeline on an idle animation with a sufficiently ancient'
+   + ' start time it is finished');
+
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.play();
+  assert_true(animation.pending && animation.playState === 'running',
+              'Animation is initially play-pending');
+
+  animation.timeline = document.timeline;
+
+  assert_true(animation.pending && animation.playState === 'running',
+              'Animation is still play-pending after setting timeline');
+
+  await animation.ready;
+  assert_true(!animation.pending && animation.playState === 'running',
+              'Animation plays after it finishes pending');
+}, 'After setting timeline on a play-pending animation it begins playing'
+   + ' after pending');
+
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.startTime = document.timeline.currentTime;
+  animation.pause();
+  animation.timeline = null;
+  assert_true(animation.pending && animation.playState === 'paused',
+              'Animation is initially pause-pending');
+
+  animation.timeline = document.timeline;
+
+  assert_true(animation.pending && animation.playState === 'paused',
+              'Animation is still pause-pending after setting timeline');
+
+  await animation.ready;
+  assert_true(!animation.pending && animation.playState === 'paused',
+              'Animation pauses after it finishes pending');
+}, 'After setting timeline on a pause-pending animation it becomes paused'
+   + ' after pending');
+
+// ---------------------------------------------------------------------
+//
+// Tests from timeline to no timeline
+//
+// ---------------------------------------------------------------------
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+  animation.currentTime = 50 * MS_PER_SEC;
+  assert_false(animation.pending);
+  assert_equals(animation.playState, 'paused');
+
+  animation.timeline = null;
+
+  assert_false(animation.pending);
+  assert_equals(animation.playState, 'paused');
+  assert_time_equals_literal(animation.currentTime, 50 * MS_PER_SEC);
+}, 'After clearing timeline on paused animation it is still paused');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+  const initialStartTime = document.timeline.currentTime - 200 * MS_PER_SEC;
+  animation.startTime = initialStartTime;
+  assert_equals(animation.playState, 'finished');
+
+  animation.timeline = null;
+
+  assert_equals(animation.playState, 'idle');
+  assert_times_equal(animation.startTime, initialStartTime);
+}, 'After clearing timeline on finished animation it is idle');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+  const initialStartTime = document.timeline.currentTime - 50 * MS_PER_SEC;
+  animation.startTime = initialStartTime;
+  assert_equals(animation.playState, 'running');
+
+  animation.timeline = null;
+
+  assert_equals(animation.playState, 'idle');
+  assert_times_equal(animation.startTime, initialStartTime);
+}, 'After clearing timeline on running animation it is idle');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+  assert_equals(animation.playState, 'idle');
+
+  animation.timeline = null;
+
+  assert_equals(animation.playState, 'idle');
+  assert_equals(animation.startTime, null);
+}, 'After clearing timeline on idle animation it is still idle');
+
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  assert_true(animation.pending && animation.playState === 'running');
+
+  animation.timeline = null;
+
+  assert_true(animation.pending && animation.playState === 'running');
+}, 'After clearing timeline on play-pending animation it is still pending');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  assert_true(animation.pending && animation.playState === 'running');
+
+  animation.timeline = null;
+  animation.timeline = document.timeline;
+
+  assert_true(animation.pending && animation.playState === 'running');
+  await animation.ready;
+  assert_true(!animation.pending && animation.playState === 'running');
+}, 'After clearing and re-setting timeline on play-pending animation it'
+   + ' begins to play');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+  animation.startTime = document.timeline.currentTime;
+  animation.pause();
+  assert_true(animation.pending && animation.playState === 'paused');
+
+  animation.timeline = null;
+
+  assert_true(animation.pending && animation.playState === 'paused');
+}, 'After clearing timeline on a pause-pending animation it is still pending');
+
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+  animation.startTime = document.timeline.currentTime;
+  animation.pause();
+  assert_true(animation.pending && animation.playState === 'paused');
+
+  animation.timeline = null;
+  animation.timeline = document.timeline;
+
+  assert_true(animation.pending && animation.playState === 'paused');
+  await animation.ready;
+  assert_true(!animation.pending && animation.playState === 'paused');
+}, 'After clearing and re-setting timeline on a pause-pending animation it'
+   + ' completes pausing');
+
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+  const initialStartTime = document.timeline.currentTime - 50 * MS_PER_SEC;
+  animation.startTime = initialStartTime;
+  animation.pause();
+  animation.play();
+
+  animation.timeline = null;
+  animation.timeline = document.timeline;
+
+  await animation.ready;
+  assert_times_equal(animation.startTime, initialStartTime);
+}, 'After clearing and re-setting timeline on an animation in the middle of'
+   + ' an aborted pause, it continues playing using the same start time');
+
+</script>
+</body>

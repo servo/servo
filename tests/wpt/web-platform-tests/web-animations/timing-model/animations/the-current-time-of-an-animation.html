@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The current time of an animation</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#the-current-time-of-an-animation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+
+  animation.play();
+  assert_equals(animation.currentTime, 0,
+    'Current time returns the hold time set when entering the play-pending ' +
+    'state');
+}, 'The current time returns the hold time when set');
+
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+
+  await animation.ready;
+  assert_equals(animation.currentTime, null);
+}, 'The current time is unresolved when there is no associated timeline ' +
+   '(and no hold time is set)');
+
+// FIXME: Test that the current time is unresolved when we have an inactive
+// timeline if we find a way of creating an inactive timeline!
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+
+  animation.startTime = null;
+  assert_equals(animation.currentTime, null);
+}, 'The current time is unresolved when the start time is unresolved ' +
+   '(and no hold time is set)');
+
+test(t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+
+  animation.playbackRate = 2;
+  animation.startTime = document.timeline.currentTime - 25 * MS_PER_SEC;
+
+  const timelineTime = document.timeline.currentTime;
+  const startTime = animation.startTime;
+  const playbackRate = animation.playbackRate;
+  assert_times_equal(animation.currentTime,
+                     (timelineTime - startTime) * playbackRate,
+                     'Animation has a unresolved start time');
+}, 'The current time is calculated from the timeline time, start time and ' +
+   'playback rate');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = 0;
+
+  await animation.ready;
+  await waitForAnimationFrames(1);
+  assert_time_equals_literal(animation.currentTime, 0);
+}, 'The current time does not progress if playback rate is 0');
+
+</script>
+</body>

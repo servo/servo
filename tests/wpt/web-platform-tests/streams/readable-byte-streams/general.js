@@ -2,6 +2,7 @@
 
 if (self.importScripts) {
   self.importScripts('../resources/rs-utils.js');
+  self.importScripts('../resources/test-utils.js');
   self.importScripts('/resources/testharness.js');
 }
 
@@ -1881,6 +1882,93 @@ promise_test(t => {
       .then(() => assert_not_equals(byobRequest, undefined, 'byobRequest must not be undefined'));
 }, 'ReadableStream with byte source: Throwing in pull in response to read(view) must be ignored if the stream is ' +
    'errored in it');
+
+promise_test(() => {
+  let byobRequest;
+  const rs = new ReadableStream({
+    pull(controller) {
+      byobRequest = controller.byobRequest;
+      byobRequest.respond(4);
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  const view = new Uint8Array(16);
+  return reader.read(view).then(() => {
+    assert_throws(new TypeError(), () => byobRequest.respond(4), 'respond() should throw a TypeError');
+  });
+}, 'calling respond() twice on the same byobRequest should throw');
+
+promise_test(() => {
+  let byobRequest;
+  const newView = () => new Uint8Array(16);
+  const rs = new ReadableStream({
+    pull(controller) {
+      byobRequest = controller.byobRequest;
+      byobRequest.respondWithNewView(newView());
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  return reader.read(newView()).then(() => {
+    assert_throws(new TypeError(), () => byobRequest.respondWithNewView(newView()),
+                  'respondWithNewView() should throw a TypeError');
+  });
+}, 'calling respondWithNewView() twice on the same byobRequest should throw');
+
+promise_test(() => {
+  let byobRequest;
+  let resolvePullCalledPromise;
+  const pullCalledPromise = new Promise(resolve => {
+    resolvePullCalledPromise = resolve;
+  });
+  let resolvePull;
+  const rs = new ReadableStream({
+    pull(controller) {
+      byobRequest = controller.byobRequest;
+      resolvePullCalledPromise();
+      return new Promise(resolve => {
+        resolvePull = resolve;
+      });
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  const readPromise = reader.read(new Uint8Array(16));
+  return pullCalledPromise.then(() => {
+    const cancelPromise = reader.cancel('meh');
+    resolvePull();
+    byobRequest.respond(0);
+    return Promise.all([readPromise, cancelPromise]).then(() => {
+      assert_throws(new TypeError(), () => byobRequest.respond(0), 'respond() should throw');
+    });
+  });
+}, 'calling respond(0) twice on the same byobRequest should throw even when closed');
+
+promise_test(() => {
+  let resolvePullCalledPromise;
+  const pullCalledPromise = new Promise(resolve => {
+    resolvePullCalledPromise = resolve;
+  });
+  let resolvePull;
+  const rs = new ReadableStream({
+    pull() {
+      resolvePullCalledPromise();
+      return new Promise(resolve => {
+        resolvePull = resolve;
+      });
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  reader.read(new Uint8Array(16));
+  return pullCalledPromise.then(() => {
+    resolvePull();
+    return delay(0).then(() => {
+      assert_throws(new TypeError(), () => reader.releaseLock(), 'releaseLock() should throw');
+    });
+  });
+}, 'pull() resolving should not make releaseLock() possible');
 
 promise_test(() => {
   // Tests https://github.com/whatwg/streams/issues/686

@@ -62,7 +62,7 @@
   for (let prop of ["selectionStart", "selectionEnd"]) {
     for (let el of createTestElements(testValue)) {
       test(function() {
-        assert_equals(el.selectionStart, testValue.length);
+        assert_equals(el[prop], testValue.length);
       }, `Initial .value set on ${el.id} should set ${prop} to end of value`);
     }
   }

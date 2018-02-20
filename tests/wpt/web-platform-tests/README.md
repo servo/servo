@@ -107,7 +107,7 @@ python wpt product [tests]
 where `product` is currently `firefox` or `chrome` and `[tests]` is a
 list of paths to tests. This will attempt to automatically locate a
 browser instance and install required dependencies. The command is
-very configurable; for examaple to specify a particular binary use
+very configurable; for example to specify a particular binary use
 `wpt run --binary=path product`. The full range of options can be see
 with `wpt run --help` and `wpt run --wptrunner-help`.
 

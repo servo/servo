@@ -6,24 +6,6 @@
 <script src="resources/test-helpers.sub.js"></script>
 <body>
 <script>
-// Registers, waits for activation, then unregisters on a dummy scope.
-//
-// This helper can be used in tests that assert that activation doesn't happen.
-// It would not be sufficient to check the .waiting/.active properties once,
-// since activation could be scheduled and just hasn't happened yet. Since this
-// helper shows that activation of another registration completed, we can be
-// sure that activation really will not happen.
-function wait_for_activation_on_dummy_scope(t) {
-  var dummy_scope = 'resources/there/is/no/there/there';
-  var registration;
-  return navigator.serviceWorker.register('resources/empty-worker.js',
-      { scope: dummy_scope })
-    .then(r => {
-        registration = r;
-        return wait_for_state(t, registration.installing, 'activated');
-      })
-    .then(() => registration.unregister());
-}
 // Returns {registration, iframe}, where |registration| has an active and
 // waiting worker. The active worker controls |iframe| and has an inflight
 // message event that can be finished by calling

@@ -84,18 +84,29 @@ class TestEnvironment(object):
         self.cache_manager = multiprocessing.Manager()
         self.stash = serve.stash.StashServer()
         self.env_extras = env_extras
+        self.env_extras_cms = None
 
 
     def __enter__(self):
         self.stash.__enter__()
         self.ssl_env.__enter__()
         self.cache_manager.__enter__()
-        for cm in self.env_extras:
-            cm.__enter__(self.options)
-        self.setup_server_logging()
+
         self.config = self.load_config()
+        self.setup_server_logging()
         ports = serve.get_ports(self.config, self.ssl_env)
         self.config = serve.normalise_config(self.config, ports)
+
+        assert self.env_extras_cms is None, (
+            "A TestEnvironment object cannot be nested")
+
+        self.env_extras_cms = []
+
+        for env in self.env_extras:
+            cm = env(self.options, self.config)
+            cm.__enter__()
+            self.env_extras_cms.append(cm)
+
         self.servers = serve.start(self.config, self.ssl_env,
                                    self.get_routes())
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
@@ -108,8 +119,11 @@ class TestEnvironment(object):
         for scheme, servers in self.servers.iteritems():
             for port, server in servers:
                 server.kill()
-        for cm in self.env_extras:
+        for cm in self.env_extras_cms:
             cm.__exit__(exc_type, exc_val, exc_tb)
+
+        self.env_extras_cms = None
+
         self.cache_manager.__exit__(exc_type, exc_val, exc_tb)
         self.ssl_env.__exit__(exc_type, exc_val, exc_tb)
         self.stash.__exit__()
@@ -122,14 +136,22 @@ class TestEnvironment(object):
 
     def load_config(self):
         default_config_path = os.path.join(serve_path(self.test_paths), "config.default.json")
-        local_config_path = os.path.join(here, "config.json")
+        local_config = {
+            "ports": {
+                "http": [8000, 8001],
+                "https": [8443],
+                "ws": [8888]
+            },
+            "check_subdomains": False,
+            "bind_hostname": self.options["bind_hostname"],
+            "ssl": {}
+        }
+
+        if "host" in self.options:
+            local_config["host"] = self.options["host"]
 
         with open(default_config_path) as f:
             default_config = json.load(f)
-
-        with open(local_config_path) as f:
-            data = f.read()
-            local_config = json.loads(data % self.options)
 
         #TODO: allow non-default configuration for ssl
 

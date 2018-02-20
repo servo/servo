@@ -20,32 +20,33 @@
 // (Also the start time is resolved and there is pending task)
 
 // Did seek = false
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
 
   // Here and in the following tests we wait until ready resolves as
   // otherwise we don't have a resolved start time. We test the case
   // where the start time is unresolved in a subsequent test.
-  return anim.ready.then(() => {
-    // Seek to 1ms before the target end and then wait 1ms
-    anim.currentTime = 100 * MS_PER_SEC - 1;
-    return waitForAnimationFramesWithDelay(1);
-  }).then(() => {
-    assert_equals(anim.currentTime, 100 * MS_PER_SEC,
-                  'Hold time is set to target end clamping current time');
-  });
+  await anim.ready;
+
+  // Seek to 1ms before the target end and then wait 1ms
+  anim.currentTime = 100 * MS_PER_SEC - 1;
+  await waitForAnimationFramesWithDelay(1);
+
+  assert_equals(anim.currentTime, 100 * MS_PER_SEC,
+                'Hold time is set to target end clamping current time');
 }, 'Updating the finished state when playing past end');
 
 // Did seek = true
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
-  return anim.ready.then(() => {
-    anim.currentTime = 200 * MS_PER_SEC;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_equals(anim.currentTime, 200 * MS_PER_SEC,
-                  'Hold time is set so current time should NOT change');
-  });
+
+  await anim.ready;
+
+  anim.currentTime = 200 * MS_PER_SEC;
+  await waitForNextFrame();
+
+  assert_equals(anim.currentTime, 200 * MS_PER_SEC,
+                'Hold time is set so current time should NOT change');
 }, 'Updating the finished state when seeking past end');
 
 // Test current time == target end
@@ -59,15 +60,15 @@ promise_test(t => {
 // (on the subsequent tick the hold time will be set to the same value anyway).
 
 // Did seek = true
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
-  return anim.ready.then(() => {
-    anim.currentTime = 100 * MS_PER_SEC;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_equals(anim.currentTime, 100 * MS_PER_SEC,
-                  'Hold time is set so current time should NOT change');
-  });
+  await anim.ready;
+
+  anim.currentTime = 100 * MS_PER_SEC;
+  await waitForNextFrame();
+
+  assert_equals(anim.currentTime, 100 * MS_PER_SEC,
+                'Hold time is set so current time should NOT change');
 }, 'Updating the finished state when seeking exactly to end');
 
 
@@ -75,49 +76,51 @@ promise_test(t => {
 // (Also the start time is resolved and there is pending task)
 
 // Did seek = false
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.playbackRate = -1;
   anim.play(); // Make sure animation is not initially finished
-  return anim.ready.then(() => {
-    // Seek to 1ms before 0 and then wait 1ms
-    anim.currentTime = 1;
-    return waitForAnimationFramesWithDelay(1);
-  }).then(() => {
-    assert_equals(anim.currentTime, 0 * MS_PER_SEC,
-                  'Hold time is set to zero clamping current time');
-  });
+
+  await anim.ready;
+
+  // Seek to 1ms before 0 and then wait 1ms
+  anim.currentTime = 1;
+  await waitForAnimationFramesWithDelay(1);
+
+  assert_equals(anim.currentTime, 0 * MS_PER_SEC,
+                'Hold time is set to zero clamping current time');
 }, 'Updating the finished state when playing in reverse past zero');
 
 // Did seek = true
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.playbackRate = -1;
   anim.play();
-  return anim.ready.then(() => {
-    anim.currentTime = -100 * MS_PER_SEC;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_equals(anim.currentTime, -100 * MS_PER_SEC,
-                  'Hold time is set so current time should NOT change');
-  });
+
+  await anim.ready;
+
+  anim.currentTime = -100 * MS_PER_SEC;
+  await waitForNextFrame();
+
+  assert_equals(anim.currentTime, -100 * MS_PER_SEC,
+                'Hold time is set so current time should NOT change');
 }, 'Updating the finished state when seeking a reversed animation past zero');
 
 // As before, it's difficult to test current time == 0 for did seek = false but
 // it doesn't really matter.
 
 // Did seek = true
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.playbackRate = -1;
   anim.play();
-  return anim.ready.then(() => {
-    anim.currentTime = 0;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_equals(anim.currentTime, 0 * MS_PER_SEC,
-                  'Hold time is set so current time should NOT change');
-  });
+  await anim.ready;
+
+  anim.currentTime = 0;
+  await waitForNextFrame();
+
+  assert_equals(anim.currentTime, 0 * MS_PER_SEC,
+                'Hold time is set so current time should NOT change');
 }, 'Updating the finished state when seeking a reversed animation exactly'
    + ' to zero');
 
@@ -126,41 +129,41 @@ promise_test(t => {
 // (Also the start time is resolved and there is pending task)
 
 // Did seek = false; playback rate > 0
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
 
   // We want to test that the hold time is cleared so first we need to
   // put the animation in a state where the hold time is set.
   anim.finish();
-  return anim.ready.then(() => {
-    assert_equals(anim.currentTime, 100 * MS_PER_SEC,
-                  'Hold time is initially set');
-    // Then extend the duration so that the hold time is cleared and on
-    // the next tick the current time will increase.
-    anim.effect.timing.duration *= 2;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_greater_than(anim.currentTime, 100 * MS_PER_SEC,
-                        'Hold time is not set so current time should increase');
-  });
+  await anim.ready;
+
+  assert_equals(anim.currentTime, 100 * MS_PER_SEC,
+                'Hold time is initially set');
+  // Then extend the duration so that the hold time is cleared and on
+  // the next tick the current time will increase.
+  anim.effect.timing.duration *= 2;
+  await waitForNextFrame();
+
+  assert_greater_than(anim.currentTime, 100 * MS_PER_SEC,
+                      'Hold time is not set so current time should increase');
 }, 'Updating the finished state when playing before end');
 
 // Did seek = true; playback rate > 0
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.finish();
-  return anim.ready.then(() => {
-    anim.currentTime = 50 * MS_PER_SEC;
-    // When did seek = true, updating the finished state: (i) updates
-    // the animation's start time and (ii) clears the hold time.
-    // We can test both by checking that the currentTime is initially
-    // updated and then increases.
-    assert_equals(anim.currentTime, 50 * MS_PER_SEC, 'Start time is updated');
-    return waitForNextFrame();
-  }).then(() => {
-    assert_greater_than(anim.currentTime, 50 * MS_PER_SEC,
-                        'Hold time is not set so current time should increase');
-  });
+  await anim.ready;
+
+  anim.currentTime = 50 * MS_PER_SEC;
+  // When did seek = true, updating the finished state: (i) updates
+  // the animation's start time and (ii) clears the hold time.
+  // We can test both by checking that the currentTime is initially
+  // updated and then increases.
+  assert_equals(anim.currentTime, 50 * MS_PER_SEC, 'Start time is updated');
+  await waitForNextFrame();
+
+  assert_greater_than(anim.currentTime, 50 * MS_PER_SEC,
+                      'Hold time is not set so current time should increase');
 }, 'Updating the finished state when seeking before end');
 
 // Did seek = false; playback rate < 0
@@ -177,69 +180,69 @@ promise_test(t => {
 // will set did seek = true).
 
 // Did seek = true; playback rate < 0
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.playbackRate = -1;
-  return anim.ready.then(() => {
-    anim.currentTime = 50 * MS_PER_SEC;
-    assert_equals(anim.currentTime, 50 * MS_PER_SEC, 'Start time is updated');
-    return waitForNextFrame();
-  }).then(() => {
-    assert_less_than(anim.currentTime, 50 * MS_PER_SEC,
-                     'Hold time is not set so current time should decrease');
-  });
+  await anim.ready;
+
+  anim.currentTime = 50 * MS_PER_SEC;
+  assert_equals(anim.currentTime, 50 * MS_PER_SEC, 'Start time is updated');
+  await waitForNextFrame();
+
+  assert_less_than(anim.currentTime, 50 * MS_PER_SEC,
+                    'Hold time is not set so current time should decrease');
 }, 'Updating the finished state when seeking a reversed animation before end');
 
 // CASE 4: playback rate == 0
 
 // current time < 0
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.playbackRate = 0;
-  return anim.ready.then(() => {
-    anim.currentTime = -100 * MS_PER_SEC;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_equals(anim.currentTime, -100 * MS_PER_SEC,
-                  'Hold time should not be cleared so current time should'
-                  + ' NOT change');
-  });
+  await anim.ready;
+
+  anim.currentTime = -100 * MS_PER_SEC;
+  await waitForNextFrame();
+
+  assert_equals(anim.currentTime, -100 * MS_PER_SEC,
+                'Hold time should not be cleared so current time should'
+                + ' NOT change');
 }, 'Updating the finished state when playback rate is zero and the'
    + ' current time is less than zero');
 
 // current time < target end
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.playbackRate = 0;
-  return anim.ready.then(() => {
-    anim.currentTime = 50 * MS_PER_SEC;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_equals(anim.currentTime, 50 * MS_PER_SEC,
-                  'Hold time should not be cleared so current time should'
-                  + ' NOT change');
-  });
+  await anim.ready;
+
+  anim.currentTime = 50 * MS_PER_SEC;
+  await waitForNextFrame();
+
+  assert_equals(anim.currentTime, 50 * MS_PER_SEC,
+                'Hold time should not be cleared so current time should'
+                + ' NOT change');
 }, 'Updating the finished state when playback rate is zero and the'
    + ' current time is less than end');
 
 // current time > target end
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.playbackRate = 0;
-  return anim.ready.then(() => {
-    anim.currentTime = 200 * MS_PER_SEC;
-    return waitForNextFrame();
-  }).then(() => {
-    assert_equals(anim.currentTime, 200 * MS_PER_SEC,
-                  'Hold time should not be cleared so current time should'
-                  + ' NOT change');
-  });
+  await anim.ready;
+
+  anim.currentTime = 200 * MS_PER_SEC;
+  await waitForNextFrame();
+
+  assert_equals(anim.currentTime, 200 * MS_PER_SEC,
+                'Hold time should not be cleared so current time should'
+                + ' NOT change');
 }, 'Updating the finished state when playback rate is zero and the'
    + ' current time is greater than end');
 
 // CASE 5: current time unresolved
 
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.cancel();
   // Trigger a change that will cause the "update the finished state"
@@ -251,10 +254,10 @@ promise_test(t => {
   // change to timing, but just in case an implementation defers that, let's
   // wait a frame and check that the hold time / start time has still not been
   // updated.
-  return waitForAnimationFrames(1).then(() => {
-    assert_equals(anim.currentTime, null,
-                  'The animation hold time / start time should not be updated');
-  });
+  await waitForAnimationFrames(1);
+
+  assert_equals(anim.currentTime, null,
+                'The animation hold time / start time should not be updated');
 }, 'Updating the finished state when current time is unresolved');
 
 // CASE 6: has a pending task
@@ -278,7 +281,7 @@ test(t => {
 // CASE 7: start time unresolved
 
 // Did seek = false
-promise_test(t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.cancel();
   // Make it so that only the start time is unresolved (to avoid overlapping
@@ -287,12 +290,12 @@ promise_test(t => {
   // Trigger a change that will cause the "update the finished state"
   // procedure to run (did seek = false).
   anim.effect.timing.duration = 200 * MS_PER_SEC;
-  return waitForAnimationFrames(1).then(() => {
-    assert_equals(anim.currentTime, 150 * MS_PER_SEC,
-                  'The animation hold time should not be updated');
-    assert_equals(anim.startTime, null,
-                  'The animation start time should not be updated');
-  });
+  await waitForAnimationFrames(1);
+
+  assert_equals(anim.currentTime, 150 * MS_PER_SEC,
+                'The animation hold time should not be updated');
+  assert_equals(anim.startTime, null,
+                'The animation start time should not be updated');
 }, 'Updating the finished state when start time is unresolved and'
    + ' did seek = false');
 
@@ -337,53 +340,61 @@ promise_test(t => {
 }, 'Finish notification steps don\'t run when the animation seeks to finish'
    + ' and then seeks back again');
 
-promise_test(t => {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 1);
-  return animation.ready.then(() => {
-    return waitForFinishEventAndPromise(animation);
-  });
+  await animation.ready;
+
+  return waitForFinishEventAndPromise(animation);
 }, 'Finish notification steps run when the animation completes normally');
 
-promise_test(t => {
+promise_test(async t => {
+  const effect = new KeyframeEffectReadOnly(null, null, 1);
+  const animation = new Animation(effect, document.timeline);
+  animation.play();
+  await animation.ready;
+
+  return waitForFinishEventAndPromise(animation);
+}, 'Finish notification steps run when an animation without a target'
+   + ' effect completes normally');
+
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 1);
-  return animation.ready.then(() => {
-    animation.currentTime = 10;
-    return waitForFinishEventAndPromise(animation);
-  });
+  await animation.ready;
+
+  animation.currentTime = 10;
+  return waitForFinishEventAndPromise(animation);
 }, 'Finish notification steps run when the animation seeks past finish');
 
-promise_test(t => {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 1);
-  return animation.ready.then(() => {
-    // Register for notifications now since once we seek away from being
-    // finished the 'finished' promise will be replaced.
-    const finishNotificationSteps = waitForFinishEventAndPromise(animation);
-    animation.finish();
-    animation.currentTime = 0;
-    animation.pause();
-    return finishNotificationSteps;
-  });
+  await animation.ready;
+
+  // Register for notifications now since once we seek away from being
+  // finished the 'finished' promise will be replaced.
+  const finishNotificationSteps = waitForFinishEventAndPromise(animation);
+  animation.finish();
+  animation.currentTime = 0;
+  animation.pause();
+  return finishNotificationSteps;
 }, 'Finish notification steps run when the animation completes with .finish(),'
    + ' even if we then seek away');
 
-promise_test(t => {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 1);
   const initialFinishedPromise = animation.finished;
+  await animation.finished;
 
-  return animation.finished.then(target => {
-    animation.currentTime = 0;
-    assert_not_equals(initialFinishedPromise, animation.finished);
-  });
+  animation.currentTime = 0;
+  assert_not_equals(initialFinishedPromise, animation.finished);
 }, 'Animation finished promise is replaced after seeking back to start');
 
-promise_test(t => {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 1);
   const initialFinishedPromise = animation.finished;
+  await animation.finished;
 
-  return animation.finished.then(target => {
-    animation.play();
-    assert_not_equals(initialFinishedPromise, animation.finished);
-  });
+  animation.play();
+  assert_not_equals(initialFinishedPromise, animation.finished);
 }, 'Animation finished promise is replaced after replaying from start');
 
 async_test(t => {
