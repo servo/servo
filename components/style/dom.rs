@@ -808,11 +808,15 @@ pub trait TElement
         after_change_style: &ComputedValues
     ) -> bool;
 
-    /// Returns true if we need to update transitions for the specified property on this element.
+    /// Returns true if we need to update transitions for the specified property
+    /// on this element.
+    ///
+    /// FIXME(emilio): This should belong to GeckoElement, and not be in the
+    /// trait.
     #[cfg(feature = "gecko")]
     fn needs_transitions_update_per_property(
         &self,
-        property: &LonghandId,
+        property: LonghandId,
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,

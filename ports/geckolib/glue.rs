@@ -927,7 +927,7 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(
         Err(()) => return Strong::null(),
     };
 
-    match AnimationValue::from_computed_values(&property, &computed_values) {
+    match AnimationValue::from_computed_values(property, &computed_values) {
         Some(v) => Arc::new(v).into_strong(),
         None => Strong::null(),
     }
@@ -3811,8 +3811,7 @@ impl<'a> PrioritizedPropertyIter<'a> {
         let mut sorted_property_indices: Vec<PropertyAndIndex> =
             properties.iter().enumerate().map(|(index, pair)| {
                 PropertyAndIndex {
-                    property: PropertyId::from_nscsspropertyid(pair.mProperty)
-                              .unwrap_or(all.clone()),
+                    property: PropertyId::from_nscsspropertyid(pair.mProperty).unwrap_or(all.clone()),
                     index,
                 }
             }).collect();
