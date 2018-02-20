@@ -478,8 +478,7 @@ fn append_text_node_to_fragment(
     text: String
 ) {
     let text = Text::new(DOMString::from(text), document);
-    let node = DomRoot::upcast::<Node>(text);
-    fragment.upcast::<Node>().AppendChild(&node).unwrap();
+    fragment.upcast::<Node>().AppendChild(&text.upcast()).unwrap();
 }
 
 // https://html.spec.whatwg.org/multipage/#attr-data-*
