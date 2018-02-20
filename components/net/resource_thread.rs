@@ -23,6 +23,8 @@ use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
+use profile_traits::mem::{ReportsChan, ReporterRequest};
+use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -47,13 +49,15 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                            profiler_chan: ProfilerChan,
+                            time_profiler_chan: ProfilerChan,
+                            mem_profiler_chan: MemProfilerChan,
                             config_dir: Option<PathBuf>)
                             -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
         devtools_chan,
-        profiler_chan,
+        time_profiler_chan,
+        mem_profiler_chan,
         config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone()),
@@ -64,22 +68,34 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
 /// Create a CoreResourceThread
 pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                                profiler_chan: ProfilerChan,
+                                time_profiler_chan: ProfilerChan,
+                                mem_profiler_chan: MemProfilerChan,
                                 config_dir: Option<PathBuf>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
+    let (report_chan, report_port) = ipc::channel().unwrap();
+
     thread::Builder::new().name("ResourceManager".to_owned()).spawn(move || {
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, profiler_chan
+            user_agent, devtools_chan, time_profiler_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
             resource_manager: resource_manager,
             config_dir: config_dir,
         };
-        channel_manager.start(public_setup_port,
-                              private_setup_port);
+
+        mem_profiler_chan.run_with_memory_reporting(|| (
+                channel_manager.start(
+                    public_setup_port,
+                    private_setup_port,
+                    report_port)
+            ),
+            String::from("network-cache-reporter"),
+            report_chan,
+            |report_chan| report_chan); //TODO
+
     }).expect("Thread spawning failed");
     (public_setup_chan, private_setup_chan)
 }
@@ -127,22 +143,27 @@ impl ResourceChannelManager {
     #[allow(unsafe_code)]
     fn start(&mut self,
              public_receiver: IpcReceiver<CoreResourceMsg>,
-             private_receiver: IpcReceiver<CoreResourceMsg>) {
+             private_receiver: IpcReceiver<CoreResourceMsg>,
+             memory_reporter: IpcReceiver<ReportsChan>) {
+
+        // TODO: Something with the IpcReceiver memory/reporter channel
+        //
+        // Is that even the correct one? Other options, ReportsChan
         let (public_http_state, private_http_state) =
             create_http_states(self.config_dir.as_ref().map(Deref::deref));
 
         let mut rx_set = IpcReceiverSet::new().unwrap();
         let private_id = rx_set.add(private_receiver).unwrap();
         let public_id = rx_set.add(public_receiver).unwrap();
+        let reporter_id = rx_set.add(memory_reporter).unwrap();
 
         loop {
             for (id, data) in rx_set.select().unwrap().into_iter().map(|m| m.unwrap()) {
                 let group = if id == private_id {
-                    &private_http_state
-                } else {
-                    assert_eq!(id, public_id);
-                    &public_http_state
-                };
+                    &private_http_state 
+                } else if id == public_id {
+                    &public_http_state 
+                } else { &public_http_state };
                 if let Ok(msg) = data.to() {
                     if !self.process_msg(msg, group) {
                         return;
