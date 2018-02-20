@@ -118,22 +118,11 @@ pub enum AnimationState {
 }
 
 pub trait WindowMethods {
-    /// Returns the rendering area size in hardware pixels.
-    fn framebuffer_size(&self) -> DeviceUintSize;
-    /// Returns the position and size of the window within the rendering area.
-    fn window_rect(&self) -> DeviceUintRect;
-    /// Returns the size of the window.
-    fn size(&self) -> TypedSize2D<f32, DevicePixel>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 
-    /// Return the size of the window with head and borders and position of the window values
-    fn client_window(&self, ctx: TopLevelBrowsingContextId) ->
-        (TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>);
-    /// Return the size of the screen.
-    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> TypedSize2D<u32, DevicePixel>;
-    /// Return the available size of the screen.
-    fn screen_avail_size(&self, ctx: TopLevelBrowsingContextId) -> TypedSize2D<u32, DevicePixel>;
+    /// Get the coordinates of the native window, the screen and the framebuffer.
+    fn get_coordinates(&self) -> EmbedderCoordinates;
     /// Set the size inside of borders and head
     fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: TypedSize2D<u32, DevicePixel>);
     /// Set the window position
@@ -157,9 +146,6 @@ pub trait WindowMethods {
     fn head_parsed(&self, ctx: TopLevelBrowsingContextId);
     /// Called when the history state has changed.
     fn history_changed(&self, ctx: TopLevelBrowsingContextId, Vec<LoadData>, usize);
-
-    /// Returns the scale factor of the system (device pixels / device independent pixels).
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel>;
 
     /// Returns a thread-safe object to wake up the window's event loop.
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
@@ -192,4 +178,20 @@ pub trait WindowMethods {
 
     /// Called when a pipeline panics.
     fn handle_panic(&self, browser_id: TopLevelBrowsingContextId, reason: String, backtrace: Option<String>);
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct EmbedderCoordinates {
+    /// The pixel density of the display.
+    pub hidpi_factor: TypedScale<f32, DeviceIndependentPixel, DevicePixel>,
+    /// Size of the screen.
+    pub screen: TypedSize2D<u32, DevicePixel>,
+    /// Size of the available screen space (screen without toolbars and docks).
+    pub screen_avail: TypedSize2D<u32, DevicePixel>,
+    /// Size of the native window.
+    pub window: (TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>),
+    /// Size of the GL buffer in the window.
+    pub framebuffer: DeviceUintSize,
+    /// Coordinates of the document within the framebuffer.
+    pub viewport: DeviceUintRect,
 }

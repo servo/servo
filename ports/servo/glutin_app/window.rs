@@ -6,7 +6,7 @@
 
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
-use compositing::windowing::{WebRenderDebugOption, WindowMethods};
+use compositing::windowing::{EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
 use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
@@ -43,7 +43,7 @@ use style_traits::cursor::CursorKind;
 use tinyfiledialogs;
 #[cfg(target_os = "windows")]
 use user32;
-use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
+use webrender_api::{DeviceUintRect, ScrollLocation};
 #[cfg(target_os = "windows")]
 use winapi;
 
@@ -861,6 +861,38 @@ impl Window {
     #[cfg(target_os = "win")]
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers, browser_id: BrowserId) {
     }
+
+    fn page_height(&self) -> f32 {
+        let dpr = self.hidpi_factor();
+        match self.kind {
+            WindowKind::Window(ref window, _) => {
+                let (_, height) = window.get_inner_size().expect("Failed to get window inner size.");
+                height as f32 * dpr.get()
+            },
+            WindowKind::Headless(ref context) => {
+                context.height as f32 * dpr.get()
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+        match self.kind {
+            WindowKind::Window(ref window, ..) => {
+                TypedScale::new(window.hidpi_factor())
+            }
+            WindowKind::Headless(..) => {
+                TypedScale::new(1.0)
+            }
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
+        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+        TypedScale::new(ppi as f32 / 96.0)
+    }
 }
 
 impl WindowMethods for Window {
@@ -868,48 +900,44 @@ impl WindowMethods for Window {
         self.gl.clone()
     }
 
-    fn framebuffer_size(&self) -> DeviceUintSize {
-        self.size().to_u32()
-    }
-
-    fn window_rect(&self) -> DeviceUintRect {
-        let size = self.framebuffer_size();
-        let origin = TypedPoint2D::zero();
-        DeviceUintRect::new(origin, size)
-    }
-
-    fn size(&self) -> TypedSize2D<f32, DevicePixel> {
-        self.inner_size.get().to_f32() * self.hidpi_factor()
-    }
-
-    fn client_window(&self, _: BrowserId) -> (TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>) {
-        let (size, point) = match self.kind {
-            WindowKind::Window(ref window, ..) => {
+    fn get_coordinates(&self) -> EmbedderCoordinates {
+        let dpr = self.hidpi_factor();
+        match self.kind {
+            WindowKind::Window(ref window, _) => {
                 // TODO(ajeffrey): can this fail?
                 let (width, height) = window.get_outer_size().expect("Failed to get window outer size.");
-                let size = TypedSize2D::new(width as f32, height as f32);
-                // TODO(ajeffrey): can this fail?
-                let (x, y) = window.get_position().expect("Failed to get window position.");
-                let origin = TypedPoint2D::new(x as f32, y as f32);
-                (size, origin)
-            }
+                let (x, y) = window.get_position().unwrap_or((0, 0));
+                let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
+                let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
+                let screen = (self.screen_size.to_f32() * dpr).to_u32();
+
+                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
+                let inner_size = (TypedSize2D::new(width, height).to_f32() * dpr).to_u32();
+
+                let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);
+
+                EmbedderCoordinates {
+                    viewport: viewport,
+                    framebuffer: inner_size,
+                    window: (win_size, win_origin),
+                    screen: screen,
+                    // FIXME: Glutin doesn't have API for available size. Fallback to screen size
+                    screen_avail: screen,
+                    hidpi_factor: dpr,
+                }
+            },
             WindowKind::Headless(ref context) => {
-                let size = TypedSize2D::new(context.width as f32, context.height as f32);
-                let origin = TypedPoint2D::zero();
-                (size, origin)
+                let size = (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_u32();
+                EmbedderCoordinates {
+                    viewport: DeviceUintRect::new(TypedPoint2D::zero(), size),
+                    framebuffer: size,
+                    window: (size, TypedPoint2D::zero()),
+                    screen: size,
+                    screen_avail: size,
+                    hidpi_factor: dpr,
+                }
             }
-        };
-        let dpr = self.hidpi_factor();
-        ((size * dpr).to_u32(), (point * dpr).to_i32())
-    }
-
-    fn screen_size(&self, _: BrowserId) -> TypedSize2D<u32, DevicePixel> {
-        (self.screen_size.to_f32() * self.hidpi_factor()).to_u32()
-    }
-
-    fn screen_avail_size(&self, browser_id: BrowserId) -> TypedSize2D<u32, DevicePixel> {
-        // FIXME: Glutin doesn't have API for available size. Fallback to screen size
-        self.screen_size(browser_id)
+        }
     }
 
     fn set_animation_state(&self, state: AnimationState) {
@@ -993,25 +1021,6 @@ impl WindowMethods for Window {
         }
 
         Box::new(GlutinEventLoopWaker::new(&self))
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                TypedScale::new(window.hidpi_factor())
-            }
-            WindowKind::Headless(..) => {
-                TypedScale::new(1.0)
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
-        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        TypedScale::new(ppi as f32 / 96.0)
     }
 
     fn set_page_title(&self, _: BrowserId, title: Option<String>) {
@@ -1168,19 +1177,13 @@ impl WindowMethods for Window {
 
             (KeyModifiers::NONE, None, Key::PageDown) => {
                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
-                                   -self.framebuffer_size()
-                                        .to_f32()
-                                        .to_untyped()
-                                        .height + 2.0 * LINE_HEIGHT));
+                                   -self.page_height() + 2.0 * LINE_HEIGHT));
                 self.scroll_window(scroll_location,
                                    TouchEventType::Move);
             }
             (KeyModifiers::NONE, None, Key::PageUp) => {
                 let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
-                                   self.framebuffer_size()
-                                       .to_f32()
-                                       .to_untyped()
-                                       .height - 2.0 * LINE_HEIGHT));
+                                   self.page_height() - 2.0 * LINE_HEIGHT));
                 self.scroll_window(scroll_location,
                                    TouchEventType::Move);
             }
