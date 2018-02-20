@@ -788,7 +788,7 @@ impl PropertyDeclarationBlock {
                     // properties in a declaration block, and that custom
                     // properties can't be part of a shorthand, we can just care
                     // about them here.
-                    append_serialization::<Cloned<slice::Iter< _>>, _>(
+                    append_serialization::<Cloned<slice::Iter<_>>, _>(
                         dest,
                         &property,
                         AppendableValue::Declaration(declaration),
@@ -928,7 +928,7 @@ impl PropertyDeclarationBlock {
                 };
 
                 // Substeps 7 and 8
-                append_serialization::<Cloned<slice::Iter< _>>, _>(
+                append_serialization::<Cloned<slice::Iter<_>>, _>(
                     dest,
                     &shorthand,
                     value,
