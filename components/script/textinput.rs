@@ -448,9 +448,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
-
         let col = self.lines[self.edit_point.line][..self.edit_point.index].chars().count();
-
         self.edit_point.line = target_line as usize;
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
         self.assert_ok_selection();
@@ -887,7 +885,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         if let Some(origin) = self.selection_origin {
             self.selection_origin = Some(origin.constrain_to(&self.lines));
         }
-
         self.assert_ok_selection();
     }
 

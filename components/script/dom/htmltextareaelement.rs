@@ -248,7 +248,6 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         // Step 1
         let old_value = textinput.get_content();
-        let old_selection = textinput.selection_origin;
 
         // Step 2
         textinput.set_content(value);
@@ -259,8 +258,6 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         if old_value != textinput.get_content() {
             // Step 4
             textinput.clear_selection_to_limit(Direction::Forward);
-        } else {
-            textinput.selection_origin = old_selection;
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -327,7 +324,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 impl HTMLTextAreaElement {
     pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
-        self.SetValue(self.DefaultValue());
+        let mut textinput = self.textinput.borrow_mut();
+        textinput.set_content(self.DefaultValue());
         self.value_dirty.set(false);
     }
 
