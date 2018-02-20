@@ -193,6 +193,9 @@ pub mod shorthands {
             spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand"
         )
     %>
+
+    /// The max amount of longhands that the `all` shorthand will ever contain.
+    pub const ALL_SHORTHAND_MAX_LEN: usize = ${len(logical_longhands + other_longhands)};
 }
 
 <%
