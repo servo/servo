@@ -35,9 +35,10 @@
         % endif
         #[allow(unused_variables)]
         #[inline]
-        pub fn parse<'i, 't>(context: &ParserContext,
-                             input: &mut Parser<'i, 't>)
-                             -> Result<SpecifiedValue, ParseError<'i>> {
+        pub fn parse<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<SpecifiedValue, ParseError<'i>> {
             % if allow_quirks:
             specified::${type}::${parse_method}_quirky(context, input, AllowQuirks::Yes)
             % elif needs_context:
@@ -695,7 +696,8 @@
             /// Tries to get a serializable set of longhands given a set of
             /// property declarations.
             pub fn from_iter<I>(iter: I) -> Result<Self, ()>
-                where I: Iterator<Item=&'a PropertyDeclaration>,
+            where
+                I: Iterator<Item=&'a PropertyDeclaration>,
             {
                 // Define all of the expected variables that correspond to the shorthand
                 % for sub_property in shorthand.sub_properties:
@@ -738,9 +740,11 @@
 
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
-        pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
-                                  context: &ParserContext, input: &mut Parser<'i, 't>)
-                                  -> Result<(), ParseError<'i>> {
+        pub fn parse_into<'i, 't>(
+            declarations: &mut SourcePropertyDeclaration,
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<(), ParseError<'i>> {
             input.parse_entirely(|input| parse_value(context, input)).map(|longhands| {
                 % for sub_property in shorthand.sub_properties:
                     declarations.push(PropertyDeclaration::${sub_property.camel_case}(
