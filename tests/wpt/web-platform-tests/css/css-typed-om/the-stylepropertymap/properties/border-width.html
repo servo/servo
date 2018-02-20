@@ -21,10 +21,23 @@ for (const suffix of ['top', 'left', 'right', 'bottom']) {
   runPropertyTests('border-' + suffix + '-width', [
     // Computed value is 0 when border-style is 'none'.
     // FIXME: Add separate test where border-style is not 'none' or 'hidden'.
-    { syntax: 'thin', computed: assert_is_zero_px },
-    { syntax: 'medium', computed: assert_is_zero_px },
-    { syntax: 'thick', computed: assert_is_zero_px },
-    { syntax: '<length>' },
+    {
+      syntax: 'thin',
+      computed: (_, result) => assert_is_zero_px(result)
+    },
+    {
+      syntax: 'medium',
+      computed: (_, result) => assert_is_zero_px(result)
+    },
+    {
+      syntax: 'thick',
+      computed: (_, result) => assert_is_zero_px(result)
+    },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling,
+      computed: (_, result) => assert_is_zero_px(result)
+    },
   ]);
 }
 

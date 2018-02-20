@@ -20,15 +20,15 @@ def test_sauceconnect_success():
         exists.return_value = True
 
         sauce_connect = sauce.SauceConnect(
-            config={
-                "domains": {"": "example.net"}
-            },
             sauce_user="aaa",
             sauce_key="bbb",
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        sauce_connect.__enter__(None)
+        env_config = {
+            "domains": {"": "example.net"}
+        }
+        sauce_connect.__enter__(None, env_config)
 
 
 @pytest.mark.parametrize("readyfile,returncode", [
@@ -49,16 +49,16 @@ def test_sauceconnect_failure_exit(readyfile, returncode):
         exists.return_value = readyfile
 
         sauce_connect = sauce.SauceConnect(
-            config={
-                "domains": {"": "example.net"}
-            },
             sauce_user="aaa",
             sauce_key="bbb",
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
+        env_config = {
+            "domains": {"": "example.net"}
+        }
         with pytest.raises(sauce.SauceException):
-            sauce_connect.__enter__(None)
+            sauce_connect.__enter__(None, env_config)
 
         # Given we appear to exit immediately with these mocks, sleep shouldn't be called
         sleep.assert_not_called()
@@ -74,16 +74,16 @@ def test_sauceconnect_failure_never_ready():
         exists.return_value = False
 
         sauce_connect = sauce.SauceConnect(
-            config={
-                "domains": {"": "example.net"}
-            },
             sauce_user="aaa",
             sauce_key="bbb",
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
+        env_config = {
+            "domains": {"": "example.net"}
+        }
         with pytest.raises(sauce.SauceException):
-            sauce_connect.__enter__(None)
+            sauce_connect.__enter__(None, env_config)
 
         # We should sleep while waiting for it to create the readyfile
         sleep.assert_called()
@@ -102,15 +102,15 @@ def test_sauceconnect_tunnel_domains():
         exists.return_value = True
 
         sauce_connect = sauce.SauceConnect(
-            config={
-                "domains": {"foo": "foo.bar.example.com", "": "example.net"}
-            },
             sauce_user="aaa",
             sauce_key="bbb",
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        sauce_connect.__enter__(None)
+        env_config = {
+            "domains": {"foo": "foo.bar.example.com", "": "example.net"}
+        }
+        sauce_connect.__enter__(None, env_config)
 
         Popen.assert_called_once()
         args, kwargs = Popen.call_args

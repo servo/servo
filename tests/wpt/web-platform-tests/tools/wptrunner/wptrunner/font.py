@@ -17,7 +17,10 @@ class FontInstaller(object):
         self.created_dir = False
         self.fonts = fonts
 
-    def __enter__(self, options=None):
+    def __call__(self, env_options=None, env_config=None):
+        return self
+
+    def __enter__(self):
         for _, font_path in self.fonts.items():
             font_name = font_path.split('/')[-1]
             install = getattr(self, 'install_%s_font' % SYSTEM, None)

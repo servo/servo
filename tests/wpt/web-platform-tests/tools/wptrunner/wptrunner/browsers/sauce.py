@@ -127,15 +127,29 @@ def get_tar(url, dest):
 class SauceConnect():
 
     def __init__(self, **kwargs):
-        self.config = kwargs["config"]
         self.sauce_user = kwargs["sauce_user"]
         self.sauce_key = kwargs["sauce_key"]
         self.sauce_tunnel_id = kwargs["sauce_tunnel_id"]
         self.sauce_connect_binary = kwargs.get("sauce_connect_binary")
         self.sc_process = None
         self.temp_dir = None
+        self.env_config = None
 
-    def __enter__(self, options):
+    def __call__(self, env_options, env_config):
+        self.env_config = env_config
+
+        return self
+
+    def __enter__(self):
+        # Because this class implements the context manager protocol, it is
+        # possible for instances to be provided to the `with` statement
+        # directly. This class implements the callable protocol so that data
+        # which is not available during object initialization can be provided
+        # prior to this moment. Instances must be invoked in preparation for
+        # the context manager protocol, but this additional constraint is not
+        # itself part of the protocol.
+        assert self.env_config is not None, 'The instance has been invoked.'
+
         if not self.sauce_connect_binary:
             self.temp_dir = tempfile.mkdtemp()
             get_tar("https://saucelabs.com/downloads/sc-4.4.9-linux.tar.gz", self.temp_dir)
@@ -153,7 +167,7 @@ class SauceConnect():
             "--metrics-address=0.0.0.0:9876",
             "--readyfile=./sauce_is_ready",
             "--tunnel-domains",
-            ",".join(self.config['domains'].values())
+            ",".join(self.env_config['domains'].values())
         ])
 
         # Timeout config vars
@@ -180,6 +194,7 @@ class SauceConnect():
             raise SauceException("Unable to start Sauce Connect Proxy. Process exited with code %s", self.sc_process.returncode)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.env_config = None
         self.sc_process.terminate()
         if self.temp_dir and os.path.exists(self.temp_dir):
             try:

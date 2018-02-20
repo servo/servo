@@ -26,29 +26,28 @@ promise_test(t => {
 }, 'A play-pending ready promise should be rejected when the animation is'
    + ' canceled');
 
-promise_test(t => {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
-  return animation.ready.then(() => {
-    animation.pause();
-    // Set up listeners on pause-pending ready promise
-    const retPromise = animation.ready.then(() => {
-      assert_unreached('ready promise was fulfilled');
-    }).catch(err => {
-      assert_equals(err.name, 'AbortError',
-                    'ready promise is rejected with AbortError');
-    });
-    animation.cancel();
-    return retPromise;
-  });
+  await animation.ready;
+
+  // Make it pause-pending
+  animation.pause();
+
+  // We need to store the original ready promise since cancel() will
+  // replace it
+  const originalPromise = animation.ready;
+  animation.cancel();
+
+  await promise_rejects(t, 'AbortError', originalPromise,
+                        'Cancel should abort ready promise');
 }, 'A pause-pending ready promise should be rejected when the animation is'
    + ' canceled');
 
-promise_test(t => {
+promise_test(async t => {
   const animation = createDiv(t).animate(null);
   animation.cancel();
-  return animation.ready.then(p => {
-    assert_equals(p, animation);
-  });
+  const promiseResult = await animation.ready;
+  assert_equals(promiseResult, animation);
 }, 'When an animation is canceled, it should create a resolved Promise');
 
 test(t => {

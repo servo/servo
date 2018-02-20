@@ -65,6 +65,11 @@ const gTestCases = [
     desc: 'CSSPerspective'
   },
   {
+    value: new CSSPerspective(CSS.px(-1)),
+    cssText: 'perspective(calc(-1px))',
+    desc: 'CSSPerspective with negative length'
+  },
+  {
     value: new CSSTransformValue([new CSSPerspective(CSS.px(1))]),
     cssText: 'perspective(1px)',
     desc: 'CSSTransformValue with a single transform'

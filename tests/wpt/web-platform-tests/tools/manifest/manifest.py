@@ -3,6 +3,7 @@ import os
 import re
 from collections import defaultdict
 from six import iteritems, itervalues, viewkeys, string_types
+from tempfile import mkstemp
 
 from .item import ManualTest, WebdriverSpecTest, Stub, RefTestNode, RefTest, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
 from .log import get_logger
@@ -232,6 +233,11 @@ def write(manifest, manifest_path):
     dir_name = os.path.dirname(manifest_path)
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
-    with open(manifest_path, "wb") as f:
-        json.dump(manifest.to_json(), f, sort_keys=True, indent=1, separators=(',', ': '))
-        f.write("\n")
+
+    fd, temp_manifest_path = mkstemp(dir=dir_name)
+    temp_manifest = open(temp_manifest_path, "wb")
+    json.dump(manifest.to_json(), temp_manifest,
+              sort_keys=True, indent=1, separators=(',', ': '))
+    temp_manifest.write("\n")
+    os.rename(temp_manifest_path, manifest_path)
+    os.close(fd)

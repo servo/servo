@@ -1,56 +1,63 @@
 <script>
 function with_iframe(url) {
-  return new Promise(function(resolve) {
-      var frame = document.createElement('iframe');
-      frame.src = url;
-      frame.onload = function() { resolve(frame); };
-      document.body.appendChild(frame);
-    });
+  return new Promise(resolve => {
+    let frame = document.createElement('iframe');
+    frame.src = url;
+    frame.onload = () => { resolve(frame); };
+    document.body.appendChild(frame);
+  });
 }
 
 function with_sandboxed_iframe(url, sandbox) {
-  return new Promise(function(resolve) {
-      var frame = document.createElement('iframe');
-      frame.sandbox = sandbox;
-      frame.src = url;
-      frame.onload = function() { resolve(frame); };
-      document.body.appendChild(frame);
-    });
+  return new Promise(resolve => {
+    let frame = document.createElement('iframe');
+    frame.sandbox = sandbox;
+    frame.src = url;
+    frame.onload = () => { resolve(frame); };
+    document.body.appendChild(frame);
+  });
 }
 
-function fetch_in_worker() {
-  return new Promise((resolve) => {
-    var blob = new Blob([
-      "fetch('" + location.href + "_workerfetch', {mode: 'no-cors'})" +
+function fetch_from_worker(url) {
+  return new Promise(resolve => {
+    let blob = new Blob([
+      `fetch('${url}', {mode: 'no-cors'})` +
       "  .then(() => { self.postMessage('OK'); });"]);
-    var url = URL.createObjectURL(blob);
-    var worker = new Worker(url);
+    let worker_url = URL.createObjectURL(blob);
+    let worker = new Worker(worker_url);
     worker.onmessage = resolve;
   });
 }
 
-window.onmessage = function (e) {
-  var id = e.data['id'];
-  fetch(location.href + "_fetch", {mode: 'no-cors'})
-    .then(function() {
-        return fetch_in_worker();
-      })
-    .then(function() {
-        return with_iframe(location.href + "_iframe");
-      })
-    .then(function() {
-        return with_sandboxed_iframe(location.href + "_script",
-                                     "allow-scripts");
-      })
-    .then(function() {
-        return with_sandboxed_iframe(location.href + "_script-origin",
-                                     "allow-scripts allow-same-origin");
-      })
-    .then(function() {
-        window.top.postMessage({id: id, result: 'done'}, '*');
-      })
-    .catch(function(e) {
-        window.top.postMessage({id: id, result: 'error: ' + e.toString()}, '*');
-      });
+function run_test(type) {
+  const base_path = location.href;
+  switch (type) {
+    case 'fetch':
+      return fetch(`${base_path}&test=fetch`, {mode: 'no-cors'});
+    case 'fetch-from-worker':
+      return fetch_from_worker(`${base_path}&test=fetch-from-worker`);
+    case 'iframe':
+      return with_iframe(`${base_path}&test=iframe`);
+    case 'sandboxed-iframe':
+      return with_sandboxed_iframe(`${base_path}&test=sandboxed-iframe`,
+                                   "allow-scripts");
+    case 'sandboxed-iframe-same-origin':
+      return with_sandboxed_iframe(
+        `${base_path}&test=sandboxed-iframe-same-origin`,
+        "allow-scripts allow-same-origin");
+    default:
+      return Promise.reject(`Unknown type: ${type}`);
+  }
+}
+
+window.onmessage = event => {
+  let id = event.data['id'];
+  run_test(event.data['type'])
+    .then(() => {
+      window.top.postMessage({id: id, result: 'done'}, '*');
+    })
+    .catch(e => {
+      window.top.postMessage({id: id, result: 'error: ' + e.toString()}, '*');
+    });
 };
 </script>

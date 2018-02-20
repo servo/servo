@@ -1,38 +1,49 @@
-<!DOCTYPE html>
-<body>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
+<!doctype html>
+<meta charset=utf-8>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
+
 <script type=text/plain class=untested>
 [Exposed=Window]
 interface Navigator {
   // objects implementing this interface also implement the interfaces given below
 };
 </script>
+
 <script type=text/plain>
 Navigator includes NavigatorAutomationInformation;
 
 interface mixin NavigatorAutomationInformation {
-    readonly attribute boolean webdriver;
-    // always returns true
+  readonly attribute boolean webdriver;
 };
 </script>
+
 <script>
 "use strict";
 
-if ("webdriver" in navigator) {
-  test(() => assert_true(navigator.webdriver), "navigator.webdriver is always true");
-  var idlArray = new IdlArray();
-  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
-    if (node.className == "untested") {
-      idlArray.add_untested_idls(node.textContent);
-    } else {
-      idlArray.add_idls(node.textContent);
-    }
-  });
-  idlArray.test();
-} else {
-  done();
+test(() => assert_idl_attribute(navigator, "webdriver"), "navigator.webdriver is present");
+
+// When test is run in automation navigator.webdriver is likely to
+// be true because WebDriver controls the browser instance.  To that
+// extent, this test is a bit special.  It should also be possible to
+// run the test manually, when WebDriver is not active, and so either
+// true/false outcome is OK.
+if (navigator.webdriver) {
+  test(() => assert_true(navigator.webdriver), "navigator.webdriver is true when webdriver-active is set");
+} else {
+  test(() => assert_false(navigator.webdriver), "navigator.webdriver is false when webdriver-active is not set");
 }
+
+var idls = new IdlArray();
+for (let node of [...document.scripts].filter(({type}) => type == "text/plain")) {
+  if (node.className == "untested") {
+    idls.add_untested_idls(node.textContent);
+  } else {
+    idls.add_idls(node.textContent);
+  }
+};
+idls.test();
 </script>
