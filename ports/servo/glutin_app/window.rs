@@ -4,7 +4,7 @@
 
 //! A windowing implementation using glutin.
 
-use compositing::compositor_thread::EventLoopWaker;
+use compositing::compositor_thread::{EmbedderMsg, EventLoopWaker};
 use compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use compositing::windowing::{EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
 use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
@@ -15,7 +15,6 @@ use glutin;
 use glutin::{Api, GlContext, GlRequest};
 use msg::constellation_msg::{self, Key, TopLevelBrowsingContextId as BrowserId};
 use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
-use net_traits::net_error_list::NetError;
 use net_traits::pub_domains::is_reg_domain;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
@@ -561,6 +560,27 @@ impl Window {
         mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
     }
 
+    pub fn handle_servo_events(&self, events: Vec<EmbedderMsg>) {
+        for event in events {
+            match event {
+                EmbedderMsg::Status(top_level_browsing_context, message) => self.status(top_level_browsing_context, message),
+                EmbedderMsg::ChangePageTitle(top_level_browsing_context, title) => self.set_page_title(top_level_browsing_context, title),
+                EmbedderMsg::MoveTo(top_level_browsing_context, point) => self.set_position(top_level_browsing_context, point),
+                EmbedderMsg::ResizeTo(top_level_browsing_context, size) => self.set_inner_size(top_level_browsing_context, size),
+                EmbedderMsg::AllowNavigation(top_level_browsing_context, url, response_chan) => self.allow_navigation(top_level_browsing_context, url, response_chan),
+                EmbedderMsg::KeyEvent(top_level_browsing_context, ch, key, state, modified) => self.handle_key(top_level_browsing_context, ch, key, state, modified),
+                EmbedderMsg::SetCursor(cursor) => self.set_cursor(cursor),
+                EmbedderMsg::NewFavicon(top_level_browsing_context, url) => self.set_favicon(top_level_browsing_context, url),
+                EmbedderMsg::HeadParsed(top_level_browsing_context, ) => self.head_parsed(top_level_browsing_context, ),
+                EmbedderMsg::HistoryChanged(top_level_browsing_context, entries, current) => self.history_changed(top_level_browsing_context, entries, current),
+                EmbedderMsg::SetFullscreenState(top_level_browsing_context, state) => self.set_fullscreen_state(top_level_browsing_context, state),
+                EmbedderMsg::LoadStart(top_level_browsing_context) => self.load_start(top_level_browsing_context),
+                EmbedderMsg::LoadComplete(top_level_browsing_context) => self.load_end(top_level_browsing_context),
+                EmbedderMsg::Panic(top_level_browsing_context, reason, backtrace) => self.handle_panic(top_level_browsing_context, reason, backtrace),
+            }
+        }
+    }
+
     fn is_animating(&self) -> bool {
         self.animation_state.get() == AnimationState::Animating && !self.suspended.get()
     }
@@ -892,56 +912,6 @@ impl Window {
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         TypedScale::new(ppi as f32 / 96.0)
     }
-}
-
-impl WindowMethods for Window {
-    fn gl(&self) -> Rc<gl::Gl> {
-        self.gl.clone()
-    }
-
-    fn get_coordinates(&self) -> EmbedderCoordinates {
-        let dpr = self.hidpi_factor();
-        match self.kind {
-            WindowKind::Window(ref window, _) => {
-                // TODO(ajeffrey): can this fail?
-                let (width, height) = window.get_outer_size().expect("Failed to get window outer size.");
-                let (x, y) = window.get_position().unwrap_or((0, 0));
-                let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
-                let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
-                let screen = (self.screen_size.to_f32() * dpr).to_u32();
-
-                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
-
-                let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);
-
-                EmbedderCoordinates {
-                    viewport: viewport,
-                    framebuffer: inner_size,
-                    window: (win_size, win_origin),
-                    screen: screen,
-                    // FIXME: Glutin doesn't have API for available size. Fallback to screen size
-                    screen_avail: screen,
-                    hidpi_factor: dpr,
-                }
-            },
-            WindowKind::Headless(ref context) => {
-                let size = (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_u32();
-                EmbedderCoordinates {
-                    viewport: DeviceUintRect::new(TypedPoint2D::zero(), size),
-                    framebuffer: size,
-                    window: (size, TypedPoint2D::zero()),
-                    screen: size,
-                    screen_avail: size,
-                    hidpi_factor: dpr,
-                }
-            }
-        }
-    }
-
-    fn set_animation_state(&self, state: AnimationState) {
-        self.animation_state.set(state);
-    }
 
     fn set_inner_size(&self, _: BrowserId, size: DeviceUintSize) {
         match self.kind {
@@ -973,53 +943,6 @@ impl WindowMethods for Window {
             WindowKind::Headless(..) => {}
         }
         self.fullscreen.set(state);
-    }
-
-    fn present(&self) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                if let Err(err) = window.swap_buffers() {
-                    warn!("Failed to swap window buffers ({}).", err);
-                }
-            }
-            WindowKind::Headless(..) => {}
-        }
-    }
-
-    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
-        struct GlutinEventLoopWaker {
-            proxy: Option<Arc<winit::EventsLoopProxy>>,
-        }
-        impl GlutinEventLoopWaker {
-            fn new(window: &Window) -> GlutinEventLoopWaker {
-                let proxy = match window.kind {
-                    WindowKind::Window(_, ref events_loop) => {
-                        Some(Arc::new(events_loop.borrow().create_proxy()))
-                    },
-                    WindowKind::Headless(..) => {
-                        None
-                    }
-                };
-                GlutinEventLoopWaker { proxy }
-            }
-        }
-        impl EventLoopWaker for GlutinEventLoopWaker {
-            fn wake(&self) {
-                // kick the OS event loop awake.
-                if let Some(ref proxy) = self.proxy {
-                    if let Err(err) = proxy.wakeup() {
-                        warn!("Failed to wake up event loop ({}).", err);
-                    }
-                }
-            }
-            fn clone(&self) -> Box<EventLoopWaker + Send> {
-                Box::new(GlutinEventLoopWaker {
-                    proxy: self.proxy.clone(),
-                })
-            }
-        }
-
-        Box::new(GlutinEventLoopWaker::new(&self))
     }
 
     fn set_page_title(&self, _: BrowserId, title: Option<String>) {
@@ -1061,9 +984,6 @@ impl WindowMethods for Window {
 
     fn history_changed(&self, _: BrowserId, history: Vec<LoadData>, current: usize) {
         *self.current_url.borrow_mut() = Some(history[current].url.clone());
-    }
-
-    fn load_error(&self, _: BrowserId, _: NetError, _: String) {
     }
 
     fn head_parsed(&self, _: BrowserId) {
@@ -1122,12 +1042,11 @@ impl WindowMethods for Window {
     fn set_favicon(&self, _: BrowserId, _: ServoUrl) {
     }
 
-    fn prepare_for_composite(&self, _width: Length<u32, DevicePixel>, _height: Length<u32, DevicePixel>) -> bool {
-        true
-    }
-
     /// Helper function to handle keyboard events.
-    fn handle_key(&self, _: Option<BrowserId>, ch: Option<char>, key: Key, mods: constellation_msg::KeyModifiers) {
+    fn handle_key(&self, _: Option<BrowserId>, ch: Option<char>, key: Key, state: KeyState, mods: constellation_msg::KeyModifiers) {
+        if state == KeyState::Pressed {
+            return;
+        }
         let browser_id = match self.browser_id.get() {
             Some(id) => id,
             None => { unreachable!("Can't get keys without a browser"); }
@@ -1262,12 +1181,113 @@ impl WindowMethods for Window {
         };
     }
 
-    fn supports_clipboard(&self) -> bool {
+    fn handle_panic(&self, _: BrowserId, _reason: String, _backtrace: Option<String>) {
+        // Nothing to do here yet. The crash has already been reported on the console.
+    }
+}
+
+impl WindowMethods for Window {
+    fn gl(&self) -> Rc<gl::Gl> {
+        self.gl.clone()
+    }
+
+    fn get_coordinates(&self) -> EmbedderCoordinates {
+        let dpr = self.hidpi_factor();
+        match self.kind {
+            WindowKind::Window(ref window, _) => {
+                // TODO(ajeffrey): can this fail?
+                let (width, height) = window.get_outer_size().expect("Failed to get window outer size.");
+                let (x, y) = window.get_position().unwrap_or((0, 0));
+                let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
+                let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
+                let screen = (self.screen_size.to_f32() * dpr).to_u32();
+
+                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
+                let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
+
+                let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);
+
+                EmbedderCoordinates {
+                    viewport: viewport,
+                    framebuffer: inner_size,
+                    window: (win_size, win_origin),
+                    screen: screen,
+                    // FIXME: Glutin doesn't have API for available size. Fallback to screen size
+                    screen_avail: screen,
+                    hidpi_factor: dpr,
+                }
+            },
+            WindowKind::Headless(ref context) => {
+                let size = (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_u32();
+                EmbedderCoordinates {
+                    viewport: DeviceUintRect::new(TypedPoint2D::zero(), size),
+                    framebuffer: size,
+                    window: (size, TypedPoint2D::zero()),
+                    screen: size,
+                    screen_avail: size,
+                    hidpi_factor: dpr,
+                }
+            }
+        }
+    }
+
+    fn present(&self) {
+        match self.kind {
+            WindowKind::Window(ref window, ..) => {
+                if let Err(err) = window.swap_buffers() {
+                    warn!("Failed to swap window buffers ({}).", err);
+                }
+            }
+            WindowKind::Headless(..) => {}
+        }
+    }
+
+    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
+        struct GlutinEventLoopWaker {
+            proxy: Option<Arc<winit::EventsLoopProxy>>,
+        }
+        impl GlutinEventLoopWaker {
+            fn new(window: &Window) -> GlutinEventLoopWaker {
+                let proxy = match window.kind {
+                    WindowKind::Window(_, ref events_loop) => {
+                        Some(Arc::new(events_loop.borrow().create_proxy()))
+                    },
+                    WindowKind::Headless(..) => {
+                        None
+                    }
+                };
+                GlutinEventLoopWaker { proxy }
+            }
+        }
+        impl EventLoopWaker for GlutinEventLoopWaker {
+            fn wake(&self) {
+                // kick the OS event loop awake.
+                if let Some(ref proxy) = self.proxy {
+                    if let Err(err) = proxy.wakeup() {
+                        warn!("Failed to wake up event loop ({}).", err);
+                    }
+                }
+            }
+            fn clone(&self) -> Box<EventLoopWaker + Send> {
+                Box::new(GlutinEventLoopWaker {
+                    proxy: self.proxy.clone(),
+                })
+            }
+        }
+
+        Box::new(GlutinEventLoopWaker::new(&self))
+    }
+
+    fn set_animation_state(&self, state: AnimationState) {
+        self.animation_state.set(state);
+    }
+
+    fn prepare_for_composite(&self, _width: Length<u32, DevicePixel>, _height: Length<u32, DevicePixel>) -> bool {
         true
     }
 
-    fn handle_panic(&self, _: BrowserId, _reason: String, _backtrace: Option<String>) {
-        // Nothing to do here yet. The crash has already been reported on the console.
+    fn supports_clipboard(&self) -> bool {
+        true
     }
 }
 
