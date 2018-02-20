@@ -184,15 +184,16 @@ fn main() {
     servo.setup_logging();
 
     window.run(|| {
-        let events = window.get_events();
-        let need_resize = events.iter().any(|e| match *e {
+        let win_events = window.get_events();
+        let need_resize = win_events.iter().any(|e| match *e {
             WindowEvent::Resize => true,
             _ => false
         });
-        let stop = !servo.handle_events(events);
+        let stop = !servo.handle_events(win_events);
         if need_resize {
             servo.repaint_synchronously();
         }
+        window.handle_servo_events(servo.get_events());
         stop
     });
 
