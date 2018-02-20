@@ -560,22 +560,6 @@ mod shorthand_serialization {
     }
 
     #[test]
-    fn columns_should_serialize_correctly() {
-        use style::values::{Auto, Either};
-
-        let mut properties = Vec::new();
-
-        let width = Either::Second(Auto);
-        let count = Either::Second(Auto);
-
-        properties.push(PropertyDeclaration::ColumnWidth(width));
-        properties.push(PropertyDeclaration::ColumnCount(count));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "columns: auto auto;");
-    }
-
-    #[test]
     fn flex_should_serialize_all_available_properties() {
         use style::values::specified::{NonNegativeNumber, Percentage};
 
