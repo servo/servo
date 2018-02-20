@@ -1009,15 +1009,16 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
             },
             Display::TableRow if !is_last_table_row() => {
                 // Step 7.
-                items.push(InnerTextItem::Text(String::from("\u{000A}" /* line feed */)));
+                items.push(InnerTextItem::Text(String::from(
+                    "\u{000A}", /* line feed */
+                )));
             },
-            _ => (),
-        }
-
-        // Step 9.
-        if is_block_level_or_table_caption(&display) {
-            items.insert(0, InnerTextItem::RequiredLineBreakCount(1));
-            items.push(InnerTextItem::RequiredLineBreakCount(1));
+            Display::Block | Display::Flex | Display::TableCaption | Display::Table => {
+                // Step 9.
+                items.insert(0, InnerTextItem::RequiredLineBreakCount(1));
+                items.push(InnerTextItem::RequiredLineBreakCount(1));
+            },
+            _ => {},
         }
     }
 
@@ -1032,12 +1033,4 @@ fn is_last_table_cell() -> bool {
 fn is_last_table_row() -> bool {
     // FIXME(ferjm) Implement this.
     false
-}
-
-fn is_block_level_or_table_caption(display: &Display) -> bool {
-    match *display {
-        Display::Block | Display::Flex |
-        Display::TableCaption | Display::Table => true,
-        _ => false,
-    }
 }
