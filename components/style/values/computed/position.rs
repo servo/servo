@@ -9,8 +9,9 @@
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::{LengthOrPercentage, Percentage};
+use values::computed::{Integer, LengthOrPercentage, Percentage};
 use values::generics::position::Position as GenericPosition;
+use values::generics::position::ZIndex as GenericZIndex;
 pub use values::specified::position::{GridAutoFlow, GridTemplateAreas};
 
 /// The computed value of a CSS `<position>`
@@ -49,3 +50,6 @@ impl ToCss for Position {
         self.vertical.to_css(dest)
     }
 }
+
+/// A computed value for the `z-index` property.
+pub type ZIndex = GenericZIndex<Integer>;

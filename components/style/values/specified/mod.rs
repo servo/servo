@@ -61,7 +61,8 @@ pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;
 pub use self::rect::LengthOrNumberRect;
 pub use self::percentage::Percentage;
-pub use self::position::{Position, PositionComponent, GridAutoFlow, GridTemplateAreas};
+pub use self::position::{GridAutoFlow, GridTemplateAreas, Position};
+pub use self::position::{PositionComponent, ZIndex};
 pub use self::pointing::Cursor;
 #[cfg(feature = "gecko")]
 pub use self::pointing::CursorImage;
@@ -515,24 +516,6 @@ impl ToCss for Integer {
             dest.write_str(")")?;
         }
         Ok(())
-    }
-}
-
-/// <integer> | auto
-pub type IntegerOrAuto = Either<Integer, Auto>;
-
-impl IntegerOrAuto {
-    /// Parse `auto` or a positive integer.
-    pub fn parse_positive<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<IntegerOrAuto, ParseError<'i>> {
-        match IntegerOrAuto::parse(context, input) {
-            Ok(Either::First(integer)) if integer.value() <= 0 => {
-                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
-            result => result,
-        }
     }
 }
 

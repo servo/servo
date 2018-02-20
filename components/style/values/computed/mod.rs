@@ -68,7 +68,7 @@ pub use self::list::{ListStyleImage, Quotes};
 pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
-pub use self::position::{Position, GridAutoFlow, GridTemplateAreas};
+pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, ZIndex};
 pub use self::pointing::Cursor;
 #[cfg(feature = "gecko")]
 pub use self::pointing::CursorImage;
@@ -523,20 +523,6 @@ pub type Opacity = CSSFloat;
 
 /// A `<integer>` value.
 pub type Integer = CSSInteger;
-
-/// <integer> | auto
-pub type IntegerOrAuto = Either<CSSInteger, Auto>;
-
-impl IntegerOrAuto {
-    /// Returns the integer value if it is an integer, otherwise return
-    /// the given value.
-    pub fn integer_or(&self, auto_value: CSSInteger) -> CSSInteger {
-        match *self {
-            Either::First(n) => n,
-            Either::Second(Auto) => auto_value,
-        }
-    }
-}
 
 /// A wrapper of Integer, but only accept a value >= 1.
 pub type PositiveInteger = GreaterThanOrEqualToOne<CSSInteger>;
