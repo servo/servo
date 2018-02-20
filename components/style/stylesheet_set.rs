@@ -478,7 +478,7 @@ where
         sheet: &S,
         guard: &SharedRwLockReadGuard,
     ) -> &mut SheetCollection<S> {
-        let origin = sheet.contents(guard).origin;
+        let origin = sheet.origin(guard);
         self.collections.borrow_mut_for_origin(&origin)
     }
 
