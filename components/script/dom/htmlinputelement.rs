@@ -52,7 +52,7 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use style::str::split_commas;
-use textinput::{Direction, SelectionDirection, TextInput};
+use textinput::{ChangeEditPoint, Direction, SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 
@@ -935,8 +935,7 @@ impl HTMLInputElement {
             InputType::Image => (),
             _ => ()
         }
-        self.SetValue(self.DefaultValue())
-            .expect("Failed to reset input value to default.");
+        self.textinput.borrow_mut().set_content(self.DefaultValue(), &ChangeEditPoint::Change);
         self.value_dirty.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
@@ -1093,7 +1092,6 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-
         match attr.local_name() {
             &local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -1224,7 +1222,12 @@ impl VirtualMethods for HTMLInputElement {
                 self.sanitize_value(&mut value);
 
                 self.textinput.borrow_mut().set_content(
+<<<<<<< HEAD
                     value.map_or(DOMString::new(), DOMString::from));
+=======
+                    value.map_or(DOMString::new(), DOMString::from), &ChangeEditPoint::Change);
+                self.sanitize_value();
+>>>>>>> Correct default selectionStart and selectionEnd
                 self.update_placeholder_shown_state();
             },
             &local_name!("name") if self.input_type() == InputType::Radio => {
