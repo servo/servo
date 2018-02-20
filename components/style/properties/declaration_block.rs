@@ -761,20 +761,40 @@ impl PropertyDeclarationBlock {
     ///
     /// https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
     pub fn to_css(&self, dest: &mut CssStringWriter) -> fmt::Result {
+        use std::iter::Cloned;
+        use std::slice;
+
         let mut is_first_serialization = true; // trailing serializations should have a prepended space
 
         // Step 1 -> dest = result list
 
         // Step 2
-        let mut already_serialized = PropertyDeclarationIdSet::new();
+        let mut already_serialized_longhands = LonghandIdSet::new();
 
         // Step 3
         for (declaration, importance) in self.declaration_importance_iter() {
             // Step 3.1
             let property = declaration.id();
+            let longhand_id = match property {
+                PropertyDeclarationId::Longhand(id) => id,
+                PropertyDeclarationId::Custom(..) => {
+                    // Given the invariants that there are no duplicate
+                    // properties in a declaration block, and that custom
+                    // properties can't be part of a shorthand, we can just care
+                    // about them here.
+                    append_serialization::<Cloned<slice::Iter< _>>, _>(
+                        dest,
+                        &property,
+                        AppendableValue::Declaration(declaration),
+                        importance,
+                        &mut is_first_serialization,
+                    )?;
+                    continue;
+                }
+            };
 
             // Step 3.2
-            if already_serialized.contains(property) {
+            if already_serialized_longhands.contains(longhand_id) {
                 continue;
             }
 
@@ -783,7 +803,7 @@ impl PropertyDeclarationBlock {
             // iterating below.
 
             // Step 3.3.2
-            for &shorthand in declaration.shorthands() {
+            for &shorthand in longhand_id.shorthands() {
                 // Substep 2 & 3
                 let mut current_longhands = SmallVec::<[_; 10]>::new();
                 let mut important_count = 0;
@@ -792,8 +812,19 @@ impl PropertyDeclarationBlock {
                 let is_system_font =
                     shorthand == ShorthandId::Font &&
                     self.declarations.iter().any(|l| {
-                        !already_serialized.contains(l.id()) &&
-                        l.get_system().is_some()
+                        match l.id() {
+                            PropertyDeclarationId::Longhand(id) => {
+                                if already_serialized_longhands.contains(id) {
+                                    return false;
+                                }
+
+                                l.get_system().is_some()
+                            }
+                            PropertyDeclarationId::Custom(..) => {
+                                debug_assert!(l.get_system().is_none());
+                                false
+                            }
+                        }
                     });
 
                 if is_system_font {
@@ -894,8 +925,13 @@ impl PropertyDeclarationBlock {
                 )?;
 
                 for current_longhand in &current_longhands {
+                    let longhand_id = match current_longhand.id() {
+                        PropertyDeclarationId::Longhand(id) => id,
+                        PropertyDeclarationId::Custom(..) => unreachable!(),
+                    };
+
                     // Substep 9
-                    already_serialized.insert(current_longhand.id());
+                    already_serialized_longhands.insert(longhand_id);
                 }
 
                 // FIXME(https://github.com/w3c/csswg-drafts/issues/1774)
@@ -907,12 +943,10 @@ impl PropertyDeclarationBlock {
             }
 
             // Step 3.3.4
-            if already_serialized.contains(property) {
+            if already_serialized_longhands.contains(longhand_id) {
                 continue;
             }
 
-            use std::iter::Cloned;
-            use std::slice;
 
             // Steps 3.3.5, 3.3.6 & 3.3.7
             // Need to specify an iterator type here even though it’s unused to work around
@@ -924,10 +958,11 @@ impl PropertyDeclarationBlock {
                 &property,
                 AppendableValue::Declaration(declaration),
                 importance,
-                &mut is_first_serialization)?;
+                &mut is_first_serialization,
+            )?;
 
             // Step 3.3.8
-            already_serialized.insert(property);
+            already_serialized_longhands.insert(longhand_id);
         }
 
         // Step 4
