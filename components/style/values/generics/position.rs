@@ -24,3 +24,36 @@ impl<H, V> Position<H, V> {
         }
     }
 }
+
+/// A generic value for the `z-index` property.
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(MallocSizeOf, PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
+pub enum ZIndex<Integer> {
+    /// An integer value.
+    Integer(Integer),
+    /// The keyword `auto`.
+    Auto,
+}
+
+impl<Integer> ZIndex<Integer> {
+    /// Returns `auto`
+    #[inline]
+    pub fn auto() -> Self {
+        ZIndex::Auto
+    }
+
+    /// Returns whether `self` is `auto`.
+    #[inline]
+    pub fn is_auto(self) -> bool {
+        matches!(self, ZIndex::Auto)
+    }
+
+    /// Returns the integer value if it is an integer, or `auto`.
+    #[inline]
+    pub fn integer_or(self, auto: Integer) -> Integer {
+        match self {
+            ZIndex::Integer(n) => n,
+            ZIndex::Auto => auto,
+        }
+    }
+}

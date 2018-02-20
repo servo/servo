@@ -20,7 +20,8 @@ use values::{Either, None_};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
-use values::specified::{AllowQuirks, LengthOrPercentage};
+use values::generics::position::ZIndex as GenericZIndex;
+use values::specified::{AllowQuirks, Integer, LengthOrPercentage};
 use values::specified::transform::OriginComponent;
 
 /// The specified value of a CSS `<position>`
@@ -700,5 +701,20 @@ impl GridTemplateAreas {
     /// Get default value as `none`
     pub fn none() -> GridTemplateAreas {
         Either::Second(None_)
+    }
+}
+
+/// A specified value for the `z-index` property.
+pub type ZIndex = GenericZIndex<Integer>;
+
+impl Parse for ZIndex {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(GenericZIndex::Auto);
+        }
+        Ok(GenericZIndex::Integer(Integer::parse(context, input)?))
     }
 }

@@ -42,12 +42,14 @@ macro_rules! impl_align_conversions {
     };
 }
 
-${helpers.predefined_type("z-index", "IntegerOrAuto",
-                          "Either::Second(Auto)",
-                          spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
-                          flags="CREATES_STACKING_CONTEXT",
-                          animation_value_type="ComputedValue")}
-
+${helpers.predefined_type(
+    "z-index",
+    "ZIndex",
+    "computed::ZIndex::auto()",
+    spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
+    flags="CREATES_STACKING_CONTEXT",
+    animation_value_type="ComputedValue",
+)}
 
 // CSS Flexible Box Layout Module Level 1
 // http://www.w3.org/TR/css3-flexbox/

@@ -62,6 +62,7 @@ use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
 use values::computed::font::{FontSize, SingleFontFamily};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
+use values::generics::position::ZIndex;
 use values::generics::transform::TransformStyle;
 use computed_values::border_style;
 
@@ -1750,8 +1751,8 @@ fn static_assert() {
 
     pub fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
         match v {
-            Either::First(n) => self.gecko.mZIndex.set_value(CoordDataValue::Integer(n)),
-            Either::Second(Auto) => self.gecko.mZIndex.set_value(CoordDataValue::Auto),
+            ZIndex::Integer(n) => self.gecko.mZIndex.set_value(CoordDataValue::Integer(n)),
+            ZIndex::Auto => self.gecko.mZIndex.set_value(CoordDataValue::Auto),
         }
     }
 
@@ -1771,11 +1772,11 @@ fn static_assert() {
 
     pub fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
         return match self.gecko.mZIndex.as_value() {
-            CoordDataValue::Integer(n) => Either::First(n),
-            CoordDataValue::Auto => Either::Second(Auto),
+            CoordDataValue::Integer(n) => ZIndex::Integer(n),
+            CoordDataValue::Auto => ZIndex::Auto,
             _ => {
                 debug_assert!(false);
-                Either::First(0)
+                ZIndex::Integer(0)
             }
         }
     }

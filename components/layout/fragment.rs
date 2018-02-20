@@ -58,7 +58,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
-use style::values::{self, Either, Auto};
+use style::values::{self, Either};
 use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::counters::ContentItem;
 use style::values::generics::box_::VerticalAlign;
@@ -2512,7 +2512,7 @@ impl Fragment {
         // For absolutely and relatively positioned fragments we only establish a stacking
         // context if there is a z-index set.
         // See https://www.w3.org/TR/CSS2/visuren.html#z-index
-        self.style().get_position().z_index != Either::Second(Auto)
+        !self.style().get_position().z_index.is_auto()
     }
 
     // Get the effective z-index of this fragment. Z-indices only apply to positioned element
