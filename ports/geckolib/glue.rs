@@ -927,7 +927,7 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(
         Err(()) => return Strong::null(),
     };
 
-    match AnimationValue::from_computed_values(&property, &computed_values) {
+    match AnimationValue::from_computed_values(property, &computed_values) {
         Some(v) => Arc::new(v).into_strong(),
         None => Strong::null(),
     }

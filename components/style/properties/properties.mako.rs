@@ -821,7 +821,7 @@ impl LonghandId {
         INHERITED.contains(*self)
     }
 
-    fn shorthands(&self) -> &'static [ShorthandId] {
+    fn shorthands(&self) -> NonCustomPropertyIterator<ShorthandId> {
         // first generate longhand to shorthands lookup map
         //
         // NOTE(emilio): This currently doesn't exclude the "all" shorthand. It
@@ -862,15 +862,21 @@ impl LonghandId {
             ];
         % endfor
 
-        match *self {
-            % for property in data.longhands:
-                LonghandId::${property.camel_case} => ${property.ident.upper()},
-            % endfor
+        NonCustomPropertyIterator {
+            filter: NonCustomPropertyId::from(*self).enabled_for_all_content(),
+            iter: match *self {
+                % for property in data.longhands:
+                    LonghandId::${property.camel_case} => ${property.ident.upper()},
+                % endfor
+            }.iter(),
         }
     }
 
-    fn parse_value<'i, 't>(&self, context: &ParserContext, input: &mut Parser<'i, 't>)
-                           -> Result<PropertyDeclaration, ParseError<'i>> {
+    fn parse_value<'i, 't>(
+        &self,
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<PropertyDeclaration, ParseError<'i>> {
         match *self {
             % for property in data.longhands:
                 LonghandId::${property.camel_case} => {
@@ -1100,6 +1106,29 @@ impl LonghandId {
     }
 }
 
+/// An iterator over all the property ids that are enabled for a given
+/// shorthand, if that shorthand is enabled for all content too.
+pub struct NonCustomPropertyIterator<Item: 'static> {
+    filter: bool,
+    iter: ::std::slice::Iter<'static, Item>,
+}
+
+impl<Item> Iterator for NonCustomPropertyIterator<Item>
+where
+    Item: 'static + Copy + Into<NonCustomPropertyId>,
+{
+    type Item = Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let id = *self.iter.next()?;
+            if !self.filter || id.into().enabled_for_all_content() {
+                return Some(id)
+            }
+        }
+    }
+}
+
 /// An identifier for a given shorthand property.
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
 pub enum ShorthandId {
@@ -1127,7 +1156,7 @@ impl ShorthandId {
     }
 
     /// Get the longhand ids that form this shorthand.
-    pub fn longhands(&self) -> &'static [LonghandId] {
+    pub fn longhands(&self) -> NonCustomPropertyIterator<LonghandId> {
         % for property in data.shorthands:
             static ${property.ident.upper()}: &'static [LonghandId] = &[
                 % for sub in property.sub_properties:
@@ -1135,10 +1164,13 @@ impl ShorthandId {
                 % endfor
             ];
         % endfor
-        match *self {
-            % for property in data.shorthands:
-                ShorthandId::${property.camel_case} => ${property.ident.upper()},
-            % endfor
+        NonCustomPropertyIterator {
+            filter: NonCustomPropertyId::from(*self).enabled_for_all_content(),
+            iter: match *self {
+                % for property in data.shorthands:
+                    ShorthandId::${property.camel_case} => ${property.ident.upper()},
+                % endfor
+            }.iter()
         }
     }
 
@@ -1441,7 +1473,7 @@ impl<'a> PropertyDeclarationId<'a> {
     /// shorthand.
     pub fn is_longhand_of(&self, shorthand: ShorthandId) -> bool {
         match *self {
-            PropertyDeclarationId::Longhand(ref id) => id.shorthands().contains(&shorthand),
+            PropertyDeclarationId::Longhand(ref id) => id.shorthands().any(|s| s == shorthand),
             _ => false,
         }
     }
@@ -1952,7 +1984,7 @@ impl PropertyDeclaration {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {
-                        for &longhand in id.longhands() {
+                        for longhand in id.longhands() {
                             declarations.push(PropertyDeclaration::CSSWideKeyword(
                                 WideKeywordDeclaration {
                                     id: longhand,
@@ -1983,7 +2015,7 @@ impl PropertyDeclaration {
                             if id == ShorthandId::All {
                                 declarations.all_shorthand = AllShorthand::WithVariables(unparsed)
                             } else {
-                                for &id in id.longhands() {
+                                for id in id.longhands() {
                                     declarations.push(
                                         PropertyDeclaration::WithVariables(VariableDeclaration {
                                             id,

@@ -3472,7 +3472,7 @@ fn static_assert() {
         use properties::PropertyId;
         use properties::longhands::will_change::computed_value::T;
 
-        fn will_change_bitfield_from_prop_flags(prop: &LonghandId) -> u8 {
+        fn will_change_bitfield_from_prop_flags(prop: LonghandId) -> u8 {
             use properties::PropertyFlags;
             use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_ABSPOS_CB;
             use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_FIXPOS_CB;
@@ -3526,7 +3526,7 @@ fn static_assert() {
                                 if let PropertyDeclarationId::Longhand(longhand)
                                     = longhand_or_custom {
                                     self.gecko.mWillChangeBitField |=
-                                        will_change_bitfield_from_prop_flags(&longhand);
+                                        will_change_bitfield_from_prop_flags(longhand);
                                 }
                             },
                         }
