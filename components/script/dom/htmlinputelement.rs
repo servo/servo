@@ -552,7 +552,36 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) -> ErrorResult {
-        self.update_text_contents(value)
+        match self.value_mode() {
+            ValueMode::Value => {
+                // Steps 1-2.
+                let old_value = mem::replace(self.textinput.borrow_mut().single_line_content_mut(), value);
+                // Step 3.
+                self.value_dirty.set(true);
+                // Step 4.
+                self.sanitize_value();
+                // Step 5.
+                if *self.textinput.borrow().single_line_content() != old_value {
+                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward);
+                }
+            }
+            ValueMode::Default |
+            ValueMode::DefaultOn => {
+                self.upcast::<Element>().set_string_attribute(&local_name!("value"), value);
+            }
+            ValueMode::Filename => {
+                if value.is_empty() {
+                    let window = window_from_node(self);
+                    let fl = FileList::new(&window, vec![]);
+                    self.filelist.set(Some(&fl));
+                } else {
+                    return Err(Error::InvalidState);
+                }
+            }
+        }
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
@@ -1073,39 +1102,6 @@ impl HTMLInputElement {
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(&self, &self.textinput)
     }
-
-    fn update_text_contents(&self, value: DOMString) -> ErrorResult {
-        match self.value_mode() {
-            ValueMode::Value => {
-                // Steps 1-2.
-                let old_value = mem::replace(self.textinput.borrow_mut().single_line_content_mut(), value);
-                // Step 3.
-                self.value_dirty.set(true);
-                // Step 4.
-                self.sanitize_value();
-                // Step 5.
-                if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward, ChangeEditPoint::Change);
-                }
-            }
-            ValueMode::Default |
-            ValueMode::DefaultOn => {
-                self.upcast::<Element>().set_string_attribute(&local_name!("value"), value);
-            }
-            ValueMode::Filename => {
-                if value.is_empty() {
-                    let window = window_from_node(self);
-                    let fl = FileList::new(&window, vec![]);
-                    self.filelist.set(Some(&fl));
-                } else {
-                    return Err(Error::InvalidState);
-                }
-            }
-        }
-
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        Ok(())
-    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -1217,7 +1213,7 @@ impl VirtualMethods for HTMLInputElement {
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
                             self.textinput.borrow_mut()
-                            .clear_selection_to_limit(Direction::Backward, ChangeEditPoint::Change);
+                            .clear_selection_to_limit(Direction::Backward);
                         }
                     },
                     AttributeMutation::Removed => {

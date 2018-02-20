@@ -54,7 +54,6 @@ use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
-use textinput::ChangeEditPoint;
 use url::UrlQuery;
 use url::form_urlencoded::Serializer;
 
@@ -652,7 +651,7 @@ impl HTMLFormElement {
                     child.downcast::<HTMLSelectElement>().unwrap().reset();
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                    child.downcast::<HTMLTextAreaElement>().unwrap().reset(ChangeEditPoint::Change);
+                    child.downcast::<HTMLTextAreaElement>().unwrap().reset();
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
