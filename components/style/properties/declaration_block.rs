@@ -426,7 +426,7 @@ impl PropertyDeclarationBlock {
                 let all_shorthand_len = match drain.all_shorthand {
                     AllShorthand::NotSet => 0,
                     AllShorthand::CSSWideKeyword(_) |
-                    AllShorthand::WithVariables(_) => ShorthandId::All.longhands().len()
+                    AllShorthand::WithVariables(_) => shorthands::ALL_SHORTHAND_MAX_LEN,
                 };
                 let push_calls_count =
                     drain.declarations.len() + all_shorthand_len;
@@ -784,8 +784,6 @@ impl PropertyDeclarationBlock {
 
             // Step 3.3.2
             for &shorthand in declaration.shorthands() {
-                let properties = shorthand.longhands();
-
                 // Substep 2 & 3
                 let mut current_longhands = SmallVec::<[_; 10]>::new();
                 let mut important_count = 0;
@@ -811,21 +809,24 @@ impl PropertyDeclarationBlock {
                         }
                     }
                 } else {
-                    for (longhand, importance) in self.declaration_importance_iter() {
-                        if longhand.id().is_longhand_of(shorthand) {
-                            current_longhands.push(longhand);
-                            if importance.important() {
-                                important_count += 1;
+                    let mut contains_all_longhands = true;
+                    for &longhand in shorthand.longhands() {
+                        match self.get(PropertyDeclarationId::Longhand(longhand)) {
+                            Some((declaration, importance)) => {
+                                current_longhands.push(declaration);
+                                if importance.important() {
+                                    important_count += 1;
+                                }
+                            }
+                            None => {
+                                contains_all_longhands = false;
+                                break;
                             }
                         }
                     }
+
                     // Substep 1:
-                    //
-                    // Assuming that the PropertyDeclarationBlock contains no
-                    // duplicate entries, if the current_longhands length is
-                    // equal to the properties length, it means that the
-                    // properties that map to shorthand are present in longhands
-                    if current_longhands.len() != properties.len() {
+                    if !contains_all_longhands {
                         continue;
                     }
                 }
