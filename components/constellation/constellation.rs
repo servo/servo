@@ -1229,9 +1229,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got Alert message");
                 self.handle_alert(source_top_ctx_id, message, sender);
             }
-            FromScriptMsg::GetClientWindow(send) => {
-                self.embedder_proxy.send(EmbedderMsg::GetClientWindow(source_top_ctx_id, send));
-            }
 
             FromScriptMsg::MoveTo(point) => {
                 self.embedder_proxy.send(EmbedderMsg::MoveTo(source_top_ctx_id, point));
@@ -1241,12 +1238,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.embedder_proxy.send(EmbedderMsg::ResizeTo(source_top_ctx_id, size));
             }
 
-            FromScriptMsg::GetScreenSize(send) => {
-                self.embedder_proxy.send(EmbedderMsg::GetScreenSize(source_top_ctx_id, send));
+            FromScriptMsg::GetClientWindow(send) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(send));
             }
-
+            FromScriptMsg::GetScreenSize(send) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetScreenSize(send));
+            }
             FromScriptMsg::GetScreenAvailSize(send) => {
-                self.embedder_proxy.send(EmbedderMsg::GetScreenAvailSize(source_top_ctx_id, send));
+                self.compositor_proxy.send(ToCompositorMsg::GetScreenAvailSize(send));
             }
 
             FromScriptMsg::Exit => {

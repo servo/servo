@@ -74,8 +74,7 @@ use canvas::webgl_thread::WebGLThreads;
 use compositing::{IOCompositor, ShutdownState, RenderNotifier};
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
-use compositing::windowing::WindowEvent;
-use compositing::windowing::WindowMethods;
+use compositing::windowing::{WindowEvent, WindowMethods};
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
@@ -158,14 +157,16 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         let mut resource_path = resources_dir_path().unwrap();
         resource_path.push("shaders");
 
+        let coordinates = window.get_coordinates();
+
         let (mut webrender, webrender_api_sender) = {
-            // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
-            let scale_factor = window.hidpi_factor().get();
             let device_pixel_ratio = match opts.device_pixels_per_px {
                 Some(device_pixels_per_px) => device_pixels_per_px,
                 None => match opts.output_file {
                     Some(_) => 1.0,
-                    None => scale_factor,
+                    // TODO(gw): Duplicates device_pixels_per_screen_px from compositor.
+                    // Tidy up!
+                    None => coordinates.hidpi_factor.get(),
                 }
             };
 
@@ -205,7 +206,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
         let webrender_api = webrender_api_sender.create_api();
         let wr_document_layer = 0; //TODO
-        let webrender_document = webrender_api.add_document(window.framebuffer_size(), wr_document_layer);
+        let webrender_document = webrender_api.add_document(coordinates.framebuffer, wr_document_layer);
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -386,30 +387,6 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 (EmbedderMsg::ResizeTo(top_level_browsing_context, size),
                  ShutdownState::NotShuttingDown) => {
                     self.compositor.window.set_inner_size(top_level_browsing_context, size);
-                },
-
-                (EmbedderMsg::GetClientWindow(top_level_browsing_context, send),
-                 ShutdownState::NotShuttingDown) => {
-                    let rect = self.compositor.window.client_window(top_level_browsing_context);
-                    if let Err(e) = send.send(rect) {
-                        warn!("Sending response to get client window failed ({}).", e);
-                    }
-                },
-
-                (EmbedderMsg::GetScreenSize(top_level_browsing_context, send),
-                 ShutdownState::NotShuttingDown) => {
-                    let rect = self.compositor.window.screen_size(top_level_browsing_context);
-                    if let Err(e) = send.send(rect) {
-                        warn!("Sending response to get screen size failed ({}).", e);
-                    }
-                },
-
-                (EmbedderMsg::GetScreenAvailSize(top_level_browsing_context, send),
-                 ShutdownState::NotShuttingDown) => {
-                    let rect = self.compositor.window.screen_avail_size(top_level_browsing_context);
-                    if let Err(e) = send.send(rect) {
-                        warn!("Sending response to get screen available size failed ({}).", e);
-                    }
                 },
 
                 (EmbedderMsg::AllowNavigation(top_level_browsing_context,

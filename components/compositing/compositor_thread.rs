@@ -121,13 +121,6 @@ pub enum EmbedderMsg {
     MoveTo(TopLevelBrowsingContextId, DeviceIntPoint),
     /// Resize the window to size
     ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
-    /// Get Window Informations size and position
-    GetClientWindow(TopLevelBrowsingContextId,
-                    IpcSender<(DeviceUintSize, DeviceIntPoint)>),
-    /// Get screen size (pixel)
-    GetScreenSize(TopLevelBrowsingContextId, IpcSender<(DeviceUintSize)>),
-    /// Get screen available size (pixel)
-    GetScreenAvailSize(TopLevelBrowsingContextId, IpcSender<(DeviceUintSize)>),
     /// Wether or not to follow a link
     AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -196,6 +189,12 @@ pub enum Msg {
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
 
+    /// Get Window Informations size and position.
+    GetClientWindow(IpcSender<(DeviceUintSize, DeviceIntPoint)>),
+    /// Get screen size.
+    GetScreenSize(IpcSender<DeviceUintSize>),
+    /// Get screen available size.
+    GetScreenAvailSize(IpcSender<DeviceUintSize>),
 }
 
 impl Debug for Msg {
@@ -216,6 +215,9 @@ impl Debug for Msg {
             Msg::Dispatch(..) => write!(f, "Dispatch"),
             Msg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
+            Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
+            Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
+            Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
         }
     }
 }
@@ -227,9 +229,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
-            EmbedderMsg::GetClientWindow(..) => write!(f, "GetClientWindow"),
-            EmbedderMsg::GetScreenSize(..) => write!(f, "GetScreenSize"),
-            EmbedderMsg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
             EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
             EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
