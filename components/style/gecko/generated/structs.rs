@@ -5642,6 +5642,7 @@ pub mod root {
         pub const UpdateAnimationsTasks_CSSTransitions: root::mozilla::UpdateAnimationsTasks = 2;
         pub const UpdateAnimationsTasks_EffectProperties: root::mozilla::UpdateAnimationsTasks = 4;
         pub const UpdateAnimationsTasks_CascadeResults: root::mozilla::UpdateAnimationsTasks = 8;
+        pub const UpdateAnimationsTasks_DisplayChangedFromNone: root::mozilla::UpdateAnimationsTasks = 16;
         pub type UpdateAnimationsTasks = u8;
         pub const ParsingMode_Default: root::mozilla::ParsingMode = 0;
         pub const ParsingMode_AllowUnitlessLength: root::mozilla::ParsingMode = 1;
