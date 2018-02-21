@@ -259,6 +259,9 @@ trait PrivateMatchMethods: TElement {
             if important_rules_changed {
                 tasks.insert(UpdateAnimationsTasks::CASCADE_RESULTS);
             }
+            if new_values.is_display_property_changed_from_none(old_values.as_ref().map(|s| &**s)) {
+                tasks.insert(UpdateAnimationsTasks::DISPLAY_CHANGED_FROM_NONE);
+            }
         }
 
         if !tasks.is_empty() {
