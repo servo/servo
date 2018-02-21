@@ -1,3 +1,3 @@
-mozprocess >= 0.19
-selenium >= 3.3.0
+mozprocess == 0.26
+selenium == 3.9.0
 requests

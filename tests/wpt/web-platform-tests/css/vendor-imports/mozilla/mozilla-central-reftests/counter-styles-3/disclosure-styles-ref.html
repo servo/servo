@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference: symbols function, invalid</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<style type="text/css">
+  @counter-style disclosure-closed2-ltr {
+    system: cyclic;
+    symbols: \25b8;
+    suffix: ' ';
+  }
+  @counter-style disclosure-closed2-rtl {
+    system: cyclic;
+    symbols: \25c2;
+    suffix: ' ';
+  }
+  @counter-style disclosure-open2 {
+    system: cyclic;
+    symbols: \25be;
+    suffix: ' ';
+  }
+  .open { list-style-type: disclosure-open2; }
+  .closed:dir(ltr) { list-style-type: disclosure-closed2-ltr; }
+  .closed:dir(rtl) { list-style-type: disclosure-closed2-rtl; }
+  ul {
+    padding: 0;
+    list-style-position: inside;
+  }
+</style>
+<ul dir="ltr">
+  <li class="closed">closed ltr
+  <li class="open">open ltr
+</ul>
+<ul dir="rtl">
+  <li class="closed">closed rtl
+  <li class="open">open rtl
+</ul>
+<p dir="ltr">&#x25b8;&nbsp;closed ltr
+<p dir="rtl">&#x25c2;&nbsp;closed rtl

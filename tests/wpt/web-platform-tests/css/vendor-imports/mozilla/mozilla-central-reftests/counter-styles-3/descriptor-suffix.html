@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: descriptor suffix</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#counter-style-suffix">
+<link rel="match" href="descriptor-suffix-ref.html">
+<style type="text/css">
+  @counter-style a {
+    system: extends decimal;
+    suffix: ",";
+  }
+  @counter-style b {
+    system: extends decimal;
+    suffix: \3001;
+  }
+  ol {
+    list-style-position: inside;
+  }
+  ol, section, p {
+    padding: 0; margin: 0;
+    line-height: 150%;
+  }
+  section {
+    counter-reset: p -3;
+  }
+  p {
+    counter-increment: p;
+  }
+  p::before {
+    content: counter(p, a);
+  }
+</style>
+<ol start="-2" style="list-style-type: a">
+  <li>-2<li>-1<li>0<li>1<li>2
+</ol>
+<ol start="-2" style="list-style-type: b">
+  <li>-2<li>-1<li>0<li>1<li>2
+</ol>
+<section>
+  <p><p><p><p><p>
+</section>
