@@ -65,7 +65,7 @@ class AndOr(Strategy):
 class IfTrue(Strategy):
     def __init__(self):
         Strategy.__init__(self)
-        if_condition = r"(?<=if\s)(.*)(?=\s\{)"
+        if_condition = r"(?<=if\s)\s*(?!let\s)(.*)(?=\s\{)"
         self._replace_strategy = {
             'regex': if_condition,
             'replaceString': 'true'
@@ -75,7 +75,7 @@ class IfTrue(Strategy):
 class IfFalse(Strategy):
     def __init__(self):
         Strategy.__init__(self)
-        if_condition = r"(?<=if\s)(.*)(?=\s\{)"
+        if_condition = r"(?<=if\s)\s*(?!let\s)(.*)(?=\s\{)"
         self._replace_strategy = {
             'regex': if_condition,
             'replaceString': 'false'
