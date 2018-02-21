@@ -189,6 +189,9 @@ arm64:
   - bash ./etc/ci/manifest_changed.sh
 
 windows-msvc-dev:
+  env:
+    CARGO_HOME: C:\buildbot\.cargo
+  commands:
   - mach.bat clean-cargo-cache --keep 3 --force
   - mach.bat clean-nightlies --keep 3 --force
   - mach.bat build --dev
@@ -198,6 +201,9 @@ windows-msvc-dev:
   - mach.bat test-stylo
 
 windows-msvc-nightly:
+  env:
+    CARGO_HOME: C:\buildbot\.cargo
+  commands:
   - mach.bat clean-cargo-cache --keep 3 --force
   - mach.bat clean-nightlies --keep 3 --force
   - mach.bat build --release
