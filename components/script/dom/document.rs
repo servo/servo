@@ -1485,10 +1485,18 @@ impl Document {
         // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
         // animation frame is one in which the callback did not mutate the DOM—that is, an
         // animation frame that wasn't actually used for animation.)
-        if self.animation_frame_list.borrow().is_empty() ||
-                (!was_faking_animation_frames && self.is_faking_animation_frames()) {
-            mem::swap(&mut *self.animation_frame_list.borrow_mut(),
-                      &mut *animation_frame_list);
+        let is_empty = self.animation_frame_list.borrow().is_empty();
+        if is_empty || (!was_faking_animation_frames && self.is_faking_animation_frames()) {
+            if is_empty {
+                // If the current animation frame list in the DOM instance is empty,
+                // we can reuse the original `Vec<T>` that we put on the stack to
+                // avoid allocating a new one next time an animation callback
+                // is queued.
+                mem::swap(
+                    &mut *self.animation_frame_list.borrow_mut(),
+                    &mut *animation_frame_list,
+                );
+            }
             let event = ScriptMsg::ChangeRunningAnimationsState(AnimationState::NoAnimationCallbacksPresent);
             self.send_to_constellation(event);
         }
