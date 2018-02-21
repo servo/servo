@@ -547,6 +547,20 @@ pub struct NonCustomPropertyIdSet {
 }
 
 impl NonCustomPropertyIdSet {
+    /// Creates an empty `NonCustomPropertyIdSet`.
+    pub fn new() -> Self {
+        Self {
+            storage: Default::default(),
+        }
+    }
+
+    /// Insert a non-custom-property in the set.
+    #[inline]
+    pub fn insert(&mut self, id: NonCustomPropertyId) {
+        let bit = id.0;
+        self.storage[bit / 32] |= 1 << (bit % 32);
+    }
+
     /// Return whether the given property is in the set
     #[inline]
     pub fn contains(&self, id: NonCustomPropertyId) -> bool {
@@ -685,62 +699,6 @@ impl LonghandIdSet {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.storage.iter().all(|c| *c == 0)
-    }
-}
-
-/// A specialized set of PropertyDeclarationId
-pub struct PropertyDeclarationIdSet {
-    longhands: LonghandIdSet,
-
-    // FIXME: Use a HashSet instead? This Vec is usually small, so linear scan might be ok.
-    custom: Vec<::custom_properties::Name>,
-}
-
-impl PropertyDeclarationIdSet {
-    /// Empty set
-    pub fn new() -> Self {
-        PropertyDeclarationIdSet {
-            longhands: LonghandIdSet::new(),
-            custom: Vec::new(),
-        }
-    }
-
-    /// Returns all the longhands that this set contains.
-    pub fn longhands(&self) -> &LonghandIdSet {
-        &self.longhands
-    }
-
-    /// Returns whether the set is empty.
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.longhands.is_empty() && self.custom.is_empty()
-    }
-
-    /// Clears the set.
-    #[inline]
-    pub fn clear(&mut self) {
-        self.longhands.clear();
-        self.custom.clear();
-    }
-
-    /// Returns whether the given ID is in the set
-    pub fn contains(&mut self, id: PropertyDeclarationId) -> bool {
-        match id {
-            PropertyDeclarationId::Longhand(id) => self.longhands.contains(id),
-            PropertyDeclarationId::Custom(name) => self.custom.contains(name),
-        }
-    }
-
-    /// Insert the given ID in the set
-    pub fn insert(&mut self, id: PropertyDeclarationId) {
-        match id {
-            PropertyDeclarationId::Longhand(id) => self.longhands.insert(id),
-            PropertyDeclarationId::Custom(name) => {
-                if !self.custom.contains(name) {
-                    self.custom.push(name.clone())
-                }
-            }
-        }
     }
 }
 
