@@ -38,6 +38,7 @@ use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloated
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow, FragmentationContext, FlowFlags};
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow, FragmentFlags};
+use gfx::display_list::DisplayListSection;
 use gfx_traits::print_tree::PrintTree;
 use incremental::RelayoutMode;
 use layout_debug;
@@ -1776,7 +1777,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn has_scrolling_overflow(&mut self) -> bool {
+    pub fn has_scrolling_overflow(&self) -> bool {
         self.flags.contains(BlockFlowFlags::HAS_SCROLLING_OVERFLOW)
     }
 
@@ -1794,6 +1795,22 @@ impl BlockFlow {
         as_margins.to_physical(writing_mode)
     }
 
+    pub fn background_border_section(&self) -> DisplayListSection {
+        if self.base.flags.is_float() {
+            DisplayListSection::BackgroundAndBorders
+        } else if self.base
+            .flags
+            .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+        {
+            if self.fragment.establishes_stacking_context() {
+                DisplayListSection::BackgroundAndBorders
+            } else {
+                DisplayListSection::BlockBackgroundsAndBorders
+            }
+        } else {
+            DisplayListSection::BlockBackgroundsAndBorders
+        }
+    }
 }
 
 impl Flow for BlockFlow {

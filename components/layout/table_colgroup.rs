@@ -11,9 +11,8 @@ use context::LayoutContext;
 use display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
-use std::cmp::max;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
@@ -63,6 +62,10 @@ impl Flow for TableColGroupFlow {
         self
     }
 
+    fn as_table_colgroup(&self) -> &TableColGroupFlow {
+        self
+    }
+
     fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table_colgroup::bubble_inline_sizes {:x}",
                                             self.base.debug_id());
@@ -70,11 +73,7 @@ impl Flow for TableColGroupFlow {
         for fragment in &self.cols {
             // Retrieve the specified value from the appropriate CSS property.
             let inline_size = fragment.style().content_inline_size();
-            let span = match fragment.specific {
-                SpecificFragmentInfo::TableColumn(col_fragment) => max(col_fragment.span, 1),
-                _ => panic!("non-table-column fragment inside table column?!"),
-            };
-            for _ in 0..span {
+            for _ in 0..fragment.column_span() {
                 self.inline_sizes.push(inline_size)
             }
         }
