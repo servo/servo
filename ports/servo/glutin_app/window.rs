@@ -175,6 +175,7 @@ enum WindowKind {
 /// The type of a window.
 pub struct Window {
     kind: WindowKind,
+    screen: Size2D<u32>,
 
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32>>,
@@ -229,10 +230,14 @@ impl Window {
         // #9996.
         let visible = is_foreground && !opts::get().no_native_titlebar;
 
+        let screen;
         let window_kind = if opts::get().headless {
+            screen = Size2D::new(width, height);
             WindowKind::Headless(HeadlessContext::new(width, height))
         } else {
             let events_loop = glutin::EventsLoop::new();
+            let (screen_width, screen_height) = events_loop.get_primary_monitor().get_dimensions();
+            screen = Size2D::new(screen_width, screen_height);
             let mut window_builder = glutin::WindowBuilder::new()
                 .with_title("Servo".to_string())
                 .with_decorations(!opts::get().no_native_titlebar)
@@ -314,6 +319,7 @@ impl Window {
             gl: gl.clone(),
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
+            screen,
         };
 
         window.present();
@@ -887,15 +893,7 @@ impl WindowMethods for Window {
     }
 
     fn screen_size(&self, _: BrowserId) -> Size2D<u32> {
-        match self.kind {
-            WindowKind::Window(_, ref events_loop) => {
-                let (width, height) = events_loop.borrow().get_primary_monitor().get_dimensions();
-                Size2D::new(width, height)
-            }
-            WindowKind::Headless(ref context) => {
-                Size2D::new(context.width, context.height)
-            }
-        }
+        self.screen
     }
 
     fn screen_avail_size(&self, browser_id: BrowserId) -> Size2D<u32> {
