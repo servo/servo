@@ -19,11 +19,12 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
-use std::{cmp, fmt, ptr};
+use std::{cmp, fmt};
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Background;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -1159,20 +1160,18 @@ impl<'table> TableCellStyleInfo<'table> {
         };
         {
             let cell_flow = &self.cell.block_flow;
-            let mut sty_ptr = ptr::null();
+            let initial = ComputedValues::initial_values();
 
-            let mut build_dl = |sty: &ComputedValues, state: &mut &mut DisplayListBuildState| {
+            let build_dl = |sty: &ComputedValues, state: &mut &mut DisplayListBuildState| {
+                let background = sty.get_background();
                 // Don't redraw backgrounds that we've already drawn
-                if sty_ptr == sty as *const _ {
+                if background as *const Background == initial.get_background() as *const _ {
                     return;
                 }
-                let background = sty.get_background();
                 let background_color = sty.resolve_color(background.background_color);
                 cell_flow.build_display_list_for_background_if_applicable_with_background(
                     state, background, background_color
                 );
-
-                sty_ptr = sty as *const _;
             };
 
             if let Some(ref sty) = self.colgroup_style {
