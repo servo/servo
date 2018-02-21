@@ -28,6 +28,9 @@ include conditional3/reftest.list
 # Containment
 include contain/reftest.list
 
+# Counter Styles Level 3
+include counter-styles-3/reftest.list
+
 # Filter Effects Module
 include filters/reftest.list
 

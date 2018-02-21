@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference: symbols function, invalid</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style triangle {
+    system: cyclic;
+    symbols: \2023;
+    suffix: "";
+  }
+  .triangle { list-style-type: triangle; }
+  .hiragana { list-style-type: hiragana; }
+  .katakana { list-style-type: katakana; }
+  .hiragana-iroha { list-style-type: hiragana-iroha; }
+  .katakana-iroha { list-style-type: katakana-iroha; }
+</style>
+<ul class="triangle"><li></ul>
+<ul class="triangle"><li></ul>
+<ul class="triangle"><li></ul>
+<ul class="hiragana"><li></ul>
+<ul class="katakana"><li></ul>
+<ul class="hiragana-iroha"><li></ul>
+<ul class="katakana-iroha"><li></ul>
+<ul class="hiragana"><li></ul>
+<ul class="katakana"><li></ul>
+<ul class="hiragana-iroha"><li></ul>
+<ul class="katakana-iroha"><li></ul>
+
+<ol><li></ol>
+<ol class="triangle"><li></ol>
+<ol class="triangle"><li></ol>
+<ol class="triangle"><li></ol>
+<ol class="hiragana"><li></ol>
+<ol class="katakana"><li></ol>
+<ol class="hiragana-iroha"><li></ol>
+<ol class="katakana-iroha"><li></ol>
+<ol class="hiragana"><li></ol>
+<ol class="katakana"><li></ol>
+<ol class="hiragana-iroha"><li></ol>
+<ol class="katakana-iroha"><li></ol>
+
+<ul>
+  <li class="triangle">
+  <li class="triangle">
+  <li class="triangle">
+  <li class="hiragana">
+  <li class="katakana">
+  <li class="hiragana-iroha">
+  <li class="katakana-iroha">
+</ul>

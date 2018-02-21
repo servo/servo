@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: disclosure styles</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#disclosure-open">
+<link rel="match" href="disclosure-styles-ref.html">
+<style type="text/css">
+  @counter-style disclosure-closed2 {
+    system: extends disclosure-closed;
+  }
+  @counter-style disclosure-open2 {
+    system: extends disclosure-open;
+  }
+  ul {
+    padding: 0;
+    list-style-position: inside;
+  }
+  .closed { list-style-type: disclosure-closed2; }
+  .open { list-style-type: disclosure-open2; }
+  p::before {
+    content: counter(a, disclosure-closed) " ";
+  }
+</style>
+<ul dir="ltr">
+  <li class="closed">closed ltr
+  <li class="open">open ltr
+</ul>
+<ul dir="rtl">
+  <li class="closed">closed rtl
+  <li class="open">open rtl
+</ul>
+<p dir="ltr">closed ltr
+<p dir="rtl">closed rtl

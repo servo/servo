@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: redefine attr mapping</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#the-counter-style-rule">
+<link rel="match" href="redefine-attr-mapping-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style triangle {
+    system: cyclic;
+    symbols: \2023;
+    suffix: "";
+  }
+  @counter-style disc {
+    system: extends triangle;
+  }
+  @counter-style circle {
+    system: extends triangle;
+  }
+  @counter-style square {
+    system: extends triangle;
+  }
+  @counter-style lower-roman {
+    system: extends hiragana;
+  }
+  @counter-style upper-roman {
+    system: extends katakana;
+  }
+  @counter-style lower-alpha {
+    system: extends hiragana-iroha;
+  }
+  @counter-style upper-alpha {
+    system: extends katakana-iroha;
+  }
+</style>
+<ul type="circle"><li></ul>
+<ul type="round"><li></ul>
+<ul type="square"><li></ul>
+<ul type="i"><li></ul>
+<ul type="I"><li></ul>
+<ul type="a"><li></ul>
+<ul type="A"><li></ul>
+<ul type="lower-roman"><li></ul>
+<ul type="upper-roman"><li></ul>
+<ul type="lower-alpha"><li></ul>
+<ul type="upper-alpha"><li></ul>
+
+<ol><li></ol>
+<ol type="circle"><li></ol>
+<ol type="round"><li></ol>
+<ol type="square"><li></ol>
+<ol type="i"><li></ol>
+<ol type="I"><li></ol>
+<ol type="a"><li></ol>
+<ol type="A"><li></ol>
+<ol type="lower-roman"><li></ol>
+<ol type="upper-roman"><li></ol>
+<ol type="lower-alpha"><li></ol>
+<ol type="upper-alpha"><li></ol>
+
+<ul>
+  <li type="circle">
+  <li type="round">
+  <li type="square">
+  <li type="i">
+  <li type="I">
+  <li type="a">
+  <li type="A">
+</ul>

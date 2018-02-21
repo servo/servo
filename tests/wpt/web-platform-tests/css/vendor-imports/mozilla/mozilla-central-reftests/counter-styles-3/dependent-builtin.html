@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: dependent builtin</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#extends-system">
+<link rel="match" href="dependent-builtin-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: extends simp-chinese-informal;
+    range: 1000 1004;
+  }
+</style>
+<ol start="1000" style="list-style-type: a">
+  <li><li><li><li><li>
+  <li><li><li><li><li>
+</ol>

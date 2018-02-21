@@ -6,7 +6,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/idlharness.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
-<script src="/webaudio/js/helpers.js"></script>
 <style type="text/css">
     #audio-param-idl
     { visibility:hidden; height: 0px;}
@@ -43,7 +42,7 @@
   <script>
 (function() {
   var idl_array = new IdlArray();
-  idl_array.add_untested_idls(document.getElementById("audio-param-idl").textContent);
+  idl_array.add_idls(document.getElementById("audio-param-idl").textContent);
 
   delay_time = (new AudioContext).createDelay().delayTime;
 
