@@ -419,6 +419,11 @@ bitflags! {
         const EFFECT_PROPERTIES = structs::UpdateAnimationsTasks_EffectProperties;
         /// Update animation cacade results for animations running on the compositor.
         const CASCADE_RESULTS = structs::UpdateAnimationsTasks_CascadeResults;
+        /// Display property was changed from none.
+        /// Script animations keep alive on display:none elements, so we need to trigger
+        /// the second animation restyles for the script animations in the case where
+        /// the display property was changed from 'none' to others.
+        const DISPLAY_CHANGED_FROM_NONE = structs::UpdateAnimationsTasks_DisplayChangedFromNone;
     }
 }
 
