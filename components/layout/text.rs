@@ -7,10 +7,10 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
+use context::LayoutFontContext;
 use fragment::{Fragment, ScannedTextFlags};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use gfx::font::{FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
-use gfx::font_context::FontContext;
+use gfx::font::{FontRef, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
@@ -18,6 +18,7 @@ use inline::{InlineFragmentNodeFlags, InlineFragments};
 use linked_list::split_off_head;
 use ordered_float::NotNaN;
 use range::Range;
+use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
@@ -28,7 +29,7 @@ use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ComputedValues;
-use style::properties::style_structs;
+use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::generics::text::LineHeight;
 use unicode_bidi as bidi;
 use unicode_script::{Script, get_script};
@@ -68,7 +69,7 @@ impl TextRunScanner {
     }
 
     pub fn scan_for_runs(&mut self,
-                         font_context: &mut FontContext,
+                         font_context: &mut LayoutFontContext,
                          mut fragments: LinkedList<Fragment>)
                          -> InlineFragments {
         debug!("TextRunScanner: scanning {} fragments for text runs...", fragments.len());
@@ -136,7 +137,7 @@ impl TextRunScanner {
     /// for correct painting order. Since we compress several leaf fragments here, the mapping must
     /// be adjusted.
     fn flush_clump_to_list(&mut self,
-                           font_context: &mut FontContext,
+                           mut font_context: &mut LayoutFontContext,
                            out_fragments: &mut Vec<Fragment>,
                            paragraph_bytes_processed: &mut usize,
                            bidi_levels: Option<&[bidi::Level]>,
@@ -159,7 +160,7 @@ impl TextRunScanner {
         // Concatenate all of the transformed strings together, saving the new character indices.
         let mut mappings: Vec<RunMapping> = Vec::new();
         let runs = {
-            let fontgroup;
+            let font_group;
             let compression;
             let text_transform;
             let letter_spacing;
@@ -170,7 +171,7 @@ impl TextRunScanner {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().clone_font();
                 let inherited_text_style = in_fragment.style().get_inheritedtext();
-                fontgroup = font_context.layout_font_group_for_style(font_style);
+                font_group = font_context.font_group(font_style);
                 compression = match in_fragment.white_space() {
                     WhiteSpace::Normal |
                     WhiteSpace::Nowrap => CompressionMode::CompressWhitespaceNewline,
@@ -214,14 +215,7 @@ impl TextRunScanner {
 
                 let (mut start_position, mut end_position) = (0, 0);
                 for (byte_index, character) in text.char_indices() {
-                    // Search for the first font in this font group that contains a glyph for this
-                    // character.
-                    let font_index = fontgroup.fonts.iter().position(|font| {
-                        font.borrow().glyph_index(character).is_some()
-                    }).unwrap_or(0);
-
-                    // The following code panics one way or another if this condition isn't met.
-                    assert!(fontgroup.fonts.len() > 0);
+                    let font = font_group.borrow_mut().find_by_codepoint(&mut font_context, character);
 
                     let bidi_level = match bidi_levels {
                         Some(levels) => levels[*paragraph_bytes_processed],
@@ -245,7 +239,7 @@ impl TextRunScanner {
                     };
 
                     // Now, if necessary, flush the mapping we were building up.
-                    let flush_run = run_info.font_index != font_index ||
+                    let flush_run = !run_info.has_font(&font) ||
                                     run_info.bidi_level != bidi_level ||
                                     !compatible_script;
                     let new_mapping_needed = flush_run || mapping.selected != selected;
@@ -272,7 +266,7 @@ impl TextRunScanner {
                             mapping = RunMapping::new(&run_info_list[..],
                                                       fragment_index);
                         }
-                        run_info.font_index = font_index;
+                        run_info.font = font;
                         run_info.bidi_level = bidi_level;
                         run_info.script = script;
                         mapping.selected = selected;
@@ -328,9 +322,14 @@ impl TextRunScanner {
                 if run_info.bidi_level.is_rtl() {
                     options.flags.insert(ShapingFlags::RTL_FLAG);
                 }
-                let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
 
-                let (run, break_at_zero) = TextRun::new(&mut *font,
+                // If no font is found (including fallbacks), there's no way we can render.
+                let font =
+                    run_info.font
+                        .or_else(|| font_group.borrow_mut().first(&mut font_context))
+                        .expect("No font found for text run!");
+
+                let (run, break_at_zero) = TextRun::new(&mut *font.borrow_mut(),
                                                         run_info.text,
                                                         &options,
                                                         run_info.bidi_level,
@@ -456,15 +455,20 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
         metrics.bounding_box.size.height)
 }
 
-/// Returns the metrics of the font represented by the given `style_structs::Font`, respectively.
+/// Returns the metrics of the font represented by the given `FontStyleStruct`.
 ///
 /// `#[inline]` because often the caller only needs a few fields from the font metrics.
+///
+/// # Panics
+///
+/// Panics if no font can be found for the given font style.
 #[inline]
-pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: ::ServoArc<style_structs::Font>)
+pub fn font_metrics_for_style(mut font_context: &mut LayoutFontContext, style: ::ServoArc<FontStyleStruct>)
                               -> FontMetrics {
-    let fontgroup = font_context.layout_font_group_for_style(font_style);
-    // FIXME(https://github.com/rust-lang/rust/issues/23338)
-    let font = fontgroup.fonts[0].borrow();
+    let font_group = font_context.font_group(style);
+    let font = font_group.borrow_mut().first(&mut font_context);
+    let font = font.as_ref().unwrap().borrow();
+
     font.metrics.clone()
 }
 
@@ -546,8 +550,8 @@ struct RunInfo {
     text: String,
     /// The insertion point in this text run, if applicable.
     insertion_point: Option<ByteIndex>,
-    /// The index of the applicable font in the font group.
-    font_index: usize,
+    /// The font that the text should be rendered with.
+    font: Option<FontRef>,
     /// The bidirection embedding level of this text run.
     bidi_level: bidi::Level,
     /// The Unicode script property of this text run.
@@ -559,7 +563,7 @@ impl RunInfo {
         RunInfo {
             text: String::new(),
             insertion_point: None,
-            font_index: 0,
+            font: None,
             bidi_level: bidi::Level::ltr(),
             script: Script::Common,
         }
@@ -583,6 +587,14 @@ impl RunInfo {
             }
         }
         list.push(self);
+    }
+
+    fn has_font(&self, font: &Option<FontRef>) -> bool {
+        fn identifier(font: &Option<FontRef>) -> Option<Atom> {
+            font.as_ref().map(|f| f.borrow().identifier())
+        }
+
+        identifier(&self.font) == identifier(font)
     }
 }
 

@@ -17,6 +17,7 @@ use freetype::freetype::FT_Sfnt_Tag;
 use freetype::tt_os2::TT_OS2;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
+use servo_atoms::Atom;
 use std::{mem, ptr};
 use std::os::raw::{c_char, c_long};
 use std::sync::Arc;
@@ -305,6 +306,10 @@ impl FontHandleMethods for FontHandle {
             }
             Some(FontTable { buffer: buf })
         }
+    }
+
+    fn identifier(&self) -> Atom {
+        self.font_data.identifier.clone()
     }
 }
 
