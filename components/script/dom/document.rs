@@ -1176,29 +1176,29 @@ impl Document {
             }
         }
 
-        rooted_vec!(let mut touches);
-        touches.extend(self.active_touch_points.borrow().iter().cloned());
         rooted_vec!(let mut target_touches);
-        target_touches.extend(self.active_touch_points
-                                  .borrow()
-                                  .iter()
-                                  .filter(|t| t.Target() == target)
-                                  .cloned());
+        let touches = {
+            let touches = self.active_touch_points.borrow();
+            target_touches.extend(touches.iter().filter(|t| t.Target() == target).cloned());
+            TouchList::new(window, touches.r())
+        };
 
-        let event = TouchEvent::new(window,
-                                    DOMString::from(event_name),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
-                                    Some(window),
-                                    0i32,
-                                    &TouchList::new(window, touches.r()),
-                                    &TouchList::new(window, ref_slice(&&*touch)),
-                                    &TouchList::new(window, target_touches.r()),
-                                    // FIXME: modifier keys
-                                    false,
-                                    false,
-                                    false,
-                                    false);
+        let event = TouchEvent::new(
+            window,
+            DOMString::from(event_name),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(window),
+            0i32,
+            &touches,
+            &TouchList::new(window, ref_slice(&&*touch)),
+            &TouchList::new(window, target_touches.r()),
+            // FIXME: modifier keys
+            false,
+            false,
+            false,
+            false,
+        );
         let event = event.upcast::<Event>();
         let result = event.fire(&target);
 
