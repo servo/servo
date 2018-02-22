@@ -6,8 +6,10 @@ use cssparser::{Parser, ParserInput, serialize_identifier};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::Reflector;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::window::Window;
+use dom::worklet::Worklet;
 use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
@@ -62,5 +64,10 @@ impl CSS {
         } else {
             false
         }
+    }
+
+    /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
+    pub fn PaintWorklet(win: &Window) -> DomRoot<Worklet> {
+        win.paint_worklet()
     }
 }

@@ -1022,17 +1022,17 @@ impl WindowMethods for Window {
         fetch::Fetch(&self.upcast(), input, init)
     }
 
-    // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-    fn PaintWorklet(&self) -> DomRoot<Worklet> {
-        self.paint_worklet.or_init(|| self.new_paint_worklet())
-    }
-
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner.or_init(|| TestRunner::new(self.upcast()))
     }
 }
 
 impl Window {
+    // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+    pub fn paint_worklet(&self) -> DomRoot<Worklet> {
+        self.paint_worklet.or_init(|| self.new_paint_worklet())
+    }
+
     pub fn task_canceller(&self) -> TaskCanceller {
         TaskCanceller {
             cancelled: Some(self.ignore_further_async_events.borrow().clone()),
