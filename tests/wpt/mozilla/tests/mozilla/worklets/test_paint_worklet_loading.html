@@ -8,56 +8,56 @@
 var host_info = get_host_info();
 
 promise_test(function() {
-  return paintWorklet.addModule("test_paint_worklet.js");
+  return CSS.paintWorklet.addModule("test_paint_worklet.js");
 }, "Loading a paint worklet.");
 
 promise_test(function(t) {
    var path = new URL("test_paint_worklet.js", document.location).pathname;
    var url = new URL(path, host_info.HTTP_REMOTE_ORIGIN);
-   return promise_rejects(t, "AbortError", paintWorklet.addModule(url));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule(url));
 }, "Loading a cross-origin paint worklet.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("nonexistent_worklet.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("nonexistent_worklet.js"));
 }, "Loading a nonexistent paint worklet.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("syntax_error.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("syntax_error.js"));
 }, "Loading a syntactically incorrect paint worklet.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("throw_exception.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("throw_exception.js"));
 }, "Loading an exception-throwing paint worklet.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet.js"));
 }, "Loading a paint worklet again.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet_empty_name.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet_empty_name.js"));
 }, "Loading a paint worklet with an empty name.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet_properties_throws.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet_properties_throws.js"));
 }, "Loading a paint worklet whose inputProperties throws an exception.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet_arguments_throws.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet_arguments_throws.js"));
 }, "Loading a paint worklet whose inputArguments throws an exception.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet_alpha_throws.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet_alpha_throws.js"));
 }, "Loading a paint worklet whose alpha throws an exception.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet_not_constructor.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet_not_constructor.js"));
 }, "Loading a paint worklet which isn't a constructor function.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet_no_paint.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet_no_paint.js"));
 }, "Loading a paint worklet with no paint.");
 
 promise_test(function(t) {
-   return promise_rejects(t, "AbortError", paintWorklet.addModule("test_paint_worklet_paint_not_callable.js"));
+   return promise_rejects(t, "AbortError", CSS.paintWorklet.addModule("test_paint_worklet_paint_not_callable.js"));
 }, "Loading a paint worklet with a paint that is not callable.");
 </script>

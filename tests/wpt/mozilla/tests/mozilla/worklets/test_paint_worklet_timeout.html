@@ -21,7 +21,7 @@
     </style>
 
     <script>
-      window.paintWorklet.addModule('test_paint_worklet_timeout.js')
+      CSS.paintWorklet.addModule('test_paint_worklet_timeout.js')
             .then(() => document.documentElement.classList.remove('reftest-wait'));
     </script>
 

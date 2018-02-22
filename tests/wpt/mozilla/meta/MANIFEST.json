@@ -70959,7 +70959,7 @@
    "support"
   ],
   "mozilla/worklets/test_paint_worklet.html": [
-   "67fccbde17c28e13b5f4dc54d70b1279d6e9d602",
+   "582287f9808afef465529e9fd80deadf10715868",
    "reftest"
   ],
   "mozilla/worklets/test_paint_worklet.js": [
@@ -70979,7 +70979,7 @@
    "support"
   ],
   "mozilla/worklets/test_paint_worklet_loading.html": [
-   "20fef90b09fdf8dfb5e7461a01c8bd0f7e5d31af",
+   "753dee7a328c99a42f4e6e46719a02fb9e179a09",
    "testharness"
   ],
   "mozilla/worklets/test_paint_worklet_no_paint.js": [
@@ -71003,7 +71003,7 @@
    "support"
   ],
   "mozilla/worklets/test_paint_worklet_size.html": [
-   "6ddcf8ad81eaf4a5112de39a87cbd3d290fd9ab4",
+   "eba8c08b2b1fe1992772c01a1b85e709fa580bbc",
    "reftest"
   ],
   "mozilla/worklets/test_paint_worklet_size.js": [
@@ -71015,7 +71015,7 @@
    "support"
   ],
   "mozilla/worklets/test_paint_worklet_timeout.html": [
-   "dde3d2d6359d39282cf8dfdfabebed735c7815a8",
+   "9ff9ce5392fd214f2939b26ede875ec74c4abfdd",
    "reftest"
   ],
   "mozilla/worklets/test_paint_worklet_timeout.js": [
