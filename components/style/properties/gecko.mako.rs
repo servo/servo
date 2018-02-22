@@ -57,11 +57,12 @@ use selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
-use values::{self, Auto, CustomIdent, Either, KeyframesName, None_};
+use values::{self, CustomIdent, Either, KeyframesName, None_};
 use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
 use values::computed::font::{FontSize, SingleFontFamily};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
+use values::generics::column::ColumnCount;
 use values::generics::position::ZIndex;
 use values::generics::transform::TransformStyle;
 use computed_values::border_style;
@@ -5399,10 +5400,10 @@ clip-path
         use gecko_bindings::structs::{NS_STYLE_COLUMN_COUNT_AUTO, nsStyleColumn_kMaxColumnCount};
 
         self.gecko.mColumnCount = match v {
-            Either::First(integer) => unsafe {
-                cmp::min(integer.0 as u32, nsStyleColumn_kMaxColumnCount)
+            ColumnCount::Integer(integer) => {
+                cmp::min(integer.0 as u32, unsafe { nsStyleColumn_kMaxColumnCount })
             },
-            Either::Second(Auto) => NS_STYLE_COLUMN_COUNT_AUTO
+            ColumnCount::Auto => NS_STYLE_COLUMN_COUNT_AUTO
         };
     }
 
@@ -5413,9 +5414,9 @@ clip-path
         if self.gecko.mColumnCount != NS_STYLE_COLUMN_COUNT_AUTO {
             debug_assert!(self.gecko.mColumnCount >= 1 &&
                           self.gecko.mColumnCount <= nsStyleColumn_kMaxColumnCount);
-            Either::First((self.gecko.mColumnCount as i32).into())
+            ColumnCount::Integer((self.gecko.mColumnCount as i32).into())
         } else {
-            Either::Second(Auto)
+            ColumnCount::Auto
         }
     }
 
