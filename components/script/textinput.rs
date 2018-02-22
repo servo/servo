@@ -56,6 +56,18 @@ pub struct TextPoint {
     pub index: usize,
 }
 
+impl TextPoint {
+    /// Returns a TextPoint constrained to be a valid location within lines
+    fn constrain_to(&self, lines: &[DOMString]) -> TextPoint {
+        let line = min(self.line, lines.len() - 1);
+
+        TextPoint {
+            line,
+            index: min(self.index, lines[line].len()),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct SelectionState {
     start: TextPoint,
@@ -68,21 +80,26 @@ pub struct SelectionState {
 pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
+
     /// Current cursor input point
-    pub edit_point: TextPoint,
+    edit_point: TextPoint,
+
     /// The current selection goes from the selection_origin until the edit_point. Note that the
     /// selection_origin may be after the edit_point, in the case of a backward selection.
-    pub selection_origin: Option<TextPoint>,
+    selection_origin: Option<TextPoint>,
+    selection_direction: SelectionDirection,
+
     /// Is this a multiline input?
     multiline: bool,
+
     #[ignore_malloc_size_of = "Can't easily measure this generic type"]
     clipboard_provider: T,
+
     /// The maximum number of UTF-16 code units this text input is allowed to hold.
     ///
     /// <https://html.spec.whatwg.org/multipage/#attr-fe-maxlength>
-    pub max_length: Option<usize>,
-    pub min_length: Option<usize>,
-    pub selection_direction: SelectionDirection,
+    max_length: Option<usize>,
+    min_length: Option<usize>,
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -175,6 +192,32 @@ impl<T: ClipboardProvider> TextInput<T> {
         i
     }
 
+    pub fn edit_point(&self) -> TextPoint {
+        self.edit_point
+    }
+
+    pub fn selection_origin(&self) -> Option<TextPoint> {
+        self.selection_origin
+    }
+
+    /// The selection origin, or the edit point if there is no selection. Note that the selection
+    /// origin may be after the edit point, in the case of a backward selection.
+    pub fn selection_origin_or_edit_point(&self) -> TextPoint {
+        self.selection_origin.unwrap_or(self.edit_point)
+    }
+
+    pub fn selection_direction(&self) -> SelectionDirection {
+        self.selection_direction
+    }
+
+    pub fn set_max_length(&mut self, length: Option<usize>) {
+        self.max_length = length;
+    }
+
+    pub fn set_min_length(&mut self, length: Option<usize>) {
+        self.min_length = length;
+    }
+
     /// Remove a character at the current editing point
     pub fn delete_char(&mut self, dir: Direction) {
         if self.selection_origin.is_none() || self.selection_origin == Some(self.edit_point) {
@@ -194,12 +237,6 @@ impl<T: ClipboardProvider> TextInput<T> {
             self.selection_origin = Some(self.edit_point);
         }
         self.replace_selection(DOMString::from(s.into()));
-    }
-
-    /// The selection origin, or the edit point if there is no selection. Note that the selection
-    /// origin may be after the edit point, in the case of a backward selection.
-    pub fn selection_origin_or_edit_point(&self) -> TextPoint {
-        self.selection_origin.unwrap_or(self.edit_point)
     }
 
     /// The start of the selection (or the edit point, if there is no selection). Always less than
@@ -832,12 +869,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         &self.lines[0]
     }
 
-    /// Get a mutable reference to the contents of a single-line text input. Panics if self is a multiline input.
-    pub fn single_line_content_mut(&mut self) -> &mut DOMString {
-        assert!(!self.multiline);
-        &mut self.lines[0]
-    }
-
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString, update_text_cursor: bool) {
@@ -850,11 +881,15 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             vec!(content)
         };
+
         if update_text_cursor {
-            self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
-            self.edit_point.index = min(self.edit_point.index, self.current_line_length());
+            self.edit_point = self.edit_point.constrain_to(&self.lines);
         }
-        self.selection_origin = None;
+
+        if let Some(origin) = self.selection_origin {
+            self.selection_origin = Some(origin.constrain_to(&self.lines));
+        }
+
         self.assert_ok_selection();
     }
 
