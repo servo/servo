@@ -30,14 +30,14 @@ python components/style/properties/build.py servo html regular
 cd components/script
 cmake .
 cmake --build . --target supported-apis
-echo "Copying apis.html"
+echo "Copying apis.html."
 cp apis.html ../../target/doc/servo/
-echo "Copied apis.html"
+echo "Copied apis.html."
 cd ../..
 
-echo "Starting ghp-import"
+echo "Starting ghp-import."
 ghp-import -n target/doc
-echo "Finished ghp-import"
+echo "Finished ghp-import."
 git push -qf \
     "https://${TOKEN}@github.com/servo/doc.servo.org.git" gh-pages \
     &>/dev/null
