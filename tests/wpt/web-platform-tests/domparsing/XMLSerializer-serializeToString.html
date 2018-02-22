@@ -42,10 +42,17 @@ test(function() {
 
 test(function() {
   var serializer = new XMLSerializer();
-  var root = createXmlDoc().documentElement;
-  root.firstChild.setAttribute('attr1', 'value1\tvalue2\r\n');
-  var xmlString = serializer.serializeToString(root);
-  assert_equals(xmlString, '<root><child1 attr1="value1&#9;value2&#xD;&#xA;">value1</child1></root>');
+  var parser = new DOMParser();
+  var root = parser.parseFromString('<root />', 'text/xml').documentElement;
+  root.setAttribute('attr', '\t');
+  assert_in_array(serializer.serializeToString(root), [
+    '<root attr="&#9;"/>', '<root attr="&#x9;"/>']);
+  root.setAttribute('attr', '\n');
+  assert_in_array(serializer.serializeToString(root), [
+    '<root attr="&#xA;"/>', '<root attr="&#10;"/>']);
+  root.setAttribute('attr', '\r');
+  assert_in_array(serializer.serializeToString(root), [
+    '<root attr="&#xD;"/>', '<root attr="&#13;"/>']);
 }, 'check XMLSerializer.serializeToString escapes attribute values for roundtripping');
 
 </script>

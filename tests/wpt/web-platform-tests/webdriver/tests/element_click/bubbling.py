@@ -1,7 +1,6 @@
 from tests.support.asserts import assert_success
 from tests.support.inline import inline
 
-
 def click(session, element):
     return session.transport.send(
         "POST", "/session/{session_id}/element/{element_id}/click".format(
@@ -28,9 +27,10 @@ def test_click_event_bubbles_to_parents(session):
         <script>
         window.clicks = [];
 
-        for (let level of document.querySelectorAll("div")) {
-          level.addEventListener("click", ({currentTarget}) => {
-            window.clicks.push(currentTarget);
+        var elements = document.querySelectorAll("div");
+        for (var level = 0; level < elements.length; level++) {
+          elements[level].addEventListener("click", function(clickEvent) {
+            window.clicks.push(clickEvent.currentTarget);
           });
         }
         </script>
@@ -67,9 +67,11 @@ def test_spin_event_loop(session):
         <script>
         window.delayedClicks = [];
 
-        for (let level of document.querySelectorAll("div")) {
-          level.addEventListener("click", ({currentTarget}) => {
-            setTimeout(() => window.delayedClicks.push(currentTarget), 100);
+        var elements = document.querySelectorAll("div");
+        for (var level = 0; level < elements.length; level++) {
+          elements[level].addEventListener("click", function(clickEvent) {
+            var target = clickEvent.currentTarget;
+            setTimeout(function() { window.delayedClicks.push(target); }, 100);
           });
         }
         </script>

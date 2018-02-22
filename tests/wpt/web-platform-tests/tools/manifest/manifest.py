@@ -91,6 +91,8 @@ class Manifest(object):
                     hash_changed = True
                 else:
                     new_type, manifest_items = old_type, self._data[old_type][rel_path]
+                if old_type == "reftest" and new_type != old_type:
+                    reftest_changes = True
             else:
                 new_type, manifest_items = source_file.manifest_items()
 

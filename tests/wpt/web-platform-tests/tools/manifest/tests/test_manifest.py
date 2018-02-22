@@ -232,6 +232,28 @@ def test_reftest_computation_chain_update_remove():
     assert list(m) == [("reftest", test2.path, {test2})]
 
 
+def test_reftest_computation_chain_update_test_type():
+    m = manifest.Manifest()
+
+    s1 = SourceFileWithTest("test", "0"*40, item.RefTest, [("/test-ref", "==")])
+
+    assert m.update([s1]) is True
+
+    test1 = s1.manifest_items()[1][0]
+
+    assert list(m) == [("reftest", test1.path, {test1})]
+
+    # test becomes a testharness test (hash change because that is determined
+    # based on the file contents). The updated manifest should not includes the
+    # old reftest.
+    s2 = SourceFileWithTest("test", "1"*40, item.TestharnessTest)
+    assert m.update([s2]) is True
+
+    test2 = s2.manifest_items()[1][0]
+
+    assert list(m) == [("testharness", test2.path, {test2})]
+
+
 def test_iterpath():
     m = manifest.Manifest()
 
