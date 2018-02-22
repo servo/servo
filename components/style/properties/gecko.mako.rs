@@ -144,6 +144,22 @@ impl ComputedValues {
         return our_type == CSSPseudoElementType_InheritingAnonBox ||
                our_type == CSSPseudoElementType::NonInheritingAnonBox;
     }
+
+    /// Returns true if the display property is changed from 'none' to others.
+    pub fn is_display_property_changed_from_none(
+        &self,
+        old_values: Option<<&ComputedValues>
+    ) -> bool {
+        use properties::longhands::display::computed_value::T as Display;
+
+        old_values.map_or(false, |old| {
+            let old_display_style = old.get_box().clone_display();
+            let new_display_style = self.get_box().clone_display();
+            old_display_style == Display::None &&
+            new_display_style != Display::None
+        })
+    }
+
 }
 
 impl Drop for ComputedValues {

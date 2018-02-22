@@ -176,14 +176,7 @@ trait PrivateMatchMethods: TElement {
             return;
         }
 
-        let display_changed_from_none = old_values.map_or(false, |old| {
-            let old_display_style = old.get_box().clone_display();
-            let new_display_style = new_values.get_box().clone_display();
-            old_display_style == Display::None &&
-            new_display_style != Display::None
-        });
-
-        if display_changed_from_none {
+        if new_values.is_display_property_changed_from_none(old_values) {
             // When display value is changed from none to other, we need to
             // traverse descendant elements in a subsequent normal
             // traversal (we can't traverse them in this animation-only restyle
@@ -265,6 +258,9 @@ trait PrivateMatchMethods: TElement {
             tasks.insert(UpdateAnimationsTasks::EFFECT_PROPERTIES);
             if important_rules_changed {
                 tasks.insert(UpdateAnimationsTasks::CASCADE_RESULTS);
+            }
+            if new_values.is_display_property_changed_from_none(old_values.as_ref().map(|s| &**s)) {
+                tasks.insert(UpdateAnimationsTasks::DISPLAY_CHANGED_FROM_NONE);
             }
         }
 
