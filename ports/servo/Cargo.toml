@@ -43,11 +43,9 @@ glutin = "0.13"
 libservo = {path = "../../components/servo"}
 log = "0.3.5"
 msg = {path = "../../components/msg"}
-net_traits = {path = "../../components/net_traits"}
 script_traits = {path = "../../components/script_traits"}
 servo_geometry = {path = "../../components/geometry"}
 servo_config = {path = "../../components/config"}
-servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
 tinyfiledialogs = "3.0"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

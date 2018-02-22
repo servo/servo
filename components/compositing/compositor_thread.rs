@@ -141,6 +141,8 @@ pub enum EmbedderMsg {
     LoadComplete(TopLevelBrowsingContextId),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(TopLevelBrowsingContextId, String, Option<String>),
+    /// Servo has shut down
+    Shutdown,
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.
@@ -239,6 +241,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
+            EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }
 }

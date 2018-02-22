@@ -332,7 +332,7 @@ pub fn is_printable(key_code: VirtualKeyCode) -> bool {
 
 /// Detect if given char is default ignorable in unicode
 /// http://www.unicode.org/L2/L2002/02368-default-ignorable.pdf
-pub fn is_identifier_ignorable(&self, ch: &char) -> bool {
+pub fn is_identifier_ignorable(ch: &char) -> bool {
     match *ch {
         '\u{0000}'...'\u{0008}' | '\u{000E}'...'\u{001F}' |
             '\u{007F}'...'\u{0084}' | '\u{0086}'...'\u{009F}' |
