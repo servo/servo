@@ -1,0 +1,212 @@
+<!--
+Copyright 2013, Google Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+    * Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<html>
+<head>
+<title>XMLHttpRequest benchmark</title>
+<script src="util_main.js"></script>
+<script src="util.js"></script>
+<script src="xhr_benchmark.js"></script>
+<script>
+var addressBox = null;
+
+function getConfig() {
+  return {
+    prefixUrl: addressBox.value,
+    printSize: getBoolFromCheckBox('printsize'),
+    numXHRs: getIntFromInput('numXHRs'),
+    async: getBoolFromCheckBox('async'),
+    // Initial size of messages.
+    numIterations: getIntFromInput('numiterations'),
+    numWarmUpIterations: getIntFromInput('numwarmupiterations'),
+    startSize: getIntFromInput('startsize'),
+    // Stops benchmark when the size of message exceeds this threshold.
+    stopThreshold: getIntFromInput('stopthreshold'),
+    multipliers: getFloatArrayFromInput('multipliers'),
+    verifyData: getBoolFromCheckBox('verifydata'),
+    methodAndCache: getStringFromRadioBox('methodandcache'),
+    addToLog: addToLog,
+    addToSummary: addToSummary,
+    measureValue: measureValue,
+    notifyAbort: notifyAbort
+  };
+}
+
+function onSendBenchmark() {
+  var config = getConfig();
+  config.dataType = getStringFromRadioBox('datatyperadio');
+  doAction(config, getBoolFromCheckBox('worker'), 'sendBenchmark');
+}
+
+function onReceiveBenchmark() {
+  var config = getConfig();
+  config.dataType = getStringFromRadioBox('datatyperadio');
+  doAction(config, getBoolFromCheckBox('worker'), 'receiveBenchmark');
+}
+
+function onBatchBenchmark() {
+  var config = getConfig();
+  doAction(config, getBoolFromCheckBox('worker'), 'batchBenchmark');
+}
+
+function onStop() {
+  var config = getConfig();
+  doAction(config, getBoolFromCheckBox('worker'), 'stop');
+}
+
+function init() {
+  addressBox = document.getElementById('address');
+  logBox = document.getElementById('log');
+
+  summaryBox = document.getElementById('summary');
+
+  // Special address of pywebsocket for XHR benchmark.
+  addressBox.value = '/073be001e10950692ccbf3a2ad21c245';
+
+  addToLog(window.navigator.userAgent.toLowerCase());
+  addToSummary(window.navigator.userAgent.toLowerCase());
+
+  initWorker('XHR', '');
+}
+</script>
+</head>
+<body onload="init()">
+
+<form id="benchmark_form">
+  url prefix <input type="text" id="address" size="40">
+  <input type="button" value="send" onclick="onSendBenchmark()">
+  <input type="button" value="receive" onclick="onReceiveBenchmark()">
+  <input type="button" value="batch" onclick="onBatchBenchmark()">
+  <input type="button" value="stop" onclick="onStop()">
+
+  <br/>
+
+  <input type="checkbox" id="printsize" checked>
+  <label for="printsize">Print size and time per message</label>
+  <input type="checkbox" id="verifydata" checked>
+  <label for="verifydata">Verify data</label>
+  <input type="checkbox" id="worker">
+  <label for="worker">Run on worker</label>
+  <input type="checkbox" id="async" checked>
+  <label for="async">Async</label><br>
+  (Receive &amp;&amp; Non-Worker &amp;&amp; Sync is not supported by spec)
+
+  <br/>
+
+  Parameters:
+
+  <br/>
+
+  <table>
+    <tr>
+      <td>Num XHRs</td>
+      <td><input type="text" id="numXHRs" value="1"></td>
+    </tr>
+    <tr>
+      <td>Number of iterations</td>
+      <td><input type="text" id="numiterations" value="1"></td>
+    </tr>
+    <tr>
+      <td>Number of warm-up iterations</td>
+      <td><input type="text" id="numwarmupiterations" value="0"></td>
+    </tr>
+    <tr>
+      <td>Start size</td>
+      <td><input type="text" id="startsize" value="10240"></td>
+    </tr>
+    <tr>
+      <td>Stop threshold</td>
+      <td><input type="text" id="stopthreshold" value="102400000"></td>
+    </tr>
+    <tr>
+      <td>Multipliers</td>
+      <td><input type="text" id="multipliers" value="5, 2"></td>
+    </tr>
+  </table>
+
+  Set data type
+  <input type="radio"
+         name="datatyperadio"
+         id="datatyperadiotext"
+         value="text"
+         checked><label for="datatyperadiotext">text</label>
+  <input type="radio"
+         name="datatyperadio"
+         id="datatyperadioblob"
+         value="blob"
+         ><label for="datatyperadioblob">blob</label>
+  <input type="radio"
+         name="datatyperadio"
+         id="datatyperadioarraybuffer"
+         value="arraybuffer"
+         ><label for="datatyperadioarraybuffer">arraybuffer</label>
+
+  <br>
+  Set HTTP method and cache control
+  <input type="radio"
+         name="methodandcache"
+         id="methodandcachePOST"
+         value="POST"
+         checked><label for="methodandcachePOST">POST (No Cache)</label>
+  <input type="radio"
+         name="methodandcache"
+         id="methodandcacheGETNOCACHE"
+         value="GET-NOCACHE"
+         ><label for="methodandcacheGETNOCACHE">GET (No Cache)</label>
+  <input type="radio"
+         name="methodandcache"
+         id="methodandcacheGETCACHE"
+         value="GET-CACHE"
+         ><label for="methodandcacheGETCACHE">GET (Cache)</label>
+  <br>
+  <span style="font-size: 80%">(Cache control: receive only. Cache is valid for 10 seconds. This config controls Cache-control HTTP response header. Browsers might not cache data e.g. when it is large)</span>
+</form>
+
+<div id="log_div">
+  <textarea
+      id="log" rows="20" style="width: 100%" readonly></textarea>
+</div>
+<div id="summary_div">
+  Summary
+  <textarea
+      id="summary" rows="20" style="width: 100%" readonly></textarea>
+</div>
+
+<div id="note_div">
+  Note:
+  <ul>
+    <li>Effect of RTT and time spent for ArrayBuffer creation in receive benchmarks are not eliminated.</li>
+    <li>The Stddev column shows NaN when the number of iterations is set to 1.</li>
+  </ul>
+</div>
+
+</body>
+</html>

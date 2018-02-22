@@ -34,7 +34,7 @@ promise_test(t => {
       .then(result => {
           assert_equals(result, 'request for embedded content was not intercepted');
         });
-  }, 'requests for EMBED elements should not be intercepted by service workers');
+  }, 'requests for EMBED elements of embedded HTML content should not be intercepted by service workers');
 
 promise_test(t => {
     let frame;
@@ -47,5 +47,32 @@ promise_test(t => {
       .then(result => {
           assert_equals(result, 'request for embedded content was not intercepted');
         });
-  }, 'requests for OBJECT elements should not be intercepted by service workers');
+  }, 'requests for OBJECT elements of embedded HTML content should not be intercepted by service workers');
+
+promise_test(t => {
+    let frame;
+    return with_iframe('resources/embed-image-is-not-intercepted-iframe.html')
+      .then(f => {
+          frame = f;
+          t.add_cleanup(() => { frame.remove(); });
+          return frame.contentWindow.test_promise;
+        })
+      .then(result => {
+          assert_equals(result, 'request was not intercepted');
+        });
+  }, 'requests for EMBED elements of an image should not be intercepted by service workers');
+
+promise_test(t => {
+    let frame;
+    return with_iframe('resources/object-image-is-not-intercepted-iframe.html')
+      .then(f => {
+          frame = f;
+          t.add_cleanup(() => { frame.remove(); });
+          return frame.contentWindow.test_promise;
+        })
+      .then(result => {
+          assert_equals(result, 'request was not intercepted');
+        });
+  }, 'requests for OBJECT elements of an image should not be intercepted by service workers');
+
 </script>

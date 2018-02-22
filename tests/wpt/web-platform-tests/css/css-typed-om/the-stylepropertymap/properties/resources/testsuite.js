@@ -16,6 +16,21 @@ function assert_is_equal_with_range_handling(input, result) {
     assert_style_value_equals(result, input);
 }
 
+const gCssWideKeywordsExamples = [
+  {
+    description: 'initial keyword',
+    input: new CSSKeywordValue('initial')
+  },
+  {
+    description: 'inherit keyword',
+    input: new CSSKeywordValue('initial')
+  },
+  {
+    description: 'unset keyword',
+    input: new CSSKeywordValue('initial')
+  },
+];
+
 const gTestSyntaxExamples = {
   '<length>': {
     description: 'a length',
@@ -149,26 +164,28 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
 
       // specified style
       const specifiedResult = element.attributeStyleMap.get(propertyName);
+      assert_not_equals(specifiedResult, null,
+        'Specified value must not be null');
+      assert_true(specifiedResult instanceof CSSStyleValue,
+        'Specified value must be a CSSStyleValue');
+
       if (specified || example.defaultSpecified) {
         (specified || example.defaultSpecified)(example.input, specifiedResult);
       } else {
-        assert_not_equals(specifiedResult, null,
-          'Specified value must not be null');
-        assert_true(specifiedResult instanceof CSSStyleValue,
-          'Specified value must be a CSSStyleValue');
         assert_style_value_equals(specifiedResult, example.input,
           `Setting ${example.description} and getting its specified value`);
       }
 
       // computed style
       const computedResult = element.computedStyleMap().get(propertyName);
+      assert_not_equals(computedResult, null,
+        'Computed value must not be null');
+      assert_true(computedResult instanceof CSSStyleValue,
+        'Computed value must be a CSSStyleValue');
+
       if (computed || example.defaultComputed) {
         (computed || example.defaultComputed)(example.input, computedResult);
       } else {
-        assert_not_equals(computedResult, null,
-          'Computed value must not be null');
-        assert_true(computedResult instanceof CSSStyleValue,
-          'Computed value must be a CSSStyleValue');
         assert_style_value_equals(computedResult, example.input,
           `Setting ${example.description} and getting its computed value`);
       }
@@ -219,6 +236,13 @@ function createKeywordExample(keyword) {
 // the expected result.
 function runPropertyTests(propertyName, testCases) {
   let syntaxTested = new Set();
+
+  // Every property should at least support CSS-wide keywords.
+  testPropertyValid(propertyName,
+    gCssWideKeywordsExamples,
+    null, // should be as specified
+    () => {}, // could be anything
+    'CSS-wide keywords');
 
   for (const testCase of testCases) {
     // Retrieve test examples for this test case's syntax. If the syntax

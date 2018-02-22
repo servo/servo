@@ -101,20 +101,34 @@ class Firefox(Browser):
         return "%s%s" % (platform, bits)
 
     def latest_nightly_listing(self):
-        return get("https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/")
+        resp = get("https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/")
+        resp.raise_for_status()
+        return resp.text
 
-    def get_from_nightly(self, pattern):
-        index = self.latest_nightly_listing()
-        filename = re.compile(pattern).search(index.text).group(1)
-        return get("https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/%s" %
-                   filename)
+    def get_nightly_link(self, index, platform):
+        pattern = re.compile("<a[^>]*>(firefox-(\d+)\.\d(?:\w\d)?.en-US.%s\.tar\.bz2)" % platform)
+        max_version = None
+        for match in pattern.finditer(index):
+            try:
+                version = int(match.group(2))
+            except ValueError:
+                continue
+            if max_version is None or version > max_version[0]:
+                max_version = (version, match.group(1))
+        if not max_version:
+            raise ValueError("Failed to find version to download")
+        return ("https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/%s" %
+                max_version[1])
 
     def install(self, dest=None):
         """Install Firefox."""
         if dest is None:
             dest = os.getcwd()
 
-        resp = self.get_from_nightly("<a[^>]*>(firefox-\d+\.\d(?:\w\d)?.en-US.%s\.tar\.bz2)" % self.platform_string())
+        nightly_link = self.get_nightly_link(self.latest_nightly_listing(),
+                                             self.platform_string())
+        resp = get(nightly_link)
+        resp.raise_for_status()
         untar(resp.raw, dest=dest)
         return find_executable("firefox", os.path.join(dest, "firefox"))
 
@@ -131,26 +145,6 @@ class Firefox(Browser):
 
     def find_webdriver(self):
         return find_executable("geckodriver")
-
-    def install_certutil(self, dest=None):
-        # TODO: this doesn't really work because it just gets the binary, and is missing the
-        # libnss3 library. Getting that means either downloading the corresponding Firefox
-        # and extracting the library (which is hard on mac becase DMG), or maybe downloading from
-        # nss's treeherder builds?
-        if dest is None:
-            dest = os.pwd
-
-        # Don't create a path like bin/bin/certutil
-        split = os.path.split(dest)
-        if split[1] == "bin":
-            dest = split[0]
-
-        resp = self.get_from_nightly(
-            "<a[^>]*>(firefox-\d+\.\d(?:\w\d)?.en-US.%s\.common\.tests.zip)</a>" % self.platform_string())
-        bin_path = path("bin/certutil", exe=True)
-        unzip(resp.raw, dest=dest, limit=[bin_path])
-
-        return os.path.join(dest, bin_path)
 
     def install_prefs(self, dest=None):
         if dest is None:

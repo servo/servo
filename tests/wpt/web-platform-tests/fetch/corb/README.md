@@ -1,8 +1,18 @@
 # Tests related to Cross-Origin Resource Blocking (CORB).
 
+### Summary
+
 This directory contains tests related to the
 [Cross-Origin Resource Blocking (CORB)](https://chromium.googlesource.com/chromium/src/+/master/content/browser/loader/cross_origin_read_blocking_explainer.md)
 algorithm.
+
+The tests in this directory interact with various, random features,
+but the tests have been grouped together into the `fetch/corb` directory,
+because all of these tests verify behavior that is important to the CORB
+algorithm.
+
+
+### Disclaimer: CORB is not standardized yet
 
 Note that CORB is currently in very early stages of standardization path.  At
 the same time, some tests in this directory (e.g.
@@ -30,7 +40,35 @@ CORB is enabled.  In practice this means that:
      `third_party/WebKit/LayoutTests/FlagExpectations/site-per-process` file.
 * Such tests may fail in other browsers.
 
-The tests in this directory interact with various, random features,
-but the tests have been grouped together into the `fetch/corb` directory,
-because all of these tests verify behavior that is important to the CORB
-algorithm.
+
+### Limitations of WPT test coverage
+
+CORB is a defense-in-depth and in general should not cause changes in behavior
+that can be observed by web features or by end users.  This makes CORB difficult
+or even impossible to test via WPT.
+
+WPT tests can cover the following:
+
+* Helping verify CORB has no observable impact in specific scenarios.
+  Examples:
+  * image rendering of (an empty response of) a html document blocked by CORB
+    should be indistinguishable from rendering such html document without CORB -
+    `img-html-correctly-labeled.sub.html`
+  * CORB shouldn't block responses that don't sniff as a CORB-protected document
+    type - `img-png-mislabeled-as-html.sub.html`
+* Helping document cases where CORB causes observable changes in behavior.
+  Examples:
+  * blocking of nosniff images labeled as non-image, CORB-protected
+    Content-Type - `img-png-mislabeled-as-html-nosniff.tentative.sub.html`
+  * blocking of CORB-protected documents can prevent triggering
+    syntax errors in scripts -
+    `script-html-via-cross-origin-blob-url.tentative.sub.html`
+
+Examples of aspects that WPT tests cannot cover (these aspects have to be
+covered in other, browser-specific tests):
+* Verifying that CORB doesn't affect things that are only indirectly
+  observable by the web (like
+  [prefetch](https://html.spec.whatwg.org/#link-type-prefetch).
+* Verifying that CORB strips non-safe-listed headers of blocked responses.
+* Verifying that CORB blocks responses before they reach the process hosting
+  a cross-origin execution context.

@@ -15,11 +15,9 @@
 const target = document.getElementById('target');
 const styleMap = target.computedStyleMap();
 
-// FIXME(crbug.com/788904): Test currently fails because the 'content' property returns
-// incorrect initial CSS value.
 test(() => {
   const computedStyle = [...getComputedStyle(target)].sort();
-  const properties = styleMap.getProperties();
+  const properties = [...styleMap.keys()];
 
   // Two extra entries for custom properties
   assert_equals(properties.length, computedStyle.length + 2);

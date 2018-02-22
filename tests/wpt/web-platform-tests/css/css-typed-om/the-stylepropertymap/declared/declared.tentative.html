@@ -31,7 +31,7 @@ const target = document.getElementById('target');
 const styleMap = document.styleSheets[0].rules[0].styleMap;
 
 test(() => {
-  const properties = styleMap.getProperties();
+  const properties = [...styleMap.keys()];
   assert_array_equals(properties, ['height', 'transition-duration', 'width', '--foo']);
 }, 'Declared StylePropertyMap only contains properties in the style rule');
 
