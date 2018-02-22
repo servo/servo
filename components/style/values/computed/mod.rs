@@ -50,6 +50,7 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior, Contain};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
+pub use self::column::ColumnCount;
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -91,6 +92,7 @@ pub mod border;
 #[path = "box.rs"]
 pub mod box_;
 pub mod color;
+pub mod column;
 pub mod counters;
 pub mod effects;
 pub mod flex;
@@ -547,9 +549,6 @@ impl From<CSSInteger> for PositiveInteger {
         GreaterThanOrEqualToOne::<CSSInteger>(int)
     }
 }
-
-/// PositiveInteger | auto
-pub type PositiveIntegerOrAuto = Either<PositiveInteger, Auto>;
 
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;

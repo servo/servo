@@ -2292,10 +2292,7 @@ pub mod style_structs {
             pub fn is_multicol(&self) -> bool {
                 match self.column_width {
                     Either::First(_width) => true,
-                    Either::Second(_auto) => match self.column_count {
-                        Either::First(_n) => true,
-                        Either::Second(_auto) => false,
-                    }
+                    Either::Second(_auto) => !self.column_count.is_auto(),
                 }
             }
         % endif

@@ -17,15 +17,17 @@ ${helpers.predefined_type("column-width",
                           servo_restyle_damage="rebuild_and_reflow")}
 
 
-${helpers.predefined_type("column-count",
-                          "PositiveIntegerOrAuto",
-                          "Either::Second(Auto)",
-                          initial_specified_value="Either::Second(Auto)",
-                          servo_pref="layout.column-count.enabled",
-                          animation_value_type="PositiveIntegerOrAuto",
-                          extra_prefixes="moz",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-count",
-                          servo_restyle_damage="rebuild_and_reflow")}
+${helpers.predefined_type(
+    "column-count",
+    "ColumnCount",
+    "computed::ColumnCount::auto()",
+    initial_specified_value="specified::ColumnCount::auto()",
+    servo_pref="layout.column-count.enabled",
+    animation_value_type="AnimatedColumnCount",
+    extra_prefixes="moz",
+    spec="https://drafts.csswg.org/css-multicol/#propdef-column-count",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 ${helpers.predefined_type("column-gap",
                           "length::NonNegativeLengthOrNormal",

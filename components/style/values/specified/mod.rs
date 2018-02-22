@@ -34,6 +34,7 @@ pub use self::align::{AlignSelf, JustifySelf};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
+pub use self::column::ColumnCount;
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariationSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
@@ -88,6 +89,7 @@ pub mod border;
 pub mod box_;
 pub mod calc;
 pub mod color;
+pub mod column;
 pub mod counters;
 pub mod effects;
 pub mod flex;
@@ -528,9 +530,6 @@ impl Parse for PositiveInteger {
         Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne::<Integer>)
     }
 }
-
-/// PositiveInteger | auto
-pub type PositiveIntegerOrAuto = Either<PositiveInteger, Auto>;
 
 #[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
