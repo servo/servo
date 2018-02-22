@@ -11,6 +11,7 @@ pub enum ColumnCount<PositiveInteger> {
     /// A positive integer.
     Integer(PositiveInteger),
     /// The keyword `auto`.
+    #[animation(error)]
     Auto,
 }
 
