@@ -460,9 +460,12 @@ impl Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             }
             Event::WindowEvent {
-                event: glutin::WindowEvent::Resized(..),
+                event: glutin::WindowEvent::Resized(x, y),
                 ..
             } => {
+                if let WindowKind::Window(ref window, _) = self.kind {
+                    window.resize(x, y);
+                }
                 self.event_queue.borrow_mut().push(WindowEvent::Resize);
             }
             Event::Awakened => {
