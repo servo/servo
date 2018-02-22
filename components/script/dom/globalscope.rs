@@ -47,6 +47,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
@@ -54,6 +56,17 @@ use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
+
+#[derive(JSTraceable)]
+pub struct AutoCloseWorker(
+    Arc<AtomicBool>,
+);
+
+impl Drop for AutoCloseWorker {
+    fn drop(&mut self) {
+        self.0.store(true, Ordering::SeqCst);
+    }
+}
 
 #[dom_struct]
 pub struct GlobalScope {
@@ -110,6 +123,10 @@ pub struct GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     microtask_queue: Rc<MicrotaskQueue>,
+
+    /// Vector storing closing references of all workers
+    #[ignore_malloc_size_of = "Arc"]
+    list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
 }
 
 impl GlobalScope {
@@ -142,7 +159,12 @@ impl GlobalScope {
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             origin,
             microtask_queue,
+            list_auto_close_worker: Default::default(),
         }
+    }
+
+    pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
+       self.list_auto_close_worker.borrow_mut().push(AutoCloseWorker(closing_worker));
     }
 
     /// Returns the global scope of the realm that the given DOM object's reflector
