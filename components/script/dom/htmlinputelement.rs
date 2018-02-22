@@ -550,18 +550,24 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn SetValue(&self, value: DOMString) -> ErrorResult {
+    fn SetValue(&self, mut value: DOMString) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
-                // Steps 1-2.
-                let old_value = mem::replace(self.textinput.borrow_mut().single_line_content_mut(), value);
                 // Step 3.
                 self.value_dirty.set(true);
+
                 // Step 4.
-                self.sanitize_value();
+                 self.sanitize_value(&mut value);
+
+                let mut textinput = self.textinput.borrow_mut();
+
                 // Step 5.
-                if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward);
+                if *textinput.single_line_content() != value {
+                    // Steps 1-2
+                    textinput.set_content(value);
+
+                    // Step 5.
+                    textinput.clear_selection_to_limit(Direction::Forward);
                 }
             }
             ValueMode::Default |
@@ -1054,7 +1060,6 @@ impl HTMLInputElement {
                     value.make_ascii_lowercase();
                 } else {
                     *value = "#000000".into();
-                    textinput.set_content("#000000".into());
                 }
             }
             InputType::Time => {
@@ -1193,7 +1198,7 @@ impl VirtualMethods for HTMLInputElement {
                         let mut textinput = self.textinput.borrow_mut();
                         let mut value = textinput.single_line_content().clone();
                         self.sanitize_value(&mut value);
-                        textinput.set_content(value, true);
+                        textinput.set_content(value);
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
@@ -1221,9 +1226,7 @@ impl VirtualMethods for HTMLInputElement {
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
 
                 self.sanitize_value(&mut value);
-
-                self.textinput.borrow_mut().set_content(
-                    value.map_or(DOMString::new(), DOMString::from));
+                self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
             },
             &local_name!("name") if self.input_type() == InputType::Radio => {

@@ -494,9 +494,11 @@ fn test_textinput_set_content() {
 
     assert_eq!(textinput.edit_point().line, 0);
     assert_eq!(textinput.edit_point().index, 0);
+
     textinput.adjust_horizontal(3, Selection::Selected);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 3);
+    
     textinput.set_content(DOMString::from("de"));
     assert_eq!(textinput.get_content(), "de");
     assert_eq!(textinput.edit_point().line, 0);

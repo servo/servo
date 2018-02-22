@@ -248,7 +248,6 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         // Step 1
         let old_value = textinput.get_content();
-        let old_selection = textinput.selection_origin;
 
         // Step 2
         textinput.set_content(value);
@@ -259,9 +258,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         if old_value != textinput.get_content() {
             // Step 4
             textinput.clear_selection_to_limit(Direction::Forward);
-        } else {
-            textinput.selection_origin = old_selection;
-        }
+        } 
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
