@@ -36,7 +36,7 @@ use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
-use textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
+use textinput::{ChangeEditPoint, Direction, KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -233,7 +233,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
         if !self.value_dirty.get() {
-            self.reset(false);
+            self.reset();
         }
     }
 
@@ -244,7 +244,26 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
     fn SetValue(&self, value: DOMString) {
-        self.update_text_contents(value, true);
+        let mut textinput = self.textinput.borrow_mut();
+
+        // Step 1
+        let old_value = textinput.get_content();
+        let old_selection = textinput.selection_origin;
+
+        // Step 2
+        textinput.set_content(value, &ChangeEditPoint::Change);
+
+        // Step 3
+        self.value_dirty.set(true);
+
+        if old_value != textinput.get_content() {
+            // Step 4
+            textinput.clear_selection_to_limit(Direction::Forward);
+        } else {
+            textinput.selection_origin = old_selection;
+        }
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -306,39 +325,16 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
 
 impl HTMLTextAreaElement {
-    pub fn reset(&self,  update_text_cursor: bool) {
+    pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
-        self.update_text_contents(self.DefaultValue(), update_text_cursor);
+        let mut textinput = self.textinput.borrow_mut();
+        textinput.set_content(self.DefaultValue(), &ChangeEditPoint::Change);
         self.value_dirty.set(false);
     }
 
     #[allow(unrooted_must_root)]
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(&self, &self.textinput)
-    }
-
-    // Helper function to check if text_cursor is to be updated or not
-    fn update_text_contents(&self, value: DOMString, update_text_cursor: bool) {
-        let mut textinput = self.textinput.borrow_mut();
-
-        // Step 1
-        let old_value = textinput.get_content();
-        let old_selection = textinput.selection_origin;
-
-        // Step 2
-        textinput.set_content(value, update_text_cursor);
-
-        // Step 3
-        self.value_dirty.set(true);
-
-        if old_value != textinput.get_content() {
-            // Step 4
-            textinput.clear_selection_to_limit(Direction::Forward, update_text_cursor);
-        } else {
-            textinput.selection_origin = old_selection;
-        }
-
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -432,7 +428,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.children_changed(mutation);
         }
         if !self.value_dirty.get() {
-            self.reset(false);
+            self.reset();
         }
     }
 
@@ -483,7 +479,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.super_type().unwrap().pop();
 
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:stack-of-open-elements
-        self.reset(false);
+        self.reset();
     }
 }
 
