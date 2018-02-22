@@ -112,6 +112,7 @@ pub enum Command {
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
     AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
     Exit(IpcSender<()>),
+    Ping,
 }
 
 /// Reply messages sent from the font cache thread to the FontContext caller.
@@ -204,6 +205,7 @@ impl FontCache {
                     templates.add_template(Atom::from(url.to_string()), Some(bytes));
                     drop(result.send(()));
                 }
+                Command::Ping => (),
                 Command::Exit(result) => {
                     let _ = result.send(());
                     break;
@@ -472,10 +474,13 @@ impl FontSource for FontCacheThread {
         self.chan.send(Command::GetFontInstance(key, size, response_chan))
             .expect("failed to send message to font cache thread");
 
-        let instance_key = response_port.recv()
-            .expect("failed to receive response to font request");
-
-        instance_key
+        let instance_key = response_port.recv();
+        if instance_key.is_err() {
+            let font_thread_has_closed = self.chan.send(Command::Ping).is_err();
+            assert!(font_thread_has_closed, "Failed to receive a response from live font cache");
+            panic!("Font cache thread has already exited.");
+        }
+        instance_key.unwrap()
     }
 
     fn find_font_template(&mut self, family: SingleFontFamily, desc: FontTemplateDescriptor)
@@ -485,10 +490,15 @@ impl FontSource for FontCacheThread {
         self.chan.send(Command::GetFontTemplate(family, desc, response_chan))
             .expect("failed to send message to font cache thread");
 
-        let reply = response_port.recv()
-            .expect("failed to receive response to font request");
+        let reply = response_port.recv();
 
-        match reply {
+        if reply.is_err() {
+            let font_thread_has_closed = self.chan.send(Command::Ping).is_err();
+            assert!(font_thread_has_closed, "Failed to receive a response from live font cache");
+            panic!("Font cache thread has already exited.");
+        }
+
+        match reply.unwrap() {
             Reply::GetFontTemplateReply(data) => {
                 data
             }
@@ -502,10 +512,14 @@ impl FontSource for FontCacheThread {
         self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan))
             .expect("failed to send message to font cache thread");
 
-        let reply = response_port.recv()
-            .expect("failed to receive response to font request");
+        let reply = response_port.recv();
+        if reply.is_err() {
+            let font_thread_has_closed = self.chan.send(Command::Ping).is_err();
+            assert!(font_thread_has_closed, "Failed to receive a response from live font cache");
+            panic!("Font cache thread has already exited.");
+        }
 
-        match reply {
+        match reply.unwrap() {
             Reply::GetFontTemplateReply(data) => {
                 data.unwrap()
             }
