@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_error, assert_same_element, assert_success
+from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import iframe, inline
 
 
@@ -13,8 +13,8 @@ def send_keys_to_element(session, element, text):
 
 def test_body_is_interactable(session):
     session.url = inline("""
-        <body onkeypress="document.getElementById('result').value += event.key">
-          <input type="text" id="result"/>
+        <body onkeypress="document.querySelector('input').value += event.key">
+          <input>
         </body>
     """)
 
@@ -22,18 +22,18 @@ def test_body_is_interactable(session):
     result = session.find.css("input", all=False)
 
     # By default body is the active element
-    assert_same_element(session, element, session.active_element)
+    assert session.active_element is element
 
     response = send_keys_to_element(session, element, "foo")
     assert_success(response)
-    assert_same_element(session, element, session.active_element)
+    assert session.active_element is element
     assert result.property("value") == "foo"
 
 
 def test_document_element_is_interactable(session):
     session.url = inline("""
-        <html onkeypress="document.getElementById('result').value += event.key">
-          <input type="text" id="result"/>
+        <html onkeypress="document.querySelector('input').value += event.key">
+          <input>
         </html>
     """)
 
@@ -42,18 +42,18 @@ def test_document_element_is_interactable(session):
     result = session.find.css("input", all=False)
 
     # By default body is the active element
-    assert_same_element(session, body, session.active_element)
+    assert session.active_element is body
 
     response = send_keys_to_element(session, element, "foo")
     assert_success(response)
-    assert_same_element(session, body, session.active_element)
+    assert session.active_element is element
     assert result.property("value") == "foo"
 
 
 def test_iframe_is_interactable(session):
     session.url = inline(iframe("""
-        <body onkeypress="document.getElementById('result').value += event.key">
-          <input type="text" id="result"/>
+        <body onkeypress="document.querySelector('input').value += event.key">
+          <input>
         </body>
     """))
 
@@ -61,11 +61,11 @@ def test_iframe_is_interactable(session):
     frame = session.find.css("iframe", all=False)
 
     # By default the body has the focus
-    assert_same_element(session, body, session.active_element)
+    assert session.active_element is body
 
     response = send_keys_to_element(session, frame, "foo")
     assert_success(response)
-    assert_same_element(session, body, session.active_element)
+    assert session.active_element is frame
 
     # Any key events are immediately routed to the nested
     # browsing context's active document.
@@ -75,7 +75,7 @@ def test_iframe_is_interactable(session):
 
 
 def test_transparent_element(session):
-    session.url = inline("<input style=\"opacity: 0;\">")
+    session.url = inline("""<input style="opacity: 0">""")
     element = session.find.css("input", all=False)
 
     response = send_keys_to_element(session, element, "foo")
@@ -94,8 +94,8 @@ def test_readonly_element(session):
 
 def test_obscured_element(session):
     session.url = inline("""
-      <input type="text" />
-      <div style="position: relative; top: -3em; height: 5em; background-color: blue"></div>
+      <input>
+      <div style="position: relative; top: -3em; height: 5em; background: blue;"></div>
     """)
     element = session.find.css("input", all=False)
 
@@ -113,7 +113,7 @@ def test_not_a_focusable_element(session):
 
 
 def test_not_displayed_element(session):
-    session.url = inline("<input style=\"display: none\">")
+    session.url = inline("""<input style="display: none">""")
     element = session.find.css("input", all=False)
 
     response = send_keys_to_element(session, element, "foo")
@@ -121,7 +121,7 @@ def test_not_displayed_element(session):
 
 
 def test_hidden_element(session):
-    session.url = inline("<input style=\"visibility: hidden\">")
+    session.url = inline("""<input style="visibility: hidden">""")
     element = session.find.css("input", all=False)
 
     response = send_keys_to_element(session, element, "foo")
@@ -129,7 +129,7 @@ def test_hidden_element(session):
 
 
 def test_disabled_element(session):
-    session.url = inline("<input disabled=\"false\">")
+    session.url = inline("""<input disabled>""")
     element = session.find.css("input", all=False)
 
     response = send_keys_to_element(session, element, "foo")

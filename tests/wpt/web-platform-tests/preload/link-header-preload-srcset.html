@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/preload/issues/120">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var t = async_test('Makes sure that Link headers preload images with (experimental) srcset/imgsizes attributes.');
+</script>
+<body>
+<script src="resources/dummy.js?pipe=trickle(d3)&link-header-preload-srcset"></script>
+<script>
+    window.addEventListener("load", t.step_func(function() {
+        verifyPreloadAndRTSupport();
+        verifyNumberOfDownloads('resources/square.png?1x', 1);
+        verifyNumberOfDownloads('resources/square.png?2x', 0);
+        verifyNumberOfDownloads('resources/square.png?3x', 0);
+        verifyNumberOfDownloads('resources/square.png?base', 0);
+        verifyNumberOfDownloads('resources/square.png?200', 0);
+        verifyNumberOfDownloads('resources/square.png?400', 1);
+        verifyNumberOfDownloads('resources/square.png?800', 0);
+        verifyNumberOfDownloads('resources/square.png?150', 0);
+        verifyNumberOfDownloads('resources/square.png?300', 1);
+        verifyNumberOfDownloads('resources/square.png?600', 0);
+        t.done();
+    }));
+</script>
+</body>

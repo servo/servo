@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Reference for position:sticky elements should not affect the flow position of other elements</title>
+
+<style>
+.scroller {
+  height: 200px;
+  width: 100px;
+  overflow-y: scroll;
+  margin-bottom: 15px;
+}
+
+.sticky {
+  background-color: green;
+}
+
+.box {
+  height: 50px;
+  width: 50px;
+}
+
+.before {
+  background-color: fuchsia;
+}
+
+.after {
+  background-color: orange;
+}
+
+.padding {
+  height: 450px;
+}
+</style>
+
+<div class="scroller">
+  <div class="before box"></div>
+  <div class="box"></div>
+  <div class="after box"></div>
+  <div class="sticky box"></div>
+  <div class="padding"></div>
+</div>
+
+<div>You should see a fuchsia box, a one-box gap, an orange box, and then a green box above.</div>

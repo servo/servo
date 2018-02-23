@@ -18,6 +18,6 @@ def main(request, response):
         headers.append(('Access-Control-Allow-Origin', '*'))
 
     image_path = os.path.join(request.doc_root, 'images')
-    body = create_part(os.path.join(image_path, 'green-1x1.png'))
+    body = create_part(os.path.join(image_path, 'red.png'))
     body = body + create_part(os.path.join(image_path, 'red-16x16.png'))
     return headers, body

@@ -7,37 +7,31 @@ interface CSSStyleValue {
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface StylePropertyMapReadOnly {
-    readonly maplike<DOMString, sequence<CSSStyleValue>>;
+    iterable<DOMString, sequence<CSSStyleValue>>;
     any get(DOMString property);
     /* 'any' means (undefined or CSSStyleValue) here,
        see https://github.com/heycam/webidl/issues/60 */
     sequence<CSSStyleValue> getAll(DOMString property);
     boolean has(DOMString property);
-    stringifier;
+    readonly attribute long size;
 };
-
-callback UpdateFunction = CSSStyleValue (CSSStyleValue oldValue);
 
 [Exposed=Window]
 interface StylePropertyMap : StylePropertyMapReadOnly {
-    maplike<DOMString, sequence<CSSStyleValue>>;
+    void set(DOMString property, (CSSStyleValue or DOMString)... values);
     void append(DOMString property, (CSSStyleValue or DOMString)... values);
     void delete(DOMString property);
-    void set(DOMString property, (CSSStyleValue or DOMString)... values);
     void clear();
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 partial interface Element {
     StylePropertyMapReadOnly computedStyleMap();
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 partial interface CSSStyleRule {
     [SameObject] readonly attribute StylePropertyMap styleMap;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 partial interface ElementCSSInlineStyle {
     [SameObject] readonly attribute StylePropertyMap attributeStyleMap;
 };
@@ -54,7 +48,7 @@ interface CSSUnparsedValue : CSSStyleValue {
 typedef (DOMString or CSSVariableReferenceValue) CSSUnparsedSegment;
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(DOMString variable, optional CSSUnparsedValue fallback)]
+ Constructor(DOMString variable, optional CSSUnparsedValue? fallback = null)]
 interface CSSVariableReferenceValue {
     attribute DOMString variable;
     readonly attribute CSSUnparsedValue? fallback;
@@ -65,8 +59,6 @@ interface CSSVariableReferenceValue {
 interface CSSKeywordValue : CSSStyleValue {
     attribute DOMString value;
 };
-
-typedef (DOMString or CSSKeywordValue) CSSKeywordish;
 
 typedef (double or CSSNumericValue) CSSNumberish;
 
@@ -306,7 +298,7 @@ interface CSSMatrixComponent : CSSTransformComponent {
 };
 
 dictionary CSSMatrixComponentOptions {
-    boolean is2D = false;
+    boolean is2D;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),

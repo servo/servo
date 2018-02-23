@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Reference for position:sticky elements should properly interact with margins</title>
+
+<style>
+.group {
+  display: inline-block;
+  position: relative;
+  width: 180px;
+  height: 400px;
+}
+
+.scroller {
+  width: 150px;
+  height: 300px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.indicator {
+  position: relative;
+  background-color: green;
+  margin: 15px;
+}
+
+.box {
+  width: 100px;
+  height: 100px;
+}
+
+.padding {
+  height: 385px;
+}
+</style>
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 0;
+  document.getElementById('scroller2').scrollTop = 60;
+  document.getElementById('scroller3').scrollTop = 120;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1"  class="scroller">
+    <div class="indicator box" style="top: 0;"></div>
+    <div class="padding"></div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2"  class="scroller">
+    <div class="indicator box" style="top: 50px;"></div>
+    <div class="padding"></div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3"  class="scroller">
+    <div class="indicator box" style="top: 85px;"></div>
+    <div class="padding"></div>
+  </div>
+</div>
+
+<div>You should see three green boxes above. No red should be visible.</div>
