@@ -21,6 +21,16 @@ test(() => {
 }, 'CSSVariableReferenceValue can be constructed with no fallback');
 
 test(() => {
+  const result = new CSSVariableReferenceValue('--foo', null);
+
+  assert_not_equals(result, null,
+      'A CSSVariableReferenceValue should be created');
+  assert_equals(result.variable, '--foo',
+      'Variable member should be same as passed in the constructor');
+  assert_equals(result.fallback, null, 'Fallback member should be null');
+}, 'CSSVariableReferenceValue can be constructed with null fallback');
+
+test(() => {
   const result = new CSSVariableReferenceValue('--foo',
       new CSSUnparsedValue(['lemon']));
 
@@ -32,7 +42,7 @@ test(() => {
       'Fallback member should not be null');
   assert_style_value_equals(result.fallback, new CSSUnparsedValue(['lemon']),
       'Fallback member should be as same as passed in the constructor');
-}, 'CSSVariableReferenceValue can be constructed with fallback');
+}, 'CSSVariableReferenceValue can be constructed with valid fallback');
 
 test(() => {
   let result = new CSSVariableReferenceValue('--foo');

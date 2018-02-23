@@ -340,7 +340,7 @@ interface Element : Node {
            attribute DOMString id;
            attribute DOMString className;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList classList;
-           attribute DOMString slot;
+  [Unscopable] attribute DOMString slot;
 
   boolean hasAttributes();
   [SameObject] readonly attribute NamedNodeMap attributes;

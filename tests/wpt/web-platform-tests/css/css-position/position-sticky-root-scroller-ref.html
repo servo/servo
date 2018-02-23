@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Reference for position:sticky should operate correctly for the root scroller</title>
+
+<style>
+body {
+  /* Assumption: 3000px is taller than any user agents test window size. */
+  height: 3000px;
+}
+
+.indicator {
+  background-color: green;
+  position: absolute;
+  top: 750px;
+}
+
+.box {
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  window.scrollTo(0, 700);
+});
+</script>
+
+<div class="indicator box"></div>
+
+<div style="position: absolute; top: 1000px;">You should see a green box above. No red should be visible.</div>

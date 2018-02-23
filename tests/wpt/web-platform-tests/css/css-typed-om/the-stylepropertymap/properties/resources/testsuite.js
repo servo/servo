@@ -111,6 +111,31 @@ const gTestSyntaxExamples = {
       }
     ],
   },
+  '<number>': {
+    description: 'a number',
+    examples: [
+      {
+        description: 'the number zero',
+        input: new CSSUnitValue(0, 'number')
+      },
+      {
+        description: 'a negative number',
+        input: new CSSUnitValue(-3.14, 'number')
+      },
+      {
+        description: 'a positive number',
+        input: new CSSUnitValue(3.14, 'number')
+      },
+      {
+        description: "a calc number",
+        input: new CSSMathSum(new CSSUnitValue(2, 'number'), new CSSUnitValue(3, 'number')),
+        defaultSpecified: (_, result) => assert_is_calc_sum(result),
+        defaultComputed: (_, result) => {
+          assert_style_value_equals(result, new CSSUnitValue(5, 'number'));
+        }
+      }
+    ],
+  },
   '<position>': {
     description: 'a position',
     examples: [

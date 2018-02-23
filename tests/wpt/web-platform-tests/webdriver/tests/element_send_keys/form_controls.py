@@ -1,6 +1,11 @@
 import pytest
 
-from tests.support.asserts import assert_error, assert_same_element, assert_success
+from tests.support.asserts import (
+    assert_element_has_focus,
+    assert_error,
+    assert_same_element,
+    assert_success,
+)
 from tests.support.inline import inline
 
 
@@ -17,7 +22,7 @@ def add_event_listeners(element):
     element.session.execute_script("""
         let [target] = arguments;
         window.events = [];
-        for (let expected of ["focus", "blur", "change", "keypress", "keydown", "keyup", "input"]) {
+        for (let expected of ["focus", "change", "keypress", "keydown", "keyup", "input"]) {
           target.addEventListener(expected, ({type}) => window.events.push(type));
         }
         """, args=(element,))
@@ -34,6 +39,7 @@ def test_input(session):
 
     element_send_keys(session, element, "foo")
     assert element.property("value") == "foo"
+    assert_element_has_focus(element)
 
 
 def test_textarea(session):
@@ -43,6 +49,7 @@ def test_textarea(session):
 
     element_send_keys(session, element, "foo")
     assert element.property("value") == "foo"
+    assert_element_has_focus(element)
 
 
 def test_input_append(session):
@@ -89,6 +96,13 @@ def test_events(session, tag):
                                    "keydown",
                                    "keypress",
                                    "input",
-                                   "keyup",
-                                   "change",
-                                   "blur"]
+                                   "keyup"]
+
+
+@pytest.mark.parametrize("tag", ["input", "textarea"])
+def test_not_blurred(session, tag):
+    session.url = inline("<%s>" % tag)
+    element = session.find.css(tag, all=False)
+
+    element_send_keys(session, element, "")
+    assert_element_has_focus(element)
