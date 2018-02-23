@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::PerformanceObserverBinding;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
@@ -97,19 +97,20 @@ impl PerformanceObserver {
 impl PerformanceObserverMethods for PerformanceObserver {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()
     fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
-        // step 1
+        // steps 1-2
         // Make sure the client is asking to observe events from allowed entry types.
         let entry_types = options.entryTypes.iter()
                                             .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
                                             .map(|e| e.clone())
                                             .collect::<Vec<DOMString>>();
-        // step 2
-        // There must be at least one valid entry type.
+        // step 3
         if entry_types.is_empty() {
-            return Err(Error::Type("entryTypes cannot be empty".to_string()));
+            // TODO This warning should actually go to the dev console.
+            warn!("Cannot observe an empty sequence of entry types");
+            return Ok(());
         }
 
-        // step 3-4-5
+        // step 4-5-6
         self.global().performance().add_observer(self, entry_types, options.buffered);
 
         Ok(())
