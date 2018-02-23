@@ -175,7 +175,8 @@ enum WindowKind {
 /// The type of a window.
 pub struct Window {
     kind: WindowKind,
-    screen: Size2D<u32>,
+    screen_size: Size2D<u32>,
+    inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
 
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32>>,
@@ -230,14 +231,14 @@ impl Window {
         // #9996.
         let visible = is_foreground && !opts::get().no_native_titlebar;
 
-        let screen;
+        let screen_size;
+        let inner_size;
         let window_kind = if opts::get().headless {
-            screen = Size2D::new(width, height);
+            screen_size = Size2D::new(width, height);
+            inner_size = TypedSize2D::new(width, height);
             WindowKind::Headless(HeadlessContext::new(width, height))
         } else {
             let events_loop = glutin::EventsLoop::new();
-            let (screen_width, screen_height) = events_loop.get_primary_monitor().get_dimensions();
-            screen = Size2D::new(screen_width, screen_height);
             let mut window_builder = glutin::WindowBuilder::new()
                 .with_title("Servo".to_string())
                 .with_decorations(!opts::get().no_native_titlebar)
@@ -263,6 +264,11 @@ impl Window {
                 glutin_window.context().make_current().expect("Couldn't make window current");
             }
 
+            let (screen_width, screen_height) = events_loop.get_primary_monitor().get_dimensions();
+            screen_size = Size2D::new(screen_width, screen_height);
+            // TODO(ajeffrey): can this fail?
+            let (width, height) = glutin_window.get_inner_size().expect("Failed to get window inner size.");
+            inner_size = TypedSize2D::new(width, height);
 
             glutin_window.show();
 
@@ -319,7 +325,8 @@ impl Window {
             gl: gl.clone(),
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
-            screen,
+            inner_size: Cell::new(inner_size),
+            screen_size,
         };
 
         window.present();
@@ -460,13 +467,21 @@ impl Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             }
             Event::WindowEvent {
-                event: glutin::WindowEvent::Resized(x, y),
+                event: glutin::WindowEvent::Resized(width, height),
                 ..
             } => {
+                // width and height are DevicePixel.
+                // window.resize() takes DevicePixel.
                 if let WindowKind::Window(ref window, _) = self.kind {
-                    window.resize(x, y);
+                    window.resize(width, height);
                 }
-                self.event_queue.borrow_mut().push(WindowEvent::Resize);
+                // window.set_inner_size() takes DeviceIndependentPixel.
+                let new_size = TypedSize2D::new(width as f32, height as f32);
+                let new_size = (new_size / self.hidpi_factor()).cast().expect("Window size should fit in u32");
+                if self.inner_size.get() != new_size {
+                    self.inner_size.set(new_size);
+                    self.event_queue.borrow_mut().push(WindowEvent::Resize);
+                }
             }
             Event::Awakened => {
                 self.event_queue.borrow_mut().push(WindowEvent::Idle);
@@ -844,17 +859,7 @@ impl WindowMethods for Window {
     }
 
     fn framebuffer_size(&self) -> DeviceUintSize {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                let scale_factor = window.hidpi_factor() as u32;
-                // TODO(ajeffrey): can this fail?
-                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                DeviceUintSize::new(width, height) * scale_factor
-            }
-            WindowKind::Headless(ref context) => {
-                DeviceUintSize::new(context.width, context.height)
-            }
-        }
+        (self.inner_size.get().to_f32() * self.hidpi_factor()).to_usize().cast().expect("Window size should fit in u32")
     }
 
     fn window_rect(&self) -> DeviceUintRect {
@@ -864,16 +869,7 @@ impl WindowMethods for Window {
     }
 
     fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                // TODO(ajeffrey): can this fail?
-                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                TypedSize2D::new(width as f32, height as f32)
-            }
-            WindowKind::Headless(ref context) => {
-                TypedSize2D::new(context.width as f32, context.height as f32)
-            }
-        }
+        self.inner_size.get().to_f32()
     }
 
     fn client_window(&self, _: BrowserId) -> (Size2D<u32>, Point2D<i32>) {
@@ -896,7 +892,7 @@ impl WindowMethods for Window {
     }
 
     fn screen_size(&self, _: BrowserId) -> Size2D<u32> {
-        self.screen
+        self.screen_size
     }
 
     fn screen_avail_size(&self, browser_id: BrowserId) -> Size2D<u32> {
