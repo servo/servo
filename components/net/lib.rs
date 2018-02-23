@@ -29,6 +29,7 @@ extern crate openssl;
 extern crate profile_traits;
 #[macro_use] extern crate serde;
 extern crate serde_json;
+extern crate servo_allocator;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;

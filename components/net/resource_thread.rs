@@ -16,6 +16,7 @@ use http_cache::HttpCache;
 use http_loader::{HttpState, http_redirect_fetch};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CustomResponseMediator, FetchChannels};
 use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
@@ -23,11 +24,12 @@ use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
-use profile_traits::mem::{ReportsChan, ReporterRequest};
+use profile_traits::mem::{Report, ReportsChan, ReportKind, ReporterRequest};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use servo_allocator;
 use servo_config::opts;
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
@@ -146,9 +148,6 @@ impl ResourceChannelManager {
              private_receiver: IpcReceiver<CoreResourceMsg>,
              memory_reporter: IpcReceiver<ReportsChan>) {
 
-        // TODO: Something with the IpcReceiver memory/reporter channel
-        //
-        // Is that even the correct one? Other options, ReportsChan
         let (public_http_state, private_http_state) =
             create_http_states(self.config_dir.as_ref().map(Deref::deref));
 
@@ -159,20 +158,46 @@ impl ResourceChannelManager {
 
         loop {
             for (id, data) in rx_set.select().unwrap().into_iter().map(|m| m.unwrap()) {
-                let group = if id == private_id {
-                    &private_http_state 
-                } else if id == public_id {
-                    &public_http_state 
-                } else { &public_http_state };
-                if let Ok(msg) = data.to() {
-                    if !self.process_msg(msg, group) {
-                        return;
+                // If message is memory report, get the size_of of public and private http caches
+                if id == reporter_id {
+                    if let Ok(msg) = data.to() {
+                        if id == reporter_id {
+                            self.process_report(msg, &private_http_state, &public_http_state);
+                            continue;
+                        }
                     }
+                } else {
+                    let group = if id == private_id {
+                        &private_http_state 
+                    } else {
+                        assert_eq!(id, public_id);
+                        &public_http_state 
+                    };
+                    if let Ok(msg) = data.to() {
+                        if !self.process_msg(msg, group) {
+                            return;
+                        }
+                    } 
                 }
             }
         }
     }
+    
+    /// False if report failed to be made
+    fn process_report(&mut self,
+                      msg: ReportsChan,
+                      public_http_state: &Arc<HttpState>,
+                      private_http_state: &Arc<HttpState>) {
+        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
+        let report = Report{
+            path: vec![String::from("Example")],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: public_http_state.http_cache.read().unwrap().size_of(&mut ops) + 
+                private_http_state.http_cache.read().unwrap().size_of(&mut ops)
+        };
 
+        msg.send(vec!(report));
+    }
 
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
