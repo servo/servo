@@ -67,12 +67,10 @@ function unsafe_run_tests() {
 # last commit with the new results.
 function unsafe_update_metadata() {
     ./mach update-wpt "${1}" || return 1
-    # Ignore any metadata changes to files that weren't modified by this sync.
-    git checkout -- tests/wpt/mozilla/meta || return 2
     # Ensure any new directories or ini files are included in these changes.
-    git add tests/wpt/metadata || return 3
+    git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
     # Merge all changes with the existing commit.
-    git commit -a --amend --no-edit || return 4
+    git commit -a --amend --no-edit || return 3
 }
 
 # Push the branch to a remote branch, then open a PR for the branch
