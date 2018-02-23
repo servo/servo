@@ -68,7 +68,7 @@ function unsafe_run_tests() {
 function unsafe_update_metadata() {
     ./mach update-wpt "${1}" || return 1
     # Ensure any new directories or ini files are included in these changes.
-    git add tests/wpt/ || return 2
+    git add tests/wpt/metadata tests/wpt/mozilla/meta || return 2
     # Merge all changes with the existing commit.
     git commit -a --amend --no-edit || return 3
 }
