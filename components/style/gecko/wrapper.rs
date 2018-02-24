@@ -456,7 +456,7 @@ pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
 impl<'le> fmt::Debug for GeckoElement<'le> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}", self.local_name())?;
-        if let Some(id) = self.get_id() {
+        if let Some(id) = self.id() {
             write!(f, " id={}", id)?;
         }
 
@@ -645,7 +645,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_state_internal(&self) -> u64 {
+    fn state_internal(&self) -> u64 {
         if !self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasLockedStyleStates) {
             return self.0.mState.mStates;
         }
@@ -1163,8 +1163,8 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_state(&self) -> ElementState {
-        ElementState::from_bits_truncate(self.get_state_internal())
+    fn state(&self) -> ElementState {
+        ElementState::from_bits_truncate(self.state_internal())
     }
 
     #[inline]
@@ -1174,7 +1174,9 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn get_id(&self) -> Option<Atom> {
+    // FIXME(emilio): we should probably just return a reference to the Atom.
+    #[inline]
+    fn id(&self) -> Option<Atom> {
         if !self.has_id() {
             return None;
         }
@@ -1259,7 +1261,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn is_visited_link(&self) -> bool {
-        self.get_state().intersects(ElementState::IN_VISITED_STATE)
+        self.state().intersects(ElementState::IN_VISITED_STATE)
     }
 
     #[inline]
@@ -1723,7 +1725,7 @@ impl<'le> TElement for GeckoElement<'le> {
                 );
             }
 
-            let active = self.get_state().intersects(NonTSPseudoClass::Active.state_flag());
+            let active = self.state().intersects(NonTSPseudoClass::Active.state_flag());
             if active {
                 let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0) };
                 let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
@@ -2021,7 +2023,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::MozAutofillPreview => {
-                self.get_state().intersects(pseudo_class.state_flag())
+                self.state().intersects(pseudo_class.state_flag())
             },
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Link => {
@@ -2114,8 +2116,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::Dir(ref dir) => {
                 match **dir {
-                    Direction::Ltr => self.get_state().intersects(ElementState::IN_LTR_STATE),
-                    Direction::Rtl => self.get_state().intersects(ElementState::IN_RTL_STATE),
+                    Direction::Ltr => self.state().intersects(ElementState::IN_LTR_STATE),
+                    Direction::Rtl => self.state().intersects(ElementState::IN_RTL_STATE),
                     Direction::Other(..) => false,
                 }
             }
@@ -2138,7 +2140,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        self.get_state().intersects(NonTSPseudoClass::AnyLink.state_flag())
+        self.state().intersects(NonTSPseudoClass::AnyLink.state_flag())
     }
 
     #[inline]

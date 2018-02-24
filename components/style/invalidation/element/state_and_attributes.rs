@@ -200,7 +200,7 @@ where
         let mut id_added = None;
         if snapshot.id_changed() {
             let old_id = snapshot.id_attr();
-            let current_id = element.get_id();
+            let current_id = element.id();
 
             if old_id != current_id {
                 id_removed = old_id;

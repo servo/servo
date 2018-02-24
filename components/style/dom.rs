@@ -461,13 +461,13 @@ pub trait TElement
     }
 
     /// Get this element's state, for non-tree-structural pseudos.
-    fn get_state(&self) -> ElementState;
+    fn state(&self) -> ElementState;
 
     /// Whether this element has an attribute with a given namespace.
     fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
 
     /// The ID for this element.
-    fn get_id(&self) -> Option<Atom>;
+    fn id(&self) -> Option<Atom>;
 
     /// Internal iterator for the classes of this element.
     fn each_class<F>(&self, callback: F) where F: FnMut(&Atom);

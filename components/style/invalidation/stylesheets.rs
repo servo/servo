@@ -66,7 +66,7 @@ impl Invalidation {
                 }
             }
             Invalidation::ID(ref id) => {
-                if let Some(ref element_id) = element.get_id() {
+                if let Some(ref element_id) = element.id() {
                     if case_sensitivity.eq_atom(element_id, id) {
                         return true;
                     }

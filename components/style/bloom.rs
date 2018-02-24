@@ -101,7 +101,7 @@ where
     f(element.local_name().get_hash());
     f(element.namespace().get_hash());
 
-    if let Some(id) = element.get_id() {
+    if let Some(id) = element.id() {
         f(id.get_hash());
     }
 

@@ -372,7 +372,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
-    fn get_state(&self) -> ElementState {
+    fn state(&self) -> ElementState {
         self.element.get_state_for_layout()
     }
 
@@ -382,7 +382,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_id(&self) -> Option<Atom> {
+    fn id(&self) -> Option<Atom> {
         unsafe {
             (*self.element.id_attribute()).clone()
         }

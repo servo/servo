@@ -175,7 +175,7 @@ impl SelectorMap<Rule> {
         // At the end, we're going to sort the rules that we added, so remember
         // where we began.
         let init_len = matching_rules_list.len();
-        if let Some(id) = rule_hash_target.get_id() {
+        if let Some(id) = rule_hash_target.id() {
             if let Some(rules) = self.id_hash.get(&id, quirks_mode) {
                 SelectorMap::get_matching_rules(
                     element,
@@ -315,7 +315,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         F: FnMut(&'a T) -> bool
     {
         // Id.
-        if let Some(id) = element.get_id() {
+        if let Some(id) = element.id() {
             if let Some(v) = self.id_hash.get(&id, quirks_mode) {
                 for entry in v.iter() {
                     if !f(&entry) {

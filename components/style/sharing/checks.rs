@@ -145,8 +145,8 @@ pub fn may_match_different_id_rules<E>(
 where
     E: TElement,
 {
-    let element_id = element.get_id();
-    let candidate_id = candidate.get_id();
+    let element_id = element.id();
+    let candidate_id = candidate.id();
 
     if element_id == candidate_id {
         return false;

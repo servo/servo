@@ -109,7 +109,7 @@ where
         };
 
         match snapshot.state() {
-            Some(state) => state ^ self.element.get_state(),
+            Some(state) => state ^ self.element.state(),
             None => ElementState::empty(),
         }
     }
@@ -186,7 +186,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 }
                 let state = match self.snapshot().and_then(|s| s.state()) {
                     Some(snapshot_state) => snapshot_state,
-                    None => self.element.get_state(),
+                    None => self.element.state(),
                 };
                 return state.contains(selector_flag);
             }
