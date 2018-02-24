@@ -92,15 +92,17 @@ pub trait Element: Sized + Clone + Debug {
         None
     }
 
-    fn has_id(&self,
-              id: &<Self::Impl as SelectorImpl>::Identifier,
-              case_sensitivity: CaseSensitivity)
-              -> bool;
+    fn has_id(
+        &self,
+        id: &<Self::Impl as SelectorImpl>::Identifier,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
 
-    fn has_class(&self,
-                 name: &<Self::Impl as SelectorImpl>::ClassName,
-                 case_sensitivity: CaseSensitivity)
-                 -> bool;
+    fn has_class(
+        &self,
+        name: &<Self::Impl as SelectorImpl>::ClassName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
 
     /// Returns whether this element matches `:empty`.
     ///
