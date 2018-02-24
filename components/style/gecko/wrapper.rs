@@ -226,7 +226,7 @@ impl<'ln> GeckoNode<'ln> {
         }
 
         if let Some(parent) = parent_el {
-            if parent.has_shadow_root() || parent.get_xbl_binding().is_some() {
+            if parent.shadow_root().is_some() || parent.get_xbl_binding().is_some() {
                 return false;
             }
         }
@@ -519,9 +519,10 @@ impl<'le> GeckoElement<'le> {
     }
 
     /// Returns true if this element has a shadow root.
-    fn has_shadow_root(&self) -> bool {
-        self.get_extended_slots()
-            .map_or(false, |slots| !slots.mShadowRoot.mRawPtr.is_null())
+    #[inline]
+    fn shadow_root(&self) -> Option<&structs::ShadowRoot> {
+        let slots = self.get_extended_slots()?;
+        unsafe { slots.mShadowRoot.mRawPtr.as_ref() }
     }
 
     /// Returns a reference to the DOM slots for this Element, if they exist.
