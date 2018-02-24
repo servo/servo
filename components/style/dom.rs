@@ -17,8 +17,6 @@ use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
-#[cfg(feature = "gecko")] use properties::LonghandId;
-#[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
 use selectors::Element as SelectorsElement;
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
@@ -26,7 +24,6 @@ use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::fmt;
-#[cfg(feature = "gecko")] use hash::FnvHashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
@@ -768,12 +765,6 @@ pub trait TElement
         cut_off_inheritance
     }
 
-    /// Gets the current existing CSS transitions, by |property, end value| pairs in a FnvHashMap.
-    #[cfg(feature = "gecko")]
-    fn get_css_transitions_info(
-        &self,
-    ) -> FnvHashMap<LonghandId, Arc<AnimationValue>>;
-
     /// Does a rough (and cheap) check for whether or not transitions might need to be updated that
     /// will quickly return false for the common case of no transitions specified or running. If
     /// this returns false, we definitely don't need to update transitions but if it returns true
@@ -795,17 +786,6 @@ pub trait TElement
         &self,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues
-    ) -> bool;
-
-    /// Returns true if we need to update transitions for the specified property on this element.
-    #[cfg(feature = "gecko")]
-    fn needs_transitions_update_per_property(
-        &self,
-        property: &LonghandId,
-        combined_duration: f32,
-        before_change_style: &ComputedValues,
-        after_change_style: &ComputedValues,
-        existing_transitions: &FnvHashMap<LonghandId, Arc<AnimationValue>>
     ) -> bool;
 
     /// Returns the value of the `xml:lang=""` attribute (or, if appropriate,

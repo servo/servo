@@ -772,6 +772,76 @@ impl<'le> GeckoElement<'le> {
         self.is_in_native_anonymous_subtree() ||
         (!self.is_in_shadow_tree() && self.has_xbl_binding_parent())
     }
+
+    fn css_transitions_info(&self) -> FnvHashMap<LonghandId, Arc<AnimationValue>> {
+        use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
+        use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
+
+        let collection_length =
+            unsafe { Gecko_ElementTransitions_Length(self.0) } as usize;
+        let mut map = FnvHashMap::with_capacity_and_hasher(
+            collection_length,
+            Default::default()
+        );
+
+        for i in 0..collection_length {
+            let raw_end_value = unsafe {
+                 Gecko_ElementTransitions_EndValueAt(self.0, i)
+            };
+
+            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value)
+                .expect("AnimationValue not found in ElementTransitions");
+
+            let property = end_value.id();
+            map.insert(property, end_value.clone_arc());
+        }
+        map
+    }
+
+    fn needs_transitions_update_per_property(
+        &self,
+        longhand_id: &LonghandId,
+        combined_duration: f32,
+        before_change_style: &ComputedValues,
+        after_change_style: &ComputedValues,
+        existing_transitions: &FnvHashMap<LonghandId, Arc<AnimationValue>>,
+    ) -> bool {
+        use values::animated::{Animate, Procedure};
+
+        // If there is an existing transition, update only if the end value
+        // differs.
+        //
+        // If the end value has not changed, we should leave the currently
+        // running transition as-is since we don't want to interrupt its timing
+        // function.
+        if let Some(ref existing) = existing_transitions.get(longhand_id) {
+            let after_value =
+                AnimationValue::from_computed_values(
+                    longhand_id,
+                    after_change_style
+                ).unwrap();
+
+            return ***existing != after_value
+        }
+
+        let from = AnimationValue::from_computed_values(
+            &longhand_id,
+            before_change_style,
+        );
+        let to = AnimationValue::from_computed_values(
+            &longhand_id,
+            after_change_style,
+        );
+
+        debug_assert_eq!(to.is_some(), from.is_some());
+
+        combined_duration > 0.0f32 &&
+        from != to &&
+        from.unwrap().animate(
+            to.as_ref().unwrap(),
+            Procedure::Interpolate { progress: 0.5 }
+        ).is_ok()
+    }
 }
 
 /// Converts flags from the layout used by rust-selectors to the layout used
@@ -1395,33 +1465,6 @@ impl<'le> TElement for GeckoElement<'le> {
             .map(|b| unsafe { GeckoNode::from_content(&*b.anon_content()) })
     }
 
-    fn get_css_transitions_info(
-        &self,
-    ) -> FnvHashMap<LonghandId, Arc<AnimationValue>> {
-        use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
-        use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
-
-        let collection_length =
-            unsafe { Gecko_ElementTransitions_Length(self.0) } as usize;
-        let mut map = FnvHashMap::with_capacity_and_hasher(
-            collection_length,
-            Default::default()
-        );
-
-        for i in 0..collection_length {
-            let raw_end_value = unsafe {
-                 Gecko_ElementTransitions_EndValueAt(self.0, i)
-            };
-
-            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value)
-                .expect("AnimationValue not found in ElementTransitions");
-
-            let property = end_value.id();
-            map.insert(property, end_value.clone_arc());
-        }
-        map
-    }
-
     fn might_need_transitions_update(
         &self,
         old_values: Option<&ComputedValues>,
@@ -1459,7 +1502,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn needs_transitions_update(
         &self,
         before_change_style: &ComputedValues,
-        after_change_style: &ComputedValues
+        after_change_style: &ComputedValues,
     ) -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
         use properties::LonghandIdSet;
@@ -1471,7 +1514,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
         let after_change_box_style = after_change_style.get_box();
         let transitions_count = after_change_box_style.transition_property_count();
-        let existing_transitions = self.get_css_transitions_info();
+        let existing_transitions = self.css_transitions_info();
 
         // Check if this property is none, custom or unknown.
         let is_none_or_custom_property = |property: nsCSSPropertyID| -> bool {
@@ -1529,51 +1572,6 @@ impl<'le> TElement for GeckoElement<'le> {
         existing_transitions.keys().any(|property| {
             !transitions_to_keep.contains(*property)
         })
-    }
-
-    fn needs_transitions_update_per_property(
-        &self,
-        longhand_id: &LonghandId,
-        combined_duration: f32,
-        before_change_style: &ComputedValues,
-        after_change_style: &ComputedValues,
-        existing_transitions: &FnvHashMap<LonghandId, Arc<AnimationValue>>,
-    ) -> bool {
-        use values::animated::{Animate, Procedure};
-
-        // If there is an existing transition, update only if the end value
-        // differs.
-        //
-        // If the end value has not changed, we should leave the currently
-        // running transition as-is since we don't want to interrupt its timing
-        // function.
-        if let Some(ref existing) = existing_transitions.get(longhand_id) {
-            let after_value =
-                AnimationValue::from_computed_values(
-                    longhand_id,
-                    after_change_style
-                ).unwrap();
-
-            return ***existing != after_value
-        }
-
-        let from = AnimationValue::from_computed_values(
-            &longhand_id,
-            before_change_style,
-        );
-        let to = AnimationValue::from_computed_values(
-            &longhand_id,
-            after_change_style,
-        );
-
-        debug_assert_eq!(to.is_some(), from.is_some());
-
-        combined_duration > 0.0f32 &&
-        from != to &&
-        from.unwrap().animate(
-            to.as_ref().unwrap(),
-            Procedure::Interpolate { progress: 0.5 }
-        ).is_ok()
     }
 
     #[inline]
