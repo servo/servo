@@ -606,7 +606,6 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
     true
 }
 /// Updates a single animation and associated style based on the current time.
-/// If `damage` is provided, inserts the appropriate restyle damage.
 pub fn update_style_for_animation<E>(
     context: &SharedStyleContext,
     animation: &Animation,
@@ -796,8 +795,11 @@ where
 
 /// Update the style in the node when it finishes.
 #[cfg(feature = "servo")]
-pub fn complete_expired_transitions(node: OpaqueNode, style: &mut Arc<ComputedValues>,
-                                    context: &SharedStyleContext) -> bool {
+pub fn complete_expired_transitions(
+    node: OpaqueNode,
+    style: &mut Arc<ComputedValues>,
+    context: &SharedStyleContext,
+) -> bool {
     let had_animations_to_expire;
     {
         let all_expired_animations = context.expired_animations.read();

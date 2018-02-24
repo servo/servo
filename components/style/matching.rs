@@ -334,8 +334,10 @@ trait PrivateMatchMethods: TElement {
                 let after_change_style_ref =
                     after_change_style.as_ref().unwrap_or(&new_values);
 
-                self.needs_transitions_update(old_values.as_ref().unwrap(),
-                                              after_change_style_ref)
+                self.needs_transitions_update(
+                    old_values.as_ref().unwrap(),
+                    after_change_style_ref,
+                )
             };
 
             if needs_transitions_update {
@@ -344,7 +346,8 @@ trait PrivateMatchMethods: TElement {
                 }
                 tasks.insert(UpdateAnimationsTasks::CSS_TRANSITIONS);
 
-                // We need to clone old_values into SequentialTask, so we can use it later.
+                // We need to clone old_values into SequentialTask, so we can
+                // use it later.
                 old_values.clone()
             } else {
                 None
@@ -531,6 +534,12 @@ trait PrivateMatchMethods: TElement {
         ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
     }
 
+    // FIXME(emilio): It's not clear to me that the name of this method
+    // represents anything of what it does.
+    //
+    // Also, this function gets the old style, for some reason I don't really
+    // get, but the functions called (mainly update_style_for_animation) expects
+    // the new style, wtf?
     #[cfg(feature = "servo")]
     fn update_animations_for_cascade(
         &self,
@@ -546,34 +555,38 @@ trait PrivateMatchMethods: TElement {
         let this_opaque = self.as_node().opaque();
         animation::complete_expired_transitions(this_opaque, style, context);
 
-        // Merge any running transitions into the current style, and cancel them.
+        // Merge any running animations into the current style, and cancel them.
         let had_running_animations =
             context.running_animations.read().get(&this_opaque).is_some();
-        if had_running_animations {
-            let mut all_running_animations = context.running_animations.write();
-            for running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
-                // This shouldn't happen frequently, but under some
-                // circumstances mainly huge load or debug builds, the
-                // constellation might be delayed in sending the
-                // `TickAllAnimations` message to layout.
-                //
-                // Thus, we can't assume all the animations have been already
-                // updated by layout, because other restyle due to script might
-                // be triggered by layout before the animation tick.
-                //
-                // See #12171 and the associated PR for an example where this
-                // happened while debugging other release panic.
-                if !running_animation.is_expired() {
-                    animation::update_style_for_animation::<Self>(
-                        context,
-                        running_animation,
-                        style,
-                        font_metrics,
-                    );
-                    if let Animation::Transition(_, _, ref frame, _) = *running_animation {
-                        possibly_expired_animations.push(frame.property_animation.clone())
-                    }
-                }
+        if !had_running_animations {
+            return;
+        }
+
+        let mut all_running_animations = context.running_animations.write();
+        for running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
+            // This shouldn't happen frequently, but under some circumstances
+            // mainly huge load or debug builds, the constellation might be
+            // delayed in sending the `TickAllAnimations` message to layout.
+            //
+            // Thus, we can't assume all the animations have been already
+            // updated by layout, because other restyle due to script might be
+            // triggered by layout before the animation tick.
+            //
+            // See #12171 and the associated PR for an example where this
+            // happened while debugging other release panic.
+            if running_animation.is_expired() {
+                continue;
+            }
+
+            animation::update_style_for_animation::<Self>(
+                context,
+                running_animation,
+                style,
+                font_metrics,
+            );
+
+            if let Animation::Transition(_, _, ref frame, _) = *running_animation {
+                possibly_expired_animations.push(frame.property_animation.clone())
             }
         }
     }
