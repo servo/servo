@@ -322,3 +322,13 @@ impl<C, L> fmt::Debug for ColorStop<C, L>
         Ok(())
     }
 }
+
+/// An image url or none, used for example in list-style-image
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
+#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
+pub enum ImageUrlOrNone<Url> {
+    /// `none`
+    None,
+    /// `An image URL`
+    Url(Url),
+}

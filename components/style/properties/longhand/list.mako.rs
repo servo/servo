@@ -42,7 +42,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
 ${helpers.predefined_type("list-style-image",
                           "ListStyleImage",
-                          initial_value="specified::ListStyleImage::none()",
+                          initial_value="computed::ListStyleImage::none()",
                           initial_specified_value="specified::ListStyleImage::none()",
                           animation_value_type="discrete",
                           spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image",
