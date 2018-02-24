@@ -1329,10 +1329,10 @@ impl<'le> TElement for GeckoElement<'le> {
             if !pseudo.is_before_or_after() {
                 return false;
             }
-            return self.parent_element()
-                       .map_or(false, |p| {
-                           p.as_node()
-                            .get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
+            // FIXME(emilio): When would the parent of a ::before / ::after
+            // pseudo-element be null?
+            return self.parent_element().map_or(false, |p| {
+               p.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
             });
         }
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
