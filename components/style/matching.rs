@@ -764,29 +764,27 @@ pub trait MatchMethods : TElement {
             debug_assert!(context.shared.traversal_flags.for_animation_only());
 
             if replacements.contains(RestyleHint::RESTYLE_SMIL) {
-                replace_rule_node(CascadeLevel::SMILOverride,
-                                  self.get_smil_override(),
-                                  primary_rules);
+                replace_rule_node(
+                    CascadeLevel::SMILOverride,
+                    self.get_smil_override(),
+                    primary_rules,
+                );
             }
 
-            let replace_rule_node_for_animation = |level: CascadeLevel,
-                                                   primary_rules: &mut StrongRuleNode| {
-                let animation_rule = self.get_animation_rule_by_cascade(level);
-                replace_rule_node(level,
-                                  animation_rule.as_ref().map(|a| a.borrow_arc()),
-                                  primary_rules);
-            };
-
-            // Apply Transition rules and Animation rules if the corresponding restyle hint
-            // is contained.
             if replacements.contains(RestyleHint::RESTYLE_CSS_TRANSITIONS) {
-                replace_rule_node_for_animation(CascadeLevel::Transitions,
-                                                primary_rules);
+                replace_rule_node(
+                    CascadeLevel::Transitions,
+                    self.get_transition_rule().as_ref().map(|a| a.borrow_arc()),
+                    primary_rules,
+                );
             }
 
             if replacements.contains(RestyleHint::RESTYLE_CSS_ANIMATIONS) {
-                replace_rule_node_for_animation(CascadeLevel::Animations,
-                                                primary_rules);
+                replace_rule_node(
+                    CascadeLevel::Animations,
+                    self.get_animation_rule().as_ref().map(|a| a.borrow_arc()),
+                    primary_rules,
+                );
             }
         }
 

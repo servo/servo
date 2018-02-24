@@ -19,7 +19,6 @@ use media_queries::Device;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::LonghandId;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
-use rule_tree::CascadeLevel;
 use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
 use selectors::Element as SelectorsElement;
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
@@ -440,13 +439,6 @@ pub trait TElement
 
     /// Get this element's SMIL override declarations.
     fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
-        None
-    }
-
-    /// Get this element's animation rule by the cascade level.
-    fn get_animation_rule_by_cascade(&self,
-                                     _cascade_level: CascadeLevel)
-                                     -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
