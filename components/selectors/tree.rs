@@ -58,11 +58,12 @@ pub trait Element: Sized + Clone + Debug {
     /// Empty string for no namespace
     fn namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
 
-    fn attr_matches(&self,
-                    ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
-                    local_name: &<Self::Impl as SelectorImpl>::LocalName,
-                    operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>)
-                    -> bool;
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
+        local_name: &<Self::Impl as SelectorImpl>::LocalName,
+        operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>,
+    ) -> bool;
 
     fn match_non_ts_pseudo_class<F>(
         &self,
