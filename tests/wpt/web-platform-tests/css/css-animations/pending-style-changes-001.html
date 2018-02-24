@@ -1,0 +1,34 @@
+<meta charset=utf-8>
+<title>CSS Animations Test: requirement on pending style changes - getAnimations</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#requirements-on-pending-style-changes">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+@keyframes anim {}
+
+.animate {
+  animation: anim 10s;
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+test (t => {
+  assert_equals(target.getAnimations().length, 0, 'Test precondition.');
+  target.classList.add('animate');
+  assert_equals(target.getAnimations().length, 1,
+      'target.getAnimations() should include the CSS animation after animate class added.');
+  target.classList.remove('animate');
+}, 'Animatable::getAnimations() should be able to see a style-created CSS animation immediately');
+
+test(t => {
+  assert_equals(document.getAnimations().length, 0, 'Test precondition.');
+  target.classList.add('animate');
+  assert_equals(document.getAnimations().length, 1,
+     'document.getAnimations() should include the CSS animation after animate class added.');
+  target.classList.remove('animate');
+}, 'Document::getAnimations() should be able to see a style-created CSS animation immediately');
+</script>

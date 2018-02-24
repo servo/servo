@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Same parent service returned from multiple characteristics.';
+
+bluetooth_test(() => getHealthThermometerService()
+    .then(({service}) => Promise.all([
+      service.getCharacteristic('measurement_interval'),
+      service.getCharacteristic('temperature_measurement')
+    ]))
+    .then(characteristics =>
+        assert_equals(characteristics[0].service, characteristics[1].service)),
+    test_desc);
+</script>

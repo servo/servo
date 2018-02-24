@@ -55,7 +55,7 @@
    */
   promise_test(t => {
     return createDtmfSender()
-    .then(dtmfSender => {
+  .then(dtmfSender => {
       dtmfSender.insertDTMF('');
       dtmfSender.insertDTMF('012345689');
       dtmfSender.insertDTMF('ABCD');

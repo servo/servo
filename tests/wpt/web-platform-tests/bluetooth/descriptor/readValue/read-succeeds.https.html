@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'A read request succeeds and returns the descriptor\'s value.';
+const EXPECTED_VALUE = [0, 1, 2];
+let descriptor, fake_descriptor;
+
+bluetooth_test(() => getUserDescriptionDescriptor()
+    .then(_ => ({descriptor, fake_descriptor} = _))
+    .then(() =>
+        fake_descriptor.setNextReadResponse(GATT_SUCCESS, EXPECTED_VALUE))
+    .then(() => descriptor.readValue())
+    .then(value => assert_array_equals(Array.from(new Uint8Array(
+        value.buffer)), EXPECTED_VALUE)),
+    test_desc);
+</script>

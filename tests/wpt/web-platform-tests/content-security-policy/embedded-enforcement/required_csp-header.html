@@ -58,25 +58,25 @@
     tests.forEach(test => {
       async_test(t =>  {
         var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
-        assert_required_csp(t, url, test.csp, test.expected);
+        assert_required_csp(t, url, test.csp, [test.expected]);
       }, "Test same origin: " + test.name);
 
       async_test(t => {
         var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
         var redirect_url = generateRedirect(Host.SAME_ORIGIN, url);
-        assert_required_csp(t, redirect_url, test.csp, test.expected);
+        assert_required_csp(t, redirect_url, test.csp, [test.expected]);
       }, "Test same origin redirect: " + test.name);
 
       async_test(t => {
         var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
         var redirect_url = generateRedirect(Host.CROSS_ORIGIN, url);
-        assert_required_csp(t, redirect_url, test.csp, test.expected);
+        assert_required_csp(t, redirect_url, test.csp, [test.expected]);
       }, "Test cross origin redirect: " + test.name);
 
       async_test(t => {
         var url = generateURLString(Host.CROSS_ORIGIN, PolicyHeader.REQUIRED_CSP);
         var redirect_url = generateRedirect(Host.CROSS_ORIGIN, url);
-        assert_required_csp(t, redirect_url, test.csp, test.expected);
+        assert_required_csp(t, redirect_url, test.csp, [test.expected]);
       }, "Test cross origin redirect of cross origin iframe: " + test.name);
 
       async_test(t => {

@@ -12,28 +12,33 @@ function crossOriginUrl(path) {
     return get_host_info()['HTTPS_REMOTE_ORIGIN'] + base_path() + path;
 }
 
-function verify(performance, resource, mode, description) {
-    var url = mode === 'cross-origin' ? crossOriginUrl(resource)
-                                      : resourceUrl(resource);
-    var entryList = performance.getEntries();
-    var entry = performance.getEntriesByName(url)[0];
-    assert_greater_than(entry.workerStart, 0, description);
-    assert_greater_than_equal(entry.workerStart, entry.startTime, description);
-    assert_less_than_equal(entry.workerStart, entry.fetchStart, description);
-    if (mode === 'cross-origin') {
-      assert_equals(entry.responseStart, 0, description);
-      assert_greater_than_equal(entry.responseEnd, entry.fetchStart, description);
-    } else {
-      assert_greater_than_equal(entry.responseStart, entry.fetchStart, description);
-      assert_greater_than_equal(entry.responseEnd, entry.responseStart, description);
+function verify(options) {
+    var url = options.mode === 'cross-origin' ? crossOriginUrl(options.resource)
+                                      : resourceUrl(options.resource);
+    var entryList = options.performance.getEntriesByName(url);
+    if (entryList.length === 0 && options.allow_no_performance_entry) {
+        // The performance timeline may not have an entry for a resource
+        // which failed to load.
+        return;
     }
-    assert_greater_than(entry.responseEnd, entry.fetchStart, description);
-    assert_greater_than(entry.duration, 0, description);
-    if (resource.indexOf('redirect.py') != -1) {
-        assert_less_than_equal(entry.workerStart, entry.redirectStart,
-                               description);
+    var entry = entryList[0];
+    assert_greater_than(entry.workerStart, 0, options.description);
+    assert_greater_than_equal(entry.workerStart, entry.startTime, options.description);
+    assert_less_than_equal(entry.workerStart, entry.fetchStart, options.description);
+    if (options.mode === 'cross-origin') {
+      assert_equals(entry.responseStart, 0, options.description);
+      assert_greater_than_equal(entry.responseEnd, entry.fetchStart, options.description);
     } else {
-        assert_equals(entry.redirectStart, 0, description);
+      assert_greater_than_equal(entry.responseStart, entry.fetchStart, options.description);
+      assert_greater_than_equal(entry.responseEnd, entry.responseStart, options.description);
+    }
+    assert_greater_than(entry.responseEnd, entry.fetchStart, options.description);
+    assert_greater_than(entry.duration, 0, options.description);
+    if (options.resource.indexOf('redirect.py') != -1) {
+        assert_less_than_equal(entry.workerStart, entry.redirectStart,
+                               options.description);
+    } else {
+        assert_equals(entry.redirectStart, 0, options.description);
     }
 }
 
@@ -52,19 +57,54 @@ async_test(function(t) {
         })
       .then(function(frame) {
           var performance = frame.contentWindow.performance;
-          verify(performance, 'resources/dummy.js', 'same-origin',
-                 'Generated response');
-          verify(performance, 'resources/empty.js', 'same-origin',
-                 'Network fallback');
-          verify(performance, 'resources/redirect.py?Redirect=empty.js',
-                 'same-origin', 'Redirect');
-          verify(performance, 'resources/missing.jpg', 'same-origin',
-                 'Network fallback image');
-
+          verify({
+              performance: performance,
+              resource: 'resources/dummy.js',
+              mode: 'same-origin',
+              description: 'Generated response',
+          });
+          verify({
+              performance: performance,
+              resource: 'resources/empty.js',
+              mode: 'same-origin',
+              description: 'Network fallback',
+          });
+          verify({
+              performance: performance,
+              resource: 'resources/redirect.py?Redirect=empty.js',
+              mode: 'same-origin',
+              description: 'Redirect',
+          });
+          verify({
+              performance: performance,
+              resource: 'resources/square.png',
+              mode: 'same-origin',
+              description: 'Network fallback image',
+          });
           // Test that worker start is available on cross-origin no-cors
           // subresources.
-          verify(performance, 'resources/missing.jpg', 'cross-origin',
-                 'Network fallback cross-origin image');
+          verify({
+              performance: performance,
+              resource: 'resources/square.png',
+              mode: 'cross-origin',
+              description: 'Network fallback cross-origin image',
+          });
+
+          // Tests for resouces which failed to load.
+          verify({
+              performance: performance,
+              resource: 'resources/missing.jpg',
+              mode: 'same-origin',
+              description: 'Network fallback load failure',
+              allow_no_performance_entry: true,
+          });
+          verify({
+              performance: performance,
+              resource: 'resources/missing.jpg',
+              mode: 'cross-origin',
+              description: 'Network fallback cross-origin load failure',
+              allow_no_performance_entry: true,
+          });
 
           frame.remove();
           return registration.unregister();

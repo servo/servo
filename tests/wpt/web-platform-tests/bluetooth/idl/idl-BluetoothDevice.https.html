@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc_idl = 'BluetoothDevice IDL test.';
+
+test(() => {
+  assert_throws(new TypeError(), () => new BluetoothDevice(),
+      'the constructor should not be callable with "new"');
+  assert_throws(new TypeError(), () => BluetoothDevice(),
+      'the constructor should not be callable');
+}, test_desc_idl);
+
+const test_desc_attr = 'BluetoothDevice attributes.';
+let device;
+bluetooth_test(() => getHealthThermometerDevice()
+  .then(({device}) => {
+    assert_equals(device.constructor.name, 'BluetoothDevice');
+    var old_device_id = device.id;
+    assert_throws(new TypeError(), () => device.id = 'overwritten',
+        'the device id should not be writable');
+    assert_throws(new TypeError(), () => device.name = 'overwritten',
+        'the device name should not be writable');
+    assert_equals(device.id, old_device_id);
+    assert_equals(device.name, 'Health Thermometer');
+  }), test_desc_attr);
+</script>
