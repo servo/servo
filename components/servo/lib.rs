@@ -129,7 +129,7 @@ pub struct Servo<Window: WindowMethods + 'static> {
 }
 
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
-    pub fn new(window: Rc<Window>, ion_application: Option<fn(&Document) -> ()>) -> Servo<Window> {
+    pub fn new(window: Rc<Window>, ion_application: Option<(fn()->(), fn(&Document) -> ())>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 

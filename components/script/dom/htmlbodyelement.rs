@@ -155,8 +155,9 @@ impl VirtualMethods for HTMLBodyElement {
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
 
         ION_APPLICATION.with(|root| {
-            if let Some(f) = root.get() {
-                f(&document)
+            if let Some((setup, main)) = root.get() {
+                setup();
+                main(&document)
             }
         });
 

@@ -131,7 +131,7 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
-thread_local!(pub static ION_APPLICATION: Cell<Option<fn(&Document) -> ()>> = Cell::new(None));
+thread_local!(pub static ION_APPLICATION: Cell<Option<(fn()->(), fn(&Document) -> ())>> = Cell::new(None));
 thread_local!(pub static ION_APPLICATION_FRAME_CALLBACK: Cell<Option<fn(&Document) -> ()>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {

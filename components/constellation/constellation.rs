@@ -543,7 +543,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
 {
-    pub fn set_ion_application(app: fn(&Document) -> ()) {
+    pub fn set_ion_application(app: (fn()->(), fn(&Document) -> ())) {
         use script::script_thread::ION_APPLICATION;
         ION_APPLICATION.with(|root| root.set(Some(app)));
     }
