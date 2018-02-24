@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'If a site disconnects from a device while the platform is ' +
+    'disconnecting that device, only one gattserverdisconnected event should ' +
+    'fire.';
+let device, fake_peripheral;
+let num_events = 0;
+
+bluetooth_test(() => getHealthThermometerDevice()
+  .then(_ => ({device, fake_peripheral} = _))
+  // 1. Listen for disconnections.
+  .then(() =>
+      device.addEventListener('gattserverdisconnected', () => num_events++))
+  // 2. Disconnect several times.
+  .then(() => Promise.all([
+    eventPromise(device, 'gattserverdisconnected'),
+    fake_peripheral.simulateGATTDisconnection(),
+    device.gatt.disconnect(),
+    device.gatt.disconnect(),
+  ]))
+  // 3. Wait to catch disconnect events.
+  .then(() => new Promise(resolve => step_timeout(resolve, 50)))
+  // 4. Ensure there is exactly 1 disconnection recorded.
+  .then(() => assert_equals(num_events, 1)),
+  test_desc);
+</script>

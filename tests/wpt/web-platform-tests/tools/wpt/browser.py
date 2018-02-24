@@ -211,7 +211,7 @@ class Firefox(Browser):
 class Chrome(Browser):
     """Chrome-specific interface.
 
-    Includes installation, webdriver installation, and wptrunner setup methods.
+    Includes webdriver installation, and wptrunner setup methods.
     """
 
     product = "chrome"
@@ -284,9 +284,9 @@ class Chrome(Browser):
 
 
 class ChromeAndroid(Browser):
-    """Chrome-specific interface for android.
+    """Chrome-specific interface for Android.
 
-    Includes installation, webdriver installation, and wptrunner setup methods.
+    Includes webdriver installation.
     """
 
     product = "chrome_android"
@@ -309,7 +309,7 @@ class ChromeAndroid(Browser):
 class Opera(Browser):
     """Opera-specific interface.
 
-    Includes installation, webdriver installation, and wptrunner setup methods.
+    Includes webdriver installation, and wptrunner setup methods.
     """
 
     product = "opera"
@@ -386,10 +386,7 @@ class Opera(Browser):
 
 
 class Edge(Browser):
-    """Edge-specific interface.
-
-    Includes installation, webdriver installation, and wptrunner setup methods.
-    """
+    """Edge-specific interface."""
 
     product = "edge"
     requirements = "requirements_edge.txt"
@@ -409,10 +406,7 @@ class Edge(Browser):
 
 
 class InternetExplorer(Browser):
-    """Internet Explorer-specific interface.
-
-    Includes installation, webdriver installation, and wptrunner setup methods.
-    """
+    """Internet Explorer-specific interface."""
 
     product = "ie"
     requirements = "requirements_ie.txt"
@@ -432,10 +426,7 @@ class InternetExplorer(Browser):
 
 
 class Servo(Browser):
-    """Servo-specific interface.
-
-    Includes installation, webdriver installation, and wptrunner setup methods.
-    """
+    """Servo-specific interface."""
 
     product = "servo"
     requirements = "requirements_servo.txt"
@@ -457,10 +448,7 @@ class Servo(Browser):
 
 
 class Sauce(Browser):
-    """Sauce-specific interface.
-
-    Includes installation, webdriver installation, and wptrunner setup methods.
-    """
+    """Sauce-specific interface."""
 
     product = "sauce"
     requirements = "requirements_sauce.txt"

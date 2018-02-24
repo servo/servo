@@ -9,6 +9,7 @@ const testList = [
   { tag_name: 'a-a', defined: false },
   { tag_name: 'font-face', defined: true },
   { tag_name: 'abbr', is: 'my-abbr', defined: false },
+  { tag_name: 'p', is: '', defined: false },
 ];
 
 // Setup iframe to test the parser.
@@ -20,7 +21,7 @@ iframe.srcdoc = `<style>
   :defined { color:${defined}; }
   :not(:defined) { color:${not_defined}; }
 </style>`
-  + testList.map(d => `<${d.tag_name}${d.is ? ' is=' + d.is : ''}></${d.tag_name}>`).join('');
+  + testList.map(d => `<${d.tag_name}${d.is !== undefined ? ' is=' + d.is : ''}></${d.tag_name}>`).join('');
 setup({ explicit_done: true });
 iframe.onload = () => {
   const doc = iframe.contentDocument;
@@ -31,7 +32,8 @@ iframe.onload = () => {
                  `<${data.tag_name}${data.is ? ' is=' + data.is : ''}>`);
 
     // Test DOM createElement() methods.
-    test_defined_for_createElement(data.defined, !data.defined, doc, data.tag_name, data.is);
+    let try_upgrade = !data.defined && (data.is === undefined || data.is.length > 0);
+    test_defined_for_createElement(data.defined, try_upgrade, doc, data.tag_name, data.is);
 
     // Documents without browsing context should behave the same.
     test_defined_for_createElement(data.defined, false, doc_without_browsing_context, data.tag_name, data.is, 'Without browsing context: ');
@@ -41,21 +43,22 @@ iframe.onload = () => {
 };
 
 function test_defined_for_createElement(defined, should_test_change, doc, tag_name, is, description = '') {
-  let is_desc = is ? `, { is: "${is}" }` : '';
+  let has_is = is !== undefined;
+  let is_desc = has_is ? `, { is: "${is}" }` : '';
   // Test document.createElement().
-  let element = is ? doc.createElement(tag_name, { is: is }) : doc.createElement(tag_name);
+  let element = has_is ? doc.createElement(tag_name, { is: is }) : doc.createElement(tag_name);
   doc.body.appendChild(element);
   test_defined(defined, element, `${description}createElement("${tag_name}"${is_desc})`);
 
   // Test document.createElementNS().
-  let html_element = is ? doc.createElementNS('http://www.w3.org/1999/xhtml', tag_name, { is: is })
-                        : doc.createElementNS('http://www.w3.org/1999/xhtml', tag_name);
+  let html_element = has_is ? doc.createElementNS('http://www.w3.org/1999/xhtml', tag_name, { is: is })
+                            : doc.createElementNS('http://www.w3.org/1999/xhtml', tag_name);
   doc.body.appendChild(html_element);
   test_defined(defined, html_element, `${description}createElementNS("http://www.w3.org/1999/xhtml", "${tag_name}"${is_desc})`);
 
   // If the element namespace is not HTML, it should be "uncustomized"; i.e., "defined".
-  let svg_element = is ? doc.createElementNS('http://www.w3.org/2000/svg', tag_name, { is: is })
-                       : doc.createElementNS('http://www.w3.org/2000/svg', tag_name);
+  let svg_element = has_is ? doc.createElementNS('http://www.w3.org/2000/svg', tag_name, { is: is })
+                           : doc.createElementNS('http://www.w3.org/2000/svg', tag_name);
   doc.body.appendChild(svg_element);
   test_defined(true, svg_element, `${description}createElementNS("http://www.w3.org/2000/svg", "${tag_name}"${is_desc})`);
 

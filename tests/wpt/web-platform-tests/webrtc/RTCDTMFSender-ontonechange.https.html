@@ -50,7 +50,7 @@
         7.  Fire an event named tonechange with a string consisting of tone at the
             RTCDTMFSender object.
    */
-  test_tone_change_events(dtmfSender => {
+  test_tone_change_events((t, dtmfSender) => {
     dtmfSender.insertDTMF('123');
   }, [
     ['1', '23', 0],
@@ -59,7 +59,7 @@
     ['', '', 170]
   ], 'insertDTMF() with default duration and intertoneGap should fire tonechange events at the expected time');
 
-  test_tone_change_events(dtmfSender => {
+  test_tone_change_events((t, dtmfSender) => {
     dtmfSender.insertDTMF('abc', 100, 70);
   }, [
     ['A', 'BC', 0],

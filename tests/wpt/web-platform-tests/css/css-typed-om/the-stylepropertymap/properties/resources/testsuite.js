@@ -228,6 +228,25 @@ function testPropertyInvalid(propertyName, examples, description) {
   }, `Setting '${propertyName}' to ${description} throws TypeError`);
 }
 
+// Test that styleMap.get/.set roundtrips correctly for unsupported values.
+function testUnsupportedValue(propertyName, cssText) {
+  test(t => {
+    let element1 = createDivWithStyle(t);
+    let element2 = createDivWithStyle(t);
+
+    element1.style[propertyName] = cssText;
+    const result = element1.attributeStyleMap.get(propertyName);
+    assert_not_equals(result, null,
+      'Unsupported value must not be null');
+    assert_class_string(result, 'CSSStyleValue',
+      'Unsupported value must be a CSSStyleValue and not one of its subclasses');
+
+    element2.attributeStyleMap.set(propertyName, result);
+    assert_equals(element2.style[propertyName], element1.style[propertyName],
+      'Unsupported value can be set on different element');
+  }, `'${propertyName}' does not supported '${cssText}'`);
+}
+
 function createKeywordExample(keyword) {
   return {
     description: `the '${keyword}' keyword`,
@@ -295,5 +314,15 @@ function runPropertyTests(propertyName, testCases) {
         syntaxExamples.examples,
         syntaxExamples.description);
     }
+  }
+}
+
+// Check that |propertyName| doesn't "support" examples in |testExamples|.
+// |testExamples| is a list of CSS string values. An "unsupported" value
+// doesn't have a corresponding Typed OM representation. It normalizes as
+// the base CSSStyleValue.
+function runUnsupportedPropertyTests(propertyName, testExamples) {
+  for (const cssText of testExamples) {
+    testUnsupportedValue(propertyName, cssText);
   }
 }

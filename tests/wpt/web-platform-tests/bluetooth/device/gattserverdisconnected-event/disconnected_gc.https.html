@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'A device disconnecting after the BluetoothDevice object ' +
+    'has been GC\'ed should not access freed memory.';
+
+bluetooth_test(() => getHealthThermometerDevice()
+  .then(({fake_peripheral}) => {
+    // 1. Disconnect.
+    fake_peripheral.simulateGATTDisconnection();
+    // 2. Run garbage collection.
+    fake_peripheral = undefined;
+    runGarbageCollection();
+  })
+  // 3. Wait 50ms after the GC runs for the disconnection event to come back.
+  // There's nothing to assert other than that only valid memory is used.
+  .then(() => new Promise(resolve => step_timeout(resolve, 50))),
+  test_desc);
+</script>

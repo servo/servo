@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>data URL shared worker</title>
+<title>data URL shared workers</title>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -15,8 +15,8 @@ function assert_worker_sends_pass(test_desc, mime_type, worker_code) {
   }, test_desc);
 }
 
-function assert_worker_throws(test_desc, worker_code, before_connect_worker_code) {
-  assert_worker_sends_pass(test_desc, '', `try { ${worker_code}; port.postMessage("FAIL"); } catch (e) { port.postMessage("PASS"); }`, before_connect_worker_code);
+function assert_worker_throws(test_desc, worker_code) {
+  assert_worker_sends_pass(test_desc, '', `try { ${worker_code}; port.postMessage("FAIL"); } catch (e) { port.postMessage("PASS"); }`);
 }
 
 // Any MIME type allowed
@@ -28,12 +28,17 @@ assert_worker_sends_pass('empty MIME allowed', '', 'port.postMessage("PASS")');
 assert_worker_sends_pass('communication goes both ways', 'application/javascript', 'port.onmessage = function(e) { port.postMessage("PASS"); }');
 
 // test access to storage APIs
-// once https://github.com/w3c/IndexedDB/pull/150 lands, this is spec conforming
-assert_worker_throws('indexedDB inaccessible', 'self.indexedDB.open("someDBName")');
-assert_worker_throws('Web SQL Database inaccessible', 'self.openDatabase("someDBName", "1.0", "someDBName", 1);');
+
+// https://w3c.github.io/IndexedDB/#dom-idbfactory-open
+assert_worker_sends_pass('indexedDB is present', '', 'port.postMessage("indexedDB" in self ? "PASS" : "FAIL")');
+assert_worker_throws('indexedDB is inaccessible', 'self.indexedDB.open("someDBName")');
+// Other standardized storage APIs are either not exposed to workers
+// (e.g. window.localStorage, window.sessionStorage), or are [SecureContext]
+// (e.g. self.caches).
 
 // 'data:' workers are cross-origin
 assert_worker_sends_pass('cross-origin worker', '', 'fetch("/").then(() => port.postMessage("FAIL"), () => port.postMessage("PASS"))');
+
 // 'data:' workers have opaque origin
 assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'if (self.location.origin == "null") port.postMessage("PASS"); else { port.postMessage("FAIL"); }');
 

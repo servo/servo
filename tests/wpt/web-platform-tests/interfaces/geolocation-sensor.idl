@@ -1,5 +1,6 @@
-[Constructor(optional SensorOptions options), SecureContext, Exposed=Window]
+[Constructor(optional GeolocationSensorOptions options), SecureContext, Exposed=Window]
 interface GeolocationSensor : Sensor {
+  static Promise<GeolocationSensorReading> read(optional ReadOptions readOptions);
   readonly attribute unrestricted double? latitude;
   readonly attribute unrestricted double? longitude;
   readonly attribute unrestricted double? altitude;
@@ -7,4 +8,23 @@ interface GeolocationSensor : Sensor {
   readonly attribute unrestricted double? altitudeAccuracy;
   readonly attribute unrestricted double? heading;
   readonly attribute unrestricted double? speed;
+};
+
+dictionary GeolocationSensorOptions : SensorOptions {
+  // placeholder for GeolocationSensor-specific options
+};
+
+dictionary ReadOptions : GeolocationSensorOptions {
+  AbortSignal? signal;
+};
+
+dictionary GeolocationSensorReading {
+  DOMHighResTimeStamp? timestamp;
+  double? latitude;
+  double? longitude;
+  double? altitude;
+  double? accuracy;
+  double? altitudeAccuracy;
+  double? heading;
+  double? speed;
 };
