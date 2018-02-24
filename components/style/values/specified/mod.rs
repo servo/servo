@@ -11,7 +11,7 @@ use context::QuirksMode;
 use cssparser::{Parser, Token, serialize_identifier};
 use num_traits::One;
 use parser::{ParserContext, Parse};
-use self::url::{SpecifiedImageUrl, SpecifiedUrl};
+use self::url::SpecifiedUrl;
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -521,9 +521,6 @@ impl Parse for PositiveInteger {
 
 #[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
-
-/// The specified value of a `<url>` for image or `none`.
-pub type ImageUrlOrNone = Either<SpecifiedImageUrl, None_>;
 
 /// The specified value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;

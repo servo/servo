@@ -642,6 +642,3 @@ impl ClipRectOrAuto {
 
 /// <url> | <none>
 pub type UrlOrNone = Either<ComputedUrl, None_>;
-
-/// <url> | <none> for image
-pub type ImageUrlOrNone = Either<ComputedImageUrl, None_>;
