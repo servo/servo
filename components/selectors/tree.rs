@@ -53,10 +53,10 @@ pub trait Element: Sized + Clone + Debug {
 
     fn is_html_element_in_html_document(&self) -> bool;
 
-    fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
+    fn local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
 
     /// Empty string for no namespace
-    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
+    fn namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
 
     fn attr_matches(&self,
                     ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,

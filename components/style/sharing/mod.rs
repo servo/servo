@@ -676,12 +676,12 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if *target.get_local_name() != *candidate.element.get_local_name() {
+        if *target.local_name() != *candidate.element.local_name() {
             trace!("Miss: Local Name");
             return None;
         }
 
-        if *target.get_namespace() != *candidate.element.get_namespace() {
+        if *target.namespace() != *candidate.element.namespace() {
             trace!("Miss: Namespace");
             return None;
         }

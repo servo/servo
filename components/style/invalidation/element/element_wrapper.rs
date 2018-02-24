@@ -291,27 +291,32 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
+    #[inline]
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element_in_html_document()
     }
 
+    #[inline]
     fn is_html_slot_element(&self) -> bool {
         self.element.is_html_slot_element()
     }
 
-    fn get_local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
-        self.element.get_local_name()
+    #[inline]
+    fn local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
+        self.element.local_name()
     }
 
-    fn get_namespace(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedNamespaceUrl {
-        self.element.get_namespace()
+    #[inline]
+    fn namespace(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedNamespaceUrl {
+        self.element.namespace()
     }
 
-    fn attr_matches(&self,
-                    ns: &NamespaceConstraint<&Namespace>,
-                    local_name: &LocalName,
-                    operation: &AttrSelectorOperation<&AttrValue>)
-                    -> bool {
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&Namespace>,
+        local_name: &LocalName,
+        operation: &AttrSelectorOperation<&AttrValue>,
+    ) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => {
                 snapshot.attr_matches(ns, local_name, operation)

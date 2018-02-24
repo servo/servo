@@ -349,9 +349,9 @@ where
         Component::LocalName(LocalName { ref name, ref lower_name }) => {
             collect_all_elements::<E, Q, _>(root, results, |element| {
                 if element.is_html_element_in_html_document() {
-                    element.get_local_name() == lower_name.borrow()
+                    element.local_name() == lower_name.borrow()
                 } else {
-                    element.get_local_name() == name.borrow()
+                    element.local_name() == name.borrow()
                 }
             })
         }

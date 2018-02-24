@@ -455,7 +455,7 @@ pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
 
 impl<'le> fmt::Debug for GeckoElement<'le> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "<{}", self.get_local_name())?;
+        write!(f, "<{}", self.local_name())?;
         if let Some(id) = self.get_id() {
             write!(f, " id={}", id)?;
         }
@@ -1621,7 +1621,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn is_html_document_body_element(&self) -> bool {
-        if self.get_local_name() != &*local_name!("body") {
+        if self.local_name() != &*local_name!("body") {
             return false;
         }
 
@@ -1687,15 +1687,15 @@ impl<'le> TElement for GeckoElement<'le> {
         let ns = self.namespace_id();
         // <th> elements get a default MozCenterOrInherit which may get overridden
         if ns == structs::kNameSpaceID_XHTML as i32 {
-            if self.get_local_name().as_ptr() == atom!("th").as_ptr() {
+            if self.local_name().as_ptr() == atom!("th").as_ptr() {
                 hints.push(TH_RULE.clone());
-            } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
+            } else if self.local_name().as_ptr() == atom!("table").as_ptr() &&
                       self.as_node().owner_doc().quirks_mode() == QuirksMode::Quirks {
                 hints.push(TABLE_COLOR_RULE.clone());
             }
         }
         if ns == structs::kNameSpaceID_SVG as i32 {
-            if self.get_local_name().as_ptr() == atom!("text").as_ptr() {
+            if self.local_name().as_ptr() == atom!("text").as_ptr() {
                 hints.push(SVG_TEXT_DISABLE_ZOOM_RULE.clone());
             }
         }
@@ -1772,7 +1772,7 @@ impl<'le> TElement for GeckoElement<'le> {
         }
         // MathML's default lang has precedence over both `lang` and `xml:lang`
         if ns == structs::kNameSpaceID_MathML as i32 {
-            if self.get_local_name().as_ptr() == atom!("math").as_ptr() {
+            if self.local_name().as_ptr() == atom!("math").as_ptr() {
                 hints.push(MATHML_LANG_RULE.clone());
             }
         }
@@ -1965,14 +1965,14 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &WeakAtom {
+    fn local_name(&self) -> &WeakAtom {
         unsafe {
             WeakAtom::new(self.as_node().node_info().mInner.mName)
         }
     }
 
     #[inline]
-    fn get_namespace(&self) -> &WeakNamespace {
+    fn namespace(&self) -> &WeakNamespace {
         unsafe {
             let namespace_manager = structs::nsContentUtils_sNameSpaceManager;
             WeakNamespace::new((*namespace_manager).mURIArray[self.namespace_id() as usize].mRawPtr)
@@ -2198,7 +2198,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn is_html_slot_element(&self) -> bool {
         self.is_html_element() &&
-        self.get_local_name().as_ptr() == local_name!("slot").as_ptr()
+        self.local_name().as_ptr() == local_name!("slot").as_ptr()
     }
 
     #[inline]
@@ -2217,8 +2217,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 // If this element is the shadow root of an use-element shadow
                 // tree, according to the spec, we should not match rules
                 // cross the shadow DOM boundary.
-                e.get_local_name() == &*local_name!("use") &&
-                e.get_namespace() == &*ns!("http://www.w3.org/2000/svg")
+                e.local_name() == &*local_name!("use") &&
+                e.namespace() == &*ns!("http://www.w3.org/2000/svg")
             },
             None => false,
         }

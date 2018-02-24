@@ -201,7 +201,7 @@ impl SelectorMap<Rule> {
             }
         });
 
-        if let Some(rules) = self.local_name_hash.get(rule_hash_target.get_local_name()) {
+        if let Some(rules) = self.local_name_hash.get(rule_hash_target.local_name()) {
             SelectorMap::get_matching_rules(
                 element,
                 rules,
@@ -344,7 +344,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         }
 
         // Local name.
-        if let Some(v) = self.local_name_hash.get(element.get_local_name()) {
+        if let Some(v) = self.local_name_hash.get(element.local_name()) {
             for entry in v.iter() {
                 if !f(&entry) {
                     return false;

@@ -84,7 +84,7 @@ impl Invalidation {
                 // This could look at the quirks mode of the document, instead
                 // of testing against both names, but it's probably not worth
                 // it.
-                let local_name = element.get_local_name();
+                let local_name = element.local_name();
                 return *local_name == **name || *local_name == **lower_name
             }
         }
