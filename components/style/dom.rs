@@ -438,31 +438,28 @@ pub trait TElement
     }
 
     /// Get this element's SMIL override declarations.
-    fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
+    fn smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
     /// Get the combined animation and transition rules.
-    fn get_animation_rules(&self) -> AnimationRules {
+    ///
+    /// FIXME(emilio): Is this really useful?
+    fn animation_rules(&self) -> AnimationRules {
         if !self.may_have_animations() {
             return AnimationRules(None, None)
         }
 
-        AnimationRules(
-            self.get_animation_rule(),
-            self.get_transition_rule(),
-        )
+        AnimationRules(self.animation_rule(), self.transition_rule())
     }
 
     /// Get this element's animation rule.
-    fn get_animation_rule(&self)
-                          -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    fn animation_rule(&self) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
     /// Get this element's transition rule.
-    fn get_transition_rule(&self)
-                           -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    fn transition_rule(&self) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
     }
 

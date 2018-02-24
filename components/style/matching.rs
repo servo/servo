@@ -766,7 +766,7 @@ pub trait MatchMethods : TElement {
             if replacements.contains(RestyleHint::RESTYLE_SMIL) {
                 replace_rule_node(
                     CascadeLevel::SMILOverride,
-                    self.get_smil_override(),
+                    self.smil_override(),
                     primary_rules,
                 );
             }
@@ -774,7 +774,7 @@ pub trait MatchMethods : TElement {
             if replacements.contains(RestyleHint::RESTYLE_CSS_TRANSITIONS) {
                 replace_rule_node(
                     CascadeLevel::Transitions,
-                    self.get_transition_rule().as_ref().map(|a| a.borrow_arc()),
+                    self.transition_rule().as_ref().map(|a| a.borrow_arc()),
                     primary_rules,
                 );
             }
@@ -782,7 +782,7 @@ pub trait MatchMethods : TElement {
             if replacements.contains(RestyleHint::RESTYLE_CSS_ANIMATIONS) {
                 replace_rule_node(
                     CascadeLevel::Animations,
-                    self.get_animation_rule().as_ref().map(|a| a.borrow_arc()),
+                    self.animation_rule().as_ref().map(|a| a.borrow_arc()),
                     primary_rules,
                 );
             }
