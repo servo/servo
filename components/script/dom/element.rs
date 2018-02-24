@@ -2628,12 +2628,12 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         })
     }
 
-    fn get_local_name(&self) -> &LocalName {
-        self.local_name()
+    fn local_name(&self) -> &LocalName {
+        Element::local_name(self)
     }
 
-    fn get_namespace(&self) -> &Namespace {
-        self.namespace()
+    fn namespace(&self) -> &Namespace {
+        Element::namespace(self)
     }
 
     fn match_non_ts_pseudo_class<F>(

@@ -77,9 +77,11 @@ type WorkUnit<N> = ArrayVec<[SendNode<N>; WORK_UNIT_MAX]>;
 #[inline(never)]
 fn create_thread_local_context<'scope, E, D>(
     traversal: &'scope D,
-    slot: &mut Option<ThreadLocalStyleContext<E>>)
-    where E: TElement + 'scope,
-          D: DomTraversal<E>
+    slot: &mut Option<ThreadLocalStyleContext<E>>,
+)
+where
+    E: TElement + 'scope,
+    D: DomTraversal<E>,
 {
     *slot = Some(ThreadLocalStyleContext::new(traversal.shared_context()));
 }
@@ -99,15 +101,18 @@ fn create_thread_local_context<'scope, E, D>(
 ///   a thread-local cache to share styles between siblings.
 #[inline(always)]
 #[allow(unsafe_code)]
-fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
-                                  root: OpaqueNode,
-                                  mut traversal_data: PerLevelTraversalData,
-                                  scope: &'a rayon::Scope<'scope>,
-                                  pool: &'scope rayon::ThreadPool,
-                                  traversal: &'scope D,
-                                  tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>)
-    where E: TElement + 'scope,
-          D: DomTraversal<E>,
+fn top_down_dom<'a, 'scope, E, D>(
+    nodes: &'a [SendNode<E::ConcreteNode>],
+    root: OpaqueNode,
+    mut traversal_data: PerLevelTraversalData,
+    scope: &'a rayon::Scope<'scope>,
+    pool: &'scope rayon::ThreadPool,
+    traversal: &'scope D,
+    tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>,
+)
+where
+    E: TElement + 'scope,
+    D: DomTraversal<E>,
 {
     debug_assert!(nodes.len() <= WORK_UNIT_MAX);
 

@@ -553,7 +553,7 @@ where
         &local_name.name,
         &local_name.lower_name
     ).borrow();
-    element.get_local_name() == name
+    element.local_name() == name
 }
 
 /// Determines whether the given element matches the given compound selector.
@@ -655,11 +655,11 @@ where
         }
         Component::Namespace(_, ref url) |
         Component::DefaultNamespace(ref url) => {
-            element.get_namespace() == url.borrow()
+            element.namespace() == url.borrow()
         }
         Component::ExplicitNoNamespace => {
             let ns = ::parser::namespace_empty_string::<E::Impl>();
-            element.get_namespace() == ns.borrow()
+            element.namespace() == ns.borrow()
         }
         Component::ID(ref id) => {
             element.has_id(id, context.shared.classes_and_ids_case_sensitivity())
@@ -860,8 +860,8 @@ where
 
 #[inline]
 fn same_type<E: Element>(a: &E, b: &E) -> bool {
-    a.get_local_name() == b.get_local_name() &&
-    a.get_namespace() == b.get_namespace()
+    a.local_name() == b.local_name() &&
+    a.namespace() == b.namespace()
 }
 
 #[inline]

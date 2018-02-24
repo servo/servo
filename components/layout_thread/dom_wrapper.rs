@@ -341,7 +341,7 @@ pub struct ServoLayoutElement<'le> {
 impl<'le> fmt::Debug for ServoLayoutElement<'le> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}", self.element.local_name())?;
-        if let &Some(ref id) = unsafe { &*self.element.id_attribute() } {
+        if let Some(id) = self.id() {
             write!(f, " id={}", id)?;
         }
         write!(f, "> ({:#x})", self.as_node().opaque().0)
@@ -372,7 +372,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
-    fn get_state(&self) -> ElementState {
+    fn state(&self) -> ElementState {
         self.element.get_state_for_layout()
     }
 
@@ -382,9 +382,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_id(&self) -> Option<Atom> {
+    fn id(&self) -> Option<&Atom> {
         unsafe {
-            (*self.element.id_attribute()).clone()
+            (*self.element.id_attribute()).as_ref()
         }
     }
 
@@ -692,12 +692,12 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &LocalName {
+    fn local_name(&self) -> &LocalName {
         self.element.local_name()
     }
 
     #[inline]
-    fn get_namespace(&self) -> &Namespace {
+    fn namespace(&self) -> &Namespace {
         self.element.namespace()
     }
 
@@ -787,7 +787,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     fn is_html_slot_element(&self) -> bool {
         unsafe {
             self.element.is_html_element() &&
-            self.get_local_name() == &local_name!("slot")
+            self.local_name() == &local_name!("slot")
         }
     }
 
@@ -1025,8 +1025,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if let Some(element) = node.as_element() {
-                            if element.get_local_name() == &local_name!("summary") &&
-                               element.get_namespace() == &ns!(html) {
+                            if element.local_name() == &local_name!("summary") &&
+                               element.namespace() == &ns!(html) {
                                 self.current_node = None;
                                 return Some(node.clone());
                             }
@@ -1044,8 +1044,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                       node.as_element().unwrap().get_local_name() == &local_name!("summary") &&
-                       node.as_element().unwrap().get_namespace() == &ns!(html) {
+                       node.as_element().unwrap().local_name() == &local_name!("summary") &&
+                       node.as_element().unwrap().namespace() == &ns!(html) {
                         unsafe { node.dangerous_next_sibling() }
                     } else {
                         Some(node)
@@ -1193,13 +1193,13 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &LocalName {
-        self.element.get_local_name()
+    fn local_name(&self) -> &LocalName {
+        self.element.local_name()
     }
 
     #[inline]
-    fn get_namespace(&self) -> &Namespace {
-        self.element.get_namespace()
+    fn namespace(&self) -> &Namespace {
+        self.element.namespace()
     }
 
     fn match_pseudo_element(

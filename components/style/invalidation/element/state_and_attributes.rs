@@ -5,7 +5,7 @@
 //! An invalidation processor for style changes due to state and attribute
 //! changes.
 
-use Atom;
+use {Atom, WeakAtom};
 use context::{QuirksMode, SharedStyleContext};
 use data::ElementData;
 use dom::TElement;
@@ -42,8 +42,8 @@ where
     snapshot: &'a Snapshot,
     quirks_mode: QuirksMode,
     lookup_element: E,
-    removed_id: Option<&'a Atom>,
-    added_id: Option<&'a Atom>,
+    removed_id: Option<&'a WeakAtom>,
+    added_id: Option<&'a WeakAtom>,
     classes_removed: &'a SmallVec<[Atom; 8]>,
     classes_added: &'a SmallVec<[Atom; 8]>,
     state_changes: ElementState,
@@ -200,7 +200,7 @@ where
         let mut id_added = None;
         if snapshot.id_changed() {
             let old_id = snapshot.id_attr();
-            let current_id = element.get_id();
+            let current_id = element.id();
 
             if old_id != current_id {
                 id_removed = old_id;
@@ -239,8 +239,8 @@ where
                 snapshot: &snapshot,
                 quirks_mode: self.shared_context.quirks_mode(),
                 nth_index_cache: self.matching_context.nth_index_cache.as_mut().map(|c| &mut **c),
-                removed_id: id_removed.as_ref(),
-                added_id: id_added.as_ref(),
+                removed_id: id_removed,
+                added_id: id_added,
                 classes_removed: &classes_removed,
                 classes_added: &classes_added,
                 descendant_invalidations,

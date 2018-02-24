@@ -4,7 +4,7 @@
 
 //! Selector matching.
 
-use {Atom, LocalName, Namespace};
+use {Atom, LocalName, Namespace, WeakAtom};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use context::{CascadeInputs, QuirksMode};
 use dom::TElement;
@@ -1385,7 +1385,7 @@ impl Stylist {
     #[inline]
     pub fn may_have_rules_for_id<E>(
         &self,
-        id: &Atom,
+        id: &WeakAtom,
         element: E,
     ) -> bool
     where

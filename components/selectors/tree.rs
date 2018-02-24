@@ -53,16 +53,17 @@ pub trait Element: Sized + Clone + Debug {
 
     fn is_html_element_in_html_document(&self) -> bool;
 
-    fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
+    fn local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
 
     /// Empty string for no namespace
-    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
+    fn namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
 
-    fn attr_matches(&self,
-                    ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
-                    local_name: &<Self::Impl as SelectorImpl>::LocalName,
-                    operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>)
-                    -> bool;
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
+        local_name: &<Self::Impl as SelectorImpl>::LocalName,
+        operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>,
+    ) -> bool;
 
     fn match_non_ts_pseudo_class<F>(
         &self,
@@ -92,15 +93,17 @@ pub trait Element: Sized + Clone + Debug {
         None
     }
 
-    fn has_id(&self,
-              id: &<Self::Impl as SelectorImpl>::Identifier,
-              case_sensitivity: CaseSensitivity)
-              -> bool;
+    fn has_id(
+        &self,
+        id: &<Self::Impl as SelectorImpl>::Identifier,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
 
-    fn has_class(&self,
-                 name: &<Self::Impl as SelectorImpl>::ClassName,
-                 case_sensitivity: CaseSensitivity)
-                 -> bool;
+    fn has_class(
+        &self,
+        name: &<Self::Impl as SelectorImpl>::ClassName,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
 
     /// Returns whether this element matches `:empty`.
     ///

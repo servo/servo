@@ -282,6 +282,7 @@ pub struct ElementCascadeInputs {
 
 impl ElementCascadeInputs {
     /// Construct inputs from previous cascade results, if any.
+    #[inline]
     pub fn new_from_element_data(data: &ElementData) -> Self {
         debug_assert!(data.has_styles());
         ElementCascadeInputs {
@@ -383,8 +384,9 @@ impl fmt::Display for TraversalStatistics {
 impl TraversalStatistics {
     /// Computes the traversal time given the start time in seconds.
     pub fn finish<E, D>(&mut self, traversal: &D, parallel: bool, start: f64)
-        where E: TElement,
-              D: DomTraversal<E>,
+    where
+        E: TElement,
+        D: DomTraversal<E>,
     {
         let threshold = traversal.shared_context().options.style_statistics_threshold;
         let stylist = traversal.shared_context().stylist;
@@ -447,23 +449,27 @@ pub enum SequentialTask<E: TElement> {
     /// Entry to avoid an unused type parameter error on servo.
     Unused(SendElement<E>),
 
-    /// Performs one of a number of possible tasks related to updating animations based on the
-    /// |tasks| field. These include updating CSS animations/transitions that changed as part
-    /// of the non-animation style traversal, and updating the computed effect properties.
+    /// Performs one of a number of possible tasks related to updating
+    /// animations based on the |tasks| field. These include updating CSS
+    /// animations/transitions that changed as part of the non-animation style
+    /// traversal, and updating the computed effect properties.
     #[cfg(feature = "gecko")]
     UpdateAnimations {
         /// The target element or pseudo-element.
         el: SendElement<E>,
-        /// The before-change style for transitions. We use before-change style as the initial
-        /// value of its Keyframe. Required if |tasks| includes CSSTransitions.
+        /// The before-change style for transitions. We use before-change style
+        /// as the initial value of its Keyframe. Required if |tasks| includes
+        /// CSSTransitions.
         before_change_style: Option<Arc<ComputedValues>>,
         /// The tasks which are performed in this SequentialTask.
         tasks: UpdateAnimationsTasks
     },
 
-    /// Performs one of a number of possible tasks as a result of animation-only restyle.
-    /// Currently we do only process for resolving descendant elements that were display:none
-    /// subtree for SMIL animation.
+    /// Performs one of a number of possible tasks as a result of animation-only
+    /// restyle.
+    ///
+    /// Currently we do only process for resolving descendant elements that were
+    /// display:none subtree for SMIL animation.
     #[cfg(feature = "gecko")]
     PostAnimation {
         /// The target element.
@@ -491,17 +497,19 @@ impl<E: TElement> SequentialTask<E> {
         }
     }
 
-    /// Creates a task to update various animation-related state on
-    /// a given (pseudo-)element.
+    /// Creates a task to update various animation-related state on a given
+    /// (pseudo-)element.
     #[cfg(feature = "gecko")]
-    pub fn update_animations(el: E,
-                             before_change_style: Option<Arc<ComputedValues>>,
-                             tasks: UpdateAnimationsTasks) -> Self {
+    pub fn update_animations(
+        el: E,
+        before_change_style: Option<Arc<ComputedValues>>,
+        tasks: UpdateAnimationsTasks,
+    ) -> Self {
         use self::SequentialTask::*;
         UpdateAnimations {
             el: unsafe { SendElement::new(el) },
-            before_change_style: before_change_style,
-            tasks: tasks,
+            before_change_style,
+            tasks,
         }
     }
 
@@ -512,7 +520,7 @@ impl<E: TElement> SequentialTask<E> {
         use self::SequentialTask::*;
         PostAnimation {
             el: unsafe { SendElement::new(el) },
-            tasks: tasks,
+            tasks,
         }
     }
 }

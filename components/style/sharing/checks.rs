@@ -145,8 +145,8 @@ pub fn may_match_different_id_rules<E>(
 where
     E: TElement,
 {
-    let element_id = element.get_id();
-    let candidate_id = candidate.get_id();
+    let element_id = element.id();
+    let candidate_id = candidate.id();
 
     if element_id == candidate_id {
         return false;
@@ -155,7 +155,7 @@ where
     let stylist = &shared_context.stylist;
 
     let may_have_rules_for_element = match element_id {
-        Some(ref id) => stylist.may_have_rules_for_id(id, element),
+        Some(id) => stylist.may_have_rules_for_id(id, element),
         None => false
     };
 
@@ -164,7 +164,7 @@ where
     }
 
     match candidate_id {
-        Some(ref id) => stylist.may_have_rules_for_id(id, candidate),
+        Some(id) => stylist.may_have_rules_for_id(id, candidate),
         None => false
     }
 }

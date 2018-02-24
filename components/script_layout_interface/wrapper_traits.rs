@@ -347,8 +347,8 @@ pub trait ThreadSafeLayoutElement
 
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
-        if self.get_local_name() == &local_name!("details") &&
-           self.get_namespace() == &ns!(html) {
+        if self.local_name() == &local_name!("details") &&
+           self.namespace() == &ns!(html) {
             Some(self.with_pseudo(PseudoElementType::DetailsSummary))
         } else {
             None
@@ -357,8 +357,8 @@ pub trait ThreadSafeLayoutElement
 
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
-        if self.get_local_name() == &local_name!("details") &&
-           self.get_namespace() == &ns!(html) &&
+        if self.local_name() == &local_name!("details") &&
+           self.namespace() == &ns!(html) &&
            self.get_attr(&ns!(), &local_name!("open")).is_some() {
             Some(self.with_pseudo(PseudoElementType::DetailsContent))
         } else {

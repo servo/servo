@@ -5,7 +5,7 @@
 //! A wrapper over an element and a snapshot, that allows us to selector-match
 //! against a past state of the element.
 
-use {Atom, CaseSensitivityExt, LocalName, Namespace};
+use {Atom, CaseSensitivityExt, LocalName, Namespace, WeakAtom};
 use dom::TElement;
 use element_state::ElementState;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
@@ -44,7 +44,7 @@ pub trait ElementSnapshot : Sized {
 
     /// The ID attribute per this snapshot. Should only be called if
     /// `has_attrs()` returns true.
-    fn id_attr(&self) -> Option<Atom>;
+    fn id_attr(&self) -> Option<&WeakAtom>;
 
     /// Whether this snapshot contains the class `name`. Should only be called
     /// if `has_attrs()` returns true.
@@ -53,7 +53,8 @@ pub trait ElementSnapshot : Sized {
     /// A callback that should be called for each class of the snapshot. Should
     /// only be called if `has_attrs()` returns true.
     fn each_class<F>(&self, F)
-        where F: FnMut(&Atom);
+    where
+        F: FnMut(&Atom);
 
     /// The `xml:lang=""` or `lang=""` attribute value per this snapshot.
     fn lang_attr(&self) -> Option<AttrValue>;
@@ -63,7 +64,8 @@ pub trait ElementSnapshot : Sized {
 /// selector-match against a past state of the element.
 #[derive(Clone)]
 pub struct ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     element: E,
     cached_snapshot: Cell<Option<&'a Snapshot>>,
@@ -109,7 +111,7 @@ where
         };
 
         match snapshot.state() {
-            Some(state) => state ^ self.element.get_state(),
+            Some(state) => state ^ self.element.state(),
             None => ElementState::empty(),
         }
     }
@@ -133,7 +135,8 @@ where
 }
 
 impl<'a, E> fmt::Debug for ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Ignore other fields for now, can change later if needed.
@@ -142,7 +145,8 @@ impl<'a, E> fmt::Debug for ElementWrapper<'a, E>
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     type Impl = SelectorImpl;
 
@@ -186,7 +190,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 }
                 let state = match self.snapshot().and_then(|s| s.state()) {
                     Some(snapshot_state) => snapshot_state,
-                    None => self.element.get_state(),
+                    None => self.element.state(),
                 };
                 return state.contains(selector_flag);
             }
@@ -291,27 +295,32 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
+    #[inline]
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element_in_html_document()
     }
 
+    #[inline]
     fn is_html_slot_element(&self) -> bool {
         self.element.is_html_slot_element()
     }
 
-    fn get_local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
-        self.element.get_local_name()
+    #[inline]
+    fn local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
+        self.element.local_name()
     }
 
-    fn get_namespace(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedNamespaceUrl {
-        self.element.get_namespace()
+    #[inline]
+    fn namespace(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedNamespaceUrl {
+        self.element.namespace()
     }
 
-    fn attr_matches(&self,
-                    ns: &NamespaceConstraint<&Namespace>,
-                    local_name: &LocalName,
-                    operation: &AttrSelectorOperation<&AttrValue>)
-                    -> bool {
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&Namespace>,
+        local_name: &LocalName,
+        operation: &AttrSelectorOperation<&AttrValue>,
+    ) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => {
                 snapshot.attr_matches(ns, local_name, operation)
