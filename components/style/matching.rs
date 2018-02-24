@@ -434,7 +434,7 @@ trait PrivateMatchMethods: TElement {
             animation::start_transitions_if_applicable(
                 new_animations_sender,
                 this_opaque,
-                &**values,
+                &values,
                 new_values,
                 &shared_context.timer,
                 &possibly_expired_animations,
