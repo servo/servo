@@ -409,6 +409,7 @@ trait PrivateMatchMethods: TElement {
         let mut possibly_expired_animations = vec![];
         let shared_context = context.shared;
         if let Some(ref mut old) = *old_values {
+            // FIXME(emilio, #20116): This makes no sense.
             self.update_animations_for_cascade(
                 shared_context,
                 old,
@@ -554,7 +555,7 @@ trait PrivateMatchMethods: TElement {
         ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
     }
 
-    // FIXME(emilio): It's not clear to me that the name of this method
+    // FIXME(emilio, #20116): It's not clear to me that the name of this method
     // represents anything of what it does.
     //
     // Also, this function gets the old style, for some reason I don't really
