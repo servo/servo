@@ -11,8 +11,7 @@ use gfx::display_list::{BorderDetails, ClipScrollNode};
 use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, DisplayItem};
 use gfx::display_list::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use webrender_api::{self, ClipAndScrollInfo, ClipId};
-use webrender_api::{DisplayListBuilder, LayoutTransform};
+use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -224,19 +223,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
-                let transform = stacking_context
-                    .transform
-                    .map(|transform| LayoutTransform::from_untyped(&transform).into());
-                let perspective = stacking_context
-                    .perspective
-                    .map(|perspective| LayoutTransform::from_untyped(&perspective));
-
                 builder.push_stacking_context(
                     &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds),
                     stacking_context.scroll_policy,
-                    transform,
+                    stacking_context.transform.map(Into::into),
                     stacking_context.transform_style,
-                    perspective,
+                    stacking_context.perspective,
                     stacking_context.mix_blend_mode,
                     stacking_context.filters.clone(),
                 );

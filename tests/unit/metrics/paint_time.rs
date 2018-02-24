@@ -126,7 +126,6 @@ fn test_first_contentful_paint_setter() {
             format: PixelFormat::RGB8,
             key: None,
         },
-        image_data: None,
         stretch_size: LayoutSize::zero(),
         tile_spacing: LayoutSize::zero(),
         image_rendering: ImageRendering::Auto,

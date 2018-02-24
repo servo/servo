@@ -68,7 +68,7 @@ use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::context::malloc_size_of_persistent_local_context;
-use layout::display_list::ToLayout;
+use layout::display_list::{IndexableText, ToLayout};
 use layout::display_list::WebRenderDisplayListConverter;
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
@@ -515,6 +515,7 @@ impl LayoutThread {
                 LayoutThreadData {
                     constellation_chan: constellation_chan,
                     display_list: None,
+                    indexable_text: IndexableText::default(),
                     content_box_response: None,
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
@@ -1002,6 +1003,9 @@ impl LayoutThread {
                         }
                     }
 
+                    rw_data.indexable_text = std::mem::replace(
+                        &mut build_state.indexable_text,
+                        IndexableText::default());
                     rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
                 }
             }
@@ -1366,10 +1370,7 @@ impl LayoutThread {
                     Au::from_f32_px(point_in_node.y)
                 );
                 rw_data.text_index_response = TextIndexResponse(
-                    rw_data.display_list
-                    .as_ref()
-                    .expect("Tried to hit test with no display list")
-                    .text_index(opaque_node, point_in_node.to_layout())
+                    rw_data.indexable_text.text_index(opaque_node, point_in_node)
                 );
             },
             ReflowGoal::NodeGeometryQuery(node) => {
@@ -1426,7 +1427,7 @@ impl LayoutThread {
             ReflowGoal::ElementInnerTextQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.element_inner_text_response =
-                    process_element_inner_text_query(node, &rw_data.display_list);
+                    process_element_inner_text_query(node, &rw_data.indexable_text);
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {}
         }

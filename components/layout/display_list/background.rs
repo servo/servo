@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Calculations for CSS images and CSS backgrounds.
+//! Calculations for CSS images, backgrounds and borders.
+//!
+//! * [CSS Images Module Level 3](https://drafts.csswg.org/css-images-3/)
+//! * [CSS Backgrounds and Borders Module Level 3](https://drafts.csswg.org/css-backgrounds-3/)
 
 #![deny(unsafe_code)]
 
@@ -10,12 +13,16 @@
 
 use app_units::Au;
 use display_list::ToLayout;
-use euclid::{Point2D, Size2D, Vector2D};
-use gfx::display_list;
-use model::MaybeAuto;
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
+use gfx::display_list::{self, BorderDetails, WebRenderImageInfo};
+use model::{self, MaybeAuto};
+use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
+use style::computed_values::background_clip::single_value::T as BackgroundClip;
+use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
+use style::properties::style_structs::{self, Background};
 use style::values::computed::{Angle, GradientItem};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
-use style::values::computed::Position;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{NumberOrPercentage, Percentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
@@ -23,7 +30,8 @@ use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
-use webrender_api::{ExtendMode, GradientStop};
+use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode, ImageBorder};
+use webrender_api::{GradientStop, LayoutSize, NinePatchDescriptor, NormalBorder};
 
 /// A helper data structure for gradients.
 #[derive(Clone, Copy)]
@@ -34,9 +42,51 @@ struct StopRun {
     stop_count: usize,
 }
 
+/// Placment information for both image and gradient backgrounds.
+#[derive(Clone, Copy, Debug)]
+pub struct BackgroundPlacement {
+    /// Rendering bounds. The background will start in the uppper-left corner
+    /// and fill the whole area.
+    pub bounds: Rect<Au>,
+    /// Background tile size. Some backgrounds are repeated. These are the
+    /// dimensions of a single image of the background.
+    pub tile_size: Size2D<Au>,
+    /// Spacing between tiles. Some backgrounds are not repeated seamless
+    /// but have seams between them like tiles in real life.
+    pub tile_spacing: Size2D<Au>,
+    /// A clip area. While the background is rendered according to all the
+    /// measures above it is only shown within these bounds.
+    pub css_clip: Rect<Au>,
+    /// Whether or not the background is fixed to the viewport.
+    pub fixed: bool,
+}
+
+trait ResolvePercentage {
+    fn resolve(&self, length: u32) -> u32;
+}
+
+impl ResolvePercentage for NumberOrPercentage {
+    fn resolve(&self, length: u32) -> u32 {
+        match *self {
+            NumberOrPercentage::Percentage(p) => (p.0 * length as f32).round() as u32,
+            NumberOrPercentage::Number(n) => n.round() as u32,
+        }
+    }
+}
+
+/// Access element at index modulo the array length.
+///
+/// Obviously it does not work with empty arrays.
+///
+/// This is used for multiple layered background images.
+/// See: https://drafts.csswg.org/css-backgrounds-3/#layering
+pub fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
+    &arr[index % arr.len()]
+}
+
 /// For a given area and an image compute how big the
 /// image should be displayed on the background.
-pub fn compute_background_image_size(
+fn compute_background_image_size(
     bg_size: BackgroundSize<LengthOrPercentageOrAuto>,
     bounds_size: Size2D<Au>,
     intrinsic_size: Option<Size2D<Au>>,
@@ -96,6 +146,82 @@ pub fn compute_background_image_size(
                 ),
             }
         },
+    }
+}
+
+/// Determines where to place an element background image or gradient.
+///
+/// Photos have their resolution as intrinsic size while gradients have
+/// no intrinsic size.
+pub fn compute_background_placement(
+    bg: &Background,
+    viewport_size: Size2D<Au>,
+    absolute_bounds: Rect<Au>,
+    intrinsic_size: Option<Size2D<Au>>,
+    border: SideOffsets2D<Au>,
+    border_padding: SideOffsets2D<Au>,
+    index: usize,
+) -> BackgroundPlacement {
+    let bg_attachment = *get_cyclic(&bg.background_attachment.0, index);
+    let bg_clip = *get_cyclic(&bg.background_clip.0, index);
+    let bg_origin = *get_cyclic(&bg.background_origin.0, index);
+    let bg_position_x = get_cyclic(&bg.background_position_x.0, index);
+    let bg_position_y = get_cyclic(&bg.background_position_y.0, index);
+    let bg_repeat = get_cyclic(&bg.background_repeat.0, index);
+    let bg_size = *get_cyclic(&bg.background_size.0, index);
+
+    let css_clip = match bg_clip {
+        BackgroundClip::BorderBox => absolute_bounds,
+        BackgroundClip::PaddingBox => absolute_bounds.inner_rect(border),
+        BackgroundClip::ContentBox => absolute_bounds.inner_rect(border_padding),
+    };
+
+    let mut fixed = false;
+    let mut bounds = match bg_attachment {
+        BackgroundAttachment::Scroll => match bg_origin {
+            BackgroundOrigin::BorderBox => absolute_bounds,
+            BackgroundOrigin::PaddingBox => absolute_bounds.inner_rect(border),
+            BackgroundOrigin::ContentBox => absolute_bounds.inner_rect(border_padding),
+        },
+        BackgroundAttachment::Fixed => {
+            fixed = true;
+            Rect::new(Point2D::origin(), viewport_size)
+        },
+    };
+
+    let mut tile_size = compute_background_image_size(bg_size, bounds.size, intrinsic_size);
+
+    let mut tile_spacing = Size2D::zero();
+    let own_position = bounds.size - tile_size;
+    let pos_x = bg_position_x.to_used_value(own_position.width);
+    let pos_y = bg_position_y.to_used_value(own_position.height);
+    tile_image_axis(
+        bg_repeat.0,
+        &mut bounds.origin.x,
+        &mut bounds.size.width,
+        &mut tile_size.width,
+        &mut tile_spacing.width,
+        pos_x,
+        css_clip.origin.x,
+        css_clip.size.width,
+    );
+    tile_image_axis(
+        bg_repeat.1,
+        &mut bounds.origin.y,
+        &mut bounds.size.height,
+        &mut tile_size.height,
+        &mut tile_spacing.height,
+        pos_y,
+        css_clip.origin.y,
+        css_clip.size.height,
+    );
+
+    BackgroundPlacement {
+        bounds,
+        tile_size,
+        tile_spacing,
+        css_clip,
+        fixed,
     }
 }
 
@@ -175,7 +301,7 @@ fn tile_image(position: &mut Au, size: &mut Au, absolute_anchor_origin: Au, imag
 /// For either the x or the y axis ajust various values to account for tiling.
 ///
 /// This is done separately for both axes because the repeat keywords may differ.
-pub fn tile_image_axis(
+fn tile_image_axis(
     repeat: BackgroundRepeatKeyword,
     position: &mut Au,
     size: &mut Au,
@@ -322,8 +448,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem], total_length: Au) -> 
     }
 
     // Step 3: Evenly space stops without position.
-    // Note: Remove the + 2 if fix_gradient_stops is changed.
-    let mut stops = Vec::with_capacity(stop_items.len() + 2);
+    let mut stops = Vec::with_capacity(stop_items.len());
     let mut stop_run = None;
     for (i, stop) in stop_items.iter().enumerate() {
         let offset = match stop.position {
@@ -427,14 +552,7 @@ pub fn convert_linear_gradient(
     // This is the length of the gradient line.
     let length = Au::from_f32_px((delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
-    let mut stops = convert_gradient_stops(stops, length);
-
-    // Only clamped gradients need to be fixed because in repeating gradients
-    // there is no "first" or "last" stop because they repeat infinitly in
-    // both directions, so the rendering is always correct.
-    if !repeating {
-        fix_gradient_stops(&mut stops);
-    }
+    let stops = convert_gradient_stops(stops, length);
 
     let center = Point2D::new(size.width / 2, size.height / 2);
 
@@ -473,50 +591,13 @@ pub fn convert_radial_gradient(
         },
     };
 
-    let mut stops = convert_gradient_stops(stops, radius.width);
-    // Repeating gradients have no last stops that can be ignored. So
-    // fixup is not necessary but may actually break the gradient.
-    if !repeating {
-        fix_gradient_stops(&mut stops);
-    }
+    let stops = convert_gradient_stops(stops, radius.width);
 
     display_list::RadialGradient {
         center: center.to_layout(),
         radius: radius.to_layout(),
         stops: stops,
         extend_mode: as_gradient_extend_mode(repeating),
-    }
-}
-
-#[inline]
-/// Duplicate the first and last stops if necessary.
-///
-/// Explanation by pyfisch:
-/// If the last stop is at the same position as the previous stop the
-/// last color is ignored by webrender. This differs from the spec
-/// (I think so). The  implementations of Chrome and Firefox seem
-/// to have the same problem but work fine if the position of the last
-/// stop is smaller than 100%. (Otherwise they ignore the last stop.)
-///
-/// Similarly the first stop is duplicated if it is not placed
-/// at the start of the virtual gradient ray.
-fn fix_gradient_stops(stops: &mut Vec<GradientStop>) {
-    if stops.first().unwrap().offset > 0.0 {
-        let color = stops.first().unwrap().color;
-        stops.insert(
-            0,
-            GradientStop {
-                offset: 0.0,
-                color: color,
-            },
-        )
-    }
-    if stops.last().unwrap().offset < 1.0 {
-        let color = stops.last().unwrap().color;
-        stops.push(GradientStop {
-            offset: 1.0,
-            color: color,
-        })
     }
 }
 
@@ -553,5 +634,153 @@ fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
         LengthOrPercentage::Calc(calc) => {
             calc.to_used_value(Some(total_length)).unwrap().0 as f32 / total_length.0 as f32
         },
+    }
+}
+
+fn scale_border_radii(radii: BorderRadius, factor: f32) -> BorderRadius {
+    BorderRadius {
+        top_left: radii.top_left * factor,
+        top_right: radii.top_right * factor,
+        bottom_left: radii.bottom_left * factor,
+        bottom_right: radii.bottom_right * factor,
+    }
+}
+
+fn handle_overlapping_radii(size: LayoutSize, radii: BorderRadius) -> BorderRadius {
+    // No two corners' border radii may add up to more than the length of the edge
+    // between them. To prevent that, all radii are scaled down uniformly.
+    fn scale_factor(radius_a: f32, radius_b: f32, edge_length: f32) -> f32 {
+        let required = radius_a + radius_b;
+
+        if required <= edge_length {
+            1.0
+        } else {
+            edge_length / required
+        }
+    }
+
+    let top_factor = scale_factor(radii.top_left.width, radii.top_right.width, size.width);
+    let bottom_factor = scale_factor(
+        radii.bottom_left.width,
+        radii.bottom_right.width,
+        size.width,
+    );
+    let left_factor = scale_factor(radii.top_left.height, radii.bottom_left.height, size.height);
+    let right_factor = scale_factor(
+        radii.top_right.height,
+        radii.bottom_right.height,
+        size.height,
+    );
+    let min_factor = top_factor
+        .min(bottom_factor)
+        .min(left_factor)
+        .min(right_factor);
+    if min_factor < 1.0 {
+        scale_border_radii(radii, min_factor)
+    } else {
+        radii
+    }
+}
+
+pub fn build_border_radius(
+    abs_bounds: &Rect<Au>,
+    border_style: &style_structs::Border,
+) -> BorderRadius {
+    // TODO(cgaebel): Support border radii even in the case of multiple border widths.
+    // This is an extension of supporting elliptical radii. For now, all percentage
+    // radii will be relative to the width.
+
+    handle_overlapping_radii(
+        abs_bounds.size.to_layout(),
+        BorderRadius {
+            top_left: model::specified_border_radius(
+                border_style.border_top_left_radius,
+                abs_bounds.size,
+            ).to_layout(),
+            top_right: model::specified_border_radius(
+                border_style.border_top_right_radius,
+                abs_bounds.size,
+            ).to_layout(),
+            bottom_right: model::specified_border_radius(
+                border_style.border_bottom_right_radius,
+                abs_bounds.size,
+            ).to_layout(),
+            bottom_left: model::specified_border_radius(
+                border_style.border_bottom_left_radius,
+                abs_bounds.size,
+            ).to_layout(),
+        },
+    )
+}
+
+/// Creates a four-sided border with uniform color, width and corner radius.
+pub fn simple_normal_border(color: ColorF, style: BorderStyle) -> NormalBorder {
+    let side = BorderSide { color, style };
+    NormalBorder {
+        left: side,
+        right: side,
+        top: side,
+        bottom: side,
+        radius: BorderRadius::zero(),
+    }
+}
+
+/// Calculates radii for the inner side.
+///
+/// Radii usually describe the outer side of a border but for the lines to look nice
+/// the inner radii need to be smaller depending on the line width.
+///
+/// This is used to determine clipping areas.
+pub fn calculate_inner_border_radii(
+    mut radii: BorderRadius,
+    offsets: SideOffsets2D<Au>,
+) -> BorderRadius {
+    fn inner_length(x: f32, offset: Au) -> f32 {
+        0.0_f32.max(x - offset.to_f32_px())
+    }
+    radii.top_left.width = inner_length(radii.top_left.width, offsets.left);
+    radii.bottom_left.width = inner_length(radii.bottom_left.width, offsets.left);
+
+    radii.top_right.width = inner_length(radii.top_right.width, offsets.right);
+    radii.bottom_right.width = inner_length(radii.bottom_right.width, offsets.right);
+
+    radii.top_left.height = inner_length(radii.top_left.height, offsets.top);
+    radii.top_right.height = inner_length(radii.top_right.height, offsets.top);
+
+    radii.bottom_left.height = inner_length(radii.bottom_left.height, offsets.bottom);
+    radii.bottom_right.height = inner_length(radii.bottom_right.height, offsets.bottom);
+    radii
+}
+
+/// Given an image and a border style constructs a border image.
+///
+/// See: https://drafts.csswg.org/css-backgrounds-3/#border-images
+pub fn build_image_border_details(
+    webrender_image: WebRenderImageInfo,
+    border_style_struct: &style_structs::Border,
+) -> Option<BorderDetails> {
+    let corners = &border_style_struct.border_image_slice.offsets;
+    let border_image_repeat = &border_style_struct.border_image_repeat;
+    if let Some(image_key) = webrender_image.key {
+        Some(BorderDetails::Image(ImageBorder {
+            image_key: image_key,
+            patch: NinePatchDescriptor {
+                width: webrender_image.width,
+                height: webrender_image.height,
+                slice: SideOffsets2D::new(
+                    corners.0.resolve(webrender_image.height),
+                    corners.1.resolve(webrender_image.width),
+                    corners.2.resolve(webrender_image.height),
+                    corners.3.resolve(webrender_image.width),
+                ),
+            },
+            fill: border_style_struct.border_image_slice.fill,
+            // TODO(gw): Support border-image-outset
+            outset: SideOffsets2D::zero(),
+            repeat_horizontal: border_image_repeat.0.to_layout(),
+            repeat_vertical: border_image_repeat.1.to_layout(),
+        }))
+    } else {
+        None
     }
 }

@@ -7,10 +7,11 @@
 use app_units::Au;
 use construct::ConstructionResult;
 use context::LayoutContext;
+use display_list::IndexableText;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
 use flow::{Flow, GetBaseFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::{DisplayItem, DisplayList, OpaqueNode, ScrollOffsetMap};
+use gfx::display_list::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use inline::InlineFragmentNodeFlags;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -26,7 +27,6 @@ use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
 use std::cmp::{min, max};
-use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values::display::T as Display;
@@ -50,6 +50,8 @@ pub struct LayoutThreadData {
 
     /// The root stacking context.
     pub display_list: Option<Arc<DisplayList>>,
+
+    pub indexable_text: IndexableText,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
@@ -885,16 +887,11 @@ enum InnerTextItem {
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
 pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
-                                                       display_list: &Option<Arc<DisplayList>>) -> String {
-    if !display_list.is_some() {
-        warn!("We should have a display list at this point. Cannot get inner text");
-        return String::new();
-    }
-
+                                                       indexable_text: &IndexableText) -> String {
     // Step 1.
     let mut results = Vec::new();
     // Step 2.
-    inner_text_collection_steps(node, display_list.as_ref().unwrap(), &mut results);
+    inner_text_collection_steps(node, indexable_text, &mut results);
     let mut max_req_line_break_count = 0;
     let mut inner_text = Vec::new();
     for item in results {
@@ -933,18 +930,8 @@ pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
 // https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
 #[allow(unsafe_code)]
 fn inner_text_collection_steps<N: LayoutNode>(node: N,
-                                              display_list: &Arc<DisplayList>,
+                                              indexable_text: &IndexableText,
                                               results: &mut Vec<InnerTextItem>) {
-    // Extracts the text nodes from the display list to avoid traversing it
-    // for each child node.
-    let mut text = HashMap::new();
-    for item in &display_list.as_ref().list {
-        if let &DisplayItem::Text(ref text_content) = item {
-            let entries = text.entry(&item.base().metadata.node).or_insert(Vec::new());
-            entries.push(&text_content.text_run.text);
-        }
-    }
-
     let mut items = Vec::new();
     for child in node.traverse_preorder() {
         let node = match child.type_id() {
@@ -983,9 +970,9 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
         match child.type_id() {
             LayoutNodeType::Text => {
                 // Step 4.
-                if let Some(text_content) = text.get(&child.opaque()) {
+                if let Some(text_content) = indexable_text.get(child.opaque()) {
                     for content in text_content {
-                        items.push(InnerTextItem::Text(content.to_string()));
+                        items.push(InnerTextItem::Text(content.text_run.text.to_string()));
                     }
                 }
             },
