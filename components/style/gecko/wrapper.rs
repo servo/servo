@@ -226,7 +226,7 @@ impl<'ln> GeckoNode<'ln> {
         }
 
         if let Some(parent) = parent_el {
-            if parent.shadow_root().is_some() || parent.get_xbl_binding().is_some() {
+            if parent.shadow_root().is_some() || parent.xbl_binding().is_some() {
                 return false;
             }
         }
@@ -420,7 +420,7 @@ impl<'lb> GeckoXBLBinding<'lb> {
 
     // This duplicates the logic in Gecko's
     // nsBindingManager::GetBindingWithContent.
-    fn get_binding_with_content(&self) -> Option<Self> {
+    fn binding_with_content(&self) -> Option<Self> {
         let mut binding = *self;
         loop {
             if !binding.anon_content().is_null() {
@@ -521,21 +521,21 @@ impl<'le> GeckoElement<'le> {
     /// Returns true if this element has a shadow root.
     #[inline]
     fn shadow_root(&self) -> Option<&structs::ShadowRoot> {
-        let slots = self.get_extended_slots()?;
+        let slots = self.extended_slots()?;
         unsafe { slots.mShadowRoot.mRawPtr.as_ref() }
     }
 
     /// Returns a reference to the DOM slots for this Element, if they exist.
-    fn get_dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
+    fn dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
         let slots = self.as_node().0.mSlots as *const structs::FragmentOrElement_nsDOMSlots;
         unsafe { slots.as_ref() }
     }
 
     /// Returns a reference to the extended DOM slots for this Element.
-    fn get_extended_slots(
+    fn extended_slots(
         &self,
     ) -> Option<&structs::FragmentOrElement_nsExtendedDOMSlots> {
-        self.get_dom_slots().and_then(|s| unsafe {
+        self.dom_slots().and_then(|s| unsafe {
             (s._base.mExtendedSlots.mPtr as *const structs::FragmentOrElement_nsExtendedDOMSlots).as_ref()
         })
     }
@@ -546,7 +546,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
+    fn xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
         if !self.may_be_in_binding_manager() {
             return None;
         }
@@ -555,21 +555,20 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_xbl_binding_with_content(&self) -> Option<GeckoXBLBinding<'le>> {
-        self.get_xbl_binding()
-            .and_then(|b| b.get_binding_with_content())
+    fn xbl_binding_with_content(&self) -> Option<GeckoXBLBinding<'le>> {
+        self.xbl_binding().and_then(|b| b.binding_with_content())
     }
 
     #[inline]
     fn has_xbl_binding_with_content(&self) -> bool {
-        !self.get_xbl_binding_with_content().is_none()
+        !self.xbl_binding_with_content().is_none()
     }
 
     /// This and has_xbl_binding_parent duplicate the logic in Gecko's virtual
     /// nsINode::GetBindingParent function, which only has two implementations:
     /// one for XUL elements, and one for other elements.  We just hard code in
     /// our knowledge of those two implementations here.
-    fn get_xbl_binding_parent(&self) -> Option<Self> {
+    fn xbl_binding_parent(&self) -> Option<Self> {
         if self.is_xul_element() {
             // FIXME(heycam): Having trouble with bindgen on nsXULElement,
             // where the binding parent is stored in a member variable
@@ -579,7 +578,7 @@ impl<'le> GeckoElement<'le> {
             }
         } else {
             let binding_parent = unsafe {
-                self.get_non_xul_xbl_binding_parent_raw_content().as_ref()
+                self.non_xul_xbl_binding_parent_raw_content().as_ref()
             }.map(GeckoNode::from_content).and_then(|n| n.as_element());
 
             debug_assert!(binding_parent == unsafe {
@@ -589,9 +588,9 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
-    fn get_non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
+    fn non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
         debug_assert!(!self.is_xul_element());
-        self.get_extended_slots()
+        self.extended_slots()
             .map_or(ptr::null_mut(), |slots| slots._base.mBindingParent)
     }
 
@@ -602,7 +601,7 @@ impl<'le> GeckoElement<'le> {
             // rather than in slots.  So just get it through FFI for now.
             unsafe { bindings::Gecko_GetBindingParent(self.0).is_some() }
         } else {
-            !self.get_non_xul_xbl_binding_parent_raw_content().is_null()
+            !self.non_xul_xbl_binding_parent_raw_content().is_null()
         }
     }
 
@@ -661,8 +660,7 @@ impl<'le> GeckoElement<'le> {
 
     #[inline]
     fn may_have_class(&self) -> bool {
-        self.as_node()
-            .get_bool_flag(nsINode_BooleanFlag::ElementMayHaveClass)
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveClass)
     }
 
     #[inline]
@@ -673,7 +671,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_before_or_after_pseudo(&self, is_before: bool) -> Option<Self> {
+    fn before_or_after_pseudo(&self, is_before: bool) -> Option<Self> {
         if !self.has_properties() {
             return None;
         }
@@ -683,12 +681,11 @@ impl<'le> GeckoElement<'le> {
 
     #[inline]
     fn may_have_style_attribute(&self) -> bool {
-        self.as_node()
-            .get_bool_flag(nsINode_BooleanFlag::ElementMayHaveStyle)
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveStyle)
     }
 
     #[inline]
-    fn get_document_theme(&self) -> DocumentTheme {
+    fn document_theme(&self) -> DocumentTheme {
         let node = self.as_node();
         unsafe { Gecko_GetDocumentLWTheme(node.owner_doc().0) }
     }
@@ -999,11 +996,11 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn before_pseudo_element(&self) -> Option<Self> {
-        self.get_before_or_after_pseudo(/* is_before = */ true)
+        self.before_or_after_pseudo(/* is_before = */ true)
     }
 
     fn after_pseudo_element(&self) -> Option<Self> {
-        self.get_before_or_after_pseudo(/* is_before = */ false)
+        self.before_or_after_pseudo(/* is_before = */ false)
     }
 
     /// Ensure this accurately represents the rules that an element may ever
@@ -1017,11 +1014,11 @@ impl<'le> TElement for GeckoElement<'le> {
             return self.as_node().owner_doc().as_node();
         }
 
-        if self.get_xbl_binding().is_some() {
+        if self.xbl_binding().is_some() {
             return self.as_node();
         }
 
-        if let Some(parent) = self.get_xbl_binding_parent() {
+        if let Some(parent) = self.xbl_binding_parent() {
             return parent.as_node();
         }
 
@@ -1132,7 +1129,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         unsafe {
-            let slots = self.get_extended_slots()?;
+            let slots = self.extended_slots()?;
 
             let base_declaration: &structs::DeclarationBlock =
                 slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref()?;
@@ -1437,7 +1434,7 @@ impl<'le> TElement for GeckoElement<'le> {
         let mut current = Some(self.rule_hash_target());
 
         while let Some(element) = current {
-            if let Some(binding) = element.get_xbl_binding() {
+            if let Some(binding) = element.xbl_binding() {
                 binding.each_xbl_cascade_data(&mut f);
 
                 // If we're not looking at our original element, allow the
@@ -1456,7 +1453,7 @@ impl<'le> TElement for GeckoElement<'le> {
                 break;
             }
 
-            current = element.get_xbl_binding_parent();
+            current = element.xbl_binding_parent();
         }
 
         // If current has something, this means we cut off inheritance at some
@@ -1465,7 +1462,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
-        self.get_xbl_binding_with_content()
+        self.xbl_binding_with_content()
             .map(|b| unsafe { GeckoNode::from_content(&*b.anon_content()) })
     }
 
@@ -1806,7 +1803,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn assigned_slot(&self) -> Option<Self> {
-        let slot = self.get_extended_slots()?._base.mAssignedSlot.mRawPtr;
+        let slot = self.extended_slots()?._base.mAssignedSlot.mRawPtr;
 
         unsafe {
             Some(GeckoElement(&slot.as_ref()?._base._base._base._base))
@@ -2073,13 +2070,13 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 self.is_html_element_in_html_document()
             }
             NonTSPseudoClass::MozLWTheme => {
-                self.get_document_theme() != DocumentTheme::Doc_Theme_None
+                self.document_theme() != DocumentTheme::Doc_Theme_None
             }
             NonTSPseudoClass::MozLWThemeBrightText => {
-                self.get_document_theme() == DocumentTheme::Doc_Theme_Bright
+                self.document_theme() == DocumentTheme::Doc_Theme_Bright
             }
             NonTSPseudoClass::MozLWThemeDarkText => {
-                self.get_document_theme() == DocumentTheme::Doc_Theme_Dark
+                self.document_theme() == DocumentTheme::Doc_Theme_Dark
             }
             NonTSPseudoClass::MozWindowInactive => {
                 let state_bit = DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE;
