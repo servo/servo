@@ -384,8 +384,9 @@ impl fmt::Display for TraversalStatistics {
 impl TraversalStatistics {
     /// Computes the traversal time given the start time in seconds.
     pub fn finish<E, D>(&mut self, traversal: &D, parallel: bool, start: f64)
-    where E: TElement,
-          D: DomTraversal<E>,
+    where
+        E: TElement,
+        D: DomTraversal<E>,
     {
         let threshold = traversal.shared_context().options.style_statistics_threshold;
         let stylist = traversal.shared_context().stylist;

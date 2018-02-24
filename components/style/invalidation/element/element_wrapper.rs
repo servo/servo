@@ -135,7 +135,8 @@ where
 }
 
 impl<'a, E> fmt::Debug for ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Ignore other fields for now, can change later if needed.
@@ -144,7 +145,8 @@ impl<'a, E> fmt::Debug for ElementWrapper<'a, E>
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     type Impl = SelectorImpl;
 

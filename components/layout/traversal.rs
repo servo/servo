@@ -47,14 +47,19 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 
 #[allow(unsafe_code)]
 impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
-    where E: TElement,
-          E::ConcreteNode: LayoutNode,
-          E::FontMetricsProvider: Send,
+where
+    E: TElement,
+    E::ConcreteNode: LayoutNode,
+    E::FontMetricsProvider: Send,
 {
-    fn process_preorder<F>(&self, traversal_data: &PerLevelTraversalData,
-                           context: &mut StyleContext<E>, node: E::ConcreteNode,
-                           note_child: F)
-        where F: FnMut(E::ConcreteNode)
+    fn process_preorder<F>(
+        &self,
+        traversal_data: &PerLevelTraversalData,
+        context: &mut StyleContext<E>, node: E::ConcreteNode,
+        note_child: F,
+    )
+    where
+        F: FnMut(E::ConcreteNode)
     {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
