@@ -40,6 +40,29 @@
     }, `getComputedStyle(elem) for url() ${property} uses the resolved URL and elem.style uses the original URL`);
   }
 
+  function testNoneForProperty(property) {
+    test(function() {
+      var elem = document.createElement("div");
+      elem.style[property] = "none";
+      container.appendChild(elem);
+
+      assert_equals(
+        getComputedStyle(elem)[computedPropertyName[property] || property],
+        "none"
+      );
+      assert_equals(
+        elem.style[computedPropertyName[property] || property],
+        "none"
+      );
+    }, `getComputedStyle(elem) and elem.style for url() ${property} correctly return "none"`);
+  }
+
+  testNoneForProperty("background");
+  testNoneForProperty("backgroundImage");
+  testNoneForProperty("borderImage");
+  testNoneForProperty("listStyle");
+  testNoneForProperty("listStyleImage");
+
   testUrlsForProperty("backgroundImage", "test.jpg");
   testUrlsForProperty("background", "test.jpg", "no-repeat");
   testUrlsForProperty("borderImage", "test.jpg", "30 round");

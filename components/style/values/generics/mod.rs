@@ -32,6 +32,7 @@ pub mod size;
 pub mod svg;
 pub mod text;
 pub mod transform;
+pub mod url;
 
 // https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
 #[allow(missing_docs)]
