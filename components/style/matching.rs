@@ -238,26 +238,43 @@ trait PrivateMatchMethods: TElement {
             None => return has_new_animation_style,
         };
 
-        let has_animations = self.has_css_animations();
         let old_box_style = old.get_box();
-        let old_display_style = old_box_style.clone_display();
-        let new_display_style = new_box_style.clone_display();
 
-        // If the traverse is triggered by CSS rule changes, we need to
-        // try to update all CSS animations on the element if the element
-        // has or will have CSS animation style regardless of whether the
-        // animation is running or not.
-        // TODO: We should check which @keyframes changed/added/deleted
-        // and update only animations corresponding to those @keyframes.
-        (context.shared.traversal_flags.contains(TraversalFlags::ForCSSRuleChanges) &&
-         (has_new_animation_style || has_animations)) ||
-        !old_box_style.animations_equals(new_box_style) ||
-         (old_display_style == Display::None &&
-          new_display_style != Display::None &&
-          has_new_animation_style) ||
-         (old_display_style != Display::None &&
-          new_display_style == Display::None &&
-          has_animations)
+        let keyframes_could_have_changed =
+            context.shared.traversal_flags.contains(TraversalFlags::ForCSSRuleChanges);
+
+        // If the traversal is triggered due to changes in CSS rules changes, we
+        // need to try to update all CSS animations on the element if the
+        // element has or will have CSS animation style regardless of whether
+        // the animation is running or not.
+        //
+        // TODO: We should check which @keyframes were added/changed/deleted and
+        // update only animations corresponding to those @keyframes.
+        if keyframes_could_have_changed &&
+            (has_new_animation_style || self.has_css_animations())
+        {
+            return true;
+        }
+
+        // If the animations changed, well...
+        if !old_box_style.animations_equals(new_box_style) {
+            return true;
+        }
+
+        let old_display = old_box_style.clone_display();
+        let new_display = new_box_style.clone_display();
+
+        // If we were display: none, we may need to trigger animations.
+        if old_display == Display::None && new_display != Display::None {
+            return has_new_animation_style;
+        }
+
+        // If we are becoming display: none, we may need to stop animations.
+        if old_display != Display::None && new_display == Display::None {
+            return self.has_css_animations();
+        }
+
+        false
     }
 
     /// Create a SequentialTask for resolving descendants in a SMIL display property
