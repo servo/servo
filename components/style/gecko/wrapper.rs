@@ -1176,7 +1176,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     // FIXME(emilio): we should probably just return a reference to the Atom.
     #[inline]
-    fn id(&self) -> Option<Atom> {
+    fn id(&self) -> Option<&WeakAtom> {
         if !self.has_id() {
             return None;
         }
@@ -1185,10 +1185,12 @@ impl<'le> TElement for GeckoElement<'le> {
             bindings::Gecko_AtomAttrValue(self.0, atom!("id").as_ptr())
         };
 
+        // FIXME(emilio): Pretty sure the has_id flag is exact and we could
+        // assert here.
         if ptr.is_null() {
             None
         } else {
-            Some(Atom::from(ptr))
+            Some(unsafe { WeakAtom::new(ptr) })
         }
     }
 

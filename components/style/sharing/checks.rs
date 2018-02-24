@@ -155,7 +155,7 @@ where
     let stylist = &shared_context.stylist;
 
     let may_have_rules_for_element = match element_id {
-        Some(ref id) => stylist.may_have_rules_for_id(id, element),
+        Some(id) => stylist.may_have_rules_for_id(id, element),
         None => false
     };
 
@@ -164,7 +164,7 @@ where
     }
 
     match candidate_id {
-        Some(ref id) => stylist.may_have_rules_for_id(id, candidate),
+        Some(id) => stylist.may_have_rules_for_id(id, candidate),
         None => false
     }
 }

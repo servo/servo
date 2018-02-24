@@ -5,7 +5,7 @@
 //! A data structure to efficiently index structs containing selectors by local
 //! name, ids and hash.
 
-use {Atom, LocalName};
+use {Atom, LocalName, WeakAtom};
 use applicable_declarations::ApplicableDeclarationList;
 use context::QuirksMode;
 use dom::TElement;
@@ -176,7 +176,7 @@ impl SelectorMap<Rule> {
         // where we began.
         let init_len = matching_rules_list.len();
         if let Some(id) = rule_hash_target.id() {
-            if let Some(rules) = self.id_hash.get(&id, quirks_mode) {
+            if let Some(rules) = self.id_hash.get(id, quirks_mode) {
                 SelectorMap::get_matching_rules(
                     element,
                     rules,
@@ -316,7 +316,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     {
         // Id.
         if let Some(id) = element.id() {
-            if let Some(v) = self.id_hash.get(&id, quirks_mode) {
+            if let Some(v) = self.id_hash.get(id, quirks_mode) {
                 for entry in v.iter() {
                     if !f(&entry) {
                         return false;
@@ -374,7 +374,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         &'a self,
         element: E,
         quirks_mode: QuirksMode,
-        additional_id: Option<&Atom>,
+        additional_id: Option<&WeakAtom>,
         additional_classes: &[Atom],
         mut f: F,
     ) -> bool
@@ -535,7 +535,7 @@ impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
     }
 
     /// HashMap::get
-    pub fn get(&self, key: &Atom, quirks_mode: QuirksMode) -> Option<&V> {
+    pub fn get(&self, key: &WeakAtom, quirks_mode: QuirksMode) -> Option<&V> {
         if quirks_mode == QuirksMode::Quirks {
             self.0.get(&key.to_ascii_lowercase())
         } else {

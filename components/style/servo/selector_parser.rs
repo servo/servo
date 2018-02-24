@@ -696,8 +696,8 @@ impl ElementSnapshot for ServoElementSnapshot {
         self.attrs.is_some()
     }
 
-    fn id_attr(&self) -> Option<Atom> {
-        self.get_attr(&ns!(), &local_name!("id")).map(|v| v.as_atom().clone())
+    fn id_attr(&self) -> Option<&Atom> {
+        self.get_attr(&ns!(), &local_name!("id")).map(|v| v.as_atom())
     }
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {

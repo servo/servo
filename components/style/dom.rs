@@ -7,7 +7,7 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use {Atom, Namespace, LocalName};
+use {Atom, Namespace, LocalName, WeakAtom};
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "gecko")] use context::PostAnimationTasks;
@@ -467,7 +467,7 @@ pub trait TElement
     fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
 
     /// The ID for this element.
-    fn id(&self) -> Option<Atom>;
+    fn id(&self) -> Option<&WeakAtom>;
 
     /// Internal iterator for the classes of this element.
     fn each_class<F>(&self, callback: F) where F: FnMut(&Atom);

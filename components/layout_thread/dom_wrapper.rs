@@ -341,7 +341,7 @@ pub struct ServoLayoutElement<'le> {
 impl<'le> fmt::Debug for ServoLayoutElement<'le> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}", self.element.local_name())?;
-        if let &Some(ref id) = unsafe { &*self.element.id_attribute() } {
+        if let Some(id) = self.id() {
             write!(f, " id={}", id)?;
         }
         write!(f, "> ({:#x})", self.as_node().opaque().0)
@@ -382,9 +382,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn id(&self) -> Option<Atom> {
+    fn id(&self) -> Option<&Atom> {
         unsafe {
-            (*self.element.id_attribute()).clone()
+            (*self.element.id_attribute()).as_ref()
         }
     }
 

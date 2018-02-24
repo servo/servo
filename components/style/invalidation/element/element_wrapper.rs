@@ -5,7 +5,7 @@
 //! A wrapper over an element and a snapshot, that allows us to selector-match
 //! against a past state of the element.
 
-use {Atom, CaseSensitivityExt, LocalName, Namespace};
+use {Atom, CaseSensitivityExt, LocalName, Namespace, WeakAtom};
 use dom::TElement;
 use element_state::ElementState;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
@@ -44,7 +44,7 @@ pub trait ElementSnapshot : Sized {
 
     /// The ID attribute per this snapshot. Should only be called if
     /// `has_attrs()` returns true.
-    fn id_attr(&self) -> Option<Atom>;
+    fn id_attr(&self) -> Option<&WeakAtom>;
 
     /// Whether this snapshot contains the class `name`. Should only be called
     /// if `has_attrs()` returns true.
@@ -53,7 +53,8 @@ pub trait ElementSnapshot : Sized {
     /// A callback that should be called for each class of the snapshot. Should
     /// only be called if `has_attrs()` returns true.
     fn each_class<F>(&self, F)
-        where F: FnMut(&Atom);
+    where
+        F: FnMut(&Atom);
 
     /// The `xml:lang=""` or `lang=""` attribute value per this snapshot.
     fn lang_attr(&self) -> Option<AttrValue>;
@@ -63,7 +64,8 @@ pub trait ElementSnapshot : Sized {
 /// selector-match against a past state of the element.
 #[derive(Clone)]
 pub struct ElementWrapper<'a, E>
-    where E: TElement,
+where
+    E: TElement,
 {
     element: E,
     cached_snapshot: Cell<Option<&'a Snapshot>>,
