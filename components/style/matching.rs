@@ -227,34 +227,37 @@ trait PrivateMatchMethods: TElement {
     fn needs_animations_update(
         &self,
         context: &mut StyleContext<Self>,
-        old_values: Option<&Arc<ComputedValues>>,
+        old_values: Option<&ComputedValues>,
         new_values: &ComputedValues,
     ) -> bool {
         let new_box_style = new_values.get_box();
         let has_new_animation_style = new_box_style.specifies_animations();
+
+        let old = match old_values {
+            Some(old) => old,
+            None => return has_new_animation_style,
+        };
+
         let has_animations = self.has_css_animations();
+        let old_box_style = old.get_box();
+        let old_display_style = old_box_style.clone_display();
+        let new_display_style = new_box_style.clone_display();
 
-        old_values.map_or(has_new_animation_style, |old| {
-            let old_box_style = old.get_box();
-            let old_display_style = old_box_style.clone_display();
-            let new_display_style = new_box_style.clone_display();
-
-            // If the traverse is triggered by CSS rule changes, we need to
-            // try to update all CSS animations on the element if the element
-            // has or will have CSS animation style regardless of whether the
-            // animation is running or not.
-            // TODO: We should check which @keyframes changed/added/deleted
-            // and update only animations corresponding to those @keyframes.
-            (context.shared.traversal_flags.contains(TraversalFlags::ForCSSRuleChanges) &&
-             (has_new_animation_style || has_animations)) ||
-            !old_box_style.animations_equals(new_box_style) ||
-             (old_display_style == Display::None &&
-              new_display_style != Display::None &&
-              has_new_animation_style) ||
-             (old_display_style != Display::None &&
-              new_display_style == Display::None &&
-              has_animations)
-        })
+        // If the traverse is triggered by CSS rule changes, we need to
+        // try to update all CSS animations on the element if the element
+        // has or will have CSS animation style regardless of whether the
+        // animation is running or not.
+        // TODO: We should check which @keyframes changed/added/deleted
+        // and update only animations corresponding to those @keyframes.
+        (context.shared.traversal_flags.contains(TraversalFlags::ForCSSRuleChanges) &&
+         (has_new_animation_style || has_animations)) ||
+        !old_box_style.animations_equals(new_box_style) ||
+         (old_display_style == Display::None &&
+          new_display_style != Display::None &&
+          has_new_animation_style) ||
+         (old_display_style != Display::None &&
+          new_display_style == Display::None &&
+          has_animations)
     }
 
     /// Create a SequentialTask for resolving descendants in a SMIL display property
@@ -313,7 +316,7 @@ trait PrivateMatchMethods: TElement {
         // in addition to the unvisited styles.
 
         let mut tasks = UpdateAnimationsTasks::empty();
-        if self.needs_animations_update(context, old_values.as_ref(), new_values) {
+        if self.needs_animations_update(context, old_values.as_ref().map(|s| &**s), new_values) {
             tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
         }
 
