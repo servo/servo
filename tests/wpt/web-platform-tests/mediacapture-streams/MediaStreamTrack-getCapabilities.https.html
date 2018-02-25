@@ -1,8 +1,7 @@
 <!doctype html>
 <title>MediaStreamTrack GetCapabilities</title>
-<p class="instructions">This test checks for the presence of
-<code>echoCancellation</code> and <code>deviceId</code> fields
-in <code>MediaStreamTrack.getCapabilities()</code> method.</p>
+<p class="instructions">This test checks for the presence of audio and video properties in
+<code>MediaStreamTrack.getCapabilities()</code> method.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
@@ -13,5 +12,18 @@ in <code>MediaStreamTrack.getCapabilities()</code> method.</p>
       assert_true(undefined !== capabilities.deviceId, "MediaTrackCapabilities's deviceId should exist.");
       assert_true(undefined !== capabilities.echoCancellation, "MediaTrackCapabilities's echoCancellation should exist.");
     });
-});
+  });
+
+  promise_test(() => {
+  return navigator.mediaDevices.getUserMedia({video: true})
+    .then(stream => {
+      var capabilities = stream.getVideoTracks()[0].getCapabilities();
+      assert_true(undefined !== capabilities.deviceId, "MediaTrackCapabilities's deviceId should exist.");
+      assert_true(undefined !== capabilities.width, "MediaTrackCapabilities's width should exist.");
+      assert_true(undefined !== capabilities.height, "MediaTrackCapabilities's height should exist.");
+      assert_true(undefined !== capabilities.aspectRatio, "MediaTrackCapabilities's aspectRatio should exist.");
+      assert_true(undefined !== capabilities.frameRate, "MediaTrackCapabilities's frameRate should exist.");
+      assert_true(undefined !== capabilities.facingMode, "MediaTrackCapabilities's facingMode should exist.");
+    });
+  });
 </script>
