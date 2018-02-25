@@ -1409,19 +1409,36 @@ impl<'le> TElement for GeckoElement<'le> {
         // If we are a NAC pseudo-element, we want to get rules from our
         // rule_hash_target, that is, our originating element.
         let mut current = Some(self.rule_hash_target());
-
         while let Some(element) = current {
+            // TODO(emilio): Deal with Shadow DOM separately than with XBL
+            // (right now we still rely on get_xbl_binding_parent()).
+            //
+            // That will allow to clean up a bunch in
+            // push_applicable_declarations.
+            if let Some(shadow) = element.shadow_root() {
+                debug_assert!(!shadow.mServoStyles.mPtr.is_null());
+                let author_styles = unsafe {
+                    &*(shadow.mServoStyles.mPtr
+                        as *const structs::RawServoAuthorStyles
+                        as *const bindings::RawServoAuthorStyles)
+                };
+
+                let author_styles: &'a _ = AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
+                f(&author_styles.data, author_styles.quirks_mode);
+                if element != *self {
+                    break;
+                }
+            }
+
             if let Some(binding) = element.xbl_binding() {
                 binding.each_xbl_cascade_data(&mut f);
 
                 // If we're not looking at our original element, allow the
                 // binding to cut off style inheritance.
-                if element != *self {
-                    if !binding.inherits_style() {
-                        // Go no further; we're not inheriting style from
-                        // anything above here.
-                        break;
-                    }
+                if element != *self && !binding.inherits_style() {
+                    // Go no further; we're not inheriting style from
+                    // anything above here.
+                    break;
                 }
             }
 
