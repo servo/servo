@@ -991,7 +991,7 @@ impl<'le> TElement for GeckoElement<'le> {
             return self.as_node().owner_doc().as_node();
         }
 
-        if self.xbl_binding().is_some() {
+        if self.xbl_binding().is_some() || self.shadow_root().is_some() {
             return self.as_node();
         }
 
