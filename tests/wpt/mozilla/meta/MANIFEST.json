@@ -7845,11 +7845,6 @@
    ]
   },
   "support": {
-   "./.DS_Store": [
-    [
-     {}
-    ]
-   ],
    "./lint.whitelist": [
     [
      {}
@@ -59836,10 +59831,6 @@
   }
  },
  "paths": {
-  "./.DS_Store": [
-   "b33ceaedaa31d26973f28f257e79e0428438a47e",
-   "support"
-  ],
   "./lint.whitelist": [
    "3e30a95c5b79cc3752c21739da62f47b37c025e5",
    "support"
