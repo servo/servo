@@ -158,6 +158,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::TimeToFirstPaint => "Time To First Paint",
             ProfilerCategory::TimeToFirstContentfulPaint => "Time To First Contentful Paint",
             ProfilerCategory::TimeToInteractive => "Time to Interactive",
+            ProfilerCategory::IpcReceiver => "Blocked at IPC Receive",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)
