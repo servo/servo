@@ -550,12 +550,6 @@ pub type GridLine = GenericGridLine<Integer>;
 /// `<grid-template-rows> | <grid-template-columns>`
 pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage, Integer>;
 
-/// <length> | <percentage> | <number>
-pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
-
-/// NonNegativeLengthOrPercentage | NonNegativeNumber
-pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
-
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 /// rect(<top>, <left>, <bottom>, <right>) used by clip and image-region
 pub struct ClipRect {
