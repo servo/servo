@@ -10,7 +10,7 @@ extern crate style;
 extern crate webrender_api;
 
 use app_units::Au;
-use gfx::font::FontHandleMethods;
+use gfx::font::{FontFamilyDescriptor, FontHandleMethods};
 use gfx::font_cache_thread::{FontTemplates, FontTemplateInfo};
 use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
@@ -31,7 +31,7 @@ use style::values::computed::font::{FontWeight, SingleFontFamily};
 
 struct TestFontSource {
     handle: FontContextHandle,
-    families: HashMap<Atom, FontTemplates>,
+    families: HashMap<String, FontTemplates>,
     find_font_count: Rc<Cell<isize>>,
 }
 
@@ -44,8 +44,8 @@ impl TestFontSource {
         Self::add_face(&mut csstest_basic, "csstest-basic-regular");
 
         let mut families = HashMap::new();
-        families.insert(Atom::from("CSSTest ASCII"), csstest_ascii);
-        families.insert(Atom::from("CSSTest Basic"), csstest_basic);
+        families.insert("CSSTest ASCII".to_owned(), csstest_ascii);
+        families.insert("CSSTest Basic".to_owned(), csstest_basic);
 
         TestFontSource {
             handle: FontContextHandle::new(),
@@ -77,27 +77,23 @@ impl FontSource for TestFontSource {
         webrender_api::FontInstanceKey(webrender_api::IdNamespace(0), 0)
     }
 
-    fn find_font_template(
+    fn font_template(
         &mut self,
-        family: SingleFontFamily,
-        desc: FontTemplateDescriptor
+        template_descriptor: FontTemplateDescriptor,
+        family_descriptor: FontFamilyDescriptor,
     ) -> Option<FontTemplateInfo> {
         let handle = &self.handle;
 
         self.find_font_count.set(self.find_font_count.get() + 1);
         self.families
-            .get_mut(family.atom())
-            .and_then(|family| family.find_font_for_style(&desc, handle))
+            .get_mut(family_descriptor.name())
+            .and_then(|family| family.find_font_for_style(&template_descriptor, handle))
             .map(|template| {
                 FontTemplateInfo {
                     font_template: template,
                     font_key: webrender_api::FontKey(webrender_api::IdNamespace(0), 0),
                 }
             })
-    }
-
-    fn last_resort_font_template(&mut self, _desc: FontTemplateDescriptor) -> FontTemplateInfo {
-        unimplemented!();
     }
 }
 
