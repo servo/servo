@@ -17,7 +17,7 @@ use std::ops::{Add, Mul};
 use style_traits::{ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
-use values::{Auto, CSSFloat, Either, None_, Normal};
+use values::{Auto, CSSFloat, Either, Normal};
 use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
 use values::generics::NonNegative;
 use values::specified::NonNegativeNumber;
@@ -1061,9 +1061,6 @@ impl NonNegativeLengthOrPercentage {
             .map(NonNegative::<LengthOrPercentage>)
     }
 }
-
-/// Either a `<length>` or the `none` keyword.
-pub type LengthOrNone = Either<Length, None_>;
 
 /// Either a `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;

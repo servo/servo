@@ -5,8 +5,9 @@
 //! Computed types for box properties.
 
 use values::computed::Number;
-use values::computed::length::LengthOrPercentage;
+use values::computed::length::{LengthOrPercentage, NonNegativeLength};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
+use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 
 pub use values::specified::box_::{AnimationName, Display, OverflowClipBox, Contain};
@@ -25,3 +26,6 @@ impl AnimationIterationCount {
         GenericAnimationIterationCount::Number(1.0)
     }
 }
+
+/// A computed value for the `perspective` property.
+pub type Perspective = GenericPerspective<NonNegativeLength>;
