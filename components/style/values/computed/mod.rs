@@ -550,12 +550,6 @@ impl From<CSSInteger> for PositiveInteger {
     }
 }
 
-/// <length> | <percentage> | <number>
-pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
-
-/// NonNegativeLengthOrPercentage | NonNegativeNumber
-pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
-
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]

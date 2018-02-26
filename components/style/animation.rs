@@ -309,22 +309,6 @@ impl PropertyAnimation {
                 }
                 result
             }
-            TransitionProperty::All => {
-                TransitionProperty::each(|longhand_id| {
-                    let animation = PropertyAnimation::from_longhand(
-                        longhand_id,
-                        timing_function,
-                        duration,
-                        old_style,
-                        new_style,
-                    );
-
-                    if let Some(animation) = animation {
-                        result.push(animation);
-                    }
-                });
-                result
-            }
         }
     }
 
