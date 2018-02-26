@@ -2267,6 +2267,42 @@
      {}
     ]
    ],
+   "css/font_fallback_01.html": [
+    [
+     "/_mozilla/css/font_fallback_01.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/font_fallback_02.html": [
+    [
+     "/_mozilla/css/font_fallback_02.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/font_fallback_03.html": [
+    [
+     "/_mozilla/css/font_fallback_03.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/font_size.html": [
     [
      "/_mozilla/css/font_size.html",
@@ -8244,6 +8280,11 @@
     ]
    ],
    "css/font_face_attribute_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/font_fallback_failed_ref.html": [
     [
      {}
     ]
@@ -61498,6 +61539,22 @@
   ],
   "css/font_face_attribute_ref.html": [
    "0c8f70a37e6d56370576c7f5ba7f1df359db8f9c",
+   "support"
+  ],
+  "css/font_fallback_01.html": [
+   "1dee8f90d8d1ee1f91e9ad9d1442a3abfec5d596",
+   "reftest"
+  ],
+  "css/font_fallback_02.html": [
+   "60d61d9d51206c8b741ef7914447329722950d67",
+   "reftest"
+  ],
+  "css/font_fallback_03.html": [
+   "4ef0d7e423624e93b3f028d9baa5a11f9e8f28b2",
+   "reftest"
+  ],
+  "css/font_fallback_failed_ref.html": [
+   "ebc502a8b3e0fd4dd5eb79a1dae83ab3e6774178",
    "support"
   ],
   "css/font_size.html": [
