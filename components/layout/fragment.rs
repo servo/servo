@@ -59,10 +59,9 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
-use style::values::{self, Either};
 use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::counters::ContentItem;
-use style::values::generics::box_::VerticalAlign;
+use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
 use text;
 use text::TextRunScanner;
@@ -2477,7 +2476,7 @@ impl Fragment {
     pub fn has_filter_transform_or_perspective(&self) -> bool {
            !self.style().get_box().transform.0.is_empty() ||
            !self.style().get_effects().filter.0.is_empty() ||
-           self.style().get_box().perspective != Either::Second(values::None_)
+           self.style().get_box().perspective != Perspective::None
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
@@ -2899,7 +2898,7 @@ impl Fragment {
     /// Returns the 4D matrix representing this fragment's perspective.
     pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<LayoutTransform> {
         match self.style().get_box().perspective {
-            Either::First(length) => {
+            Perspective::Length(length) => {
                 let perspective_origin = self.style().get_box().perspective_origin;
                 let perspective_origin =
                     Point2D::new(
@@ -2923,7 +2922,7 @@ impl Fragment {
 
                 Some(pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform))
             }
-            Either::Second(values::None_) => {
+            Perspective::None => {
                 None
             }
         }
