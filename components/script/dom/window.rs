@@ -1025,6 +1025,16 @@ impl WindowMethods for Window {
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner.or_init(|| TestRunner::new(self.upcast()))
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-name
+    fn SetName(&self, name: DOMString) {
+        self.window_proxy().set_name(name);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-name
+    fn Name(&self) -> DOMString {
+        self.window_proxy().get_name()
+    }
 }
 
 impl Window {
