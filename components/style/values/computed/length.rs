@@ -902,7 +902,7 @@ pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
 pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
 
 /// Either a computed NonNegativeLength or a NonNegativeNumber value.
-pub type NonNegativeLengthOrNumber = Either<NonNegativeLength, NonNegativeNumber>;
+pub type NonNegativeLengthOrNumber = Either<NonNegativeNumber, NonNegativeLength>;
 
 /// A type for possible values for min- and max- flavors of width, height,
 /// block-size, and inline-size.
