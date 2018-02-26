@@ -26,6 +26,7 @@ use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElemen
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
+use servo_arc::Arc as ServoArc;
 use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -36,6 +37,7 @@ use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
+use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 use webrender_api::ExternalScrollId;
@@ -927,33 +929,37 @@ pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
     inner_text.into_iter().collect()
 }
 
-// https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
 #[allow(unsafe_code)]
+fn get_style<N: LayoutNode>(node: &N) -> Option<ServoArc<ComputedValues>> {
+    let node = match node.type_id() {
+        LayoutNodeType::Text => {
+            node.parent_node().unwrap()
+        },
+        _ => *node,
+    };
+
+    let element_data = unsafe {
+        node.get_style_and_layout_data().map(|d| {
+            &(*(d.ptr.as_ptr() as *mut StyleData)).element_data
+        })
+    };
+
+    element_data.map_or(None, |element_data| {
+        element_data.borrow().styles.get_primary().map_or(None, |style| {
+            Some(style.clone())
+        })
+    })
+}
+
+// https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
 fn inner_text_collection_steps<N: LayoutNode>(node: N,
                                               indexable_text: &IndexableText,
                                               results: &mut Vec<InnerTextItem>) {
     let mut items = Vec::new();
     for child in node.traverse_preorder() {
-        let node = match child.type_id() {
-            LayoutNodeType::Text => {
-                child.parent_node().unwrap()
-            },
-            _ => child,
-        };
-
-        let element_data = unsafe {
-            node.get_style_and_layout_data().map(|d| {
-                &(*(d.ptr.as_ptr() as *mut StyleData)).element_data
-            })
-        };
-
-        if element_data.is_none() {
-            continue;
-        }
-
-        let style = match element_data.unwrap().borrow().styles.get_primary() {
+        let style = match get_style(&child) {
             None => continue,
-            Some(style) => style.clone(),
+            Some(style) => style,
         };
 
         // Step 2.
@@ -988,13 +994,12 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
             _ => {},
 
         }
-
         match display {
-            Display::TableCell if !is_last_table_cell() => {
+            Display::TableCell if !is_last_table_cell(&child) => {
                 // Step 6.
                 items.push(InnerTextItem::Text(String::from("\u{0009}" /* tab */)));
             },
-            Display::TableRow if !is_last_table_row() => {
+            Display::TableRow if !is_last_table_row(&child) => {
                 // Step 7.
                 items.push(InnerTextItem::Text(String::from(
                     "\u{000A}", /* line feed */
@@ -1012,12 +1017,20 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
     results.append(&mut items);
 }
 
-fn is_last_table_cell() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
+fn is_last_table_cell<N: LayoutNode>(node: &N) -> bool {
+    !has_next_sibling(node, Display::TableCell)
 }
 
-fn is_last_table_row() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
+fn is_last_table_row<N: LayoutNode>(node: &N) -> bool {
+    !has_next_sibling(node, Display::TableRow)
+}
+
+fn has_next_sibling<N: LayoutNode>(node: &N, display: Display) -> bool {
+    node.parent_node().map_or(false, |parent| {
+        parent.next_sibling().map_or(false, |next| {
+            get_style(&next).map_or(false, |style| {
+                style.get_box().display == display
+            })
+        })
+    })
 }
