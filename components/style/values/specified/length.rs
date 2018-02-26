@@ -17,7 +17,7 @@ use std::ops::{Add, Mul};
 use style_traits::{ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
-use values::{Auto, CSSFloat, Either, None_, Normal};
+use values::{Auto, CSSFloat, Either, Normal};
 use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
 use values::generics::NonNegative;
 use values::specified::NonNegativeNumber;
@@ -640,20 +640,23 @@ impl Length {
     }
 }
 
-impl<T: Parse> Either<Length, T> {
-    /// Parse a non-negative length
-    #[inline]
-    pub fn parse_non_negative_length<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                             -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.try(|input| T::parse(context, input)) {
-            return Ok(Either::Second(v));
-        }
-        Length::parse_internal(context, input, AllowedNumericType::NonNegative, AllowQuirks::No).map(Either::First)
-    }
-}
-
 /// A wrapper of Length, whose value must be >= 0.
 pub type NonNegativeLength = NonNegative<Length>;
+
+impl Parse for NonNegativeLength {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(NonNegative(Length::parse_internal(
+            context,
+            input,
+            AllowedNumericType::NonNegative,
+            AllowQuirks::No,
+        )?))
+    }
+}
 
 impl From<NoCalcLength> for NonNegativeLength {
     #[inline]
@@ -666,17 +669,6 @@ impl From<Length> for NonNegativeLength {
     #[inline]
     fn from(len: Length) -> Self {
         NonNegative::<Length>(len)
-    }
-}
-
-impl<T: Parse> Parse for Either<NonNegativeLength, T> {
-    #[inline]
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.try(|input| T::parse(context, input)) {
-            return Ok(Either::Second(v));
-        }
-        Length::parse_internal(context, input, AllowedNumericType::NonNegative, AllowQuirks::No)
-            .map(NonNegative::<Length>).map(Either::First)
     }
 }
 
@@ -1071,9 +1063,6 @@ impl NonNegativeLengthOrPercentage {
             .map(NonNegative::<LengthOrPercentage>)
     }
 }
-
-/// Either a `<length>` or the `none` keyword.
-pub type LengthOrNone = Either<Length, None_>;
 
 /// Either a `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;

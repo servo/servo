@@ -55,3 +55,21 @@ pub enum AnimationIterationCount<Number> {
     /// The `infinite` keyword.
     Infinite,
 }
+
+/// A generic value for the `perspective` property.
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
+#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+pub enum Perspective<NonNegativeLength> {
+    /// A non-negative length.
+    Length(NonNegativeLength),
+    /// The keyword `none`.
+    None,
+}
+
+impl<L> Perspective<L> {
+    /// Returns `none`.
+    #[inline]
+    pub fn none() -> Self {
+        Perspective::None
+    }
+}

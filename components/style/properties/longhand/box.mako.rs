@@ -508,16 +508,17 @@ ${helpers.single_keyword("resize",
                          animation_value_type="discrete")}
 
 
-${helpers.predefined_type("perspective",
-                          "LengthOrNone",
-                          "Either::Second(None_)",
-                          "parse_non_negative_length",
-                          gecko_ffi_name="mChildPerspective",
-                          spec="https://drafts.csswg.org/css-transforms/#perspective",
-                          extra_prefixes="moz webkit",
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          animation_value_type="ComputedValue",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "perspective",
+    "Perspective",
+    "computed::Perspective::none()",
+    gecko_ffi_name="mChildPerspective",
+    spec="https://drafts.csswg.org/css-transforms/#perspective",
+    extra_prefixes="moz webkit",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    animation_value_type="AnimatedPerspective",
+    servo_restyle_damage = "reflow_out_of_flow",
+)}
 
 ${helpers.predefined_type("perspective-origin",
                           "position::Position",

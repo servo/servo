@@ -13,9 +13,10 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::KeyframesName;
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
+use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use values::specified::{AllowQuirks, Number};
-use values::specified::length::LengthOrPercentage;
+use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
@@ -586,5 +587,20 @@ impl Parse for Contain {
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
+    }
+}
+
+/// A specified value for the `perspective` property.
+pub type Perspective = GenericPerspective<NonNegativeLength>;
+
+impl Parse for Perspective {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GenericPerspective::None);
+        }
+        Ok(GenericPerspective::Length(NonNegativeLength::parse(context, input)?))
     }
 }
