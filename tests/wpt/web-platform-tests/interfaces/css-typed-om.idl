@@ -308,23 +308,6 @@ interface CSSPositionValue : CSSStyleValue {
     attribute CSSNumericValue y;
 };
 
-enum CSSResourceState {"unloaded", "loading", "loaded", "error"};
-
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
-interface CSSResourceValue : CSSStyleValue {
-    readonly attribute CSSResourceState state;
-};
-
-
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
-interface CSSImageValue : CSSResourceValue {
-    readonly attribute double? intrinsicWidth;
-    readonly attribute double? intrinsicHeight;
-    readonly attribute double? intrinsicRatio;
-};
-
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(USVString url)]
-interface CSSURLImageValue : CSSImageValue {
-    readonly attribute USVString url;
+interface CSSImageValue : CSSStyleValue {
 };

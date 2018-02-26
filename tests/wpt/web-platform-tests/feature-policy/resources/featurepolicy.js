@@ -247,3 +247,139 @@ function run_all_fp_tests_allow_all(
       'Feature policy "' + feature_name +
           '" can be disabled in cross-origin iframes using "allow" attribute.');
 }
+
+// This function tests that a given policy allows each feature for the correct
+// list of origins specified by the |expected_policy|.
+// Arguments:
+//     expected_policy: A list of {feature, allowlist} pairs where the feature is
+//         enabled for every origin in the allowlist, in the |policy|.
+//     policy: Either a document.policy or a iframe.policy to be tested.
+//     message: A short description of what policy is being tested.
+function test_allowlists(expected_policy, policy, message) {
+  for (var allowlist of allowlists) {
+    test(function() {
+      assert_array_equals(
+        policy.getAllowlistForFeature(allowlist.feature),
+        allowlist.allowlist);
+    }, message + ' for feature ' + allowlist.feature);
+  }
+}
+
+// This function tests that a subframe's document policy allows a given feature.
+// A feature is allowed in a frame either through inherited policy or specified
+// by iframe allow attribute.
+// Arguments:
+//     test: test created by testharness. Examples: async_test, promise_test.
+//     feature: feature name that should be allowed in the frame.
+//     src: the URL to load in the frame.
+//     allow: the allow attribute (container policy) of the iframe
+function test_allowed_feature_for_subframe(message, feature, src, allow) {
+  let frame = document.createElement('iframe');
+  if (typeof allow !== 'undefined') {
+    frame.allow = allow;
+  }
+  promise_test(function() {
+    frame.src = src;
+    return new Promise(function(resolve, reject) {
+      window.addEventListener('message', function handler(evt) {
+        resolve(evt.data);
+      }, { once: true });
+      document.body.appendChild(frame);
+    }).then(function(data) {
+      assert_true(data.includes(feature), feature);
+    });
+  }, message);
+}
+
+// This function tests that a subframe's document policy disallows a given
+// feature. A feature is allowed in a frame either through inherited policy or
+// specified by iframe allow attribute.
+// Arguments:
+//     test: test created by testharness. Examples: async_test, promise_test.
+//     feature: feature name that should not be allowed in the frame.
+//     src: the URL to load in the frame.
+//     allow: the allow attribute (container policy) of the iframe
+function test_disallowed_feature_for_subframe(message, feature, src, allow) {
+  let frame = document.createElement('iframe');
+  if (typeof allow !== 'undefined') {
+    frame.allow = allow;
+  }
+  promise_test(function() {
+    frame.src = src;
+    return new Promise(function(resolve, reject) {
+      window.addEventListener('message', function handler(evt) {
+        resolve(evt.data);
+      }, { once: true });
+      document.body.appendChild(frame);
+    }).then(function(data) {
+      assert_false(data.includes(feature), feature);
+    });
+  }, message);
+}
+
+// This function tests that a subframe with header policy defined on a given
+// feature allows and disallows the feature as expected.
+// Arguments:
+//     feature: feature name.
+//     frame_header_policy: either *, 'self' or 'none', defines the frame
+//                          document's header policy on |feature|.
+//     src: the URL to load in the frame.
+//     test_expects: contains 6 expected results of either |feature| is allowed
+//                   or not inside of a local or remote iframe nested inside
+//                   the subframe given the header policy to be either *,
+//                   'slef', or 'none'.
+//     test_name: name of the test.
+function test_subframe_header_policy(
+    feature, frame_header_policy, src, test_expects, test_name) {
+  let frame = document.createElement('iframe');
+  promise_test(function() {
+    frame.src = src + '?pipe=sub|header(Feature-Policy,' + feature + ' '
+        + frame_header_policy + ';)';
+    return new Promise(function(resolve, reject) {
+      let results = [];
+      window.addEventListener('message', function handler(evt) {
+        results.push(evt.data);
+        if (results.length >= 6) {
+          resolve(results);
+        }
+      });
+      document.body.appendChild(frame);
+    }).then(function(results) {
+      for (var j = 0; j < results.length; j++) {
+        var data = results[j];
+
+        function test_result(message, test_expect) {
+          if (test_expect) {
+            assert_true(data.allowedfeatures.includes(feature), message);
+          } else {
+            assert_false(data.allowedfeatures.includes(feature), message);
+          }
+        }
+
+        if (data.frame === 'local') {
+          if (data.policy === '*') {
+            test_result('local_all:', test_expects.local_all);
+          }
+          if (data.policy === '\'self\'') {
+            test_result('local_self:', test_expects.local_self);
+          }
+          if (data.policy === '\'none\'') {
+            test_result('local_none:', test_expects.local_none);
+          }
+        }
+
+        if (data.frame === 'remote') {
+          if (data.policy === '*') {
+            test_result('remote_all:', test_expects.remote_all);
+          }
+          if (data.policy === '\'self\'') {
+            test_result('remote_self:', test_expects.remote_self);
+          }
+          if (data.policy === '\'none\'') {
+            test_result('remote_none:', test_expects.remote_none);
+          }
+        }
+      }
+    });
+  }, test_name);
+}

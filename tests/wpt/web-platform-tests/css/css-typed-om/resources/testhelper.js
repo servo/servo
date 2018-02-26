@@ -66,12 +66,6 @@ function assert_style_value_equals(a, b) {
     case 'CSSMatrixComponent':
       assert_matrix_approx_equals(a.matrix, b.matrix, 1e-6);
       break;
-    case 'CSSURLImageValue':
-      assert_equals(a.instrinsicWidth, b.instrinsicWidth);
-      assert_equals(a.instrinsicHeight, b.instrinsicHeight);
-      assert_equals(a.instrinsicRatio, b.instrinsicRatio);
-      assert_equals(a.url, b.url);
-      break;
     default:
       assert_equals(a, b);
       break;
