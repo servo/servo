@@ -13,10 +13,10 @@ use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::FileManagerThreadMsg;
+use profile_traits::ipc;
 use servo_url::ServoUrl;
 use std::default::Default;
 use uuid::Uuid;
@@ -118,7 +118,7 @@ impl URL {
         if let Ok(url) = ServoUrl::parse(&url) {
              if let Ok((id, _)) = parse_blob_url(&url) {
                 let resource_threads = global.resource_threads();
-                let (tx, rx) = ipc::channel().unwrap();
+                let (tx, rx) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
                 let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
                 let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 

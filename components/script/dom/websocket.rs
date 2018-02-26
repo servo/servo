@@ -29,6 +29,7 @@ use net_traits::{CoreResourceMsg, FetchChannels};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::MessageData;
 use net_traits::request::{RequestInit, RequestMode};
+use profile_traits::ipc as ProfiledIpc;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use servo_url::ServoUrl;
@@ -181,7 +182,8 @@ impl WebSocket {
                 IpcReceiver<WebSocketDomAction>) = ipc::channel().unwrap();
         let (resource_event_sender, dom_event_receiver):
                 (IpcSender<WebSocketNetworkEvent>,
-                IpcReceiver<WebSocketNetworkEvent>) = ipc::channel().unwrap();
+                 ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>) =
+            ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
         // Step 8.
         let request = RequestInit {

@@ -2258,12 +2258,14 @@ dependencies = [
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "servo_allocator 0.0.1",
+ "servo_config 0.0.1",
 ]
 
 [[package]]
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
+ "bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "energy-monitor 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "energymon 0.3.0 (git+https://github.com/energymon/energymon-rust.git)",
  "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",

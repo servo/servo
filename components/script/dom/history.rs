@@ -8,17 +8,17 @@ use dom::bindings::codegen::Bindings::LocationBinding::LocationBinding::Location
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::TraversalDirection;
+use profile_traits::ipc::channel;
 use script_traits::ScriptMsg;
 
 enum PushOrReplace {
@@ -128,7 +128,8 @@ impl HistoryMethods for History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let (sender, recv) = ipc::channel().expect("Failed to create channel to send jsh length.");
+        let (sender, recv) =
+            channel(self.global().time_profiler_chan().clone()).expect("Failed to create channel to send jsh length.");
         let msg = ScriptMsg::JointSessionHistoryLength(sender);
         let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
         Ok(recv.recv().unwrap())
