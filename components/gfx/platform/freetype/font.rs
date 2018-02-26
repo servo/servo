@@ -187,7 +187,7 @@ impl FontHandleMethods for FontHandle {
         } else {
             FontStretchKeyword::Normal
         }.compute();
-        NonNegative(percentage)
+        FontStretch(NonNegative(percentage))
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

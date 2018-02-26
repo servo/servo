@@ -490,22 +490,22 @@ impl Parse for FontStretch {
 }
 
 impl ToComputedValue for FontStretch {
-    type ComputedValue = NonNegative<ComputedPercentage>;
+    type ComputedValue = computed::FontStretch;
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             FontStretch::Stretch(ref percentage) => {
-                NonNegative(percentage.to_computed_value(context))
+                computed::FontStretch(NonNegative(percentage.to_computed_value(context)))
             },
             FontStretch::Keyword(ref kw) => {
-                NonNegative(kw.compute())
+                computed::FontStretch(NonNegative(kw.compute()))
             },
             FontStretch::System(_) => self.compute_system(context),
         }
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        FontStretch::Stretch(Percentage::from_computed_value(&computed.0))
+        FontStretch::Stretch(Percentage::from_computed_value(&(computed.0).0))
     }
 }
 

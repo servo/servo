@@ -2305,13 +2305,10 @@ pub mod style_structs {
                 pub fn compute_font_hash(&mut self) {
                     // Corresponds to the fields in
                     // `gfx::font_template::FontTemplateDescriptor`.
-                    //
-                    // FIXME(emilio): Where's font-style?
                     let mut hasher: FnvHasher = Default::default();
-                    // We hash the floating point number with four decimal
-                    // places.
-                    hasher.write_u64((self.font_weight.0 * 10000.).trunc() as u64);
-                    hasher.write_u64(((self.font_stretch.0).0 * 10000.).trunc() as u64);
+                    self.font_weight.hash(&mut hasher);
+                    self.font_stretch.hash(&mut hasher);
+                    self.font_style.hash(&mut hasher);
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()
                 }

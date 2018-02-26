@@ -10,10 +10,10 @@ use fontconfig::fontconfig::{FcFontSetList, FcObjectSetCreate, FcObjectSetDestro
 use fontconfig::fontconfig::{FcObjectSetAdd, FcPatternGetInteger};
 use libc;
 use libc::{c_char, c_int};
-use std::borrow::ToOwned;
 use std::ffi::CString;
 use std::ptr;
 use super::c_str_to_string;
+use text::util::is_cjk;
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";
@@ -132,12 +132,25 @@ pub fn system_default_family(generic_name: &str) -> Option<String> {
     }
 }
 
-pub fn last_resort_font_families() -> Vec<String> {
-    vec!(
-        "Fira Sans".to_owned(),
-        "DejaVu Sans".to_owned(),
-        "Arial".to_owned()
-    )
-}
-
 pub static SANS_SERIF_FONT_FAMILY: &'static str = "DejaVu Sans";
+
+// Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
+pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
+    let mut families = vec!(
+        "DejaVu Serif",
+        "FreeSerif",
+        "DejaVu Sans",
+        "FreeSans",
+    );
+
+    if let Some(codepoint) = codepoint {
+        if is_cjk(codepoint) {
+            families.push("TakaoPGothic");
+            families.push("Droid Sans Fallback");
+            families.push("WenQuanYi Micro Hei");
+            families.push("NanumGothic");
+        }
+    }
+
+    families
+}

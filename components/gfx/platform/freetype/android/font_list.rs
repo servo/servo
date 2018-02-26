@@ -6,6 +6,8 @@ use std::cell::RefCell;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
+use text::util::is_cjk;
+use ucd::{Codepoint, UnicodeBlock};
 use xml5ever::Attribute;
 use xml5ever::driver::parse_document;
 use xml5ever::rcdom::*;
@@ -470,12 +472,61 @@ pub fn system_default_family(generic_name: &str) -> Option<String> {
     }
 }
 
-pub fn last_resort_font_families() -> Vec<String> {
-    vec!(
-        "sans-serif".to_owned(),
-        "Droid Sans".to_owned(),
-        "serif".to_owned(),
-    )
+// Based on gfxAndroidPlatform::GetCommonFallbackFonts() in Gecko
+pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
+    let mut families = vec!();
+
+    if let Some(block) = codepoint.and_then(|c| c.block()) {
+        match block {
+            UnicodeBlock::Armenian => {
+                families.push("Droid Sans Armenian");
+            }
+
+            UnicodeBlock::Hebrew => {
+                families.push("Droid Sans Hebrew");
+            }
+
+            UnicodeBlock::Arabic => {
+                families.push("Droid Sans Arabic");
+            }
+
+            UnicodeBlock::Devanagari => {
+                families.push("Noto Sans Devanagari");
+                families.push("Droid Sans Devanagari");
+            }
+
+            UnicodeBlock::Tamil => {
+                families.push("Noto Sans Tamil");
+                families.push("Droid Sans Tamil");
+            }
+
+            UnicodeBlock::Thai => {
+                families.push("Noto Sans Thai");
+                families.push("Droid Sans Thai");
+            }
+
+            UnicodeBlock::Georgian |
+            UnicodeBlock::GeorgianSupplement => {
+                families.push("Droid Sans Georgian");
+            }
+
+            UnicodeBlock::Ethiopic |
+            UnicodeBlock::EthiopicSupplement => {
+                families.push("Droid Sans Ethiopic");
+            }
+
+            _ => {
+                if is_cjk(codepoint.unwrap()) {
+                    families.push("MotoyaLMaru");
+                    families.push("Noto Sans CJK JP");
+                    families.push("Droid Sans Japanese");
+                }
+            }
+        }
+    }
+
+    families.push("Droid Sans Fallback");
+    families
 }
 
 pub static SANS_SERIF_FONT_FAMILY: &'static str = "sans-serif";

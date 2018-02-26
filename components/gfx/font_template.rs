@@ -19,12 +19,17 @@ use style::values::computed::font::FontWeight;
 /// to be expanded or refactored when we support more of the font styling parameters.
 ///
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct FontTemplateDescriptor {
     pub weight: FontWeight,
     pub stretch: FontStretch,
     pub style: FontStyle,
 }
+
+
+/// FontTemplateDescriptor contains floats, which are not Eq because of NaN. However,
+/// we know they will never be NaN, so we can manually implement Eq.
+impl Eq for FontTemplateDescriptor {}
 
 fn style_to_number(s: &FontStyle) -> f32 {
     use style::values::generics::font::FontStyle as GenericFontStyle;
@@ -66,7 +71,7 @@ impl FontTemplateDescriptor {
         // 0 <= weightPart <= 800
         let weight_part = (self.weight.0 - other.weight.0).abs();
         // 0 <= stretchPart <= 8
-        let stretch_part = ((self.stretch.0).0 - (other.stretch.0).0).abs();
+        let stretch_part = (self.stretch.value() - other.stretch.value()).abs();
         style_part + weight_part + stretch_part
     }
 }
