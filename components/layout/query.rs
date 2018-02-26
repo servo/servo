@@ -990,11 +990,11 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
         }
 
         match display {
-            Display::TableCell if !is_last_table_cell() => {
+            Display::TableCell if !is_last_table_cell(&child) => {
                 // Step 6.
                 items.push(InnerTextItem::Text(String::from("\u{0009}" /* tab */)));
             },
-            Display::TableRow if !is_last_table_row() => {
+            Display::TableRow if !is_last_table_row(&child) => {
                 // Step 7.
                 items.push(InnerTextItem::Text(String::from(
                     "\u{000A}", /* line feed */
@@ -1012,12 +1012,22 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
     results.append(&mut items);
 }
 
-fn is_last_table_cell() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
+fn is_last_table_cell<N: LayoutNode>(node: &N) -> bool {
+    !has_next_sibling(node, LayoutElementType::HTMLTableCellElement)
 }
 
-fn is_last_table_row() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
+fn is_last_table_row<N: LayoutNode>(node: &N) -> bool {
+    !has_next_sibling(node, LayoutElementType::HTMLTableRowElement)
+}
+
+fn has_next_sibling<N: LayoutNode>(node: &N, element_type: LayoutElementType) -> bool {
+    if node.type_id() != LayoutNodeType::Element(element_type) {
+        return true;
+    }
+
+    if let Some(next) = node.next_sibling() {
+        next.type_id() == LayoutNodeType::Element(element_type)
+    } else {
+        false
+    }
 }
