@@ -1525,11 +1525,6 @@ impl<'le> TElement for GeckoElement<'le> {
             };
 
             match transition_property {
-                TransitionProperty::All => {
-                    if TransitionProperty::any(property_check_helper) {
-                        return true;
-                    }
-                },
                 TransitionProperty::Unsupported(..) => {},
                 TransitionProperty::Shorthand(ref shorthand) => {
                     if shorthand.longhands().iter().any(property_check_helper) {

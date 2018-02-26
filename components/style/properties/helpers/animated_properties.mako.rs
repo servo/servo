@@ -82,11 +82,6 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 // beforehand.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum TransitionProperty {
-    /// All, any transitionable property changing should generate a transition.
-    ///
-    /// FIXME(emilio): Can we remove this and just use
-    /// Shorthand(ShorthandId::All)?
-    All,
     /// A shorthand.
     Shorthand(ShorthandId),
     /// A longhand transitionable property.
@@ -102,7 +97,6 @@ impl ToCss for TransitionProperty {
         W: Write,
     {
         match *self {
-            TransitionProperty::All => dest.write_str("all"),
             TransitionProperty::Shorthand(ref id) => dest.write_str(id.name()),
             TransitionProperty::Longhand(ref id) => dest.write_str(id.name()),
             TransitionProperty::Unsupported(ref id) => id.to_css(dest),
@@ -113,6 +107,12 @@ impl ToCss for TransitionProperty {
 trivial_to_computed_value!(TransitionProperty);
 
 impl TransitionProperty {
+    /// Returns `all`.
+    #[inline]
+    pub fn all() -> Self {
+        TransitionProperty::Shorthand(ShorthandId::All)
+    }
+
     /// Iterates over each longhand property.
     pub fn each<F: FnMut(&LonghandId) -> ()>(mut cb: F) {
         % for prop in data.longhands:
@@ -120,20 +120,6 @@ impl TransitionProperty {
                 cb(&LonghandId::${prop.camel_case});
             % endif
         % endfor
-    }
-
-    /// Iterates over every longhand property that is not
-    /// TransitionProperty::All, stopping and returning true when the provided
-    /// callback returns true for the first time.
-    pub fn any<F: FnMut(&LonghandId) -> bool>(mut cb: F) -> bool {
-        % for prop in data.longhands:
-            % if prop.transitionable:
-                if cb(&LonghandId::${prop.camel_case}) {
-                    return true;
-                }
-            % endif
-        % endfor
-        false
     }
 
     /// Parse a transition-property value.
@@ -144,14 +130,12 @@ impl TransitionProperty {
         //
         // FIXME: This should handle aliases too.
         pub enum StaticId {
-            All,
             Longhand(LonghandId),
             Shorthand(ShorthandId),
         }
         ascii_case_insensitive_phf_map! {
             static_id -> StaticId = {
-                "all" => StaticId::All,
-                % for prop in data.shorthands_except_all():
+                % for prop in data.shorthands:
                 "${prop.name}" => StaticId::Shorthand(ShorthandId::${prop.camel_case}),
                 % endfor
                 % for prop in data.longhands:
@@ -164,7 +148,6 @@ impl TransitionProperty {
         let ident = input.expect_ident()?;
 
         Ok(match static_id(&ident) {
-            Some(&StaticId::All) => TransitionProperty::All,
             Some(&StaticId::Longhand(id)) => TransitionProperty::Longhand(id),
             Some(&StaticId::Shorthand(id)) => TransitionProperty::Shorthand(id),
             None => {
@@ -179,7 +162,9 @@ impl TransitionProperty {
     #[cfg(feature = "gecko")]
     pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
         Ok(match *self {
-            TransitionProperty::All => nsCSSPropertyID::eCSSPropertyExtra_all_properties,
+            TransitionProperty::Shorthand(ShorthandId::All) => {
+                nsCSSPropertyID::eCSSPropertyExtra_all_properties
+            }
             TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
             TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
             TransitionProperty::Unsupported(..) => return Err(()),
@@ -203,7 +188,9 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                 TransitionProperty::Shorthand(ShorthandId::${prop.camel_case})
             }
             % endfor
-            nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
+            nsCSSPropertyID::eCSSPropertyExtra_all_properties => {
+                TransitionProperty::Shorthand(ShorthandId::All)
+            }
             _ => {
                 panic!("non-convertible nsCSSPropertyID")
             }
