@@ -4795,10 +4795,10 @@ fn static_assert() {
         use values::Either;
 
         match v {
-            Either::Second(non_negative_number) => {
+            Either::First(non_negative_number) => {
                 self.gecko.mTabSize.set_value(CoordDataValue::Factor(non_negative_number.0));
             }
-            Either::First(non_negative_length) => {
+            Either::Second(non_negative_length) => {
                 self.gecko.mTabSize.set(non_negative_length);
             }
         }
@@ -4809,8 +4809,8 @@ fn static_assert() {
         use values::Either;
 
         match self.gecko.mTabSize.as_value() {
-            CoordDataValue::Coord(coord) => Either::First(Au(coord).into()),
-            CoordDataValue::Factor(number) => Either::Second(From::from(number)),
+            CoordDataValue::Coord(coord) => Either::Second(Au(coord).into()),
+            CoordDataValue::Factor(number) => Either::First(From::from(number)),
             _ => unreachable!(),
         }
     }
