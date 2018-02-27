@@ -830,12 +830,21 @@ impl TableLikeFlow for BlockFlow {
                 sizes[i - 1].0 = cmp::max(sizes[i - 1].0, overflow);
             }
 
-            // Third pass: Assign block sizes to rows and cells
+
+            // Our current border-box position.
+            let block_start_border_padding = self.fragment.border_padding.block_start;
+            let mut current_block_offset = block_start_border_padding;
+            let mut has_rows = false;
+
+            // Third pass: Assign block sizes and positions to rows, cells, and other children
             // [expensive: iterates over cells]
+            // At this point, `current_block_offset` is at the content edge of our box. Now iterate
+            // over children.
             let mut effects_rows = 0;
             let mut i = 0;
             for kid in self.base.child_iter_mut() {
                 if kid.is_table_row() {
+                    has_rows = true;
                     let row = kid.as_mut_table_row();
                     if row.mut_base().restyle_damage.contains(ServoRestyleDamage::REFLOW) ||
                        effects_rows != 0 {
@@ -844,32 +853,14 @@ impl TableLikeFlow for BlockFlow {
                             .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW |
                                     ServoRestyleDamage::REFLOW);
                     }
+                    current_block_offset = current_block_offset +
+                        border_spacing_for_row(&self.fragment, row,
+                                               block_direction_spacing);
                     // may happen for empty rows
                     if effects_rows != 0 {
                         effects_rows -= 1;
                     }
                     i += 1;
-                }
-            }
-
-            // Our current border-box position.
-            let block_start_border_padding = self.fragment.border_padding.block_start;
-            let mut current_block_offset = block_start_border_padding;
-            let mut has_rows = false;
-
-            // Fourth pass: Compute block positions
-            // XXXManishearth this can be merged with the third pass
-
-            // At this point, `current_block_offset` is at the content edge of our box. Now iterate
-            // over children.
-            for kid in self.base.child_iter_mut() {
-                // Account for spacing or collapsed borders.
-                if kid.is_table_row() {
-                    has_rows = true;
-                    let child_table_row = kid.as_table_row();
-                    current_block_offset = current_block_offset +
-                        border_spacing_for_row(&self.fragment, child_table_row,
-                                               block_direction_spacing)
                 }
 
                 // At this point, `current_block_offset` is at the border edge of the child.
@@ -914,7 +905,7 @@ impl TableLikeFlow for BlockFlow {
             self.fragment.border_box.start.b = Au(0);
             self.base.position.size.block = current_block_offset;
 
-            // Fifth pass: Assign absolute position info
+            // Fourth pass: Assign absolute position info
             // Write in the size of the relative containing block for children. (This information
             // is also needed to handle RTL.)
             for kid in self.base.child_iter_mut() {
