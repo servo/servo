@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+ <head>
+  <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+  <title>2.7 Safe passing of structured data</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+ <div id="log"></div>
+
+<script type="text/javascript">
+    // Note, this test is designed to be in a similar style to
+    // html/infrastructure/safe-passing-of-structured-data/structuredclone_0.html
+    // It is in a separate file to avoid causing a syntax error on UAs which
+    // do not yet support BigInt, so the rest of the test can continue running.
+
+    var worker;
+    var testCollection;
+    setup(function()
+    {
+        //the worker is used for each test in sequence
+        //worker's callback will be set for each test
+        //worker's internal onmessage echoes the data back to this thread through postMessage
+        worker = new Worker("./echo.js");
+        testCollection = [
+            function() {
+                var t = async_test("Primitive BigInt is cloned");
+                t.id = 0;
+                worker.onmessage = t.step_func(function(e) {assert_equals(1n, e.data, "1n === event.data"); t.done(); });
+                t.step(function() { worker.postMessage(1n);});
+            },
+            function() {
+                var t = async_test("Instance of BigInt is cloned");
+                t.id = 1;
+                var obj;
+                t.step(function() {obj = Object(1n);});
+                worker.onmessage = t.step_func(function(e) {
+                    assert_equals(obj.constructor, e.data.constructor, "BigInt === event.data.constructor");
+                    assert_equals(obj.valueOf(), e.data.valueOf(), "(BigInt(1n)).valueOf() === event.data.valueOf()");
+                    t.done();
+                });
+                t.step(function() { worker.postMessage(obj);});
+            },
+        ];
+    }, {explicit_done:true});
+
+    //Callback for result_callback
+    //queues the next test in the array testCollection
+    //serves to make test execution sequential from the async worker callbacks
+    //alternatively, we would have to create a worker for each test
+    function testFinished(test) {
+        if(test.id < testCollection.length - 1) {
+            //queue the function so that stack remains shallow
+            queue(testCollection[test.id+1]);
+        } else {
+            //when the last test has run, explicitly end test suite
+            done();
+        }
+    }
+    function queue(func) {
+        step_timeout(func, 10);
+    }
+
+    add_result_callback(testFinished);
+    //start the first test manually
+    queue(testCollection[0]);
+
+
+
+
+ </script>
+</body>
+</html>
+

@@ -45,12 +45,6 @@ class Browser(object):
         """Name of the browser-specific wptrunner requirements file"""
         return NotImplemented
 
-    def prepare_environment(self):
-        """Do any additional setup of the environment required to start the
-           browser successfully
-        """
-        pass
-
 
 class Firefox(Browser):
     """Firefox-specific interface.
@@ -262,26 +256,6 @@ class Chrome(Browser):
         output = call(self.binary, "--version")
         return re.search(r"[0-9\.]+( [a-z]+)?$", output.strip()).group(0)
 
-    def prepare_environment(self):
-        # https://bugs.chromium.org/p/chromium/issues/detail?id=713947
-        logger.debug("DBUS_SESSION_BUS_ADDRESS %s" % os.environ.get("DBUS_SESSION_BUS_ADDRESS"))
-        if "DBUS_SESSION_BUS_ADDRESS" not in os.environ:
-            if find_executable("dbus-launch"):
-                logger.debug("Attempting to start dbus")
-                dbus_conf = subprocess.check_output(["dbus-launch"])
-                logger.debug(dbus_conf)
-
-                # From dbus-launch(1):
-                #
-                # > When dbus-launch prints bus information to standard output,
-                # > by default it is in a simple key-value pairs format.
-                for line in dbus_conf.strip().split("\n"):
-                    key, _, value = line.partition("=")
-                    os.environ[key] = value
-            else:
-                logger.critical("dbus not running and can't be started")
-                sys.exit(1)
-
 
 class ChromeAndroid(Browser):
     """Chrome-specific interface for Android.
@@ -363,26 +337,6 @@ class Opera(Browser):
         """Retrieve the release version of the installed browser."""
         output = call(self.binary, "--version")
         return re.search(r"[0-9\.]+( [a-z]+)?$", output.strip()).group(0)
-
-    def prepare_environment(self):
-        # https://bugs.chromium.org/p/chromium/issues/detail?id=713947
-        logger.debug("DBUS_SESSION_BUS_ADDRESS %s" % os.environ.get("DBUS_SESSION_BUS_ADDRESS"))
-        if "DBUS_SESSION_BUS_ADDRESS" not in os.environ:
-            if find_executable("dbus-launch"):
-                logger.debug("Attempting to start dbus")
-                dbus_conf = subprocess.check_output(["dbus-launch"])
-                logger.debug(dbus_conf)
-
-                # From dbus-launch(1):
-                #
-                # > When dbus-launch prints bus information to standard output,
-                # > by default it is in a simple key-value pairs format.
-                for line in dbus_conf.strip().split("\n"):
-                    key, _, value = line.partition("=")
-                    os.environ[key] = value
-            else:
-                logger.critical("dbus not running and can't be started")
-                sys.exit(1)
 
 
 class Edge(Browser):

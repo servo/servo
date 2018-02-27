@@ -8,8 +8,8 @@ order: 12
 
 Certain test scenarios require more than just static HTML
 generation. This is supported through the
-[wptserve](http://wptserve.readthedocs.io) server. Several scenarios
-in particular are common:
+[wptserve](http://wptserve.readthedocs.io) server, and controlled by
+[file name flags][file names]. Several scenarios in particular are common:
 
 
 ### Tests Involving Multiple Origins
@@ -85,3 +85,6 @@ responses. It also provides the ability to write Python scripts that
 have access to request data and can manipulate the content and timing
 of the response. For details see the
 [wptserve documentation](https://wptserve.readthedocs.org).
+
+
+[file names]: {{ site.baseurl }}{% link _writing-tests/file-names.md %}
