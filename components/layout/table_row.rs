@@ -19,7 +19,7 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
 use serde::{Serialize, Serializer};
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
 use style::computed_values::border_collapse::T as BorderCollapse;
@@ -155,7 +155,7 @@ impl TableRowFlow {
             let cell_total;
             {
                 let cell = kid.as_mut_table_cell();
-                row_span = cell.row_span as i32;
+                row_span = cell.row_span;
                 column_span = cell.column_span as usize;
                 cell_total = cell.total_block_size();
             }
@@ -168,14 +168,13 @@ impl TableRowFlow {
                     incoming_rowspan_data.resize(col + 1, Au(0));
                 }
                 // XXXManishearth rowspan can overflow the table
-                let border_sizes_spanned = border_info[row_index + row_span as usize - 1].1 -
-                                           border_info[row_index].1;
+                let border_sizes_spanned = get_spanned_border_size(border_info, row_index, row_span);
                 cell_block_size_pressure -= border_sizes_spanned;
 
                 // XXXManishearth in case this row covers more than cell_block_size_pressure / row_span
                 // anyway, we should use that to reduce the pressure on future rows. This will
                 // require an extra slow-path loop, sadly.
-                cell_block_size_pressure /= row_span;
+                cell_block_size_pressure /= row_span as i32;
                 incoming_rowspan_data[col] = cell_block_size_pressure;
             }
 
@@ -207,8 +206,8 @@ impl TableRowFlow {
                 let row_sizes = sizes[index..].iter()
                                               .take(child_table_cell.row_span as usize)
                                               .fold(Au(0), |accum, size| accum + size.0);
-                let border_sizes_spanned = sizes[index + child_table_cell.row_span as usize - 1].1 -
-                                           sizes[index].1;
+                let border_sizes_spanned =
+                    get_spanned_border_size(sizes, index, child_table_cell.row_span);
                 row_sizes + border_sizes_spanned
             } else {
                 block_size
@@ -269,6 +268,14 @@ impl TableRowFlow {
                 **collapsed_block_direction_border_width_for_table
         }
     }
+}
+
+/// Given an array of (_, cumulative_border_size), the index of the
+/// current row, and the >1 row_span of the cell, calculate the amount of
+/// border-spacing spanned by the row
+fn get_spanned_border_size(sizes: &[(Au, Au)], row_index: usize, row_span: u32) -> Au {
+    let last_row_idx = min(row_index + row_span as usize - 1, sizes.len() - 1);
+    sizes[last_row_idx].1 - sizes[row_index].1
 }
 
 impl Flow for TableRowFlow {
