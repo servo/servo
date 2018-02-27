@@ -27,7 +27,6 @@ use style::computed_values::border_spacing::T as BorderSpacing;
 use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
-use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::{Color, LengthOrPercentageOrAuto};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
@@ -114,76 +113,76 @@ impl TableRowFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    pub fn compute_block_size_table_row_base<'a>(&'a mut self, layout_context: &LayoutContext, incoming_rowspan_data: &mut Vec<Au>) -> Au {
-        if self.block_flow.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
-            fn include_sizes_from_previous_rows(col: &mut usize,
-                                                incoming_rowspan: &[u32],
-                                                incoming_rowspan_data: &mut Vec<Au>,
-                                                max_block_size: &mut Au) {
-                while let Some(span) = incoming_rowspan.get(*col) {
-                    if *span <= 1 {
-                        break;
-                    }
-                    *max_block_size = max(*max_block_size, incoming_rowspan_data[*col]);
-                    *col += 1;
+    pub fn compute_block_size_table_row_base<'a>(&'a mut self, layout_context: &LayoutContext,
+                                                 incoming_rowspan_data: &mut Vec<Au>) -> Au {
+        // XXXManishearth skip this when the REFLOW flag is unset if it is not affected by other
+        // rows
+        fn include_sizes_from_previous_rows(col: &mut usize,
+                                            incoming_rowspan: &[u32],
+                                            incoming_rowspan_data: &mut Vec<Au>,
+                                            max_block_size: &mut Au) {
+            while let Some(span) = incoming_rowspan.get(*col) {
+                if *span <= 1 {
+                    break;
                 }
+                *max_block_size = max(*max_block_size, incoming_rowspan_data[*col]);
+                *col += 1;
             }
-            // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of
-            // all cells).
-            let mut max_block_size = Au(0);
-            let thread_id = self.block_flow.base.thread_id;
-            let content_box = self.block_flow.base.position
-                - self.block_flow.fragment.border_padding
-                - self.block_flow.fragment.margin;
-
-            let mut col = 0;
-            for kid in self.block_flow.base.child_iter_mut() {
-                include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan, incoming_rowspan_data, &mut max_block_size);
-                kid.place_float_if_applicable();
-                if !kid.base().flags.is_float() {
-                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                         thread_id,
-                                                                         content_box);
-                }
-
-                let row_span;
-                let column_span;
-                let cell_total;
-                {
-                    let cell = kid.as_mut_table_cell();
-                    row_span = cell.row_span as i32;
-                    column_span = cell.column_span as usize;
-                    cell_total = cell.total_block_size();
-                }
-                let child_node = kid.mut_base();
-                child_node.position.start.b = Au(0);
-                let cell_block_size = max(cell_total, child_node.position.size.block);
-                max_block_size = max(max_block_size, cell_block_size / row_span);
-
-                if row_span > 1 {
-                    if incoming_rowspan_data.len() <= col {
-                        incoming_rowspan_data.resize(col + 1, Au(0));
-                    }
-                    incoming_rowspan_data[col] = cell_block_size / row_span;
-                }
-                col += column_span;
-            }
-            include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan, incoming_rowspan_data, &mut max_block_size);
-
-            let mut block_size = max_block_size;
-            // TODO: Percentage block-size
-            block_size = match MaybeAuto::from_style(self.block_flow
-                                                         .fragment
-                                                         .style()
-                                                         .content_block_size(),
-                                                     Au(0)) {
-                MaybeAuto::Auto => block_size,
-                MaybeAuto::Specified(value) => max(value, block_size),
-            };
-            block_size
-        } else {
-            self.block_flow.base.position.size.block 
         }
+        // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of
+        // all cells).
+        let mut max_block_size = Au(0);
+        let thread_id = self.block_flow.base.thread_id;
+        let content_box = self.block_flow.base.position
+            - self.block_flow.fragment.border_padding
+            - self.block_flow.fragment.margin;
+
+        let mut col = 0;
+        for kid in self.block_flow.base.child_iter_mut() {
+            include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan,
+                                             incoming_rowspan_data, &mut max_block_size);
+            kid.place_float_if_applicable();
+            if !kid.base().flags.is_float() {
+                kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
+                                                                     thread_id,
+                                                                     content_box);
+            }
+
+            let row_span;
+            let column_span;
+            let cell_total;
+            {
+                let cell = kid.as_mut_table_cell();
+                row_span = cell.row_span as i32;
+                column_span = cell.column_span as usize;
+                cell_total = cell.total_block_size();
+            }
+            let child_node = kid.mut_base();
+            child_node.position.start.b = Au(0);
+            let cell_block_size = max(cell_total, child_node.position.size.block);
+            max_block_size = max(max_block_size, cell_block_size / row_span);
+
+            if row_span > 1 {
+                if incoming_rowspan_data.len() <= col {
+                    incoming_rowspan_data.resize(col + 1, Au(0));
+                }
+                incoming_rowspan_data[col] = cell_block_size / row_span;
+            }
+            col += column_span;
+        }
+        include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan, incoming_rowspan_data, &mut max_block_size);
+
+        let mut block_size = max_block_size;
+        // TODO: Percentage block-size
+        block_size = match MaybeAuto::from_style(self.block_flow
+                                                     .fragment
+                                                     .style()
+                                                     .content_block_size(),
+                                                 Au(0)) {
+            MaybeAuto::Auto => block_size,
+            MaybeAuto::Specified(value) => max(value, block_size),
+        };
+        block_size
     }
 
     pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[Au], index: usize, effects_rows: &mut u32) {
