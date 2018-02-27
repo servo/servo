@@ -25,7 +25,6 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use devtools_traits::CSSError;
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
@@ -1926,7 +1925,7 @@ impl ScriptThread {
         node.dirty(NodeDamage::NodeStyleDamaged);
 
         if let Some(el) = node.downcast::<Element>() {
-            if &*window.GetComputedStyle(el, None).Display() == "none" {
+            if !el.has_css_layout_box() {
                 return;
             }
         }
