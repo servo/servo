@@ -244,8 +244,10 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString whiteSpace;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString white-space;
 
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString writingMode;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString writing-mode;
+  [Pref="layout.writing-mode.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString writingMode;
+  [Pref="layout.writing-mode.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString writing-mode;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString letterSpacing;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString letter-spacing;
@@ -385,13 +387,20 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString imageRendering;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString image-rendering;
 
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnCount;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString column-count;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnWidth;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString column-width;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columns;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnGap;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString column-gap;
+  [Pref="layout.column-count.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columnCount;
+  [Pref="layout.column-count.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString column-count;
+  [Pref="layout.column-width.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columnWidth;
+  [Pref="layout.column-width.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString column-width;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columns;
+  [Pref="layout.column-gap.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columnGap;
+  [Pref="layout.column-gap.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString column-gap;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString transition;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDuration;
