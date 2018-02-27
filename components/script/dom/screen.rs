@@ -8,11 +8,12 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::reflector::DomObject;
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::TypedSize2D;
-use ipc_channel::ipc;
+use profile_traits::receiver;
 use script_traits::ScriptMsg;
 use style_traits::CSSPixel;
 use webrender_api::DeviceUintSize;
@@ -37,8 +38,13 @@ impl Screen {
                            ScreenBinding::Wrap)
     }
 
+<<<<<<< HEAD
     fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
         let (send, recv) = ipc::channel::<DeviceUintSize>().unwrap();
+=======
+    fn screen_size(&self) -> Size2D<u32> {
+        let (send, recv) = receiver::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
+>>>>>>> One file implements new channel
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();
@@ -46,8 +52,13 @@ impl Screen {
         (screen.to_f32() / dpr).to_u32()
     }
 
+<<<<<<< HEAD
     fn screen_avail_size(&self) -> TypedSize2D<u32, CSSPixel> {
         let (send, recv) = ipc::channel::<DeviceUintSize>().unwrap();
+=======
+    fn screen_avail_size(&self) -> Size2D<u32> {
+        let (send, recv) = receiver::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
+>>>>>>> One file implements new channel
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();
