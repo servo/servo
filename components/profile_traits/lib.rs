@@ -14,6 +14,7 @@ extern crate log;
 #[macro_use] extern crate serde;
 extern crate servo_config;
 extern crate signpost;
+extern crate bincode;
 
 #[allow(unsafe_code)]
 pub mod energy;
