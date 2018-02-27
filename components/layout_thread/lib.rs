@@ -457,11 +457,12 @@ impl LayoutThread {
             opts::get().initial_window_size.to_f32() * TypedScale::new(1.0),
             TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0)));
 
-        let configuration =
-            rayon::Configuration::new().num_threads(layout_threads)
-                                       .start_handler(|_| thread_state::initialize_layout_worker_thread());
+        let workers =
+            rayon::ThreadPoolBuilder::new().num_threads(layout_threads)
+                                           .start_handler(|_| thread_state::initialize_layout_worker_thread())
+                                           .build();
         let parallel_traversal = if layout_threads > 1 {
-            Some(rayon::ThreadPool::new(configuration).expect("ThreadPool creation failed"))
+            Some(workers.expect("ThreadPool creation failed"))
         } else {
             None
         };
@@ -709,7 +710,7 @@ impl LayoutThread {
                 let mut txn = webrender_api::Transaction::new();
                 txn.scroll_node_with_id(
                     webrender_api::LayoutPoint::from_untyped(&point),
-                    webrender_api::ScrollNodeIdType::ExternalScrollId(state.scroll_id),
+                    state.scroll_id,
                     webrender_api::ScrollClamping::ToContentBounds
                 );
                 self.webrender_api.send_transaction(self.webrender_document, txn);
