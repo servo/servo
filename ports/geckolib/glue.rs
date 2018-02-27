@@ -1150,6 +1150,40 @@ pub unsafe extern "C" fn Servo_AuthorStyles_AppendStyleSheet(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_AuthorStyles_InsertStyleSheetBefore(
+    styles: RawServoAuthorStylesBorrowedMut,
+    sheet: *const ServoStyleSheet,
+    before_sheet: *const ServoStyleSheet,
+) {
+    let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    styles.stylesheets.insert_stylesheet_before(
+        None,
+        GeckoStyleSheet::new(sheet),
+        GeckoStyleSheet::new(before_sheet),
+        &guard,
+    );
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_AuthorStyles_RemoveStyleSheet(
+    styles: RawServoAuthorStylesBorrowedMut,
+    sheet: *const ServoStyleSheet,
+) {
+    let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    styles.stylesheets.remove_stylesheet(
+        None,
+        GeckoStyleSheet::new(sheet),
+        &guard,
+    );
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn Servo_AuthorStyles_ForceDirty(
     styles: RawServoAuthorStylesBorrowedMut,
 ) {
