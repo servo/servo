@@ -2033,6 +2033,73 @@ pub mod root {
                 );
             }
             #[repr(C)]
+            #[derive(Debug)]
+            pub struct Rule {
+                pub _base: root::nsISupports,
+                pub _base_1: root::nsWrapperCache,
+                pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
+                pub mSheet: *mut root::mozilla::StyleSheet,
+                pub mParentRule: *mut root::mozilla::css::GroupRule,
+                pub mLineNumber: u32,
+                pub mColumnNumber: u32,
+            }
+            pub type Rule_HasThreadSafeRefCnt = root::mozilla::FalseType;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Rule_cycleCollection {
+                pub _base: root::nsXPCOMCycleCollectionParticipant,
+            }
+            #[test]
+            fn bindgen_test_layout_Rule_cycleCollection() {
+                assert_eq!(
+                    ::std::mem::size_of::<Rule_cycleCollection>(),
+                    16usize,
+                    concat!("Size of: ", stringify!(Rule_cycleCollection))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<Rule_cycleCollection>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(Rule_cycleCollection))
+                );
+            }
+            impl Clone for Rule_cycleCollection {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
+            pub const Rule_UNKNOWN_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 0;
+            pub const Rule_CHARSET_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 1;
+            pub const Rule_IMPORT_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 2;
+            pub const Rule_NAMESPACE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 3;
+            pub const Rule_STYLE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 4;
+            pub const Rule_MEDIA_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 5;
+            pub const Rule_FONT_FACE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 6;
+            pub const Rule_PAGE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 7;
+            pub const Rule_KEYFRAME_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 8;
+            pub const Rule_KEYFRAMES_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 9;
+            pub const Rule_DOCUMENT_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 10;
+            pub const Rule_SUPPORTS_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 11;
+            pub const Rule_FONT_FEATURE_VALUES_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 12;
+            pub const Rule_COUNTER_STYLE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 13;
+            pub type Rule__bindgen_ty_1 = u32;
+            extern "C" {
+                #[link_name = "\u{1}_ZN7mozilla3css4Rule21_cycleCollectorGlobalE"]
+                pub static mut Rule__cycleCollectorGlobal: root::mozilla::css::Rule_cycleCollection;
+            }
+            #[test]
+            fn bindgen_test_layout_Rule() {
+                assert_eq!(
+                    ::std::mem::size_of::<Rule>(),
+                    64usize,
+                    concat!("Size of: ", stringify!(Rule))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<Rule>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(Rule))
+                );
+            }
+            #[repr(C)]
             pub struct ErrorReporter {
                 pub mError: root::nsAutoString,
                 pub mErrorLine: ::nsstring::nsStringRepr,
@@ -2202,73 +2269,6 @@ pub mod root {
                 eURLPrefix = 1,
                 eDomain = 2,
                 eRegExp = 3,
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct Rule {
-                pub _base: root::nsISupports,
-                pub _base_1: root::nsWrapperCache,
-                pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
-                pub mSheet: *mut root::mozilla::StyleSheet,
-                pub mParentRule: *mut root::mozilla::css::GroupRule,
-                pub mLineNumber: u32,
-                pub mColumnNumber: u32,
-            }
-            pub type Rule_HasThreadSafeRefCnt = root::mozilla::FalseType;
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct Rule_cycleCollection {
-                pub _base: root::nsXPCOMCycleCollectionParticipant,
-            }
-            #[test]
-            fn bindgen_test_layout_Rule_cycleCollection() {
-                assert_eq!(
-                    ::std::mem::size_of::<Rule_cycleCollection>(),
-                    16usize,
-                    concat!("Size of: ", stringify!(Rule_cycleCollection))
-                );
-                assert_eq!(
-                    ::std::mem::align_of::<Rule_cycleCollection>(),
-                    8usize,
-                    concat!("Alignment of ", stringify!(Rule_cycleCollection))
-                );
-            }
-            impl Clone for Rule_cycleCollection {
-                fn clone(&self) -> Self {
-                    *self
-                }
-            }
-            pub const Rule_UNKNOWN_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 0;
-            pub const Rule_CHARSET_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 1;
-            pub const Rule_IMPORT_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 2;
-            pub const Rule_NAMESPACE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 3;
-            pub const Rule_STYLE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 4;
-            pub const Rule_MEDIA_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 5;
-            pub const Rule_FONT_FACE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 6;
-            pub const Rule_PAGE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 7;
-            pub const Rule_KEYFRAME_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 8;
-            pub const Rule_KEYFRAMES_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 9;
-            pub const Rule_DOCUMENT_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 10;
-            pub const Rule_SUPPORTS_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 11;
-            pub const Rule_FONT_FEATURE_VALUES_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 12;
-            pub const Rule_COUNTER_STYLE_RULE: root::mozilla::css::Rule__bindgen_ty_1 = 13;
-            pub type Rule__bindgen_ty_1 = u32;
-            extern "C" {
-                #[link_name = "\u{1}_ZN7mozilla3css4Rule21_cycleCollectorGlobalE"]
-                pub static mut Rule__cycleCollectorGlobal: root::mozilla::css::Rule_cycleCollection;
-            }
-            #[test]
-            fn bindgen_test_layout_Rule() {
-                assert_eq!(
-                    ::std::mem::size_of::<Rule>(),
-                    64usize,
-                    concat!("Size of: ", stringify!(Rule))
-                );
-                assert_eq!(
-                    ::std::mem::align_of::<Rule>(),
-                    8usize,
-                    concat!("Alignment of ", stringify!(Rule))
-                );
             }
         }
         #[repr(C)]
@@ -2600,17 +2600,17 @@ pub mod root {
             }
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
+            pub struct Promise {
+                _unused: [u8; 0],
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
             pub struct ClientSource {
                 _unused: [u8; 0],
             }
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct CSSImportRule {
-                _unused: [u8; 0],
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct ShadowRoot {
                 _unused: [u8; 0],
             }
             /// Struct that stores info on an attribute. The name and value must either both
@@ -3941,6 +3941,10 @@ pub mod root {
                     concat!("Alignment of ", stringify!(DOMRectReadOnly))
                 );
             }
+            pub const ShadowRootMode_Open: root::mozilla::dom::ShadowRootMode = 0;
+            pub const ShadowRootMode_Closed: root::mozilla::dom::ShadowRootMode = 1;
+            pub const ShadowRootMode_EndGuard_: root::mozilla::dom::ShadowRootMode = 2;
+            pub type ShadowRootMode = u8;
             #[repr(C)]
             pub struct Element {
                 pub _base: root::mozilla::dom::FragmentOrElement,
@@ -4179,6 +4183,109 @@ pub mod root {
                 Replace = 0,
                 Accumulate = 1,
                 EndGuard_ = 2,
+            }
+            #[repr(C)]
+            pub struct DocumentFragment {
+                pub _base: root::mozilla::dom::FragmentOrElement,
+                pub _base_1: root::nsIDOMDocumentFragment,
+                pub mHost: root::RefPtr<root::mozilla::dom::Element>,
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct DocumentFragment_cycleCollection {
+                pub _base: root::mozilla::dom::FragmentOrElement_cycleCollection,
+            }
+            #[test]
+            fn bindgen_test_layout_DocumentFragment_cycleCollection() {
+                assert_eq!(
+                    ::std::mem::size_of::<DocumentFragment_cycleCollection>(),
+                    16usize,
+                    concat!("Size of: ", stringify!(DocumentFragment_cycleCollection))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<DocumentFragment_cycleCollection>(),
+                    8usize,
+                    concat!(
+                        "Alignment of ",
+                        stringify!(DocumentFragment_cycleCollection)
+                    )
+                );
+            }
+            impl Clone for DocumentFragment_cycleCollection {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
+            extern "C" {
+                #[link_name = "\u{1}_ZN7mozilla3dom16DocumentFragment21_cycleCollectorGlobalE"]
+                pub static mut DocumentFragment__cycleCollectorGlobal:
+                    root::mozilla::dom::DocumentFragment_cycleCollection;
+            }
+            #[test]
+            fn bindgen_test_layout_DocumentFragment() {
+                assert_eq!(
+                    ::std::mem::size_of::<DocumentFragment>(),
+                    120usize,
+                    concat!("Size of: ", stringify!(DocumentFragment))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<DocumentFragment>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(DocumentFragment))
+                );
+            }
+            #[repr(C)]
+            pub struct ShadowRoot {
+                pub _base: root::mozilla::dom::DocumentFragment,
+                pub _base_1: root::mozilla::dom::DocumentOrShadowRoot,
+                pub _base_2: root::nsStubMutationObserver,
+                pub mMode: root::mozilla::dom::ShadowRootMode,
+                pub mServoStyles: root::mozilla::UniquePtr<root::RawServoAuthorStyles>,
+                pub mStyleRuleMap: root::mozilla::UniquePtr<root::mozilla::ServoStyleRuleMap>,
+                pub mSlotMap: [u64; 4usize],
+                pub mIsComposedDocParticipant: bool,
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct ShadowRoot_cycleCollection {
+                pub _base: root::mozilla::dom::DocumentFragment_cycleCollection,
+            }
+            #[test]
+            fn bindgen_test_layout_ShadowRoot_cycleCollection() {
+                assert_eq!(
+                    ::std::mem::size_of::<ShadowRoot_cycleCollection>(),
+                    16usize,
+                    concat!("Size of: ", stringify!(ShadowRoot_cycleCollection))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<ShadowRoot_cycleCollection>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(ShadowRoot_cycleCollection))
+                );
+            }
+            impl Clone for ShadowRoot_cycleCollection {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
+            pub type ShadowRoot_SlotArray = u8;
+            extern "C" {
+                #[link_name = "\u{1}_ZN7mozilla3dom10ShadowRoot21_cycleCollectorGlobalE"]
+                pub static mut ShadowRoot__cycleCollectorGlobal:
+                    root::mozilla::dom::ShadowRoot_cycleCollection;
+            }
+            #[test]
+            fn bindgen_test_layout_ShadowRoot() {
+                assert_eq!(
+                    ::std::mem::size_of::<ShadowRoot>(),
+                    256usize,
+                    concat!("Size of: ", stringify!(ShadowRoot))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<ShadowRoot>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(ShadowRoot))
+                );
             }
             #[repr(C)]
             #[derive(Debug, Copy)]
@@ -5642,7 +5749,8 @@ pub mod root {
         pub const UpdateAnimationsTasks_CSSTransitions: root::mozilla::UpdateAnimationsTasks = 2;
         pub const UpdateAnimationsTasks_EffectProperties: root::mozilla::UpdateAnimationsTasks = 4;
         pub const UpdateAnimationsTasks_CascadeResults: root::mozilla::UpdateAnimationsTasks = 8;
-        pub const UpdateAnimationsTasks_DisplayChangedFromNone: root::mozilla::UpdateAnimationsTasks = 16;
+        pub const UpdateAnimationsTasks_DisplayChangedFromNone:
+            root::mozilla::UpdateAnimationsTasks = 16;
         pub type UpdateAnimationsTasks = u8;
         pub const ParsingMode_Default: root::mozilla::ParsingMode = 0;
         pub const ParsingMode_AllowUnitlessLength: root::mozilla::ParsingMode = 1;
@@ -6426,6 +6534,11 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct Encoding {
+            _unused: [u8; 0],
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct DOMEventTargetHelper {
             _unused: [u8; 0],
         }
         pub const UseCounter_eUseCounter_UNKNOWN: root::mozilla::UseCounter = -1;
@@ -9169,6 +9282,156 @@ pub mod root {
             );
         }
         #[repr(C)]
+        #[derive(Debug)]
+        pub struct BindingStyleRule {
+            pub _base: root::mozilla::css::Rule,
+        }
+        #[test]
+        fn bindgen_test_layout_BindingStyleRule() {
+            assert_eq!(
+                ::std::mem::size_of::<BindingStyleRule>(),
+                64usize,
+                concat!("Size of: ", stringify!(BindingStyleRule))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<BindingStyleRule>(),
+                8usize,
+                concat!("Alignment of ", stringify!(BindingStyleRule))
+            );
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct ServoStyleRuleDeclaration {
+            pub _base: root::nsDOMCSSDeclaration,
+            pub mDecls: root::RefPtr<root::mozilla::ServoDeclarationBlock>,
+        }
+        #[test]
+        fn bindgen_test_layout_ServoStyleRuleDeclaration() {
+            assert_eq!(
+                ::std::mem::size_of::<ServoStyleRuleDeclaration>(),
+                40usize,
+                concat!("Size of: ", stringify!(ServoStyleRuleDeclaration))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<ServoStyleRuleDeclaration>(),
+                8usize,
+                concat!("Alignment of ", stringify!(ServoStyleRuleDeclaration))
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoStyleRuleDeclaration>())).mDecls as *const _
+                        as usize
+                },
+                32usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoStyleRuleDeclaration),
+                    "::",
+                    stringify!(mDecls)
+                )
+            );
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct ServoStyleRule {
+            pub _base: root::mozilla::BindingStyleRule,
+            pub _base_1: u64,
+            pub mRawRule: root::RefPtr<root::RawServoStyleRule>,
+            pub mDecls: root::mozilla::ServoStyleRuleDeclaration,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct ServoStyleRule_cycleCollection {
+            pub _base: root::mozilla::css::Rule_cycleCollection,
+        }
+        #[test]
+        fn bindgen_test_layout_ServoStyleRule_cycleCollection() {
+            assert_eq!(
+                ::std::mem::size_of::<ServoStyleRule_cycleCollection>(),
+                16usize,
+                concat!("Size of: ", stringify!(ServoStyleRule_cycleCollection))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<ServoStyleRule_cycleCollection>(),
+                8usize,
+                concat!("Alignment of ", stringify!(ServoStyleRule_cycleCollection))
+            );
+        }
+        impl Clone for ServoStyleRule_cycleCollection {
+            fn clone(&self) -> Self {
+                *self
+            }
+        }
+        extern "C" {
+            #[link_name = "\u{1}_ZN7mozilla14ServoStyleRule21_cycleCollectorGlobalE"]
+            pub static mut ServoStyleRule__cycleCollectorGlobal:
+                root::mozilla::ServoStyleRule_cycleCollection;
+        }
+        #[test]
+        fn bindgen_test_layout_ServoStyleRule() {
+            assert_eq!(
+                ::std::mem::size_of::<ServoStyleRule>(),
+                120usize,
+                concat!("Size of: ", stringify!(ServoStyleRule))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<ServoStyleRule>(),
+                8usize,
+                concat!("Alignment of ", stringify!(ServoStyleRule))
+            );
+            assert_eq!(
+                unsafe { &(*(::std::ptr::null::<ServoStyleRule>())).mRawRule as *const _ as usize },
+                72usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoStyleRule),
+                    "::",
+                    stringify!(mRawRule)
+                )
+            );
+            assert_eq!(
+                unsafe { &(*(::std::ptr::null::<ServoStyleRule>())).mDecls as *const _ as usize },
+                80usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoStyleRule),
+                    "::",
+                    stringify!(mDecls)
+                )
+            );
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct ServoStyleRuleMap {
+            pub mTable: root::mozilla::ServoStyleRuleMap_Hashtable,
+        }
+        pub type ServoStyleRuleMap_Hashtable = [u64; 4usize];
+        #[test]
+        fn bindgen_test_layout_ServoStyleRuleMap() {
+            assert_eq!(
+                ::std::mem::size_of::<ServoStyleRuleMap>(),
+                32usize,
+                concat!("Size of: ", stringify!(ServoStyleRuleMap))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<ServoStyleRuleMap>(),
+                8usize,
+                concat!("Alignment of ", stringify!(ServoStyleRuleMap))
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoStyleRuleMap>())).mTable as *const _ as usize
+                },
+                0usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoStyleRuleMap),
+                    "::",
+                    stringify!(mTable)
+                )
+            );
+        }
+        #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct ComputedTimingFunction {
             pub mType: root::nsTimingFunction_Type,
@@ -11457,11 +11720,6 @@ pub mod root {
                 )
             );
         }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct ServoStyleRuleMap {
-            _unused: [u8; 0],
-        }
         pub const OriginFlags_UserAgent: root::mozilla::OriginFlags = root::mozilla::OriginFlags(1);
         pub const OriginFlags_User: root::mozilla::OriginFlags = root::mozilla::OriginFlags(2);
         pub const OriginFlags_Author: root::mozilla::OriginFlags = root::mozilla::OriginFlags(4);
@@ -12511,6 +12769,9 @@ pub mod root {
         NS_ERROR_UC_UPDATE_BUILD_PREFIX_FAILURE = 2154758153,
         NS_ERROR_UC_UPDATE_FAIL_TO_WRITE_DISK = 2154758154,
         NS_ERROR_UC_UPDATE_PROTOCOL_PARSER_ERROR = 2154758155,
+        NS_ERROR_UC_PARSER_MISSING_PARAM = 2154758156,
+        NS_ERROR_UC_PARSER_DECODE_FAILURE = 2154758157,
+        NS_ERROR_UC_PARSER_UNKNOWN_THREAT = 2154758158,
         NS_ERROR_INTERNAL_ERRORRESULT_JS_EXCEPTION = 2154823681,
         NS_ERROR_INTERNAL_ERRORRESULT_DOMEXCEPTION = 2154823682,
         NS_ERROR_INTERNAL_ERRORRESULT_EXCEPTION_ON_JSCONTEXT = 2154823683,
@@ -19660,6 +19921,7 @@ pub mod root {
         pub _base: root::nsISupports,
         pub _base_1: root::mozilla::dom::DispatcherTrait,
         pub mHostObjectURIs: root::nsTArray<root::nsCString>,
+        pub mEventTargetObjects: [u64; 4usize],
         pub mIsDying: bool,
     }
     #[repr(C)]
@@ -19671,7 +19933,7 @@ pub mod root {
     fn bindgen_test_layout_nsIGlobalObject() {
         assert_eq!(
             ::std::mem::size_of::<nsIGlobalObject>(),
-            32usize,
+            64usize,
             concat!("Size of: ", stringify!(nsIGlobalObject))
         );
         assert_eq!(
@@ -19698,7 +19960,7 @@ pub mod root {
     fn bindgen_test_layout_nsIScriptGlobalObject() {
         assert_eq!(
             ::std::mem::size_of::<nsIScriptGlobalObject>(),
-            32usize,
+            64usize,
             concat!("Size of: ", stringify!(nsIScriptGlobalObject))
         );
         assert_eq!(
@@ -21868,6 +22130,7 @@ pub mod root {
         pub mFontFaceSet: root::RefPtr<root::mozilla::dom::FontFaceSet>,
         pub mLastFocusTime: root::mozilla::TimeStamp,
         pub mDocumentState: root::mozilla::EventStates,
+        pub mReadyForIdle: root::RefPtr<root::mozilla::dom::Promise>,
         pub _bitfield_1: root::__BindgenBitfieldUnit<[u8; 7usize], u8>,
         pub mCompatMode: root::nsCompatibility,
         pub mReadyState: root::nsIDocument_ReadyState,
@@ -22362,7 +22625,7 @@ pub mod root {
     fn bindgen_test_layout_nsIDocument() {
         assert_eq!(
             ::std::mem::size_of::<nsIDocument>(),
-            928usize,
+            936usize,
             concat!("Size of: ", stringify!(nsIDocument))
         );
         assert_eq!(
@@ -36681,6 +36944,229 @@ pub mod root {
             concat!("Alignment of ", stringify!(nsGenericHTMLElement))
         );
     }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMDocumentFragment {
+        pub _base: root::nsIDOMNode,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIDOMDocumentFragment_COMTypeInfo {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMDocumentFragment() {
+        assert_eq!(
+            ::std::mem::size_of::<nsIDOMDocumentFragment>(),
+            8usize,
+            concat!("Size of: ", stringify!(nsIDOMDocumentFragment))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsIDOMDocumentFragment>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsIDOMDocumentFragment))
+        );
+    }
+    impl Clone for nsIDOMDocumentFragment {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    /// Shared superclass for mozilla::css::StyleRule and mozilla::ServoStyleRule,
+    /// for use from bindings code.
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsICSSDeclaration {
+        pub _base: root::nsISupports,
+        pub _base_1: root::nsWrapperCache,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsICSSDeclaration_COMTypeInfo {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_nsICSSDeclaration() {
+        assert_eq!(
+            ::std::mem::size_of::<nsICSSDeclaration>(),
+            32usize,
+            concat!("Size of: ", stringify!(nsICSSDeclaration))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsICSSDeclaration>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsICSSDeclaration))
+        );
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsDOMCSSDeclaration {
+        pub _base: root::nsICSSDeclaration,
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsDOMCSSDeclaration_ServoCSSParsingEnvironment {
+        pub mUrlExtraData: root::RefPtr<root::mozilla::URLExtraData>,
+        pub mCompatMode: root::nsCompatibility,
+        pub mLoader: *mut root::mozilla::css::Loader,
+    }
+    #[test]
+    fn bindgen_test_layout_nsDOMCSSDeclaration_ServoCSSParsingEnvironment() {
+        assert_eq!(
+            ::std::mem::size_of::<nsDOMCSSDeclaration_ServoCSSParsingEnvironment>(),
+            24usize,
+            concat!(
+                "Size of: ",
+                stringify!(nsDOMCSSDeclaration_ServoCSSParsingEnvironment)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsDOMCSSDeclaration_ServoCSSParsingEnvironment>(),
+            8usize,
+            concat!(
+                "Alignment of ",
+                stringify!(nsDOMCSSDeclaration_ServoCSSParsingEnvironment)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsDOMCSSDeclaration_ServoCSSParsingEnvironment>()))
+                    .mUrlExtraData as *const _ as usize
+            },
+            0usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsDOMCSSDeclaration_ServoCSSParsingEnvironment),
+                "::",
+                stringify!(mUrlExtraData)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsDOMCSSDeclaration_ServoCSSParsingEnvironment>()))
+                    .mCompatMode as *const _ as usize
+            },
+            8usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsDOMCSSDeclaration_ServoCSSParsingEnvironment),
+                "::",
+                stringify!(mCompatMode)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsDOMCSSDeclaration_ServoCSSParsingEnvironment>())).mLoader
+                    as *const _ as usize
+            },
+            16usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsDOMCSSDeclaration_ServoCSSParsingEnvironment),
+                "::",
+                stringify!(mLoader)
+            )
+        );
+    }
+    pub const nsDOMCSSDeclaration_Operation_eOperation_Read: root::nsDOMCSSDeclaration_Operation =
+        0;
+    pub const nsDOMCSSDeclaration_Operation_eOperation_Modify: root::nsDOMCSSDeclaration_Operation =
+        1;
+    pub const nsDOMCSSDeclaration_Operation_eOperation_RemoveProperty:
+        root::nsDOMCSSDeclaration_Operation = 2;
+    pub type nsDOMCSSDeclaration_Operation = u32;
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsDOMCSSDeclaration_CSSParsingEnvironment {
+        pub mSheetURI: *mut root::nsIURI,
+        pub mBaseURI: root::nsCOMPtr,
+        pub mPrincipal: *mut root::nsIPrincipal,
+        pub mCSSLoader: *mut root::mozilla::css::Loader,
+    }
+    #[test]
+    fn bindgen_test_layout_nsDOMCSSDeclaration_CSSParsingEnvironment() {
+        assert_eq!(
+            ::std::mem::size_of::<nsDOMCSSDeclaration_CSSParsingEnvironment>(),
+            32usize,
+            concat!(
+                "Size of: ",
+                stringify!(nsDOMCSSDeclaration_CSSParsingEnvironment)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsDOMCSSDeclaration_CSSParsingEnvironment>(),
+            8usize,
+            concat!(
+                "Alignment of ",
+                stringify!(nsDOMCSSDeclaration_CSSParsingEnvironment)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsDOMCSSDeclaration_CSSParsingEnvironment>())).mSheetURI
+                    as *const _ as usize
+            },
+            0usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsDOMCSSDeclaration_CSSParsingEnvironment),
+                "::",
+                stringify!(mSheetURI)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsDOMCSSDeclaration_CSSParsingEnvironment>())).mBaseURI
+                    as *const _ as usize
+            },
+            8usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsDOMCSSDeclaration_CSSParsingEnvironment),
+                "::",
+                stringify!(mBaseURI)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsDOMCSSDeclaration_CSSParsingEnvironment>())).mPrincipal
+                    as *const _ as usize
+            },
+            16usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsDOMCSSDeclaration_CSSParsingEnvironment),
+                "::",
+                stringify!(mPrincipal)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsDOMCSSDeclaration_CSSParsingEnvironment>())).mCSSLoader
+                    as *const _ as usize
+            },
+            24usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsDOMCSSDeclaration_CSSParsingEnvironment),
+                "::",
+                stringify!(mCSSLoader)
+            )
+        );
+    }
+    #[test]
+    fn bindgen_test_layout_nsDOMCSSDeclaration() {
+        assert_eq!(
+            ::std::mem::size_of::<nsDOMCSSDeclaration>(),
+            32usize,
+            concat!("Size of: ", stringify!(nsDOMCSSDeclaration))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsDOMCSSDeclaration>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsDOMCSSDeclaration))
+        );
+    }
     /// Utility class to provide scaling defined in a keySplines element.
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -37057,7 +37543,7 @@ pub mod root {
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozFocusOuter: u32 = 0;
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListBullet: u32 = 0;
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListNumber: u32 = 0;
-    pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMathAnonymous: u32 = 0;
+    pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMathAnonymous: u32 = 16;
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberWrapper: u32 = 56;
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberText: u32 = 56;
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinBox: u32 = 56;
@@ -37396,30 +37882,6 @@ pub mod root {
                 "::",
                 stringify!(mGeneration)
             )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsICSSDeclaration {
-        pub _base: root::nsISupports,
-        pub _base_1: root::nsWrapperCache,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsICSSDeclaration_COMTypeInfo {
-        pub _address: u8,
-    }
-    #[test]
-    fn bindgen_test_layout_nsICSSDeclaration() {
-        assert_eq!(
-            ::std::mem::size_of::<nsICSSDeclaration>(),
-            32usize,
-            concat!("Size of: ", stringify!(nsICSSDeclaration))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsICSSDeclaration>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsICSSDeclaration))
         );
     }
     #[repr(C)]
@@ -37841,6 +38303,10 @@ pub mod root {
     extern "C" {
         #[link_name = "\u{1}_ZN14nsContentUtils37sIsPerformanceNavigationTimingEnabledE"]
         pub static mut nsContentUtils_sIsPerformanceNavigationTimingEnabled: bool;
+    }
+    extern "C" {
+        #[link_name = "\u{1}_ZN14nsContentUtils38sIsUpgradableDisplayContentPrefEnabledE"]
+        pub static mut nsContentUtils_sIsUpgradableDisplayContentPrefEnabled: bool;
     }
     extern "C" {
         #[link_name = "\u{1}_ZN14nsContentUtils25sIsFrameTimingPrefEnabledE"]
@@ -39598,6 +40064,25 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_nsPtrHashKey_open0_DOMEventTargetHelper_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsPtrHashKey<root::mozilla::DOMEventTargetHelper>>(),
+            16usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsPtrHashKey<root::mozilla::DOMEventTargetHelper>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsPtrHashKey<root::mozilla::DOMEventTargetHelper>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsPtrHashKey<root::mozilla::DOMEventTargetHelper>)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_EventTarget_close0_instantiation() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
@@ -40828,6 +41313,25 @@ pub mod root {
             concat!(
                 "Alignment of template specialization: ",
                 stringify!(root::RefPtr<root::mozilla::dom::FontFaceSet>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_Promise_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Promise>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::dom::Promise>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::dom::Promise>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::dom::Promise>)
             )
         );
     }
@@ -44840,6 +45344,198 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_RefPtr_open0_Element_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Element>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::dom::Element>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::dom::Element>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::dom::Element>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_URLExtraData_close0_instantiation_3() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::URLExtraData>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::URLExtraData>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::URLExtraData>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::URLExtraData>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_17() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_ServoDeclarationBlock_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::ServoDeclarationBlock>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::ServoDeclarationBlock>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::ServoDeclarationBlock>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::ServoDeclarationBlock>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_RawServoStyleRule_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::RawServoStyleRule>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::RawServoStyleRule>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::RawServoStyleRule>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::RawServoStyleRule>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsPtrHashKey_open0_RawServoStyleRule_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsPtrHashKey<root::RawServoStyleRule>>(),
+            16usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsPtrHashKey<root::RawServoStyleRule>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsPtrHashKey<root::RawServoStyleRule>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsPtrHashKey<root::RawServoStyleRule>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_RawServoAuthorStyles_DefaultDelete_open1_RawServoAuthorStyles_close1_close0_instantiation(
+) {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::RawServoAuthorStyles>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::RawServoAuthorStyles>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::RawServoAuthorStyles>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::RawServoAuthorStyles>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_RawServoAuthorStyles_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_ServoStyleRuleMap_DefaultDelete_open1_ServoStyleRuleMap_close1_close0_instantiation(
+) {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::mozilla::ServoStyleRuleMap>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::ServoStyleRuleMap>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::mozilla::ServoStyleRuleMap>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::ServoStyleRuleMap>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_ServoStyleRuleMap_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_BaseTimeDuration_open0_StickyTimeDurationValueCalculator_close0_instantiation(
 ) {
         assert_eq!(
@@ -44955,7 +45651,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_Element_close0_instantiation() {
+    fn __bindgen_test_layout_RefPtr_open0_Element_close0_instantiation_1() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Element>>(),
             8usize,
@@ -45142,7 +45838,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_UniquePtr_open0_ServoStyleRuleMap_DefaultDelete_open1_ServoStyleRuleMap_close1_close0_instantiation(
+    fn __bindgen_test_layout_UniquePtr_open0_ServoStyleRuleMap_DefaultDelete_open1_ServoStyleRuleMap_close1_close0_instantiation_1(
 ) {
         assert_eq!(
             ::std::mem::size_of::<root::mozilla::UniquePtr<root::mozilla::ServoStyleRuleMap>>(),
@@ -45162,7 +45858,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_DefaultDelete_open0_ServoStyleRuleMap_close0_instantiation() {
+    fn __bindgen_test_layout_DefaultDelete_open0_ServoStyleRuleMap_close0_instantiation_1() {
         assert_eq!(
             ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
             1usize,

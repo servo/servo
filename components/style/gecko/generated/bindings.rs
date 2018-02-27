@@ -2299,6 +2299,19 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn Servo_AuthorStyles_RemoveStyleSheet(
+        self_: RawServoAuthorStylesBorrowedMut,
+        gecko_sheet: *const ServoStyleSheet,
+    );
+}
+extern "C" {
+    pub fn Servo_AuthorStyles_InsertStyleSheetBefore(
+        self_: RawServoAuthorStylesBorrowedMut,
+        gecko_sheet: *const ServoStyleSheet,
+        before: *const ServoStyleSheet,
+    );
+}
+extern "C" {
     pub fn Servo_AuthorStyles_ForceDirty(self_: RawServoAuthorStylesBorrowedMut);
 }
 extern "C" {
