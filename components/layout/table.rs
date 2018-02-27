@@ -784,14 +784,14 @@ impl TableLikeFlow for BlockFlow {
 
         if self.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
             let mut sizes = vec![];
+            let mut incoming_rowspan_data = vec![];
 
             for kid in self.base.child_iter_mut() {
                 if kid.is_table_row() {
                     sizes.push(kid.as_mut_table_row()
-                        .compute_block_size_table_row_base(layout_context))
+                        .compute_block_size_table_row_base(layout_context, &mut incoming_rowspan_data))
                 }
             }
-
             let mut effects_rows = 0;
             let mut i = 0;
             for kid in self.base.child_iter_mut() {
