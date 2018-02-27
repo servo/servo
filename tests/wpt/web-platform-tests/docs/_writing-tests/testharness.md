@@ -16,8 +16,8 @@ documented in two sections:
   * [idlharness.js Documentation][idlharness] — A library for testing
      IDL interfaces using `testharness.js`.
 
-As always, we recommend reading over the [general guidelines][] for
-all test types.
+See [server features][] for advanced testing features that are commonly used
+with testharness.js. See also the [general guidelines][] for all test types.
 
 ## Auto-generated test boilerplate
 
@@ -103,3 +103,4 @@ Use `// META: timeout=long` at the beginning of the resource.
 [general guidelines]: {{ site.baseurl }}{% link _writing-tests/general-guidelines.md %}
 [testharness-api]: {{ site.baseurl }}{% link _writing-tests/testharness-api.md %}
 [idlharness]: {{ site.baseurl }}{% link _writing-tests/idlharness.md %}
+[server features]: {{ site.baseurl }}{% link _writing-tests/server-features.md %}

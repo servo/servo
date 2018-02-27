@@ -49,5 +49,20 @@ test(() => {
   assert_false(element instanceof MyBuiltinElement2);
   assert_false(element.hasAttribute('is'));
 }, 'builtin: document.createElementNS should check namespaces.');
+
+test(() => {
+    class SuperP extends HTMLParagraphElement {}
+    customElements.define("super-p", SuperP, { extends: "p" });
+
+    const superP = document.createElementNS("http://www.w3.org/1999/xhtml", "p", { is: "super-p" });
+    assert_true(superP instanceof HTMLParagraphElement);
+    assert_true(superP instanceof SuperP);
+    assert_equals(superP.localName, "p");
+
+    const notSuperP = document.createElementNS("http://www.w3.org/1999/xhtml", "p", "super-p");
+    assert_true(notSuperP instanceof HTMLParagraphElement);
+    assert_false(notSuperP instanceof SuperP);
+    assert_equals(notSuperP.localName, "p");
+}, "document.createElementNS()'s third argument is to be ignored when it's a string");
 </script>
 </body>
