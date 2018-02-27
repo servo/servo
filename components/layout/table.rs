@@ -815,16 +815,26 @@ impl TableLikeFlow for BlockFlow {
             // Second pass: Compute row block sizes
             // [expensive: iterates over cells]
             let mut i = 0;
+            let mut overflow = Au(0);
             for kid in self.base.child_iter_mut() {
                 if kid.is_table_row() {
-                    let size = kid.as_mut_table_row()
+                    let (size, oflo) = kid.as_mut_table_row()
                         .compute_block_size_table_row_base(layout_context,
                                                            &mut incoming_rowspan_data,
                                                            &sizes,
                                                            i);
                     sizes[i].0 = size;
+                    overflow = oflo;
                     i += 1;
+                // new rowgroups stop rowspans
+                } else if kid.is_table_rowgroup() {
+                    if i > 0 {
+                        sizes[i - 1].0 = cmp::max(sizes[i - 1].0, overflow);
+                    }
                 }
+            }
+            if i > 0 {
+                sizes[i - 1].0 = cmp::max(sizes[i - 1].0, overflow);
             }
 
             // Third pass: Assign block sizes to rows and cells

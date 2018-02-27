@@ -106,34 +106,39 @@ impl TableRowFlow {
         }
     }
 
-    /// Assign block-size for table-row flow.
+    /// Compute block-size for table-row flow.
     ///
     /// TODO(pcwalton): This doesn't handle floats and positioned elements right.
     ///
-    /// inline(always) because this is only ever called by in-order or non-in-order top-level
-    /// methods
-    #[inline(always)]
+    /// Returns the block size, as well as the size this should be if this is the last row
     pub fn compute_block_size_table_row_base<'a>(&'a mut self, layout_context: &LayoutContext,
                                                  incoming_rowspan_data: &mut Vec<Au>,
                                                  border_info: &[(Au, Au)], // (_, cumulative_border_size)
-                                                 row_index: usize) -> Au {
+                                                 row_index: usize) -> (Au, Au) {
         // XXXManishearth skip this when the REFLOW flag is unset if it is not affected by other
         // rows
         fn include_sizes_from_previous_rows(col: &mut usize,
                                             incoming_rowspan: &[u32],
                                             incoming_rowspan_data: &mut Vec<Au>,
-                                            max_block_size: &mut Au) {
+                                            max_block_size: &mut Au,
+                                            largest_leftover_incoming_size: &mut Au) {
             while let Some(span) = incoming_rowspan.get(*col) {
                 if *span <= 1 {
                     break;
                 }
-                *max_block_size = max(*max_block_size, incoming_rowspan_data[*col]);
+                let incoming = incoming_rowspan_data[*col];
+                *max_block_size = max(*max_block_size, incoming);
+                if *span > 2 {
+                    *largest_leftover_incoming_size = max(*largest_leftover_incoming_size,
+                                                          incoming * (*span - 1) as i32)
+                }
                 *col += 1;
             }
         }
         // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of
         // all cells).
         let mut max_block_size = Au(0);
+        let mut largest_leftover_incoming_size = Au(0);
         let thread_id = self.block_flow.base.thread_id;
         let content_box = self.block_flow.base.position
             - self.block_flow.fragment.border_padding
@@ -142,7 +147,8 @@ impl TableRowFlow {
         let mut col = 0;
         for kid in self.block_flow.base.child_iter_mut() {
             include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan,
-                                             incoming_rowspan_data, &mut max_block_size);
+                                             incoming_rowspan_data, &mut max_block_size,
+                                             &mut largest_leftover_incoming_size);
             kid.place_float_if_applicable();
             if !kid.base().flags.is_float() {
                 kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
@@ -167,8 +173,9 @@ impl TableRowFlow {
                 if incoming_rowspan_data.len() <= col {
                     incoming_rowspan_data.resize(col + 1, Au(0));
                 }
-                // XXXManishearth rowspan can overflow the table
                 let border_sizes_spanned = get_spanned_border_size(border_info, row_index, row_span);
+                let pressure_copy = cell_block_size_pressure;
+
                 cell_block_size_pressure -= border_sizes_spanned;
 
                 // XXXManishearth in case this row covers more than cell_block_size_pressure / row_span
@@ -176,12 +183,18 @@ impl TableRowFlow {
                 // require an extra slow-path loop, sadly.
                 cell_block_size_pressure /= row_span as i32;
                 incoming_rowspan_data[col] = cell_block_size_pressure;
+
+                // If this ends up being the last row, it needs to cover
+                // *all* this space
+                largest_leftover_incoming_size = max(largest_leftover_incoming_size,
+                                                     pressure_copy);
             }
 
             max_block_size = max(max_block_size, cell_block_size_pressure);
             col += column_span;
         }
-        include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan, incoming_rowspan_data, &mut max_block_size);
+        include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan, incoming_rowspan_data, &mut max_block_size,
+                                         &mut largest_leftover_incoming_size);
 
         let mut block_size = max_block_size;
         // TODO: Percentage block-size
@@ -193,7 +206,7 @@ impl TableRowFlow {
             MaybeAuto::Auto => block_size,
             MaybeAuto::Specified(value) => max(value, block_size),
         };
-        block_size
+        (block_size, largest_leftover_incoming_size)
     }
 
     pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[(Au, Au)], index: usize, effects_rows: &mut u32) {
