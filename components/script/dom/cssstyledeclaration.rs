@@ -164,9 +164,17 @@ macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $id:expr],)* ) => (
         $(
             fn $getter(&self) -> DOMString {
+                debug_assert!(
+                    $id.enabled_for_all_content(),
+                    "Someone forgot a #[Pref] annotation"
+                );
                 self.get_property_value($id)
             }
             fn $setter(&self, value: DOMString) -> ErrorResult {
+                debug_assert!(
+                    $id.enabled_for_all_content(),
+                    "Someone forgot a #[Pref] annotation"
+                );
                 self.set_property($id, value, DOMString::new())
             }
         )*
@@ -236,6 +244,10 @@ impl CSSStyleDeclaration {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
+        }
+
+        if !id.enabled_for_all_content() {
+            return Ok(());
         }
 
         self.owner.mutate_associated_block(|pdb, changed| {

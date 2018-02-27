@@ -1626,16 +1626,35 @@ impl PropertyId {
         }
     }
 
-    fn allowed_in(&self, context: &ParserContext) -> bool {
-        let id: NonCustomPropertyId = match *self {
-            // Custom properties are allowed everywhere
-            PropertyId::Custom(_) => return true,
+    fn non_custom_id(&self) -> Option<NonCustomPropertyId> {
+        Some(match *self {
+            PropertyId::Custom(_) => return None,
             PropertyId::Shorthand(shorthand_id) => shorthand_id.into(),
             PropertyId::Longhand(longhand_id) => longhand_id.into(),
             PropertyId::ShorthandAlias(_, alias_id) => alias_id.into(),
             PropertyId::LonghandAlias(_, alias_id) => alias_id.into(),
+        })
+    }
+
+    /// Whether the property is enabled for all content regardless of the
+    /// stylesheet it was declared on (that is, in practice only checks prefs).
+    #[inline]
+    pub fn enabled_for_all_content(&self) -> bool {
+        let id = match self.non_custom_id() {
+            // Custom properties are allowed everywhere
+            None => return true,
+            Some(id) => id,
         };
 
+        id.enabled_for_all_content()
+    }
+
+    fn allowed_in(&self, context: &ParserContext) -> bool {
+        let id = match self.non_custom_id() {
+            // Custom properties are allowed everywhere
+            None => return true,
+            Some(id) => id,
+        };
         id.allowed_in(context)
     }
 }
@@ -3818,8 +3837,7 @@ impl fmt::Debug for AliasId {
     }
 }
 
-// FIXME(emilio): This macro doesn't account for experimental properties, so
-// even with the pref disabled you can set them from CSSOM in Servo.
+// NOTE(emilio): Callers are responsible to deal with prefs.
 #[macro_export]
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
