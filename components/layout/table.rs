@@ -496,10 +496,10 @@ impl Flow for TableFlow {
         });
     }
 
-    fn assign_block_size(&mut self, _: &LayoutContext) {
+    fn assign_block_size(&mut self, lc: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table");
         let vertical_spacing = self.spacing().vertical();
-        self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing)
+        self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing, lc)
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
@@ -771,15 +771,22 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
 /// rowgroups.
 pub trait TableLikeFlow {
     /// Lays out the rows of a table.
-    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au);
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au,
+                                             layout_context: &LayoutContext);
 }
 
 impl TableLikeFlow for BlockFlow {
-    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au) {
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au,
+                                             layout_context: &LayoutContext) {
         debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
                       border_collapse::T::Separate || block_direction_spacing == Au(0));
 
         if self.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
+            for kid in self.base.child_iter_mut() {
+                if kid.is_table_row() {
+                    kid.as_mut_table_row().assign_block_size_table_row_base(layout_context)
+                }
+            }
             // Our current border-box position.
             let block_start_border_padding = self.fragment.border_padding.block_start;
             let mut current_block_offset = block_start_border_padding;

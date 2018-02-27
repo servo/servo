@@ -114,7 +114,7 @@ impl TableRowFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_block_size_table_row_base(&mut self, layout_context: &LayoutContext) {
+    pub fn assign_block_size_table_row_base(&mut self, layout_context: &LayoutContext) {
         if self.block_flow.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
             // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of
             // all cells).
@@ -132,15 +132,8 @@ impl TableRowFlow {
                 }
 
                 {
-                    let child_fragment = kid.as_mut_table_cell().fragment();
-                    // TODO: Percentage block-size
-                    let child_specified_block_size =
-                        MaybeAuto::from_style(child_fragment.style().content_block_size(),
-                                              Au(0)).specified_or_zero();
                     max_block_size =
-                        max(max_block_size,
-                            child_specified_block_size +
-                            child_fragment.border_padding.block_start_end());
+                        max(max_block_size, kid.as_mut_table_cell().total_block_size());
                 }
                 let child_node = kid.mut_base();
                 child_node.position.start.b = Au(0);
@@ -158,45 +151,49 @@ impl TableRowFlow {
                 MaybeAuto::Specified(value) => max(value, block_size),
             };
 
-            // Assign the block-size of own fragment
-            let mut position = self.block_flow.fragment.border_box;
-            position.size.block = block_size;
-            self.block_flow.fragment.border_box = position;
-            self.block_flow.base.position.size.block = block_size;
-
-            // Assign the block-size of kid fragments, which is the same value as own block-size.
-            for kid in self.block_flow.base.child_iter_mut() {
-                let child_table_cell = kid.as_mut_table_cell();
-                {
-                    let kid_fragment = child_table_cell.mut_fragment();
-                    let mut position = kid_fragment.border_box;
-                    position.size.block = block_size;
-                    kid_fragment.border_box = position;
-                }
-
-                // Assign the child's block size.
-                child_table_cell.block_flow.base.position.size.block = block_size;
-
-                // Now we know the cell height, vertical align the cell's children.
-                child_table_cell.valign_children();
-
-                // Write in the size of the relative containing block for children. (This
-                // information is also needed to handle RTL.)
-                child_table_cell.block_flow.base.early_absolute_position_info =
-                    EarlyAbsolutePositionInfo {
-                        relative_containing_block_size: self.block_flow
-                                                            .fragment
-                                                            .content_box()
-                                                            .size,
-                        relative_containing_block_mode: self.block_flow
-                                                            .fragment
-                                                            .style()
-                                                            .writing_mode,
-                    };
-            }
+            self.assign_block_size_to_self_and_children(block_size);
         }
 
         self.block_flow.base.restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
+    }
+
+    pub fn assign_block_size_to_self_and_children(&mut self, block_size: Au) {
+        // Assign the block-size of kid fragments, which is the same value as own block-size.
+        for kid in self.block_flow.base.child_iter_mut() {
+            let child_table_cell = kid.as_mut_table_cell();
+            {
+                let kid_fragment = child_table_cell.mut_fragment();
+                let mut position = kid_fragment.border_box;
+                position.size.block = block_size;
+                kid_fragment.border_box = position;
+            }
+
+            // Assign the child's block size.
+            child_table_cell.block_flow.base.position.size.block = block_size;
+
+            // Now we know the cell height, vertical align the cell's children.
+            child_table_cell.valign_children();
+
+            // Write in the size of the relative containing block for children. (This
+            // information is also needed to handle RTL.)
+            child_table_cell.block_flow.base.early_absolute_position_info =
+                EarlyAbsolutePositionInfo {
+                    relative_containing_block_size: self.block_flow
+                                                        .fragment
+                                                        .content_box()
+                                                        .size,
+                    relative_containing_block_mode: self.block_flow
+                                                        .fragment
+                                                        .style()
+                                                        .writing_mode,
+                };
+        }
+
+        // Assign the block-size of own fragment
+        let mut position = self.block_flow.fragment.border_box;
+        position.size.block = block_size;
+        self.block_flow.fragment.border_box = position;
+        self.block_flow.base.position.size.block = block_size;
     }
 
     pub fn populate_collapsed_border_spacing<'a, I>(
@@ -449,9 +446,8 @@ impl Flow for TableRowFlow {
         })
     }
 
-    fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        debug!("assign_block_size: assigning block_size for table_row");
-        self.assign_block_size_table_row_base(layout_context);
+    fn assign_block_size(&mut self, _: &LayoutContext) {
+        // the surrounding table or rowgroup does this
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {

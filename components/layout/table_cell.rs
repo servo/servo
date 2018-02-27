@@ -148,6 +148,17 @@ impl TableCellFlow {
             }
         }
     }
+
+    // Total block size of child
+    //
+    // Call after block size calculation
+    pub fn total_block_size(&mut self) -> Au {
+        // TODO: Percentage block-size
+        let specified = MaybeAuto::from_style(self.fragment().style()
+                                                  .content_block_size(),
+                                              Au(0)).specified_or_zero();
+        specified + self.fragment().border_padding.block_start_end()
+    }
 }
 
 impl Flow for TableCellFlow {
