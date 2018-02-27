@@ -115,7 +115,7 @@ impl TableRowFlow {
     #[inline(always)]
     pub fn compute_block_size_table_row_base<'a>(&'a mut self, layout_context: &LayoutContext,
                                                  incoming_rowspan_data: &mut Vec<Au>,
-                                                 border_info: &[(Au, Au)],
+                                                 border_info: &[(Au, Au)], // (_, cumulative_border_size)
                                                  row_index: usize) -> Au {
         // XXXManishearth skip this when the REFLOW flag is unset if it is not affected by other
         // rows
@@ -161,15 +161,25 @@ impl TableRowFlow {
             }
             let child_node = kid.mut_base();
             child_node.position.start.b = Au(0);
-            let cell_block_size = max(cell_total, child_node.position.size.block);
-            max_block_size = max(max_block_size, cell_block_size / row_span);
+            let mut cell_block_size_pressure = max(cell_total, child_node.position.size.block);
 
             if row_span > 1 {
                 if incoming_rowspan_data.len() <= col {
                     incoming_rowspan_data.resize(col + 1, Au(0));
                 }
-                incoming_rowspan_data[col] = cell_block_size / row_span;
+                // XXXManishearth rowspan can overflow the table
+                let border_sizes_spanned = border_info[row_index + row_span as usize - 1].1 -
+                                           border_info[row_index].1;
+                cell_block_size_pressure -= border_sizes_spanned;
+
+                // XXXManishearth in case this row covers more than cell_block_size_pressure / row_span
+                // anyway, we should use that to reduce the pressure on future rows. This will
+                // require an extra slow-path loop, sadly.
+                cell_block_size_pressure /= row_span;
+                incoming_rowspan_data[col] = cell_block_size_pressure;
             }
+
+            max_block_size = max(max_block_size, cell_block_size_pressure);
             col += column_span;
         }
         include_sizes_from_previous_rows(&mut col, &self.incoming_rowspan, incoming_rowspan_data, &mut max_block_size);
@@ -194,9 +204,12 @@ impl TableRowFlow {
             let child_table_cell = kid.as_mut_table_cell();
             let block_size = if child_table_cell.row_span > 1 {
                  *effects_rows = max(*effects_rows, child_table_cell.row_span);
-                 // XXXManishearth support border spacing and such
-                 sizes[index..].iter().take(child_table_cell.row_span as usize)
-                               .fold(Au(0), |accum, size| accum + size.0)
+                let row_sizes = sizes[index..].iter()
+                                              .take(child_table_cell.row_span as usize)
+                                              .fold(Au(0), |accum, size| accum + size.0);
+                let border_sizes_spanned = sizes[index + child_table_cell.row_span as usize - 1].1 -
+                                           sizes[index].1;
+                row_sizes + border_sizes_spanned
             } else {
                 block_size
             };
