@@ -487,11 +487,13 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "-moz-tab-size", "length::NonNegativeLengthOrNumber",
-    "::values::Either::First(From::from(8.0))",
-    products="gecko", animation_value_type="::values::computed::length::NonNegativeLengthOrNumber",
-    spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
-
+    "-moz-tab-size",
+    "MozTabSize",
+    "generics::text::MozTabSize::Number(From::from(8.0))",
+    products="gecko",
+    animation_value_type="AnimatedMozTabSize",
+    spec="https://drafts.csswg.org/css-text-3/#tab-size-property",
+)}
 
 // CSS Compatibility
 // https://compat.spec.whatwg.org

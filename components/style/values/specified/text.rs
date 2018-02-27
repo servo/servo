@@ -15,10 +15,11 @@ use values::computed::text::LineHeight as ComputedLineHeight;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
+use values::generics::text::MozTabSize as GenericMozTabSize;
 use values::generics::text::Spacing;
 use values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
-use values::specified::length::NonNegativeLengthOrPercentage;
+use values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
 
 /// A specified type for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<Number, Integer>;
@@ -512,5 +513,22 @@ impl ToComputedValue for TextAlign {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         TextAlign::Keyword(*computed)
+    }
+}
+
+/// A specified value for the `-moz-tab-size` property.
+pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
+
+impl Parse for MozTabSize {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
+            // Numbers need to be parsed first because `0` must be recognised
+            // as the number `0` and not the length `0px`.
+            return Ok(GenericMozTabSize::Number(number));
+        }
+        Ok(GenericMozTabSize::Length(NonNegativeLength::parse(context, input)?))
     }
 }
