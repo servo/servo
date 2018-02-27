@@ -8,16 +8,16 @@
 
 #![deny(unsafe_code)]
 
+extern crate bincode;
 extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 #[macro_use] extern crate serde;
 extern crate servo_config;
 extern crate signpost;
-extern crate bincode;
 
 #[allow(unsafe_code)]
 pub mod energy;
 pub mod mem;
-pub mod time;
 pub mod receiver;
+pub mod time;

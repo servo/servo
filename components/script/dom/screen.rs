@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot};
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
@@ -14,7 +15,6 @@ use dom_struct::dom_struct;
 use euclid::Size2D;
 use profile_traits::receiver;
 use script_traits::ScriptMsg;
-use dom::bindings::reflector::DomObject;
 
 #[dom_struct]
 pub struct Screen {
