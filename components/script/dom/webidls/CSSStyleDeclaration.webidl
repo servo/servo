@@ -387,19 +387,19 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString imageRendering;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString image-rendering;
 
-  [Pref="layout.column-count.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
   attribute DOMString columnCount;
-  [Pref="layout.column-count.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
   attribute DOMString column-count;
-  [Pref="layout.column-width.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
   attribute DOMString columnWidth;
-  [Pref="layout.column-width.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
   attribute DOMString column-width;
   [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
   attribute DOMString columns;
-  [Pref="layout.column-gap.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
   attribute DOMString columnGap;
-  [Pref="layout.column-gap.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
   attribute DOMString column-gap;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString transition;
