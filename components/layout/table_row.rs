@@ -115,8 +115,6 @@ impl TableRowFlow {
                                                  incoming_rowspan_data: &mut Vec<Au>,
                                                  border_info: &[(Au, Au)], // (_, cumulative_border_size)
                                                  row_index: usize) -> (Au, Au) {
-        // XXXManishearth skip this when the REFLOW flag is unset if it is not affected by other
-        // rows
         fn include_sizes_from_previous_rows(col: &mut usize,
                                             incoming_rowspan: &[u32],
                                             incoming_rowspan_data: &mut Vec<Au>,
@@ -208,13 +206,12 @@ impl TableRowFlow {
         (block_size, largest_leftover_incoming_size)
     }
 
-    pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[(Au, Au)], index: usize, effects_rows: &mut u32) {
+    pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[(Au, Au)], index: usize) {
         // Assign the block-size of kid fragments, which is the same value as own block-size.
         let block_size = sizes[index].0;
         for kid in self.block_flow.base.child_iter_mut() {
             let child_table_cell = kid.as_mut_table_cell();
             let block_size = if child_table_cell.row_span > 1 {
-                 *effects_rows = max(*effects_rows, child_table_cell.row_span);
                 let row_sizes = sizes[index..].iter()
                                               .take(child_table_cell.row_span as usize)
                                               .fold(Au(0), |accum, size| accum + size.0);

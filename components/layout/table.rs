@@ -840,26 +840,18 @@ impl TableLikeFlow for BlockFlow {
             // [expensive: iterates over cells]
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
-            let mut effects_rows = 0;
             let mut i = 0;
             for kid in self.base.child_iter_mut() {
                 if kid.is_table_row() {
                     has_rows = true;
                     let row = kid.as_mut_table_row();
-                    if row.mut_base().restyle_damage.contains(ServoRestyleDamage::REFLOW) ||
-                       effects_rows != 0 {
-                        row.assign_block_size_to_self_and_children(&sizes, i, &mut effects_rows);
-                        row.mut_base().restyle_damage
-                            .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW |
-                                    ServoRestyleDamage::REFLOW);
-                    }
+                    row.assign_block_size_to_self_and_children(&sizes, i);
+                    row.mut_base().restyle_damage
+                        .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW |
+                                ServoRestyleDamage::REFLOW);
                     current_block_offset = current_block_offset +
                         border_spacing_for_row(&self.fragment, row,
                                                block_direction_spacing);
-                    // may happen for empty rows
-                    if effects_rows != 0 {
-                        effects_rows -= 1;
-                    }
                     i += 1;
                 }
 
