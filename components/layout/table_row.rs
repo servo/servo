@@ -114,7 +114,7 @@ impl TableRowFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    pub fn assign_block_size_table_row_base(&mut self, layout_context: &LayoutContext) {
+    pub fn compute_block_size_table_row_base<'a>(&'a mut self, layout_context: &LayoutContext) -> Au {
         if self.block_flow.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
             // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of
             // all cells).
@@ -123,6 +123,7 @@ impl TableRowFlow {
             let content_box = self.block_flow.base.position
                 - self.block_flow.fragment.border_padding
                 - self.block_flow.fragment.margin;
+
             for kid in self.block_flow.base.child_iter_mut() {
                 kid.place_float_if_applicable();
                 if !kid.base().flags.is_float() {
@@ -131,14 +132,20 @@ impl TableRowFlow {
                                                                          content_box);
                 }
 
+                let row_span;
                 {
+                    let cell = kid.as_mut_table_cell();
+                    row_span = cell.row_span as i32;
                     max_block_size =
-                        max(max_block_size, kid.as_mut_table_cell().total_block_size());
+                        max(max_block_size, cell.total_block_size() / row_span);
                 }
-                let child_node = kid.mut_base();
-                child_node.position.start.b = Au(0);
-                max_block_size = max(max_block_size, child_node.position.size.block);
+                {
+                    let child_node = kid.mut_base();
+                    child_node.position.start.b = Au(0);
+                    max_block_size = max(max_block_size, child_node.position.size.block / row_span);
+                }
             }
+            // XXXManishearth include overages from spanning cells from previous rows
 
             let mut block_size = max_block_size;
             // TODO: Percentage block-size
@@ -150,17 +157,25 @@ impl TableRowFlow {
                 MaybeAuto::Auto => block_size,
                 MaybeAuto::Specified(value) => max(value, block_size),
             };
-
-            self.assign_block_size_to_self_and_children(block_size);
+            block_size
+        } else {
+            self.block_flow.base.position.size.block 
         }
-
-        self.block_flow.base.restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
     }
 
-    pub fn assign_block_size_to_self_and_children(&mut self, block_size: Au) {
+    pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[Au], index: usize, effects_rows: &mut u32) {
         // Assign the block-size of kid fragments, which is the same value as own block-size.
+        let block_size = sizes[index];
         for kid in self.block_flow.base.child_iter_mut() {
             let child_table_cell = kid.as_mut_table_cell();
+            let block_size = if child_table_cell.row_span > 1 {
+                 *effects_rows = max(*effects_rows, child_table_cell.row_span);
+                 // XXXManishearth support border spacing and such
+                 sizes[index..].iter().take(child_table_cell.row_span as usize)
+                               .fold(Au(0), |accum, size| accum + *size)
+            } else {
+                block_size
+            };
             {
                 let kid_fragment = child_table_cell.mut_fragment();
                 let mut position = kid_fragment.border_box;

@@ -781,10 +781,34 @@ impl TableLikeFlow for BlockFlow {
         debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
                       border_collapse::T::Separate || block_direction_spacing == Au(0));
 
+
         if self.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
+            let mut sizes = vec![];
+
             for kid in self.base.child_iter_mut() {
                 if kid.is_table_row() {
-                    kid.as_mut_table_row().assign_block_size_table_row_base(layout_context)
+                    sizes.push(kid.as_mut_table_row()
+                        .compute_block_size_table_row_base(layout_context))
+                }
+            }
+
+            let mut effects_rows = 0;
+            let mut i = 0;
+            for kid in self.base.child_iter_mut() {
+                if kid.is_table_row() {
+                    let row = kid.as_mut_table_row();
+                    if row.mut_base().restyle_damage.contains(ServoRestyleDamage::REFLOW) ||
+                       effects_rows != 0 {
+                        row.assign_block_size_to_self_and_children(&sizes, i, &mut effects_rows);
+                        row.mut_base().restyle_damage
+                            .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW |
+                                    ServoRestyleDamage::REFLOW);
+                    }
+                    // may happen for empty rows
+                    if effects_rows != 0 {
+                        effects_rows -= 1;
+                    }
+                    i += 1;
                 }
             }
             // Our current border-box position.
