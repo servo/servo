@@ -114,7 +114,9 @@ impl TableRowFlow {
     /// methods
     #[inline(always)]
     pub fn compute_block_size_table_row_base<'a>(&'a mut self, layout_context: &LayoutContext,
-                                                 incoming_rowspan_data: &mut Vec<Au>) -> Au {
+                                                 incoming_rowspan_data: &mut Vec<Au>,
+                                                 border_info: &[(Au, Au)],
+                                                 row_index: usize) -> Au {
         // XXXManishearth skip this when the REFLOW flag is unset if it is not affected by other
         // rows
         fn include_sizes_from_previous_rows(col: &mut usize,
@@ -185,16 +187,16 @@ impl TableRowFlow {
         block_size
     }
 
-    pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[Au], index: usize, effects_rows: &mut u32) {
+    pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[(Au, Au)], index: usize, effects_rows: &mut u32) {
         // Assign the block-size of kid fragments, which is the same value as own block-size.
-        let block_size = sizes[index];
+        let block_size = sizes[index].0;
         for kid in self.block_flow.base.child_iter_mut() {
             let child_table_cell = kid.as_mut_table_cell();
             let block_size = if child_table_cell.row_span > 1 {
                  *effects_rows = max(*effects_rows, child_table_cell.row_span);
                  // XXXManishearth support border spacing and such
                  sizes[index..].iter().take(child_table_cell.row_span as usize)
-                               .fold(Au(0), |accum, size| accum + *size)
+                               .fold(Au(0), |accum, size| accum + size.0)
             } else {
                 block_size
             };
