@@ -567,13 +567,6 @@ impl Flow for TableFlow {
 }
 
 #[derive(Debug)]
-// XXXManishearth We might be able to avoid the Arc<T>s if
-// the table is structured such that the columns always come
-// first in the flow tree, at which point we can
-// reuse the iterator that we use for colgroups
-// for rows (and have no borrowing issues between
-// holding on to both ColumnStyle<'table> and
-// the rows)
 struct ColumnStyle<'table> {
     span: u32,
     colgroup_style: Option<&'table ComputedValues>,
