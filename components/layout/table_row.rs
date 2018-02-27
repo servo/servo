@@ -150,11 +150,10 @@ impl TableRowFlow {
                                              incoming_rowspan_data, &mut max_block_size,
                                              &mut largest_leftover_incoming_size);
             kid.place_float_if_applicable();
-            if !kid.base().flags.is_float() {
-                kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                     thread_id,
-                                                                     content_box);
-            }
+            debug_assert!(!kid.base().flags.is_float(), "table cells should never float");
+            kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
+                                                                 thread_id,
+                                                                 content_box);
 
             let row_span;
             let column_span;
