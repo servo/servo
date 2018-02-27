@@ -352,5 +352,4 @@ ${helpers.predefined_type("grid-template-areas",
                           initial_value="computed::GridTemplateAreas::none()",
                           products="gecko",
                           animation_value_type="discrete",
-                          gecko_pref="layout.css.grid.enabled",
                           spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas")}
