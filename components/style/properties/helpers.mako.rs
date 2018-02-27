@@ -688,7 +688,13 @@
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
                 pub ${sub_property.ident}:
+                % if sub_property.may_be_disabled_in(shorthand, product):
+                    Option<
+                % endif
                     &'a longhands::${sub_property.ident}::SpecifiedValue,
+                % if sub_property.may_be_disabled_in(shorthand, product):
+                    >,
+                % endif
             % endfor
         }
 
@@ -725,12 +731,16 @@
 
                     (
                     % for sub_property in shorthand.sub_properties:
+                        % if sub_property.may_be_disabled_in(shorthand, product):
+                        ${sub_property.ident},
+                        % else:
                         Some(${sub_property.ident}),
+                        % endif
                     % endfor
                     ) =>
                     Ok(LonghandsToSerialize {
                         % for sub_property in shorthand.sub_properties:
-                            ${sub_property.ident}: ${sub_property.ident},
+                            ${sub_property.ident},
                         % endfor
                     }),
                     _ => Err(())
@@ -745,11 +755,19 @@
             context: &ParserContext,
             input: &mut Parser<'i, 't>,
         ) -> Result<(), ParseError<'i>> {
+            #[allow(unused_imports)]
+            use properties::{NonCustomPropertyId, LonghandId};
             input.parse_entirely(|input| parse_value(context, input)).map(|longhands| {
                 % for sub_property in shorthand.sub_properties:
+                % if sub_property.may_be_disabled_in(shorthand, product):
+                if NonCustomPropertyId::from(LonghandId::${sub_property.camel_case}).allowed_in(context) {
+                % endif
                     declarations.push(PropertyDeclaration::${sub_property.camel_case}(
                         longhands.${sub_property.ident}
                     ));
+                % if sub_property.may_be_disabled_in(shorthand, product):
+                }
+                % endif
                 % endfor
             })
         }
