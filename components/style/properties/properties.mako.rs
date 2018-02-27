@@ -1832,14 +1832,6 @@ impl PropertyDeclaration {
       }
     }
 
-    /// The shorthands that this longhand is part of.
-    pub fn shorthands(&self) -> &'static [ShorthandId] {
-        match self.id() {
-            PropertyDeclarationId::Longhand(id) => id.shorthands(),
-            PropertyDeclarationId::Custom(..) => &[],
-        }
-    }
-
     /// Returns true if this property declaration is for one of the animatable
     /// properties.
     pub fn is_animatable(&self) -> bool {
