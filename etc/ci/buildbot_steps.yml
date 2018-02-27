@@ -116,6 +116,7 @@ linux-dev:
     - bash ./etc/ci/lockfile_changed.sh
     - bash ./etc/ci/manifest_changed.sh
     - bash ./etc/ci/check_no_panic.sh
+    - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-wpt:
   env:
@@ -146,6 +147,7 @@ linux-rel-css:
     - ./mach test-stylo --release
     - bash ./etc/ci/lockfile_changed.sh
     - bash ./etc/ci/manifest_changed.sh
+    - ./etc/ci/clean_build_artifacts.sh
 
 linux-nightly:
   - ./mach clean-nightlies --keep 3 --force
