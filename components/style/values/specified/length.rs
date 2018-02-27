@@ -20,7 +20,6 @@ use super::{AllowQuirks, Number, ToComputedValue, Percentage};
 use values::{Auto, CSSFloat, Either, Normal};
 use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
 use values::generics::NonNegative;
-use values::specified::NonNegativeNumber;
 use values::specified::calc::CalcNode;
 
 pub use values::specified::calc::CalcLengthOrPercentage;
@@ -686,12 +685,6 @@ pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
 
 /// Either a NonNegativeLength or the `auto` keyword.
 pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
-
-/// Either a NonNegativeLength or a NonNegativeNumber value.
-///
-/// The order is important, because `0` must be parsed as the number `0` and not
-/// the length `0px`.
-pub type NonNegativeLengthOrNumber = Either<NonNegativeNumber, NonNegativeLength>;
 
 /// A length or a percentage value.
 #[allow(missing_docs)]

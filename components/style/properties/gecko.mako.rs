@@ -64,6 +64,7 @@ use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
 use values::generics::column::ColumnCount;
 use values::generics::position::ZIndex;
+use values::generics::text::MozTabSize;
 use values::generics::transform::TransformStyle;
 use computed_values::border_style;
 
@@ -4792,13 +4793,11 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
-        use values::Either;
-
         match v {
-            Either::First(non_negative_number) => {
+            MozTabSize::Number(non_negative_number) => {
                 self.gecko.mTabSize.set_value(CoordDataValue::Factor(non_negative_number.0));
             }
-            Either::Second(non_negative_length) => {
+            MozTabSize::Length(non_negative_length) => {
                 self.gecko.mTabSize.set(non_negative_length);
             }
         }
@@ -4806,11 +4805,9 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn clone__moz_tab_size(&self) -> longhands::_moz_tab_size::computed_value::T {
-        use values::Either;
-
         match self.gecko.mTabSize.as_value() {
-            CoordDataValue::Coord(coord) => Either::Second(Au(coord).into()),
-            CoordDataValue::Factor(number) => Either::First(From::from(number)),
+            CoordDataValue::Coord(coord) => MozTabSize::Length(Au(coord).into()),
+            CoordDataValue::Factor(number) => MozTabSize::Number(From::from(number)),
             _ => unreachable!(),
         }
     }
