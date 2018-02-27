@@ -13,6 +13,7 @@ use values::computed::{NonNegativeLength, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
+use values::generics::text::MozTabSize as GenericMozTabSize;
 use values::generics::text::Spacing;
 use values::specified::text::{TextOverflowSide, TextDecorationLine};
 
@@ -147,3 +148,6 @@ impl TextDecorationsInEffect {
         result
     }
 }
+
+/// A specified value for the `-moz-tab-size` property.
+pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
