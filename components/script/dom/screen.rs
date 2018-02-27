@@ -42,8 +42,8 @@ impl Screen {
     fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
         let (send, recv) = ipc::channel::<DeviceUintSize>().unwrap();
 =======
-    fn screen_size(&self) -> Size2D<u32> {
-        let (send, recv) = receiver::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
+    fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
+        let (send, recv) = receiver::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
 >>>>>>> One file implements new channel
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
@@ -52,13 +52,8 @@ impl Screen {
         (screen.to_f32() / dpr).to_u32()
     }
 
-<<<<<<< HEAD
     fn screen_avail_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = ipc::channel::<DeviceUintSize>().unwrap();
-=======
-    fn screen_avail_size(&self) -> Size2D<u32> {
-        let (send, recv) = receiver::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
->>>>>>> One file implements new channel
+        let (send, recv) = receiver::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();
