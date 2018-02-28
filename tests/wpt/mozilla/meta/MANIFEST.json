@@ -5842,7 +5842,7 @@
      "/_mozilla/css/table_rowspan_notequal_a.html",
      [
       [
-       "/_mozilla/css/table_rowspan_simple_ref.html",
+       "/_mozilla/css/table_rowspan_notequal_ref.html",
        "!="
       ]
      ],
@@ -63950,7 +63950,7 @@
    "support"
   ],
   "css/table_rowspan_notequal_a.html": [
-   "fb83b4d16e05136c1f3af68639fc4870134ca01a",
+   "ec7ab6318a498f6b88369f097af53a0626c6fb1d",
    "reftest"
   ],
   "css/table_rowspan_notequal_ref.html": [
