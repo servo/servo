@@ -16,7 +16,7 @@ base64 = "0.6"
 brotli = "1.0.6"
 cookie = "0.10"
 devtools_traits = {path = "../devtools_traits"}
-flate2 = "0.2.0"
+flate2 = "1"
 hyper = "0.10"
 hyper_serde = "0.8"
 hyper-openssl = "0.2.2"

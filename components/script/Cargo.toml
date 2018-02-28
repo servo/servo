@@ -34,7 +34,7 @@ bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
-caseless = "0.1.0"
+caseless = "0.2"
 cookie = "0.10"
 chrono = "0.4"
 cssparser = "0.23.0"
@@ -50,7 +50,7 @@ half = "1.0"
 html5ever = "0.22"
 hyper = "0.10"
 hyper_serde = "0.8"
-image = "0.17"
+image = "0.18"
 ipc-channel = "0.9"
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "1"
