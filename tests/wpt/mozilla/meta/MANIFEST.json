@@ -5837,6 +5837,18 @@
      {}
     ]
    ],
+   "css/table_rowspan_notequal_a.html": [
+    [
+     "/_mozilla/css/table_rowspan_notequal_a.html",
+     [
+      [
+       "/_mozilla/css/table_rowspan_simple_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/table_rowspan_rowgroup_a.html": [
     [
      "/_mozilla/css/table_rowspan_rowgroup_a.html",
@@ -9752,6 +9764,11 @@
     ]
    ],
    "css/table_row_direction_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/table_rowspan_notequal_ref.html": [
     [
      {}
     ]
@@ -63930,6 +63947,14 @@
   ],
   "css/table_row_direction_ref.html": [
    "e045db1f738850e516079b66f915ba314b54ed99",
+   "support"
+  ],
+  "css/table_rowspan_notequal_a.html": [
+   "fb83b4d16e05136c1f3af68639fc4870134ca01a",
+   "reftest"
+  ],
+  "css/table_rowspan_notequal_ref.html": [
+   "2a07facbd9f417264b46f6419ab00593051dae56",
    "support"
   ],
   "css/table_rowspan_rowgroup_a.html": [
