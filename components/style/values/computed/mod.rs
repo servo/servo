@@ -70,10 +70,10 @@ pub use self::list::{ListStyleImage, Quotes};
 pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
-pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, ZIndex};
-pub use self::pointing::Cursor;
+pub use self::pointing::{CaretColor, Cursor};
 #[cfg(feature = "gecko")]
 pub use self::pointing::CursorImage;
+pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, ZIndex};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg::MozContextProperties;
@@ -632,9 +632,6 @@ impl ClipRectOrAuto {
         }
     }
 }
-
-/// <color> | auto
-pub type ColorOrAuto = Either<Color, Auto>;
 
 /// The computed value of a CSS `url()`, resolved relative to the stylesheet URL.
 #[cfg(feature = "servo")]
