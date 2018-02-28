@@ -34,7 +34,7 @@ bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
-caseless = "0.1.0"
+caseless = "0.2"
 cookie = "0.10"
 chrono = "0.4"
 cssparser = "0.23.0"
