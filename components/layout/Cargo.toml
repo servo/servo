@@ -16,7 +16,7 @@ app_units = "0.6.1"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
-euclid = "0.16.4"
+euclid = "0.17"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
