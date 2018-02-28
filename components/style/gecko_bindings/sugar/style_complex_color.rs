@@ -6,8 +6,8 @@
 
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::{nscolor, StyleComplexColor};
-use values::{Auto, Either};
 use values::computed::Color as ComputedColor;
+use values::generics::pointing::CaretColor;
 
 impl From<nscolor> for StyleComplexColor {
     fn from(other: nscolor) -> Self {
@@ -59,21 +59,27 @@ impl From<StyleComplexColor> for ComputedColor {
     }
 }
 
-impl From<Either<ComputedColor, Auto>> for StyleComplexColor {
-    fn from(other: Either<ComputedColor, Auto>) -> Self {
+impl<Color> From<CaretColor<Color>> for StyleComplexColor
+where
+    Color: Into<StyleComplexColor>,
+{
+    fn from(other: CaretColor<Color>) -> Self {
         match other {
-            Either::First(color) => color.into(),
-            Either::Second(_auto) => StyleComplexColor::auto(),
+            CaretColor::Color(color) => color.into(),
+            CaretColor::Auto => StyleComplexColor::auto(),
         }
     }
 }
 
-impl From<StyleComplexColor> for Either<ComputedColor, Auto> {
+impl<Color> From<StyleComplexColor> for CaretColor<Color>
+where
+    StyleComplexColor: Into<Color>,
+{
     fn from(other: StyleComplexColor) -> Self {
         if !other.mIsAuto {
-            Either::First(other.into())
+            CaretColor::Color(other.into())
         } else {
-            Either::Second(Auto)
+            CaretColor::Auto
         }
     }
 }
