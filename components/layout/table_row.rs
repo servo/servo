@@ -113,7 +113,7 @@ impl TableRowFlow {
     /// Returns the block size, as well as the size this should be if this is the last row
     pub fn compute_block_size_table_row_base<'a>(&'a mut self, layout_context: &LayoutContext,
                                                  incoming_rowspan_data: &mut Vec<Au>,
-                                                 border_info: &[(Au, Au)], // (_, cumulative_border_size)
+                                                 border_info: &[(Au, Au, bool)], // (_, cumulative_border_size)
                                                  row_index: usize) -> (Au, Au) {
         fn include_sizes_from_previous_rows(col: &mut usize,
                                             incoming_rowspan: &[u32],
@@ -206,7 +206,7 @@ impl TableRowFlow {
         (block_size, largest_leftover_incoming_size)
     }
 
-    pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[(Au, Au)], index: usize) {
+    pub fn assign_block_size_to_self_and_children(&mut self, sizes: &[(Au, Au, bool)], index: usize) {
         // Assign the block-size of kid fragments, which is the same value as own block-size.
         let block_size = sizes[index].0;
         for kid in self.block_flow.base.child_iter_mut() {
@@ -282,7 +282,7 @@ impl TableRowFlow {
 /// Given an array of (_, cumulative_border_size), the index of the
 /// current row, and the >1 row_span of the cell, calculate the amount of
 /// border-spacing spanned by the row
-fn get_spanned_border_size(sizes: &[(Au, Au)], row_index: usize, row_span: u32) -> Au {
+fn get_spanned_border_size(sizes: &[(Au, Au, bool)], row_index: usize, row_span: u32) -> Au {
     let last_row_idx = min(row_index + row_span as usize - 1, sizes.len() - 1);
     sizes[last_row_idx].1 - sizes[row_index].1
 }

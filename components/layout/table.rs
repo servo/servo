@@ -785,24 +785,34 @@ impl TableLikeFlow for BlockFlow {
         }
 
         if self.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
-            // (size, cumulative_border_spacing)
-            let mut sizes = vec![(Au(0), Au(0))];
+            // (size, cumulative_border_spacing, rowgroup_id)
+            let mut sizes = vec![(Au(0), Au(0), u32)];
             // The amount of border spacing up to and including this row,
             // but not including the spacing beneath it
             let mut cumulative_border = Au(0);
             let mut incoming_rowspan_data = vec![];
+            let mut rowgroup_id = 0;
+            let mut first = true;
 
             // First pass: Compute block-direction border spacings
             // XXXManishearth this can be done in tandem with the second pass,
             // provided we never hit any rowspan cases
-            for kid in self.base.child_iter_mut()
-                           .filter(|k| k.is_table_row())
-                           .skip(1) {
-                cumulative_border +=
-                    border_spacing_for_row(&self.fragment, kid.as_table_row(),
-                                           block_direction_spacing);
-                // we haven't calculated sizes yet
-                sizes.push((Au(0), cumulative_border));
+            for kid in self.base.child_iter_mut() {
+                if kid.is_table_row() {
+                    // skip the first row, it is accounted for
+                    if first {
+                        first = false;
+                        continue;
+                    }
+                    cumulative_border +=
+                        border_spacing_for_row(&self.fragment, kid.as_table_row(),
+                                               block_direction_spacing);
+                    // we haven't calculated sizes yet
+                    sizes.push((Au(0), cumulative_border, rowgroup_id));
+                    has_rowgroup_before = false;
+                } else if kid.is_table_rowgroup() {
+                    rowgroup += 1;
+                }
             }
 
             // Second pass: Compute row block sizes
