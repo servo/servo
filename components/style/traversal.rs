@@ -13,7 +13,7 @@ use selector_parser::PseudoElement;
 use selectors::NthIndexCache;
 use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
-use style_resolver::{PseudoElementResolution, StyleResolverForElement};
+use style_resolver::{CascadeKind, PseudoElementResolution, StyleResolverForElement};
 use stylist::RuleInclusion;
 use traversal_flags::TraversalFlags;
 
@@ -634,7 +634,10 @@ where
                     PseudoElementResolution::IfApplicable
                 );
 
-            resolver.cascade_styles_with_default_parents(cascade_inputs)
+            resolver.cascade_styles_with_default_parents(
+                cascade_inputs,
+                CascadeKind::Full,
+            )
         }
         CascadeOnly | CascadeCustomProperties => {
             // Skipping full matching, load cascade inputs from previous values.
@@ -650,7 +653,16 @@ where
                         PseudoElementResolution::IfApplicable
                     );
 
-                resolver.cascade_styles_with_default_parents(cascade_inputs)
+                let cascade_kind = if matches!(kind, CascadeCustomProperties) {
+                    CascadeKind::CustomOnlyIfPossible(&data.styles)
+                } else {
+                    CascadeKind::Full
+                };
+
+                resolver.cascade_styles_with_default_parents(
+                    cascade_inputs,
+                    cascade_kind,
+                )
             };
 
             // Insert into the cache, but only if this style isn't reused from a

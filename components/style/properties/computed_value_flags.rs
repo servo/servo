@@ -57,16 +57,19 @@ bitflags! {
         /// Important because of the same reason.
         const INHERITS_CONTENT = 1 << 7;
 
+        /// Whether this style replaced any custom property reference.
+        const HAS_CUSTOM_PROPERTY_REFERENCES = 1 << 8;
+
         /// Whether the child explicitly inherits any reset property.
-        const INHERITS_RESET_STYLE = 1 << 8;
+        const INHERITS_RESET_STYLE = 1 << 9;
 
         /// A flag to mark a style which is a visited style.
-        const IS_STYLE_IF_VISITED = 1 << 9;
+        const IS_STYLE_IF_VISITED = 1 << 10;
 
         /// Whether the style or any of the ancestors has a multicol style.
         ///
         /// Only used in Servo.
-        const CAN_BE_FRAGMENTED = 1 << 10;
+        const CAN_BE_FRAGMENTED = 1 << 11;
     }
 }
 

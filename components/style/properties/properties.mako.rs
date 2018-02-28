@@ -3295,6 +3295,67 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset
     }
 
+    /// Cascades only custom properties, leaving the rest of structs untouched.
+    ///
+    /// The caller must make sure that styles with custom property references
+    /// don't arrive here.
+    pub fn replace_custom_properties<E>(
+        old_style: &ComputedValues,
+        pseudo: Option<<&PseudoElement>,
+        element: E,
+        parent_style: &ComputedValues,
+        device: &Device,
+        guards: &StylesheetGuards,
+    ) -> Arc<ComputedValues>
+    where
+        E: TElement,
+    {
+        debug_assert!(!old_style.flags.intersects(ComputedValueFlags::HAS_CUSTOM_PROPERTY_REFERENCES));
+
+        let visited_style = old_style.visited_style().map(|s| {
+            let parent = if pseudo.is_none() && element.is_link() {
+                parent_style
+            } else {
+                parent_style.visited_style().unwrap_or(parent_style)
+            };
+
+            Self::replace_custom_properties(s, pseudo, element, parent, device, guards)
+        });
+
+        let empty = SmallBitVec::new();
+        let custom_properties = {
+            let mut builder =
+                CustomPropertiesBuilder::new(parent_style.custom_properties());
+            if let Some(ref rules) = old_style.rules {
+                let restrictions = pseudo.and_then(|p| p.property_restriction());
+                let iter = iter_declarations!(rules, guards, restrictions, empty);
+
+                for (declaration, _cascade_level) in iter {
+                    if let PropertyDeclaration::Custom(ref declaration) = *declaration {
+                        builder.cascade(&declaration.name, declaration.value.borrow());
+                    }
+                }
+
+            }
+
+            builder.build()
+        };
+
+        ComputedValues::new(
+            device,
+            Some(parent_style),
+            pseudo,
+            custom_properties,
+            old_style.writing_mode,
+            old_style.flags,
+            old_style.rules.clone(),
+            visited_style,
+            % for style_struct in data.active_style_structs():
+            clone_arc(old_style.${style_struct.name_lower}_arc()),
+            % endfor
+        )
+    }
+
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
     pub fn build(self) -> Arc<ComputedValues> {
         ComputedValues::new(
@@ -3623,6 +3684,7 @@ where
                         context.rule_cache_conditions.borrow_mut()
                             .set_uncacheable();
                     }
+                    context.builder.flags.insert(ComputedValueFlags::HAS_CUSTOM_PROPERTY_REFERENCES);
                     Cow::Owned(declaration.value.substitute_variables(
                         declaration.id,
                         context.builder.custom_properties.as_ref(),

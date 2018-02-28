@@ -10,13 +10,15 @@ use data::{ElementStyles, EagerPseudoStyles};
 use dom::TElement;
 use log::LogLevel::Trace;
 use matching::MatchMethods;
-use properties::{AnimationRules, ComputedValues};
+use properties::{AnimationRules, ComputedValues, StyleBuilder};
+use properties::computed_value_flags::ComputedValueFlags;
 use properties::longhands::display::computed_value::T as Display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
 use stylist::RuleInclusion;
+
 
 /// Whether pseudo-elements should be resolved or not.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -25,6 +27,21 @@ pub enum PseudoElementResolution {
     IfApplicable,
     /// Force pseudo-element resolution.
     Force,
+}
+
+/// The kind of recascading that we need to do.
+#[derive(Clone, Copy)]
+pub enum CascadeKind<'a> {
+    /// Recascade all the styles.
+    Full,
+    /// Recascade custom property styles only, if possible (if the rules don't
+    /// have any variable reference).
+    CustomOnlyIfPossible(&'a ElementStyles),
+}
+
+enum ResolverCascadeKind<'a> {
+    Full,
+    CustomOnly(&'a ComputedValues),
 }
 
 /// A struct that takes care of resolving the style of a given element.
@@ -106,8 +123,6 @@ fn eager_pseudo_is_definitely_not_generated(
     pseudo: &PseudoElement,
     style: &ComputedValues,
 ) -> bool {
-    use properties::computed_value_flags::ComputedValueFlags;
-
     if !pseudo.is_before_or_after() {
         return false;
     }
@@ -123,6 +138,43 @@ fn eager_pseudo_is_definitely_not_generated(
     }
 
     false
+}
+
+fn style_or_visited_have_custom_property_references(style: &ComputedValues) -> bool {
+    if style.flags.intersects(ComputedValueFlags::HAS_CUSTOM_PROPERTY_REFERENCES) {
+        return true;
+    }
+
+    style.visited_style().map_or(false, |visited_style| {
+        visited_style.flags.intersects(ComputedValueFlags::HAS_CUSTOM_PROPERTY_REFERENCES)
+    })
+}
+
+fn resolver_cascade_kind<'a>(
+    pseudo: Option<&PseudoElement>,
+    cascade_kind: CascadeKind<'a>,
+) -> ResolverCascadeKind<'a> {
+    let styles = match cascade_kind {
+        CascadeKind::Full => return ResolverCascadeKind::Full,
+        CascadeKind::CustomOnlyIfPossible(styles) => styles,
+    };
+
+    let primary_style = styles.primary();
+    if style_or_visited_have_custom_property_references(&primary_style) {
+        return ResolverCascadeKind::Full;
+    }
+
+    let pseudo = match pseudo {
+        Some(p) => p,
+        None => return ResolverCascadeKind::CustomOnly(primary_style),
+    };
+
+    let pseudo_style = styles.pseudos.get(pseudo).expect("How did we plan to recascade?");
+    if style_or_visited_have_custom_property_references(&pseudo_style) {
+        return ResolverCascadeKind::Full;
+    }
+
+    ResolverCascadeKind::CustomOnly(pseudo_style)
 }
 
 impl<'a, 'ctx, 'le, E> StyleResolverForElement<'a, 'ctx, 'le, E>
@@ -176,6 +228,7 @@ where
             },
             parent_style,
             layout_parent_style,
+            ResolverCascadeKind::Full,
         )
     }
 
@@ -184,6 +237,7 @@ where
         inputs: CascadeInputs,
         parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
+        cascade_kind: ResolverCascadeKind,
     ) -> PrimaryStyle {
         // Before doing the cascade, check the sharing cache and see if we can
         // reuse the style via rule node identity.
@@ -215,6 +269,7 @@ where
                 parent_style,
                 layout_parent_style,
                 /* pseudo = */ None,
+                cascade_kind,
             ),
             reused_via_rule_node: false,
         }
@@ -279,7 +334,8 @@ where
                 inputs,
                 parent_style,
                 layout_parent_style,
-                /* pseudo = */ None
+                /* pseudo = */ None,
+                ResolverCascadeKind::Full,
             )
         })
     }
@@ -290,6 +346,7 @@ where
         parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
         pseudo: Option<&PseudoElement>,
+        kind: ResolverCascadeKind,
     ) -> ResolvedStyle {
         debug_assert!(
             self.element.implemented_pseudo_element().is_none() || pseudo.is_none(),
@@ -301,18 +358,32 @@ where
         let pseudo = pseudo.or(implemented_pseudo.as_ref());
 
         let mut conditions = Default::default();
-        let values = self.context.shared.stylist.cascade_style_and_visited(
-            Some(self.element),
-            pseudo,
-            inputs,
-            &self.context.shared.guards,
-            parent_style,
-            parent_style,
-            layout_parent_style,
-            &self.context.thread_local.font_metrics_provider,
-            Some(&self.context.thread_local.rule_cache),
-            &mut conditions,
-        );
+        let values = match kind {
+            ResolverCascadeKind::Full => {
+                self.context.shared.stylist.cascade_style_and_visited(
+                    Some(self.element),
+                    pseudo,
+                    inputs,
+                    &self.context.shared.guards,
+                    parent_style,
+                    parent_style,
+                    layout_parent_style,
+                    &self.context.thread_local.font_metrics_provider,
+                    Some(&self.context.thread_local.rule_cache),
+                    &mut conditions,
+                )
+            }
+            ResolverCascadeKind::CustomOnly(old_style) => {
+                StyleBuilder::replace_custom_properties(
+                    old_style,
+                    pseudo,
+                    self.element,
+                    parent_style.expect("How did our inherited custom props change?"),
+                    self.context.shared.stylist.device(),
+                    &self.context.shared.guards,
+                )
+            }
+        };
 
         self.context.thread_local.rule_cache.insert_if_possible(
             &self.context.shared.guards,
@@ -328,12 +399,19 @@ where
     pub fn cascade_styles_with_default_parents(
         &mut self,
         inputs: ElementCascadeInputs,
+        cascade_kind: CascadeKind,
     ) -> ResolvedElementStyles {
         with_default_parent_styles(self.element, move |parent_style, layout_parent_style| {
+            let primary_cascade_kind = resolver_cascade_kind(
+                /* pseudo = */ None,
+                cascade_kind,
+            );
+
             let primary_style = self.cascade_primary_style(
                 inputs.primary,
                 parent_style,
                 layout_parent_style,
+                primary_cascade_kind,
             );
 
             let mut pseudo_styles = EagerPseudoStyles::default();
@@ -349,12 +427,18 @@ where
                     if let Some(inputs) = inputs.take() {
                         let pseudo = PseudoElement::from_eager_index(i);
 
+                        let pseudo_cascade_kind = resolver_cascade_kind(
+                            Some(&pseudo),
+                            cascade_kind,
+                        );
+
                         let style =
                             self.cascade_style_and_visited(
                                 inputs,
                                 Some(primary_style.style()),
                                 layout_parent_style_for_pseudo,
                                 Some(&pseudo),
+                                pseudo_cascade_kind,
                             );
 
                         if !matches!(self.pseudo_resolution, PseudoElementResolution::Force) &&
@@ -403,6 +487,7 @@ where
             Some(originating_element_style.style()),
             layout_parent_style,
             Some(pseudo),
+            ResolverCascadeKind::Full,
         ))
     }
 
