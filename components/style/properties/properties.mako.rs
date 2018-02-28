@@ -2867,6 +2867,46 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
     }
 }
 
+macro_rules! iter_declarations {
+    ($rule_node:expr, $guards:ident, $restrictions:ident, $empty_small_bit_vec:ident) => {{
+        $rule_node.self_and_ancestors().flat_map(|node| {
+            let cascade_level = node.cascade_level();
+            let source = node.style_source();
+
+            let declarations = if source.is_some() {
+                source.read(cascade_level.guard($guards)).declaration_importance_iter()
+            } else {
+                // The root node has no style source.
+                DeclarationImportanceIterator::new(&[], &$empty_small_bit_vec)
+            };
+            let node_importance = node.importance();
+
+            declarations
+                // Yield declarations later in source order (with more precedence) first.
+                .rev()
+                .filter_map(move |(declaration, declaration_importance)| {
+                    if let Some(property_restriction) = $restrictions {
+                        // declaration.id() is either a longhand or a custom
+                        // property.  Custom properties are always allowed, but
+                        // longhands are only allowed if they have our
+                        // property_restriction flag set.
+                        if let PropertyDeclarationId::Longhand(id) = declaration.id() {
+                            if !id.flags().contains(property_restriction) {
+                                return None
+                            }
+                        }
+                    }
+
+                    if declaration_importance == node_importance {
+                        Some((declaration, cascade_level))
+                    } else {
+                        None
+                    }
+                })
+        })
+    }}
+}
+
 impl<'a, T: 'a> ops::Deref for StyleStructRef<'a, T> {
     type Target = T;
 
@@ -3417,46 +3457,11 @@ where
 {
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     let empty = SmallBitVec::new();
-
-    let property_restriction = pseudo.and_then(|p| p.property_restriction());
-
+    let restrictions = pseudo.and_then(|p| p.property_restriction());
     let iter_declarations = || {
-        rule_node.self_and_ancestors().flat_map(|node| {
-            let cascade_level = node.cascade_level();
-            let source = node.style_source();
-
-            let declarations = if source.is_some() {
-                source.read(cascade_level.guard(guards)).declaration_importance_iter()
-            } else {
-                // The root node has no style source.
-                DeclarationImportanceIterator::new(&[], &empty)
-            };
-            let node_importance = node.importance();
-
-            declarations
-                // Yield declarations later in source order (with more precedence) first.
-                .rev()
-                .filter_map(move |(declaration, declaration_importance)| {
-                    if let Some(property_restriction) = property_restriction {
-                        // declaration.id() is either a longhand or a custom
-                        // property.  Custom properties are always allowed, but
-                        // longhands are only allowed if they have our
-                        // property_restriction flag set.
-                        if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-                            if !id.flags().contains(property_restriction) {
-                                return None
-                            }
-                        }
-                    }
-
-                    if declaration_importance == node_importance {
-                        Some((declaration, cascade_level))
-                    } else {
-                        None
-                    }
-                })
-        })
+        iter_declarations!(rule_node, guards, restrictions, empty)
     };
+
 
     apply_declarations(
         device,
