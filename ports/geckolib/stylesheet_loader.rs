@@ -6,7 +6,7 @@ use cssparser::SourceLocation;
 use servo_arc::Arc;
 use style::gecko::data::GeckoStyleSheet;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
-use style::gecko_bindings::structs::{Loader, ServoStyleSheet, LoaderReusableStyleSheets};
+use style::gecko_bindings::structs::{Loader, ServoStyleSheet, SheetLoadData, LoaderReusableStyleSheets};
 use style::gecko_bindings::sugar::ownership::FFIArcHelpers;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
@@ -15,13 +15,14 @@ use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::specified::url::SpecifiedUrl;
 
-pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut LoaderReusableStyleSheets);
+pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut SheetLoadData, *mut LoaderReusableStyleSheets);
 
 impl StylesheetLoader {
     pub fn new(loader: *mut Loader,
                parent: *mut ServoStyleSheet,
+               parent_load_data: *mut SheetLoadData,
                reusable_sheets: *mut LoaderReusableStyleSheets) -> Self {
-        StylesheetLoader(loader, parent, reusable_sheets)
+        StylesheetLoader(loader, parent, parent_load_data, reusable_sheets)
     }
 }
 
@@ -45,6 +46,7 @@ impl StyleStylesheetLoader for StylesheetLoader {
             Gecko_LoadStyleSheet(self.0,
                                  self.1,
                                  self.2,
+                                 self.3,
                                  base_url_data,
                                  spec_bytes,
                                  spec_len as u32,

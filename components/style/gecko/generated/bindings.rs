@@ -235,6 +235,7 @@ use gecko_bindings::structs::nscoord;
 use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::LoaderReusableStyleSheets;
+use gecko_bindings::structs::SheetLoadData;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::ServoComputedData;
 use gecko_bindings::structs::ServoStyleContext;
@@ -664,6 +665,7 @@ extern "C" {
     pub fn Gecko_LoadStyleSheet(
         loader: *mut Loader,
         parent: *mut ServoStyleSheet,
+        parent_load_data: *mut SheetLoadData,
         reusable_sheets: *mut LoaderReusableStyleSheets,
         base_url_data: *mut RawGeckoURLExtraData,
         url_bytes: *const u8,
@@ -2093,6 +2095,7 @@ extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(
         loader: *mut Loader,
         gecko_stylesheet: *mut ServoStyleSheet,
+        load_data: *mut SheetLoadData,
         data: *const u8,
         data_len: usize,
         parsing_mode: SheetParsingMode,
