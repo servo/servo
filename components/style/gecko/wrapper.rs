@@ -256,7 +256,7 @@ impl<'ln> GeckoNode<'ln> {
 
     #[inline]
     fn contains_non_whitespace_content(&self) -> bool {
-        unsafe { Gecko_IsSignificantChild(self.0, true, false) }
+        unsafe { Gecko_IsSignificantChild(self.0, false) }
     }
 }
 
@@ -1933,7 +1933,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn is_empty(&self) -> bool {
         !self.as_node().dom_children().any(|child| unsafe {
-            Gecko_IsSignificantChild(child.0, true, true)
+            Gecko_IsSignificantChild(child.0, true)
         })
     }
 

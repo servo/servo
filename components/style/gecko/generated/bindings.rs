@@ -608,7 +608,6 @@ extern "C" {
 extern "C" {
     pub fn Gecko_IsSignificantChild(
         node: RawGeckoNodeBorrowed,
-        text_is_significant: bool,
         whitespace_is_significant: bool,
     ) -> bool;
 }
