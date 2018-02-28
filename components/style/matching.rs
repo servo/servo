@@ -40,27 +40,29 @@ pub enum StyleChange {
     Changed {
         /// Whether only reset structs changed.
         reset_only: bool,
+        /// Whether only custom properties changed.
+        custom_properties_only: bool,
     },
 }
 
 /// Whether or not newly computed values for an element need to be cascade
 /// to children.
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ChildCascadeRequirement {
     /// Old and new computed values were the same, or we otherwise know that
     /// we won't bother recomputing style for children, so we can skip cascading
     /// the new values into child elements.
-    CanSkipCascade = 0,
+    CanSkipCascade,
     /// The same as `MustCascadeChildren`, but we only need to actually
     /// recascade if the child inherits any explicit reset style.
-    MustCascadeChildrenIfInheritResetStyle = 1,
+    MustCascadeChildrenIfInheritResetStyle,
     /// Old and new computed values were different, so we must cascade the
     /// new values to children.
-    MustCascadeChildren = 2,
+    MustCascadeChildren,
     /// The same as `MustCascadeChildren`, but for the entire subtree.  This is
     /// used to handle root font-size updates needing to recascade the whole
     /// document.
-    MustCascadeDescendants = 3,
+    MustCascadeDescendants,
 }
 
 impl ChildCascadeRequirement {
@@ -653,8 +655,6 @@ pub trait MatchMethods : TElement {
         mut new_styles: ResolvedElementStyles,
         important_rules_changed: bool,
     ) -> ChildCascadeRequirement {
-        use std::cmp;
-
         self.process_animations(
             context,
             &mut data.styles.primary,
@@ -711,16 +711,19 @@ pub trait MatchMethods : TElement {
             None => return ChildCascadeRequirement::MustCascadeChildren,
         };
 
-        cascade_requirement = cmp::max(
-            cascade_requirement,
+        let cascade_requirement_from_primary_style =
             self.accumulate_damage_for(
                 context.shared,
                 &mut data.damage,
                 &old_primary_style,
                 new_primary_style,
                 None,
-            )
-        );
+            );
+        cascade_requirement = match cascade_requirement {
+            ChildCascadeRequirement::MustCascadeDescendants => ChildCascadeRequirement::MustCascadeDescendants,
+            ChildCascadeRequirement::CanSkipCascade => cascade_requirement_from_primary_style,
+            _ => unreachable!(),
+        };
 
         if data.styles.pseudos.is_empty() && old_styles.pseudos.is_empty() {
             // This is the common case; no need to examine pseudos here.
