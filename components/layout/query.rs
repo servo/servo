@@ -23,6 +23,7 @@ use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
 use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::TreeIterator;
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
@@ -893,7 +894,8 @@ pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
     // Step 1.
     let mut results = Vec::new();
     // Step 2.
-    inner_text_collection_steps(node, indexable_text, &mut results);
+    let iter = node.traverse_preorder();
+    inner_text_collection_steps(iter, indexable_text, &mut results);
     let mut max_req_line_break_count = 0;
     let mut inner_text = Vec::new();
     for item in results {
@@ -952,25 +954,25 @@ fn get_style<N: LayoutNode>(node: &N) -> Option<ServoArc<ComputedValues>> {
 }
 
 // https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
-fn inner_text_collection_steps<N: LayoutNode>(node: N,
+fn inner_text_collection_steps<N: LayoutNode>(mut iter: TreeIterator<N>,
                                               indexable_text: &IndexableText,
                                               results: &mut Vec<InnerTextItem>) {
-    let mut items = Vec::new();
-    for child in node.traverse_preorder() {
+    if let Some(child) = iter.next() {
+        let mut items = Vec::new();
         let style = match get_style(&child) {
-            None => continue,
+            None => return,
             Some(style) => style,
         };
 
         // Step 2.
         if style.get_inheritedbox().visibility != Visibility::Visible {
-            continue;
+            return;
         }
 
         // Step 3.
         let display = style.get_box().display;
         if !child.is_in_document() || display == Display::None {
-            continue;
+            return;
         }
 
         match child.type_id() {
@@ -1012,9 +1014,10 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
             },
             _ => {},
         }
-    }
 
-    results.append(&mut items);
+        results.append(&mut items);
+        inner_text_collection_steps(iter, indexable_text, results);
+    }
 }
 
 fn is_last_table_cell<N: LayoutNode>(node: &N) -> bool {
