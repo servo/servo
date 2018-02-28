@@ -636,7 +636,7 @@ where
 
             resolver.cascade_styles_with_default_parents(cascade_inputs)
         }
-        CascadeOnly => {
+        CascadeOnly | CascadeCustomProperties => {
             // Skipping full matching, load cascade inputs from previous values.
             let cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
@@ -783,6 +783,9 @@ where
                     if child_data.styles.primary().flags.contains(ComputedValueFlags::INHERITS_RESET_STYLE) {
                         child_hint |= RestyleHint::RECASCADE_SELF;
                     }
+                }
+                ChildCascadeRequirement::MustCascadeChildrenCustomProperties => {
+                    child_hint |= RestyleHint::RECASCADE_CUSTOM_PROPERTIES;
                 }
                 ChildCascadeRequirement::MustCascadeChildren => {
                     child_hint |= RestyleHint::RECASCADE_SELF;

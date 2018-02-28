@@ -65,14 +65,26 @@ impl ServoRestyleDamage {
         old: &ComputedValues,
         new: &ComputedValues,
     ) -> StyleDifference {
-        let damage = compute_damage(old, new);
+        let mut damage = compute_non_custom_property_damage(old, new);
+
+        let custom_properties_only = damage.is_empty();
+
+        // Paint worklets may depend on custom properties, so if they have changed
+        // we should repaint.
+        //
+        // FIXME(emilio): This should only be done if the style references any
+        // paint() function, at the very least.
+        if old.custom_properties() != new.custom_properties() {
+            damage.insert(ServoRestyleDamage::REPAINT);
+        }
+
         let change = if damage.is_empty() {
             StyleChange::Unchanged
         } else {
             // FIXME(emilio): Differentiate between reset and inherited
             // properties here, and set `reset_only` appropriately so the
             // optimization to skip the cascade in those cases applies.
-            StyleChange::Changed { reset_only: false }
+            StyleChange::Changed { reset_only: false, custom_properties_only }
         };
         StyleDifference { damage, change }
     }
@@ -175,7 +187,10 @@ impl fmt::Display for ServoRestyleDamage {
     }
 }
 
-fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDamage {
+fn compute_non_custom_property_damage(
+    old: &ComputedValues,
+    new: &ComputedValues,
+) -> ServoRestyleDamage {
     let mut damage = ServoRestyleDamage::empty();
 
     // This should check every CSS property, as enumerated in the fields of
@@ -203,14 +218,8 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
             [ServoRestyleDamage::REPAINT]);
 
 
-    // Paint worklets may depend on custom properties,
-    // so if they have changed we should repaint.
-    if old.custom_properties() != new.custom_properties() {
-        damage.insert(ServoRestyleDamage::REPAINT);
-    }
-
-    // If the layer requirements of this flow have changed due to the value
-    // of the transform, then reflow is required to rebuild the layers.
+    // If the layer requirements of this flow have changed due to the value of
+    // the transform, then reflow is required to rebuild the layers.
     if old.transform_requires_layer() != new.transform_requires_layer() {
         damage.insert(ServoRestyleDamage::rebuild_and_reflow());
     }

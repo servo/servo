@@ -57,6 +57,7 @@ impl GeckoRestyleDamage {
                 &mut reset_only,
             )
         };
+        let custom_properties_only = !any_style_changed;
         if reset_only &&
            old_style.custom_properties() != new_style.custom_properties() {
             // The Gecko_CalcStyleDifference call only checks the non-custom
@@ -68,7 +69,7 @@ impl GeckoRestyleDamage {
             reset_only = false;
         }
         let change = if any_style_changed {
-            StyleChange::Changed { reset_only }
+            StyleChange::Changed { reset_only, custom_properties_only }
         } else {
             StyleChange::Unchanged
         };
