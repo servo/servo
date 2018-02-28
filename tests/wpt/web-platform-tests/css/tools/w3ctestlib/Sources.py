@@ -12,7 +12,7 @@ import codecs
 import collections
 from xml import dom
 import html5lib
-from html5lib import treebuilders, inputstream
+from html5lib import treebuilders
 from lxml import etree
 from lxml.etree import ParseError
 from Utils import getMimeFromExt, escapeToNamedASCII, basepath, isPathInsideBase, relativeURL, assetName
@@ -1363,10 +1363,8 @@ class HTMLSource(XMLSource):
       if data:
         with warnings.catch_warnings():
           warnings.simplefilter("ignore")
-          htmlStream = html5lib.inputstream.HTMLInputStream(data)
-          if ('utf-8-sig' != self.encoding):  # if we found a BOM, respect it
-            self.encoding = htmlStream.detectEncoding()[0]
-          self.tree = self.__parser.parse(data, encoding = self.encoding)
+          self.tree = self.__parser.parse(data)
+          self.encoding = self.__parser.documentEncoding
           self.injectedTags = {}
       else:
         self.tree = None

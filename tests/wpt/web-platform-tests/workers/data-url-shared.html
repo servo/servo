@@ -40,7 +40,7 @@ assert_worker_throws('indexedDB is inaccessible', 'self.indexedDB.open("someDBNa
 assert_worker_sends_pass('cross-origin worker', '', 'fetch("/").then(() => port.postMessage("FAIL"), () => port.postMessage("PASS"))');
 
 // 'data:' workers have opaque origin
-assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'if (self.location.origin == "null") port.postMessage("PASS"); else { port.postMessage("FAIL"); }');
+assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'port.postMessage(self.location.origin == "null" ?  "PASS" : "FAIL")');
 
 function openWindow(url) {
   return new Promise(resolve => {

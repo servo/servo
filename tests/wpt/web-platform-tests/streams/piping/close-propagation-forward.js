@@ -448,12 +448,15 @@ promise_test(() => {
   // Flush async events and verify that no shutdown occurs.
   return flushAsyncEvents().then(() => {
     assert_array_equals(ws.events, ['write', 'a'],
-      'the chunk must have been written, but close must not have happened yet');
+      'the chunk must have been written, but close must not have happened');
     assert_equals(pipeComplete, false, 'the pipe must not be complete');
 
     resolveWritePromise();
 
     return pipePromise;
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a'],
+      'the chunk must have been written, but close must not have happened');
   });
 
 }, 'Closing must be propagated forward: shutdown must not occur until the final write completes; preventClose = true');
@@ -488,7 +491,7 @@ promise_test(() => {
 
   return writeCalledPromise.then(() => flushAsyncEvents()).then(() => {
     assert_array_equals(ws.events, ['write', 'a'],
-      'the chunk must have been written, but close must not have happened yet');
+      'the first chunk must have been written, but close must not have happened yet');
     assert_false(pipeComplete, 'the pipe should not complete while the first write is pending');
 
     rs.controller.close();
@@ -537,21 +540,21 @@ promise_test(() => {
 
   return writeCalledPromise.then(() => flushAsyncEvents()).then(() => {
     assert_array_equals(ws.events, ['write', 'a'],
-      'the chunk must have been written, but close must not have happened yet');
+      'the first chunk must have been written, but close must not have happened');
     assert_false(pipeComplete, 'the pipe should not complete while the first write is pending');
 
     rs.controller.close();
     resolveWritePromise();
   }).then(() => flushAsyncEvents()).then(() => {
     assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
-      'the second chunk must have been written, but close must not have happened yet');
+      'the second chunk must have been written, but close must not have happened');
     assert_false(pipeComplete, 'the pipe should not complete while the second write is pending');
 
     resolveWritePromise();
     return pipePromise;
   }).then(() => flushAsyncEvents()).then(() => {
     assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
-      'all chunks must have been written, but close must not have happened yet');
+      'all chunks must have been written, but close must not have happened');
   });
 
 }, 'Closing must be propagated forward: shutdown must not occur until the final write completes; becomes closed after first write; preventClose = true');

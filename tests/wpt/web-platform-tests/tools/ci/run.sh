@@ -6,5 +6,5 @@ WPT_ROOT=$(readlink -f $SCRIPT_DIR/../..)
 cd $WPT_ROOT
 
 if [[ $RUN_JOB -eq 1 ]]; then
-    . $SCRIPT
+    $SCRIPT
 fi
