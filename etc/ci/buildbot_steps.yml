@@ -126,9 +126,9 @@ linux-rel-wpt:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
     - ./etc/ci/clean_build_artifacts.sh
-    - ./mach build --release --with-debug-assertions
+    - ./mach build --debug-mozjs --release --with-debug-assertions
     - ./mach test-wpt-failure
-    - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+    - ./mach test-wpt --release --pref js.mem.gc.zeal=2 --pref js.mem.gc.frequency=10 --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
     - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
 
@@ -140,8 +140,8 @@ linux-rel-css:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
     - ./etc/ci/clean_build_artifacts.sh
-    - ./mach build --release --with-debug-assertions
-    - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+    - ./mach build --debug-mozjs --release --with-debug-assertions
+    - ./mach test-wpt --release --pref js.mem.gc.zeal=2 --pref js.mem.gc.frequency=10 --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
     - ./mach build-geckolib --release
     - ./mach test-stylo --release
