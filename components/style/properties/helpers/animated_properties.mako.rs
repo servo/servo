@@ -112,15 +112,6 @@ impl TransitionProperty {
         TransitionProperty::Shorthand(ShorthandId::All)
     }
 
-    /// Iterates over each longhand property.
-    pub fn each<F: FnMut(LonghandId) -> ()>(mut cb: F) {
-        % for prop in data.longhands:
-            % if prop.transitionable:
-                cb(LonghandId::${prop.camel_case});
-            % endif
-        % endfor
-    }
-
     /// Parse a transition-property value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
