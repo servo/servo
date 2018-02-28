@@ -395,7 +395,6 @@ where
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
 {
-    use std::cmp;
     use traversal_flags::TraversalFlags;
 
     let flags = context.shared.traversal_flags;
@@ -420,12 +419,10 @@ where
             compute_style(traversal_data, context, element, data);
 
         if element.is_native_anonymous() {
-            // We must always cascade native anonymous subtrees, since they inherit
-            // styles from their first non-NAC ancestor.
-            child_cascade_requirement = cmp::max(
-                child_cascade_requirement,
-                ChildCascadeRequirement::MustCascadeChildren,
-            );
+            // We must always cascade native anonymous subtrees, since they
+            // inherit styles from their first non-NAC ancestor.
+            child_cascade_requirement =
+                ChildCascadeRequirement::MustCascadeDescendants;
         }
 
         // If we're restyling this element to display:none, throw away all style
