@@ -39,7 +39,7 @@ fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.22", optional = true}
-itertools = "0.5"
+itertools = "0.7.6"
 itoa = "0.3"
 lazy_static = "1"
 log = "0.3"
