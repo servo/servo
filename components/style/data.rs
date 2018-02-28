@@ -227,6 +227,8 @@ pub enum RestyleKind {
     /// We only need to recascade, for example, because only inherited
     /// properties in the parent changed.
     CascadeOnly,
+    /// We only need to recascade custom properties.
+    CascadeCustomProperties,
 }
 
 impl ElementData {
@@ -350,9 +352,16 @@ impl ElementData {
             return RestyleKind::CascadeWithReplacements(self.hint & RestyleHint::replacements());
         }
 
-        debug_assert!(self.hint.has_recascade_self(),
-                      "We definitely need to do something: {:?}!", self.hint);
-        return RestyleKind::CascadeOnly;
+        if self.hint.has_recascade_self() {
+            return RestyleKind::CascadeOnly;
+        }
+
+        debug_assert!(
+            self.hint.intersects(RestyleHint::RECASCADE_CUSTOM_PROPERTIES),
+            "We definitely need to do something: {:?}!",
+            self.hint
+        );
+        RestyleKind::CascadeCustomProperties
     }
 
     /// Returns the kind of restyling for animation-only restyle.

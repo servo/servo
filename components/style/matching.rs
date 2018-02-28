@@ -56,6 +56,9 @@ pub enum ChildCascadeRequirement {
     /// The same as `MustCascadeChildren`, but we only need to actually
     /// recascade if the child inherits any explicit reset style.
     MustCascadeChildrenIfInheritResetStyle,
+    /// Custom properties changed, so children need to get their styles updated,
+    /// but potentially only updating custom properties.
+    MustCascadeChildrenCustomProperties,
     /// Old and new computed values were different, so we must cascade the
     /// new values to children.
     MustCascadeChildren,
@@ -475,11 +478,15 @@ trait PrivateMatchMethods: TElement {
             StyleChange::Unchanged => {
                 return ChildCascadeRequirement::CanSkipCascade
             },
-            StyleChange::Changed { reset_only } => {
+            StyleChange::Changed { reset_only, custom_properties_only } => {
                 // If inherited properties changed, the best we can do is
                 // cascade the children.
                 if !reset_only {
-                    return ChildCascadeRequirement::MustCascadeChildren
+                    return if custom_properties_only {
+                        ChildCascadeRequirement::MustCascadeChildrenCustomProperties
+                    } else {
+                        ChildCascadeRequirement::MustCascadeChildren
+                    }
                 }
             }
         }
