@@ -159,9 +159,9 @@ impl Flow for TableRowGroupFlow {
         });
     }
 
-    fn assign_block_size(&mut self, _: &LayoutContext) {
+    fn assign_block_size(&mut self, lc: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
-        self.block_flow.assign_block_size_for_table_like_flow(self.spacing.vertical());
+        self.block_flow.assign_block_size_for_table_like_flow(self.spacing.vertical(), lc);
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
