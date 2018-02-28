@@ -10,7 +10,7 @@ use traversal_flags::TraversalFlags;
 
 bitflags! {
     /// The kind of restyle we need to do for a given element.
-    pub struct RestyleHint: u8 {
+    pub struct RestyleHint: u16 {
         /// Do a selector match of the element.
         const RESTYLE_SELF = 1 << 0;
 
@@ -42,6 +42,13 @@ bitflags! {
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
         const RESTYLE_SMIL = 1 << 7;
+
+        /// Restyle custom properties only, since only custom properties changed
+        /// on the parent.
+        ///
+        /// In practice we may end up recascading more because of custom
+        /// property references of course.
+        const RECASCADE_CUSTOM_PROPERTIES = 1 << 8;
     }
 }
 
@@ -69,6 +76,7 @@ impl RestyleHint {
         self.intersects(
             RestyleHint::RESTYLE_SELF |
             RestyleHint::RECASCADE_SELF |
+            RestyleHint::RECASCADE_CUSTOM_PROPERTIES |
             (Self::replacements() & !Self::for_animations())
         )
     }
@@ -223,7 +231,7 @@ impl From<nsRestyleHint> for RestyleHint {
             hint.insert(RestyleHint::RECASCADE_DESCENDANTS);
         }
 
-        hint.insert(RestyleHint::from_bits_truncate(raw.0 as u8));
+        hint.insert(RestyleHint::from_bits_truncate(raw.0 as u16));
 
         hint
     }
