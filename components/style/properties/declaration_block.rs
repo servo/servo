@@ -333,7 +333,7 @@ impl PropertyDeclarationBlock {
         let mut important_count = 0;
 
         // Step 1.2.2
-        for &longhand in shorthand.longhands() {
+        for longhand in shorthand.longhands() {
             // Step 1.2.2.1
             let declaration = self.get(PropertyDeclarationId::Longhand(longhand));
 
@@ -395,7 +395,7 @@ impl PropertyDeclarationBlock {
         match property.as_shorthand() {
             Ok(shorthand) => {
                 // Step 2.1 & 2.2 & 2.3
-                if shorthand.longhands().iter().all(|&l| {
+                if shorthand.longhands().all(|l| {
                     self.get(PropertyDeclarationId::Longhand(l))
                         .map_or(false, |(_, importance)| importance.important())
                 }) {
@@ -455,7 +455,7 @@ impl PropertyDeclarationBlock {
         match drain.all_shorthand {
             AllShorthand::NotSet => {}
             AllShorthand::CSSWideKeyword(keyword) => {
-                for &id in ShorthandId::All.longhands() {
+                for id in ShorthandId::All.longhands() {
                     let decl = PropertyDeclaration::CSSWideKeyword(
                         WideKeywordDeclaration { id, keyword },
                     );
@@ -467,7 +467,7 @@ impl PropertyDeclarationBlock {
                 }
             }
             AllShorthand::WithVariables(unparsed) => {
-                for &id in ShorthandId::All.longhands() {
+                for id in ShorthandId::All.longhands() {
                     let decl = PropertyDeclaration::WithVariables(
                         VariableDeclaration { id, value: unparsed.clone() },
                     );
@@ -809,7 +809,7 @@ impl PropertyDeclarationBlock {
             // iterating below.
 
             // Step 3.3.2
-            for &shorthand in longhand_id.shorthands() {
+            for shorthand in longhand_id.shorthands() {
                 // We already attempted to serialize this shorthand before.
                 if already_serialized.contains(shorthand.into()) {
                     continue;
@@ -853,7 +853,7 @@ impl PropertyDeclarationBlock {
                     }
                 } else {
                     let mut contains_all_longhands = true;
-                    for &longhand in shorthand.longhands() {
+                    for longhand in shorthand.longhands() {
                         match self.get(PropertyDeclarationId::Longhand(longhand)) {
                             Some((declaration, importance)) => {
                                 current_longhands.push(declaration);

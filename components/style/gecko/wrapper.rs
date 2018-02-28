@@ -773,7 +773,7 @@ impl<'le> GeckoElement<'le> {
 
     fn needs_transitions_update_per_property(
         &self,
-        longhand_id: &LonghandId,
+        longhand_id: LonghandId,
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
@@ -787,7 +787,7 @@ impl<'le> GeckoElement<'le> {
         // If the end value has not changed, we should leave the currently
         // running transition as-is since we don't want to interrupt its timing
         // function.
-        if let Some(ref existing) = existing_transitions.get(longhand_id) {
+        if let Some(ref existing) = existing_transitions.get(&longhand_id) {
             let after_value =
                 AnimationValue::from_computed_values(
                     longhand_id,
@@ -798,11 +798,11 @@ impl<'le> GeckoElement<'le> {
         }
 
         let from = AnimationValue::from_computed_values(
-            &longhand_id,
+            longhand_id,
             before_change_style,
         );
         let to = AnimationValue::from_computed_values(
-            &longhand_id,
+            longhand_id,
             after_change_style,
         );
 
@@ -1531,8 +1531,8 @@ impl<'le> TElement for GeckoElement<'le> {
 
             let transition_property: TransitionProperty = property.into();
 
-            let mut property_check_helper = |property: &LonghandId| -> bool {
-                transitions_to_keep.insert(*property);
+            let mut property_check_helper = |property: LonghandId| -> bool {
+                transitions_to_keep.insert(property);
                 self.needs_transitions_update_per_property(
                     property,
                     combined_duration,
@@ -1545,11 +1545,11 @@ impl<'le> TElement for GeckoElement<'le> {
             match transition_property {
                 TransitionProperty::Unsupported(..) => {},
                 TransitionProperty::Shorthand(ref shorthand) => {
-                    if shorthand.longhands().iter().any(property_check_helper) {
+                    if shorthand.longhands().any(property_check_helper) {
                         return true;
                     }
                 },
-                TransitionProperty::Longhand(ref longhand_id) => {
+                TransitionProperty::Longhand(longhand_id) => {
                     if property_check_helper(longhand_id) {
                         return true;
                     }

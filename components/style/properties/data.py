@@ -229,6 +229,11 @@ class Longhand(object):
     def enabled_in_content(self):
         return self.enabled_in == "content"
 
+    def may_be_disabled_in(self, shorthand, product):
+        if product == "gecko":
+            return self.gecko_pref and self.gecko_pref != shorthand.gecko_pref
+        return self.servo_pref and self.servo_pref != shorthand.servo_pref
+
     def base_type(self):
         if self.predefined_type and not self.is_vector:
             return "::values::specified::{}".format(self.predefined_type)
