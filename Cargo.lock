@@ -879,7 +879,7 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "0.2.19"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1814,7 +1814,7 @@ dependencies = [
  "brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
- "flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flate2 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3652,7 +3652,7 @@ dependencies = [
 "checksum error-chain 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d9435d864e017c3c6afeac1654189b06cdb491cf2ff73dbf0d73b0f292f42ff8"
 "checksum euclid 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b2744c002882c67d0f6d6e8cfdf16eae729dc27744d312745132e62218b7de5c"
 "checksum expat-sys 2.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "c470ccb972f2088549b023db8029ed9da9426f5affbf9b62efff7009ab8ed5b1"
-"checksum flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)" = "36df0166e856739905cd3d7e0b210fe818592211a008862599845e012d8d304c"
+"checksum flate2 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9fac2277e84e5e858483756647a9d0aa8d9a2b7cba517fd84325a0aaa69a0909"
 "checksum fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "6cc484842f1e2884faf56f529f960cc12ad8c71ce96cc7abba0a067c98fee344"
 "checksum fontsan 0.4.0 (git+https://github.com/servo/fontsan)" = "<none>"
 "checksum foreign-types 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"

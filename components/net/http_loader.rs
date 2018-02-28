@@ -290,7 +290,7 @@ impl StreamedResponse {
         let decoder = {
             if let Some(ref encoding) = response.headers.get::<ContentEncoding>().cloned() {
                 if encoding.contains(&Encoding::Gzip) {
-                    Decoder::Gzip(GzDecoder::new(response)?)
+                    Decoder::Gzip(GzDecoder::new(response))
                 }
                 else if encoding.contains(&Encoding::Deflate) {
                     Decoder::Deflate(DeflateDecoder::new(response))
