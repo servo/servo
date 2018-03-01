@@ -4,7 +4,6 @@
 
 import os
 import sys
-from wptrunner import wptcommandline
 
 here = os.path.split(__file__)[0]
 
@@ -35,7 +34,7 @@ def set_defaults(kwargs):
 
 
 def main():
-    parser = wptcommandline.create_parser()
+    parser = updatecommandline.create_parser()
     kwargs = vars(parser.parse_args())
     return update_tests(**kwargs)
 
