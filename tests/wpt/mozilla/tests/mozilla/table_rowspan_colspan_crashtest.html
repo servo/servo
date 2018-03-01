@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Shouldn't crash (#20162) -->
+<table border>
+    <tr><td>a</td><td>b</td><td>c</td><td>d</td></tr>
+    <tr><td rowspan=2>a</td><td>b</td><td colspan=2 rowspan=2>cd</td>  </tr>
+    <tr>                    <td>b</td></tr>
+    <tr><td>a</td><td>b</td><td>c</td><td>d</td></tr>
+
+</table>
+<script>
+test(function() {
+  assert_true(true, "Doesn't crash");
+}, "Doesn't crash");
+</script>

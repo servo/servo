@@ -39144,6 +39144,12 @@
      {}
     ]
    ],
+   "mozilla/table_rowspan_colspan_crashtest.html": [
+    [
+     "/_mozilla/mozilla/table_rowspan_colspan_crashtest.html",
+     {}
+    ]
+   ],
    "mozilla/textcontent.html": [
     [
      "/_mozilla/mozilla/textcontent.html",
@@ -70764,6 +70770,10 @@
   "mozilla/svg/svg_ref.html": [
    "f43703402d539a05a55990cd2a03c50eabea122b",
    "support"
+  ],
+  "mozilla/table_rowspan_colspan_crashtest.html": [
+   "a1766bf3dc9700e833452db349bb3da6b6075f81",
+   "testharness"
   ],
   "mozilla/table_valign_bottom.html": [
    "43814fb9c385f2501ff88673acf4b58079670015",
