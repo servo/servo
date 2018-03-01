@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var load_test = async_test("Doesn't crash");
+</script>
+</head>
+<body onload="load_test.done()">
+<!-- Shouldn't crash (#20162) -->
+<table border>
+    <tr><td>a</td><td>b</td><td>c</td><td>d</td></tr>
+    <tr><td rowspan=2>a</td><td>b</td><td colspan=2 rowspan=2>cd</td>  </tr>
+    <tr>                    <td>b</td></tr>
+    <tr><td>a</td><td>b</td><td>c</td><td>d</td></tr>
+
+</table>
+</body>
+</html>
