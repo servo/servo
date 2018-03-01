@@ -17,6 +17,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::context::QuirksMode;
 
 const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;
@@ -132,8 +133,31 @@ impl VirtualMethods for HTMLTableCellElement {
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
-            local_name!("colspan") => AttrValue::from_u32(value.into(), DEFAULT_COLSPAN),
-            local_name!("rowspan") => AttrValue::from_u32(value.into(), DEFAULT_ROWSPAN),
+            local_name!("colspan") => {
+                let mut attr = AttrValue::from_u32(value.into(), DEFAULT_COLSPAN);
+                if let AttrValue::UInt(ref mut s, ref mut val) = attr {
+                    if *val == 0 {
+                        *val = 1;
+                        *s = "1".into();
+                    }
+                }
+                attr
+            }
+            local_name!("rowspan") => {
+                let mut attr = AttrValue::from_u32(value.into(), DEFAULT_ROWSPAN);
+                if let AttrValue::UInt(ref mut s, ref mut val) = attr {
+                    if *val == 0 {
+                        let node = self.upcast::<Node>();
+                        let doc = node.owner_doc();
+                        // rowspan = 0 is not supported in quirks mode
+                        if doc.quirks_mode() != QuirksMode::NoQuirks {
+                            *val = 1;
+                            *s = "1".into();
+                        }
+                    }
+                }
+                attr
+            }
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
