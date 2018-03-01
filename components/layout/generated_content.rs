@@ -188,9 +188,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                                                                        counter_style)) => {
                     let temporary_counter = Counter::new();
                     let counter = self.traversal
-                                      .counters
-                                      .get(&**counter_name)
-                                      .unwrap_or(&temporary_counter);
+                        .counters
+                        .get(&*counter_name.0)
+                        .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.pseudo.clone(),
@@ -203,9 +203,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                                                                         counter_style)) => {
                     let temporary_counter = Counter::new();
                     let counter = self.traversal
-                                      .counters
-                                      .get(&**counter_name)
-                                      .unwrap_or(&temporary_counter);
+                        .counters
+                        .get(&*counter_name.0)
+                        .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.pseudo,

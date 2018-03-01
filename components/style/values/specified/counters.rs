@@ -102,9 +102,9 @@ pub enum ContentItem {
     /// Literal string content.
     String(Box<str>),
     /// `counter(name, style)`.
-    Counter(Box<str>, CounterStyleType),
+    Counter(CustomIdent, CounterStyleType),
     /// `counters(name, separator, style)`.
-    Counters(Box<str>, Box<str>, CounterStyleType),
+    Counters(CustomIdent, Box<str>, CounterStyleType),
     /// `open-quote`.
     OpenQuote,
     /// `close-quote`.

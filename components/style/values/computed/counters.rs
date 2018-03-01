@@ -6,11 +6,12 @@
 
 #[cfg(feature = "servo")]
 use computed_values::list_style_type::T as ListStyleType;
-use cssparser::{self, Parser, Token};
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
 use values::generics::counters::CounterIncrement as GenericCounterIncrement;
@@ -93,7 +94,8 @@ impl Parse for Content {
                 Ok(Token::Function(ref name)) => {
                     let result = match_ignore_ascii_case! { &name,
                         "counter" => Some(input.parse_nested_block(|input| {
-                            let name = input.expect_ident()?.as_ref().to_owned().into_boxed_str();
+                            let location = input.current_source_location();
+                            let name = CustomIdent::from_ident(location, input.expect_ident()?, &[])?;
                             #[cfg(feature = "servo")]
                             let style = Content::parse_counter_style(input);
                             #[cfg(feature = "gecko")]
@@ -101,7 +103,8 @@ impl Parse for Content {
                             Ok(ContentItem::Counter(name, style))
                         })),
                         "counters" => Some(input.parse_nested_block(|input| {
-                            let name = input.expect_ident()?.as_ref().to_owned().into_boxed_str();
+                            let location = input.current_source_location();
+                            let name = CustomIdent::from_ident(location, input.expect_ident()?, &[])?;
                             input.expect_comma()?;
                             let separator = input.expect_string()?.as_ref().to_owned().into_boxed_str();
                             #[cfg(feature = "servo")]
@@ -154,14 +157,14 @@ impl ToCss for ContentItem {
             ContentItem::String(ref s) => s.to_css(dest),
             ContentItem::Counter(ref s, ref counter_style) => {
                 dest.write_str("counter(")?;
-                cssparser::serialize_identifier(&**s, dest)?;
+                s.to_css(dest)?;
                 dest.write_str(", ")?;
                 counter_style.to_css(dest)?;
                 dest.write_str(")")
             }
             ContentItem::Counters(ref s, ref separator, ref counter_style) => {
                 dest.write_str("counters(")?;
-                cssparser::serialize_identifier(&**s, dest)?;
+                s.to_css(dest)?;
                 dest.write_str(", ")?;
                 separator.to_css(dest)?;
                 dest.write_str(", ")?;
