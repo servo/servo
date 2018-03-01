@@ -27,7 +27,7 @@ extern crate webdriver;
 
 mod keys;
 
-use euclid::Size2D;
+use euclid::TypedSize2D;
 use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -418,7 +418,7 @@ impl Handler {
             Nullable::Value(v) => v,
             Nullable::Null => 0,
         };
-        let size = Size2D::new(width as u32, height as u32);
+        let size = TypedSize2D::new(width as u32, height as u32);
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, sender.clone());
 
