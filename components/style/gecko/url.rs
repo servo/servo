@@ -81,7 +81,7 @@ impl SpecifiedUrl {
 
         let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
         let ref url_value_data = image_value._base;
-        let mut result = try!(Self::from_url_value_data(url_value_data));
+        let mut result = Self::from_url_value_data(url_value_data)?;
         result.build_image_value();
         Ok(result)
     }
@@ -108,10 +108,11 @@ impl SpecifiedUrl {
     /// Create a bundled URI suitable for sending to Gecko
     /// to be constructed into a css::URLValue
     pub fn for_ffi(&self) -> ServoBundledURI {
-        let (ptr, len) = self.as_slice_components();
+        let arc_offset = Arc::into_raw_offset(self.serialization.clone());
         ServoBundledURI {
-            mURLString: ptr,
-            mURLStringLength: len as u32,
+            mURLString: unsafe {
+                mem::transmute::<_, RawOffsetArc<RustString>>(arc_offset)
+            },
             mExtraData: self.extra_data.get(),
         }
     }
@@ -123,10 +124,7 @@ impl SpecifiedUrl {
         debug_assert_eq!(self.image_value, None);
         self.image_value = {
             unsafe {
-                let arc_offset = Arc::into_raw_offset(self.serialization.clone());
-                let ptr = Gecko_ImageValue_Create(
-                    self.for_ffi(),
-                    mem::transmute::<_, RawOffsetArc<RustString>>(arc_offset));
+                let ptr = Gecko_ImageValue_Create(self.for_ffi());
                 // We do not expect Gecko_ImageValue_Create returns null.
                 debug_assert!(!ptr.is_null());
                 Some(RefPtr::from_addrefed(ptr))
