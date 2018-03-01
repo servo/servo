@@ -6,7 +6,7 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg};
-use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
+use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -274,15 +274,15 @@ impl RenderTargetInfo {
     }
 }
 
-fn initialize_png(gl: &gl::Gl, width: usize, height: usize) -> RenderTargetInfo {
+fn initialize_png(gl: &gl::Gl, width: Length<u32, DevicePixel>, height: Length<u32, DevicePixel>) -> RenderTargetInfo {
     let framebuffer_ids = gl.gen_framebuffers(1);
     gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
     let texture_ids = gl.gen_textures(1);
     gl.bind_texture(gl::TEXTURE_2D, texture_ids[0]);
 
-    gl.tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as gl::GLint, width as gl::GLsizei,
-                    height as gl::GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
+    gl.tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as gl::GLint, width.get() as gl::GLsizei,
+                    height.get() as gl::GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
     gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as gl::GLint);
     gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::GLint);
 
@@ -296,8 +296,8 @@ fn initialize_png(gl: &gl::Gl, width: usize, height: usize) -> RenderTargetInfo 
     gl.bind_renderbuffer(gl::RENDERBUFFER, depth_rb);
     gl.renderbuffer_storage(gl::RENDERBUFFER,
                             gl::DEPTH_COMPONENT24,
-                            width as gl::GLsizei,
-                            height as gl::GLsizei);
+                            width.get() as gl::GLsizei,
+                            height.get() as gl::GLsizei);
     gl.framebuffer_renderbuffer(gl::FRAMEBUFFER,
                                 gl::DEPTH_ATTACHMENT,
                                 gl::RENDERBUFFER,
@@ -646,9 +646,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
         };
+
         let top_level_browsing_context_id = self.root_pipeline.as_ref().map(|pipeline| {
             pipeline.top_level_browsing_context_id
         });
+
         let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
@@ -1253,8 +1255,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn composite_specific_target(&mut self,
                                  target: CompositeTarget)
                                  -> Result<Option<Image>, UnableToComposite> {
-        let (width, height) =
-            (self.frame_size.width as usize, self.frame_size.height as usize);
+        let (width, height) = (self.frame_size.width_typed(), self.frame_size.height_typed());
         if !self.window.prepare_for_composite(width, height) {
             return Err(UnableToComposite::WindowUnprepared)
         }
@@ -1374,9 +1375,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn draw_img(&self,
                 render_target_info: RenderTargetInfo,
-                width: usize,
-                height: usize)
+                width: Length<u32, DevicePixel>,
+                height: Length<u32, DevicePixel>)
                 -> RgbImage {
+        let width = width.get() as usize;
+        let height = height.get() as usize;
         // For some reason, OSMesa fails to render on the 3rd
         // attempt in headless mode, under some conditions.
         // I think this can only be some kind of synchronization

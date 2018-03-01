@@ -5,8 +5,7 @@
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
 use compositor_thread::EventLoopWaker;
-use euclid::{Point2D, Size2D};
-use euclid::{TypedScale, TypedPoint2D, TypedSize2D};
+use euclid::{Length, TypedScale, TypedPoint2D, TypedSize2D};
 use gleam::gl;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, TopLevelBrowsingContextId, TraversalDirection};
@@ -123,21 +122,22 @@ pub trait WindowMethods {
     fn framebuffer_size(&self) -> DeviceUintSize;
     /// Returns the position and size of the window within the rendering area.
     fn window_rect(&self) -> DeviceUintRect;
-    /// Returns the size of the window in density-independent "px" units.
-    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel>;
+    /// Returns the size of the window.
+    fn size(&self) -> TypedSize2D<f32, DevicePixel>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 
     /// Return the size of the window with head and borders and position of the window values
-    fn client_window(&self, ctx: TopLevelBrowsingContextId) -> (Size2D<u32>, Point2D<i32>);
-    /// Return the size of the screen (pixel)
-    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> Size2D<u32>;
-    /// Return the available size of the screen (pixel)
-    fn screen_avail_size(&self, ctx: TopLevelBrowsingContextId) -> Size2D<u32>;
+    fn client_window(&self, ctx: TopLevelBrowsingContextId) ->
+        (TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>);
+    /// Return the size of the screen.
+    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> TypedSize2D<u32, DevicePixel>;
+    /// Return the available size of the screen.
+    fn screen_avail_size(&self, ctx: TopLevelBrowsingContextId) -> TypedSize2D<u32, DevicePixel>;
     /// Set the size inside of borders and head
-    fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: Size2D<u32>);
+    fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: TypedSize2D<u32, DevicePixel>);
     /// Set the window position
-    fn set_position(&self, ctx: TopLevelBrowsingContextId, point: Point2D<i32>);
+    fn set_position(&self, ctx: TopLevelBrowsingContextId, point: TypedPoint2D<i32, DevicePixel>);
     /// Set fullscreen state
     fn set_fullscreen_state(&self, ctx: TopLevelBrowsingContextId, state: bool);
 
@@ -167,7 +167,7 @@ pub trait WindowMethods {
     /// Requests that the window system prepare a composite. Typically this will involve making
     /// some type of platform-specific graphics context current. Returns true if the composite may
     /// proceed and false if it should not.
-    fn prepare_for_composite(&self, width: usize, height: usize) -> bool;
+    fn prepare_for_composite(&self, width: Length<u32, DevicePixel>, height: Length<u32, DevicePixel>) -> bool;
 
     /// Sets the cursor to be used in the window.
     fn set_cursor(&self, cursor: CursorKind);
