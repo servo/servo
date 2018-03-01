@@ -38,13 +38,8 @@ impl Screen {
                            ScreenBinding::Wrap)
     }
 
-<<<<<<< HEAD
-    fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = ipc::channel::<DeviceUintSize>().unwrap();
-=======
     fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
         let (send, recv) = receiver::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
->>>>>>> One file implements new channel
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();
