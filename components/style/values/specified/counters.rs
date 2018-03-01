@@ -97,13 +97,15 @@ pub enum Content {
 }
 
 /// Items for the `content` property.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum ContentItem {
     /// Literal string content.
     String(Box<str>),
     /// `counter(name, style)`.
+    #[css(comma, function)]
     Counter(CustomIdent, CounterStyleType),
     /// `counters(name, separator, style)`.
+    #[css(comma, function)]
     Counters(CustomIdent, Box<str>, CounterStyleType),
     /// `open-quote`.
     OpenQuote,
