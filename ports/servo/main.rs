@@ -258,7 +258,7 @@ fn args() -> Vec<String> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
-    let mut params_file = config::basedir::default_config_dir().unwrap();
+    let mut params_file = config::basedir::default_config_dir();
     params_file.push("android_params");
     match File::open(params_file.to_str().unwrap()) {
         Ok(f) => {
