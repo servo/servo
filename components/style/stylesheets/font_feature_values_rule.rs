@@ -118,7 +118,8 @@ impl ToGeckoFontFeatureValues for PairValues {
 }
 
 /// A @font-feature-values block declaration value that keeps a list of values.
-#[derive(Clone, Debug, PartialEq)]
+#[css(iterable)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub struct VectorValues(pub Vec<u32>);
 
 impl Parse for VectorValues {
@@ -142,24 +143,6 @@ impl Parse for VectorValues {
         }
 
         Ok(VectorValues(vec))
-    }
-}
-
-impl ToCss for VectorValues {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let mut iter = self.0.iter();
-        let first = iter.next();
-        if let Some(first) = first {
-            first.to_css(dest)?;
-            for value in iter {
-                dest.write_char(' ')?;
-                value.to_css(dest)?;
-            }
-        }
-        Ok(())
     }
 }
 
