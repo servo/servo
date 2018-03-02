@@ -5428,6 +5428,7 @@ clip-path
     }
 
     pub fn set_content(&mut self, v: longhands::content::computed_value::T, device: &Device) {
+        use values::CustomIdent;
         use values::computed::counters::{Content, ContentItem};
         use values::generics::CounterStyleOrNone;
         use gecko_bindings::structs::nsStyleContentData;
@@ -5445,16 +5446,20 @@ clip-path
             ptr
         }
 
-        fn set_counter_function(data: &mut nsStyleContentData,
-                                content_type: nsStyleContentType,
-                                name: &str, sep: &str,
-                                style: CounterStyleOrNone, device: &Device) {
+        fn set_counter_function(
+            data: &mut nsStyleContentData,
+            content_type: nsStyleContentType,
+            name: &CustomIdent,
+            sep: &str,
+            style: CounterStyleOrNone,
+            device: &Device,
+        ) {
             debug_assert!(content_type == eStyleContentType_Counter ||
                           content_type == eStyleContentType_Counters);
             let counter_func = unsafe {
                 bindings::Gecko_SetCounterFunction(data, content_type).as_mut().unwrap()
             };
-            counter_func.mIdent.assign_utf8(name);
+            counter_func.mIdent.assign(name.0.as_slice());
             if content_type == eStyleContentType_Counters {
                 counter_func.mSeparator.assign_utf8(sep);
             }
@@ -5522,12 +5527,24 @@ clip-path
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
                         ContentItem::Counter(ref name, ref style) => {
-                            set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counter, &name, "", style.clone(), device);
+                            set_counter_function(
+                                &mut self.gecko.mContents[i],
+                                eStyleContentType_Counter,
+                                &name,
+                                "",
+                                style.clone(),
+                                device,
+                            );
                         }
                         ContentItem::Counters(ref name, ref sep, ref style) => {
-                            set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counters, &name, &sep, style.clone(), device);
+                            set_counter_function(
+                                &mut self.gecko.mContents[i],
+                                eStyleContentType_Counters,
+                                &name,
+                                &sep,
+                                style.clone(),
+                                device,
+                            );
                         }
                         ContentItem::Url(ref url) => {
                             unsafe {
@@ -5553,10 +5570,11 @@ clip-path
     }
 
     pub fn clone_content(&self) -> longhands::content::computed_value::T {
+        use Atom;
         use gecko::conversions::string_from_chars_pointer;
         use gecko_bindings::structs::nsStyleContentType::*;
         use values::computed::counters::{Content, ContentItem};
-        use values::Either;
+        use values::{CustomIdent, Either};
         use values::generics::CounterStyleOrNone;
         use values::specified::url::SpecifiedUrl;
         use values::specified::Attr;
@@ -5601,7 +5619,7 @@ clip-path
                     eStyleContentType_Counter | eStyleContentType_Counters => {
                         let gecko_function =
                             unsafe { &**gecko_content.mContent.mCounters.as_ref() };
-                        let ident = gecko_function.mIdent.to_string();
+                        let ident = CustomIdent(Atom::from(&*gecko_function.mIdent));
                         let style =
                             CounterStyleOrNone::from_gecko_value(&gecko_function.mCounterStyle);
                         let style = match style {
@@ -5610,10 +5628,10 @@ clip-path
                                 unreachable!("counter function shouldn't have single string type"),
                         };
                         if gecko_content.mType == eStyleContentType_Counter {
-                            ContentItem::Counter(ident.into_boxed_str(), style)
+                            ContentItem::Counter(ident, style)
                         } else {
                             let separator = gecko_function.mSeparator.to_string();
-                            ContentItem::Counters(ident.into_boxed_str(), separator.into_boxed_str(), style)
+                            ContentItem::Counters(ident, separator.into_boxed_str(), style)
                         }
                     },
                     eStyleContentType_Image => {
