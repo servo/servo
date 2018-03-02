@@ -43,6 +43,7 @@ packages = [
   "quote",
   "unicode-xid",
   "log",
+  "env_logger",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
