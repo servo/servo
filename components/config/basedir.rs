@@ -17,19 +17,19 @@ use std::path::PathBuf;
 use xdg;
 
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
-pub fn default_config_dir() -> Option<PathBuf> {
+pub fn default_config_dir() -> PathBuf {
     let xdg_dirs = xdg::BaseDirectories::with_profile("servo", "default").unwrap();
     let config_dir = xdg_dirs.get_config_home();
-    Some(config_dir)
+    config_dir
 }
 
 #[cfg(target_os = "android")]
 #[allow(unsafe_code)]
-pub fn default_config_dir() -> Option<PathBuf> {
+pub fn default_config_dir() -> PathBuf {
     let dir = unsafe {
         CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
     };
-    Some(PathBuf::from(dir.to_str().unwrap()))
+    PathBuf::from(dir.to_str().unwrap())
 }
 
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
@@ -67,7 +67,7 @@ pub fn default_cache_dir() -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn default_config_dir() -> Option<PathBuf> {
+pub fn default_config_dir() -> PathBuf {
     let mut config_dir = env::home_dir().unwrap();
     config_dir.push("Library");
     config_dir.push("Application Support");
@@ -76,7 +76,7 @@ pub fn default_config_dir() -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn default_config_dir() -> Option<PathBuf> {
+pub fn default_config_dir() -> PathBuf {
     let mut config_dir = match env::var_os("APPDATA") {
         Some(appdata_path) => PathBuf::from(appdata_path),
         None => {
