@@ -184,7 +184,7 @@ pub fn add_user_prefs() {
             init_user_prefs(&mut path);
         }
         None => {
-            let mut path = default_config_dir().unwrap();
+            let mut path = default_config_dir();
             if path.join("prefs.json").exists() {
                 init_user_prefs(&mut path);
             }
