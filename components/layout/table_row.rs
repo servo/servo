@@ -123,7 +123,16 @@ impl TableRowFlow {
                 if *span == 1 {
                     break;
                 }
-                let incoming = incoming_rowspan_data[*col];
+                let incoming = if let Some(incoming) = incoming_rowspan_data.get(*col) {
+                    *incoming
+                } else {
+                    // This happens when we have a cell with both rowspan and colspan
+                    // incoming_rowspan_data only records the data for the first column,
+                    // but that's ok because we only need to account for each spanning cell
+                    // once. So we skip ahead.
+                    *col += 1;
+                    continue;
+                };
                 *max_block_size = max(*max_block_size, incoming);
                 *col += 1;
             }
