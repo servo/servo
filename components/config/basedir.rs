@@ -31,40 +31,6 @@ pub fn default_config_dir() -> PathBuf {
     PathBuf::from(dir.to_str().unwrap())
 }
 
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
-pub fn default_data_dir() -> Option<PathBuf> {
-    let xdg_dirs = xdg::BaseDirectories::with_profile("servo", "default").unwrap();
-    let data_dir = xdg_dirs.get_data_home();
-    Some(data_dir)
-}
-
-#[cfg(target_os = "android")]
-#[allow(unsafe_code)]
-pub fn default_data_dir() -> Option<PathBuf> {
-    let dir = unsafe {
-        CStr::from_ptr((*android_injected_glue::get_app().activity).internalDataPath)
-    };
-    Some(PathBuf::from(dir.to_str().unwrap()))
-}
-
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
-pub fn default_cache_dir() -> Option<PathBuf> {
-    let xdg_dirs = xdg::BaseDirectories::with_profile("servo", "default").unwrap();
-    let cache_dir = xdg_dirs.get_cache_home();
-    Some(cache_dir)
-}
-
-#[cfg(target_os = "android")]
-#[allow(unsafe_code)]
-pub fn default_cache_dir() -> Option<PathBuf> {
-    // TODO: Use JNI to call context.getCacheDir().
-    // There is no equivalent function in NDK/NativeActivity.
-    let dir = unsafe {
-        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
-    };
-    Some(PathBuf::from(dir.to_str().unwrap()))
-}
-
 #[cfg(target_os = "macos")]
 pub fn default_config_dir() -> PathBuf {
     let mut config_dir = env::home_dir().unwrap();
