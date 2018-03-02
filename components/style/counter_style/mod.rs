@@ -391,7 +391,7 @@ impl ToCss for System {
 
 /// <https://drafts.csswg.org/css-counter-styles/#typedef-symbol>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub enum Symbol {
     /// <string>
     String(String),
@@ -413,18 +413,6 @@ impl Parse for Symbol {
                 ))
             }
             ref t => Err(location.new_unexpected_token_error(t.clone())),
-        }
-    }
-}
-
-impl ToCss for Symbol {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            Symbol::String(ref s) => s.to_css(dest),
-            Symbol::Ident(ref s) => s.to_css(dest),
         }
     }
 }
