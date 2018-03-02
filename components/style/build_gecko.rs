@@ -204,25 +204,15 @@ mod bindings {
 
             // Disable rust unions, because we replace some types inside of
             // them.
+            //
+            // FIXME(emilio, bug 1432153): Make the bindings rustfmt'd on
+            // automation.
             let mut builder = Builder::default()
+                .rustfmt_bindings(false)
                 .rust_target(RustTarget::Stable_1_0);
-            let rustfmt_path = env::var_os("MOZ_AUTOMATION").and_then(|_| {
-                env::var_os("TOOLTOOL_DIR")
-            }).map(PathBuf::from);
-
-            builder = match rustfmt_path {
-                Some(path) => {
-                    builder.with_rustfmt(path.join("rustc").join("bin").join("rustfmt"))
-                },
-                None => {
-                    builder.rustfmt_bindings(env::var_os("STYLO_RUSTFMT_BINDINGS").is_some())
-                }
-            };
-
             for dir in SEARCH_PATHS.iter() {
                 builder = builder.clang_arg("-I").clang_arg(dir.to_str().unwrap());
             }
-
             builder = builder.include(add_include("mozilla-config.h"));
 
             if env::var("CARGO_FEATURE_GECKO_DEBUG").is_ok() {
