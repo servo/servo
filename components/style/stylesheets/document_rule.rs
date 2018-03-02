@@ -176,7 +176,8 @@ impl UrlMatchingFunction {
 /// The `@document` rule's condition is written as a comma-separated list of
 /// URL matching functions, and the condition evaluates to true whenever any
 /// one of those functions evaluates to true.
-#[derive(Clone, Debug)]
+#[css(comma, iterable)]
+#[derive(Clone, Debug, ToCss)]
 pub struct DocumentCondition(Vec<UrlMatchingFunction>);
 
 impl DocumentCondition {
@@ -192,22 +193,5 @@ impl DocumentCondition {
         self.0.iter().any(|ref url_matching_function|
             url_matching_function.evaluate(device)
         )
-    }
-}
-
-impl ToCss for DocumentCondition {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let mut iter = self.0.iter();
-        let first = iter.next()
-            .expect("Empty DocumentCondition, should contain at least one URL matching function");
-        first.to_css(dest)?;
-        for url_matching_function in iter {
-            dest.write_str(", ")?;
-            url_matching_function.to_css(dest)?;
-        }
-        Ok(())
     }
 }
