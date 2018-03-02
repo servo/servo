@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
-use cssparser::{Parser, Token, serialize_identifier, CowRcStr};
+use cssparser::{Parser, Token, CowRcStr};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{ nsCSSCounterDesc, nsCSSValue };
@@ -395,8 +395,8 @@ impl ToCss for System {
 pub enum Symbol {
     /// <string>
     String(String),
-    /// <ident>
-    Ident(String),
+    /// <custom-ident>
+    Ident(CustomIdent),
     // Not implemented:
     // /// <image>
     // Image(Image),
@@ -407,7 +407,11 @@ impl Parse for Symbol {
         let location = input.current_source_location();
         match *input.next()? {
             Token::QuotedString(ref s) => Ok(Symbol::String(s.as_ref().to_owned())),
-            Token::Ident(ref s) => Ok(Symbol::Ident(s.as_ref().to_owned())),
+            Token::Ident(ref s) => {
+                Ok(Symbol::Ident(
+                    CustomIdent::from_ident(location, s, &[])?,
+                ))
+            }
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }
@@ -420,7 +424,7 @@ impl ToCss for Symbol {
     {
         match *self {
             Symbol::String(ref s) => s.to_css(dest),
-            Symbol::Ident(ref s) => serialize_identifier(s, dest),
+            Symbol::Ident(ref s) => s.to_css(dest),
         }
     }
 }
