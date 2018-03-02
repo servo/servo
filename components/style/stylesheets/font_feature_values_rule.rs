@@ -80,7 +80,7 @@ impl ToGeckoFontFeatureValues for SingleValue {
 }
 
 /// A @font-feature-values block declaration value that keeps one or two values.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub struct PairValues(pub u32, pub Option<u32>);
 
 impl Parse for PairValues {
@@ -101,20 +101,6 @@ impl Parse for PairValues {
             // It can be just one value.
             Err(_) => Ok(PairValues(first, None))
         }
-    }
-}
-
-impl ToCss for PairValues {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.0.to_css(dest)?;
-        if let Some(second) = self.1 {
-            dest.write_char(' ')?;
-            second.to_css(dest)?;
-        }
-        Ok(())
     }
 }
 
