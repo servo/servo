@@ -56,7 +56,7 @@ fn test_default_config_dir_create_read_write() {
   \"shell.homepage\": \"https://google.com\"\
 }";
     let mut expected_json = String::new();
-    let config_path = basedir::default_config_dir().unwrap();
+    let config_path = basedir::default_config_dir();
 
     if !config_path.exists() {
       fs::create_dir_all(&config_path).unwrap();
