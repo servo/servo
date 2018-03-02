@@ -26,10 +26,9 @@ use properties::{LonghandId, ShorthandId};
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::{cmp, ptr};
-use std::fmt::{self, Write};
 use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::ParseError;
 use super::ComputedValues;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
@@ -79,7 +78,7 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 /// a shorthand with at least one transitionable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
 pub enum TransitionProperty {
     /// A shorthand.
     Shorthand(ShorthandId),
@@ -88,19 +87,6 @@ pub enum TransitionProperty {
     /// Unrecognized property which could be any non-transitionable, custom property, or
     /// unknown property.
     Unsupported(CustomIdent),
-}
-
-impl ToCss for TransitionProperty {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            TransitionProperty::Shorthand(ref id) => dest.write_str(id.name()),
-            TransitionProperty::Longhand(ref id) => dest.write_str(id.name()),
-            TransitionProperty::Unsupported(ref id) => id.to_css(dest),
-        }
-    }
 }
 
 trivial_to_computed_value!(TransitionProperty);
