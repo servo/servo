@@ -1140,10 +1140,7 @@ extern "C" {
     pub fn Gecko_ReleaseImageValueArbitraryThread(aPtr: *mut ImageValue);
 }
 extern "C" {
-    pub fn Gecko_ImageValue_Create(
-        aURI: ServoBundledURI,
-        aURIString: ServoRawOffsetArc<RustString>,
-    ) -> *mut ImageValue;
+    pub fn Gecko_ImageValue_Create(aURI: ServoBundledURI) -> *mut ImageValue;
 }
 extern "C" {
     pub fn Gecko_ImageValue_SizeOfIncludingThis(aImageValue: *mut ImageValue) -> usize;
