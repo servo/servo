@@ -15,15 +15,16 @@ ${helpers.predefined_type("font-family",
                           spec="https://drafts.csswg.org/css-fonts/#propdef-font-family",
                           servo_restyle_damage="rebuild_and_reflow")}
 
-${helpers.single_keyword_system("font-style",
-                                "normal italic oblique",
-                                gecko_constant_prefix="NS_FONT_STYLE",
-                                gecko_ffi_name="mFont.style",
-                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                                animation_value_type="discrete",
-                                servo_restyle_damage="rebuild_and_reflow")}
-
+${helpers.single_keyword_system(
+    "font-style",
+    "normal italic oblique",
+    gecko_constant_prefix="NS_FONT_STYLE",
+    gecko_ffi_name="mFont.style",
+    spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    animation_value_type="discrete",
+    servo_restyle_damage="rebuild_and_reflow"
+)}
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
                                       "all-small-caps": "ALLSMALL",
@@ -180,6 +181,16 @@ ${helpers.predefined_type("font-language-override",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override")}
 
+${helpers.single_keyword_system("font-optical-sizing",
+                                "auto none",
+                                products="gecko",
+                                gecko_pref="layout.css.font-variations.enabled",
+                                gecko_ffi_name="mFont.opticalSizing",
+                                gecko_constant_prefix="NS_FONT_OPTICAL_SIZING",
+                                animation_value_type="discrete",
+                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                spec="https://www.w3.org/TR/css-fonts-4/#font-optical-sizing-def")}
+
 ${helpers.predefined_type("-x-lang",
                           "XLang",
                           products="gecko",
@@ -278,9 +289,11 @@ ${helpers.predefined_type("-x-text-zoom",
                               -moz-list -moz-field""".split()
             kw_font_props = """font_style font_variant_caps font_stretch
                                font_kerning font_variant_position font_variant_ligatures
-                               font_variant_east_asian font_variant_numeric""".split()
+                               font_variant_east_asian font_variant_numeric
+                               font_optical_sizing""".split()
             kw_cast = """font_style font_variant_caps font_stretch
-                         font_kerning font_variant_position""".split()
+                         font_kerning font_variant_position
+                         font_optical_sizing""".split()
         %>
         #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
         pub enum SystemFont {
