@@ -199,10 +199,7 @@ ${helpers.predefined_type(
                    animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
     use computed_values::writing_mode::T as WritingMode;
-    use std::fmt::{self, Write};
-    use style_traits::{CssWriter, ToCss};
     use unicode_segmentation::UnicodeSegmentation;
-
 
     pub mod computed_value {
         #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
@@ -213,9 +210,9 @@ ${helpers.predefined_type(
             String(String),
         }
 
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
         pub struct KeywordValue {
-            pub fill: bool,
+            pub fill: super::FillMode,
             pub shape: super::ShapeKeyword,
         }
     }
@@ -227,55 +224,22 @@ ${helpers.predefined_type(
         String(String),
     }
 
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
     pub enum KeywordValue {
-        Fill(bool),
+        Fill(FillMode),
         Shape(ShapeKeyword),
-        FillAndShape(bool, ShapeKeyword),
-    }
-
-    impl ToCss for KeywordValue {
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if let Some(fill) = self.fill() {
-                if fill {
-                    dest.write_str("filled")?;
-                } else {
-                    dest.write_str("open")?;
-                }
-            }
-            if let Some(shape) = self.shape() {
-                if self.fill().is_some() {
-                    dest.write_str(" ")?;
-                }
-                shape.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
-
-    impl ToCss for computed_value::KeywordValue {
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-        where
-            W: Write,
-        {
-            if self.fill {
-                dest.write_str("filled")?;
-            } else {
-                dest.write_str("open")?;
-            }
-            dest.write_str(" ")?;
-            self.shape.to_css(dest)
-        }
+        FillAndShape(FillMode, ShapeKeyword),
     }
 
     impl KeywordValue {
-        fn fill(&self) -> Option<bool> {
+        fn fill(&self) -> Option<FillMode> {
             match *self {
                 KeywordValue::Fill(fill) |
-                KeywordValue::FillAndShape(fill,_) => Some(fill),
+                KeywordValue::FillAndShape(fill, _) => Some(fill),
                 _ => None,
             }
         }
+
         fn shape(&self) -> Option<ShapeKeyword> {
             match *self {
                 KeywordValue::Shape(shape) |
@@ -283,6 +247,12 @@ ${helpers.predefined_type(
                 _ => None,
             }
         }
+    }
+
+    #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
+    pub enum FillMode {
+        Filled,
+        Open,
     }
 
     #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
@@ -295,7 +265,8 @@ ${helpers.predefined_type(
     }
 
     impl ShapeKeyword {
-        pub fn char(&self, fill: bool) -> &str {
+        pub fn char(&self, fill: FillMode) -> &str {
+            let fill = fill == FillMode::Filled;
             match *self {
                 ShapeKeyword::Dot => if fill { "\u{2022}" } else { "\u{25e6}" },
                 ShapeKeyword::Circle =>  if fill { "\u{25cf}" } else { "\u{25cb}" },
@@ -330,7 +301,7 @@ ${helpers.predefined_type(
                         ShapeKeyword::Sesame
                     };
                     computed_value::T::Keyword(computed_value::KeywordValue {
-                        fill: keyword.fill().unwrap_or(true),
+                        fill: keyword.fill().unwrap_or(FillMode::Filled),
                         shape: keyword.shape().unwrap_or(default_shape),
                     })
                 },
@@ -354,8 +325,10 @@ ${helpers.predefined_type(
         }
     }
 
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
+    pub fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue::None);
         }
@@ -366,21 +339,17 @@ ${helpers.predefined_type(
         }
 
         // Handle a pair of keywords
-        let mut shape = input.try(ShapeKeyword::parse);
-        let fill = if input.try(|input| input.expect_ident_matching("filled")).is_ok() {
-            Some(true)
-        } else if input.try(|input| input.expect_ident_matching("open")).is_ok() {
-            Some(false)
-        } else { None };
-        if shape.is_err() {
-            shape = input.try(ShapeKeyword::parse);
+        let mut shape = input.try(ShapeKeyword::parse).ok();
+        let fill = input.try(FillMode::parse).ok();
+        if shape.is_none() {
+            shape = input.try(ShapeKeyword::parse).ok();
         }
 
         // At least one of shape or fill must be handled
         let keyword_value = match (fill, shape) {
-            (Some(fill), Ok(shape)) => KeywordValue::FillAndShape(fill,shape),
-            (Some(fill), Err(_)) => KeywordValue::Fill(fill),
-            (None, Ok(shape)) => KeywordValue::Shape(shape),
+            (Some(fill), Some(shape)) => KeywordValue::FillAndShape(fill, shape),
+            (Some(fill), None) => KeywordValue::Fill(fill),
+            (None, Some(shape)) => KeywordValue::Shape(shape),
             _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         };
         Ok(SpecifiedValue::Keyword(keyword_value))
