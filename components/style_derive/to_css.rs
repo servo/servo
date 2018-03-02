@@ -131,6 +131,8 @@ struct CssInputAttrs {
     derive_debug: bool,
     function: Option<Function>,
     comma: bool,
+    // Here because structs variants are also their whole type definition.
+    iterable: bool,
 }
 
 #[darling(attributes(css), default)]

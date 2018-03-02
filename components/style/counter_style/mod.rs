@@ -550,7 +550,8 @@ impl Parse for Fallback {
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
+#[css(iterable)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub struct Symbols(pub Vec<Symbol>);
 
 impl Parse for Symbols {
@@ -567,22 +568,6 @@ impl Parse for Symbols {
                 }
             }
         }
-    }
-}
-
-impl ToCss for Symbols {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let mut iter = self.0.iter();
-        let first = iter.next().expect("expected at least one symbol");
-        first.to_css(dest)?;
-        for item in iter {
-            dest.write_char(' ')?;
-            item.to_css(dest)?;
-        }
-        Ok(())
     }
 }
 
