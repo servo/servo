@@ -313,7 +313,7 @@ impl ToNsCssValue for counter_style::Symbol {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         match self {
             counter_style::Symbol::String(s) => nscssvalue.set_string(&s),
-            counter_style::Symbol::Ident(s) => nscssvalue.set_ident(&s),
+            counter_style::Symbol::Ident(s) => nscssvalue.set_ident_from_atom(&s.0),
         }
     }
 }
