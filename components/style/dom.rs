@@ -154,6 +154,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// The concrete `TDocument` type.
     type ConcreteDocument: TDocument<ConcreteNode = Self>;
 
+    /// The concrete `TShadowRoot` type.
+    type ConcreteShadowRoot: TShadowRoot<ConcreteNode = Self>;
+
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
 
@@ -235,6 +238,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Get this node as a document, if it's one.
     fn as_document(&self) -> Option<Self::ConcreteDocument>;
+
+    /// Get this node as a ShadowRoot, if it's one.
+    fn as_shadow_root(&self) -> Option<Self::ConcreteShadowRoot>;
 }
 
 /// Wrapper to output the subtree rather than the single node when formatting
@@ -312,6 +318,18 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     }
 
     Ok(())
+}
+
+/// The ShadowRoot trait.
+pub trait TShadowRoot : Sized + Copy + Clone {
+    /// The concrete node type.
+    type ConcreteNode: TNode<ConcreteShadowRoot = Self>;
+
+    /// Get this ShadowRoot as a node.
+    fn as_node(&self) -> Self::ConcreteNode;
+
+    /// Get the shadow host that hosts this ShadowRoot.
+    fn host(&self) -> <Self::ConcreteNode as TNode>::ConcreteElement;
 }
 
 /// The element trait, the main abstraction the style crate acts over.
@@ -718,6 +736,12 @@ pub trait TElement
     fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
         None
     }
+
+    /// The shadow root this element is a host of.
+    fn shadow_root(&self) -> Option<<Self::ConcreteNode as TNode>::ConcreteShadowRoot>;
+
+    /// The shadow root which roots the subtree this element is contained in.
+    fn containing_shadow(&self) -> Option<<Self::ConcreteNode as TNode>::ConcreteShadowRoot>;
 
     /// Return the element which we can use to look up rules in the selector
     /// maps.

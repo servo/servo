@@ -66,7 +66,7 @@ use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{TDocument, TElement, TNode};
+use style::dom::{TDocument, TElement, TNode, TShadowRoot};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -150,9 +150,28 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     }
 }
 
+#[derive(Clone, Copy)]
+enum Impossible { }
+
+#[derive(Clone, Copy)]
+pub struct ShadowRoot<'lr>(Impossible, PhantomData<&'lr ()>);
+
+impl<'lr> TShadowRoot for ShadowRoot<'lr> {
+    type ConcreteNode = ServoLayoutNode<'lr>;
+
+    fn as_node(&self) -> Self::ConcreteNode {
+        match self.0 { }
+    }
+
+    fn host(&self) -> ServoLayoutElement<'lr> {
+        match self.0 { }
+    }
+}
+
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteElement = ServoLayoutElement<'ln>;
+    type ConcreteShadowRoot = ShadowRoot<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
         unsafe {
@@ -206,6 +225,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
         self.node.downcast().map(ServoLayoutDocument::from_layout_js)
+    }
+
+    fn as_shadow_root(&self) -> Option<ShadowRoot<'ln>> {
+        None
     }
 
     fn is_in_document(&self) -> bool {
@@ -489,11 +512,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
             .map(|v| String::from(v as &str))
     }
 
-    fn match_element_lang(&self,
-                          override_lang: Option<Option<SelectorAttrValue>>,
-                          value: &PseudoClassStringArg)
-                          -> bool
-    {
+    fn match_element_lang(
+        &self,
+        override_lang: Option<Option<SelectorAttrValue>>,
+        value: &PseudoClassStringArg,
+    ) -> bool {
         // Servo supports :lang() from CSS Selectors 4, which can take a comma-
         // separated list of language tags in the pseudo-class, and which
         // performs RFC 4647 extended filtering matching on them.
@@ -534,6 +557,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         unsafe {
             self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
         }
+    }
+
+    fn shadow_root(&self) -> Option<ShadowRoot<'le>> {
+        None
+    }
+
+    fn containing_shadow(&self) -> Option<ShadowRoot<'le>> {
+        None
     }
 }
 
