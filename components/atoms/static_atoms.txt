@@ -47,6 +47,7 @@ none
 number
 onchange
 open
+pageshow
 password
 pause
 play
