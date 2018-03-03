@@ -170,14 +170,22 @@ impl<'ln> PartialEq for GeckoNode<'ln> {
 impl<'ln> fmt::Debug for GeckoNode<'ln> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(el) = self.as_element() {
-            el.fmt(f)
-        } else {
-            if self.is_text_node() {
-                write!(f, "<text node> ({:#x})", self.opaque().0)
-            } else {
-                write!(f, "<non-text node> ({:#x})", self.opaque().0)
-            }
+            return el.fmt(f)
         }
+
+        if self.is_text_node() {
+            return write!(f, "<text node> ({:#x})", self.opaque().0)
+        }
+
+        if self.is_document() {
+            return write!(f, "<document> ({:#x})", self.opaque().0)
+        }
+
+        if self.is_shadow_root() {
+            return write!(f, "<shadow-root> ({:#x})", self.opaque().0)
+        }
+
+        write!(f, "<non-text node> ({:#x})", self.opaque().0)
     }
 }
 
