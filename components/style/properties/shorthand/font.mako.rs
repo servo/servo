@@ -10,6 +10,7 @@
                                     font-size line-height font-family
                                     ${'font-size-adjust' if product == 'gecko' else ''}
                                     ${'font-kerning' if product == 'gecko' else ''}
+                                    ${'font-optical-sizing' if product == 'gecko' else ''}
                                     ${'font-variant-alternates' if product == 'gecko' else ''}
                                     ${'font-variant-east-asian' if product == 'gecko' else ''}
                                     ${'font-variant-ligatures' if product == 'gecko' else ''}
@@ -30,7 +31,8 @@
         gecko_sub_properties = "kerning language_override size_adjust \
                                 variant_alternates variant_east_asian \
                                 variant_ligatures variant_numeric \
-                                variant_position feature_settings".split()
+                                variant_position feature_settings \
+                                optical_sizing".split()
     %>
     % if product == "gecko":
         % for prop in gecko_sub_properties:
