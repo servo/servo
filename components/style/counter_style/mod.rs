@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
-use cssparser::{Parser, Token, serialize_identifier, CowRcStr};
+use cssparser::{Parser, Token, CowRcStr};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{ nsCSSCounterDesc, nsCSSValue };
@@ -391,12 +391,12 @@ impl ToCss for System {
 
 /// <https://drafts.csswg.org/css-counter-styles/#typedef-symbol>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub enum Symbol {
     /// <string>
     String(String),
-    /// <ident>
-    Ident(String),
+    /// <custom-ident>
+    Ident(CustomIdent),
     // Not implemented:
     // /// <image>
     // Image(Image),
@@ -407,20 +407,12 @@ impl Parse for Symbol {
         let location = input.current_source_location();
         match *input.next()? {
             Token::QuotedString(ref s) => Ok(Symbol::String(s.as_ref().to_owned())),
-            Token::Ident(ref s) => Ok(Symbol::Ident(s.as_ref().to_owned())),
+            Token::Ident(ref s) => {
+                Ok(Symbol::Ident(
+                    CustomIdent::from_ident(location, s, &[])?,
+                ))
+            }
             ref t => Err(location.new_unexpected_token_error(t.clone())),
-        }
-    }
-}
-
-impl ToCss for Symbol {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            Symbol::String(ref s) => s.to_css(dest),
-            Symbol::Ident(ref s) => serialize_identifier(s, dest),
         }
     }
 }
@@ -550,7 +542,8 @@ impl Parse for Fallback {
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
+#[css(iterable)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub struct Symbols(pub Vec<Symbol>);
 
 impl Parse for Symbols {
@@ -567,22 +560,6 @@ impl Parse for Symbols {
                 }
             }
         }
-    }
-}
-
-impl ToCss for Symbols {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let mut iter = self.0.iter();
-        let first = iter.next().expect("expected at least one symbol");
-        first.to_css(dest)?;
-        for item in iter {
-            dest.write_char(' ')?;
-            item.to_css(dest)?;
-        }
-        Ok(())
     }
 }
 

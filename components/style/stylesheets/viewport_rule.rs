@@ -143,24 +143,12 @@ trait FromMeta: Sized {
 /// See:
 /// * http://dev.w3.org/csswg/css-device-adapt/#min-max-width-desc
 /// * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum ViewportLength {
     Specified(LengthOrPercentageOrAuto),
     ExtendToZoom
-}
-
-impl ToCss for ViewportLength {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            ViewportLength::Specified(ref length) => length.to_css(dest),
-            ViewportLength::ExtendToZoom => dest.write_str("extend-to-zoom"),
-        }
-    }
 }
 
 impl FromMeta for ViewportLength {

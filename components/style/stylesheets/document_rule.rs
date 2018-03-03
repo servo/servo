@@ -71,7 +71,7 @@ impl DeepCloneWithLock for DocumentRule {
 }
 
 /// A URL matching function for a `@document` rule's condition.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToCss)]
 pub enum UrlMatchingFunction {
     /// Exact URL matching function. It evaluates to true whenever the
     /// URL of the document being styled is exactly the URL given.
@@ -81,6 +81,7 @@ pub enum UrlMatchingFunction {
     /// function as an initial substring (which is true when the two
     /// strings are equal). When the argument is the empty string,
     /// it evaluates to true for all documents.
+    #[css(function)]
     UrlPrefix(String),
     /// Domain matching function. It evaluates to true whenever the URL
     /// of the document being styled has a host subcomponent and that
@@ -88,11 +89,13 @@ pub enum UrlMatchingFunction {
     /// function or a final substring of the host component is a
     /// period (U+002E) immediately followed by the argument to the
     /// ‘domain()’ function.
+    #[css(function)]
     Domain(String),
     /// Regular expression matching function. It evaluates to true
     /// whenever the regular expression matches the entirety of the URL
     /// of the document being styled.
-    RegExp(String),
+    #[css(function)]
+    Regexp(String),
 }
 
 macro_rules! parse_quoted_or_unquoted_string {
@@ -125,7 +128,7 @@ impl UrlMatchingFunction {
             parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::Domain)
         } else if input.try(|input| input.expect_function_matching("regexp")).is_ok() {
             input.parse_nested_block(|input| {
-                Ok(UrlMatchingFunction::RegExp(input.expect_string()?.as_ref().to_owned()))
+                Ok(UrlMatchingFunction::Regexp(input.expect_string()?.as_ref().to_owned()))
             })
         } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             Ok(UrlMatchingFunction::Url(url))
@@ -145,14 +148,14 @@ impl UrlMatchingFunction {
             UrlMatchingFunction::Url(_) => GeckoUrlMatchingFunction::eURL,
             UrlMatchingFunction::UrlPrefix(_) => GeckoUrlMatchingFunction::eURLPrefix,
             UrlMatchingFunction::Domain(_) => GeckoUrlMatchingFunction::eDomain,
-            UrlMatchingFunction::RegExp(_) => GeckoUrlMatchingFunction::eRegExp,
+            UrlMatchingFunction::Regexp(_) => GeckoUrlMatchingFunction::eRegExp,
         };
 
         let pattern = nsCStr::from(match *self {
             UrlMatchingFunction::Url(ref url) => url.as_str(),
             UrlMatchingFunction::UrlPrefix(ref pat) |
             UrlMatchingFunction::Domain(ref pat) |
-            UrlMatchingFunction::RegExp(ref pat) => pat,
+            UrlMatchingFunction::Regexp(ref pat) => pat,
         });
         unsafe {
             Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func)
@@ -166,34 +169,6 @@ impl UrlMatchingFunction {
     }
 }
 
-impl ToCss for UrlMatchingFunction {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            UrlMatchingFunction::Url(ref url) => {
-                url.to_css(dest)
-            },
-            UrlMatchingFunction::UrlPrefix(ref url_prefix) => {
-                dest.write_str("url-prefix(")?;
-                url_prefix.to_css(dest)?;
-                dest.write_str(")")
-            },
-            UrlMatchingFunction::Domain(ref domain) => {
-                dest.write_str("domain(")?;
-                domain.to_css(dest)?;
-                dest.write_str(")")
-            },
-            UrlMatchingFunction::RegExp(ref regex) => {
-                dest.write_str("regexp(")?;
-                regex.to_css(dest)?;
-                dest.write_str(")")
-            },
-        }
-    }
-}
-
 /// A `@document` rule's condition.
 ///
 /// <https://www.w3.org/TR/2012/WD-css3-conditional-20120911/#at-document>
@@ -201,7 +176,8 @@ impl ToCss for UrlMatchingFunction {
 /// The `@document` rule's condition is written as a comma-separated list of
 /// URL matching functions, and the condition evaluates to true whenever any
 /// one of those functions evaluates to true.
-#[derive(Clone, Debug)]
+#[css(comma, iterable)]
+#[derive(Clone, Debug, ToCss)]
 pub struct DocumentCondition(Vec<UrlMatchingFunction>);
 
 impl DocumentCondition {
@@ -217,22 +193,5 @@ impl DocumentCondition {
         self.0.iter().any(|ref url_matching_function|
             url_matching_function.evaluate(device)
         )
-    }
-}
-
-impl ToCss for DocumentCondition {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let mut iter = self.0.iter();
-        let first = iter.next()
-            .expect("Empty DocumentCondition, should contain at least one URL matching function");
-        first.to_css(dest)?;
-        for url_matching_function in iter {
-            dest.write_str(", ")?;
-            url_matching_function.to_css(dest)?;
-        }
-        Ok(())
     }
 }

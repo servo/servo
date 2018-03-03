@@ -800,6 +800,16 @@ pub enum LonghandId {
     % endfor
 }
 
+impl ToCss for LonghandId {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str(self.name())
+    }
+}
+
 impl fmt::Debug for LonghandId {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(self.name())
@@ -1130,12 +1140,22 @@ where
 }
 
 /// An identifier for a given shorthand property.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum ShorthandId {
     % for property in data.shorthands:
         /// ${property.name}
         ${property.camel_case},
     % endfor
+}
+
+impl ToCss for ShorthandId {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str(self.name())
+    }
 }
 
 impl ShorthandId {
