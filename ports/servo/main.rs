@@ -40,6 +40,7 @@ extern crate servo_url;
 #[macro_use]
 extern crate sig;
 extern crate style_traits;
+extern crate tinyfiledialogs;
 extern crate webrender_api;
 #[cfg(target_os = "windows")] extern crate winapi;
 #[cfg(target_os = "windows")] extern crate user32;
