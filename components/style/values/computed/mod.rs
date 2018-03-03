@@ -289,7 +289,10 @@ impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> Iterator for ComputedVecIter<
 /// This trait is derivable with `#[derive(ToComputedValue)]`. The derived
 /// implementation just calls `ToComputedValue::to_computed_value` on each field
 /// of the passed value, or `Clone::clone` if the field is annotated with
-/// `#[compute(clone)]`.
+/// `#[compute(clone)]`. The deriving code assumes that if the type isn't
+/// generic, then the trait can be implemented as simple `Clone::clone` calls,
+/// this means that a manual implementation with `ComputedValue = Self` is bogus
+/// if it returns anything else than a clone.
 pub trait ToComputedValue {
     /// The computed value type we're going to be converted to.
     type ComputedValue;
