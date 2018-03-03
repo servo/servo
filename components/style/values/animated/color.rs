@@ -166,19 +166,19 @@ impl ComputeSquaredDistance for Color {
         // All comments from the Animate impl also applies here.
         if self.foreground_ratio == other.foreground_ratio {
             if self.is_currentcolor() {
-                Ok(SquaredDistance::Value(0.))
+                Ok(SquaredDistance::from_sqrt(0.))
             } else {
                 self.color.compute_squared_distance(&other.color)
             }
         } else if self.is_currentcolor() && other.is_numeric() {
             Ok(
                 RGBA::transparent().compute_squared_distance(&other.color)? +
-                SquaredDistance::Value(1.),
+                SquaredDistance::from_sqrt(1.),
             )
         } else if self.is_numeric() && other.is_currentcolor() {
             Ok(
                 self.color.compute_squared_distance(&RGBA::transparent())? +
-                SquaredDistance::Value(1.),
+                SquaredDistance::from_sqrt(1.),
             )
         } else {
             let self_color = self.effective_intermediate_rgba();
