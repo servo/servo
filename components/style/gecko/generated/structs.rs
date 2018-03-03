@@ -145,736 +145,738 @@ pub mod root {
     impl<T> ::std::cmp::Eq for __BindgenUnionField<T> {}
     #[allow(unused_imports)]
     use self::super::root;
-    pub const NS_FONT_STYLE_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_STYLE_ITALIC: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_STYLE_OBLIQUE: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_WEIGHT_NORMAL: ::std::os::raw::c_uint = 400;
-    pub const NS_FONT_WEIGHT_BOLD: ::std::os::raw::c_uint = 700;
-    pub const NS_FONT_WEIGHT_THIN: ::std::os::raw::c_uint = 100;
-    pub const NS_FONT_STRETCH_ULTRA_CONDENSED: ::std::os::raw::c_int = -4;
-    pub const NS_FONT_STRETCH_EXTRA_CONDENSED: ::std::os::raw::c_int = -3;
-    pub const NS_FONT_STRETCH_CONDENSED: ::std::os::raw::c_int = -2;
-    pub const NS_FONT_STRETCH_SEMI_CONDENSED: ::std::os::raw::c_int = -1;
-    pub const NS_FONT_STRETCH_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_STRETCH_SEMI_EXPANDED: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_STRETCH_EXPANDED: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_STRETCH_EXTRA_EXPANDED: ::std::os::raw::c_uint = 3;
-    pub const NS_FONT_STRETCH_ULTRA_EXPANDED: ::std::os::raw::c_uint = 4;
-    pub const NS_FONT_SMOOTHING_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_SMOOTHING_GRAYSCALE: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_KERNING_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_KERNING_NONE: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_KERNING_NORMAL: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_SYNTHESIS_WEIGHT: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_SYNTHESIS_STYLE: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_DISPLAY_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_DISPLAY_BLOCK: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_DISPLAY_SWAP: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_DISPLAY_FALLBACK: ::std::os::raw::c_uint = 3;
-    pub const NS_FONT_DISPLAY_OPTIONAL: ::std::os::raw::c_uint = 4;
-    pub const NS_FONT_VARIANT_ALTERNATES_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_ALTERNATES_HISTORICAL: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_ALTERNATES_STYLISTIC: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_VARIANT_ALTERNATES_STYLESET: ::std::os::raw::c_uint = 4;
-    pub const NS_FONT_VARIANT_ALTERNATES_CHARACTER_VARIANT: ::std::os::raw::c_uint = 8;
-    pub const NS_FONT_VARIANT_ALTERNATES_SWASH: ::std::os::raw::c_uint = 16;
-    pub const NS_FONT_VARIANT_ALTERNATES_ORNAMENTS: ::std::os::raw::c_uint = 32;
-    pub const NS_FONT_VARIANT_ALTERNATES_ANNOTATION: ::std::os::raw::c_uint = 64;
-    pub const NS_FONT_VARIANT_ALTERNATES_COUNT: ::std::os::raw::c_uint = 7;
-    pub const NS_FONT_VARIANT_ALTERNATES_ENUMERATED_MASK: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_ALTERNATES_FUNCTIONAL_MASK: ::std::os::raw::c_uint = 126;
-    pub const NS_FONT_VARIANT_CAPS_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_CAPS_SMALLCAPS: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_CAPS_ALLSMALL: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_VARIANT_CAPS_PETITECAPS: ::std::os::raw::c_uint = 3;
-    pub const NS_FONT_VARIANT_CAPS_ALLPETITE: ::std::os::raw::c_uint = 4;
-    pub const NS_FONT_VARIANT_CAPS_TITLING: ::std::os::raw::c_uint = 5;
-    pub const NS_FONT_VARIANT_CAPS_UNICASE: ::std::os::raw::c_uint = 6;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS78: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS83: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS90: ::std::os::raw::c_uint = 4;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS04: ::std::os::raw::c_uint = 8;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_SIMPLIFIED: ::std::os::raw::c_uint = 16;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_TRADITIONAL: ::std::os::raw::c_uint = 32;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_FULL_WIDTH: ::std::os::raw::c_uint = 64;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_PROP_WIDTH: ::std::os::raw::c_uint = 128;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_RUBY: ::std::os::raw::c_uint = 256;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_COUNT: ::std::os::raw::c_uint = 9;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_VARIANT_MASK: ::std::os::raw::c_uint = 63;
-    pub const NS_FONT_VARIANT_EAST_ASIAN_WIDTH_MASK: ::std::os::raw::c_uint = 192;
-    pub const NS_FONT_VARIANT_LIGATURES_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_LIGATURES_NONE: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_LIGATURES_COMMON: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_VARIANT_LIGATURES_NO_COMMON: ::std::os::raw::c_uint = 4;
-    pub const NS_FONT_VARIANT_LIGATURES_DISCRETIONARY: ::std::os::raw::c_uint = 8;
-    pub const NS_FONT_VARIANT_LIGATURES_NO_DISCRETIONARY: ::std::os::raw::c_uint = 16;
-    pub const NS_FONT_VARIANT_LIGATURES_HISTORICAL: ::std::os::raw::c_uint = 32;
-    pub const NS_FONT_VARIANT_LIGATURES_NO_HISTORICAL: ::std::os::raw::c_uint = 64;
-    pub const NS_FONT_VARIANT_LIGATURES_CONTEXTUAL: ::std::os::raw::c_uint = 128;
-    pub const NS_FONT_VARIANT_LIGATURES_NO_CONTEXTUAL: ::std::os::raw::c_uint = 256;
-    pub const NS_FONT_VARIANT_LIGATURES_COUNT: ::std::os::raw::c_uint = 9;
-    pub const NS_FONT_VARIANT_LIGATURES_COMMON_MASK: ::std::os::raw::c_uint = 6;
-    pub const NS_FONT_VARIANT_LIGATURES_DISCRETIONARY_MASK: ::std::os::raw::c_uint = 24;
-    pub const NS_FONT_VARIANT_LIGATURES_HISTORICAL_MASK: ::std::os::raw::c_uint = 96;
-    pub const NS_FONT_VARIANT_LIGATURES_CONTEXTUAL_MASK: ::std::os::raw::c_uint = 384;
-    pub const NS_FONT_VARIANT_NUMERIC_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_NUMERIC_LINING: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_NUMERIC_OLDSTYLE: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_VARIANT_NUMERIC_PROPORTIONAL: ::std::os::raw::c_uint = 4;
-    pub const NS_FONT_VARIANT_NUMERIC_TABULAR: ::std::os::raw::c_uint = 8;
-    pub const NS_FONT_VARIANT_NUMERIC_DIAGONAL_FRACTIONS: ::std::os::raw::c_uint = 16;
-    pub const NS_FONT_VARIANT_NUMERIC_STACKED_FRACTIONS: ::std::os::raw::c_uint = 32;
-    pub const NS_FONT_VARIANT_NUMERIC_SLASHZERO: ::std::os::raw::c_uint = 64;
-    pub const NS_FONT_VARIANT_NUMERIC_ORDINAL: ::std::os::raw::c_uint = 128;
-    pub const NS_FONT_VARIANT_NUMERIC_COUNT: ::std::os::raw::c_uint = 8;
-    pub const NS_FONT_VARIANT_NUMERIC_FIGURE_MASK: ::std::os::raw::c_uint = 3;
-    pub const NS_FONT_VARIANT_NUMERIC_SPACING_MASK: ::std::os::raw::c_uint = 12;
-    pub const NS_FONT_VARIANT_NUMERIC_FRACTION_MASK: ::std::os::raw::c_uint = 48;
-    pub const NS_FONT_VARIANT_POSITION_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_POSITION_SUPER: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_POSITION_SUB: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_VARIANT_WIDTH_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_WIDTH_FULL: ::std::os::raw::c_uint = 1;
-    pub const NS_FONT_VARIANT_WIDTH_HALF: ::std::os::raw::c_uint = 2;
-    pub const NS_FONT_VARIANT_WIDTH_THIRD: ::std::os::raw::c_uint = 3;
-    pub const NS_FONT_VARIANT_WIDTH_QUARTER: ::std::os::raw::c_uint = 4;
+    pub const NS_FONT_STYLE_NORMAL: u32 = 0;
+    pub const NS_FONT_STYLE_ITALIC: u32 = 1;
+    pub const NS_FONT_STYLE_OBLIQUE: u32 = 2;
+    pub const NS_FONT_WEIGHT_NORMAL: u32 = 400;
+    pub const NS_FONT_WEIGHT_BOLD: u32 = 700;
+    pub const NS_FONT_WEIGHT_THIN: u32 = 100;
+    pub const NS_FONT_STRETCH_ULTRA_CONDENSED: i32 = -4;
+    pub const NS_FONT_STRETCH_EXTRA_CONDENSED: i32 = -3;
+    pub const NS_FONT_STRETCH_CONDENSED: i32 = -2;
+    pub const NS_FONT_STRETCH_SEMI_CONDENSED: i32 = -1;
+    pub const NS_FONT_STRETCH_NORMAL: u32 = 0;
+    pub const NS_FONT_STRETCH_SEMI_EXPANDED: u32 = 1;
+    pub const NS_FONT_STRETCH_EXPANDED: u32 = 2;
+    pub const NS_FONT_STRETCH_EXTRA_EXPANDED: u32 = 3;
+    pub const NS_FONT_STRETCH_ULTRA_EXPANDED: u32 = 4;
+    pub const NS_FONT_SMOOTHING_AUTO: u32 = 0;
+    pub const NS_FONT_SMOOTHING_GRAYSCALE: u32 = 1;
+    pub const NS_FONT_KERNING_AUTO: u32 = 0;
+    pub const NS_FONT_KERNING_NONE: u32 = 1;
+    pub const NS_FONT_KERNING_NORMAL: u32 = 2;
+    pub const NS_FONT_SYNTHESIS_WEIGHT: u32 = 1;
+    pub const NS_FONT_SYNTHESIS_STYLE: u32 = 2;
+    pub const NS_FONT_DISPLAY_AUTO: u32 = 0;
+    pub const NS_FONT_DISPLAY_BLOCK: u32 = 1;
+    pub const NS_FONT_DISPLAY_SWAP: u32 = 2;
+    pub const NS_FONT_DISPLAY_FALLBACK: u32 = 3;
+    pub const NS_FONT_DISPLAY_OPTIONAL: u32 = 4;
+    pub const NS_FONT_OPTICAL_SIZING_AUTO: u32 = 0;
+    pub const NS_FONT_OPTICAL_SIZING_NONE: u32 = 1;
+    pub const NS_FONT_VARIANT_ALTERNATES_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_ALTERNATES_HISTORICAL: u32 = 1;
+    pub const NS_FONT_VARIANT_ALTERNATES_STYLISTIC: u32 = 2;
+    pub const NS_FONT_VARIANT_ALTERNATES_STYLESET: u32 = 4;
+    pub const NS_FONT_VARIANT_ALTERNATES_CHARACTER_VARIANT: u32 = 8;
+    pub const NS_FONT_VARIANT_ALTERNATES_SWASH: u32 = 16;
+    pub const NS_FONT_VARIANT_ALTERNATES_ORNAMENTS: u32 = 32;
+    pub const NS_FONT_VARIANT_ALTERNATES_ANNOTATION: u32 = 64;
+    pub const NS_FONT_VARIANT_ALTERNATES_COUNT: u32 = 7;
+    pub const NS_FONT_VARIANT_ALTERNATES_ENUMERATED_MASK: u32 = 1;
+    pub const NS_FONT_VARIANT_ALTERNATES_FUNCTIONAL_MASK: u32 = 126;
+    pub const NS_FONT_VARIANT_CAPS_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_CAPS_SMALLCAPS: u32 = 1;
+    pub const NS_FONT_VARIANT_CAPS_ALLSMALL: u32 = 2;
+    pub const NS_FONT_VARIANT_CAPS_PETITECAPS: u32 = 3;
+    pub const NS_FONT_VARIANT_CAPS_ALLPETITE: u32 = 4;
+    pub const NS_FONT_VARIANT_CAPS_TITLING: u32 = 5;
+    pub const NS_FONT_VARIANT_CAPS_UNICASE: u32 = 6;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS78: u32 = 1;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS83: u32 = 2;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS90: u32 = 4;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_JIS04: u32 = 8;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_SIMPLIFIED: u32 = 16;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_TRADITIONAL: u32 = 32;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_FULL_WIDTH: u32 = 64;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_PROP_WIDTH: u32 = 128;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_RUBY: u32 = 256;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_COUNT: u32 = 9;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_VARIANT_MASK: u32 = 63;
+    pub const NS_FONT_VARIANT_EAST_ASIAN_WIDTH_MASK: u32 = 192;
+    pub const NS_FONT_VARIANT_LIGATURES_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_LIGATURES_NONE: u32 = 1;
+    pub const NS_FONT_VARIANT_LIGATURES_COMMON: u32 = 2;
+    pub const NS_FONT_VARIANT_LIGATURES_NO_COMMON: u32 = 4;
+    pub const NS_FONT_VARIANT_LIGATURES_DISCRETIONARY: u32 = 8;
+    pub const NS_FONT_VARIANT_LIGATURES_NO_DISCRETIONARY: u32 = 16;
+    pub const NS_FONT_VARIANT_LIGATURES_HISTORICAL: u32 = 32;
+    pub const NS_FONT_VARIANT_LIGATURES_NO_HISTORICAL: u32 = 64;
+    pub const NS_FONT_VARIANT_LIGATURES_CONTEXTUAL: u32 = 128;
+    pub const NS_FONT_VARIANT_LIGATURES_NO_CONTEXTUAL: u32 = 256;
+    pub const NS_FONT_VARIANT_LIGATURES_COUNT: u32 = 9;
+    pub const NS_FONT_VARIANT_LIGATURES_COMMON_MASK: u32 = 6;
+    pub const NS_FONT_VARIANT_LIGATURES_DISCRETIONARY_MASK: u32 = 24;
+    pub const NS_FONT_VARIANT_LIGATURES_HISTORICAL_MASK: u32 = 96;
+    pub const NS_FONT_VARIANT_LIGATURES_CONTEXTUAL_MASK: u32 = 384;
+    pub const NS_FONT_VARIANT_NUMERIC_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_NUMERIC_LINING: u32 = 1;
+    pub const NS_FONT_VARIANT_NUMERIC_OLDSTYLE: u32 = 2;
+    pub const NS_FONT_VARIANT_NUMERIC_PROPORTIONAL: u32 = 4;
+    pub const NS_FONT_VARIANT_NUMERIC_TABULAR: u32 = 8;
+    pub const NS_FONT_VARIANT_NUMERIC_DIAGONAL_FRACTIONS: u32 = 16;
+    pub const NS_FONT_VARIANT_NUMERIC_STACKED_FRACTIONS: u32 = 32;
+    pub const NS_FONT_VARIANT_NUMERIC_SLASHZERO: u32 = 64;
+    pub const NS_FONT_VARIANT_NUMERIC_ORDINAL: u32 = 128;
+    pub const NS_FONT_VARIANT_NUMERIC_COUNT: u32 = 8;
+    pub const NS_FONT_VARIANT_NUMERIC_FIGURE_MASK: u32 = 3;
+    pub const NS_FONT_VARIANT_NUMERIC_SPACING_MASK: u32 = 12;
+    pub const NS_FONT_VARIANT_NUMERIC_FRACTION_MASK: u32 = 48;
+    pub const NS_FONT_VARIANT_POSITION_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_POSITION_SUPER: u32 = 1;
+    pub const NS_FONT_VARIANT_POSITION_SUB: u32 = 2;
+    pub const NS_FONT_VARIANT_WIDTH_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_WIDTH_FULL: u32 = 1;
+    pub const NS_FONT_VARIANT_WIDTH_HALF: u32 = 2;
+    pub const NS_FONT_VARIANT_WIDTH_THIRD: u32 = 3;
+    pub const NS_FONT_VARIANT_WIDTH_QUARTER: u32 = 4;
     pub const NS_FONT_SUBSCRIPT_OFFSET_RATIO: f64 = 0.2;
     pub const NS_FONT_SUPERSCRIPT_OFFSET_RATIO: f64 = 0.34;
     pub const NS_FONT_SUB_SUPER_SIZE_RATIO_SMALL: f64 = 0.82;
     pub const NS_FONT_SUB_SUPER_SIZE_RATIO_LARGE: f64 = 0.667;
     pub const NS_FONT_SUB_SUPER_SMALL_SIZE: f64 = 20.;
     pub const NS_FONT_SUB_SUPER_LARGE_SIZE: f64 = 45.;
-    pub const NS_FONT_VARIANT_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_FONT_VARIANT_SMALL_CAPS: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_COLOR_INHERIT_FROM_BODY: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_WILL_CHANGE_STACKING_CONTEXT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WILL_CHANGE_TRANSFORM: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_WILL_CHANGE_SCROLL: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_WILL_CHANGE_OPACITY: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_WILL_CHANGE_FIXPOS_CB: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_WILL_CHANGE_ABSPOS_CB: ::std::os::raw::c_uint = 32;
-    pub const NS_STYLE_ANIMATION_ITERATION_COUNT_INFINITE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_ANIMATION_PLAY_STATE_RUNNING: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_ANIMATION_PLAY_STATE_PAUSED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_IMAGELAYER_CLIP_MOZ_ALMOST_PADDING: ::std::os::raw::c_uint = 127;
-    pub const NS_STYLE_IMAGELAYER_POSITION_CENTER: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_IMAGELAYER_POSITION_TOP: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_IMAGELAYER_POSITION_BOTTOM: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_IMAGELAYER_POSITION_LEFT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_IMAGELAYER_POSITION_RIGHT: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_IMAGELAYER_SIZE_CONTAIN: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_IMAGELAYER_SIZE_COVER: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_MASK_MODE_ALPHA: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_MASK_MODE_LUMINANCE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_MASK_MODE_MATCH_SOURCE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_BG_INLINE_POLICY_EACH_BOX: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_BG_INLINE_POLICY_CONTINUOUS: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BG_INLINE_POLICY_BOUNDING_BOX: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_BORDER_COLLAPSE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_BORDER_SEPARATE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BORDER_WIDTH_THIN: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_BORDER_WIDTH_MEDIUM: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BORDER_WIDTH_THICK: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_BORDER_STYLE_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_BORDER_STYLE_GROOVE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BORDER_STYLE_RIDGE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_BORDER_STYLE_DOTTED: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_BORDER_STYLE_DASHED: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_BORDER_STYLE_SOLID: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_BORDER_STYLE_DOUBLE: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_BORDER_STYLE_INSET: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_BORDER_STYLE_OUTSET: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_BORDER_STYLE_HIDDEN: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_BORDER_STYLE_AUTO: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_BORDER_IMAGE_SLICE_NOFILL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_BORDER_IMAGE_SLICE_FILL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CURSOR_AUTO: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CURSOR_CROSSHAIR: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_CURSOR_DEFAULT: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_CURSOR_POINTER: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_CURSOR_MOVE: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_CURSOR_E_RESIZE: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_CURSOR_NE_RESIZE: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_CURSOR_NW_RESIZE: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_CURSOR_N_RESIZE: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_CURSOR_SE_RESIZE: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_CURSOR_SW_RESIZE: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_CURSOR_S_RESIZE: ::std::os::raw::c_uint = 12;
-    pub const NS_STYLE_CURSOR_W_RESIZE: ::std::os::raw::c_uint = 13;
-    pub const NS_STYLE_CURSOR_TEXT: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_CURSOR_WAIT: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_CURSOR_HELP: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_CURSOR_COPY: ::std::os::raw::c_uint = 17;
-    pub const NS_STYLE_CURSOR_ALIAS: ::std::os::raw::c_uint = 18;
-    pub const NS_STYLE_CURSOR_CONTEXT_MENU: ::std::os::raw::c_uint = 19;
-    pub const NS_STYLE_CURSOR_CELL: ::std::os::raw::c_uint = 20;
-    pub const NS_STYLE_CURSOR_GRAB: ::std::os::raw::c_uint = 21;
-    pub const NS_STYLE_CURSOR_GRABBING: ::std::os::raw::c_uint = 22;
-    pub const NS_STYLE_CURSOR_SPINNING: ::std::os::raw::c_uint = 23;
-    pub const NS_STYLE_CURSOR_ZOOM_IN: ::std::os::raw::c_uint = 24;
-    pub const NS_STYLE_CURSOR_ZOOM_OUT: ::std::os::raw::c_uint = 25;
-    pub const NS_STYLE_CURSOR_NOT_ALLOWED: ::std::os::raw::c_uint = 26;
-    pub const NS_STYLE_CURSOR_COL_RESIZE: ::std::os::raw::c_uint = 27;
-    pub const NS_STYLE_CURSOR_ROW_RESIZE: ::std::os::raw::c_uint = 28;
-    pub const NS_STYLE_CURSOR_NO_DROP: ::std::os::raw::c_uint = 29;
-    pub const NS_STYLE_CURSOR_VERTICAL_TEXT: ::std::os::raw::c_uint = 30;
-    pub const NS_STYLE_CURSOR_ALL_SCROLL: ::std::os::raw::c_uint = 31;
-    pub const NS_STYLE_CURSOR_NESW_RESIZE: ::std::os::raw::c_uint = 32;
-    pub const NS_STYLE_CURSOR_NWSE_RESIZE: ::std::os::raw::c_uint = 33;
-    pub const NS_STYLE_CURSOR_NS_RESIZE: ::std::os::raw::c_uint = 34;
-    pub const NS_STYLE_CURSOR_EW_RESIZE: ::std::os::raw::c_uint = 35;
-    pub const NS_STYLE_CURSOR_NONE: ::std::os::raw::c_uint = 36;
-    pub const NS_STYLE_DIRECTION_LTR: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_DIRECTION_RTL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WRITING_MODE_HORIZONTAL_TB: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_WRITING_MODE_VERTICAL_RL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WRITING_MODE_VERTICAL_LR: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_WRITING_MODE_SIDEWAYS_MASK: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_WRITING_MODE_SIDEWAYS_RL: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_WRITING_MODE_SIDEWAYS_LR: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_CONTAIN_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_CONTAIN_STRICT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CONTAIN_LAYOUT: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_CONTAIN_STYLE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_CONTAIN_PAINT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_CONTAIN_ALL_BITS: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_ALIGN_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_ALIGN_NORMAL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_ALIGN_START: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_ALIGN_END: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_ALIGN_FLEX_START: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_ALIGN_FLEX_END: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_ALIGN_CENTER: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_ALIGN_LEFT: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_ALIGN_RIGHT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_ALIGN_BASELINE: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_ALIGN_LAST_BASELINE: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_ALIGN_STRETCH: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_ALIGN_SELF_START: ::std::os::raw::c_uint = 12;
-    pub const NS_STYLE_ALIGN_SELF_END: ::std::os::raw::c_uint = 13;
-    pub const NS_STYLE_ALIGN_SPACE_BETWEEN: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_ALIGN_SPACE_AROUND: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_ALIGN_SPACE_EVENLY: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_ALIGN_LEGACY: ::std::os::raw::c_uint = 32;
-    pub const NS_STYLE_ALIGN_SAFE: ::std::os::raw::c_uint = 64;
-    pub const NS_STYLE_ALIGN_UNSAFE: ::std::os::raw::c_uint = 128;
-    pub const NS_STYLE_ALIGN_FLAG_BITS: ::std::os::raw::c_uint = 224;
-    pub const NS_STYLE_ALIGN_ALL_BITS: ::std::os::raw::c_uint = 255;
-    pub const NS_STYLE_ALIGN_ALL_SHIFT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_JUSTIFY_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_JUSTIFY_NORMAL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_JUSTIFY_START: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_JUSTIFY_END: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_JUSTIFY_FLEX_START: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_JUSTIFY_FLEX_END: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_JUSTIFY_CENTER: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_JUSTIFY_LEFT: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_JUSTIFY_RIGHT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_JUSTIFY_BASELINE: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_JUSTIFY_LAST_BASELINE: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_JUSTIFY_STRETCH: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_JUSTIFY_SELF_START: ::std::os::raw::c_uint = 12;
-    pub const NS_STYLE_JUSTIFY_SELF_END: ::std::os::raw::c_uint = 13;
-    pub const NS_STYLE_JUSTIFY_SPACE_BETWEEN: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_JUSTIFY_SPACE_AROUND: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_JUSTIFY_SPACE_EVENLY: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_JUSTIFY_LEGACY: ::std::os::raw::c_uint = 32;
-    pub const NS_STYLE_JUSTIFY_SAFE: ::std::os::raw::c_uint = 64;
-    pub const NS_STYLE_JUSTIFY_UNSAFE: ::std::os::raw::c_uint = 128;
-    pub const NS_STYLE_JUSTIFY_FLAG_BITS: ::std::os::raw::c_uint = 224;
-    pub const NS_STYLE_JUSTIFY_ALL_BITS: ::std::os::raw::c_uint = 255;
-    pub const NS_STYLE_JUSTIFY_ALL_SHIFT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_FLEX_DIRECTION_ROW: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_FLEX_DIRECTION_ROW_REVERSE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FLEX_DIRECTION_COLUMN: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_FLEX_DIRECTION_COLUMN_REVERSE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_FLEX_WRAP_NOWRAP: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_FLEX_WRAP_WRAP: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FLEX_WRAP_WRAP_REVERSE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_ORDER_INITIAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_JUSTIFY_CONTENT_FLEX_START: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_JUSTIFY_CONTENT_FLEX_END: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_JUSTIFY_CONTENT_CENTER: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_JUSTIFY_CONTENT_SPACE_BETWEEN: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_JUSTIFY_CONTENT_SPACE_AROUND: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_FILTER_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_FILTER_URL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FILTER_BLUR: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_FILTER_BRIGHTNESS: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_FILTER_CONTRAST: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_FILTER_GRAYSCALE: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_FILTER_INVERT: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_FILTER_OPACITY: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_FILTER_SATURATE: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_FILTER_SEPIA: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_FILTER_HUE_ROTATE: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_FILTER_DROP_SHADOW: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_FONT_STYLE_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_FONT_STYLE_ITALIC: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FONT_STYLE_OBLIQUE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_FONT_WEIGHT_NORMAL: ::std::os::raw::c_uint = 400;
-    pub const NS_STYLE_FONT_WEIGHT_BOLD: ::std::os::raw::c_uint = 700;
-    pub const NS_STYLE_FONT_WEIGHT_BOLDER: ::std::os::raw::c_int = -1;
-    pub const NS_STYLE_FONT_WEIGHT_LIGHTER: ::std::os::raw::c_int = -2;
-    pub const NS_STYLE_FONT_SIZE_XXSMALL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_FONT_SIZE_XSMALL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FONT_SIZE_SMALL: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_FONT_SIZE_MEDIUM: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_FONT_SIZE_LARGE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_FONT_SIZE_XLARGE: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_FONT_SIZE_XXLARGE: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_FONT_SIZE_XXXLARGE: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_FONT_SIZE_LARGER: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_FONT_SIZE_SMALLER: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_FONT_SIZE_NO_KEYWORD: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_FONT_STRETCH_ULTRA_CONDENSED: ::std::os::raw::c_int = -4;
-    pub const NS_STYLE_FONT_STRETCH_EXTRA_CONDENSED: ::std::os::raw::c_int = -3;
-    pub const NS_STYLE_FONT_STRETCH_CONDENSED: ::std::os::raw::c_int = -2;
-    pub const NS_STYLE_FONT_STRETCH_SEMI_CONDENSED: ::std::os::raw::c_int = -1;
-    pub const NS_STYLE_FONT_STRETCH_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_FONT_STRETCH_SEMI_EXPANDED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FONT_STRETCH_EXPANDED: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_FONT_STRETCH_EXTRA_EXPANDED: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_FONT_STRETCH_ULTRA_EXPANDED: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_FONT_CAPTION: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FONT_ICON: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_FONT_MENU: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_FONT_MESSAGE_BOX: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_FONT_SMALL_CAPTION: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_FONT_STATUS_BAR: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_FONT_WINDOW: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_FONT_DOCUMENT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_FONT_WORKSPACE: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_FONT_DESKTOP: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_FONT_INFO: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_FONT_DIALOG: ::std::os::raw::c_uint = 12;
-    pub const NS_STYLE_FONT_BUTTON: ::std::os::raw::c_uint = 13;
-    pub const NS_STYLE_FONT_PULL_DOWN_MENU: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_FONT_LIST: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_FONT_FIELD: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_GRID_AUTO_FLOW_ROW: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_GRID_AUTO_FLOW_COLUMN: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_GRID_AUTO_FLOW_DENSE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_GRID_TEMPLATE_SUBGRID: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_GRID_REPEAT_AUTO_FILL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_GRID_REPEAT_AUTO_FIT: ::std::os::raw::c_uint = 1;
+    pub const NS_FONT_VARIANT_NORMAL: u32 = 0;
+    pub const NS_FONT_VARIANT_SMALL_CAPS: u32 = 1;
+    pub const NS_STYLE_COLOR_INHERIT_FROM_BODY: u32 = 2;
+    pub const NS_STYLE_WILL_CHANGE_STACKING_CONTEXT: u32 = 1;
+    pub const NS_STYLE_WILL_CHANGE_TRANSFORM: u32 = 2;
+    pub const NS_STYLE_WILL_CHANGE_SCROLL: u32 = 4;
+    pub const NS_STYLE_WILL_CHANGE_OPACITY: u32 = 8;
+    pub const NS_STYLE_WILL_CHANGE_FIXPOS_CB: u32 = 16;
+    pub const NS_STYLE_WILL_CHANGE_ABSPOS_CB: u32 = 32;
+    pub const NS_STYLE_ANIMATION_ITERATION_COUNT_INFINITE: u32 = 0;
+    pub const NS_STYLE_ANIMATION_PLAY_STATE_RUNNING: u32 = 0;
+    pub const NS_STYLE_ANIMATION_PLAY_STATE_PAUSED: u32 = 1;
+    pub const NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL: u32 = 0;
+    pub const NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED: u32 = 1;
+    pub const NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL: u32 = 2;
+    pub const NS_STYLE_IMAGELAYER_CLIP_MOZ_ALMOST_PADDING: u32 = 127;
+    pub const NS_STYLE_IMAGELAYER_POSITION_CENTER: u32 = 1;
+    pub const NS_STYLE_IMAGELAYER_POSITION_TOP: u32 = 2;
+    pub const NS_STYLE_IMAGELAYER_POSITION_BOTTOM: u32 = 4;
+    pub const NS_STYLE_IMAGELAYER_POSITION_LEFT: u32 = 8;
+    pub const NS_STYLE_IMAGELAYER_POSITION_RIGHT: u32 = 16;
+    pub const NS_STYLE_IMAGELAYER_SIZE_CONTAIN: u32 = 0;
+    pub const NS_STYLE_IMAGELAYER_SIZE_COVER: u32 = 1;
+    pub const NS_STYLE_MASK_MODE_ALPHA: u32 = 0;
+    pub const NS_STYLE_MASK_MODE_LUMINANCE: u32 = 1;
+    pub const NS_STYLE_MASK_MODE_MATCH_SOURCE: u32 = 2;
+    pub const NS_STYLE_BG_INLINE_POLICY_EACH_BOX: u32 = 0;
+    pub const NS_STYLE_BG_INLINE_POLICY_CONTINUOUS: u32 = 1;
+    pub const NS_STYLE_BG_INLINE_POLICY_BOUNDING_BOX: u32 = 2;
+    pub const NS_STYLE_BORDER_COLLAPSE: u32 = 0;
+    pub const NS_STYLE_BORDER_SEPARATE: u32 = 1;
+    pub const NS_STYLE_BORDER_WIDTH_THIN: u32 = 0;
+    pub const NS_STYLE_BORDER_WIDTH_MEDIUM: u32 = 1;
+    pub const NS_STYLE_BORDER_WIDTH_THICK: u32 = 2;
+    pub const NS_STYLE_BORDER_STYLE_NONE: u32 = 0;
+    pub const NS_STYLE_BORDER_STYLE_GROOVE: u32 = 1;
+    pub const NS_STYLE_BORDER_STYLE_RIDGE: u32 = 2;
+    pub const NS_STYLE_BORDER_STYLE_DOTTED: u32 = 3;
+    pub const NS_STYLE_BORDER_STYLE_DASHED: u32 = 4;
+    pub const NS_STYLE_BORDER_STYLE_SOLID: u32 = 5;
+    pub const NS_STYLE_BORDER_STYLE_DOUBLE: u32 = 6;
+    pub const NS_STYLE_BORDER_STYLE_INSET: u32 = 7;
+    pub const NS_STYLE_BORDER_STYLE_OUTSET: u32 = 8;
+    pub const NS_STYLE_BORDER_STYLE_HIDDEN: u32 = 9;
+    pub const NS_STYLE_BORDER_STYLE_AUTO: u32 = 10;
+    pub const NS_STYLE_BORDER_IMAGE_SLICE_NOFILL: u32 = 0;
+    pub const NS_STYLE_BORDER_IMAGE_SLICE_FILL: u32 = 1;
+    pub const NS_STYLE_CURSOR_AUTO: u32 = 1;
+    pub const NS_STYLE_CURSOR_CROSSHAIR: u32 = 2;
+    pub const NS_STYLE_CURSOR_DEFAULT: u32 = 3;
+    pub const NS_STYLE_CURSOR_POINTER: u32 = 4;
+    pub const NS_STYLE_CURSOR_MOVE: u32 = 5;
+    pub const NS_STYLE_CURSOR_E_RESIZE: u32 = 6;
+    pub const NS_STYLE_CURSOR_NE_RESIZE: u32 = 7;
+    pub const NS_STYLE_CURSOR_NW_RESIZE: u32 = 8;
+    pub const NS_STYLE_CURSOR_N_RESIZE: u32 = 9;
+    pub const NS_STYLE_CURSOR_SE_RESIZE: u32 = 10;
+    pub const NS_STYLE_CURSOR_SW_RESIZE: u32 = 11;
+    pub const NS_STYLE_CURSOR_S_RESIZE: u32 = 12;
+    pub const NS_STYLE_CURSOR_W_RESIZE: u32 = 13;
+    pub const NS_STYLE_CURSOR_TEXT: u32 = 14;
+    pub const NS_STYLE_CURSOR_WAIT: u32 = 15;
+    pub const NS_STYLE_CURSOR_HELP: u32 = 16;
+    pub const NS_STYLE_CURSOR_COPY: u32 = 17;
+    pub const NS_STYLE_CURSOR_ALIAS: u32 = 18;
+    pub const NS_STYLE_CURSOR_CONTEXT_MENU: u32 = 19;
+    pub const NS_STYLE_CURSOR_CELL: u32 = 20;
+    pub const NS_STYLE_CURSOR_GRAB: u32 = 21;
+    pub const NS_STYLE_CURSOR_GRABBING: u32 = 22;
+    pub const NS_STYLE_CURSOR_SPINNING: u32 = 23;
+    pub const NS_STYLE_CURSOR_ZOOM_IN: u32 = 24;
+    pub const NS_STYLE_CURSOR_ZOOM_OUT: u32 = 25;
+    pub const NS_STYLE_CURSOR_NOT_ALLOWED: u32 = 26;
+    pub const NS_STYLE_CURSOR_COL_RESIZE: u32 = 27;
+    pub const NS_STYLE_CURSOR_ROW_RESIZE: u32 = 28;
+    pub const NS_STYLE_CURSOR_NO_DROP: u32 = 29;
+    pub const NS_STYLE_CURSOR_VERTICAL_TEXT: u32 = 30;
+    pub const NS_STYLE_CURSOR_ALL_SCROLL: u32 = 31;
+    pub const NS_STYLE_CURSOR_NESW_RESIZE: u32 = 32;
+    pub const NS_STYLE_CURSOR_NWSE_RESIZE: u32 = 33;
+    pub const NS_STYLE_CURSOR_NS_RESIZE: u32 = 34;
+    pub const NS_STYLE_CURSOR_EW_RESIZE: u32 = 35;
+    pub const NS_STYLE_CURSOR_NONE: u32 = 36;
+    pub const NS_STYLE_DIRECTION_LTR: u32 = 0;
+    pub const NS_STYLE_DIRECTION_RTL: u32 = 1;
+    pub const NS_STYLE_WRITING_MODE_HORIZONTAL_TB: u32 = 0;
+    pub const NS_STYLE_WRITING_MODE_VERTICAL_RL: u32 = 1;
+    pub const NS_STYLE_WRITING_MODE_VERTICAL_LR: u32 = 3;
+    pub const NS_STYLE_WRITING_MODE_SIDEWAYS_MASK: u32 = 4;
+    pub const NS_STYLE_WRITING_MODE_SIDEWAYS_RL: u32 = 5;
+    pub const NS_STYLE_WRITING_MODE_SIDEWAYS_LR: u32 = 7;
+    pub const NS_STYLE_CONTAIN_NONE: u32 = 0;
+    pub const NS_STYLE_CONTAIN_STRICT: u32 = 1;
+    pub const NS_STYLE_CONTAIN_LAYOUT: u32 = 2;
+    pub const NS_STYLE_CONTAIN_STYLE: u32 = 4;
+    pub const NS_STYLE_CONTAIN_PAINT: u32 = 8;
+    pub const NS_STYLE_CONTAIN_ALL_BITS: u32 = 14;
+    pub const NS_STYLE_ALIGN_AUTO: u32 = 0;
+    pub const NS_STYLE_ALIGN_NORMAL: u32 = 1;
+    pub const NS_STYLE_ALIGN_START: u32 = 2;
+    pub const NS_STYLE_ALIGN_END: u32 = 3;
+    pub const NS_STYLE_ALIGN_FLEX_START: u32 = 4;
+    pub const NS_STYLE_ALIGN_FLEX_END: u32 = 5;
+    pub const NS_STYLE_ALIGN_CENTER: u32 = 6;
+    pub const NS_STYLE_ALIGN_LEFT: u32 = 7;
+    pub const NS_STYLE_ALIGN_RIGHT: u32 = 8;
+    pub const NS_STYLE_ALIGN_BASELINE: u32 = 9;
+    pub const NS_STYLE_ALIGN_LAST_BASELINE: u32 = 10;
+    pub const NS_STYLE_ALIGN_STRETCH: u32 = 11;
+    pub const NS_STYLE_ALIGN_SELF_START: u32 = 12;
+    pub const NS_STYLE_ALIGN_SELF_END: u32 = 13;
+    pub const NS_STYLE_ALIGN_SPACE_BETWEEN: u32 = 14;
+    pub const NS_STYLE_ALIGN_SPACE_AROUND: u32 = 15;
+    pub const NS_STYLE_ALIGN_SPACE_EVENLY: u32 = 16;
+    pub const NS_STYLE_ALIGN_LEGACY: u32 = 32;
+    pub const NS_STYLE_ALIGN_SAFE: u32 = 64;
+    pub const NS_STYLE_ALIGN_UNSAFE: u32 = 128;
+    pub const NS_STYLE_ALIGN_FLAG_BITS: u32 = 224;
+    pub const NS_STYLE_ALIGN_ALL_BITS: u32 = 255;
+    pub const NS_STYLE_ALIGN_ALL_SHIFT: u32 = 8;
+    pub const NS_STYLE_JUSTIFY_AUTO: u32 = 0;
+    pub const NS_STYLE_JUSTIFY_NORMAL: u32 = 1;
+    pub const NS_STYLE_JUSTIFY_START: u32 = 2;
+    pub const NS_STYLE_JUSTIFY_END: u32 = 3;
+    pub const NS_STYLE_JUSTIFY_FLEX_START: u32 = 4;
+    pub const NS_STYLE_JUSTIFY_FLEX_END: u32 = 5;
+    pub const NS_STYLE_JUSTIFY_CENTER: u32 = 6;
+    pub const NS_STYLE_JUSTIFY_LEFT: u32 = 7;
+    pub const NS_STYLE_JUSTIFY_RIGHT: u32 = 8;
+    pub const NS_STYLE_JUSTIFY_BASELINE: u32 = 9;
+    pub const NS_STYLE_JUSTIFY_LAST_BASELINE: u32 = 10;
+    pub const NS_STYLE_JUSTIFY_STRETCH: u32 = 11;
+    pub const NS_STYLE_JUSTIFY_SELF_START: u32 = 12;
+    pub const NS_STYLE_JUSTIFY_SELF_END: u32 = 13;
+    pub const NS_STYLE_JUSTIFY_SPACE_BETWEEN: u32 = 14;
+    pub const NS_STYLE_JUSTIFY_SPACE_AROUND: u32 = 15;
+    pub const NS_STYLE_JUSTIFY_SPACE_EVENLY: u32 = 16;
+    pub const NS_STYLE_JUSTIFY_LEGACY: u32 = 32;
+    pub const NS_STYLE_JUSTIFY_SAFE: u32 = 64;
+    pub const NS_STYLE_JUSTIFY_UNSAFE: u32 = 128;
+    pub const NS_STYLE_JUSTIFY_FLAG_BITS: u32 = 224;
+    pub const NS_STYLE_JUSTIFY_ALL_BITS: u32 = 255;
+    pub const NS_STYLE_JUSTIFY_ALL_SHIFT: u32 = 8;
+    pub const NS_STYLE_FLEX_DIRECTION_ROW: u32 = 0;
+    pub const NS_STYLE_FLEX_DIRECTION_ROW_REVERSE: u32 = 1;
+    pub const NS_STYLE_FLEX_DIRECTION_COLUMN: u32 = 2;
+    pub const NS_STYLE_FLEX_DIRECTION_COLUMN_REVERSE: u32 = 3;
+    pub const NS_STYLE_FLEX_WRAP_NOWRAP: u32 = 0;
+    pub const NS_STYLE_FLEX_WRAP_WRAP: u32 = 1;
+    pub const NS_STYLE_FLEX_WRAP_WRAP_REVERSE: u32 = 2;
+    pub const NS_STYLE_ORDER_INITIAL: u32 = 0;
+    pub const NS_STYLE_JUSTIFY_CONTENT_FLEX_START: u32 = 4;
+    pub const NS_STYLE_JUSTIFY_CONTENT_FLEX_END: u32 = 5;
+    pub const NS_STYLE_JUSTIFY_CONTENT_CENTER: u32 = 6;
+    pub const NS_STYLE_JUSTIFY_CONTENT_SPACE_BETWEEN: u32 = 14;
+    pub const NS_STYLE_JUSTIFY_CONTENT_SPACE_AROUND: u32 = 15;
+    pub const NS_STYLE_FILTER_NONE: u32 = 0;
+    pub const NS_STYLE_FILTER_URL: u32 = 1;
+    pub const NS_STYLE_FILTER_BLUR: u32 = 2;
+    pub const NS_STYLE_FILTER_BRIGHTNESS: u32 = 3;
+    pub const NS_STYLE_FILTER_CONTRAST: u32 = 4;
+    pub const NS_STYLE_FILTER_GRAYSCALE: u32 = 5;
+    pub const NS_STYLE_FILTER_INVERT: u32 = 6;
+    pub const NS_STYLE_FILTER_OPACITY: u32 = 7;
+    pub const NS_STYLE_FILTER_SATURATE: u32 = 8;
+    pub const NS_STYLE_FILTER_SEPIA: u32 = 9;
+    pub const NS_STYLE_FILTER_HUE_ROTATE: u32 = 10;
+    pub const NS_STYLE_FILTER_DROP_SHADOW: u32 = 11;
+    pub const NS_STYLE_FONT_STYLE_NORMAL: u32 = 0;
+    pub const NS_STYLE_FONT_STYLE_ITALIC: u32 = 1;
+    pub const NS_STYLE_FONT_STYLE_OBLIQUE: u32 = 2;
+    pub const NS_STYLE_FONT_WEIGHT_NORMAL: u32 = 400;
+    pub const NS_STYLE_FONT_WEIGHT_BOLD: u32 = 700;
+    pub const NS_STYLE_FONT_WEIGHT_BOLDER: i32 = -1;
+    pub const NS_STYLE_FONT_WEIGHT_LIGHTER: i32 = -2;
+    pub const NS_STYLE_FONT_SIZE_XXSMALL: u32 = 0;
+    pub const NS_STYLE_FONT_SIZE_XSMALL: u32 = 1;
+    pub const NS_STYLE_FONT_SIZE_SMALL: u32 = 2;
+    pub const NS_STYLE_FONT_SIZE_MEDIUM: u32 = 3;
+    pub const NS_STYLE_FONT_SIZE_LARGE: u32 = 4;
+    pub const NS_STYLE_FONT_SIZE_XLARGE: u32 = 5;
+    pub const NS_STYLE_FONT_SIZE_XXLARGE: u32 = 6;
+    pub const NS_STYLE_FONT_SIZE_XXXLARGE: u32 = 7;
+    pub const NS_STYLE_FONT_SIZE_LARGER: u32 = 8;
+    pub const NS_STYLE_FONT_SIZE_SMALLER: u32 = 9;
+    pub const NS_STYLE_FONT_SIZE_NO_KEYWORD: u32 = 10;
+    pub const NS_STYLE_FONT_STRETCH_ULTRA_CONDENSED: i32 = -4;
+    pub const NS_STYLE_FONT_STRETCH_EXTRA_CONDENSED: i32 = -3;
+    pub const NS_STYLE_FONT_STRETCH_CONDENSED: i32 = -2;
+    pub const NS_STYLE_FONT_STRETCH_SEMI_CONDENSED: i32 = -1;
+    pub const NS_STYLE_FONT_STRETCH_NORMAL: u32 = 0;
+    pub const NS_STYLE_FONT_STRETCH_SEMI_EXPANDED: u32 = 1;
+    pub const NS_STYLE_FONT_STRETCH_EXPANDED: u32 = 2;
+    pub const NS_STYLE_FONT_STRETCH_EXTRA_EXPANDED: u32 = 3;
+    pub const NS_STYLE_FONT_STRETCH_ULTRA_EXPANDED: u32 = 4;
+    pub const NS_STYLE_FONT_CAPTION: u32 = 1;
+    pub const NS_STYLE_FONT_ICON: u32 = 2;
+    pub const NS_STYLE_FONT_MENU: u32 = 3;
+    pub const NS_STYLE_FONT_MESSAGE_BOX: u32 = 4;
+    pub const NS_STYLE_FONT_SMALL_CAPTION: u32 = 5;
+    pub const NS_STYLE_FONT_STATUS_BAR: u32 = 6;
+    pub const NS_STYLE_FONT_WINDOW: u32 = 7;
+    pub const NS_STYLE_FONT_DOCUMENT: u32 = 8;
+    pub const NS_STYLE_FONT_WORKSPACE: u32 = 9;
+    pub const NS_STYLE_FONT_DESKTOP: u32 = 10;
+    pub const NS_STYLE_FONT_INFO: u32 = 11;
+    pub const NS_STYLE_FONT_DIALOG: u32 = 12;
+    pub const NS_STYLE_FONT_BUTTON: u32 = 13;
+    pub const NS_STYLE_FONT_PULL_DOWN_MENU: u32 = 14;
+    pub const NS_STYLE_FONT_LIST: u32 = 15;
+    pub const NS_STYLE_FONT_FIELD: u32 = 16;
+    pub const NS_STYLE_GRID_AUTO_FLOW_ROW: u32 = 1;
+    pub const NS_STYLE_GRID_AUTO_FLOW_COLUMN: u32 = 2;
+    pub const NS_STYLE_GRID_AUTO_FLOW_DENSE: u32 = 4;
+    pub const NS_STYLE_GRID_TEMPLATE_SUBGRID: u32 = 0;
+    pub const NS_STYLE_GRID_REPEAT_AUTO_FILL: u32 = 0;
+    pub const NS_STYLE_GRID_REPEAT_AUTO_FIT: u32 = 1;
     pub const NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER: f64 = 0.71;
-    pub const NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT: ::std::os::raw::c_uint = 8;
-    pub const NS_MATHML_MATHVARIANT_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_MATHML_MATHVARIANT_NORMAL: ::std::os::raw::c_uint = 1;
-    pub const NS_MATHML_MATHVARIANT_BOLD: ::std::os::raw::c_uint = 2;
-    pub const NS_MATHML_MATHVARIANT_ITALIC: ::std::os::raw::c_uint = 3;
-    pub const NS_MATHML_MATHVARIANT_BOLD_ITALIC: ::std::os::raw::c_uint = 4;
-    pub const NS_MATHML_MATHVARIANT_SCRIPT: ::std::os::raw::c_uint = 5;
-    pub const NS_MATHML_MATHVARIANT_BOLD_SCRIPT: ::std::os::raw::c_uint = 6;
-    pub const NS_MATHML_MATHVARIANT_FRAKTUR: ::std::os::raw::c_uint = 7;
-    pub const NS_MATHML_MATHVARIANT_DOUBLE_STRUCK: ::std::os::raw::c_uint = 8;
-    pub const NS_MATHML_MATHVARIANT_BOLD_FRAKTUR: ::std::os::raw::c_uint = 9;
-    pub const NS_MATHML_MATHVARIANT_SANS_SERIF: ::std::os::raw::c_uint = 10;
-    pub const NS_MATHML_MATHVARIANT_BOLD_SANS_SERIF: ::std::os::raw::c_uint = 11;
-    pub const NS_MATHML_MATHVARIANT_SANS_SERIF_ITALIC: ::std::os::raw::c_uint = 12;
-    pub const NS_MATHML_MATHVARIANT_SANS_SERIF_BOLD_ITALIC: ::std::os::raw::c_uint = 13;
-    pub const NS_MATHML_MATHVARIANT_MONOSPACE: ::std::os::raw::c_uint = 14;
-    pub const NS_MATHML_MATHVARIANT_INITIAL: ::std::os::raw::c_uint = 15;
-    pub const NS_MATHML_MATHVARIANT_TAILED: ::std::os::raw::c_uint = 16;
-    pub const NS_MATHML_MATHVARIANT_LOOPED: ::std::os::raw::c_uint = 17;
-    pub const NS_MATHML_MATHVARIANT_STRETCHED: ::std::os::raw::c_uint = 18;
-    pub const NS_MATHML_DISPLAYSTYLE_INLINE: ::std::os::raw::c_uint = 0;
-    pub const NS_MATHML_DISPLAYSTYLE_BLOCK: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WIDTH_MAX_CONTENT: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_WIDTH_MIN_CONTENT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WIDTH_FIT_CONTENT: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_WIDTH_AVAILABLE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_POSITION_STATIC: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_POSITION_RELATIVE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_POSITION_ABSOLUTE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_POSITION_FIXED: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_POSITION_STICKY: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_CLIP_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_CLIP_RECT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CLIP_TYPE_MASK: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_CLIP_LEFT_AUTO: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_CLIP_TOP_AUTO: ::std::os::raw::c_uint = 32;
-    pub const NS_STYLE_CLIP_RIGHT_AUTO: ::std::os::raw::c_uint = 64;
-    pub const NS_STYLE_CLIP_BOTTOM_AUTO: ::std::os::raw::c_uint = 128;
-    pub const NS_STYLE_FRAME_YES: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_FRAME_NO: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_FRAME_0: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_FRAME_1: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_FRAME_ON: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_FRAME_OFF: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_FRAME_AUTO: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_FRAME_SCROLL: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_FRAME_NOSCROLL: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_OVERFLOW_VISIBLE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_OVERFLOW_HIDDEN: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_OVERFLOW_SCROLL: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_OVERFLOW_AUTO: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_OVERFLOW_CLIP: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_OVERFLOW_SCROLLBARS_HORIZONTAL: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_OVERFLOW_SCROLLBARS_VERTICAL: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_OVERFLOW_CLIP_BOX_PADDING_BOX: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_OVERFLOW_CLIP_BOX_CONTENT_BOX: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_LIST_STYLE_CUSTOM: ::std::os::raw::c_int = -1;
-    pub const NS_STYLE_LIST_STYLE_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_LIST_STYLE_DECIMAL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_LIST_STYLE_DISC: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_LIST_STYLE_CIRCLE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_LIST_STYLE_SQUARE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_LIST_STYLE_HEBREW: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_LIST_STYLE_JAPANESE_INFORMAL: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_LIST_STYLE_JAPANESE_FORMAL: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_LIST_STYLE_KOREAN_HANGUL_FORMAL: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_LIST_STYLE_KOREAN_HANJA_INFORMAL: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_LIST_STYLE_KOREAN_HANJA_FORMAL: ::std::os::raw::c_uint = 12;
-    pub const NS_STYLE_LIST_STYLE_SIMP_CHINESE_INFORMAL: ::std::os::raw::c_uint = 13;
-    pub const NS_STYLE_LIST_STYLE_SIMP_CHINESE_FORMAL: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_LIST_STYLE_TRAD_CHINESE_INFORMAL: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_LIST_STYLE_TRAD_CHINESE_FORMAL: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_LIST_STYLE_ETHIOPIC_NUMERIC: ::std::os::raw::c_uint = 17;
-    pub const NS_STYLE_LIST_STYLE_LOWER_ROMAN: ::std::os::raw::c_uint = 100;
-    pub const NS_STYLE_LIST_STYLE_UPPER_ROMAN: ::std::os::raw::c_uint = 101;
-    pub const NS_STYLE_LIST_STYLE_LOWER_ALPHA: ::std::os::raw::c_uint = 102;
-    pub const NS_STYLE_LIST_STYLE_UPPER_ALPHA: ::std::os::raw::c_uint = 103;
-    pub const NS_STYLE_LIST_STYLE_POSITION_INSIDE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_LIST_STYLE_POSITION_OUTSIDE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_MARGIN_SIZE_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_POINTER_EVENTS_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_POINTER_EVENTS_VISIBLEFILL: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_POINTER_EVENTS_VISIBLESTROKE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_POINTER_EVENTS_VISIBLE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_POINTER_EVENTS_PAINTED: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_POINTER_EVENTS_FILL: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_POINTER_EVENTS_STROKE: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_POINTER_EVENTS_ALL: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_POINTER_EVENTS_AUTO: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_IMAGE_ORIENTATION_FLIP: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_IMAGE_ORIENTATION_FROM_IMAGE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_ISOLATION_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_ISOLATION_ISOLATE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_OBJECT_FIT_FILL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_OBJECT_FIT_CONTAIN: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_OBJECT_FIT_COVER: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_OBJECT_FIT_NONE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_OBJECT_FIT_SCALE_DOWN: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_RESIZE_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_RESIZE_BOTH: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_RESIZE_HORIZONTAL: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_RESIZE_VERTICAL: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_TEXT_ALIGN_START: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_ALIGN_LEFT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_ALIGN_RIGHT: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_ALIGN_CENTER: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_TEXT_ALIGN_JUSTIFY: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TEXT_ALIGN_CHAR: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_TEXT_ALIGN_END: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_TEXT_ALIGN_AUTO: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_TEXT_ALIGN_MOZ_CENTER: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_TEXT_ALIGN_MOZ_RIGHT: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_TEXT_ALIGN_MOZ_LEFT: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_TEXT_ALIGN_MOZ_CENTER_OR_INHERIT: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_TEXT_ALIGN_UNSAFE: ::std::os::raw::c_uint = 12;
-    pub const NS_STYLE_TEXT_ALIGN_MATCH_PARENT: ::std::os::raw::c_uint = 13;
-    pub const NS_STYLE_TEXT_DECORATION_LINE_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_DECORATION_LINE_OVERLINE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TEXT_DECORATION_LINE_BLINK: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_TEXT_DECORATION_LINE_LINES_MASK: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_TEXT_DECORATION_STYLE_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_DECORATION_STYLE_DOTTED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_DECORATION_STYLE_DASHED: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_DECORATION_STYLE_SOLID: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TEXT_DECORATION_STYLE_WAVY: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_TEXT_DECORATION_STYLE_MAX: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_TEXT_OVERFLOW_CLIP: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_OVERFLOW_ELLIPSIS: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_OVERFLOW_STRING: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_TRANSFORM_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_TRANSFORM_CAPITALIZE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_TRANSFORM_LOWERCASE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_TRANSFORM_UPPERCASE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_TEXT_TRANSFORM_FULL_WIDTH: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TOUCH_ACTION_NONE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TOUCH_ACTION_AUTO: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TOUCH_ACTION_PAN_X: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TOUCH_ACTION_PAN_Y: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_TOUCH_ACTION_MANIPULATION: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_TOP_LAYER_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TOP_LAYER_TOP: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_LINEAR: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_IN: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_OUT: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_IN_OUT: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_STEP_START: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_STEP_END: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_VERTICAL_ALIGN_BASELINE: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_VERTICAL_ALIGN_SUB: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_VERTICAL_ALIGN_SUPER: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_VERTICAL_ALIGN_TOP: ::std::os::raw::c_uint = 17;
-    pub const NS_STYLE_VERTICAL_ALIGN_TEXT_TOP: ::std::os::raw::c_uint = 18;
-    pub const NS_STYLE_VERTICAL_ALIGN_MIDDLE: ::std::os::raw::c_uint = 19;
-    pub const NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM: ::std::os::raw::c_uint = 20;
-    pub const NS_STYLE_VERTICAL_ALIGN_BOTTOM: ::std::os::raw::c_uint = 21;
-    pub const NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE: ::std::os::raw::c_uint = 22;
-    pub const NS_STYLE_VISIBILITY_HIDDEN: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_VISIBILITY_VISIBLE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_VISIBILITY_COLLAPSE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TABSIZE_INITIAL: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_WORDBREAK_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_WORDBREAK_BREAK_ALL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WORDBREAK_KEEP_ALL: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_OVERFLOWWRAP_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_OVERFLOWWRAP_BREAK_WORD: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_RUBY_ALIGN_START: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_RUBY_ALIGN_CENTER: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_RUBY_ALIGN_SPACE_BETWEEN: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_RUBY_ALIGN_SPACE_AROUND: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_RUBY_POSITION_OVER: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_RUBY_POSITION_UNDER: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_RUBY_POSITION_INTER_CHARACTER: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_SIZE_ADJUST_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_SIZE_ADJUST_AUTO: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_ORIENTATION_MIXED: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_ORIENTATION_UPRIGHT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_ORIENTATION_SIDEWAYS: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_ALL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_DIGITS_2: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_DIGITS_3: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_DIGITS_4: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_UNICODE_BIDI_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_UNICODE_BIDI_EMBED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_UNICODE_BIDI_ISOLATE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_UNICODE_BIDI_BIDI_OVERRIDE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_UNICODE_BIDI_ISOLATE_OVERRIDE: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_UNICODE_BIDI_PLAINTEXT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_TABLE_LAYOUT_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TABLE_LAYOUT_FIXED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TABLE_EMPTY_CELLS_HIDE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TABLE_EMPTY_CELLS_SHOW: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CAPTION_SIDE_TOP: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_CAPTION_SIDE_RIGHT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CAPTION_SIDE_BOTTOM: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_CAPTION_SIDE_LEFT: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_CAPTION_SIDE_TOP_OUTSIDE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_CELL_SCOPE_ROW: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_CELL_SCOPE_COL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CELL_SCOPE_ROWGROUP: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_CELL_SCOPE_COLGROUP: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_PAGE_MARKS_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_PAGE_MARKS_CROP: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_PAGE_MARKS_REGISTER: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_PAGE_SIZE_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_PAGE_SIZE_PORTRAIT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_PAGE_SIZE_LANDSCAPE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_PAGE_BREAK_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_PAGE_BREAK_ALWAYS: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_PAGE_BREAK_AVOID: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_PAGE_BREAK_LEFT: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_PAGE_BREAK_RIGHT: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_COLUMN_COUNT_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COLUMN_COUNT_UNLIMITED: ::std::os::raw::c_int = -1;
-    pub const NS_STYLE_COLUMN_FILL_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COLUMN_FILL_BALANCE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_COLUMN_SPAN_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COLUMN_SPAN_ALL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_IME_MODE_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_IME_MODE_NORMAL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_IME_MODE_ACTIVE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_IME_MODE_DISABLED: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_IME_MODE_INACTIVE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_GRADIENT_SHAPE_LINEAR: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_GRADIENT_SHAPE_CIRCULAR: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_CONTEXT_PROPERTY_FILL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CONTEXT_PROPERTY_STROKE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_WINDOW_SHADOW_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_WINDOW_SHADOW_DEFAULT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WINDOW_SHADOW_MENU: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_WINDOW_SHADOW_TOOLTIP: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_WINDOW_SHADOW_SHEET: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_DOMINANT_BASELINE_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_DOMINANT_BASELINE_USE_SCRIPT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_DOMINANT_BASELINE_NO_CHANGE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_DOMINANT_BASELINE_RESET_SIZE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_DOMINANT_BASELINE_IDEOGRAPHIC: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_DOMINANT_BASELINE_ALPHABETIC: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_DOMINANT_BASELINE_HANGING: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_DOMINANT_BASELINE_MATHEMATICAL: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_DOMINANT_BASELINE_CENTRAL: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_DOMINANT_BASELINE_MIDDLE: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_DOMINANT_BASELINE_TEXT_AFTER_EDGE: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_DOMINANT_BASELINE_TEXT_BEFORE_EDGE: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_IMAGE_RENDERING_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_IMAGE_RENDERING_OPTIMIZESPEED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_IMAGE_RENDERING_OPTIMIZEQUALITY: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_IMAGE_RENDERING_CRISPEDGES: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_MASK_TYPE_LUMINANCE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_MASK_TYPE_ALPHA: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_PAINT_ORDER_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_PAINT_ORDER_FILL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_PAINT_ORDER_STROKE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_PAINT_ORDER_MARKERS: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_PAINT_ORDER_LAST_VALUE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_PAINT_ORDER_BITWIDTH: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_SHAPE_RENDERING_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_SHAPE_RENDERING_OPTIMIZESPEED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_SHAPE_RENDERING_CRISPEDGES: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_SHAPE_RENDERING_GEOMETRICPRECISION: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_STROKE_LINECAP_BUTT: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_STROKE_LINECAP_ROUND: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_STROKE_LINECAP_SQUARE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_STROKE_LINEJOIN_MITER: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_STROKE_LINEJOIN_ROUND: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_STROKE_LINEJOIN_BEVEL: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_STROKE_PROP_CONTEXT_VALUE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_ANCHOR_START: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_ANCHOR_MIDDLE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_ANCHOR_END: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_OVER: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_DEFAULT: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_DEFAULT_ZH: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_FILL_MASK: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_SHAPE_MASK: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_DOT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_STRING: ::std::os::raw::c_uint = 255;
-    pub const NS_STYLE_TEXT_RENDERING_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TEXT_RENDERING_OPTIMIZESPEED: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_TEXT_RENDERING_OPTIMIZELEGIBILITY: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_TEXT_RENDERING_GEOMETRICPRECISION: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_COLOR_ADJUST_ECONOMY: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COLOR_ADJUST_EXACT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_COLOR_INTERPOLATION_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COLOR_INTERPOLATION_SRGB: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_COLOR_INTERPOLATION_LINEARRGB: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_VECTOR_EFFECT_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_VECTOR_EFFECT_NON_SCALING_STROKE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BACKFACE_VISIBILITY_VISIBLE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BACKFACE_VISIBILITY_HIDDEN: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TRANSFORM_STYLE_FLAT: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CONTEXT_FILL_OPACITY: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_CONTEXT_STROKE_OPACITY: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BLEND_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_BLEND_MULTIPLY: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_BLEND_SCREEN: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_BLEND_OVERLAY: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_BLEND_DARKEN: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_BLEND_LIGHTEN: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_BLEND_COLOR_DODGE: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_BLEND_COLOR_BURN: ::std::os::raw::c_uint = 7;
-    pub const NS_STYLE_BLEND_HARD_LIGHT: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_BLEND_SOFT_LIGHT: ::std::os::raw::c_uint = 9;
-    pub const NS_STYLE_BLEND_DIFFERENCE: ::std::os::raw::c_uint = 10;
-    pub const NS_STYLE_BLEND_EXCLUSION: ::std::os::raw::c_uint = 11;
-    pub const NS_STYLE_BLEND_HUE: ::std::os::raw::c_uint = 12;
-    pub const NS_STYLE_BLEND_SATURATION: ::std::os::raw::c_uint = 13;
-    pub const NS_STYLE_BLEND_COLOR: ::std::os::raw::c_uint = 14;
-    pub const NS_STYLE_BLEND_LUMINOSITY: ::std::os::raw::c_uint = 15;
-    pub const NS_STYLE_MASK_COMPOSITE_ADD: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_MASK_COMPOSITE_SUBTRACT: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_MASK_COMPOSITE_INTERSECT: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_MASK_COMPOSITE_EXCLUDE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_CONTROL_CHARACTER_VISIBILITY_HIDDEN: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_CONTROL_CHARACTER_VISIBILITY_VISIBLE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_COUNTER_SYSTEM_CYCLIC: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COUNTER_SYSTEM_NUMERIC: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_COUNTER_SYSTEM_ALPHABETIC: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_COUNTER_SYSTEM_SYMBOLIC: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_COUNTER_SYSTEM_ADDITIVE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_COUNTER_SYSTEM_FIXED: ::std::os::raw::c_uint = 5;
-    pub const NS_STYLE_COUNTER_SYSTEM_EXTENDS: ::std::os::raw::c_uint = 6;
-    pub const NS_STYLE_COUNTER_RANGE_INFINITE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COUNTER_SPEAKAS_BULLETS: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_COUNTER_SPEAKAS_NUMBERS: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_COUNTER_SPEAKAS_WORDS: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_COUNTER_SPEAKAS_SPELL_OUT: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_COUNTER_SPEAKAS_OTHER: ::std::os::raw::c_uint = 255;
-    pub const NS_STYLE_SCROLL_BEHAVIOR_AUTO: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_SCROLL_BEHAVIOR_SMOOTH: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_SCROLL_SNAP_TYPE_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_ORIENTATION_PORTRAIT: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_ORIENTATION_LANDSCAPE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_SCAN_PROGRESSIVE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_SCAN_INTERLACE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_DISPLAY_MODE_BROWSER: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_DISPLAY_MODE_MINIMAL_UI: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_DISPLAY_MODE_STANDALONE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_DISPLAY_MODE_FULLSCREEN: ::std::os::raw::c_uint = 3;
-    pub const CSS_PSEUDO_ELEMENT_IS_CSS2: ::std::os::raw::c_uint = 1;
-    pub const CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS: ::std::os::raw::c_uint = 2;
-    pub const CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE: ::std::os::raw::c_uint = 4;
-    pub const CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE: ::std::os::raw::c_uint = 8;
-    pub const CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS: ::std::os::raw::c_uint = 16;
-    pub const CSS_PSEUDO_ELEMENT_ENABLED_IN_CHROME: ::std::os::raw::c_uint = 32;
-    pub const CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME: ::std::os::raw::c_uint = 48;
-    pub const CSS_PSEUDO_ELEMENT_IS_JS_CREATED_NAC: ::std::os::raw::c_uint = 64;
-    pub const CSS_PSEUDO_ELEMENT_IS_FLEX_OR_GRID_ITEM: ::std::os::raw::c_uint = 128;
-    pub const kNameSpaceID_Unknown: ::std::os::raw::c_int = -1;
-    pub const kNameSpaceID_XMLNS: ::std::os::raw::c_uint = 1;
-    pub const kNameSpaceID_XML: ::std::os::raw::c_uint = 2;
-    pub const kNameSpaceID_XHTML: ::std::os::raw::c_uint = 3;
-    pub const kNameSpaceID_XLink: ::std::os::raw::c_uint = 4;
-    pub const kNameSpaceID_XSLT: ::std::os::raw::c_uint = 5;
-    pub const kNameSpaceID_XBL: ::std::os::raw::c_uint = 6;
-    pub const kNameSpaceID_MathML: ::std::os::raw::c_uint = 7;
-    pub const kNameSpaceID_RDF: ::std::os::raw::c_uint = 8;
-    pub const kNameSpaceID_XUL: ::std::os::raw::c_uint = 9;
-    pub const kNameSpaceID_SVG: ::std::os::raw::c_uint = 10;
-    pub const kNameSpaceID_disabled_MathML: ::std::os::raw::c_uint = 11;
-    pub const kNameSpaceID_disabled_SVG: ::std::os::raw::c_uint = 12;
-    pub const kNameSpaceID_LastBuiltin: ::std::os::raw::c_uint = 12;
-    pub const kNameSpaceID_Wildcard: ::std::os::raw::c_int = -2147483648;
-    pub const NS_AUTHOR_SPECIFIED_BACKGROUND: ::std::os::raw::c_uint = 1;
-    pub const NS_AUTHOR_SPECIFIED_BORDER: ::std::os::raw::c_uint = 2;
-    pub const NS_AUTHOR_SPECIFIED_PADDING: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_INHERIT_MASK: ::std::os::raw::c_uint = 16777215;
-    pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: ::std::os::raw::c_uint = 16777216;
-    pub const NS_STYLE_HAS_PSEUDO_ELEMENT_DATA: ::std::os::raw::c_uint = 33554432;
-    pub const NS_STYLE_RELEVANT_LINK_VISITED: ::std::os::raw::c_uint = 67108864;
-    pub const NS_STYLE_IS_STYLE_IF_VISITED: ::std::os::raw::c_uint = 134217728;
-    pub const NS_STYLE_CHILD_USES_GRANDANCESTOR_STYLE: ::std::os::raw::c_uint = 268435456;
-    pub const NS_STYLE_IS_SHARED: ::std::os::raw::c_uint = 536870912;
-    pub const NS_STYLE_IS_GOING_AWAY: ::std::os::raw::c_uint = 1073741824;
-    pub const NS_STYLE_SUPPRESS_LINEBREAK: ::std::os::raw::c_uint = 2147483648;
-    pub const NS_STYLE_IN_DISPLAY_NONE_SUBTREE: ::std::os::raw::c_ulonglong = 4294967296;
-    pub const NS_STYLE_INELIGIBLE_FOR_SHARING: ::std::os::raw::c_ulonglong = 8589934592;
-    pub const NS_STYLE_HAS_CHILD_THAT_USES_RESET_STYLE: ::std::os::raw::c_ulonglong = 17179869184;
-    pub const NS_STYLE_IS_TEXT_COMBINED: ::std::os::raw::c_ulonglong = 34359738368;
-    pub const NS_STYLE_CONTEXT_IS_GECKO: ::std::os::raw::c_ulonglong = 68719476736;
-    pub const NS_STYLE_CONTEXT_TYPE_SHIFT: ::std::os::raw::c_uint = 37;
+    pub const NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
+    pub const NS_MATHML_MATHVARIANT_NONE: u32 = 0;
+    pub const NS_MATHML_MATHVARIANT_NORMAL: u32 = 1;
+    pub const NS_MATHML_MATHVARIANT_BOLD: u32 = 2;
+    pub const NS_MATHML_MATHVARIANT_ITALIC: u32 = 3;
+    pub const NS_MATHML_MATHVARIANT_BOLD_ITALIC: u32 = 4;
+    pub const NS_MATHML_MATHVARIANT_SCRIPT: u32 = 5;
+    pub const NS_MATHML_MATHVARIANT_BOLD_SCRIPT: u32 = 6;
+    pub const NS_MATHML_MATHVARIANT_FRAKTUR: u32 = 7;
+    pub const NS_MATHML_MATHVARIANT_DOUBLE_STRUCK: u32 = 8;
+    pub const NS_MATHML_MATHVARIANT_BOLD_FRAKTUR: u32 = 9;
+    pub const NS_MATHML_MATHVARIANT_SANS_SERIF: u32 = 10;
+    pub const NS_MATHML_MATHVARIANT_BOLD_SANS_SERIF: u32 = 11;
+    pub const NS_MATHML_MATHVARIANT_SANS_SERIF_ITALIC: u32 = 12;
+    pub const NS_MATHML_MATHVARIANT_SANS_SERIF_BOLD_ITALIC: u32 = 13;
+    pub const NS_MATHML_MATHVARIANT_MONOSPACE: u32 = 14;
+    pub const NS_MATHML_MATHVARIANT_INITIAL: u32 = 15;
+    pub const NS_MATHML_MATHVARIANT_TAILED: u32 = 16;
+    pub const NS_MATHML_MATHVARIANT_LOOPED: u32 = 17;
+    pub const NS_MATHML_MATHVARIANT_STRETCHED: u32 = 18;
+    pub const NS_MATHML_DISPLAYSTYLE_INLINE: u32 = 0;
+    pub const NS_MATHML_DISPLAYSTYLE_BLOCK: u32 = 1;
+    pub const NS_STYLE_WIDTH_MAX_CONTENT: u32 = 0;
+    pub const NS_STYLE_WIDTH_MIN_CONTENT: u32 = 1;
+    pub const NS_STYLE_WIDTH_FIT_CONTENT: u32 = 2;
+    pub const NS_STYLE_WIDTH_AVAILABLE: u32 = 3;
+    pub const NS_STYLE_POSITION_STATIC: u32 = 0;
+    pub const NS_STYLE_POSITION_RELATIVE: u32 = 1;
+    pub const NS_STYLE_POSITION_ABSOLUTE: u32 = 2;
+    pub const NS_STYLE_POSITION_FIXED: u32 = 3;
+    pub const NS_STYLE_POSITION_STICKY: u32 = 4;
+    pub const NS_STYLE_CLIP_AUTO: u32 = 0;
+    pub const NS_STYLE_CLIP_RECT: u32 = 1;
+    pub const NS_STYLE_CLIP_TYPE_MASK: u32 = 15;
+    pub const NS_STYLE_CLIP_LEFT_AUTO: u32 = 16;
+    pub const NS_STYLE_CLIP_TOP_AUTO: u32 = 32;
+    pub const NS_STYLE_CLIP_RIGHT_AUTO: u32 = 64;
+    pub const NS_STYLE_CLIP_BOTTOM_AUTO: u32 = 128;
+    pub const NS_STYLE_FRAME_YES: u32 = 0;
+    pub const NS_STYLE_FRAME_NO: u32 = 1;
+    pub const NS_STYLE_FRAME_0: u32 = 2;
+    pub const NS_STYLE_FRAME_1: u32 = 3;
+    pub const NS_STYLE_FRAME_ON: u32 = 4;
+    pub const NS_STYLE_FRAME_OFF: u32 = 5;
+    pub const NS_STYLE_FRAME_AUTO: u32 = 6;
+    pub const NS_STYLE_FRAME_SCROLL: u32 = 7;
+    pub const NS_STYLE_FRAME_NOSCROLL: u32 = 8;
+    pub const NS_STYLE_OVERFLOW_VISIBLE: u32 = 0;
+    pub const NS_STYLE_OVERFLOW_HIDDEN: u32 = 1;
+    pub const NS_STYLE_OVERFLOW_SCROLL: u32 = 2;
+    pub const NS_STYLE_OVERFLOW_AUTO: u32 = 3;
+    pub const NS_STYLE_OVERFLOW_CLIP: u32 = 4;
+    pub const NS_STYLE_OVERFLOW_SCROLLBARS_HORIZONTAL: u32 = 5;
+    pub const NS_STYLE_OVERFLOW_SCROLLBARS_VERTICAL: u32 = 6;
+    pub const NS_STYLE_OVERFLOW_CLIP_BOX_PADDING_BOX: u32 = 0;
+    pub const NS_STYLE_OVERFLOW_CLIP_BOX_CONTENT_BOX: u32 = 1;
+    pub const NS_STYLE_LIST_STYLE_CUSTOM: i32 = -1;
+    pub const NS_STYLE_LIST_STYLE_NONE: u32 = 0;
+    pub const NS_STYLE_LIST_STYLE_DECIMAL: u32 = 1;
+    pub const NS_STYLE_LIST_STYLE_DISC: u32 = 2;
+    pub const NS_STYLE_LIST_STYLE_CIRCLE: u32 = 3;
+    pub const NS_STYLE_LIST_STYLE_SQUARE: u32 = 4;
+    pub const NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED: u32 = 5;
+    pub const NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN: u32 = 6;
+    pub const NS_STYLE_LIST_STYLE_HEBREW: u32 = 7;
+    pub const NS_STYLE_LIST_STYLE_JAPANESE_INFORMAL: u32 = 8;
+    pub const NS_STYLE_LIST_STYLE_JAPANESE_FORMAL: u32 = 9;
+    pub const NS_STYLE_LIST_STYLE_KOREAN_HANGUL_FORMAL: u32 = 10;
+    pub const NS_STYLE_LIST_STYLE_KOREAN_HANJA_INFORMAL: u32 = 11;
+    pub const NS_STYLE_LIST_STYLE_KOREAN_HANJA_FORMAL: u32 = 12;
+    pub const NS_STYLE_LIST_STYLE_SIMP_CHINESE_INFORMAL: u32 = 13;
+    pub const NS_STYLE_LIST_STYLE_SIMP_CHINESE_FORMAL: u32 = 14;
+    pub const NS_STYLE_LIST_STYLE_TRAD_CHINESE_INFORMAL: u32 = 15;
+    pub const NS_STYLE_LIST_STYLE_TRAD_CHINESE_FORMAL: u32 = 16;
+    pub const NS_STYLE_LIST_STYLE_ETHIOPIC_NUMERIC: u32 = 17;
+    pub const NS_STYLE_LIST_STYLE_LOWER_ROMAN: u32 = 100;
+    pub const NS_STYLE_LIST_STYLE_UPPER_ROMAN: u32 = 101;
+    pub const NS_STYLE_LIST_STYLE_LOWER_ALPHA: u32 = 102;
+    pub const NS_STYLE_LIST_STYLE_UPPER_ALPHA: u32 = 103;
+    pub const NS_STYLE_LIST_STYLE_POSITION_INSIDE: u32 = 0;
+    pub const NS_STYLE_LIST_STYLE_POSITION_OUTSIDE: u32 = 1;
+    pub const NS_STYLE_MARGIN_SIZE_AUTO: u32 = 0;
+    pub const NS_STYLE_POINTER_EVENTS_NONE: u32 = 0;
+    pub const NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED: u32 = 1;
+    pub const NS_STYLE_POINTER_EVENTS_VISIBLEFILL: u32 = 2;
+    pub const NS_STYLE_POINTER_EVENTS_VISIBLESTROKE: u32 = 3;
+    pub const NS_STYLE_POINTER_EVENTS_VISIBLE: u32 = 4;
+    pub const NS_STYLE_POINTER_EVENTS_PAINTED: u32 = 5;
+    pub const NS_STYLE_POINTER_EVENTS_FILL: u32 = 6;
+    pub const NS_STYLE_POINTER_EVENTS_STROKE: u32 = 7;
+    pub const NS_STYLE_POINTER_EVENTS_ALL: u32 = 8;
+    pub const NS_STYLE_POINTER_EVENTS_AUTO: u32 = 9;
+    pub const NS_STYLE_IMAGE_ORIENTATION_FLIP: u32 = 0;
+    pub const NS_STYLE_IMAGE_ORIENTATION_FROM_IMAGE: u32 = 1;
+    pub const NS_STYLE_ISOLATION_AUTO: u32 = 0;
+    pub const NS_STYLE_ISOLATION_ISOLATE: u32 = 1;
+    pub const NS_STYLE_OBJECT_FIT_FILL: u32 = 0;
+    pub const NS_STYLE_OBJECT_FIT_CONTAIN: u32 = 1;
+    pub const NS_STYLE_OBJECT_FIT_COVER: u32 = 2;
+    pub const NS_STYLE_OBJECT_FIT_NONE: u32 = 3;
+    pub const NS_STYLE_OBJECT_FIT_SCALE_DOWN: u32 = 4;
+    pub const NS_STYLE_RESIZE_NONE: u32 = 0;
+    pub const NS_STYLE_RESIZE_BOTH: u32 = 1;
+    pub const NS_STYLE_RESIZE_HORIZONTAL: u32 = 2;
+    pub const NS_STYLE_RESIZE_VERTICAL: u32 = 3;
+    pub const NS_STYLE_TEXT_ALIGN_START: u32 = 0;
+    pub const NS_STYLE_TEXT_ALIGN_LEFT: u32 = 1;
+    pub const NS_STYLE_TEXT_ALIGN_RIGHT: u32 = 2;
+    pub const NS_STYLE_TEXT_ALIGN_CENTER: u32 = 3;
+    pub const NS_STYLE_TEXT_ALIGN_JUSTIFY: u32 = 4;
+    pub const NS_STYLE_TEXT_ALIGN_CHAR: u32 = 5;
+    pub const NS_STYLE_TEXT_ALIGN_END: u32 = 6;
+    pub const NS_STYLE_TEXT_ALIGN_AUTO: u32 = 7;
+    pub const NS_STYLE_TEXT_ALIGN_MOZ_CENTER: u32 = 8;
+    pub const NS_STYLE_TEXT_ALIGN_MOZ_RIGHT: u32 = 9;
+    pub const NS_STYLE_TEXT_ALIGN_MOZ_LEFT: u32 = 10;
+    pub const NS_STYLE_TEXT_ALIGN_MOZ_CENTER_OR_INHERIT: u32 = 11;
+    pub const NS_STYLE_TEXT_ALIGN_UNSAFE: u32 = 12;
+    pub const NS_STYLE_TEXT_ALIGN_MATCH_PARENT: u32 = 13;
+    pub const NS_STYLE_TEXT_DECORATION_LINE_NONE: u32 = 0;
+    pub const NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE: u32 = 1;
+    pub const NS_STYLE_TEXT_DECORATION_LINE_OVERLINE: u32 = 2;
+    pub const NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH: u32 = 4;
+    pub const NS_STYLE_TEXT_DECORATION_LINE_BLINK: u32 = 8;
+    pub const NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL: u32 = 16;
+    pub const NS_STYLE_TEXT_DECORATION_LINE_LINES_MASK: u32 = 7;
+    pub const NS_STYLE_TEXT_DECORATION_STYLE_NONE: u32 = 0;
+    pub const NS_STYLE_TEXT_DECORATION_STYLE_DOTTED: u32 = 1;
+    pub const NS_STYLE_TEXT_DECORATION_STYLE_DASHED: u32 = 2;
+    pub const NS_STYLE_TEXT_DECORATION_STYLE_SOLID: u32 = 3;
+    pub const NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE: u32 = 4;
+    pub const NS_STYLE_TEXT_DECORATION_STYLE_WAVY: u32 = 5;
+    pub const NS_STYLE_TEXT_DECORATION_STYLE_MAX: u32 = 5;
+    pub const NS_STYLE_TEXT_OVERFLOW_CLIP: u32 = 0;
+    pub const NS_STYLE_TEXT_OVERFLOW_ELLIPSIS: u32 = 1;
+    pub const NS_STYLE_TEXT_OVERFLOW_STRING: u32 = 2;
+    pub const NS_STYLE_TEXT_TRANSFORM_NONE: u32 = 0;
+    pub const NS_STYLE_TEXT_TRANSFORM_CAPITALIZE: u32 = 1;
+    pub const NS_STYLE_TEXT_TRANSFORM_LOWERCASE: u32 = 2;
+    pub const NS_STYLE_TEXT_TRANSFORM_UPPERCASE: u32 = 3;
+    pub const NS_STYLE_TEXT_TRANSFORM_FULL_WIDTH: u32 = 4;
+    pub const NS_STYLE_TOUCH_ACTION_NONE: u32 = 1;
+    pub const NS_STYLE_TOUCH_ACTION_AUTO: u32 = 2;
+    pub const NS_STYLE_TOUCH_ACTION_PAN_X: u32 = 4;
+    pub const NS_STYLE_TOUCH_ACTION_PAN_Y: u32 = 8;
+    pub const NS_STYLE_TOUCH_ACTION_MANIPULATION: u32 = 16;
+    pub const NS_STYLE_TOP_LAYER_NONE: u32 = 0;
+    pub const NS_STYLE_TOP_LAYER_TOP: u32 = 1;
+    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE: u32 = 0;
+    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_LINEAR: u32 = 1;
+    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_IN: u32 = 2;
+    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_OUT: u32 = 3;
+    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_IN_OUT: u32 = 4;
+    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_STEP_START: u32 = 5;
+    pub const NS_STYLE_TRANSITION_TIMING_FUNCTION_STEP_END: u32 = 6;
+    pub const NS_STYLE_VERTICAL_ALIGN_BASELINE: u32 = 14;
+    pub const NS_STYLE_VERTICAL_ALIGN_SUB: u32 = 15;
+    pub const NS_STYLE_VERTICAL_ALIGN_SUPER: u32 = 16;
+    pub const NS_STYLE_VERTICAL_ALIGN_TOP: u32 = 17;
+    pub const NS_STYLE_VERTICAL_ALIGN_TEXT_TOP: u32 = 18;
+    pub const NS_STYLE_VERTICAL_ALIGN_MIDDLE: u32 = 19;
+    pub const NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM: u32 = 20;
+    pub const NS_STYLE_VERTICAL_ALIGN_BOTTOM: u32 = 21;
+    pub const NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE: u32 = 22;
+    pub const NS_STYLE_VISIBILITY_HIDDEN: u32 = 0;
+    pub const NS_STYLE_VISIBILITY_VISIBLE: u32 = 1;
+    pub const NS_STYLE_VISIBILITY_COLLAPSE: u32 = 2;
+    pub const NS_STYLE_TABSIZE_INITIAL: u32 = 8;
+    pub const NS_STYLE_WORDBREAK_NORMAL: u32 = 0;
+    pub const NS_STYLE_WORDBREAK_BREAK_ALL: u32 = 1;
+    pub const NS_STYLE_WORDBREAK_KEEP_ALL: u32 = 2;
+    pub const NS_STYLE_OVERFLOWWRAP_NORMAL: u32 = 0;
+    pub const NS_STYLE_OVERFLOWWRAP_BREAK_WORD: u32 = 1;
+    pub const NS_STYLE_RUBY_ALIGN_START: u32 = 0;
+    pub const NS_STYLE_RUBY_ALIGN_CENTER: u32 = 1;
+    pub const NS_STYLE_RUBY_ALIGN_SPACE_BETWEEN: u32 = 2;
+    pub const NS_STYLE_RUBY_ALIGN_SPACE_AROUND: u32 = 3;
+    pub const NS_STYLE_RUBY_POSITION_OVER: u32 = 0;
+    pub const NS_STYLE_RUBY_POSITION_UNDER: u32 = 1;
+    pub const NS_STYLE_RUBY_POSITION_INTER_CHARACTER: u32 = 2;
+    pub const NS_STYLE_TEXT_SIZE_ADJUST_NONE: u32 = 0;
+    pub const NS_STYLE_TEXT_SIZE_ADJUST_AUTO: u32 = 1;
+    pub const NS_STYLE_TEXT_ORIENTATION_MIXED: u32 = 0;
+    pub const NS_STYLE_TEXT_ORIENTATION_UPRIGHT: u32 = 1;
+    pub const NS_STYLE_TEXT_ORIENTATION_SIDEWAYS: u32 = 2;
+    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_NONE: u32 = 0;
+    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_ALL: u32 = 1;
+    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_DIGITS_2: u32 = 2;
+    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_DIGITS_3: u32 = 3;
+    pub const NS_STYLE_TEXT_COMBINE_UPRIGHT_DIGITS_4: u32 = 4;
+    pub const NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT: u32 = 0;
+    pub const NS_STYLE_UNICODE_BIDI_NORMAL: u32 = 0;
+    pub const NS_STYLE_UNICODE_BIDI_EMBED: u32 = 1;
+    pub const NS_STYLE_UNICODE_BIDI_ISOLATE: u32 = 2;
+    pub const NS_STYLE_UNICODE_BIDI_BIDI_OVERRIDE: u32 = 4;
+    pub const NS_STYLE_UNICODE_BIDI_ISOLATE_OVERRIDE: u32 = 6;
+    pub const NS_STYLE_UNICODE_BIDI_PLAINTEXT: u32 = 8;
+    pub const NS_STYLE_TABLE_LAYOUT_AUTO: u32 = 0;
+    pub const NS_STYLE_TABLE_LAYOUT_FIXED: u32 = 1;
+    pub const NS_STYLE_TABLE_EMPTY_CELLS_HIDE: u32 = 0;
+    pub const NS_STYLE_TABLE_EMPTY_CELLS_SHOW: u32 = 1;
+    pub const NS_STYLE_CAPTION_SIDE_TOP: u32 = 0;
+    pub const NS_STYLE_CAPTION_SIDE_RIGHT: u32 = 1;
+    pub const NS_STYLE_CAPTION_SIDE_BOTTOM: u32 = 2;
+    pub const NS_STYLE_CAPTION_SIDE_LEFT: u32 = 3;
+    pub const NS_STYLE_CAPTION_SIDE_TOP_OUTSIDE: u32 = 4;
+    pub const NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE: u32 = 5;
+    pub const NS_STYLE_CELL_SCOPE_ROW: u32 = 0;
+    pub const NS_STYLE_CELL_SCOPE_COL: u32 = 1;
+    pub const NS_STYLE_CELL_SCOPE_ROWGROUP: u32 = 2;
+    pub const NS_STYLE_CELL_SCOPE_COLGROUP: u32 = 3;
+    pub const NS_STYLE_PAGE_MARKS_NONE: u32 = 0;
+    pub const NS_STYLE_PAGE_MARKS_CROP: u32 = 1;
+    pub const NS_STYLE_PAGE_MARKS_REGISTER: u32 = 2;
+    pub const NS_STYLE_PAGE_SIZE_AUTO: u32 = 0;
+    pub const NS_STYLE_PAGE_SIZE_PORTRAIT: u32 = 1;
+    pub const NS_STYLE_PAGE_SIZE_LANDSCAPE: u32 = 2;
+    pub const NS_STYLE_PAGE_BREAK_AUTO: u32 = 0;
+    pub const NS_STYLE_PAGE_BREAK_ALWAYS: u32 = 1;
+    pub const NS_STYLE_PAGE_BREAK_AVOID: u32 = 2;
+    pub const NS_STYLE_PAGE_BREAK_LEFT: u32 = 3;
+    pub const NS_STYLE_PAGE_BREAK_RIGHT: u32 = 4;
+    pub const NS_STYLE_COLUMN_COUNT_AUTO: u32 = 0;
+    pub const NS_STYLE_COLUMN_COUNT_UNLIMITED: i32 = -1;
+    pub const NS_STYLE_COLUMN_FILL_AUTO: u32 = 0;
+    pub const NS_STYLE_COLUMN_FILL_BALANCE: u32 = 1;
+    pub const NS_STYLE_COLUMN_SPAN_NONE: u32 = 0;
+    pub const NS_STYLE_COLUMN_SPAN_ALL: u32 = 1;
+    pub const NS_STYLE_IME_MODE_AUTO: u32 = 0;
+    pub const NS_STYLE_IME_MODE_NORMAL: u32 = 1;
+    pub const NS_STYLE_IME_MODE_ACTIVE: u32 = 2;
+    pub const NS_STYLE_IME_MODE_DISABLED: u32 = 3;
+    pub const NS_STYLE_IME_MODE_INACTIVE: u32 = 4;
+    pub const NS_STYLE_GRADIENT_SHAPE_LINEAR: u32 = 0;
+    pub const NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL: u32 = 1;
+    pub const NS_STYLE_GRADIENT_SHAPE_CIRCULAR: u32 = 2;
+    pub const NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE: u32 = 0;
+    pub const NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER: u32 = 1;
+    pub const NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE: u32 = 2;
+    pub const NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER: u32 = 3;
+    pub const NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE: u32 = 4;
+    pub const NS_STYLE_CONTEXT_PROPERTY_FILL: u32 = 1;
+    pub const NS_STYLE_CONTEXT_PROPERTY_STROKE: u32 = 2;
+    pub const NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY: u32 = 4;
+    pub const NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY: u32 = 8;
+    pub const NS_STYLE_WINDOW_SHADOW_NONE: u32 = 0;
+    pub const NS_STYLE_WINDOW_SHADOW_DEFAULT: u32 = 1;
+    pub const NS_STYLE_WINDOW_SHADOW_MENU: u32 = 2;
+    pub const NS_STYLE_WINDOW_SHADOW_TOOLTIP: u32 = 3;
+    pub const NS_STYLE_WINDOW_SHADOW_SHEET: u32 = 4;
+    pub const NS_STYLE_DOMINANT_BASELINE_AUTO: u32 = 0;
+    pub const NS_STYLE_DOMINANT_BASELINE_USE_SCRIPT: u32 = 1;
+    pub const NS_STYLE_DOMINANT_BASELINE_NO_CHANGE: u32 = 2;
+    pub const NS_STYLE_DOMINANT_BASELINE_RESET_SIZE: u32 = 3;
+    pub const NS_STYLE_DOMINANT_BASELINE_IDEOGRAPHIC: u32 = 4;
+    pub const NS_STYLE_DOMINANT_BASELINE_ALPHABETIC: u32 = 5;
+    pub const NS_STYLE_DOMINANT_BASELINE_HANGING: u32 = 6;
+    pub const NS_STYLE_DOMINANT_BASELINE_MATHEMATICAL: u32 = 7;
+    pub const NS_STYLE_DOMINANT_BASELINE_CENTRAL: u32 = 8;
+    pub const NS_STYLE_DOMINANT_BASELINE_MIDDLE: u32 = 9;
+    pub const NS_STYLE_DOMINANT_BASELINE_TEXT_AFTER_EDGE: u32 = 10;
+    pub const NS_STYLE_DOMINANT_BASELINE_TEXT_BEFORE_EDGE: u32 = 11;
+    pub const NS_STYLE_IMAGE_RENDERING_AUTO: u32 = 0;
+    pub const NS_STYLE_IMAGE_RENDERING_OPTIMIZESPEED: u32 = 1;
+    pub const NS_STYLE_IMAGE_RENDERING_OPTIMIZEQUALITY: u32 = 2;
+    pub const NS_STYLE_IMAGE_RENDERING_CRISPEDGES: u32 = 3;
+    pub const NS_STYLE_MASK_TYPE_LUMINANCE: u32 = 0;
+    pub const NS_STYLE_MASK_TYPE_ALPHA: u32 = 1;
+    pub const NS_STYLE_PAINT_ORDER_NORMAL: u32 = 0;
+    pub const NS_STYLE_PAINT_ORDER_FILL: u32 = 1;
+    pub const NS_STYLE_PAINT_ORDER_STROKE: u32 = 2;
+    pub const NS_STYLE_PAINT_ORDER_MARKERS: u32 = 3;
+    pub const NS_STYLE_PAINT_ORDER_LAST_VALUE: u32 = 3;
+    pub const NS_STYLE_PAINT_ORDER_BITWIDTH: u32 = 2;
+    pub const NS_STYLE_SHAPE_RENDERING_AUTO: u32 = 0;
+    pub const NS_STYLE_SHAPE_RENDERING_OPTIMIZESPEED: u32 = 1;
+    pub const NS_STYLE_SHAPE_RENDERING_CRISPEDGES: u32 = 2;
+    pub const NS_STYLE_SHAPE_RENDERING_GEOMETRICPRECISION: u32 = 3;
+    pub const NS_STYLE_STROKE_LINECAP_BUTT: u32 = 0;
+    pub const NS_STYLE_STROKE_LINECAP_ROUND: u32 = 1;
+    pub const NS_STYLE_STROKE_LINECAP_SQUARE: u32 = 2;
+    pub const NS_STYLE_STROKE_LINEJOIN_MITER: u32 = 0;
+    pub const NS_STYLE_STROKE_LINEJOIN_ROUND: u32 = 1;
+    pub const NS_STYLE_STROKE_LINEJOIN_BEVEL: u32 = 2;
+    pub const NS_STYLE_STROKE_PROP_CONTEXT_VALUE: u32 = 0;
+    pub const NS_STYLE_TEXT_ANCHOR_START: u32 = 0;
+    pub const NS_STYLE_TEXT_ANCHOR_MIDDLE: u32 = 1;
+    pub const NS_STYLE_TEXT_ANCHOR_END: u32 = 2;
+    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_OVER: u32 = 1;
+    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER: u32 = 2;
+    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT: u32 = 4;
+    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT: u32 = 8;
+    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_DEFAULT: u32 = 9;
+    pub const NS_STYLE_TEXT_EMPHASIS_POSITION_DEFAULT_ZH: u32 = 10;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_NONE: u32 = 0;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_FILL_MASK: u32 = 8;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED: u32 = 0;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN: u32 = 8;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_SHAPE_MASK: u32 = 7;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_DOT: u32 = 1;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE: u32 = 2;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE: u32 = 3;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE: u32 = 4;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME: u32 = 5;
+    pub const NS_STYLE_TEXT_EMPHASIS_STYLE_STRING: u32 = 255;
+    pub const NS_STYLE_TEXT_RENDERING_AUTO: u32 = 0;
+    pub const NS_STYLE_TEXT_RENDERING_OPTIMIZESPEED: u32 = 1;
+    pub const NS_STYLE_TEXT_RENDERING_OPTIMIZELEGIBILITY: u32 = 2;
+    pub const NS_STYLE_TEXT_RENDERING_GEOMETRICPRECISION: u32 = 3;
+    pub const NS_STYLE_COLOR_ADJUST_ECONOMY: u32 = 0;
+    pub const NS_STYLE_COLOR_ADJUST_EXACT: u32 = 1;
+    pub const NS_STYLE_COLOR_INTERPOLATION_AUTO: u32 = 0;
+    pub const NS_STYLE_COLOR_INTERPOLATION_SRGB: u32 = 1;
+    pub const NS_STYLE_COLOR_INTERPOLATION_LINEARRGB: u32 = 2;
+    pub const NS_STYLE_VECTOR_EFFECT_NONE: u32 = 0;
+    pub const NS_STYLE_VECTOR_EFFECT_NON_SCALING_STROKE: u32 = 1;
+    pub const NS_STYLE_BACKFACE_VISIBILITY_VISIBLE: u32 = 1;
+    pub const NS_STYLE_BACKFACE_VISIBILITY_HIDDEN: u32 = 0;
+    pub const NS_STYLE_TRANSFORM_STYLE_FLAT: u32 = 0;
+    pub const NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D: u32 = 1;
+    pub const NS_STYLE_CONTEXT_FILL_OPACITY: u32 = 0;
+    pub const NS_STYLE_CONTEXT_STROKE_OPACITY: u32 = 1;
+    pub const NS_STYLE_BLEND_NORMAL: u32 = 0;
+    pub const NS_STYLE_BLEND_MULTIPLY: u32 = 1;
+    pub const NS_STYLE_BLEND_SCREEN: u32 = 2;
+    pub const NS_STYLE_BLEND_OVERLAY: u32 = 3;
+    pub const NS_STYLE_BLEND_DARKEN: u32 = 4;
+    pub const NS_STYLE_BLEND_LIGHTEN: u32 = 5;
+    pub const NS_STYLE_BLEND_COLOR_DODGE: u32 = 6;
+    pub const NS_STYLE_BLEND_COLOR_BURN: u32 = 7;
+    pub const NS_STYLE_BLEND_HARD_LIGHT: u32 = 8;
+    pub const NS_STYLE_BLEND_SOFT_LIGHT: u32 = 9;
+    pub const NS_STYLE_BLEND_DIFFERENCE: u32 = 10;
+    pub const NS_STYLE_BLEND_EXCLUSION: u32 = 11;
+    pub const NS_STYLE_BLEND_HUE: u32 = 12;
+    pub const NS_STYLE_BLEND_SATURATION: u32 = 13;
+    pub const NS_STYLE_BLEND_COLOR: u32 = 14;
+    pub const NS_STYLE_BLEND_LUMINOSITY: u32 = 15;
+    pub const NS_STYLE_MASK_COMPOSITE_ADD: u32 = 0;
+    pub const NS_STYLE_MASK_COMPOSITE_SUBTRACT: u32 = 1;
+    pub const NS_STYLE_MASK_COMPOSITE_INTERSECT: u32 = 2;
+    pub const NS_STYLE_MASK_COMPOSITE_EXCLUDE: u32 = 3;
+    pub const NS_STYLE_CONTROL_CHARACTER_VISIBILITY_HIDDEN: u32 = 0;
+    pub const NS_STYLE_CONTROL_CHARACTER_VISIBILITY_VISIBLE: u32 = 1;
+    pub const NS_STYLE_COUNTER_SYSTEM_CYCLIC: u32 = 0;
+    pub const NS_STYLE_COUNTER_SYSTEM_NUMERIC: u32 = 1;
+    pub const NS_STYLE_COUNTER_SYSTEM_ALPHABETIC: u32 = 2;
+    pub const NS_STYLE_COUNTER_SYSTEM_SYMBOLIC: u32 = 3;
+    pub const NS_STYLE_COUNTER_SYSTEM_ADDITIVE: u32 = 4;
+    pub const NS_STYLE_COUNTER_SYSTEM_FIXED: u32 = 5;
+    pub const NS_STYLE_COUNTER_SYSTEM_EXTENDS: u32 = 6;
+    pub const NS_STYLE_COUNTER_RANGE_INFINITE: u32 = 0;
+    pub const NS_STYLE_COUNTER_SPEAKAS_BULLETS: u32 = 0;
+    pub const NS_STYLE_COUNTER_SPEAKAS_NUMBERS: u32 = 1;
+    pub const NS_STYLE_COUNTER_SPEAKAS_WORDS: u32 = 2;
+    pub const NS_STYLE_COUNTER_SPEAKAS_SPELL_OUT: u32 = 3;
+    pub const NS_STYLE_COUNTER_SPEAKAS_OTHER: u32 = 255;
+    pub const NS_STYLE_SCROLL_BEHAVIOR_AUTO: u32 = 0;
+    pub const NS_STYLE_SCROLL_BEHAVIOR_SMOOTH: u32 = 1;
+    pub const NS_STYLE_SCROLL_SNAP_TYPE_NONE: u32 = 0;
+    pub const NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY: u32 = 1;
+    pub const NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY: u32 = 2;
+    pub const NS_STYLE_ORIENTATION_PORTRAIT: u32 = 0;
+    pub const NS_STYLE_ORIENTATION_LANDSCAPE: u32 = 1;
+    pub const NS_STYLE_SCAN_PROGRESSIVE: u32 = 0;
+    pub const NS_STYLE_SCAN_INTERLACE: u32 = 1;
+    pub const NS_STYLE_DISPLAY_MODE_BROWSER: u32 = 0;
+    pub const NS_STYLE_DISPLAY_MODE_MINIMAL_UI: u32 = 1;
+    pub const NS_STYLE_DISPLAY_MODE_STANDALONE: u32 = 2;
+    pub const NS_STYLE_DISPLAY_MODE_FULLSCREEN: u32 = 3;
+    pub const CSS_PSEUDO_ELEMENT_IS_CSS2: u32 = 1;
+    pub const CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS: u32 = 2;
+    pub const CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE: u32 = 4;
+    pub const CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE: u32 = 8;
+    pub const CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS: u32 = 16;
+    pub const CSS_PSEUDO_ELEMENT_ENABLED_IN_CHROME: u32 = 32;
+    pub const CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME: u32 = 48;
+    pub const CSS_PSEUDO_ELEMENT_IS_JS_CREATED_NAC: u32 = 64;
+    pub const CSS_PSEUDO_ELEMENT_IS_FLEX_OR_GRID_ITEM: u32 = 128;
+    pub const kNameSpaceID_Unknown: i32 = -1;
+    pub const kNameSpaceID_XMLNS: u32 = 1;
+    pub const kNameSpaceID_XML: u32 = 2;
+    pub const kNameSpaceID_XHTML: u32 = 3;
+    pub const kNameSpaceID_XLink: u32 = 4;
+    pub const kNameSpaceID_XSLT: u32 = 5;
+    pub const kNameSpaceID_XBL: u32 = 6;
+    pub const kNameSpaceID_MathML: u32 = 7;
+    pub const kNameSpaceID_RDF: u32 = 8;
+    pub const kNameSpaceID_XUL: u32 = 9;
+    pub const kNameSpaceID_SVG: u32 = 10;
+    pub const kNameSpaceID_disabled_MathML: u32 = 11;
+    pub const kNameSpaceID_disabled_SVG: u32 = 12;
+    pub const kNameSpaceID_LastBuiltin: u32 = 12;
+    pub const kNameSpaceID_Wildcard: i32 = -2147483648;
+    pub const NS_AUTHOR_SPECIFIED_BACKGROUND: u32 = 1;
+    pub const NS_AUTHOR_SPECIFIED_BORDER: u32 = 2;
+    pub const NS_AUTHOR_SPECIFIED_PADDING: u32 = 4;
+    pub const NS_STYLE_INHERIT_MASK: u32 = 16777215;
+    pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: u32 = 16777216;
+    pub const NS_STYLE_HAS_PSEUDO_ELEMENT_DATA: u32 = 33554432;
+    pub const NS_STYLE_RELEVANT_LINK_VISITED: u32 = 67108864;
+    pub const NS_STYLE_IS_STYLE_IF_VISITED: u32 = 134217728;
+    pub const NS_STYLE_CHILD_USES_GRANDANCESTOR_STYLE: u32 = 268435456;
+    pub const NS_STYLE_IS_SHARED: u32 = 536870912;
+    pub const NS_STYLE_IS_GOING_AWAY: u32 = 1073741824;
+    pub const NS_STYLE_SUPPRESS_LINEBREAK: u32 = 2147483648;
+    pub const NS_STYLE_IN_DISPLAY_NONE_SUBTREE: u64 = 4294967296;
+    pub const NS_STYLE_INELIGIBLE_FOR_SHARING: u64 = 8589934592;
+    pub const NS_STYLE_HAS_CHILD_THAT_USES_RESET_STYLE: u64 = 17179869184;
+    pub const NS_STYLE_IS_TEXT_COMBINED: u64 = 34359738368;
+    pub const NS_STYLE_CONTEXT_IS_GECKO: u64 = 68719476736;
+    pub const NS_STYLE_CONTEXT_TYPE_SHIFT: u32 = 37;
     pub mod std {
         #[allow(unused_imports)]
         use self::super::super::root;
@@ -1070,9 +1072,14 @@ pub mod root {
                 pub platformData_: [*mut ::std::os::raw::c_void; 5usize],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct MutexImpl_PlatformData {
                 _unused: [u8; 0],
+            }
+            impl Clone for MutexImpl_PlatformData {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             #[test]
             fn bindgen_test_layout_MutexImpl() {
@@ -1105,9 +1112,14 @@ pub mod root {
                 pub platformData_: [*mut ::std::os::raw::c_void; 6usize],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ConditionVariableImpl_PlatformData {
                 _unused: [u8; 0],
+            }
+            impl Clone for ConditionVariableImpl_PlatformData {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             #[test]
             fn bindgen_test_layout_ConditionVariableImpl() {
@@ -1260,14 +1272,24 @@ pub mod root {
                 eSafeAgentSheetFeatures = 3,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct GroupRule {
                 _unused: [u8; 0],
             }
+            impl Clone for GroupRule {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ImageLoader {
                 _unused: [u8; 0],
+            }
+            impl Clone for ImageLoader {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             #[repr(C)]
             pub struct URLValueData__bindgen_vtable(::std::os::raw::c_void);
@@ -2967,9 +2989,14 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct LayerManager {
                 _unused: [u8; 0],
+            }
+            impl Clone for LayerManager {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
         }
         pub mod dom {
@@ -3070,19 +3097,34 @@ pub mod root {
                 pub _address: u8,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct Promise {
                 _unused: [u8; 0],
             }
+            impl Clone for Promise {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ClientSource {
                 _unused: [u8; 0],
             }
+            impl Clone for ClientSource {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct CSSImportRule {
                 _unused: [u8; 0],
+            }
+            impl Clone for CSSImportRule {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             /// Struct that stores info on an attribute. The name and value must either both
             /// be null or both be non-null.
@@ -3423,53 +3465,98 @@ pub mod root {
                 );
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct BoxQuadOptions {
                 _unused: [u8; 0],
             }
+            impl Clone for BoxQuadOptions {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ConvertCoordinateOptions {
                 _unused: [u8; 0],
             }
+            impl Clone for ConvertCoordinateOptions {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct DocGroup {
                 _unused: [u8; 0],
             }
+            impl Clone for DocGroup {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct DOMPoint {
                 _unused: [u8; 0],
             }
+            impl Clone for DOMPoint {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct DOMQuad {
                 _unused: [u8; 0],
             }
+            impl Clone for DOMQuad {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct TextOrElementOrDocument {
                 _unused: [u8; 0],
             }
+            impl Clone for TextOrElementOrDocument {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct DOMPointInit {
                 _unused: [u8; 0],
+            }
+            impl Clone for DOMPointInit {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             pub const VisibilityState_Hidden: root::mozilla::dom::VisibilityState = 0;
             pub const VisibilityState_Visible: root::mozilla::dom::VisibilityState = 1;
             pub const VisibilityState_EndGuard_: root::mozilla::dom::VisibilityState = 2;
             pub type VisibilityState = u8;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct IPCClientInfo {
                 _unused: [u8; 0],
             }
+            impl Clone for IPCClientInfo {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct TabGroup {
                 _unused: [u8; 0],
+            }
+            impl Clone for TabGroup {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             #[repr(C)]
             pub struct DispatcherTrait__bindgen_vtable(::std::os::raw::c_void);
@@ -3497,34 +3584,64 @@ pub mod root {
                 }
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct IPCServiceWorkerDescriptor {
                 _unused: [u8; 0],
             }
+            impl Clone for IPCServiceWorkerDescriptor {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct AudioContext {
                 _unused: [u8; 0],
             }
+            impl Clone for AudioContext {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct Navigator {
                 _unused: [u8; 0],
             }
+            impl Clone for Navigator {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct Performance {
                 _unused: [u8; 0],
             }
+            impl Clone for Performance {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ServiceWorkerRegistration {
                 _unused: [u8; 0],
             }
+            impl Clone for ServiceWorkerRegistration {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct TimeoutManager {
                 _unused: [u8; 0],
+            }
+            impl Clone for TimeoutManager {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             pub const LargeAllocStatus_NONE: root::mozilla::dom::LargeAllocStatus = 0;
             pub const LargeAllocStatus_SUCCESS: root::mozilla::dom::LargeAllocStatus = 1;
@@ -3535,9 +3652,14 @@ pub mod root {
             pub const LargeAllocStatus_NON_WIN32: root::mozilla::dom::LargeAllocStatus = 5;
             pub type LargeAllocStatus = u8;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct StyleSheetList {
                 _unused: [u8; 0],
+            }
+            impl Clone for StyleSheetList {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             /// A class meant to be shared by ShadowRoot and Document, that holds a list of
             /// stylesheets.
@@ -3642,39 +3764,74 @@ pub mod root {
                 );
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct AnonymousContent {
                 _unused: [u8; 0],
             }
+            impl Clone for AnonymousContent {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct FontFaceSet {
                 _unused: [u8; 0],
             }
+            impl Clone for FontFaceSet {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct FullscreenRequest {
                 _unused: [u8; 0],
             }
+            impl Clone for FullscreenRequest {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ImageTracker {
                 _unused: [u8; 0],
             }
+            impl Clone for ImageTracker {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct Link {
                 _unused: [u8; 0],
             }
+            impl Clone for Link {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct MediaQueryList {
                 _unused: [u8; 0],
             }
+            impl Clone for MediaQueryList {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct XPathEvaluator {
                 _unused: [u8; 0],
+            }
+            impl Clone for XPathEvaluator {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             pub mod prototypes {
                 #[allow(unused_imports)]
@@ -3978,14 +4135,24 @@ pub mod root {
                 EndGuard_ = 4,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct XBLChildrenElement {
                 _unused: [u8; 0],
             }
+            impl Clone for XBLChildrenElement {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct CustomElementData {
                 _unused: [u8; 0],
+            }
+            impl Clone for CustomElementData {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             #[repr(C)]
             pub struct FragmentOrElement {
@@ -6336,6 +6503,7 @@ pub mod root {
         pub const StyleBackendType_None: root::mozilla::StyleBackendType = 0;
         pub const StyleBackendType_Gecko: root::mozilla::StyleBackendType = 1;
         pub const StyleBackendType_Servo: root::mozilla::StyleBackendType = 2;
+        /// Enumeration that represents one of the two supported style system backends.
         pub type StyleBackendType = u8;
         pub mod profiler {
             #[allow(unused_imports)]
@@ -6361,7 +6529,7 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct BaseTimeDuration__SomethingVeryRandomHere {
-            pub _address: u8,
+            _unused: [u8; 0],
         }
         /// Perform arithmetic operations on the value of a BaseTimeDuration without
         /// doing strict checks on the range of values.
@@ -6565,8 +6733,13 @@ pub mod root {
             pub const ReferrerPolicy_RP_Unset: root::mozilla::net::ReferrerPolicy = 0;
             pub type ReferrerPolicy = u32;
         }
+        /// The default of not using CORS to validate cross-origin loads.
         pub const CORSMode_CORS_NONE: root::mozilla::CORSMode = 0;
+        /// Validate cross-site loads using CORS, but do not send any credentials
+        /// (cookies, HTTP auth logins, etc) along with the request.
         pub const CORSMode_CORS_ANONYMOUS: root::mozilla::CORSMode = 1;
+        /// Validate cross-site loads using CORS, and send credentials such as cookies
+        /// and HTTP auth logins along with the request.
         pub const CORSMode_CORS_USE_CREDENTIALS: root::mozilla::CORSMode = 2;
         pub type CORSMode = u8;
         /// Superclass for data common to CSSStyleSheet and ServoStyleSheet.
@@ -6621,6 +6794,10 @@ pub mod root {
         pub const StyleSheet_ChangeType_RuleAdded: root::mozilla::StyleSheet_ChangeType = 3;
         pub const StyleSheet_ChangeType_RuleRemoved: root::mozilla::StyleSheet_ChangeType = 4;
         pub const StyleSheet_ChangeType_RuleChanged: root::mozilla::StyleSheet_ChangeType = 5;
+        /// The different changes that a stylesheet may go through.
+        ///
+        /// Used by the StyleSets in order to handle more efficiently some kinds of
+        /// changes.
         pub type StyleSheet_ChangeType = i32;
         pub const StyleSheet_DocumentAssociationMode_OwnedByDocument:
             root::mozilla::StyleSheet_DocumentAssociationMode = 0;
@@ -6849,18 +7026,53 @@ pub mod root {
                 pub mEnabled: root::mozilla::widget::IMEState_Enabled,
                 pub mOpen: root::mozilla::widget::IMEState_Open,
             }
+            /// 'Disabled' means the user cannot use IME. So, the IME open state should
+            /// be 'closed' during 'disabled'.
             pub const IMEState_Enabled_DISABLED: root::mozilla::widget::IMEState_Enabled = 0;
+            /// 'Enabled' means the user can use IME.
             pub const IMEState_Enabled_ENABLED: root::mozilla::widget::IMEState_Enabled = 1;
+            /// 'Password' state is a special case for the password editors.
+            /// E.g., on mac, the password editors should disable the non-Roman
+            /// keyboard layouts at getting focus. Thus, the password editor may have
+            /// special rules on some platforms.
             pub const IMEState_Enabled_PASSWORD: root::mozilla::widget::IMEState_Enabled = 2;
+            /// This state is used when a plugin is focused.
+            /// When a plug-in is focused content, we should send native events
+            /// directly. Because we don't process some native events, but they may
+            /// be needed by the plug-in.
             pub const IMEState_Enabled_PLUGIN: root::mozilla::widget::IMEState_Enabled = 3;
+            /// 'Unknown' is useful when you cache this enum.  So, this shouldn't be
+            /// used with nsIWidget::SetInputContext().
             pub const IMEState_Enabled_UNKNOWN: root::mozilla::widget::IMEState_Enabled = 4;
+            /// IME enabled states, the mEnabled value of
+            /// SetInputContext()/GetInputContext() should be one value of following
+            /// values.
+            ///
+            /// WARNING: If you change these values, you also need to edit:
+            /// nsIDOMWindowUtils.idl
+            /// nsContentUtils::GetWidgetStatusFromIMEStatus
             pub type IMEState_Enabled = u32;
+            /// 'Unsupported' means the platform cannot return actual IME open state.
+            /// This value is used only by GetInputContext().
             pub const IMEState_Open_OPEN_STATE_NOT_SUPPORTED: root::mozilla::widget::IMEState_Open =
                 0;
+            /// 'Don't change' means the widget shouldn't change IME open state when
+            /// SetInputContext() is called.
             pub const IMEState_Open_DONT_CHANGE_OPEN_STATE: root::mozilla::widget::IMEState_Open =
                 0;
+            /// 'Open' means that IME should compose in its primary language (or latest
+            /// input mode except direct ASCII character input mode).  Even if IME is
+            /// opened by this value, users should be able to close IME by theirselves.
+            /// Web contents can specify this value by |ime-mode: active;|.
             pub const IMEState_Open_OPEN: root::mozilla::widget::IMEState_Open = 1;
+            /// 'Closed' means that IME shouldn't handle key events (or should handle
+            /// as ASCII character inputs on mobile device).  Even if IME is closed by
+            /// this value, users should be able to open IME by theirselves.
+            /// Web contents can specify this value by |ime-mode: inactive;|.
             pub const IMEState_Open_CLOSED: root::mozilla::widget::IMEState_Open = 2;
+            /// IME open states the mOpen value of SetInputContext() should be one value of
+            /// OPEN, CLOSE or DONT_CHANGE_OPEN_STATE.  GetInputContext() should return
+            /// OPEN, CLOSE or OPEN_STATE_NOT_SUPPORTED.
             pub type IMEState_Open = u32;
             #[test]
             fn bindgen_test_layout_IMEState() {
@@ -6992,15 +7204,25 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct DocAccessible {
                 _unused: [u8; 0],
             }
+            impl Clone for DocAccessible {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy)]
         pub struct DOMEventTargetHelper {
             _unused: [u8; 0],
+        }
+        impl Clone for DOMEventTargetHelper {
+            fn clone(&self) -> Self {
+                *self
+            }
         }
         pub const UseCounter_eUseCounter_UNKNOWN: root::mozilla::UseCounter = -1;
         pub const UseCounter_eUseCounter_SVGSVGElement_getElementById: root::mozilla::UseCounter =
@@ -7754,19 +7976,34 @@ pub mod root {
             );
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy)]
         pub struct AnimationEventDispatcher {
             _unused: [u8; 0],
         }
+        impl Clone for AnimationEventDispatcher {
+            fn clone(&self) -> Self {
+                *self
+            }
+        }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy)]
         pub struct EventStateManager {
             _unused: [u8; 0],
         }
+        impl Clone for EventStateManager {
+            fn clone(&self) -> Self {
+                *self
+            }
+        }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy)]
         pub struct RestyleManager {
             _unused: [u8; 0],
+        }
+        impl Clone for RestyleManager {
+            fn clone(&self) -> Self {
+                *self
+            }
         }
         #[repr(C)]
         #[derive(Debug)]
@@ -7946,19 +8183,34 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ImageURL {
                 _unused: [u8; 0],
             }
+            impl Clone for ImageURL {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct Image {
                 _unused: [u8; 0],
             }
+            impl Clone for Image {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, Copy)]
             pub struct ProgressTracker {
                 _unused: [u8; 0],
+            }
+            impl Clone for ProgressTracker {
+                fn clone(&self) -> Self {
+                    *self
+                }
             }
             #[repr(C)]
             pub struct IProgressObserver__bindgen_vtable(::std::os::raw::c_void);
@@ -8742,6 +8994,7 @@ pub mod root {
         pub const SERVO_PREF_ENABLED_font_feature_settings: bool = false;
         pub const SERVO_PREF_ENABLED_font_kerning: bool = false;
         pub const SERVO_PREF_ENABLED_font_language_override: bool = false;
+        pub const SERVO_PREF_ENABLED_font_optical_sizing: bool = true;
         pub const SERVO_PREF_ENABLED_font_size: bool = false;
         pub const SERVO_PREF_ENABLED_font_size_adjust: bool = false;
         pub const SERVO_PREF_ENABLED__moz_font_smoothing_background_color: bool = false;
@@ -9143,6 +9396,7 @@ pub mod root {
             root::mozilla::StyleAnimationValue_Unit = 26;
         pub const StyleAnimationValue_Unit_eUnit_UnparsedString:
             root::mozilla::StyleAnimationValue_Unit = 27;
+        /// The types and values for the values that we extract and animate.
         pub type StyleAnimationValue_Unit = u32;
         #[repr(C)]
         #[derive(Debug, Copy)]
@@ -9855,9 +10109,14 @@ pub mod root {
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<PromiseType>>,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy)]
         pub struct ServoCSSRuleList {
             _unused: [u8; 0],
+        }
+        impl Clone for ServoCSSRuleList {
+            fn clone(&self) -> Self {
+                *self
+            }
         }
         pub type StyleSheetParsePromise = [u64; 16usize];
         #[repr(C)]
@@ -11523,42 +11782,78 @@ pub mod root {
         pub const LookAndFeel_IntID_eIntID_MacYosemiteTheme: root::mozilla::LookAndFeel_IntID = 32;
         pub const LookAndFeel_IntID_eIntID_AlertNotificationOrigin:
             root::mozilla::LookAndFeel_IntID = 33;
+        /// If true, clicking on a scrollbar (not as in dragging the thumb) defaults
+        /// to scrolling the view corresponding to the clicked point. Otherwise, we
+        /// only do so if the scrollbar is clicked using the middle mouse button or
+        /// if shift is pressed when the scrollbar is clicked.
         pub const LookAndFeel_IntID_eIntID_ScrollToClick: root::mozilla::LookAndFeel_IntID = 34;
+        /// IME and spell checker underline styles, the values should be
+        /// NS_DECORATION_LINE_STYLE_*.  They are defined below.
         pub const LookAndFeel_IntID_eIntID_IMERawInputUnderlineStyle:
             root::mozilla::LookAndFeel_IntID = 35;
+        /// IME and spell checker underline styles, the values should be
+        /// NS_DECORATION_LINE_STYLE_*.  They are defined below.
         pub const LookAndFeel_IntID_eIntID_IMESelectedRawTextUnderlineStyle:
             root::mozilla::LookAndFeel_IntID = 36;
+        /// IME and spell checker underline styles, the values should be
+        /// NS_DECORATION_LINE_STYLE_*.  They are defined below.
         pub const LookAndFeel_IntID_eIntID_IMEConvertedTextUnderlineStyle:
             root::mozilla::LookAndFeel_IntID = 37;
+        /// IME and spell checker underline styles, the values should be
+        /// NS_DECORATION_LINE_STYLE_*.  They are defined below.
         pub const LookAndFeel_IntID_eIntID_IMESelectedConvertedTextUnderline:
             root::mozilla::LookAndFeel_IntID = 38;
+        /// IME and spell checker underline styles, the values should be
+        /// NS_DECORATION_LINE_STYLE_*.  They are defined below.
         pub const LookAndFeel_IntID_eIntID_SpellCheckerUnderlineStyle:
             root::mozilla::LookAndFeel_IntID = 39;
+        /// If this metric != 0, support window dragging on the menubar.
         pub const LookAndFeel_IntID_eIntID_MenuBarDrag: root::mozilla::LookAndFeel_IntID = 40;
+        /// Return the appropriate WindowsThemeIdentifier for the current theme.
         pub const LookAndFeel_IntID_eIntID_WindowsThemeIdentifier:
             root::mozilla::LookAndFeel_IntID = 41;
+        /// Return an appropriate os version identifier.
         pub const LookAndFeel_IntID_eIntID_OperatingSystemVersionIdentifier:
             root::mozilla::LookAndFeel_IntID = 42;
+        /// 0: scrollbar button repeats to scroll only when cursor is on the button.
+        /// 1: scrollbar button repeats to scroll even if cursor is outside of it.
         pub const LookAndFeel_IntID_eIntID_ScrollbarButtonAutoRepeatBehavior:
             root::mozilla::LookAndFeel_IntID = 43;
+        /// Delay before showing a tooltip.
         pub const LookAndFeel_IntID_eIntID_TooltipDelay: root::mozilla::LookAndFeel_IntID = 44;
+        /// Delay before showing a tooltip.
         pub const LookAndFeel_IntID_eIntID_SwipeAnimationEnabled: root::mozilla::LookAndFeel_IntID =
             45;
+        /// Delay before showing a tooltip.
         pub const LookAndFeel_IntID_eIntID_ScrollbarDisplayOnMouseMove:
             root::mozilla::LookAndFeel_IntID = 46;
+        /// Delay before showing a tooltip.
         pub const LookAndFeel_IntID_eIntID_ScrollbarFadeBeginDelay:
             root::mozilla::LookAndFeel_IntID = 47;
+        /// Delay before showing a tooltip.
         pub const LookAndFeel_IntID_eIntID_ScrollbarFadeDuration: root::mozilla::LookAndFeel_IntID =
             48;
+        /// Distance in pixels to offset the context menu from the cursor
+        /// on open.
         pub const LookAndFeel_IntID_eIntID_ContextMenuOffsetVertical:
             root::mozilla::LookAndFeel_IntID = 49;
+        /// Distance in pixels to offset the context menu from the cursor
+        /// on open.
         pub const LookAndFeel_IntID_eIntID_ContextMenuOffsetHorizontal:
             root::mozilla::LookAndFeel_IntID = 50;
+        /// Distance in pixels to offset the context menu from the cursor
+        /// on open.
         pub const LookAndFeel_IntID_eIntID_GTKCSDAvailable: root::mozilla::LookAndFeel_IntID = 51;
+        /// Distance in pixels to offset the context menu from the cursor
+        /// on open.
         pub const LookAndFeel_IntID_eIntID_GTKCSDMinimizeButton: root::mozilla::LookAndFeel_IntID =
             52;
+        /// Distance in pixels to offset the context menu from the cursor
+        /// on open.
         pub const LookAndFeel_IntID_eIntID_GTKCSDMaximizeButton: root::mozilla::LookAndFeel_IntID =
             53;
+        /// Distance in pixels to offset the context menu from the cursor
+        /// on open.
         pub const LookAndFeel_IntID_eIntID_GTKCSDCloseButton: root::mozilla::LookAndFeel_IntID = 54;
         pub type LookAndFeel_IntID = u32;
         pub const LookAndFeel_WindowsTheme_eWindowsTheme_Generic:
@@ -11579,6 +11874,7 @@ pub mod root {
             root::mozilla::LookAndFeel_WindowsTheme = 7;
         pub const LookAndFeel_WindowsTheme_eWindowsTheme_AeroLite:
             root::mozilla::LookAndFeel_WindowsTheme = 8;
+        /// Windows themes we currently detect.
         pub type LookAndFeel_WindowsTheme = u32;
         pub const LookAndFeel_OperatingSystemVersion_eOperatingSystemVersion_Windows7:
             root::mozilla::LookAndFeel_OperatingSystemVersion = 2;
@@ -11588,6 +11884,7 @@ pub mod root {
             root::mozilla::LookAndFeel_OperatingSystemVersion = 4;
         pub const LookAndFeel_OperatingSystemVersion_eOperatingSystemVersion_Unknown:
             root::mozilla::LookAndFeel_OperatingSystemVersion = 5;
+        /// Operating system versions.
         pub type LookAndFeel_OperatingSystemVersion = u32;
         pub const LookAndFeel_eScrollArrow_None: root::mozilla::LookAndFeel__bindgen_ty_1 = 0;
         pub const LookAndFeel_eScrollArrow_StartBackward: root::mozilla::LookAndFeel__bindgen_ty_1 =
@@ -13867,9 +14164,14 @@ pub mod root {
     }
     pub type nsrefcnt = root::MozRefCountType;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIFrame {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIFrame {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     pub type nsAString = root::nsTSubstring<u16>;
     pub type nsAutoString = [u64; 19usize];
@@ -14358,9 +14660,14 @@ pub mod root {
     /// A type for representing the size of objects.
     pub type PRSize = usize;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct PRThread {
         _unused: [u8; 0],
+    }
+    impl Clone for PRThread {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -14944,14 +15251,24 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct JSContext {
         _unused: [u8; 0],
     }
+    impl Clone for JSContext {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct JSObject {
         _unused: [u8; 0],
+    }
+    impl Clone for JSObject {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     pub mod js {
         #[allow(unused_imports)]
@@ -16185,6 +16502,7 @@ pub mod root {
         pub weight: u16,
         pub stretch: i16,
         pub kerning: u8,
+        pub opticalSizing: u8,
         pub synthesis: u8,
         pub size: root::nscoord,
         pub sizeAdjust: f32,
@@ -16363,8 +16681,18 @@ pub mod root {
             )
         );
         assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsFont>())).synthesis as *const _ as usize },
+            unsafe { &(*(::std::ptr::null::<nsFont>())).opticalSizing as *const _ as usize },
             41usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsFont),
+                "::",
+                stringify!(opticalSizing)
+            )
+        );
+        assert_eq!(
+            unsafe { &(*(::std::ptr::null::<nsFont>())).synthesis as *const _ as usize },
+            42usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsFont),
@@ -16827,55 +17155,160 @@ pub mod root {
         root::nsChangeHint(16);
     pub const nsChangeHint_nsChangeHint_SyncFrameView: root::nsChangeHint = root::nsChangeHint(32);
     pub const nsChangeHint_nsChangeHint_UpdateCursor: root::nsChangeHint = root::nsChangeHint(64);
+    /// Used when the computed value (a URI) of one or more of an element's
+    /// filter/mask/clip/etc CSS properties changes, causing the element's frame
+    /// to start/stop referencing (or reference different) SVG resource elements.
+    /// (_Not_ used to handle changes to referenced resource elements.) Using this
+    /// hint results in SVGObserverUtils::UpdateEffects being called on the
+    /// element's frame.
     pub const nsChangeHint_nsChangeHint_UpdateEffects: root::nsChangeHint = root::nsChangeHint(128);
+    /// Visual change only, but the change can be handled entirely by
+    /// updating the layer(s) for the frame.
+    /// Updates all descendants (including following placeholders to out-of-flows).
     pub const nsChangeHint_nsChangeHint_UpdateOpacityLayer: root::nsChangeHint =
         root::nsChangeHint(256);
+    /// Updates all descendants. Any placeholder descendants' out-of-flows
+    /// are also descendants of the transformed frame, so they're updated.
     pub const nsChangeHint_nsChangeHint_UpdateTransformLayer: root::nsChangeHint =
         root::nsChangeHint(512);
+    /// Change requires frame change (e.g., display:).
+    /// Reconstructs all frame descendants, including following placeholders
+    /// to out-of-flows.
+    ///
+    /// Note that this subsumes all the other change hints. (see
+    /// RestyleManager::ProcessRestyledFrames for details).
     pub const nsChangeHint_nsChangeHint_ReconstructFrame: root::nsChangeHint =
         root::nsChangeHint(1024);
+    /// The frame's overflow area has changed. Does not update any descendant
+    /// frames.
     pub const nsChangeHint_nsChangeHint_UpdateOverflow: root::nsChangeHint =
         root::nsChangeHint(2048);
+    /// The overflow area of the frame and all of its descendants has changed. This
+    /// can happen through a text-decoration change.
     pub const nsChangeHint_nsChangeHint_UpdateSubtreeOverflow: root::nsChangeHint =
         root::nsChangeHint(4096);
+    /// The frame's overflow area has changed, through a change in its transform.
+    /// In other words, the frame's pre-transform overflow is unchanged, but
+    /// its post-transform overflow has changed, and thus its effect on its
+    /// parent's overflow has changed.  If the pre-transform overflow has
+    /// changed, see nsChangeHint_UpdateOverflow.
+    /// Does not update any descendant frames.
     pub const nsChangeHint_nsChangeHint_UpdatePostTransformOverflow: root::nsChangeHint =
         root::nsChangeHint(8192);
+    /// This frame's effect on its parent's overflow area has changed.
+    /// (But neither its pre-transform nor post-transform overflow have
+    /// changed; if those are the case, see
+    /// nsChangeHint_UpdatePostTransformOverflow.)
     pub const nsChangeHint_nsChangeHint_UpdateParentOverflow: root::nsChangeHint =
         root::nsChangeHint(16384);
+    /// The children-only transform of an SVG frame changed, requiring the
+    /// overflow rects of the frame's immediate children to be updated.
     pub const nsChangeHint_nsChangeHint_ChildrenOnlyTransform: root::nsChangeHint =
         root::nsChangeHint(32768);
+    /// The frame's offsets have changed, while its dimensions might have
+    /// changed as well.  This hint is used for positioned frames if their
+    /// offset changes.  If we decide that the dimensions are likely to
+    /// change, this will trigger a reflow.
+    ///
+    /// Note that this should probably be used in combination with
+    /// nsChangeHint_UpdateOverflow in order to get the overflow areas of
+    /// the ancestors updated as well.
     pub const nsChangeHint_nsChangeHint_RecomputePosition: root::nsChangeHint =
         root::nsChangeHint(65536);
+    /// Behaves like ReconstructFrame, but only if the frame has descendants
+    /// that are absolutely or fixed position. Use this hint when a style change
+    /// has changed whether the frame is a container for fixed-pos or abs-pos
+    /// elements, but reframing is otherwise not needed.
+    ///
+    /// Note that nsStyleContext::CalcStyleDifference adjusts results
+    /// returned by style struct CalcDifference methods to return this hint
+    /// only if there was a change to whether the element's overall style
+    /// indicates that it establishes a containing block.
     pub const nsChangeHint_nsChangeHint_UpdateContainingBlock: root::nsChangeHint =
         root::nsChangeHint(131072);
+    /// This change hint has *no* change handling behavior.  However, it
+    /// exists to be a non-inherited hint, because when the border-style
+    /// changes, and it's inherited by a child, that might require a reflow
+    /// due to the border-width change on the child.
     pub const nsChangeHint_nsChangeHint_BorderStyleNoneChange: root::nsChangeHint =
         root::nsChangeHint(262144);
+    /// SVG textPath needs to be recomputed because the path has changed.
+    /// This means that the glyph positions of the text need to be recomputed.
     pub const nsChangeHint_nsChangeHint_UpdateTextPath: root::nsChangeHint =
         root::nsChangeHint(524288);
+    /// This will schedule an invalidating paint. This is useful if something
+    /// has changed which will be invalidated by DLBI.
     pub const nsChangeHint_nsChangeHint_SchedulePaint: root::nsChangeHint =
         root::nsChangeHint(1048576);
+    /// A hint reflecting that style data changed with no change handling
+    /// behavior.  We need to return this, rather than nsChangeHint(0),
+    /// so that certain optimizations that manipulate the style context tree are
+    /// correct.
+    ///
+    /// nsChangeHint_NeutralChange must be returned by CalcDifference on a given
+    /// style struct if the data in the style structs are meaningfully different
+    /// and if no other change hints are returned.  If any other change hints are
+    /// set, then nsChangeHint_NeutralChange need not also be included, but it is
+    /// safe to do so.  (An example of style structs having non-meaningfully
+    /// different data would be cached information that would be re-calculated
+    /// to the same values, such as nsStyleBorder::mSubImages.)
     pub const nsChangeHint_nsChangeHint_NeutralChange: root::nsChangeHint =
         root::nsChangeHint(2097152);
+    /// This will cause rendering observers to be invalidated.
     pub const nsChangeHint_nsChangeHint_InvalidateRenderingObservers: root::nsChangeHint =
         root::nsChangeHint(4194304);
+    /// Indicates that the reflow changes the size or position of the
+    /// element, and thus the reflow must start from at least the frame's
+    /// parent.  Must be not be set without also setting nsChangeHint_NeedReflow
+    /// and nsChangeHint_ClearAncestorIntrinsics.
     pub const nsChangeHint_nsChangeHint_ReflowChangesSizeOrPosition: root::nsChangeHint =
         root::nsChangeHint(8388608);
+    /// Indicates that the style changes the computed BSize --- e.g. 'height'.
+    /// Must not be set without also setting nsChangeHint_NeedReflow.
     pub const nsChangeHint_nsChangeHint_UpdateComputedBSize: root::nsChangeHint =
         root::nsChangeHint(16777216);
+    /// Indicates that the 'opacity' property changed between 1 and non-1.
+    ///
+    /// Used as extra data for handling UpdateOpacityLayer hints.
+    ///
+    /// Note that we do not send this hint if the non-1 value was 0.99 or
+    /// greater, since in that case we send a RepaintFrame hint instead.
     pub const nsChangeHint_nsChangeHint_UpdateUsesOpacity: root::nsChangeHint =
         root::nsChangeHint(33554432);
+    /// Indicates that the 'background-position' property changed.
+    /// Regular frames can invalidate these changes using DLBI, but
+    /// for some frame types we need to repaint the whole frame because
+    /// the frame does not build individual background image display items
+    /// for each background layer.
     pub const nsChangeHint_nsChangeHint_UpdateBackgroundPosition: root::nsChangeHint =
         root::nsChangeHint(67108864);
+    /// Indicates that a frame has changed to or from having the CSS
+    /// transform property set.
     pub const nsChangeHint_nsChangeHint_AddOrRemoveTransform: root::nsChangeHint =
         root::nsChangeHint(134217728);
+    /// Indicates that the overflow-x and/or overflow-y property changed.
+    ///
+    /// In most cases, this is equivalent to nsChangeHint_ReconstructFrame. But
+    /// in some special cases where the change is really targeting the viewport's
+    /// scrollframe, this is instead equivalent to nsChangeHint_AllReflowHints
+    /// (because the viewport always has an associated scrollframe).
     pub const nsChangeHint_nsChangeHint_CSSOverflowChange: root::nsChangeHint =
         root::nsChangeHint(268435456);
+    /// Indicates that nsIFrame::UpdateWidgetProperties needs to be called.
+    /// This is used for -moz-window-* properties.
     pub const nsChangeHint_nsChangeHint_UpdateWidgetProperties: root::nsChangeHint =
         root::nsChangeHint(536870912);
+    /// Indicates that there has been a colspan or rowspan attribute change
+    /// on the cells of a table.
     pub const nsChangeHint_nsChangeHint_UpdateTableCellSpans: root::nsChangeHint =
         root::nsChangeHint(1073741824);
+    /// Indicates that the visiblity property changed.
+    /// This change hint is used for skip restyling for animations on
+    /// visibility:hidden elements in the case where the elements have no visible
+    /// descendants.
     pub const nsChangeHint_nsChangeHint_VisibilityChange: root::nsChangeHint =
         root::nsChangeHint(2147483648);
+    /// Dummy hint value for all hints. It exists for compile time check.
     pub const nsChangeHint_nsChangeHint_AllHints: root::nsChangeHint =
         root::nsChangeHint(4294967295);
     impl ::std::ops::BitOr<root::nsChangeHint> for root::nsChangeHint {
@@ -17318,14 +17751,24 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct ProfilerBacktrace {
         _unused: [u8; 0],
     }
+    impl Clone for ProfilerBacktrace {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct ProfilerMarkerPayload {
         _unused: [u8; 0],
+    }
+    impl Clone for ProfilerMarkerPayload {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -17362,24 +17805,43 @@ pub mod root {
     pub const JSValueTag_JSVAL_TAG_PRIVATE_GCTHING: root::JSValueTag = 131064;
     pub const JSValueTag_JSVAL_TAG_OBJECT: root::JSValueTag = 131068;
     pub type JSValueTag = u32;
+    /// a hole in a native object's elements
     pub const JSWhyMagic_JS_ELEMENTS_HOLE: root::JSWhyMagic = 0;
+    /// there is not a pending iterator value
     pub const JSWhyMagic_JS_NO_ITER_VALUE: root::JSWhyMagic = 1;
+    /// exception value thrown when closing a generator
     pub const JSWhyMagic_JS_GENERATOR_CLOSING: root::JSWhyMagic = 2;
+    /// compiler sentinel value
     pub const JSWhyMagic_JS_NO_CONSTANT: root::JSWhyMagic = 3;
+    /// used in debug builds to catch tracing errors
     pub const JSWhyMagic_JS_THIS_POISON: root::JSWhyMagic = 4;
+    /// used in debug builds to catch tracing errors
     pub const JSWhyMagic_JS_ARG_POISON: root::JSWhyMagic = 5;
+    /// an empty subnode in the AST serializer
     pub const JSWhyMagic_JS_SERIALIZE_NO_NODE: root::JSWhyMagic = 6;
+    /// lazy arguments value on the stack
     pub const JSWhyMagic_JS_LAZY_ARGUMENTS: root::JSWhyMagic = 7;
+    /// optimized-away 'arguments' value
     pub const JSWhyMagic_JS_OPTIMIZED_ARGUMENTS: root::JSWhyMagic = 8;
+    /// magic value passed to natives to indicate construction
     pub const JSWhyMagic_JS_IS_CONSTRUCTING: root::JSWhyMagic = 9;
+    /// value of static block object slot
     pub const JSWhyMagic_JS_BLOCK_NEEDS_CLONE: root::JSWhyMagic = 10;
+    /// see class js::HashableValue
     pub const JSWhyMagic_JS_HASH_KEY_EMPTY: root::JSWhyMagic = 11;
+    /// error while running Ion code
     pub const JSWhyMagic_JS_ION_ERROR: root::JSWhyMagic = 12;
+    /// missing recover instruction result
     pub const JSWhyMagic_JS_ION_BAILOUT: root::JSWhyMagic = 13;
+    /// optimized out slot
     pub const JSWhyMagic_JS_OPTIMIZED_OUT: root::JSWhyMagic = 14;
+    /// uninitialized lexical bindings that produce ReferenceError on touch.
     pub const JSWhyMagic_JS_UNINITIALIZED_LEXICAL: root::JSWhyMagic = 15;
+    /// standard constructors are not created for off-thread parsing.
     pub const JSWhyMagic_JS_OFF_THREAD_CONSTRUCTOR: root::JSWhyMagic = 16;
+    /// for local use
     pub const JSWhyMagic_JS_GENERIC_MAGIC: root::JSWhyMagic = 17;
+    /// for local use
     pub const JSWhyMagic_JS_WHY_MAGIC_COUNT: root::JSWhyMagic = 18;
     pub type JSWhyMagic = u32;
     /// This structure precedes the string buffers "we" allocate.  It may be the
@@ -17923,9 +18385,14 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIDocShell {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIDocShell {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -18206,8 +18673,18 @@ pub mod root {
     }
     pub type nsWrapperCache_FlagsType = u32;
     pub const nsWrapperCache_WRAPPER_BIT_PRESERVED: root::nsWrapperCache__bindgen_ty_1 = 1;
+    /// If this bit is set then we're preserving the wrapper, which in effect ties
+    /// the lifetime of the JS object stored in the cache to the lifetime of the
+    /// native object. We rely on the cycle collector to break the cycle that this
+    /// causes between the native object and the JS object, so it is important that
+    /// any native object that supports preserving of its wrapper
+    /// traces/traverses/unlinks the cached JS object (see
+    /// NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER and
+    /// NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER).
     pub type nsWrapperCache__bindgen_ty_1 = u32;
     pub const nsWrapperCache_WRAPPER_IS_NOT_DOM_BINDING: root::nsWrapperCache__bindgen_ty_2 = 2;
+    /// If this bit is set then the wrapper for the native object is not a DOM
+    /// binding.
     pub type nsWrapperCache__bindgen_ty_2 = u32;
     pub const nsWrapperCache_kWrapperFlagsMask: root::nsWrapperCache__bindgen_ty_3 = 3;
     pub type nsWrapperCache__bindgen_ty_3 = u32;
@@ -18806,9 +19283,14 @@ pub mod root {
         pub mPropertyList: *mut root::nsPropertyTable_PropertyList,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsPropertyTable_PropertyList {
         _unused: [u8; 0],
+    }
+    impl Clone for nsPropertyTable_PropertyList {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[test]
     fn bindgen_test_layout_nsPropertyTable() {
@@ -18958,24 +19440,44 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsAttrChildContentList {
         _unused: [u8; 0],
     }
+    impl Clone for nsAttrChildContentList {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsCSSSelectorList {
         _unused: [u8; 0],
     }
+    impl Clone for nsCSSSelectorList {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsRange {
         _unused: [u8; 0],
     }
+    impl Clone for nsRange {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoSelectorList {
         _unused: [u8; 0],
+    }
+    impl Clone for RawServoSelectorList {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_77 = 4;
     pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_77 = 8;
@@ -19032,17 +19534,30 @@ pub mod root {
     pub struct nsINode_COMTypeInfo {
         pub _address: u8,
     }
+    /// nsIDocument nodes
     pub const nsINode_eDOCUMENT: root::nsINode__bindgen_ty_2 = 2;
+    /// nsIAttribute nodes
     pub const nsINode_eATTRIBUTE: root::nsINode__bindgen_ty_2 = 4;
+    /// text nodes
     pub const nsINode_eTEXT: root::nsINode__bindgen_ty_2 = 8;
+    /// xml processing instructions
     pub const nsINode_ePROCESSING_INSTRUCTION: root::nsINode__bindgen_ty_2 = 16;
+    /// comment nodes
     pub const nsINode_eCOMMENT: root::nsINode__bindgen_ty_2 = 32;
+    /// form control elements
     pub const nsINode_eHTML_FORM_CONTROL: root::nsINode__bindgen_ty_2 = 64;
+    /// document fragments
     pub const nsINode_eDOCUMENT_FRAGMENT: root::nsINode__bindgen_ty_2 = 128;
+    /// data nodes (comments, PIs, text). Nodes of this type always
+    /// returns a non-null value for nsIContent::GetText()
     pub const nsINode_eDATA_NODE: root::nsINode__bindgen_ty_2 = 256;
+    /// HTMLMediaElement
     pub const nsINode_eMEDIA: root::nsINode__bindgen_ty_2 = 512;
+    /// animation elements
     pub const nsINode_eANIMATION: root::nsINode__bindgen_ty_2 = 1024;
+    /// filter elements that implement SVGFilterPrimitiveStandardAttributes
     pub const nsINode_eFILTER: root::nsINode__bindgen_ty_2 = 2048;
+    /// Bit-flags to pass (or'ed together) to IsNodeOfType()
     pub type nsINode__bindgen_ty_2 = u32;
     pub const nsINode_FlattenedParentType_eNotForStyle: root::nsINode_FlattenedParentType = 0;
     pub const nsINode_FlattenedParentType_eForStyle: root::nsINode_FlattenedParentType = 1;
@@ -19328,9 +19843,31 @@ pub mod root {
     pub struct nsIContent_COMTypeInfo {
         pub _address: u8,
     }
+    /// All XBL flattened tree children of the node, as well as :before and
+    /// :after anonymous content and native anonymous children.
+    ///
+    /// @note the result children order is
+    /// 1. :before generated node
+    /// 2. XBL flattened tree children of this node
+    /// 3. native anonymous nodes
+    /// 4. :after generated node
     pub const nsIContent_eAllChildren: root::nsIContent__bindgen_ty_1 = 0;
+    /// All XBL explicit children of the node (see
+    /// http://www.w3.org/TR/xbl/#explicit3 ), as well as :before and :after
+    /// anonymous content and native anonymous children.
+    ///
+    /// @note the result children order is
+    /// 1. :before generated node
+    /// 2. XBL explicit children of the node
+    /// 3. native anonymous nodes
+    /// 4. :after generated node
     pub const nsIContent_eAllButXBL: root::nsIContent__bindgen_ty_1 = 1;
+    /// Skip native anonymous content created for placeholder of HTML input,
+    /// used in conjunction with eAllChildren or eAllButXBL.
     pub const nsIContent_eSkipPlaceholderContent: root::nsIContent__bindgen_ty_1 = 2;
+    /// Skip native anonymous content created by ancestor frames of the root
+    /// element's primary frame, such as scrollbar elements created by the root
+    /// scroll frame.
     pub const nsIContent_eSkipDocumentLevelNativeAnonymousContent: root::nsIContent__bindgen_ty_1 =
         4;
     pub type nsIContent__bindgen_ty_1 = u32;
@@ -19492,9 +20029,14 @@ pub mod root {
         pub mIsDestroyingFrames: bool,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsFrameManagerBase_UndisplayedMap {
         _unused: [u8; 0],
+    }
+    impl Clone for nsFrameManagerBase_UndisplayedMap {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[test]
     fn bindgen_test_layout_nsFrameManagerBase() {
@@ -19897,39 +20439,74 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsDocShell {
         _unused: [u8; 0],
     }
+    impl Clone for nsDocShell {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsViewManager {
         _unused: [u8; 0],
     }
+    impl Clone for nsViewManager {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsFrameSelection {
         _unused: [u8; 0],
     }
+    impl Clone for nsFrameSelection {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsCSSFrameConstructor {
         _unused: [u8; 0],
     }
+    impl Clone for nsCSSFrameConstructor {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct AutoWeakFrame {
         _unused: [u8; 0],
     }
+    impl Clone for AutoWeakFrame {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct WeakFrame {
         _unused: [u8; 0],
     }
+    impl Clone for WeakFrame {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsRefreshDriver {
         _unused: [u8; 0],
+    }
+    impl Clone for nsRefreshDriver {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     pub struct CapturingContentInfo {
@@ -20081,10 +20658,23 @@ pub mod root {
     pub const nsIPresShell_ScrollDirection_eHorizontal: root::nsIPresShell_ScrollDirection = 0;
     pub const nsIPresShell_ScrollDirection_eVertical: root::nsIPresShell_ScrollDirection = 1;
     pub const nsIPresShell_ScrollDirection_eEither: root::nsIPresShell_ScrollDirection = 2;
+    /// Gets nearest scrollable frame from the specified content node. The frame
+    /// is scrollable with overflow:scroll or overflow:auto in some direction when
+    /// aDirection is eEither.  Otherwise, this returns a nearest frame that is
+    /// scrollable in the specified direction.
     pub type nsIPresShell_ScrollDirection = u32;
     pub const nsIPresShell_IntrinsicDirty_eResize: root::nsIPresShell_IntrinsicDirty = 0;
     pub const nsIPresShell_IntrinsicDirty_eTreeChange: root::nsIPresShell_IntrinsicDirty = 1;
     pub const nsIPresShell_IntrinsicDirty_eStyleChange: root::nsIPresShell_IntrinsicDirty = 2;
+    /// Tell the pres shell that a frame needs to be marked dirty and needs
+    /// Reflow.  It's OK if this is an ancestor of the frame needing reflow as
+    /// long as the ancestor chain between them doesn't cross a reflow root.
+    ///
+    /// The bit to add should be NS_FRAME_IS_DIRTY, NS_FRAME_HAS_DIRTY_CHILDREN
+    /// or nsFrameState(0); passing 0 means that dirty bits won't be set on the
+    /// frame or its ancestors/descendants, but that intrinsic widths will still
+    /// be marked dirty.  Passing aIntrinsicDirty = eResize and aBitToAdd = 0
+    /// would result in no work being done, so don't do that.
     pub type nsIPresShell_IntrinsicDirty = u32;
     pub const nsIPresShell_ReflowRootHandling_ePositionOrSizeChange:
         root::nsIPresShell_ReflowRootHandling = 0;
@@ -20141,6 +20731,42 @@ pub mod root {
     pub const nsIPresShell_RENDER_ASYNC_DECODE_IMAGES: root::nsIPresShell__bindgen_ty_3 = 16;
     pub const nsIPresShell_RENDER_DOCUMENT_RELATIVE: root::nsIPresShell__bindgen_ty_3 = 32;
     pub const nsIPresShell_RENDER_DRAWWINDOW_NOT_FLUSHING: root::nsIPresShell__bindgen_ty_3 = 64;
+    /// Render the document into an arbitrary gfxContext
+    /// Designed for getting a picture of a document or a piece of a document
+    /// Note that callers will generally want to call FlushPendingNotifications
+    /// to get an up-to-date view of the document
+    /// @param aRect is the region to capture into the offscreen buffer, in the
+    /// root frame's coordinate system (if aIgnoreViewportScrolling is false)
+    /// or in the root scrolled frame's coordinate system
+    /// (if aIgnoreViewportScrolling is true). The coordinates are in appunits.
+    /// @param aFlags see below;
+    /// set RENDER_IS_UNTRUSTED if the contents may be passed to malicious
+    /// agents. E.g. we might choose not to paint the contents of sensitive widgets
+    /// such as the file name in a file upload widget, and we might choose not
+    /// to paint themes.
+    /// set RENDER_IGNORE_VIEWPORT_SCROLLING to ignore
+    /// clipping and scrollbar painting due to scrolling in the viewport
+    /// set RENDER_CARET to draw the caret if one would be visible
+    /// (by default the caret is never drawn)
+    /// set RENDER_USE_LAYER_MANAGER to force rendering to go through
+    /// the layer manager for the window. This may be unexpectedly slow
+    /// (if the layer manager must read back data from the GPU) or low-quality
+    /// (if the layer manager reads back pixel data and scales it
+    /// instead of rendering using the appropriate scaling). It may also
+    /// slow everything down if the area rendered does not correspond to the
+    /// normal visible area of the window.
+    /// set RENDER_ASYNC_DECODE_IMAGES to avoid having images synchronously
+    /// decoded during rendering.
+    /// (by default images decode synchronously with RenderDocument)
+    /// set RENDER_DOCUMENT_RELATIVE to render the document as if there has been
+    /// no scrolling and interpret |aRect| relative to the document instead of the
+    /// CSS viewport. Only considered if RENDER_IGNORE_VIEWPORT_SCROLLING is set
+    /// or the document is in ignore viewport scrolling mode
+    /// (nsIPresShell::SetIgnoreViewportScrolling/IgnoringViewportScrolling).
+    /// @param aBackgroundColor a background color to render onto
+    /// @param aRenderedContext the gfxContext to render to. We render so that
+    /// one CSS pixel in the source document is rendered to one unit in the current
+    /// transform.
     pub type nsIPresShell__bindgen_ty_3 = u32;
     pub const nsIPresShell_RENDER_IS_IMAGE: root::nsIPresShell__bindgen_ty_4 = 256;
     pub const nsIPresShell_RENDER_AUTO_SCALE: root::nsIPresShell__bindgen_ty_4 = 128;
@@ -20148,6 +20774,21 @@ pub mod root {
     pub const nsIPresShell_FORCE_DRAW: root::nsIPresShell__bindgen_ty_5 = 1;
     pub const nsIPresShell_ADD_FOR_SUBDOC: root::nsIPresShell__bindgen_ty_5 = 2;
     pub const nsIPresShell_APPEND_UNSCROLLED_ONLY: root::nsIPresShell__bindgen_ty_5 = 4;
+    /// Add a solid color item to the bottom of aList with frame aFrame and bounds
+    /// aBounds. Checks first if this needs to be done by checking if aFrame is a
+    /// canvas frame (if the FORCE_DRAW flag is passed then this check is skipped).
+    /// aBackstopColor is composed behind the background color of the canvas, it is
+    /// transparent by default.
+    /// We attempt to make the background color part of the scrolled canvas (to reduce
+    /// transparent layers), and if async scrolling is enabled (and the background
+    /// is opaque) then we add a second, unscrolled item to handle the checkerboarding
+    /// case.
+    /// ADD_FOR_SUBDOC shoud be specified when calling this for a subdocument, and
+    /// LayoutUseContainersForRootFrame might cause the whole list to be scrolled. In
+    /// that case the second unscrolled item will be elided.
+    /// APPEND_UNSCROLLED_ONLY only attempts to add the unscrolled item, so that we
+    /// can add it manually after LayoutUseContainersForRootFrame has built the
+    /// scrolling ContainerLayer.
     pub type nsIPresShell__bindgen_ty_5 = u32;
     pub const nsIPresShell_PaintFlags_PAINT_LAYERS: root::nsIPresShell_PaintFlags = 1;
     pub const nsIPresShell_PaintFlags_PAINT_COMPOSITE: root::nsIPresShell_PaintFlags = 2;
@@ -20155,6 +20796,11 @@ pub mod root {
     pub type nsIPresShell_PaintFlags = u32;
     pub const nsIPresShell_PaintType_PAINT_DEFAULT: root::nsIPresShell_PaintType = 0;
     pub const nsIPresShell_PaintType_PAINT_DELAYED_COMPRESS: root::nsIPresShell_PaintType = 1;
+    /// Ensures that the refresh driver is running, and schedules a view
+    /// manager flush on the next tick.
+    ///
+    /// @param aType PAINT_DELAYED_COMPRESS : Schedule a paint to be executed after a delay, and
+    /// put FrameLayerBuilder in 'compressed' mode that avoids short cut optimizations.
     pub type nsIPresShell_PaintType = u32;
     extern "C" {
         #[link_name = "\u{1}_ZN12nsIPresShell12gCaptureInfoE"]
@@ -21102,9 +21748,14 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIControllers {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIControllers {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -21933,9 +22584,14 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsContentList {
         _unused: [u8; 0],
+    }
+    impl Clone for nsContentList {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     /// The signature of the timer callback function passed to initWithFuncCallback.
     /// This is the function that will get called when the timer expires if the
@@ -22167,14 +22823,24 @@ pub mod root {
     pub type nsRunnableMethod_ReturnTypeEnforcer_ReturnTypeIsSafe = ::std::os::raw::c_int;
     pub type nsRunnableMethod_check = root::nsRunnableMethod_ReturnTypeEnforcer;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIIOService {
         _unused: [u8; 0],
     }
+    impl Clone for nsIIOService {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIStringBundleService {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIStringBundleService {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     /// Data used to track the expiration state of an object. We promise that this
     /// is 32 bits so that objects that includes this as a field can pad and align
@@ -22251,9 +22917,14 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsBaseContentList {
         _unused: [u8; 0],
+    }
+    impl Clone for nsBaseContentList {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     /// Right now our identifier map entries contain information for 'name'
     /// and 'id' mappings of a given string. This is so that
@@ -22658,381 +23329,382 @@ pub mod root {
         eCSSProperty_font_feature_settings = 113,
         eCSSProperty_font_kerning = 114,
         eCSSProperty_font_language_override = 115,
-        eCSSProperty_font_size = 116,
-        eCSSProperty_font_size_adjust = 117,
-        eCSSProperty__moz_font_smoothing_background_color = 118,
-        eCSSProperty_font_stretch = 119,
-        eCSSProperty_font_style = 120,
-        eCSSProperty_font_synthesis = 121,
-        eCSSProperty_font_variant_alternates = 122,
-        eCSSProperty_font_variant_caps = 123,
-        eCSSProperty_font_variant_east_asian = 124,
-        eCSSProperty_font_variant_ligatures = 125,
-        eCSSProperty_font_variant_numeric = 126,
-        eCSSProperty_font_variant_position = 127,
-        eCSSProperty_font_variation_settings = 128,
-        eCSSProperty_font_weight = 129,
-        eCSSProperty__moz_force_broken_image_icon = 130,
-        eCSSProperty_grid_auto_columns = 131,
-        eCSSProperty_grid_auto_flow = 132,
-        eCSSProperty_grid_auto_rows = 133,
-        eCSSProperty_grid_column_end = 134,
-        eCSSProperty_grid_column_gap = 135,
-        eCSSProperty_grid_column_start = 136,
-        eCSSProperty_grid_row_end = 137,
-        eCSSProperty_grid_row_gap = 138,
-        eCSSProperty_grid_row_start = 139,
-        eCSSProperty_grid_template_areas = 140,
-        eCSSProperty_grid_template_columns = 141,
-        eCSSProperty_grid_template_rows = 142,
-        eCSSProperty_height = 143,
-        eCSSProperty_hyphens = 144,
-        eCSSProperty_initial_letter = 145,
-        eCSSProperty_image_orientation = 146,
-        eCSSProperty__moz_image_region = 147,
-        eCSSProperty_image_rendering = 148,
-        eCSSProperty_ime_mode = 149,
-        eCSSProperty_inline_size = 150,
-        eCSSProperty_isolation = 151,
-        eCSSProperty_justify_content = 152,
-        eCSSProperty_justify_items = 153,
-        eCSSProperty_justify_self = 154,
-        eCSSProperty__x_lang = 155,
-        eCSSProperty_left = 156,
-        eCSSProperty_letter_spacing = 157,
-        eCSSProperty_lighting_color = 158,
-        eCSSProperty_line_height = 159,
-        eCSSProperty_list_style_image = 160,
-        eCSSProperty_list_style_position = 161,
-        eCSSProperty_list_style_type = 162,
-        eCSSProperty_margin_block_end = 163,
-        eCSSProperty_margin_block_start = 164,
-        eCSSProperty_margin_bottom = 165,
-        eCSSProperty_margin_inline_end = 166,
-        eCSSProperty_margin_inline_start = 167,
-        eCSSProperty_margin_left = 168,
-        eCSSProperty_margin_right = 169,
-        eCSSProperty_margin_top = 170,
-        eCSSProperty_marker_end = 171,
-        eCSSProperty_marker_mid = 172,
-        eCSSProperty_marker_start = 173,
-        eCSSProperty_mask_clip = 174,
-        eCSSProperty_mask_composite = 175,
-        eCSSProperty_mask_image = 176,
-        eCSSProperty_mask_mode = 177,
-        eCSSProperty_mask_origin = 178,
-        eCSSProperty_mask_position_x = 179,
-        eCSSProperty_mask_position_y = 180,
-        eCSSProperty_mask_repeat = 181,
-        eCSSProperty_mask_size = 182,
-        eCSSProperty_mask_type = 183,
-        eCSSProperty__moz_math_display = 184,
-        eCSSProperty__moz_math_variant = 185,
-        eCSSProperty_max_block_size = 186,
-        eCSSProperty_max_height = 187,
-        eCSSProperty_max_inline_size = 188,
-        eCSSProperty_max_width = 189,
-        eCSSProperty_min_block_size = 190,
-        eCSSProperty__moz_min_font_size_ratio = 191,
-        eCSSProperty_min_height = 192,
-        eCSSProperty_min_inline_size = 193,
-        eCSSProperty_min_width = 194,
-        eCSSProperty_mix_blend_mode = 195,
-        eCSSProperty_object_fit = 196,
-        eCSSProperty_object_position = 197,
-        eCSSProperty_offset_block_end = 198,
-        eCSSProperty_offset_block_start = 199,
-        eCSSProperty_offset_inline_end = 200,
-        eCSSProperty_offset_inline_start = 201,
-        eCSSProperty_opacity = 202,
-        eCSSProperty_order = 203,
-        eCSSProperty__moz_orient = 204,
-        eCSSProperty__moz_osx_font_smoothing = 205,
-        eCSSProperty_outline_color = 206,
-        eCSSProperty_outline_offset = 207,
-        eCSSProperty__moz_outline_radius_bottomleft = 208,
-        eCSSProperty__moz_outline_radius_bottomright = 209,
-        eCSSProperty__moz_outline_radius_topleft = 210,
-        eCSSProperty__moz_outline_radius_topright = 211,
-        eCSSProperty_outline_style = 212,
-        eCSSProperty_outline_width = 213,
-        eCSSProperty_overflow_clip_box_block = 214,
-        eCSSProperty_overflow_clip_box_inline = 215,
-        eCSSProperty_overflow_x = 216,
-        eCSSProperty_overflow_y = 217,
-        eCSSProperty_padding_block_end = 218,
-        eCSSProperty_padding_block_start = 219,
-        eCSSProperty_padding_bottom = 220,
-        eCSSProperty_padding_inline_end = 221,
-        eCSSProperty_padding_inline_start = 222,
-        eCSSProperty_padding_left = 223,
-        eCSSProperty_padding_right = 224,
-        eCSSProperty_padding_top = 225,
-        eCSSProperty_page_break_after = 226,
-        eCSSProperty_page_break_before = 227,
-        eCSSProperty_page_break_inside = 228,
-        eCSSProperty_paint_order = 229,
-        eCSSProperty_perspective = 230,
-        eCSSProperty_perspective_origin = 231,
-        eCSSProperty_pointer_events = 232,
-        eCSSProperty_position = 233,
-        eCSSProperty_quotes = 234,
-        eCSSProperty_resize = 235,
-        eCSSProperty_right = 236,
-        eCSSProperty_rotate = 237,
-        eCSSProperty_ruby_align = 238,
-        eCSSProperty_ruby_position = 239,
-        eCSSProperty__moz_script_level = 240,
-        eCSSProperty__moz_script_min_size = 241,
-        eCSSProperty__moz_script_size_multiplier = 242,
-        eCSSProperty_scroll_behavior = 243,
-        eCSSProperty_overscroll_behavior_x = 244,
-        eCSSProperty_overscroll_behavior_y = 245,
-        eCSSProperty_scroll_snap_coordinate = 246,
-        eCSSProperty_scroll_snap_destination = 247,
-        eCSSProperty_scroll_snap_points_x = 248,
-        eCSSProperty_scroll_snap_points_y = 249,
-        eCSSProperty_scroll_snap_type_x = 250,
-        eCSSProperty_scroll_snap_type_y = 251,
-        eCSSProperty_shape_image_threshold = 252,
-        eCSSProperty_shape_outside = 253,
-        eCSSProperty_shape_rendering = 254,
-        eCSSProperty__x_span = 255,
-        eCSSProperty__moz_stack_sizing = 256,
-        eCSSProperty_stop_color = 257,
-        eCSSProperty_stop_opacity = 258,
-        eCSSProperty_stroke = 259,
-        eCSSProperty_stroke_dasharray = 260,
-        eCSSProperty_stroke_dashoffset = 261,
-        eCSSProperty_stroke_linecap = 262,
-        eCSSProperty_stroke_linejoin = 263,
-        eCSSProperty_stroke_miterlimit = 264,
-        eCSSProperty_stroke_opacity = 265,
-        eCSSProperty_stroke_width = 266,
-        eCSSProperty__x_system_font = 267,
-        eCSSProperty__moz_tab_size = 268,
-        eCSSProperty_table_layout = 269,
-        eCSSProperty_text_align = 270,
-        eCSSProperty_text_align_last = 271,
-        eCSSProperty_text_anchor = 272,
-        eCSSProperty_text_combine_upright = 273,
-        eCSSProperty_text_decoration_color = 274,
-        eCSSProperty_text_decoration_line = 275,
-        eCSSProperty_text_decoration_style = 276,
-        eCSSProperty_text_emphasis_color = 277,
-        eCSSProperty_text_emphasis_position = 278,
-        eCSSProperty_text_emphasis_style = 279,
-        eCSSProperty__webkit_text_fill_color = 280,
-        eCSSProperty_text_indent = 281,
-        eCSSProperty_text_justify = 282,
-        eCSSProperty_text_orientation = 283,
-        eCSSProperty_text_overflow = 284,
-        eCSSProperty_text_rendering = 285,
-        eCSSProperty_text_shadow = 286,
-        eCSSProperty__moz_text_size_adjust = 287,
-        eCSSProperty__webkit_text_stroke_color = 288,
-        eCSSProperty__webkit_text_stroke_width = 289,
-        eCSSProperty_scale = 290,
-        eCSSProperty_text_transform = 291,
-        eCSSProperty__x_text_zoom = 292,
-        eCSSProperty_top = 293,
-        eCSSProperty__moz_top_layer = 294,
-        eCSSProperty_touch_action = 295,
-        eCSSProperty_transform = 296,
-        eCSSProperty_transform_box = 297,
-        eCSSProperty_transform_origin = 298,
-        eCSSProperty_transform_style = 299,
-        eCSSProperty_transition_delay = 300,
-        eCSSProperty_transition_duration = 301,
-        eCSSProperty_transition_property = 302,
-        eCSSProperty_transition_timing_function = 303,
-        eCSSProperty_translate = 304,
-        eCSSProperty_unicode_bidi = 305,
-        eCSSProperty__moz_user_focus = 306,
-        eCSSProperty__moz_user_input = 307,
-        eCSSProperty__moz_user_modify = 308,
-        eCSSProperty__moz_user_select = 309,
-        eCSSProperty_vector_effect = 310,
-        eCSSProperty_vertical_align = 311,
-        eCSSProperty_visibility = 312,
-        eCSSProperty_white_space = 313,
-        eCSSProperty_width = 314,
-        eCSSProperty_will_change = 315,
-        eCSSProperty__moz_window_dragging = 316,
-        eCSSProperty__moz_window_shadow = 317,
-        eCSSProperty__moz_window_opacity = 318,
-        eCSSProperty__moz_window_transform = 319,
-        eCSSProperty__moz_window_transform_origin = 320,
-        eCSSProperty_word_break = 321,
-        eCSSProperty_word_spacing = 322,
-        eCSSProperty_overflow_wrap = 323,
-        eCSSProperty_writing_mode = 324,
-        eCSSProperty_z_index = 325,
-        eCSSProperty_all = 326,
-        eCSSProperty_animation = 327,
-        eCSSProperty_background = 328,
-        eCSSProperty_background_position = 329,
-        eCSSProperty_border = 330,
-        eCSSProperty_border_block_end = 331,
-        eCSSProperty_border_block_start = 332,
-        eCSSProperty_border_bottom = 333,
-        eCSSProperty_border_color = 334,
-        eCSSProperty_border_image = 335,
-        eCSSProperty_border_inline_end = 336,
-        eCSSProperty_border_inline_start = 337,
-        eCSSProperty_border_left = 338,
-        eCSSProperty_border_radius = 339,
-        eCSSProperty_border_right = 340,
-        eCSSProperty_border_style = 341,
-        eCSSProperty_border_top = 342,
-        eCSSProperty_border_width = 343,
-        eCSSProperty_column_rule = 344,
-        eCSSProperty_columns = 345,
-        eCSSProperty_flex = 346,
-        eCSSProperty_flex_flow = 347,
-        eCSSProperty_font = 348,
-        eCSSProperty_font_variant = 349,
-        eCSSProperty_grid = 350,
-        eCSSProperty_grid_area = 351,
-        eCSSProperty_grid_column = 352,
-        eCSSProperty_grid_gap = 353,
-        eCSSProperty_grid_row = 354,
-        eCSSProperty_grid_template = 355,
-        eCSSProperty_list_style = 356,
-        eCSSProperty_margin = 357,
-        eCSSProperty_marker = 358,
-        eCSSProperty_mask = 359,
-        eCSSProperty_mask_position = 360,
-        eCSSProperty_outline = 361,
-        eCSSProperty__moz_outline_radius = 362,
-        eCSSProperty_overflow = 363,
-        eCSSProperty_overflow_clip_box = 364,
-        eCSSProperty_padding = 365,
-        eCSSProperty_place_content = 366,
-        eCSSProperty_place_items = 367,
-        eCSSProperty_place_self = 368,
-        eCSSProperty_overscroll_behavior = 369,
-        eCSSProperty_scroll_snap_type = 370,
-        eCSSProperty_text_decoration = 371,
-        eCSSProperty_text_emphasis = 372,
-        eCSSProperty__webkit_text_stroke = 373,
-        eCSSProperty_transition = 374,
-        eCSSPropertyAlias_WordWrap = 375,
-        eCSSPropertyAlias_MozTransform = 376,
-        eCSSPropertyAlias_MozTransformOrigin = 377,
-        eCSSPropertyAlias_MozPerspectiveOrigin = 378,
-        eCSSPropertyAlias_MozPerspective = 379,
-        eCSSPropertyAlias_MozTransformStyle = 380,
-        eCSSPropertyAlias_MozBackfaceVisibility = 381,
-        eCSSPropertyAlias_MozBorderImage = 382,
-        eCSSPropertyAlias_MozTransition = 383,
-        eCSSPropertyAlias_MozTransitionDelay = 384,
-        eCSSPropertyAlias_MozTransitionDuration = 385,
-        eCSSPropertyAlias_MozTransitionProperty = 386,
-        eCSSPropertyAlias_MozTransitionTimingFunction = 387,
-        eCSSPropertyAlias_MozAnimation = 388,
-        eCSSPropertyAlias_MozAnimationDelay = 389,
-        eCSSPropertyAlias_MozAnimationDirection = 390,
-        eCSSPropertyAlias_MozAnimationDuration = 391,
-        eCSSPropertyAlias_MozAnimationFillMode = 392,
-        eCSSPropertyAlias_MozAnimationIterationCount = 393,
-        eCSSPropertyAlias_MozAnimationName = 394,
-        eCSSPropertyAlias_MozAnimationPlayState = 395,
-        eCSSPropertyAlias_MozAnimationTimingFunction = 396,
-        eCSSPropertyAlias_MozBoxSizing = 397,
-        eCSSPropertyAlias_MozFontFeatureSettings = 398,
-        eCSSPropertyAlias_MozFontLanguageOverride = 399,
-        eCSSPropertyAlias_MozPaddingEnd = 400,
-        eCSSPropertyAlias_MozPaddingStart = 401,
-        eCSSPropertyAlias_MozMarginEnd = 402,
-        eCSSPropertyAlias_MozMarginStart = 403,
-        eCSSPropertyAlias_MozBorderEnd = 404,
-        eCSSPropertyAlias_MozBorderEndColor = 405,
-        eCSSPropertyAlias_MozBorderEndStyle = 406,
-        eCSSPropertyAlias_MozBorderEndWidth = 407,
-        eCSSPropertyAlias_MozBorderStart = 408,
-        eCSSPropertyAlias_MozBorderStartColor = 409,
-        eCSSPropertyAlias_MozBorderStartStyle = 410,
-        eCSSPropertyAlias_MozBorderStartWidth = 411,
-        eCSSPropertyAlias_MozHyphens = 412,
-        eCSSPropertyAlias_MozColumnCount = 413,
-        eCSSPropertyAlias_MozColumnFill = 414,
-        eCSSPropertyAlias_MozColumnGap = 415,
-        eCSSPropertyAlias_MozColumnRule = 416,
-        eCSSPropertyAlias_MozColumnRuleColor = 417,
-        eCSSPropertyAlias_MozColumnRuleStyle = 418,
-        eCSSPropertyAlias_MozColumnRuleWidth = 419,
-        eCSSPropertyAlias_MozColumnSpan = 420,
-        eCSSPropertyAlias_MozColumnWidth = 421,
-        eCSSPropertyAlias_MozColumns = 422,
-        eCSSPropertyAlias_WebkitAnimation = 423,
-        eCSSPropertyAlias_WebkitAnimationDelay = 424,
-        eCSSPropertyAlias_WebkitAnimationDirection = 425,
-        eCSSPropertyAlias_WebkitAnimationDuration = 426,
-        eCSSPropertyAlias_WebkitAnimationFillMode = 427,
-        eCSSPropertyAlias_WebkitAnimationIterationCount = 428,
-        eCSSPropertyAlias_WebkitAnimationName = 429,
-        eCSSPropertyAlias_WebkitAnimationPlayState = 430,
-        eCSSPropertyAlias_WebkitAnimationTimingFunction = 431,
-        eCSSPropertyAlias_WebkitFilter = 432,
-        eCSSPropertyAlias_WebkitTextSizeAdjust = 433,
-        eCSSPropertyAlias_WebkitTransform = 434,
-        eCSSPropertyAlias_WebkitTransformOrigin = 435,
-        eCSSPropertyAlias_WebkitTransformStyle = 436,
-        eCSSPropertyAlias_WebkitBackfaceVisibility = 437,
-        eCSSPropertyAlias_WebkitPerspective = 438,
-        eCSSPropertyAlias_WebkitPerspectiveOrigin = 439,
-        eCSSPropertyAlias_WebkitTransition = 440,
-        eCSSPropertyAlias_WebkitTransitionDelay = 441,
-        eCSSPropertyAlias_WebkitTransitionDuration = 442,
-        eCSSPropertyAlias_WebkitTransitionProperty = 443,
-        eCSSPropertyAlias_WebkitTransitionTimingFunction = 444,
-        eCSSPropertyAlias_WebkitBorderRadius = 445,
-        eCSSPropertyAlias_WebkitBorderTopLeftRadius = 446,
-        eCSSPropertyAlias_WebkitBorderTopRightRadius = 447,
-        eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 448,
-        eCSSPropertyAlias_WebkitBorderBottomRightRadius = 449,
-        eCSSPropertyAlias_WebkitBackgroundClip = 450,
-        eCSSPropertyAlias_WebkitBackgroundOrigin = 451,
-        eCSSPropertyAlias_WebkitBackgroundSize = 452,
-        eCSSPropertyAlias_WebkitBorderImage = 453,
-        eCSSPropertyAlias_WebkitBoxShadow = 454,
-        eCSSPropertyAlias_WebkitBoxSizing = 455,
-        eCSSPropertyAlias_WebkitBoxFlex = 456,
-        eCSSPropertyAlias_WebkitBoxOrdinalGroup = 457,
-        eCSSPropertyAlias_WebkitBoxOrient = 458,
-        eCSSPropertyAlias_WebkitBoxDirection = 459,
-        eCSSPropertyAlias_WebkitBoxAlign = 460,
-        eCSSPropertyAlias_WebkitBoxPack = 461,
-        eCSSPropertyAlias_WebkitFlexDirection = 462,
-        eCSSPropertyAlias_WebkitFlexWrap = 463,
-        eCSSPropertyAlias_WebkitFlexFlow = 464,
-        eCSSPropertyAlias_WebkitOrder = 465,
-        eCSSPropertyAlias_WebkitFlex = 466,
-        eCSSPropertyAlias_WebkitFlexGrow = 467,
-        eCSSPropertyAlias_WebkitFlexShrink = 468,
-        eCSSPropertyAlias_WebkitFlexBasis = 469,
-        eCSSPropertyAlias_WebkitJustifyContent = 470,
-        eCSSPropertyAlias_WebkitAlignItems = 471,
-        eCSSPropertyAlias_WebkitAlignSelf = 472,
-        eCSSPropertyAlias_WebkitAlignContent = 473,
-        eCSSPropertyAlias_WebkitUserSelect = 474,
-        eCSSPropertyAlias_WebkitMask = 475,
-        eCSSPropertyAlias_WebkitMaskClip = 476,
-        eCSSPropertyAlias_WebkitMaskComposite = 477,
-        eCSSPropertyAlias_WebkitMaskImage = 478,
-        eCSSPropertyAlias_WebkitMaskOrigin = 479,
-        eCSSPropertyAlias_WebkitMaskPosition = 480,
-        eCSSPropertyAlias_WebkitMaskPositionX = 481,
-        eCSSPropertyAlias_WebkitMaskPositionY = 482,
-        eCSSPropertyAlias_WebkitMaskRepeat = 483,
-        eCSSPropertyAlias_WebkitMaskSize = 484,
-        eCSSPropertyExtra_no_properties = 485,
-        eCSSPropertyExtra_all_properties = 486,
-        eCSSPropertyExtra_x_none_value = 487,
-        eCSSPropertyExtra_x_auto_value = 488,
-        eCSSPropertyExtra_variable = 489,
-        eCSSProperty_DOM = 490,
+        eCSSProperty_font_optical_sizing = 116,
+        eCSSProperty_font_size = 117,
+        eCSSProperty_font_size_adjust = 118,
+        eCSSProperty__moz_font_smoothing_background_color = 119,
+        eCSSProperty_font_stretch = 120,
+        eCSSProperty_font_style = 121,
+        eCSSProperty_font_synthesis = 122,
+        eCSSProperty_font_variant_alternates = 123,
+        eCSSProperty_font_variant_caps = 124,
+        eCSSProperty_font_variant_east_asian = 125,
+        eCSSProperty_font_variant_ligatures = 126,
+        eCSSProperty_font_variant_numeric = 127,
+        eCSSProperty_font_variant_position = 128,
+        eCSSProperty_font_variation_settings = 129,
+        eCSSProperty_font_weight = 130,
+        eCSSProperty__moz_force_broken_image_icon = 131,
+        eCSSProperty_grid_auto_columns = 132,
+        eCSSProperty_grid_auto_flow = 133,
+        eCSSProperty_grid_auto_rows = 134,
+        eCSSProperty_grid_column_end = 135,
+        eCSSProperty_grid_column_gap = 136,
+        eCSSProperty_grid_column_start = 137,
+        eCSSProperty_grid_row_end = 138,
+        eCSSProperty_grid_row_gap = 139,
+        eCSSProperty_grid_row_start = 140,
+        eCSSProperty_grid_template_areas = 141,
+        eCSSProperty_grid_template_columns = 142,
+        eCSSProperty_grid_template_rows = 143,
+        eCSSProperty_height = 144,
+        eCSSProperty_hyphens = 145,
+        eCSSProperty_initial_letter = 146,
+        eCSSProperty_image_orientation = 147,
+        eCSSProperty__moz_image_region = 148,
+        eCSSProperty_image_rendering = 149,
+        eCSSProperty_ime_mode = 150,
+        eCSSProperty_inline_size = 151,
+        eCSSProperty_isolation = 152,
+        eCSSProperty_justify_content = 153,
+        eCSSProperty_justify_items = 154,
+        eCSSProperty_justify_self = 155,
+        eCSSProperty__x_lang = 156,
+        eCSSProperty_left = 157,
+        eCSSProperty_letter_spacing = 158,
+        eCSSProperty_lighting_color = 159,
+        eCSSProperty_line_height = 160,
+        eCSSProperty_list_style_image = 161,
+        eCSSProperty_list_style_position = 162,
+        eCSSProperty_list_style_type = 163,
+        eCSSProperty_margin_block_end = 164,
+        eCSSProperty_margin_block_start = 165,
+        eCSSProperty_margin_bottom = 166,
+        eCSSProperty_margin_inline_end = 167,
+        eCSSProperty_margin_inline_start = 168,
+        eCSSProperty_margin_left = 169,
+        eCSSProperty_margin_right = 170,
+        eCSSProperty_margin_top = 171,
+        eCSSProperty_marker_end = 172,
+        eCSSProperty_marker_mid = 173,
+        eCSSProperty_marker_start = 174,
+        eCSSProperty_mask_clip = 175,
+        eCSSProperty_mask_composite = 176,
+        eCSSProperty_mask_image = 177,
+        eCSSProperty_mask_mode = 178,
+        eCSSProperty_mask_origin = 179,
+        eCSSProperty_mask_position_x = 180,
+        eCSSProperty_mask_position_y = 181,
+        eCSSProperty_mask_repeat = 182,
+        eCSSProperty_mask_size = 183,
+        eCSSProperty_mask_type = 184,
+        eCSSProperty__moz_math_display = 185,
+        eCSSProperty__moz_math_variant = 186,
+        eCSSProperty_max_block_size = 187,
+        eCSSProperty_max_height = 188,
+        eCSSProperty_max_inline_size = 189,
+        eCSSProperty_max_width = 190,
+        eCSSProperty_min_block_size = 191,
+        eCSSProperty__moz_min_font_size_ratio = 192,
+        eCSSProperty_min_height = 193,
+        eCSSProperty_min_inline_size = 194,
+        eCSSProperty_min_width = 195,
+        eCSSProperty_mix_blend_mode = 196,
+        eCSSProperty_object_fit = 197,
+        eCSSProperty_object_position = 198,
+        eCSSProperty_offset_block_end = 199,
+        eCSSProperty_offset_block_start = 200,
+        eCSSProperty_offset_inline_end = 201,
+        eCSSProperty_offset_inline_start = 202,
+        eCSSProperty_opacity = 203,
+        eCSSProperty_order = 204,
+        eCSSProperty__moz_orient = 205,
+        eCSSProperty__moz_osx_font_smoothing = 206,
+        eCSSProperty_outline_color = 207,
+        eCSSProperty_outline_offset = 208,
+        eCSSProperty__moz_outline_radius_bottomleft = 209,
+        eCSSProperty__moz_outline_radius_bottomright = 210,
+        eCSSProperty__moz_outline_radius_topleft = 211,
+        eCSSProperty__moz_outline_radius_topright = 212,
+        eCSSProperty_outline_style = 213,
+        eCSSProperty_outline_width = 214,
+        eCSSProperty_overflow_clip_box_block = 215,
+        eCSSProperty_overflow_clip_box_inline = 216,
+        eCSSProperty_overflow_x = 217,
+        eCSSProperty_overflow_y = 218,
+        eCSSProperty_padding_block_end = 219,
+        eCSSProperty_padding_block_start = 220,
+        eCSSProperty_padding_bottom = 221,
+        eCSSProperty_padding_inline_end = 222,
+        eCSSProperty_padding_inline_start = 223,
+        eCSSProperty_padding_left = 224,
+        eCSSProperty_padding_right = 225,
+        eCSSProperty_padding_top = 226,
+        eCSSProperty_page_break_after = 227,
+        eCSSProperty_page_break_before = 228,
+        eCSSProperty_page_break_inside = 229,
+        eCSSProperty_paint_order = 230,
+        eCSSProperty_perspective = 231,
+        eCSSProperty_perspective_origin = 232,
+        eCSSProperty_pointer_events = 233,
+        eCSSProperty_position = 234,
+        eCSSProperty_quotes = 235,
+        eCSSProperty_resize = 236,
+        eCSSProperty_right = 237,
+        eCSSProperty_rotate = 238,
+        eCSSProperty_ruby_align = 239,
+        eCSSProperty_ruby_position = 240,
+        eCSSProperty__moz_script_level = 241,
+        eCSSProperty__moz_script_min_size = 242,
+        eCSSProperty__moz_script_size_multiplier = 243,
+        eCSSProperty_scroll_behavior = 244,
+        eCSSProperty_overscroll_behavior_x = 245,
+        eCSSProperty_overscroll_behavior_y = 246,
+        eCSSProperty_scroll_snap_coordinate = 247,
+        eCSSProperty_scroll_snap_destination = 248,
+        eCSSProperty_scroll_snap_points_x = 249,
+        eCSSProperty_scroll_snap_points_y = 250,
+        eCSSProperty_scroll_snap_type_x = 251,
+        eCSSProperty_scroll_snap_type_y = 252,
+        eCSSProperty_shape_image_threshold = 253,
+        eCSSProperty_shape_outside = 254,
+        eCSSProperty_shape_rendering = 255,
+        eCSSProperty__x_span = 256,
+        eCSSProperty__moz_stack_sizing = 257,
+        eCSSProperty_stop_color = 258,
+        eCSSProperty_stop_opacity = 259,
+        eCSSProperty_stroke = 260,
+        eCSSProperty_stroke_dasharray = 261,
+        eCSSProperty_stroke_dashoffset = 262,
+        eCSSProperty_stroke_linecap = 263,
+        eCSSProperty_stroke_linejoin = 264,
+        eCSSProperty_stroke_miterlimit = 265,
+        eCSSProperty_stroke_opacity = 266,
+        eCSSProperty_stroke_width = 267,
+        eCSSProperty__x_system_font = 268,
+        eCSSProperty__moz_tab_size = 269,
+        eCSSProperty_table_layout = 270,
+        eCSSProperty_text_align = 271,
+        eCSSProperty_text_align_last = 272,
+        eCSSProperty_text_anchor = 273,
+        eCSSProperty_text_combine_upright = 274,
+        eCSSProperty_text_decoration_color = 275,
+        eCSSProperty_text_decoration_line = 276,
+        eCSSProperty_text_decoration_style = 277,
+        eCSSProperty_text_emphasis_color = 278,
+        eCSSProperty_text_emphasis_position = 279,
+        eCSSProperty_text_emphasis_style = 280,
+        eCSSProperty__webkit_text_fill_color = 281,
+        eCSSProperty_text_indent = 282,
+        eCSSProperty_text_justify = 283,
+        eCSSProperty_text_orientation = 284,
+        eCSSProperty_text_overflow = 285,
+        eCSSProperty_text_rendering = 286,
+        eCSSProperty_text_shadow = 287,
+        eCSSProperty__moz_text_size_adjust = 288,
+        eCSSProperty__webkit_text_stroke_color = 289,
+        eCSSProperty__webkit_text_stroke_width = 290,
+        eCSSProperty_scale = 291,
+        eCSSProperty_text_transform = 292,
+        eCSSProperty__x_text_zoom = 293,
+        eCSSProperty_top = 294,
+        eCSSProperty__moz_top_layer = 295,
+        eCSSProperty_touch_action = 296,
+        eCSSProperty_transform = 297,
+        eCSSProperty_transform_box = 298,
+        eCSSProperty_transform_origin = 299,
+        eCSSProperty_transform_style = 300,
+        eCSSProperty_transition_delay = 301,
+        eCSSProperty_transition_duration = 302,
+        eCSSProperty_transition_property = 303,
+        eCSSProperty_transition_timing_function = 304,
+        eCSSProperty_translate = 305,
+        eCSSProperty_unicode_bidi = 306,
+        eCSSProperty__moz_user_focus = 307,
+        eCSSProperty__moz_user_input = 308,
+        eCSSProperty__moz_user_modify = 309,
+        eCSSProperty__moz_user_select = 310,
+        eCSSProperty_vector_effect = 311,
+        eCSSProperty_vertical_align = 312,
+        eCSSProperty_visibility = 313,
+        eCSSProperty_white_space = 314,
+        eCSSProperty_width = 315,
+        eCSSProperty_will_change = 316,
+        eCSSProperty__moz_window_dragging = 317,
+        eCSSProperty__moz_window_shadow = 318,
+        eCSSProperty__moz_window_opacity = 319,
+        eCSSProperty__moz_window_transform = 320,
+        eCSSProperty__moz_window_transform_origin = 321,
+        eCSSProperty_word_break = 322,
+        eCSSProperty_word_spacing = 323,
+        eCSSProperty_overflow_wrap = 324,
+        eCSSProperty_writing_mode = 325,
+        eCSSProperty_z_index = 326,
+        eCSSProperty_all = 327,
+        eCSSProperty_animation = 328,
+        eCSSProperty_background = 329,
+        eCSSProperty_background_position = 330,
+        eCSSProperty_border = 331,
+        eCSSProperty_border_block_end = 332,
+        eCSSProperty_border_block_start = 333,
+        eCSSProperty_border_bottom = 334,
+        eCSSProperty_border_color = 335,
+        eCSSProperty_border_image = 336,
+        eCSSProperty_border_inline_end = 337,
+        eCSSProperty_border_inline_start = 338,
+        eCSSProperty_border_left = 339,
+        eCSSProperty_border_radius = 340,
+        eCSSProperty_border_right = 341,
+        eCSSProperty_border_style = 342,
+        eCSSProperty_border_top = 343,
+        eCSSProperty_border_width = 344,
+        eCSSProperty_column_rule = 345,
+        eCSSProperty_columns = 346,
+        eCSSProperty_flex = 347,
+        eCSSProperty_flex_flow = 348,
+        eCSSProperty_font = 349,
+        eCSSProperty_font_variant = 350,
+        eCSSProperty_grid = 351,
+        eCSSProperty_grid_area = 352,
+        eCSSProperty_grid_column = 353,
+        eCSSProperty_grid_gap = 354,
+        eCSSProperty_grid_row = 355,
+        eCSSProperty_grid_template = 356,
+        eCSSProperty_list_style = 357,
+        eCSSProperty_margin = 358,
+        eCSSProperty_marker = 359,
+        eCSSProperty_mask = 360,
+        eCSSProperty_mask_position = 361,
+        eCSSProperty_outline = 362,
+        eCSSProperty__moz_outline_radius = 363,
+        eCSSProperty_overflow = 364,
+        eCSSProperty_overflow_clip_box = 365,
+        eCSSProperty_padding = 366,
+        eCSSProperty_place_content = 367,
+        eCSSProperty_place_items = 368,
+        eCSSProperty_place_self = 369,
+        eCSSProperty_overscroll_behavior = 370,
+        eCSSProperty_scroll_snap_type = 371,
+        eCSSProperty_text_decoration = 372,
+        eCSSProperty_text_emphasis = 373,
+        eCSSProperty__webkit_text_stroke = 374,
+        eCSSProperty_transition = 375,
+        eCSSPropertyAlias_WordWrap = 376,
+        eCSSPropertyAlias_MozTransform = 377,
+        eCSSPropertyAlias_MozTransformOrigin = 378,
+        eCSSPropertyAlias_MozPerspectiveOrigin = 379,
+        eCSSPropertyAlias_MozPerspective = 380,
+        eCSSPropertyAlias_MozTransformStyle = 381,
+        eCSSPropertyAlias_MozBackfaceVisibility = 382,
+        eCSSPropertyAlias_MozBorderImage = 383,
+        eCSSPropertyAlias_MozTransition = 384,
+        eCSSPropertyAlias_MozTransitionDelay = 385,
+        eCSSPropertyAlias_MozTransitionDuration = 386,
+        eCSSPropertyAlias_MozTransitionProperty = 387,
+        eCSSPropertyAlias_MozTransitionTimingFunction = 388,
+        eCSSPropertyAlias_MozAnimation = 389,
+        eCSSPropertyAlias_MozAnimationDelay = 390,
+        eCSSPropertyAlias_MozAnimationDirection = 391,
+        eCSSPropertyAlias_MozAnimationDuration = 392,
+        eCSSPropertyAlias_MozAnimationFillMode = 393,
+        eCSSPropertyAlias_MozAnimationIterationCount = 394,
+        eCSSPropertyAlias_MozAnimationName = 395,
+        eCSSPropertyAlias_MozAnimationPlayState = 396,
+        eCSSPropertyAlias_MozAnimationTimingFunction = 397,
+        eCSSPropertyAlias_MozBoxSizing = 398,
+        eCSSPropertyAlias_MozFontFeatureSettings = 399,
+        eCSSPropertyAlias_MozFontLanguageOverride = 400,
+        eCSSPropertyAlias_MozPaddingEnd = 401,
+        eCSSPropertyAlias_MozPaddingStart = 402,
+        eCSSPropertyAlias_MozMarginEnd = 403,
+        eCSSPropertyAlias_MozMarginStart = 404,
+        eCSSPropertyAlias_MozBorderEnd = 405,
+        eCSSPropertyAlias_MozBorderEndColor = 406,
+        eCSSPropertyAlias_MozBorderEndStyle = 407,
+        eCSSPropertyAlias_MozBorderEndWidth = 408,
+        eCSSPropertyAlias_MozBorderStart = 409,
+        eCSSPropertyAlias_MozBorderStartColor = 410,
+        eCSSPropertyAlias_MozBorderStartStyle = 411,
+        eCSSPropertyAlias_MozBorderStartWidth = 412,
+        eCSSPropertyAlias_MozHyphens = 413,
+        eCSSPropertyAlias_MozColumnCount = 414,
+        eCSSPropertyAlias_MozColumnFill = 415,
+        eCSSPropertyAlias_MozColumnGap = 416,
+        eCSSPropertyAlias_MozColumnRule = 417,
+        eCSSPropertyAlias_MozColumnRuleColor = 418,
+        eCSSPropertyAlias_MozColumnRuleStyle = 419,
+        eCSSPropertyAlias_MozColumnRuleWidth = 420,
+        eCSSPropertyAlias_MozColumnSpan = 421,
+        eCSSPropertyAlias_MozColumnWidth = 422,
+        eCSSPropertyAlias_MozColumns = 423,
+        eCSSPropertyAlias_WebkitAnimation = 424,
+        eCSSPropertyAlias_WebkitAnimationDelay = 425,
+        eCSSPropertyAlias_WebkitAnimationDirection = 426,
+        eCSSPropertyAlias_WebkitAnimationDuration = 427,
+        eCSSPropertyAlias_WebkitAnimationFillMode = 428,
+        eCSSPropertyAlias_WebkitAnimationIterationCount = 429,
+        eCSSPropertyAlias_WebkitAnimationName = 430,
+        eCSSPropertyAlias_WebkitAnimationPlayState = 431,
+        eCSSPropertyAlias_WebkitAnimationTimingFunction = 432,
+        eCSSPropertyAlias_WebkitFilter = 433,
+        eCSSPropertyAlias_WebkitTextSizeAdjust = 434,
+        eCSSPropertyAlias_WebkitTransform = 435,
+        eCSSPropertyAlias_WebkitTransformOrigin = 436,
+        eCSSPropertyAlias_WebkitTransformStyle = 437,
+        eCSSPropertyAlias_WebkitBackfaceVisibility = 438,
+        eCSSPropertyAlias_WebkitPerspective = 439,
+        eCSSPropertyAlias_WebkitPerspectiveOrigin = 440,
+        eCSSPropertyAlias_WebkitTransition = 441,
+        eCSSPropertyAlias_WebkitTransitionDelay = 442,
+        eCSSPropertyAlias_WebkitTransitionDuration = 443,
+        eCSSPropertyAlias_WebkitTransitionProperty = 444,
+        eCSSPropertyAlias_WebkitTransitionTimingFunction = 445,
+        eCSSPropertyAlias_WebkitBorderRadius = 446,
+        eCSSPropertyAlias_WebkitBorderTopLeftRadius = 447,
+        eCSSPropertyAlias_WebkitBorderTopRightRadius = 448,
+        eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 449,
+        eCSSPropertyAlias_WebkitBorderBottomRightRadius = 450,
+        eCSSPropertyAlias_WebkitBackgroundClip = 451,
+        eCSSPropertyAlias_WebkitBackgroundOrigin = 452,
+        eCSSPropertyAlias_WebkitBackgroundSize = 453,
+        eCSSPropertyAlias_WebkitBorderImage = 454,
+        eCSSPropertyAlias_WebkitBoxShadow = 455,
+        eCSSPropertyAlias_WebkitBoxSizing = 456,
+        eCSSPropertyAlias_WebkitBoxFlex = 457,
+        eCSSPropertyAlias_WebkitBoxOrdinalGroup = 458,
+        eCSSPropertyAlias_WebkitBoxOrient = 459,
+        eCSSPropertyAlias_WebkitBoxDirection = 460,
+        eCSSPropertyAlias_WebkitBoxAlign = 461,
+        eCSSPropertyAlias_WebkitBoxPack = 462,
+        eCSSPropertyAlias_WebkitFlexDirection = 463,
+        eCSSPropertyAlias_WebkitFlexWrap = 464,
+        eCSSPropertyAlias_WebkitFlexFlow = 465,
+        eCSSPropertyAlias_WebkitOrder = 466,
+        eCSSPropertyAlias_WebkitFlex = 467,
+        eCSSPropertyAlias_WebkitFlexGrow = 468,
+        eCSSPropertyAlias_WebkitFlexShrink = 469,
+        eCSSPropertyAlias_WebkitFlexBasis = 470,
+        eCSSPropertyAlias_WebkitJustifyContent = 471,
+        eCSSPropertyAlias_WebkitAlignItems = 472,
+        eCSSPropertyAlias_WebkitAlignSelf = 473,
+        eCSSPropertyAlias_WebkitAlignContent = 474,
+        eCSSPropertyAlias_WebkitUserSelect = 475,
+        eCSSPropertyAlias_WebkitMask = 476,
+        eCSSPropertyAlias_WebkitMaskClip = 477,
+        eCSSPropertyAlias_WebkitMaskComposite = 478,
+        eCSSPropertyAlias_WebkitMaskImage = 479,
+        eCSSPropertyAlias_WebkitMaskOrigin = 480,
+        eCSSPropertyAlias_WebkitMaskPosition = 481,
+        eCSSPropertyAlias_WebkitMaskPositionX = 482,
+        eCSSPropertyAlias_WebkitMaskPositionY = 483,
+        eCSSPropertyAlias_WebkitMaskRepeat = 484,
+        eCSSPropertyAlias_WebkitMaskSize = 485,
+        eCSSPropertyExtra_no_properties = 486,
+        eCSSPropertyExtra_all_properties = 487,
+        eCSSPropertyExtra_x_none_value = 488,
+        eCSSPropertyExtra_x_auto_value = 489,
+        eCSSPropertyExtra_variable = 490,
+        eCSSProperty_DOM = 491,
     }
     #[repr(i32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -23067,49 +23739,94 @@ pub mod root {
         eCSSCounterDesc_COUNT = 10,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoAuthorStyles {
         _unused: [u8; 0],
     }
+    impl Clone for RawServoAuthorStyles {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoStyleSet {
         _unused: [u8; 0],
     }
+    impl Clone for RawServoStyleSet {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoSourceSizeList {
         _unused: [u8; 0],
     }
+    impl Clone for RawServoSourceSizeList {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RustString {
         _unused: [u8; 0],
     }
+    impl Clone for RustString {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoStyleSheetContents {
         _unused: [u8; 0],
     }
+    impl Clone for RawServoStyleSheetContents {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoDeclarationBlock {
         _unused: [u8; 0],
     }
+    impl Clone for RawServoDeclarationBlock {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoStyleRule {
         _unused: [u8; 0],
     }
+    impl Clone for RawServoStyleRule {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoAnimationValue {
         _unused: [u8; 0],
     }
+    impl Clone for RawServoAnimationValue {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct RawServoMediaList {
         _unused: [u8; 0],
+    }
+    impl Clone for RawServoMediaList {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     pub mod nsStyleTransformMatrix {
         #[allow(unused_imports)]
@@ -23122,14 +23839,24 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsCSSPropertyIDSet {
         _unused: [u8; 0],
     }
+    impl Clone for nsCSSPropertyIDSet {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsSimpleContentList {
         _unused: [u8; 0],
+    }
+    impl Clone for nsSimpleContentList {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     pub type RawGeckoNode = root::nsINode;
     pub type RawGeckoElement = root::mozilla::dom::Element;
@@ -23184,34 +23911,64 @@ pub mod root {
     pub type RawGeckoCSSPropertyIDListBorrowed = *const root::RawGeckoCSSPropertyIDList;
     pub type RawGeckoStyleChildrenIteratorBorrowedMut = *mut root::RawGeckoStyleChildrenIterator;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsHTMLCSSStyleSheet {
         _unused: [u8; 0],
     }
+    impl Clone for nsHTMLCSSStyleSheet {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsHTMLStyleSheet {
         _unused: [u8; 0],
     }
+    impl Clone for nsHTMLStyleSheet {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIBFCacheEntry {
         _unused: [u8; 0],
     }
+    impl Clone for nsIBFCacheEntry {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIDocumentEncoder {
         _unused: [u8; 0],
     }
+    impl Clone for nsIDocumentEncoder {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIStructuredCloneContainer {
         _unused: [u8; 0],
     }
+    impl Clone for nsIStructuredCloneContainer {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsSMILAnimationController {
         _unused: [u8; 0],
+    }
+    impl Clone for nsSMILAnimationController {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     pub struct nsIDocument {
@@ -23434,9 +24191,14 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIDocument_SelectorCacheKeyDeleter {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIDocument_SelectorCacheKeyDeleter {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -23751,9 +24513,14 @@ pub mod root {
     pub const nsIDocument_Tri_eTriTrue: root::nsIDocument_Tri = 2;
     pub type nsIDocument_Tri = u32;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIDocument_FrameRequest {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIDocument_FrameRequest {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     pub const nsIDocument_kSegmentSize: usize = 128;
     #[test]
@@ -24810,39 +25577,74 @@ pub mod root {
         use self::super::super::root;
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsBidi {
         _unused: [u8; 0],
     }
+    impl Clone for nsBidi {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIPrintSettings {
         _unused: [u8; 0],
     }
+    impl Clone for nsIPrintSettings {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct gfxTextPerfMetrics {
         _unused: [u8; 0],
     }
+    impl Clone for gfxTextPerfMetrics {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsTransitionManager {
         _unused: [u8; 0],
     }
+    impl Clone for nsTransitionManager {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsAnimationManager {
         _unused: [u8; 0],
     }
+    impl Clone for nsAnimationManager {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsDeviceContext {
         _unused: [u8; 0],
     }
+    impl Clone for nsDeviceContext {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct gfxMissingFontRecorder {
         _unused: [u8; 0],
+    }
+    impl Clone for gfxMissingFontRecorder {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     pub const kPresContext_DefaultVariableFont_ID: u8 = 0;
     pub const kPresContext_DefaultFixedFont_ID: u8 = 1;
@@ -27489,6 +28291,7 @@ pub mod root {
     pub const nsStyleAnimType_eStyleAnimType_Shadow: root::nsStyleAnimType = 15;
     pub const nsStyleAnimType_eStyleAnimType_Discrete: root::nsStyleAnimType = 16;
     pub const nsStyleAnimType_eStyleAnimType_None: root::nsStyleAnimType = 17;
+    /// Types of animatable values.
     pub type nsStyleAnimType = u32;
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -27546,28 +28349,28 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps9kSIDTableE"]
-        pub static mut nsCSSProps_kSIDTable: [root::nsStyleStructID; 326usize];
+        pub static mut nsCSSProps_kSIDTable: [root::nsStyleStructID; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps18kKeywordTableTableE"]
         pub static mut nsCSSProps_kKeywordTableTable:
-            [*const root::nsCSSProps_KTableEntry; 326usize];
+            [*const root::nsCSSProps_KTableEntry; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps14kAnimTypeTableE"]
-        pub static mut nsCSSProps_kAnimTypeTable: [root::nsStyleAnimType; 326usize];
+        pub static mut nsCSSProps_kAnimTypeTable: [root::nsStyleAnimType; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps23kStyleStructOffsetTableE"]
-        pub static mut nsCSSProps_kStyleStructOffsetTable: [isize; 326usize];
+        pub static mut nsCSSProps_kStyleStructOffsetTable: [isize; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps11kFlagsTableE"]
-        pub static mut nsCSSProps_kFlagsTable: [u32; 375usize];
+        pub static mut nsCSSProps_kFlagsTable: [u32; 376usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps19kParserVariantTableE"]
-        pub static mut nsCSSProps_kParserVariantTable: [u32; 326usize];
+        pub static mut nsCSSProps_kParserVariantTable: [u32; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps17kSubpropertyTableE"]
@@ -27576,7 +28379,7 @@ pub mod root {
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps26gShorthandsContainingTableE"]
         pub static mut nsCSSProps_gShorthandsContainingTable:
-            [*mut root::nsCSSPropertyID; 326usize];
+            [*mut root::nsCSSPropertyID; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps25gShorthandsContainingPoolE"]
@@ -27588,7 +28391,7 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps22gPropertyIndexInStructE"]
-        pub static mut nsCSSProps_gPropertyIndexInStruct: [usize; 326usize];
+        pub static mut nsCSSProps_gPropertyIndexInStruct: [usize; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps18kLogicalGroupTableE"]
@@ -27596,19 +28399,19 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps16gPropertyEnabledE"]
-        pub static mut nsCSSProps_gPropertyEnabled: [bool; 485usize];
+        pub static mut nsCSSProps_gPropertyEnabled: [bool; 486usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps13kIDLNameTableE"]
-        pub static mut nsCSSProps_kIDLNameTable: [*const ::std::os::raw::c_char; 375usize];
+        pub static mut nsCSSProps_kIDLNameTable: [*const ::std::os::raw::c_char; 376usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps25kIDLNameSortPositionTableE"]
-        pub static mut nsCSSProps_kIDLNameSortPositionTable: [i32; 375usize];
+        pub static mut nsCSSProps_kIDLNameSortPositionTable: [i32; 376usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps19gPropertyUseCounterE"]
-        pub static mut nsCSSProps_gPropertyUseCounter: [root::mozilla::UseCounter; 326usize];
+        pub static mut nsCSSProps_gPropertyUseCounter: [root::mozilla::UseCounter; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps25kAnimationDirectionKTableE"]
@@ -27966,6 +28769,10 @@ pub mod root {
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps18kFontKerningKTableE"]
         pub static mut nsCSSProps_kFontKerningKTable: [root::nsCSSProps_KTableEntry; 0usize];
+    }
+    extern "C" {
+        #[link_name = "\u{1}_ZN10nsCSSProps24kFontOpticalSizingKTableE"]
+        pub static mut nsCSSProps_kFontOpticalSizingKTable: [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps15kFontSizeKTableE"]
@@ -29777,9 +30584,14 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct imgIContainer {
         _unused: [u8; 0],
+    }
+    impl Clone for imgIContainer {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -29945,9 +30757,14 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct ProxyBehaviour {
         _unused: [u8; 0],
+    }
+    impl Clone for ProxyBehaviour {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug)]
@@ -36802,14 +37619,24 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIConsoleReportCollector {
         _unused: [u8; 0],
     }
+    impl Clone for nsIConsoleReportCollector {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIStyleSheetLinkingElement {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIStyleSheetLinkingElement {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -37015,9 +37842,14 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsMappedAttributes {
         _unused: [u8; 0],
+    }
+    impl Clone for nsMappedAttributes {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug)]
@@ -37203,9 +38035,14 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsXBLDocumentInfo {
         _unused: [u8; 0],
+    }
+    impl Clone for nsXBLDocumentInfo {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -37242,14 +38079,24 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsXBLPrototypeBinding {
         _unused: [u8; 0],
     }
+    impl Clone for nsXBLPrototypeBinding {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsAnonymousContentList {
         _unused: [u8; 0],
+    }
+    impl Clone for nsAnonymousContentList {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     pub struct nsXBLBinding {
@@ -37431,24 +38278,44 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsLabelsNodeList {
         _unused: [u8; 0],
     }
+    impl Clone for nsLabelsNodeList {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsDOMTokenList {
         _unused: [u8; 0],
     }
+    impl Clone for nsDOMTokenList {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsDOMCSSAttributeDeclaration {
         _unused: [u8; 0],
     }
+    impl Clone for nsDOMCSSAttributeDeclaration {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsDOMStringMap {
         _unused: [u8; 0],
+    }
+    impl Clone for nsDOMStringMap {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     /// A class that implements nsIWeakReference
     #[repr(C)]
@@ -38085,6 +38952,8 @@ pub mod root {
         root::nsGenericHTMLElement_PresContextFor = 0;
     pub const nsGenericHTMLElement_PresContextFor_eForUncomposedDoc:
         root::nsGenericHTMLElement_PresContextFor = 1;
+    /// Get the presentation context for this content node.
+    /// @return the presentation context
     pub type nsGenericHTMLElement_PresContextFor = u32;
     pub const nsGenericHTMLElement_ContentEditableTristate_eInherit:
         root::nsGenericHTMLElement_ContentEditableTristate = -1;
@@ -38770,6 +39639,16 @@ pub mod root {
         root::nsBindingManager_DestructorHandling = 0;
     pub const nsBindingManager_DestructorHandling_eDoNotRunDtor:
         root::nsBindingManager_DestructorHandling = 1;
+    /// Notify the binding manager that an element
+    /// has been removed from its document,
+    /// so that it can update any bindings or
+    /// nsIAnonymousContentCreator-created anonymous
+    /// content that may depend on the document.
+    /// @param aContent the element that's being moved
+    /// @param aOldDocument the old document in which the
+    /// content resided.
+    /// @param aDestructorHandling whether or not to run the possible XBL
+    /// destructor.
     pub type nsBindingManager_DestructorHandling = u32;
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -39197,29 +40076,54 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsHtml5StringParser {
         _unused: [u8; 0],
     }
+    impl Clone for nsHtml5StringParser {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIConsoleService {
         _unused: [u8; 0],
     }
+    impl Clone for nsIConsoleService {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIFragmentContentSink {
         _unused: [u8; 0],
     }
+    impl Clone for nsIFragmentContentSink {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIStringBundle {
         _unused: [u8; 0],
     }
+    impl Clone for nsIStringBundle {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsIBidiKeyboard {
         _unused: [u8; 0],
+    }
+    impl Clone for nsIBidiKeyboard {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -39587,9 +40491,14 @@ pub mod root {
         pub static mut nsContentUtils_sPrivacyMaxInnerHeight: i32;
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy)]
     pub struct nsContentUtils_UserInteractionObserver {
         _unused: [u8; 0],
+    }
+    impl Clone for nsContentUtils_UserInteractionObserver {
+        fn clone(&self) -> Self {
+            *self
+        }
     }
     extern "C" {
         #[link_name = "\u{1}_ZN14nsContentUtils24sUserInteractionObserverE"]
