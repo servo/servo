@@ -1050,6 +1050,12 @@ pub mod root {
             pub type LinkedListElementTraits_ConstClientType<T> = *mut T;
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
+            pub struct VariantTag {
+                pub _address: u8,
+            }
+            pub type VariantTag_Type = u8;
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
             pub struct WeakReference {
                 pub _address: u8,
             }
@@ -1057,6 +1063,77 @@ pub mod root {
             #[derive(Debug, Copy, Clone)]
             pub struct FreePolicy {
                 pub _address: u8,
+            }
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct MutexImpl {
+                pub platformData_: [*mut ::std::os::raw::c_void; 5usize],
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct MutexImpl_PlatformData {
+                _unused: [u8; 0],
+            }
+            #[test]
+            fn bindgen_test_layout_MutexImpl() {
+                assert_eq!(
+                    ::std::mem::size_of::<MutexImpl>(),
+                    40usize,
+                    concat!("Size of: ", stringify!(MutexImpl))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<MutexImpl>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(MutexImpl))
+                );
+                assert_eq!(
+                    unsafe {
+                        &(*(::std::ptr::null::<MutexImpl>())).platformData_ as *const _ as usize
+                    },
+                    0usize,
+                    concat!(
+                        "Offset of field: ",
+                        stringify!(MutexImpl),
+                        "::",
+                        stringify!(platformData_)
+                    )
+                );
+            }
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct ConditionVariableImpl {
+                pub platformData_: [*mut ::std::os::raw::c_void; 6usize],
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct ConditionVariableImpl_PlatformData {
+                _unused: [u8; 0],
+            }
+            #[test]
+            fn bindgen_test_layout_ConditionVariableImpl() {
+                assert_eq!(
+                    ::std::mem::size_of::<ConditionVariableImpl>(),
+                    48usize,
+                    concat!("Size of: ", stringify!(ConditionVariableImpl))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<ConditionVariableImpl>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(ConditionVariableImpl))
+                );
+                assert_eq!(
+                    unsafe {
+                        &(*(::std::ptr::null::<ConditionVariableImpl>())).platformData_ as *const _
+                            as usize
+                    },
+                    0usize,
+                    concat!(
+                        "Offset of field: ",
+                        stringify!(ConditionVariableImpl),
+                        "::",
+                        stringify!(platformData_)
+                    )
+                );
             }
         }
         pub type Conditional_Type<A> = A;
@@ -1738,11 +1815,6 @@ pub mod root {
                     )
                 );
             }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct SheetLoadData {
-                _unused: [u8; 0],
-            }
             /// Style sheet reuse *
             #[repr(C)]
             pub struct LoaderReusableStyleSheets {
@@ -1778,7 +1850,6 @@ pub mod root {
             pub struct Loader {
                 pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
                 pub mSheets: root::nsAutoPtr<root::mozilla::css::Loader_Sheets>,
-                pub mParsingDatas: [u64; 10usize],
                 pub mPostedEvents: root::mozilla::css::Loader_LoadDataArray,
                 pub mObservers: [u64; 2usize],
                 pub mDocument: *mut root::nsIDocument,
@@ -1883,7 +1954,7 @@ pub mod root {
             fn bindgen_test_layout_Loader() {
                 assert_eq!(
                     ::std::mem::size_of::<Loader>(),
-                    176usize,
+                    96usize,
                     concat!("Size of: ", stringify!(Loader))
                 );
                 assert_eq!(
@@ -1913,21 +1984,9 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe {
-                        &(*(::std::ptr::null::<Loader>())).mParsingDatas as *const _ as usize
-                    },
-                    16usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(Loader),
-                        "::",
-                        stringify!(mParsingDatas)
-                    )
-                );
-                assert_eq!(
-                    unsafe {
                         &(*(::std::ptr::null::<Loader>())).mPostedEvents as *const _ as usize
                     },
-                    96usize,
+                    16usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -1937,7 +1996,7 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe { &(*(::std::ptr::null::<Loader>())).mObservers as *const _ as usize },
-                    104usize,
+                    24usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -1947,7 +2006,7 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe { &(*(::std::ptr::null::<Loader>())).mDocument as *const _ as usize },
-                    120usize,
+                    40usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -1957,7 +2016,7 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe { &(*(::std::ptr::null::<Loader>())).mDocGroup as *const _ as usize },
-                    128usize,
+                    48usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -1969,7 +2028,7 @@ pub mod root {
                     unsafe {
                         &(*(::std::ptr::null::<Loader>())).mDatasToNotifyOn as *const _ as usize
                     },
-                    136usize,
+                    56usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -1979,7 +2038,7 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe { &(*(::std::ptr::null::<Loader>())).mCompatMode as *const _ as usize },
-                    140usize,
+                    60usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -1991,7 +2050,7 @@ pub mod root {
                     unsafe {
                         &(*(::std::ptr::null::<Loader>())).mPreferredSheet as *const _ as usize
                     },
-                    144usize,
+                    64usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -2003,7 +2062,7 @@ pub mod root {
                     unsafe {
                         &(*(::std::ptr::null::<Loader>())).mStyleBackendType as *const _ as usize
                     },
-                    160usize,
+                    80usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -2013,7 +2072,7 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe { &(*(::std::ptr::null::<Loader>())).mEnabled as *const _ as usize },
-                    162usize,
+                    82usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -2023,7 +2082,7 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe { &(*(::std::ptr::null::<Loader>())).mReporter as *const _ as usize },
-                    168usize,
+                    88usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(Loader),
@@ -2031,6 +2090,232 @@ pub mod root {
                         stringify!(mReporter)
                     )
                 );
+            }
+            #[repr(C)]
+            pub struct SheetLoadData {
+                pub _base: root::nsIRunnable,
+                pub _base_1: root::nsIUnicharStreamLoaderObserver,
+                pub _base_2: root::nsIThreadObserver,
+                pub mRefCnt: root::nsAutoRefCnt,
+                pub mLoader: root::RefPtr<root::mozilla::css::Loader>,
+                pub mTitle: ::nsstring::nsStringRepr,
+                pub mEncoding: *const root::mozilla::Encoding,
+                pub mURI: root::nsCOMPtr,
+                pub mLineNumber: u32,
+                pub mSheet: root::RefPtr<root::mozilla::StyleSheet>,
+                pub mNext: *mut root::mozilla::css::SheetLoadData,
+                pub mParentData: root::RefPtr<root::mozilla::css::SheetLoadData>,
+                pub mPendingChildren: u32,
+                pub _bitfield_1: root::__BindgenBitfieldUnit<[u8; 2usize], u8>,
+                pub mOwningElement: root::nsCOMPtr,
+                pub mObserver: root::nsCOMPtr,
+                pub mLoaderPrincipal: root::nsCOMPtr,
+                pub mRequestingNode: root::nsCOMPtr,
+                pub mPreloadEncoding: *const root::mozilla::Encoding,
+                pub mStatus: root::nsresult,
+            }
+            pub type SheetLoadData_HasThreadSafeRefCnt = root::mozilla::FalseType;
+            #[test]
+            fn bindgen_test_layout_SheetLoadData() {
+                assert_eq!(
+                    ::std::mem::size_of::<SheetLoadData>(),
+                    160usize,
+                    concat!("Size of: ", stringify!(SheetLoadData))
+                );
+                assert_eq!(
+                    ::std::mem::align_of::<SheetLoadData>(),
+                    8usize,
+                    concat!("Alignment of ", stringify!(SheetLoadData))
+                );
+            }
+            impl SheetLoadData {
+                #[inline]
+                pub fn mSyncLoad(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mSyncLoad(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(0usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mIsNonDocumentSheet(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mIsNonDocumentSheet(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(1usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mIsLoading(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(2usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mIsLoading(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(2usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mIsBeingParsed(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mIsBeingParsed(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(3usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mIsCancelled(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mIsCancelled(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(4usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mMustNotify(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mMustNotify(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(5usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mWasAlternate(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(6usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mWasAlternate(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(6usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mUseSystemPrincipal(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mUseSystemPrincipal(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(7usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mSheetAlreadyComplete(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mSheetAlreadyComplete(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(8usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mIsCrossOriginNoCORS(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(9usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mIsCrossOriginNoCORS(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(9usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn mBlockResourceTiming(&self) -> bool {
+                    unsafe { ::std::mem::transmute(self._bitfield_1.get(10usize, 1u8) as u8) }
+                }
+                #[inline]
+                pub fn set_mBlockResourceTiming(&mut self, val: bool) {
+                    unsafe {
+                        let val: u8 = ::std::mem::transmute(val);
+                        self._bitfield_1.set(10usize, 1u8, val as u64)
+                    }
+                }
+                #[inline]
+                pub fn new_bitfield_1(
+                    mSyncLoad: bool,
+                    mIsNonDocumentSheet: bool,
+                    mIsLoading: bool,
+                    mIsBeingParsed: bool,
+                    mIsCancelled: bool,
+                    mMustNotify: bool,
+                    mWasAlternate: bool,
+                    mUseSystemPrincipal: bool,
+                    mSheetAlreadyComplete: bool,
+                    mIsCrossOriginNoCORS: bool,
+                    mBlockResourceTiming: bool,
+                ) -> root::__BindgenBitfieldUnit<[u8; 2usize], u8> {
+                    let mut __bindgen_bitfield_unit : root :: __BindgenBitfieldUnit < [ u8 ; 2usize ] , u8 > = Default :: default ( ) ;
+                    __bindgen_bitfield_unit.set(0usize, 1u8, {
+                        let mSyncLoad: u8 = unsafe { ::std::mem::transmute(mSyncLoad) };
+                        mSyncLoad as u64
+                    });
+                    __bindgen_bitfield_unit.set(1usize, 1u8, {
+                        let mIsNonDocumentSheet: u8 =
+                            unsafe { ::std::mem::transmute(mIsNonDocumentSheet) };
+                        mIsNonDocumentSheet as u64
+                    });
+                    __bindgen_bitfield_unit.set(2usize, 1u8, {
+                        let mIsLoading: u8 = unsafe { ::std::mem::transmute(mIsLoading) };
+                        mIsLoading as u64
+                    });
+                    __bindgen_bitfield_unit.set(3usize, 1u8, {
+                        let mIsBeingParsed: u8 = unsafe { ::std::mem::transmute(mIsBeingParsed) };
+                        mIsBeingParsed as u64
+                    });
+                    __bindgen_bitfield_unit.set(4usize, 1u8, {
+                        let mIsCancelled: u8 = unsafe { ::std::mem::transmute(mIsCancelled) };
+                        mIsCancelled as u64
+                    });
+                    __bindgen_bitfield_unit.set(5usize, 1u8, {
+                        let mMustNotify: u8 = unsafe { ::std::mem::transmute(mMustNotify) };
+                        mMustNotify as u64
+                    });
+                    __bindgen_bitfield_unit.set(6usize, 1u8, {
+                        let mWasAlternate: u8 = unsafe { ::std::mem::transmute(mWasAlternate) };
+                        mWasAlternate as u64
+                    });
+                    __bindgen_bitfield_unit.set(7usize, 1u8, {
+                        let mUseSystemPrincipal: u8 =
+                            unsafe { ::std::mem::transmute(mUseSystemPrincipal) };
+                        mUseSystemPrincipal as u64
+                    });
+                    __bindgen_bitfield_unit.set(8usize, 1u8, {
+                        let mSheetAlreadyComplete: u8 =
+                            unsafe { ::std::mem::transmute(mSheetAlreadyComplete) };
+                        mSheetAlreadyComplete as u64
+                    });
+                    __bindgen_bitfield_unit.set(9usize, 1u8, {
+                        let mIsCrossOriginNoCORS: u8 =
+                            unsafe { ::std::mem::transmute(mIsCrossOriginNoCORS) };
+                        mIsCrossOriginNoCORS as u64
+                    });
+                    __bindgen_bitfield_unit.set(10usize, 1u8, {
+                        let mBlockResourceTiming: u8 =
+                            unsafe { ::std::mem::transmute(mBlockResourceTiming) };
+                        mBlockResourceTiming as u64
+                    });
+                    __bindgen_bitfield_unit
+                }
             }
             #[repr(C)]
             #[derive(Debug)]
@@ -2338,6 +2623,192 @@ pub mod root {
         pub struct LinkedList_Iterator {
             pub mCurrent: root::mozilla::LinkedList_RawType,
         }
+        /// # mozilla::Variant
+        ///
+        /// A variant / tagged union / heterogenous disjoint union / sum-type template
+        /// class. Similar in concept to (but not derived from) `boost::variant`.
+        ///
+        /// Sometimes, you may wish to use a C union with non-POD types. However, this is
+        /// forbidden in C++ because it is not clear which type in the union should have
+        /// its constructor and destructor run on creation and deletion
+        /// respectively. This is the problem that `mozilla::Variant` solves.
+        ///
+        /// ## Usage
+        ///
+        /// A `mozilla::Variant` instance is constructed (via move or copy) from one of
+        /// its variant types (ignoring const and references). It does *not* support
+        /// construction from subclasses of variant types or types that coerce to one of
+        /// the variant types.
+        ///
+        /// Variant<char, uint32_t> v1('a');
+        /// Variant<UniquePtr<A>, B, C> v2(MakeUnique<A>());
+        /// Variant<bool, char> v3(VariantType<char>, 0); // disambiguation needed
+        /// Variant<int, int> v4(VariantIndex<1>, 0); // 2nd int
+        ///
+        /// Because specifying the full type of a Variant value is often verbose,
+        /// there are two easier ways to construct values:
+        ///
+        /// A. AsVariant() can be used to construct a Variant value using type inference
+        /// in contexts such as expressions or when returning values from functions.
+        /// Because AsVariant() must copy or move the value into a temporary and this
+        /// cannot necessarily be elided by the compiler, it's mostly appropriate only
+        /// for use with primitive or very small types.
+        ///
+        /// Variant<char, uint32_t> Foo() { return AsVariant('x'); }
+        /// // ...
+        /// Variant<char, uint32_t> v1 = Foo();  // v1 holds char('x').
+        ///
+        /// B. Brace-construction with VariantType or VariantIndex; this also allows
+        /// in-place construction with any number of arguments.
+        ///
+        /// struct AB { AB(int, int){...} };
+        /// static Variant<AB, bool> foo()
+        /// {
+        /// return {VariantIndex<0>{}, 1, 2};
+        /// }
+        /// // ...
+        /// Variant<AB, bool> v0 = Foo();  // v0 holds AB(1,2).
+        ///
+        /// All access to the contained value goes through type-safe accessors.
+        /// Either the stored type, or the type index may be provided.
+        ///
+        /// void
+        /// Foo(Variant<A, B, C> v)
+        /// {
+        /// if (v.is<A>()) {
+        /// A& ref = v.as<A>();
+        /// ...
+        /// } else (v.is<1>()) { // Instead of v.is<B>.
+        /// ...
+        /// } else {
+        /// ...
+        /// }
+        /// }
+        ///
+        /// In some situation, a Variant may be constructed from templated types, in
+        /// which case it is possible that the same type could be given multiple times by
+        /// an external developer. Or seemingly-different types could be aliases.
+        /// In this case, repeated types can only be accessed through their index, to
+        /// prevent ambiguous access by type.
+        ///
+        /// // Bad!
+        /// template <typename T>
+        /// struct ResultOrError
+        /// {
+        /// Variant<T, int> m;
+        /// ResultOrError() : m(int(0)) {} // Error '0' by default
+        /// ResultOrError(const T& r) : m(r) {}
+        /// bool IsResult() const { return m.is<T>(); }
+        /// bool IsError() const { return m.is<int>(); }
+        /// };
+        /// // Now instantiante with the result being an int too:
+        /// ResultOrError<int> myResult(123); // Fail!
+        /// // In Variant<int, int>, which 'int' are we refering to, from inside
+        /// // ResultOrError functions?
+        ///
+        /// // Good!
+        /// template <typename T>
+        /// struct ResultOrError
+        /// {
+        /// Variant<T, int> m;
+        /// ResultOrError() : m(VariantIndex<1>{}, 0) {} // Error '0' by default
+        /// ResultOrError(const T& r) : m(VariantIndex<0>{}, r) {}
+        /// bool IsResult() const { return m.is<0>(); } // 0 -> T
+        /// bool IsError() const { return m.is<1>(); } // 1 -> int
+        /// };
+        /// // Now instantiante with the result being an int too:
+        /// ResultOrError<int> myResult(123); // It now works!
+        ///
+        /// Attempting to use the contained value as type `T1` when the `Variant`
+        /// instance contains a value of type `T2` causes an assertion failure.
+        ///
+        /// A a;
+        /// Variant<A, B, C> v(a);
+        /// v.as<B>(); // <--- Assertion failure!
+        ///
+        /// Trying to use a `Variant<Ts...>` instance as some type `U` that is not a
+        /// member of the set of `Ts...` is a compiler error.
+        ///
+        /// A a;
+        /// Variant<A, B, C> v(a);
+        /// v.as<SomeRandomType>(); // <--- Compiler error!
+        ///
+        /// Additionally, you can turn a `Variant` that `is<T>` into a `T` by moving it
+        /// out of the containing `Variant` instance with the `extract<T>` method:
+        ///
+        /// Variant<UniquePtr<A>, B, C> v(MakeUnique<A>());
+        /// auto ptr = v.extract<UniquePtr<A>>();
+        ///
+        /// Finally, you can exhaustively match on the contained variant and branch into
+        /// different code paths depending on which type is contained. This is preferred
+        /// to manually checking every variant type T with is<T>() because it provides
+        /// compile-time checking that you handled every type, rather than runtime
+        /// assertion failures.
+        ///
+        /// // Bad!
+        /// char* foo(Variant<A, B, C, D>& v) {
+        /// if (v.is<A>()) {
+        /// return ...;
+        /// } else if (v.is<B>()) {
+        /// return ...;
+        /// } else {
+        /// return doSomething(v.as<C>()); // Forgot about case D!
+        /// }
+        /// }
+        ///
+        /// // Good!
+        /// struct FooMatcher
+        /// {
+        /// // The return type of all matchers must be identical.
+        /// char* match(A& a) { ... }
+        /// char* match(B& b) { ... }
+        /// char* match(C& c) { ... }
+        /// char* match(D& d) { ... } // Compile-time error to forget D!
+        /// }
+        /// char* foo(Variant<A, B, C, D>& v) {
+        /// return v.match(FooMatcher());
+        /// }
+        ///
+        /// ## Examples
+        ///
+        /// A tree is either an empty leaf, or a node with a value and two children:
+        ///
+        /// struct Leaf { };
+        ///
+        /// template<typename T>
+        /// struct Node
+        /// {
+        /// T value;
+        /// Tree<T>* left;
+        /// Tree<T>* right;
+        /// };
+        ///
+        /// template<typename T>
+        /// using Tree = Variant<Leaf, Node<T>>;
+        ///
+        /// A copy-on-write string is either a non-owning reference to some existing
+        /// string, or an owning reference to our copy:
+        ///
+        /// class CopyOnWriteString
+        /// {
+        /// Variant<const char*, UniquePtr<char[]>> string;
+        ///
+        /// ...
+        /// };
+        ///
+        /// Because Variant must be aligned suitable to hold any value stored within it,
+        /// and because |alignas| requirements don't affect platform ABI with respect to
+        /// how parameters are laid out in memory, Variant can't be used as the type of a
+        /// function parameter.  Pass Variant to functions by pointer or reference
+        /// instead.
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct Variant {
+            pub rawData: *mut ::std::os::raw::c_uchar,
+            pub tag: root::mozilla::Variant_Tag,
+        }
+        pub type Variant_Tag = root::mozilla::detail::VariantTag;
+        pub type Variant_Impl = u8;
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct Maybe {
@@ -4394,11 +4865,11 @@ pub mod root {
                 }
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Debug)]
             pub struct FlattenedChildIterator {
                 pub _base: root::mozilla::dom::ExplicitChildIterator,
-                pub mXBLInvolved: bool,
                 pub mOriginalContent: *const root::nsIContent,
+                pub mXBLInvolved: [u8; 2usize],
             }
             #[test]
             fn bindgen_test_layout_FlattenedChildIterator() {
@@ -4414,23 +4885,10 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe {
-                        &(*(::std::ptr::null::<FlattenedChildIterator>())).mXBLInvolved as *const _
-                            as usize
-                    },
-                    40usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(FlattenedChildIterator),
-                        "::",
-                        stringify!(mXBLInvolved)
-                    )
-                );
-                assert_eq!(
-                    unsafe {
                         &(*(::std::ptr::null::<FlattenedChildIterator>())).mOriginalContent
                             as *const _ as usize
                     },
-                    48usize,
+                    40usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(FlattenedChildIterator),
@@ -4438,11 +4896,19 @@ pub mod root {
                         stringify!(mOriginalContent)
                     )
                 );
-            }
-            impl Clone for FlattenedChildIterator {
-                fn clone(&self) -> Self {
-                    *self
-                }
+                assert_eq!(
+                    unsafe {
+                        &(*(::std::ptr::null::<FlattenedChildIterator>())).mXBLInvolved as *const _
+                            as usize
+                    },
+                    48usize,
+                    concat!(
+                        "Offset of field: ",
+                        stringify!(FlattenedChildIterator),
+                        "::",
+                        stringify!(mXBLInvolved)
+                    )
+                );
             }
             /// AllChildrenIterator traverses the children of an element including before /
             /// after content and optionally XBL children.  The iterator can be initialized
@@ -6533,11 +6999,6 @@ pub mod root {
         }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
-        pub struct Encoding {
-            _unused: [u8; 0],
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
         pub struct DOMEventTargetHelper {
             _unused: [u8; 0],
         }
@@ -6668,7 +7129,13 @@ pub mod root {
         pub const UseCounter_eUseCounter_WindowContentUntrusted: root::mozilla::UseCounter = 85;
         pub const UseCounter_eUseCounter_RegisterProtocolHandlerInsecure:
             root::mozilla::UseCounter = 86;
-        pub const UseCounter_eUseCounter_Count: root::mozilla::UseCounter = 87;
+        pub const UseCounter_eUseCounter_MixedDisplayObjectSubrequest: root::mozilla::UseCounter =
+            87;
+        pub const UseCounter_eUseCounter_MotionEvent: root::mozilla::UseCounter = 88;
+        pub const UseCounter_eUseCounter_OrientationEvent: root::mozilla::UseCounter = 89;
+        pub const UseCounter_eUseCounter_ProximityEvent: root::mozilla::UseCounter = 90;
+        pub const UseCounter_eUseCounter_AmbientLightEvent: root::mozilla::UseCounter = 91;
+        pub const UseCounter_eUseCounter_Count: root::mozilla::UseCounter = 92;
         pub type UseCounter = i16;
         pub const LogLevel_Disabled: root::mozilla::LogLevel = 0;
         pub const LogLevel_Error: root::mozilla::LogLevel = 1;
@@ -6790,6 +7257,25 @@ pub mod root {
                 ::std::mem::align_of::<Runnable>(),
                 8usize,
                 concat!("Alignment of ", stringify!(Runnable))
+            );
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct CancelableRunnable {
+            pub _base: root::mozilla::Runnable,
+            pub _base_1: root::nsICancelableRunnable,
+        }
+        #[test]
+        fn bindgen_test_layout_CancelableRunnable() {
+            assert_eq!(
+                ::std::mem::size_of::<CancelableRunnable>(),
+                40usize,
+                concat!("Size of: ", stringify!(CancelableRunnable))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<CancelableRunnable>(),
+                8usize,
+                concat!("Alignment of ", stringify!(CancelableRunnable))
             );
         }
         #[repr(C)]
@@ -7377,6 +7863,83 @@ pub mod root {
                     "Alignment of template specialization: ",
                     stringify!(root::mozilla::StaticRefPtr<root::mozilla::URLExtraData>)
                 )
+            );
+        }
+        /// BlockingResourceBase
+        /// Base class of resources that might block clients trying to acquire them.
+        /// Does debugging and deadlock detection in DEBUG builds.
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct BlockingResourceBase {
+            pub _address: u8,
+        }
+        pub const BlockingResourceBase_BlockingResourceType_eMutex:
+            root::mozilla::BlockingResourceBase_BlockingResourceType = 0;
+        pub const BlockingResourceBase_BlockingResourceType_eReentrantMonitor:
+            root::mozilla::BlockingResourceBase_BlockingResourceType = 1;
+        pub const BlockingResourceBase_BlockingResourceType_eCondVar:
+            root::mozilla::BlockingResourceBase_BlockingResourceType = 2;
+        pub const BlockingResourceBase_BlockingResourceType_eRecursiveMutex:
+            root::mozilla::BlockingResourceBase_BlockingResourceType = 3;
+        pub type BlockingResourceBase_BlockingResourceType = u32;
+        extern "C" {
+            #[link_name = "\u{1}_ZN7mozilla20BlockingResourceBase17kResourceTypeNameE"]
+            pub static mut BlockingResourceBase_kResourceTypeName:
+                [*const ::std::os::raw::c_char; 0usize];
+        }
+        #[test]
+        fn bindgen_test_layout_BlockingResourceBase() {
+            assert_eq!(
+                ::std::mem::size_of::<BlockingResourceBase>(),
+                1usize,
+                concat!("Size of: ", stringify!(BlockingResourceBase))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<BlockingResourceBase>(),
+                1usize,
+                concat!("Alignment of ", stringify!(BlockingResourceBase))
+            );
+        }
+        /// OffTheBooksMutex is identical to Mutex, except that OffTheBooksMutex doesn't
+        /// include leak checking.  Sometimes you want to intentionally "leak" a mutex
+        /// until shutdown; in these cases, OffTheBooksMutex is for you.
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct OffTheBooksMutex {
+            pub _base: root::mozilla::detail::MutexImpl,
+        }
+        #[test]
+        fn bindgen_test_layout_OffTheBooksMutex() {
+            assert_eq!(
+                ::std::mem::size_of::<OffTheBooksMutex>(),
+                40usize,
+                concat!("Size of: ", stringify!(OffTheBooksMutex))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<OffTheBooksMutex>(),
+                8usize,
+                concat!("Alignment of ", stringify!(OffTheBooksMutex))
+            );
+        }
+        /// Mutex
+        /// When possible, use MutexAutoLock/MutexAutoUnlock to lock/unlock this
+        /// mutex within a scope, instead of calling Lock/Unlock directly.
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct Mutex {
+            pub _base: root::mozilla::OffTheBooksMutex,
+        }
+        #[test]
+        fn bindgen_test_layout_Mutex() {
+            assert_eq!(
+                ::std::mem::size_of::<Mutex>(),
+                40usize,
+                concat!("Size of: ", stringify!(Mutex))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<Mutex>(),
+                8usize,
+                concat!("Alignment of ", stringify!(Mutex))
             );
         }
         pub mod image {
@@ -9095,11 +9658,208 @@ pub mod root {
                 )
             );
         }
+        /// CondVar
+        /// Vanilla condition variable.  Please don't use this unless you have a
+        /// compelling reason --- Monitor provides a simpler API.
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct CondVar {
+            pub mLock: *mut root::mozilla::Mutex,
+            pub mImpl: root::mozilla::detail::ConditionVariableImpl,
+        }
+        #[test]
+        fn bindgen_test_layout_CondVar() {
+            assert_eq!(
+                ::std::mem::size_of::<CondVar>(),
+                56usize,
+                concat!("Size of: ", stringify!(CondVar))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<CondVar>(),
+                8usize,
+                concat!("Alignment of ", stringify!(CondVar))
+            );
+            assert_eq!(
+                unsafe { &(*(::std::ptr::null::<CondVar>())).mLock as *const _ as usize },
+                0usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(CondVar),
+                    "::",
+                    stringify!(mLock)
+                )
+            );
+            assert_eq!(
+                unsafe { &(*(::std::ptr::null::<CondVar>())).mImpl as *const _ as usize },
+                8usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(CondVar),
+                    "::",
+                    stringify!(mImpl)
+                )
+            );
+        }
+        /// Monitor provides a *non*-reentrant monitor: *not* a Java-style
+        /// monitor.  If your code needs support for reentrancy, use
+        /// ReentrantMonitor instead.  (Rarely should reentrancy be needed.)
+        ///
+        /// Instead of directly calling Monitor methods, it's safer and simpler
+        /// to instead use the RAII wrappers MonitorAutoLock and
+        /// MonitorAutoUnlock.
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct Monitor {
+            pub mMutex: root::mozilla::Mutex,
+            pub mCondVar: root::mozilla::CondVar,
+        }
+        #[test]
+        fn bindgen_test_layout_Monitor() {
+            assert_eq!(
+                ::std::mem::size_of::<Monitor>(),
+                96usize,
+                concat!("Size of: ", stringify!(Monitor))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<Monitor>(),
+                8usize,
+                concat!("Alignment of ", stringify!(Monitor))
+            );
+            assert_eq!(
+                unsafe { &(*(::std::ptr::null::<Monitor>())).mMutex as *const _ as usize },
+                0usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(Monitor),
+                    "::",
+                    stringify!(mMutex)
+                )
+            );
+            assert_eq!(
+                unsafe { &(*(::std::ptr::null::<Monitor>())).mCondVar as *const _ as usize },
+                40usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(Monitor),
+                    "::",
+                    stringify!(mCondVar)
+                )
+            );
+        }
+        #[repr(C)]
+        pub struct MozPromiseRefcountable__bindgen_vtable(::std::os::raw::c_void);
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromiseRefcountable {
+            pub vtable_: *const MozPromiseRefcountable__bindgen_vtable,
+            pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
+        }
+        pub type MozPromiseRefcountable_HasThreadSafeRefCnt = root::mozilla::TrueType;
+        #[test]
+        fn bindgen_test_layout_MozPromiseRefcountable() {
+            assert_eq!(
+                ::std::mem::size_of::<MozPromiseRefcountable>(),
+                16usize,
+                concat!("Size of: ", stringify!(MozPromiseRefcountable))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<MozPromiseRefcountable>(),
+                8usize,
+                concat!("Alignment of ", stringify!(MozPromiseRefcountable))
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<MozPromiseRefcountable>())).mRefCnt as *const _ as usize
+                },
+                8usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(MozPromiseRefcountable),
+                    "::",
+                    stringify!(mRefCnt)
+                )
+            );
+        }
+        pub type MozPromise_ResolveValueType<ResolveValueT> = ResolveValueT;
+        pub type MozPromise_RejectValueType<RejectValueT> = RejectValueT;
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromise_ResolveOrRejectValue {
+            pub mValue: root::mozilla::MozPromise_ResolveOrRejectValue_Storage,
+        }
+        pub const MozPromise_ResolveOrRejectValue_NothingIndex:
+            root::mozilla::MozPromise_ResolveOrRejectValue__bindgen_ty_1 = 0;
+        pub const MozPromise_ResolveOrRejectValue_ResolveIndex:
+            root::mozilla::MozPromise_ResolveOrRejectValue__bindgen_ty_1 = 0;
+        pub const MozPromise_ResolveOrRejectValue_RejectIndex:
+            root::mozilla::MozPromise_ResolveOrRejectValue__bindgen_ty_1 = 0;
+        pub type MozPromise_ResolveOrRejectValue__bindgen_ty_1 = i32;
+        pub type MozPromise_ResolveOrRejectValue_Storage = root::mozilla::Variant;
+        pub type MozPromise_AllPromiseType = u8;
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromise_AllPromiseHolder {
+            pub _base: root::mozilla::MozPromiseRefcountable,
+            pub mResolveValues: u8,
+            pub mPromise: root::RefPtr<root::mozilla::MozPromise_AllPromiseType>,
+            pub mOutstandingPromises: usize,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromise_Request {
+            pub _base: root::mozilla::MozPromiseRefcountable,
+            pub mComplete: bool,
+            pub mDisconnected: bool,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromise_ThenValueBase {
+            pub _base: root::mozilla::MozPromise_Request,
+            pub mResponseTarget: root::nsCOMPtr,
+            pub mMagic1: u32,
+            pub mCallSite: *const ::std::os::raw::c_char,
+            pub mMagic2: u32,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromise_ThenValueBase_ResolveOrRejectRunnable {
+            pub _base: root::mozilla::CancelableRunnable,
+            pub mThenValue: root::RefPtr<root::mozilla::MozPromise_ThenValueBase>,
+            pub mPromise: u8,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct MozPromise_ThenValue {
+            pub _address: u8,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromise_ThenCommand<ThenValueType> {
+            pub mCallSite: *const ::std::os::raw::c_char,
+            pub mThenValue: root::RefPtr<ThenValueType>,
+            pub mReceiver: u8,
+            pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<ThenValueType>>,
+        }
+        pub type MozPromise_ThenCommand_PromiseType = [u8; 0usize];
+        pub type MozPromise_ThenCommand_Private = [u8; 0usize];
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromise_Private {
+            pub _base: u8,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct MozPromiseHolder<PromiseType> {
+            pub mMonitor: *mut root::mozilla::Monitor,
+            pub mPromise: root::RefPtr<PromiseType>,
+            pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<PromiseType>>,
+        }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct ServoCSSRuleList {
             _unused: [u8; 0],
         }
+        pub type StyleSheetParsePromise = [u64; 16usize];
         #[repr(C)]
         pub struct ServoStyleSheetInner {
             pub _base: root::mozilla::StyleSheetInfo,
@@ -9147,6 +9907,8 @@ pub mod root {
         pub struct ServoStyleSheet {
             pub _base: root::mozilla::StyleSheet,
             pub mRuleList: root::RefPtr<root::mozilla::ServoCSSRuleList>,
+            pub mParsePromise:
+                root::mozilla::MozPromiseHolder<root::mozilla::StyleSheetParsePromise>,
         }
         #[repr(C)]
         #[derive(Debug, Copy)]
@@ -9185,7 +9947,7 @@ pub mod root {
         fn bindgen_test_layout_ServoStyleSheet() {
             assert_eq!(
                 ::std::mem::size_of::<ServoStyleSheet>(),
-                136usize,
+                152usize,
                 concat!("Size of: ", stringify!(ServoStyleSheet))
             );
             assert_eq!(
@@ -9203,6 +9965,18 @@ pub mod root {
                     stringify!(ServoStyleSheet),
                     "::",
                     stringify!(mRuleList)
+                )
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoStyleSheet>())).mParsePromise as *const _ as usize
+                },
+                136usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoStyleSheet),
+                    "::",
+                    stringify!(mParsePromise)
                 )
             );
         }
@@ -9279,6 +10053,309 @@ pub mod root {
                     "::",
                     stringify!(mReferrerPolicy)
                 )
+            );
+        }
+        /// An encoding as defined in the Encoding Standard
+        /// (https://encoding.spec.whatwg.org/).
+        ///
+        /// See https://docs.rs/encoding_rs/ for the Rust API docs.
+        ///
+        /// An _encoding_ defines a mapping from a byte sequence to a Unicode code point
+        /// sequence and, in most cases, vice versa. Each encoding has a name, an output
+        /// encoding, and one or more labels.
+        ///
+        /// _Labels_ are ASCII-case-insensitive strings that are used to identify an
+        /// encoding in formats and protocols. The _name_ of the encoding is the
+        /// preferred label in the case appropriate for returning from the
+        /// `characterSet` property of the `Document` DOM interface, except for
+        /// the replacement encoding whose name is not one of its labels.
+        ///
+        /// The _output encoding_ is the encoding used for form submission and URL
+        /// parsing on Web pages in the encoding. This is UTF-8 for the replacement,
+        /// UTF-16LE and UTF-16BE encodings and the encoding itself for other
+        /// encodings.
+        ///
+        /// # Streaming vs. Non-Streaming
+        ///
+        /// When you have the entire input in a single buffer, you can use the
+        /// methods `Decode()`, `DecodeWithBOMRemoval()`,
+        /// `DecodeWithoutBOMHandling()`,
+        /// `DecodeWithoutBOMHandlingAndWithoutReplacement()` and
+        /// `Encode()`. Unlike the rest of the API (apart from the `NewDecoder()` and
+        /// NewEncoder()` methods), these methods perform heap allocations. You should
+        /// the `Decoder` and `Encoder` objects when your input is split into multiple
+        /// buffers or when you want to control the allocation of the output buffers.
+        ///
+        /// # Instances
+        ///
+        /// All instances of `Encoding` are statically allocated and have the process's
+        /// lifetime. There is precisely one unique `Encoding` instance for each
+        /// encoding defined in the Encoding Standard.
+        ///
+        /// To obtain a reference to a particular encoding whose identity you know at
+        /// compile time, use a `static` that refers to encoding. There is a `static`
+        /// for each encoding. The `static`s are named in all caps with hyphens
+        /// replaced with underscores and with `_ENCODING` appended to the
+        /// name. For example, if you know at compile time that you will want to
+        /// decode using the UTF-8 encoding, use the `UTF_8_ENCODING` `static`.
+        ///
+        /// If you don't know what encoding you need at compile time and need to
+        /// dynamically get an encoding by label, use `Encoding::for_label()`.
+        ///
+        /// Pointers to `Encoding` can be compared with `==` to check for the sameness
+        /// of two encodings.
+        ///
+        /// A pointer to a `mozilla::Encoding` in C++ is the same thing as a pointer
+        /// to an `encoding_rs::Encoding` in Rust. When writing FFI code, use
+        /// `const mozilla::Encoding*` in the C signature and
+        /// `*const encoding_rs::Encoding` is the corresponding Rust signature.
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct Encoding {
+            pub _address: u8,
+        }
+        #[test]
+        fn bindgen_test_layout_Encoding() {
+            assert_eq!(
+                ::std::mem::size_of::<Encoding>(),
+                1usize,
+                concat!("Size of: ", stringify!(Encoding))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<Encoding>(),
+                1usize,
+                concat!("Alignment of ", stringify!(Encoding))
+            );
+        }
+        /// A converter that decodes a byte stream into Unicode according to a
+        /// character encoding in a streaming (incremental) manner.
+        ///
+        /// The various `Decode*` methods take an input buffer (`aSrc`) and an output
+        /// buffer `aDst` both of which are caller-allocated. There are variants for
+        /// both UTF-8 and UTF-16 output buffers.
+        ///
+        /// A `Decode*` method decodes bytes from `aSrc` into Unicode characters stored
+        /// into `aDst` until one of the following three things happens:
+        ///
+        /// 1. A malformed byte sequence is encountered (`*WithoutReplacement`
+        /// variants only).
+        ///
+        /// 2. The output buffer has been filled so near capacity that the decoder
+        /// cannot be sure that processing an additional byte of input wouldn't
+        /// cause so much output that the output buffer would overflow.
+        ///
+        /// 3. All the input bytes have been processed.
+        ///
+        /// The `Decode*` method then returns tuple of a status indicating which one
+        /// of the three reasons to return happened, how many input bytes were read,
+        /// how many output code units (`uint8_t` when decoding into UTF-8 and `char16_t`
+        /// when decoding to UTF-16) were written, and in the case of the
+        /// variants performing replacement, a boolean indicating whether an error was
+        /// replaced with the REPLACEMENT CHARACTER during the call.
+        ///
+        /// The number of bytes "written" is what's logically written. Garbage may be
+        /// written in the output buffer beyond the point logically written to.
+        ///
+        /// In the case of the `*WithoutReplacement` variants, the status is a
+        /// `uint32_t` whose possible values are packed info about a malformed byte
+        /// sequence, `kOutputFull` and `kInputEmpty` corresponding to the three cases
+        /// listed above).
+        ///
+        /// Packed info about malformed sequences has the following format:
+        /// The lowest 8 bits, which can have the decimal value 0, 1, 2 or 3,
+        /// indicate the number of bytes that were consumed after the malformed
+        /// sequence and whose next-lowest 8 bits, when shifted right by 8 indicate
+        /// the length of the malformed byte sequence (possible decimal values 1, 2,
+        /// 3 or 4). The maximum possible sum of the two is 6.
+        ///
+        /// In the case of methods whose name does not end with
+        /// `*WithoutReplacement`, malformed sequences are automatically replaced
+        /// with the REPLACEMENT CHARACTER and errors do not cause the methods to
+        /// return early.
+        ///
+        /// When decoding to UTF-8, the output buffer must have at least 4 bytes of
+        /// space. When decoding to UTF-16, the output buffer must have at least two
+        /// UTF-16 code units (`char16_t`) of space.
+        ///
+        /// When decoding to UTF-8 without replacement, the methods are guaranteed
+        /// not to return indicating that more output space is needed if the length
+        /// of the output buffer is at least the length returned by
+        /// `MaxUTF8BufferLengthWithoutReplacement()`. When decoding to UTF-8
+        /// with replacement, the length of the output buffer that guarantees the
+        /// methods not to return indicating that more output space is needed is given
+        /// by `MaxUTF8BufferLength()`. When decoding to UTF-16 with
+        /// or without replacement, the length of the output buffer that guarantees
+        /// the methods not to return indicating that more output space is needed is
+        /// given by `MaxUTF16BufferLength()`.
+        ///
+        /// The output written into `aDst` is guaranteed to be valid UTF-8 or UTF-16,
+        /// and the output after each `Decode*` call is guaranteed to consist of
+        /// complete characters. (I.e. the code unit sequence for the last character is
+        /// guaranteed not to be split across output buffers.)
+        ///
+        /// The boolean argument `aLast` indicates that the end of the stream is reached
+        /// when all the bytes in `aSrc` have been consumed.
+        ///
+        /// A `Decoder` object can be used to incrementally decode a byte stream.
+        ///
+        /// During the processing of a single stream, the caller must call `Decode*`
+        /// zero or more times with `aLast` set to `false` and then call `Decode*` at
+        /// least once with `aLast` set to `true`. If `Decode*` returns `kInputEmpty`,
+        /// the processing of the stream has ended. Otherwise, the caller must call
+        /// `Decode*` again with `aLast` set to `true` (or treat a malformed result,
+        /// i.e. neither `kInputEmpty` nor `kOutputFull`, as a fatal error).
+        ///
+        /// Once the stream has ended, the `Decoder` object must not be used anymore.
+        /// That is, you need to create another one to process another stream.
+        ///
+        /// When the decoder returns `kOutputFull` or the decoder returns a malformed
+        /// result and the caller does not wish to treat it as a fatal error, the input
+        /// buffer `aSrc` may not have been completely consumed. In that case, the caller
+        /// must pass the unconsumed contents of `aSrc` to `Decode*` again upon the next
+        /// call.
+        ///
+        /// # Infinite loops
+        ///
+        /// When converting with a fixed-size output buffer whose size is too small to
+        /// accommodate one character of output, an infinite loop ensues. When
+        /// converting with a fixed-size output buffer, it generally makes sense to
+        /// make the buffer fairly large (e.g. couple of kilobytes).
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct Decoder {
+            pub _address: u8,
+        }
+        #[test]
+        fn bindgen_test_layout_Decoder() {
+            assert_eq!(
+                ::std::mem::size_of::<Decoder>(),
+                1usize,
+                concat!("Size of: ", stringify!(Decoder))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<Decoder>(),
+                1usize,
+                concat!("Alignment of ", stringify!(Decoder))
+            );
+        }
+        /// A converter that encodes a Unicode stream into bytes according to a
+        /// character encoding in a streaming (incremental) manner.
+        ///
+        /// The various `Encode*` methods take an input buffer (`aSrc`) and an output
+        /// buffer `aDst` both of which are caller-allocated. There are variants for
+        /// both UTF-8 and UTF-16 input buffers.
+        ///
+        /// An `Encode*` method encode characters from `aSrc` into bytes characters
+        /// stored into `aDst` until one of the following three things happens:
+        ///
+        /// 1. An unmappable character is encountered (`*WithoutReplacement` variants
+        /// only).
+        ///
+        /// 2. The output buffer has been filled so near capacity that the decoder
+        /// cannot be sure that processing an additional character of input wouldn't
+        /// cause so much output that the output buffer would overflow.
+        ///
+        /// 3. All the input characters have been processed.
+        ///
+        /// The `Encode*` method then returns tuple of a status indicating which one
+        /// of the three reasons to return happened, how many input code units (`uint8_t`
+        /// when encoding from UTF-8 and `char16_t` when encoding from UTF-16) were read,
+        /// how many output bytes were written, and in the case of the variants that
+        /// perform replacement, a boolean indicating whether an unmappable
+        /// character was replaced with a numeric character reference during the call.
+        ///
+        /// The number of bytes "written" is what's logically written. Garbage may be
+        /// written in the output buffer beyond the point logically written to.
+        ///
+        /// In the case of the methods whose name ends with
+        /// `*WithoutReplacement`, the status is a `uint32_t` whose possible values
+        /// are an unmappable code point, `kOutputFull` and `kInputEmpty` corresponding
+        /// to the three cases listed above).
+        ///
+        /// In the case of methods whose name does not end with
+        /// `*WithoutReplacement`, unmappable characters are automatically replaced
+        /// with the corresponding numeric character references and unmappable
+        /// characters do not cause the methods to return early.
+        ///
+        /// When encoding from UTF-8 without replacement, the methods are guaranteed
+        /// not to return indicating that more output space is needed if the length
+        /// of the output buffer is at least the length returned by
+        /// `MaxBufferLengthFromUTF8WithoutReplacement()`. When encoding from
+        /// UTF-8 with replacement, the length of the output buffer that guarantees the
+        /// methods not to return indicating that more output space is needed in the
+        /// absence of unmappable characters is given by
+        /// `MaxBufferLengthFromUTF8IfNoUnmappables()`. When encoding from
+        /// UTF-16 without replacement, the methods are guaranteed not to return
+        /// indicating that more output space is needed if the length of the output
+        /// buffer is at least the length returned by
+        /// `MaxBufferLengthFromUTF16WithoutReplacement()`. When encoding
+        /// from UTF-16 with replacement, the the length of the output buffer that
+        /// guarantees the methods not to return indicating that more output space is
+        /// needed in the absence of unmappable characters is given by
+        /// `MaxBufferLengthFromUTF16IfNoUnmappables()`.
+        /// When encoding with replacement, applications are not expected to size the
+        /// buffer for the worst case ahead of time but to resize the buffer if there
+        /// are unmappable characters. This is why max length queries are only available
+        /// for the case where there are no unmappable characters.
+        ///
+        /// When encoding from UTF-8, each `aSrc` buffer _must_ be valid UTF-8. When
+        /// encoding from UTF-16, unpaired surrogates in the input are treated as U+FFFD
+        /// REPLACEMENT CHARACTERS. Therefore, in order for astral characters not to
+        /// turn into a pair of REPLACEMENT CHARACTERS, the caller must ensure that
+        /// surrogate pairs are not split across input buffer boundaries.
+        ///
+        /// After an `Encode*` call returns, the output produced so far, taken as a
+        /// whole from the start of the stream, is guaranteed to consist of a valid
+        /// byte sequence in the target encoding. (I.e. the code unit sequence for a
+        /// character is guaranteed not to be split across output buffers. However, due
+        /// to the stateful nature of ISO-2022-JP, the stream needs to be considered
+        /// from the start for it to be valid. For other encodings, the validity holds
+        /// on a per-output buffer basis.)
+        ///
+        /// The boolean argument `aLast` indicates that the end of the stream is reached
+        /// when all the characters in `aSrc` have been consumed. This argument is needed
+        /// for ISO-2022-JP and is ignored for other encodings.
+        ///
+        /// An `Encoder` object can be used to incrementally encode a byte stream.
+        ///
+        /// During the processing of a single stream, the caller must call `Encode*`
+        /// zero or more times with `aLast` set to `false` and then call `Encode*` at
+        /// least once with `aLast` set to `true`. If `Encode*` returns `kInputEmpty`,
+        /// the processing of the stream has ended. Otherwise, the caller must call
+        /// `Encode*` again with `aLast` set to `true` (or treat an unmappable result,
+        /// i.e. neither `kInputEmpty` nor `kOutputFull`, as a fatal error).
+        ///
+        /// Once the stream has ended, the `Encoder` object must not be used anymore.
+        /// That is, you need to create another one to process another stream.
+        ///
+        /// When the encoder returns `kOutputFull` or the encoder returns an unmappable
+        /// result and the caller does not wish to treat it as a fatal error, the input
+        /// buffer `aSrc` may not have been completely consumed. In that case, the caller
+        /// must pass the unconsumed contents of `aSrc` to `Encode*` again upon the next
+        /// call.
+        ///
+        /// # Infinite loops
+        ///
+        /// When converting with a fixed-size output buffer whose size is too small to
+        /// accommodate one character of output, an infinite loop ensues. When
+        /// converting with a fixed-size output buffer, it generally makes sense to
+        /// make the buffer fairly large (e.g. couple of kilobytes).
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct Encoder {
+            pub _address: u8,
+        }
+        #[test]
+        fn bindgen_test_layout_Encoder() {
+            assert_eq!(
+                ::std::mem::size_of::<Encoder>(),
+                1usize,
+                concat!("Size of: ", stringify!(Encoder))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<Encoder>(),
+                1usize,
+                concat!("Alignment of ", stringify!(Encoder))
             );
         }
         #[repr(C)]
@@ -12768,7 +13845,6 @@ pub mod root {
         NS_ERROR_UC_UPDATE_TABLE_NOT_FOUND = 2154758152,
         NS_ERROR_UC_UPDATE_BUILD_PREFIX_FAILURE = 2154758153,
         NS_ERROR_UC_UPDATE_FAIL_TO_WRITE_DISK = 2154758154,
-        NS_ERROR_UC_UPDATE_PROTOCOL_PARSER_ERROR = 2154758155,
         NS_ERROR_UC_PARSER_MISSING_PARAM = 2154758156,
         NS_ERROR_UC_PARSER_DECODE_FAILURE = 2154758157,
         NS_ERROR_UC_PARSER_UNKNOWN_THREAT = 2154758158,
@@ -21004,6 +22080,29 @@ pub mod root {
         }
     }
     #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsICancelableRunnable {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsICancelableRunnable_COMTypeInfo {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_nsICancelableRunnable() {
+        assert_eq!(
+            ::std::mem::size_of::<nsICancelableRunnable>(),
+            8usize,
+            concat!("Size of: ", stringify!(nsICancelableRunnable))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsICancelableRunnable>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsICancelableRunnable))
+        );
+    }
+    #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsINamed {
         pub _base: root::nsISupports,
@@ -21027,6 +22126,34 @@ pub mod root {
         );
     }
     impl Clone for nsINamed {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsISerialEventTarget {
+        pub _base: root::nsIEventTarget,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsISerialEventTarget_COMTypeInfo {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_nsISerialEventTarget() {
+        assert_eq!(
+            ::std::mem::size_of::<nsISerialEventTarget>(),
+            16usize,
+            concat!("Size of: ", stringify!(nsISerialEventTarget))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsISerialEventTarget>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsISerialEventTarget))
+        );
+    }
+    impl Clone for nsISerialEventTarget {
         fn clone(&self) -> Self {
             *self
         }
@@ -22122,7 +23249,7 @@ pub mod root {
         pub mStyleAttrStyleSheet: root::RefPtr<root::nsHTMLCSSStyleSheet>,
         pub mImageTracker: root::RefPtr<root::mozilla::dom::ImageTracker>,
         pub mActivityObservers: u64,
-        pub mLinksToUpdate: [u64; 3usize],
+        pub mLinksToUpdate: root::nsIDocument_LinksToUpdateList,
         pub mAnimationController: root::RefPtr<root::nsSMILAnimationController>,
         pub mPropertyTable: root::nsPropertyTable,
         pub mExtraPropertyTables: root::nsTArray<root::nsAutoPtr<root::nsPropertyTable>>,
@@ -22139,9 +23266,6 @@ pub mod root {
         pub mType: root::nsIDocument_Type,
         pub mDefaultElementType: u8,
         pub mAllowXULXBL: root::nsIDocument_Tri,
-        /// This is true while FlushPendingLinkUpdates executes.  Calls to
-        /// [Un]RegisterPendingLinkUpdate will assert when this is true.
-        pub mIsLinkUpdateRegistrationsForbidden: bool,
         pub mScriptGlobalObject: root::nsCOMPtr,
         pub mOriginalDocument: root::nsCOMPtr,
         pub mBidiOptions: u32,
@@ -22577,8 +23701,18 @@ pub mod root {
         root::nsIDocument_DeprecatedOperations = 30;
     pub const nsIDocument_DeprecatedOperations_eRegisterProtocolHandlerInsecure:
         root::nsIDocument_DeprecatedOperations = 31;
-    pub const nsIDocument_DeprecatedOperations_eDeprecatedOperationCount:
+    pub const nsIDocument_DeprecatedOperations_eMixedDisplayObjectSubrequest:
         root::nsIDocument_DeprecatedOperations = 32;
+    pub const nsIDocument_DeprecatedOperations_eMotionEvent:
+        root::nsIDocument_DeprecatedOperations = 33;
+    pub const nsIDocument_DeprecatedOperations_eOrientationEvent:
+        root::nsIDocument_DeprecatedOperations = 34;
+    pub const nsIDocument_DeprecatedOperations_eProximityEvent:
+        root::nsIDocument_DeprecatedOperations = 35;
+    pub const nsIDocument_DeprecatedOperations_eAmbientLightEvent:
+        root::nsIDocument_DeprecatedOperations = 36;
+    pub const nsIDocument_DeprecatedOperations_eDeprecatedOperationCount:
+        root::nsIDocument_DeprecatedOperations = 37;
     pub type nsIDocument_DeprecatedOperations = u32;
     pub const nsIDocument_DocumentWarnings_eIgnoringWillChangeOverBudget:
         root::nsIDocument_DocumentWarnings = 0;
@@ -22597,6 +23731,7 @@ pub mod root {
     pub const nsIDocument_ElementCallbackType_eAttributeChanged:
         root::nsIDocument_ElementCallbackType = 3;
     pub type nsIDocument_ElementCallbackType = u32;
+    pub type nsIDocument_LinksToUpdateList = [u64; 3usize];
     pub const nsIDocument_eScopedStyle_Unknown: root::nsIDocument__bindgen_ty_1 = 0;
     pub const nsIDocument_eScopedStyle_Disabled: root::nsIDocument__bindgen_ty_1 = 1;
     pub const nsIDocument_eScopedStyle_Enabled: root::nsIDocument__bindgen_ty_1 = 2;
@@ -22625,7 +23760,7 @@ pub mod root {
     fn bindgen_test_layout_nsIDocument() {
         assert_eq!(
             ::std::mem::size_of::<nsIDocument>(),
-            936usize,
+            928usize,
             concat!("Size of: ", stringify!(nsIDocument))
         );
         assert_eq!(
@@ -22845,22 +23980,22 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn mHasLinksToUpdate(&self) -> bool {
+        pub fn mHasLinksToUpdateRunnable(&self) -> bool {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(19usize, 1u8) as u8) }
         }
         #[inline]
-        pub fn set_mHasLinksToUpdate(&mut self, val: bool) {
+        pub fn set_mHasLinksToUpdateRunnable(&mut self, val: bool) {
             unsafe {
                 let val: u8 = ::std::mem::transmute(val);
                 self._bitfield_1.set(19usize, 1u8, val as u64)
             }
         }
         #[inline]
-        pub fn mHasLinksToUpdateRunnable(&self) -> bool {
+        pub fn mFlushingPendingLinkUpdates(&self) -> bool {
             unsafe { ::std::mem::transmute(self._bitfield_1.get(20usize, 1u8) as u8) }
         }
         #[inline]
-        pub fn set_mHasLinksToUpdateRunnable(&mut self, val: bool) {
+        pub fn set_mFlushingPendingLinkUpdates(&mut self, val: bool) {
             unsafe {
                 let val: u8 = ::std::mem::transmute(val);
                 self._bitfield_1.set(20usize, 1u8, val as u64)
@@ -23250,8 +24385,8 @@ pub mod root {
             mHasHadScriptHandlingObject: bool,
             mIsBeingUsedAsImage: bool,
             mIsSyntheticDocument: bool,
-            mHasLinksToUpdate: bool,
             mHasLinksToUpdateRunnable: bool,
+            mFlushingPendingLinkUpdates: bool,
             mMayHaveDOMMutationObservers: bool,
             mMayHaveAnimationObservers: bool,
             mHasMixedActiveContentLoaded: bool,
@@ -23376,13 +24511,14 @@ pub mod root {
                 mIsSyntheticDocument as u64
             });
             __bindgen_bitfield_unit.set(19usize, 1u8, {
-                let mHasLinksToUpdate: u8 = unsafe { ::std::mem::transmute(mHasLinksToUpdate) };
-                mHasLinksToUpdate as u64
-            });
-            __bindgen_bitfield_unit.set(20usize, 1u8, {
                 let mHasLinksToUpdateRunnable: u8 =
                     unsafe { ::std::mem::transmute(mHasLinksToUpdateRunnable) };
                 mHasLinksToUpdateRunnable as u64
+            });
+            __bindgen_bitfield_unit.set(20usize, 1u8, {
+                let mFlushingPendingLinkUpdates: u8 =
+                    unsafe { ::std::mem::transmute(mFlushingPendingLinkUpdates) };
+                mFlushingPendingLinkUpdates as u64
             });
             __bindgen_bitfield_unit.set(21usize, 1u8, {
                 let mMayHaveDOMMutationObservers: u8 =
@@ -35671,6 +36807,67 @@ pub mod root {
         _unused: [u8; 0],
     }
     #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIStyleSheetLinkingElement {
+        _unused: [u8; 0],
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIUnicharStreamLoaderObserver {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIUnicharStreamLoaderObserver_COMTypeInfo {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIUnicharStreamLoaderObserver() {
+        assert_eq!(
+            ::std::mem::size_of::<nsIUnicharStreamLoaderObserver>(),
+            8usize,
+            concat!("Size of: ", stringify!(nsIUnicharStreamLoaderObserver))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsIUnicharStreamLoaderObserver>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsIUnicharStreamLoaderObserver))
+        );
+    }
+    impl Clone for nsIUnicharStreamLoaderObserver {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIThreadObserver {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIThreadObserver_COMTypeInfo {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIThreadObserver() {
+        assert_eq!(
+            ::std::mem::size_of::<nsIThreadObserver>(),
+            8usize,
+            concat!("Size of: ", stringify!(nsIThreadObserver))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsIThreadObserver>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsIThreadObserver))
+        );
+    }
+    impl Clone for nsIThreadObserver {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    #[repr(C)]
     #[derive(Debug)]
     pub struct nsAttrName {
         pub mBits: usize,
@@ -37255,17 +38452,15 @@ pub mod root {
     }
     pub const GECKO_IS_NIGHTLY: bool = true;
     #[repr(C)]
-    #[derive(Debug, Copy)]
     pub struct ServoBundledURI {
-        pub mURLString: *const u8,
-        pub mURLStringLength: u32,
+        pub mURLString: ::gecko_bindings::structs::ServoRawOffsetArc<root::RustString>,
         pub mExtraData: *mut root::mozilla::URLExtraData,
     }
     #[test]
     fn bindgen_test_layout_ServoBundledURI() {
         assert_eq!(
             ::std::mem::size_of::<ServoBundledURI>(),
-            24usize,
+            16usize,
             concat!("Size of: ", stringify!(ServoBundledURI))
         );
         assert_eq!(
@@ -37284,20 +38479,8 @@ pub mod root {
             )
         );
         assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<ServoBundledURI>())).mURLStringLength as *const _ as usize
-            },
-            8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(ServoBundledURI),
-                "::",
-                stringify!(mURLStringLength)
-            )
-        );
-        assert_eq!(
             unsafe { &(*(::std::ptr::null::<ServoBundledURI>())).mExtraData as *const _ as usize },
-            16usize,
+            8usize,
             concat!(
                 "Offset of field: ",
                 stringify!(ServoBundledURI),
@@ -37305,11 +38488,6 @@ pub mod root {
                 stringify!(mExtraData)
             )
         );
-    }
-    impl Clone for ServoBundledURI {
-        fn clone(&self) -> Self {
-            *self
-        }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -44532,6 +45710,25 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsISerialEventTarget_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_RefPtr_open0_RawServoStyleSheetContents_close0_instantiation() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::RawServoStyleSheetContents>>(),
@@ -44585,6 +45782,29 @@ pub mod root {
             concat!(
                 "Alignment of template specialization: ",
                 stringify!(root::RefPtr<root::mozilla::ServoCSSRuleList>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_MozPromiseHolder_open0_StyleSheetParsePromise_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<
+                root::mozilla::MozPromiseHolder<root::mozilla::StyleSheetParsePromise>,
+            >(),
+            16usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::MozPromiseHolder<root::mozilla::StyleSheetParsePromise>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<
+                root::mozilla::MozPromiseHolder<root::mozilla::StyleSheetParsePromise>,
+            >(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::MozPromiseHolder<root::mozilla::StyleSheetParsePromise>)
             )
         );
     }
@@ -44653,6 +45873,25 @@ pub mod root {
         assert_eq ! ( :: std :: mem :: align_of :: < root :: nsTArray < root :: RefPtr < root :: mozilla :: css :: SheetLoadData > > > ( ) , 8usize , concat ! ( "Alignment of template specialization: " , stringify ! ( root :: nsTArray < root :: RefPtr < root :: mozilla :: css :: SheetLoadData > > ) ) );
     }
     #[test]
+    fn __bindgen_test_layout_RefPtr_open0_SheetLoadData_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::css::SheetLoadData>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::css::SheetLoadData>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::css::SheetLoadData>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::css::SheetLoadData>)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_RefPtr_open0_StyleSheet_close0_instantiation_5() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::mozilla::StyleSheet>>(),
@@ -44691,6 +45930,25 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsICSSLoaderObserver_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_RefPtr_open0_DocGroup_close0_instantiation_2() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DocGroup>>(),
@@ -44711,6 +45969,314 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIConsoleReportCollector_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_Decoder_DefaultDelete_open1_Decoder_close1_close0_instantiation(
+) {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::mozilla::Decoder>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Decoder>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::mozilla::Decoder>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Decoder>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_Decoder_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_Decoder_DefaultDelete_open1_Decoder_close1_close0_instantiation_1(
+) {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::mozilla::Decoder>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Decoder>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::mozilla::Decoder>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Decoder>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_Decoder_close0_instantiation_1() {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_Decoder_DefaultDelete_open1_Decoder_close1_close0_instantiation_2(
+) {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::mozilla::Decoder>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Decoder>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::mozilla::Decoder>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Decoder>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_Decoder_close0_instantiation_2() {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_Encoder_DefaultDelete_open1_Encoder_close1_close0_instantiation(
+) {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::UniquePtr<root::mozilla::Encoder>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Encoder>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::UniquePtr<root::mozilla::Encoder>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::UniquePtr<root::mozilla::Encoder>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_Encoder_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::mozilla::DefaultDelete>(),
+            1usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_Loader_close0_instantiation_1() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::css::Loader>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::css::Loader>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::css::Loader>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::css::Loader>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_17() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_StyleSheet_close0_instantiation_6() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::StyleSheet>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::StyleSheet>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::StyleSheet>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::StyleSheet>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_SheetLoadData_close0_instantiation_1() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::css::SheetLoadData>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::css::SheetLoadData>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::css::SheetLoadData>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::mozilla::css::SheetLoadData>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIStyleSheetLinkingElement_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsICSSLoaderObserver_close0_instantiation_1() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_7() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsINode_close0_instantiation_1() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -45382,7 +46948,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_17() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_18() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
