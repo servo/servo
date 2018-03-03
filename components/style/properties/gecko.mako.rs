@@ -4766,15 +4766,17 @@ fn static_assert() {
 
         if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8 {
             return T::None;
-        } else if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
+        }
+
+        if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
             return T::String(self.gecko.mTextEmphasisStyleString.to_string());
         }
 
-        let fill = match self.gecko.mTextEmphasisStyle as u32 {
-            structs::NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED => FillMode::Filled,
-            structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN => FillMode::Open,
-            _ => panic!("Unexpected value in style struct for text-emphasis-style property"),
-        };
+        let fill =
+            self.gecko.mTextEmphasisStyle & structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN as u8 == 0;
+
+        let fill = if fill { FillMode::Filled } else { FillMode::Open };
+
         let shape =
             match self.gecko.mTextEmphasisStyle as u32 & !structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN {
                 structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT => ShapeKeyword::Dot,
@@ -4785,10 +4787,7 @@ fn static_assert() {
                 _ => panic!("Unexpected value in style struct for text-emphasis-style property")
             };
 
-        T::Keyword(KeywordValue {
-            fill: fill,
-            shape: shape
-        })
+        T::Keyword(KeywordValue { fill, shape })
     }
 
     ${impl_non_negative_length('_webkit_text_stroke_width',
