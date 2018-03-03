@@ -383,6 +383,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
             return None;
         }
 
+        debug_assert_eq!(self.owner_doc().as_node(), *self, "How?");
         Some(self.owner_doc())
     }
 
