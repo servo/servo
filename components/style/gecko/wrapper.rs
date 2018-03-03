@@ -1068,6 +1068,12 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { slots.mShadowRoot.mRawPtr.as_ref().map(GeckoShadowRoot) }
     }
 
+    #[inline]
+    fn containing_shadow(&self) -> Option<GeckoShadowRoot<'le>> {
+        let slots = self.extended_slots()?;
+        unsafe { slots._base.mContainingShadow.mRawPtr.as_ref().map(GeckoShadowRoot) }
+    }
+
     /// Execute `f` for each anonymous content child element (apart from
     /// ::before and ::after) whose originating element is `self`.
     fn each_anonymous_content_child<F>(&self, mut f: F)

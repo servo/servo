@@ -562,6 +562,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn shadow_root(&self) -> Option<ShadowRoot<'le>> {
         None
     }
+
+    fn containing_shadow(&self) -> Option<ShadowRoot<'le>> {
+        None
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
