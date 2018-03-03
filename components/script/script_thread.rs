@@ -129,6 +129,8 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
+thread_local!(pub static ION_APPLICATION: Cell<Option<(fn()->(), fn(&Document) -> ())>> = Cell::new(None));
+thread_local!(pub static ION_APPLICATION_FRAME_CALLBACK: Cell<Option<fn(&Document) -> ()>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
@@ -544,6 +546,7 @@ impl ScriptThreadFactory for ScriptThread {
     fn create(state: InitialScriptState,
               load_data: LoadData)
               -> (Sender<message::Msg>, Receiver<message::Msg>) {
+        let ion_application = ION_APPLICATION.with(|root| root.get());
         let (script_chan, script_port) = channel();
 
         let (sender, receiver) = channel();
@@ -567,6 +570,12 @@ impl ScriptThreadFactory for ScriptThread {
             SCRIPT_THREAD_ROOT.with(|root| {
                 root.set(Some(&script_thread as *const _));
             });
+
+            if let Some(f) = ion_application {
+                ION_APPLICATION.with(|root| {
+                    root.set(Some(f));
+                });
+            }
 
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 

@@ -13,7 +13,6 @@
 #![feature(splice)]
 #![feature(string_retain)]
 
-#![deny(unsafe_code)]
 #![allow(non_snake_case)]
 
 #![doc = "The script crate contains all matters DOM."]
@@ -65,7 +64,7 @@ extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;
 #[macro_use]
-extern crate mozjs as js;
+pub extern crate mozjs as js;
 extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
@@ -112,7 +111,7 @@ pub mod clipboard_provider;
 mod devtools;
 pub mod document_loader;
 #[macro_use]
-mod dom;
+pub mod dom;
 pub mod fetch;
 mod layout_image;
 mod mem;

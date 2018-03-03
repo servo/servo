@@ -153,6 +153,7 @@ use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use webrender_api;
 use webvr_traits::{WebVREvent, WebVRMsg};
+use script::dom::document::Document;
 
 /// The `Constellation` itself. In the servo browser, there is one
 /// constellation, which maintains all of the browser global data.
@@ -538,15 +539,28 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
 {
+    pub fn set_ion_application(app: (fn()->(), fn(&Document) -> ())) {
+        use script::script_thread::ION_APPLICATION;
+        ION_APPLICATION.with(|root| root.set(Some(app)));
+    }
+
     /// Create a new constellation thread.
     pub fn start(state: InitialConstellationState) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
+        use script::script_thread::ION_APPLICATION;
+
         let (compositor_sender, compositor_receiver) = channel();
 
         // service worker manager to communicate with constellation
         let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
         let sw_mgr_clone = swmanager_sender.clone();
 
+        let ion_application = ION_APPLICATION.with(|root| root.get());
+
         thread::Builder::new().name("Constellation".to_owned()).spawn(move || {
+            if let Some(f) = ion_application {
+                ION_APPLICATION.with(|root| root.set(Some(f)));
+            }
+
             let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
             let script_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_script_receiver);
 

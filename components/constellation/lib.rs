@@ -6,6 +6,7 @@
 #![cfg_attr(feature = "unstable", feature(conservative_impl_trait))]
 #![feature(mpsc_select)]
 
+extern crate script;
 extern crate backtrace;
 extern crate bluetooth_traits;
 extern crate canvas;

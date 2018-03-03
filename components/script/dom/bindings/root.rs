@@ -239,7 +239,8 @@ impl RootCollection {
     unsafe fn unroot(&self, object: *const JSTraceable) {
         debug_assert!(thread_state::get().is_script());
         let roots = &mut *self.roots.get();
-        match roots.iter().rposition(|r| *r == object) {
+        //https://stackoverflow.com/questions/47489449/why-can-comparing-two-seemingly-equal-pointers-with-return-false
+        match roots.iter().rposition(|r| *r as *const () == object as *const ()) {
             Some(idx) => {
                 roots.remove(idx);
             },

@@ -104,6 +104,7 @@ use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use webrender::RendererKind;
 use webvr::{WebVRThread, WebVRCompositorHandler};
+use script::dom::document::Document;
 
 pub use gleam::gl;
 pub use servo_config as config;
@@ -128,7 +129,7 @@ pub struct Servo<Window: WindowMethods + 'static> {
 }
 
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
-    pub fn new(window: Rc<Window>) -> Servo<Window> {
+    pub fn new(window: Rc<Window>, ion_application: Option<(fn()->(), fn(&Document) -> ())>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -209,6 +210,12 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
         script::init();
+
+        if let Some(f) = ion_application {
+            Constellation::<script_layout_interface::message::Msg,
+                layout_thread::LayoutThread,
+                script::script_thread::ScriptThread>::set_ion_application(f);
+        }
 
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well

@@ -140,6 +140,8 @@ impl VirtualMethods for HTMLBodyElement {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
+        use script_thread::ION_APPLICATION;
+
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
@@ -151,6 +153,14 @@ impl VirtualMethods for HTMLBodyElement {
         let window = window_from_node(self);
         let document = window.Document();
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
+
+        ION_APPLICATION.with(|root| {
+            if let Some((setup, main)) = root.get() {
+                setup();
+                main(&document)
+            }
+        });
+
         let event = ScriptMsg::HeadParsed;
         window.upcast::<GlobalScope>().script_to_constellation_chan().send(event).unwrap();
     }

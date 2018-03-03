@@ -1443,6 +1443,14 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub fn run_the_animation_frame_callbacks(&self) {
+        use script_thread::ION_APPLICATION_FRAME_CALLBACK;
+        // This is a hack. The js in the app html page registers a js listener
+        // to make this trigger
+        ION_APPLICATION_FRAME_CALLBACK.with(|root| {
+            if let Some(f) = root.get() {
+                f(&self)
+            }
+        });
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
             &mut *animation_frame_list,
