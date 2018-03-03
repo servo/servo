@@ -43,6 +43,7 @@ use std::time;
 use style_traits::DevicePixel;
 use style_traits::cursor::CursorKind;
 use super::NestedEventLoopListener;
+use tinyfiledialogs;
 #[cfg(target_os = "windows")]
 use user32;
 use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
@@ -1321,6 +1322,23 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Reload(browser_id));
                 }
             }
+            (CMD_OR_CONTROL, Some('l'), _) => {
+                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                    let url: String = if let Some(ref url) = *self.current_url.borrow() {
+                        url.to_string()
+                    } else {
+                        String::from("")
+                    };
+                    match tinyfiledialogs::input_box("Search or type URL", "Search or type URL", &url) {
+                        Some(input) => {
+                            if let Some(url) = sanitize_url(&input) {
+                                self.event_queue.borrow_mut().push(WindowEvent::LoadUrl(browser_id, url));
+                            }
+                        }
+                        None => {}
+                    }
+                }
+            }
             (CMD_OR_CONTROL, Some('q'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
@@ -1447,4 +1465,24 @@ fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
     } else {
         None
     }
+}
+
+fn sanitize_url(request: &str) -> Option<ServoUrl> {
+    let request = request.trim();
+    ServoUrl::parse(&request).ok()
+        .or_else(|| {
+            // FIXME(paul): this is way too naive.
+            // We want to know if only the scheme is missing.
+            // See: https://github.com/paulrouget/servoshell/issues/59
+            if request.ends_with(".com") || request.ends_with(".org") || request.ends_with(".net") {
+                ServoUrl::parse(&format!("http://{}", request)).ok()
+            } else {
+                None
+            }
+        }).or_else(|| {
+            PREFS.get("shell.searchpage").as_string().and_then(|s: &str| {
+                let url = s.replace("%s", request);
+                ServoUrl::parse(&url).ok()
+            })
+        })
 }
