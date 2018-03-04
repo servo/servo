@@ -21,6 +21,7 @@ use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use msg::constellation_msg::{self, Key, TopLevelBrowsingContextId as BrowserId};
 use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use net_traits::net_error_list::NetError;
+use net_traits::pub_domains::is_reg_domain;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
 use script_traits::{LoadData, TouchEventType};
@@ -43,6 +44,7 @@ use std::time;
 use style_traits::DevicePixel;
 use style_traits::cursor::CursorKind;
 use super::NestedEventLoopListener;
+use tinyfiledialogs;
 #[cfg(target_os = "windows")]
 use user32;
 use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
@@ -1321,6 +1323,21 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Reload(browser_id));
                 }
             }
+            (CMD_OR_CONTROL, Some('l'), _) => {
+                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                    let url: String = if let Some(ref url) = *self.current_url.borrow() {
+                        url.to_string()
+                    } else {
+                        String::from("")
+                    };
+                    let title = "URL or search query";
+                    if let Some(input) = tinyfiledialogs::input_box(title, title, &url) {
+                        if let Some(url) = sanitize_url(&input) {
+                            self.event_queue.borrow_mut().push(WindowEvent::LoadUrl(browser_id, url));
+                        }
+                    }
+                }
+            }
             (CMD_OR_CONTROL, Some('q'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
@@ -1447,4 +1464,21 @@ fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
     } else {
         None
     }
+}
+
+fn sanitize_url(request: &str) -> Option<ServoUrl> {
+    let request = request.trim();
+    ServoUrl::parse(&request).ok()
+        .or_else(|| {
+            if request.contains('/') || is_reg_domain(request) {
+                ServoUrl::parse(&format!("http://{}", request)).ok()
+            } else {
+                None
+            }
+        }).or_else(|| {
+            PREFS.get("shell.searchpage").as_string().and_then(|s: &str| {
+                let url = s.replace("%s", request);
+                ServoUrl::parse(&url).ok()
+            })
+        })
 }

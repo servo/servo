@@ -19,4 +19,4 @@ servo_rand = {path = "../rand"}
 uuid = {version = "0.5", features = ["v4"]}
 
 [target.'cfg(target_os = "linux")'.dependencies]
-tinyfiledialogs = "2.5.9"
+tinyfiledialogs = "3.0"

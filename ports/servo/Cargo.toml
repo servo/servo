@@ -40,6 +40,7 @@ servo_geometry = {path = "../../components/geometry"}
 servo_config = {path = "../../components/config"}
 servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
+tinyfiledialogs = "3.0"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
