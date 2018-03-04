@@ -563,6 +563,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                 isMember=False,
                                 isArgument=False,
                                 isAutoRooted=False,
+                                needsRootingInto=False,
                                 invalidEnumValueFatal=True,
                                 defaultValue=None,
                                 treatNullAs="Default",
@@ -871,7 +872,45 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
     if type.isSpiderMonkeyInterface():
-        raise TypeError("Can't handle SpiderMonkey interface arguments yet")
+        # Typed arrays can be constructed only with a prior rooted value
+        assert isArgument or isinstance(needsRootingInto, basestring)
+
+        if failureCode is None:
+            substitutions = {
+                "sourceDescription": sourceDescription,
+                "exceptionCode": exceptionCode,
+            }
+            unwrapFailureCode = string.Template(
+            'throw_type_error(cx, "${sourceDescription} is not a typed array.");\n'
+            '${exceptionCode}').substitute(substitutions)
+        else:
+            unwrapFailureCode = failureCode
+
+
+        templateBody = fill(
+            """
+            match typedarray::${ty}::from(cx, &mut ${stackRootName},
+                $${val}.get().to_object()) {
+                Ok(val) => val,
+                Err(()) => {
+                    $*{failureCode}
+                }
+            }
+            """,
+            ty=type.name,
+            stackRootName=needsRootingInto,
+            failureCode=unwrapFailureCode + "\n",
+        )
+
+        declType = CGGeneric("typedarray::%s" % type.name)
+        if type.nullable():
+            templateBody = "Some(%s)" % templateBody
+            declType = CGWrapper(declType, pre="Option<", post=">")
+
+        templateBody = wrapObjectTemplate(templateBody, "None",
+                                          isDefinitelyObject, type, failureCode)
+
+        return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
     if type.isDOMString():
         nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
@@ -1245,6 +1284,7 @@ class CGArgumentConverter(CGThing):
             isClamp=argument.clamp,
             isMember="Variadic" if argument.variadic else False,
             isAutoRooted=type_needs_auto_root(argument.type),
+            needsRootingInto="arg_root" if type_conversion_needs_root(argument.type) else False,
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
         template = info.template
         default = info.default
@@ -1269,12 +1309,17 @@ class CGArgumentConverter(CGThing):
 
             arg = "arg%d" % index
 
-            self.converter = instantiateJSToNativeConversionTemplate(
-                template, replacementVariables, declType, arg)
+            converter = [instantiateJSToNativeConversionTemplate(
+                template, replacementVariables, declType, arg)]
+
+            if type_conversion_needs_root(argument.type):
+                converter.insert(0, CGGeneric("let mut arg_root = Rooted::new_unrooted();"))
 
             # The auto rooting is done only after the conversion is performed
             if type_needs_auto_root(argument.type):
-                self.converter.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (arg, arg)))
+                converter.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (arg, arg)))
+
+            self.converter = CGList(converter, "\n")
 
         else:
             assert argument.optional
@@ -5687,6 +5732,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::MutableHandleValue',
         'js::jsapi::ObjectOpResult',
         'js::jsapi::PropertyDescriptor',
+        'js::jsapi::Rooted',
         'js::jsapi::RootedId',
         'js::jsapi::RootedObject',
         'js::jsapi::RootedString',
@@ -5718,6 +5764,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::define_methods',
         'js::rust::define_properties',
         'js::rust::get_object_class',
+        'js::typedarray',
         'dom',
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
@@ -6437,6 +6484,14 @@ def type_needs_tracing(t):
 
     assert False, (t, type(t))
 
+
+def type_conversion_needs_root(t):
+    assert isinstance(t, IDLObject), (t, type(t))
+
+    if t.isType():
+        return t.isSpiderMonkeyInterface()
+
+    assert False, (t, type(t))
 
 def type_needs_auto_root(t):
     """

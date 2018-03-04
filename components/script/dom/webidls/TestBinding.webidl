@@ -246,6 +246,9 @@ interface TestBinding {
   void passByteString(ByteString arg);
   void passEnum(TestEnum arg);
   void passInterface(Blob arg);
+  void passTypedArray(Int8Array arg);
+  void passTypedArray2(ArrayBuffer arg);
+  void passTypedArray3(ArrayBufferView arg);
   void passUnion((HTMLElement or long) arg);
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
