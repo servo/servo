@@ -113,17 +113,17 @@ impl Parse for SVGStrokeDashArray {
 pub type SVGOpacity = generic::SVGOpacity<Opacity>;
 
 impl Parse for SVGOpacity {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(opacity) = input.try(|i| Opacity::parse(context, i)) {
-            Ok(generic::SVGOpacity::Opacity(opacity))
-        } else if is_context_value_enabled() {
-            try_match_ident_ignore_ascii_case! { input,
-                "context-fill-opacity" => Ok(generic::SVGOpacity::ContextFillOpacity),
-                "context-stroke-opacity" => Ok(generic::SVGOpacity::ContextStrokeOpacity),
-            }
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            return Ok(generic::SVGOpacity::Opacity(opacity));
+        }
+
+        try_match_ident_ignore_ascii_case! { input,
+            "context-fill-opacity" => Ok(generic::SVGOpacity::ContextFillOpacity),
+            "context-stroke-opacity" => Ok(generic::SVGOpacity::ContextStrokeOpacity),
         }
     }
 }
