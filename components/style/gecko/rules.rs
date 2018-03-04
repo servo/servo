@@ -22,7 +22,7 @@ use std::str;
 use str::CssStringWriter;
 use values::computed::font::FamilyName;
 use values::generics::font::FontTag;
-use values::specified::font::{FontVariationSettings, SpecifiedFontFeatureSettings};
+use values::specified::font::{SpecifiedFontVariationSettings, SpecifiedFontFeatureSettings};
 
 /// A @font-face rule
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
@@ -74,7 +74,7 @@ impl ToNsCssValue for SpecifiedFontFeatureSettings {
     }
 }
 
-impl ToNsCssValue for FontVariationSettings {
+impl ToNsCssValue for SpecifiedFontVariationSettings {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         if self.0.is_empty() {
             nscssvalue.set_normal();

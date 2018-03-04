@@ -1653,7 +1653,7 @@ impl Parse for FontVariantNumeric {
     }
 }
 
-/// This property provides low-level control over OpenType or TrueType font variations.
+/// This property provides low-level control over OpenType or TrueType font features.
 pub type SpecifiedFontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
 /// Define initial settings that apply when the font defined by an @font-face
@@ -1910,7 +1910,71 @@ impl Parse for FontLanguageOverride {
 
 /// This property provides low-level control over OpenType or TrueType font
 /// variations.
-pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
+pub type SpecifiedFontVariationSettings = FontSettings<VariationValue<Number>>;
+
+/// Define initial settings that apply when the font defined by an @font-face
+/// rule is rendered.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub enum FontVariationSettings {
+    /// Value of `FontSettings`
+    Value(SpecifiedFontVariationSettings),
+    /// System font
+    System(SystemFont)
+}
+
+impl FontVariationSettings {
+    #[inline]
+    /// Get default value of `font-variation-settings` as normal
+    pub fn normal() -> FontVariationSettings {
+        FontVariationSettings::Value(FontSettings::normal())
+    }
+
+    /// Get `font-variation-settings` with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontVariationSettings::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontVariationSettings::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontVariationSettings {
+    type ComputedValue = computed::FontVariationSettings;
+
+    fn to_computed_value(&self, context: &Context) -> computed::FontVariationSettings {
+        match *self {
+            FontVariationSettings::Value(ref v) => v.to_computed_value(context),
+            FontVariationSettings::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    context.cached_system_font.as_ref().unwrap().font_variation_settings.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontVariationSettings) -> Self {
+        FontVariationSettings::Value(ToComputedValue::from_computed_value(other))
+    }
+}
+
+impl Parse for FontVariationSettings {
+    /// normal | <variation-tag-value>#
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<FontVariationSettings, ParseError<'i>> {
+        SpecifiedFontVariationSettings::parse(context, input).map(FontVariationSettings::Value)
+    }
+}
 
 fn parse_one_feature_value<'i, 't>(
     context: &ParserContext,

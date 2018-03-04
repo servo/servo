@@ -17,7 +17,8 @@
                                     ${'font-variant-numeric' if product == 'gecko' else ''}
                                     ${'font-variant-position' if product == 'gecko' else ''}
                                     ${'font-language-override' if product == 'gecko' else ''}
-                                    ${'font-feature-settings' if product == 'gecko' else ''}"
+                                    ${'font-feature-settings' if product == 'gecko' else ''}
+                                    ${'font-variation-settings' if product == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use parser::Parse;
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
@@ -32,7 +33,7 @@
                                 variant_alternates variant_east_asian \
                                 variant_ligatures variant_numeric \
                                 variant_position feature_settings \
-                                optical_sizing".split()
+                                variation_settings optical_sizing".split()
     %>
     % if product == "gecko":
         % for prop in gecko_sub_properties:
@@ -162,9 +163,14 @@
                     return Ok(());
                 }
             }
+            if let Some(v) = self.font_variation_settings {
+                if v != &font_variation_settings::get_initial_specified_value() {
+                    return Ok(());
+                }
+            }
 
             % for name in gecko_sub_properties:
-            % if name != "optical_sizing":
+            % if name != "optical_sizing" and name != "variation_settings":
             if self.font_${name} != &font_${name}::get_initial_specified_value() {
                 return Ok(());
             }
@@ -203,7 +209,7 @@
             let mut all = true;
 
             % for prop in SYSTEM_FONT_LONGHANDS:
-            % if prop == "font_optical_sizing":
+            % if prop == "font_optical_sizing" or prop == "font_variation_settings":
             if let Some(value) = self.${prop} {
             % else:
             {
