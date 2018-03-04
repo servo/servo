@@ -1308,7 +1308,7 @@ impl ShorthandId {
 
 /// Servo's representation of a declared value for a given `T`, which is the
 /// declared value for that property.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum DeclaredValue<'a, T: 'a> {
     /// A known specified value from the stylesheet.
     Value(&'a T),
@@ -1435,19 +1435,6 @@ impl UnparsedValue {
                 keyword,
         })
         })
-    }
-}
-
-impl<'a, T: ToCss> ToCss for DeclaredValue<'a, T> {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            DeclaredValue::Value(ref inner) => inner.to_css(dest),
-            DeclaredValue::WithVariables(ref with_variables) => with_variables.to_css(dest),
-            DeclaredValue::CSSWideKeyword(ref keyword) => keyword.to_css(dest),
-        }
     }
 }
 
