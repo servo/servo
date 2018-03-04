@@ -44,7 +44,6 @@ matrix:
         apt:
           packages:
             - cmake
-            - freeglut3-dev
             - gperf
             - libosmesa6-dev
             - libgles2-mesa-dev

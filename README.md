@@ -78,7 +78,7 @@ If you've already partially compiled servo but forgot to do this step, run `./ma
 #### On Debian-based Linuxes
 
 ``` sh
-sudo apt install git curl freeglut3-dev autoconf libx11-dev \
+sudo apt install git curl autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
     libssl1.0-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
@@ -95,7 +95,7 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 #### On Fedora
 
 ``` sh
-sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
+sudo dnf install curl libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
@@ -104,7 +104,7 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
 #### On CentOS
 
 ``` sh
-sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
+sudo yum install curl libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake3 bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
@@ -126,7 +126,7 @@ sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip me
 #### On Gentoo Linux
 
 ```sh
-sudo emerge net-misc/curl media-libs/freeglut \
+sudo emerge net-misc/curl \
     media-libs/freetype media-libs/mesa dev-util/gperf \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server \
