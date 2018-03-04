@@ -35,14 +35,16 @@ fn is_context_value_enabled() -> bool {
     false
 }
 
-fn parse_context_value<'i, 't, T>(input: &mut Parser<'i, 't>, value: T)
-                                  -> Result<T, ParseError<'i>> {
-    if is_context_value_enabled() {
-        if input.expect_ident_matching("context-value").is_ok() {
-            return Ok(value);
-        }
+fn parse_context_value<'i, 't, T>(
+    input: &mut Parser<'i, 't>,
+    value: T,
+) -> Result<T, ParseError<'i>> {
+    if !is_context_value_enabled() {
+        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
     }
-    Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+
+    input.expect_ident_matching("context-value")?;
+    Ok(value)
 }
 
 /// A value of <length> | <percentage> | <number> for stroke-dashoffset.
@@ -54,8 +56,10 @@ pub type SvgLengthOrPercentageOrNumber =
 pub type SVGLength = generic::SVGLength<SvgLengthOrPercentageOrNumber>;
 
 impl Parse for SVGLength {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.try(|i| SvgLengthOrPercentageOrNumber::parse(context, i))
              .map(Into::into)
              .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
@@ -77,8 +81,10 @@ pub type NonNegativeSvgLengthOrPercentageOrNumber =
 pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthOrPercentageOrNumber>;
 
 impl Parse for SVGWidth {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.try(|i| NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i))
              .map(Into::into)
              .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
@@ -95,8 +101,10 @@ impl From<NonNegativeSvgLengthOrPercentageOrNumber> for SVGWidth {
 pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeSvgLengthOrPercentageOrNumber>;
 
 impl Parse for SVGStrokeDashArray {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(values) = input.try(|i| CommaWithSpace::parse(i, |i| {
             NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i)
         })) {
