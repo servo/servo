@@ -1360,6 +1360,19 @@ pub struct UnparsedValue {
     from_shorthand: Option<ShorthandId>,
 }
 
+impl ToCss for UnparsedValue {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+        if self.from_shorthand.is_none() {
+            dest.write_str(&*self.css)?;
+        }
+        Ok(())
+    }
+}
+
 impl UnparsedValue {
     fn substitute_variables(
         &self,
@@ -1432,13 +1445,7 @@ impl<'a, T: ToCss> ToCss for DeclaredValue<'a, T> {
     {
         match *self {
             DeclaredValue::Value(ref inner) => inner.to_css(dest),
-            DeclaredValue::WithVariables(ref with_variables) => {
-                // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-                if with_variables.from_shorthand.is_none() {
-                    dest.write_str(&*with_variables.css)?
-                }
-                Ok(())
-            },
+            DeclaredValue::WithVariables(ref with_variables) => with_variables.to_css(dest),
             DeclaredValue::CSSWideKeyword(ref keyword) => keyword.to_css(dest),
         }
     }
@@ -1742,14 +1749,7 @@ impl ToCss for VariableDeclaration {
     where
         W: fmt::Write,
     {
-        // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-        match self.value.from_shorthand {
-            None => {
-                dest.write_str(&*self.value.css)?
-            }
-            Some(..) => {},
-        }
-        Ok(())
+        self.value.to_css(dest)
     }
 }
 
