@@ -870,8 +870,50 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
-    if type.isSpiderMonkeyInterface():
-        raise TypeError("Can't handle SpiderMonkey interface arguments yet")
+    if type.isTypedArray() or type.isArrayBuffer() or type.isArrayBufferView() or type.isSharedArrayBuffer():
+        if failureCode is None:
+            substitutions = {
+                "sourceDescription": sourceDescription,
+                "exceptionCode": exceptionCode,
+            }
+            unwrapFailureCode = string.Template(
+                'throw_type_error(cx, "${sourceDescription} is not a typed array.");\n'
+                '${exceptionCode}').substitute(substitutions)
+        else:
+            unwrapFailureCode = failureCode
+
+        typeName = type.name
+        if isMember == "Union":
+            typeName = "Heap" + typeName
+
+        templateBody = fill(
+            """
+            match typedarray::${ty}::from($${val}.get().to_object()) {
+                Ok(val) => val,
+                Err(()) => {
+                    $*{failureCode}
+                }
+            }
+            """,
+            ty=typeName,
+            failureCode=unwrapFailureCode + "\n",
+        )
+
+        if isMember == "Union":
+            templateBody = "RootedTraceableBox::new(%s)" % templateBody
+
+        declType = CGGeneric("typedarray::%s" % type.name)
+        if type.nullable():
+            templateBody = "Some(%s)" % templateBody
+            declType = CGWrapper(declType, pre="Option<", post=">")
+
+        templateBody = wrapObjectTemplate(templateBody, "None",
+                                          isDefinitelyObject, type, failureCode)
+
+        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+
+    elif type.isSpiderMonkeyInterface():
+        raise TypeError("Can't handle SpiderMonkey interface arguments other than typed arrays yet")
 
     if type.isDOMString():
         nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
@@ -2287,6 +2329,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'js::jsapi::JSObject',
         'js::jsapi::MutableHandleValue',
         'js::jsval::JSVal',
+        'js::typedarray'
     ]
 
     # Now find all the things we'll need as arguments and return values because
@@ -4138,6 +4181,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isObject():
         name = type.name
         typeName = "Heap<*mut JSObject>"
+    elif type.isTypedArray() or type.isArrayBuffer() or type.isArrayBufferView() or type.isSharedArrayBuffer():
+        name = type.name
+        typeName = "typedarray::Heap" + name
     else:
         raise TypeError("Can't handle %s in unions yet" % type)
 
@@ -5688,6 +5734,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::MutableHandleValue',
         'js::jsapi::ObjectOpResult',
         'js::jsapi::PropertyDescriptor',
+        'js::jsapi::Rooted',
         'js::jsapi::RootedId',
         'js::jsapi::RootedObject',
         'js::jsapi::RootedString',
@@ -5719,6 +5766,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::define_methods',
         'js::rust::define_properties',
         'js::rust::get_object_class',
+        'js::typedarray',
         'dom',
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
@@ -6419,6 +6467,9 @@ def type_needs_tracing(t):
         if t.isUnion():
             return any(type_needs_tracing(member) for member in t.flatMemberTypes)
 
+        if t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView() or t.isSharedArrayBuffer():
+            return True
+
         return False
 
     if t.isDictionary():
@@ -6448,6 +6499,9 @@ def type_needs_auto_root(t):
 
     if t.isType():
         if t.isSequence() and (t.inner.isAny() or t.inner.isObject()):
+            return True
+        # SpiderMonkey interfaces
+        if t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView() or t.isSharedArrayBuffer():
             return True
 
     return False

@@ -62,6 +62,8 @@ use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
+use js::typedarray::TypedArray;
+use js::typedarray::TypedArrayElement;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
@@ -655,6 +657,12 @@ unsafe impl JSTraceable for RwLock<SharedRt> {
 unsafe impl JSTraceable for StyleLocked<MediaList> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
+    }
+}
+
+unsafe impl<T> JSTraceable for TypedArray<T, Box<Heap<*mut JSObject>>> where T: TypedArrayElement {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.underlying_object().trace(trc);
     }
 }
 

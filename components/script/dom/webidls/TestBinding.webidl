@@ -248,6 +248,9 @@ interface TestBinding {
   void passByteString(ByteString arg);
   void passEnum(TestEnum arg);
   void passInterface(Blob arg);
+  void passTypedArray(Int8Array arg);
+  void passTypedArray2(ArrayBuffer arg);
+  void passTypedArray3(ArrayBufferView arg);
   void passUnion((HTMLElement or long) arg);
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
@@ -258,6 +261,7 @@ interface TestBinding {
   void passUnion8((sequence<ByteString> or long) arg);
   void passUnion9((TestDictionary or long) arg);
   void passUnion10((DOMString or object) arg);
+  void passUnion11((ArrayBuffer or ArrayBufferView) arg);
   void passUnionWithTypedef((Document or TestTypedef) arg);
   void passUnionWithTypedef2((sequence<long> or TestTypedef) arg);
   void passAny(any arg);
