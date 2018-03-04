@@ -444,7 +444,16 @@ impl Parse for Negative {
 ///
 /// Empty Vec represents 'auto'
 #[derive(Clone, Debug)]
-pub struct Ranges(pub Vec<Range<Option<i32>>>);
+pub struct Ranges(pub Vec<Range<CounterBound>>);
+
+/// A bound found in `Ranges`.
+#[derive(Clone, Copy, Debug)]
+pub enum CounterBound {
+    /// An integer bound.
+    Integer(i32),
+    /// The infinite bound.
+    Infinite,
+}
 
 impl Parse for Ranges {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -454,7 +463,7 @@ impl Parse for Ranges {
             input.parse_comma_separated(|input| {
                 let opt_start = parse_bound(input)?;
                 let opt_end = parse_bound(input)?;
-                if let (Some(start), Some(end)) = (opt_start, opt_end) {
+                if let (CounterBound::Integer(start), CounterBound::Integer(end)) = (opt_start, opt_end) {
                     if start > end {
                         return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
@@ -465,11 +474,17 @@ impl Parse for Ranges {
     }
 }
 
-fn parse_bound<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Option<i32>, ParseError<'i>> {
+fn parse_bound<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<CounterBound, ParseError<'i>> {
     let location = input.current_source_location();
     match *input.next()? {
-        Token::Number { int_value: Some(v), .. } => Ok(Some(v)),
-        Token::Ident(ref ident) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
+        Token::Number { int_value: Some(v), .. } => {
+            Ok(CounterBound::Integer(v))
+        }
+        Token::Ident(ref ident) if ident.eq_ignore_ascii_case("infinite") => {
+            Ok(CounterBound::Infinite)
+        }
         ref t => Err(location.new_unexpected_token_error(t.clone())),
     }
 }
@@ -493,7 +508,7 @@ impl ToCss for Ranges {
     }
 }
 
-fn range_to_css<W>(range: &Range<Option<i32>>, dest: &mut CssWriter<W>) -> fmt::Result
+fn range_to_css<W>(range: &Range<CounterBound>, dest: &mut CssWriter<W>) -> fmt::Result
 where
     W: Write,
 {
@@ -502,11 +517,11 @@ where
     bound_to_css(range.end, dest)
 }
 
-fn bound_to_css<W>(range: Option<i32>, dest: &mut CssWriter<W>) -> fmt::Result
+fn bound_to_css<W>(range: CounterBound, dest: &mut CssWriter<W>) -> fmt::Result
 where
     W: Write,
 {
-    if let Some(finite) = range {
+    if let CounterBound::Integer(finite) = range {
         finite.to_css(dest)
     } else {
         dest.write_str("infinite")
