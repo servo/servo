@@ -811,7 +811,7 @@ impl Animate for Visibility {
 impl ComputeSquaredDistance for Visibility {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(SquaredDistance::Value(if *self == *other { 0. } else { 1. }))
+        Ok(SquaredDistance::from_sqrt(if *self == *other { 0. } else { 1. }))
     }
 }
 
@@ -1921,7 +1921,7 @@ impl ComputeSquaredDistance for Quaternion {
         // so we can get their angle difference by:
         // cos(theta/2) = (q1 dot q2) / (|q1| * |q2|) = q1 dot q2.
         let distance = self.dot(other).max(-1.0).min(1.0).acos() * 2.0;
-        Ok(SquaredDistance::Value(distance * distance))
+        Ok(SquaredDistance::from_sqrt(distance))
     }
 }
 
