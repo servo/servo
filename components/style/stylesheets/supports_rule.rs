@@ -13,7 +13,6 @@ use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::ffi::{CStr, CString};
 use std::fmt::{self, Write};
 use std::str;

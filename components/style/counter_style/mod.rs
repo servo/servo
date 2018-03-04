@@ -15,7 +15,6 @@ use error_reporting::{ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::ops::Range;

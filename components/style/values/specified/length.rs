@@ -12,7 +12,6 @@ use euclid::Size2D;
 use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::cmp;
-#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::ops::{Add, Mul};
 use style_traits::{ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
