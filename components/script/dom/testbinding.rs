@@ -38,6 +38,7 @@ use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
 use js::rust::CustomAutoRooterGuard;
+use js::typedarray;
 use script_traits::MsDuration;
 use servo_config::prefs::PREFS;
 use std::borrow::ToOwned;
@@ -428,6 +429,9 @@ impl TestBindingMethods for TestBinding {
     fn PassByteString(&self, _: ByteString) {}
     fn PassEnum(&self, _: TestEnum) {}
     fn PassInterface(&self, _: &Blob) {}
+    fn PassTypedArray(&self, _: CustomAutoRooterGuard<typedarray::Int8Array>) {}
+    fn PassTypedArray2(&self, _: CustomAutoRooterGuard<typedarray::ArrayBuffer>) {}
+    fn PassTypedArray3(&self, _: CustomAutoRooterGuard<typedarray::ArrayBufferView>) {}
     fn PassUnion(&self, _: HTMLElementOrLong) {}
     fn PassUnion2(&self, _: EventOrString) {}
     fn PassUnion3(&self, _: BlobOrString) {}
@@ -439,6 +443,7 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion9(&self, _: UnionTypes::TestDictionaryOrLong) {}
     #[allow(unsafe_code)]
     unsafe fn PassUnion10(&self, _: *mut JSContext, _: UnionTypes::StringOrObject) {}
+    fn PassUnion11(&self, _: UnionTypes::ArrayBufferOrArrayBufferView) {}
     fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
     fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
     #[allow(unsafe_code)]

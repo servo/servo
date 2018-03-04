@@ -46,7 +46,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
 use js::conversions::ConversionBehavior;
-use js::jsapi::{JSContext, JSObject, Type, Rooted};
+use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
 use net_traits::image::base::PixelFormat;
@@ -1182,9 +1182,8 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
           <T::Element as FromJSValConvertible>::Config: Clone,
 {
     // TODO(servo/rust-mozjs#330): replace this with a macro that supports generic types.
-    let mut typed_array_root = Rooted::new_unrooted();
-    let typed_array: Option<TypedArray<T>> =
-          TypedArray::from(cx, &mut typed_array_root, sequence_or_abv).ok();
+    let typed_array: Option<TypedArray<T, *mut JSObject>> =
+          TypedArray::from(sequence_or_abv).ok();
     if let Some(mut typed_array) = typed_array {
         return Ok(typed_array.as_slice().to_vec());
     }
