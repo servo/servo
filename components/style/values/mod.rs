@@ -12,7 +12,6 @@ use Atom;
 pub use cssparser::{RGBA, Token, Parser, serialize_identifier, CowRcStr, SourceLocation};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
-#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};

@@ -14,8 +14,6 @@ use gecko_bindings::bindings;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
-#[allow(unused_imports)]
-use std::ascii::AsciiExt;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
@@ -1855,7 +1853,6 @@ impl ToComputedValue for FontLanguageOverride {
 
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> computed::FontLanguageOverride {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
         match *self {
             FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
             FontLanguageOverride::Override(ref lang) => {

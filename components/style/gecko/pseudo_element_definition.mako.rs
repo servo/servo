@@ -252,7 +252,6 @@ impl PseudoElement {
     /// Returns `None` if the pseudo-element is not recognized.
     #[inline]
     pub fn tree_pseudo_element(name: &str, args: Box<[Atom]>) -> Option<Self> {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
         debug_assert!(name.starts_with("-moz-tree-"));
         let tree_part = &name[10..];
         % for pseudo in TREE_PSEUDOS:

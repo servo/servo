@@ -71,7 +71,6 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
         &self,
         input: &mut Parser<'i, 't>,
     ) -> Result<AngleOrNumber, ParseError<'i>> {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
         use values::specified::Angle;
 
         let location = input.current_source_location();
@@ -123,8 +122,6 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
         &self,
         input: &mut Parser<'i, 't>,
     ) -> Result<NumberOrPercentage, ParseError<'i>> {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
-
         let location = input.current_source_location();
 
         match input.next()?.clone() {
@@ -142,8 +139,6 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
 
 impl Parse for Color {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
-
         // Currently we only store authored value for color keywords,
         // because all browsers serialize those values as keywords for
         // specified value.

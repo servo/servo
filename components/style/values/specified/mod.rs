@@ -12,7 +12,6 @@ use cssparser::{Parser, Token, serialize_identifier};
 use num_traits::One;
 use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
-#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
