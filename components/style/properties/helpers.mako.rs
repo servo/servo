@@ -83,8 +83,10 @@
                           need_animatable=need_animatable, **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
+        % if allow_empty:
         use std::fmt::{self, Write};
         use style_traits::{CssWriter, Separator, ToCss};
+        % endif
 
         pub mod single_value {
             #[allow(unused_imports)]
@@ -122,6 +124,14 @@
             % if need_animatable or animation_value_type == "ComputedValue":
             #[derive(Animate, ComputeSquaredDistance)]
             % endif
+            % if not allow_empty:
+            % if separator == "Comma":
+            #[css(comma, iterable)]
+            % else:
+            #[css(iterable)]
+            % endif
+            #[derive(ToCss)]
+            % endif
             pub struct T(
                 % if allow_empty and allow_empty != "NotInitial":
                 pub Vec<single_value::T>,
@@ -154,6 +164,7 @@
             }
         }
 
+        % if allow_empty:
         impl ToCss for computed_value::T {
             fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
             where
@@ -163,11 +174,7 @@
                 if let Some(val) = iter.next() {
                     val.to_css(dest)?;
                 } else {
-                    % if allow_empty:
-                        dest.write_str("none")?;
-                    % else:
-                        warn!("Found empty value for property ${name}");
-                    % endif
+                    return dest.write_str("none");
                 }
                 for i in iter {
                     dest.write_str(::style_traits::${separator}::separator())?;
@@ -176,11 +183,21 @@
                 Ok(())
             }
         }
+        % endif
 
         /// The specified value of ${name}.
         #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+        % if not allow_empty:
+        % if separator == "Comma":
+        #[css(comma, iterable)]
+        % else:
+        #[css(iterable)]
+        % endif
+        #[derive(ToCss)]
+        % endif
         pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
+        % if allow_empty:
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
             where
@@ -190,11 +207,7 @@
                 if let Some(val) = iter.next() {
                     val.to_css(dest)?;
                 } else {
-                    % if allow_empty:
-                        dest.write_str("none")?;
-                    % else:
-                        warn!("Found empty value for property ${name}");
-                    % endif
+                    return dest.write_str("none");
                 }
                 for i in iter {
                     dest.write_str(::style_traits::${separator}::separator())?;
@@ -203,6 +216,7 @@
                 Ok(())
             }
         }
+        % endif
 
         pub fn get_initial_value() -> computed_value::T {
             % if allow_empty and allow_empty != "NotInitial":
