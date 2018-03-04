@@ -447,7 +447,7 @@ impl Parse for Negative {
 pub struct Ranges(pub Vec<Range<CounterBound>>);
 
 /// A bound found in `Ranges`.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, ToCss)]
 pub enum CounterBound {
     /// An integer bound.
     ///
@@ -514,20 +514,9 @@ fn range_to_css<W>(range: &Range<CounterBound>, dest: &mut CssWriter<W>) -> fmt:
 where
     W: Write,
 {
-    bound_to_css(range.start, dest)?;
+    range.start.to_css(dest)?;
     dest.write_char(' ')?;
-    bound_to_css(range.end, dest)
-}
-
-fn bound_to_css<W>(range: CounterBound, dest: &mut CssWriter<W>) -> fmt::Result
-where
-    W: Write,
-{
-    if let CounterBound::Integer(finite) = range {
-        finite.to_css(dest)
-    } else {
-        dest.write_str("infinite")
-    }
+    range.end.to_css(dest)
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
