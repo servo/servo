@@ -20,6 +20,7 @@ def check_args(kwargs):
     from wptrunner import wptcommandline
 
     wptcommandline.set_from_config(kwargs)
+    wptcommandline.check_paths(kwargs)
     kwargs["upstream"] = kwargs["upstream"] if kwargs["upstream"] is not None else kwargs["sync"]
 
     if kwargs["upstream"]:
