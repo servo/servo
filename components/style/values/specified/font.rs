@@ -118,7 +118,7 @@ impl ToComputedValue for FontWeight {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// A specified font-size value
 pub enum FontSize {
     /// A length; e.g. 10px.
@@ -140,21 +140,6 @@ pub enum FontSize {
     Larger,
     /// Derived from a specified system font.
     System(SystemFont)
-}
-
-impl ToCss for FontSize {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            FontSize::Length(ref lop) => lop.to_css(dest),
-            FontSize::Keyword(info) => info.kw.to_css(dest),
-            FontSize::Smaller => dest.write_str("smaller"),
-            FontSize::Larger => dest.write_str("larger"),
-            FontSize::System(sys) => sys.to_css(dest),
-        }
-    }
 }
 
 impl From<LengthOrPercentage> for FontSize {

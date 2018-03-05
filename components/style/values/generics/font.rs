@@ -162,14 +162,16 @@ impl Parse for FontTag {
 }
 
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero)]
+#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToCss)]
 /// Additional information for keyword-derived font sizes.
 pub struct KeywordInfo<Length> {
     /// The keyword used
     pub kw: KeywordSize,
     /// A factor to be multiplied by the computed size of the keyword
+    #[css(skip)]
     pub factor: f32,
     /// An additional Au offset to add to the kw*factor in the case of calcs
+    #[css(skip)]
     pub offset: Length,
 }
 
