@@ -12,12 +12,12 @@ use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::ParserContext;
 use servo_arc::{Arc, RawOffsetArc};
-use std::fmt::{self, Write};
 use std::mem;
-use style_traits::{CssWriter, ToCss, ParseError};
+use style_traits::ParseError;
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
-#[derive(Clone, Debug, PartialEq)]
+#[css(function = "url")]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub struct SpecifiedUrl {
     /// The URL in unresolved string form.
     ///
@@ -26,10 +26,12 @@ pub struct SpecifiedUrl {
     serialization: Arc<String>,
 
     /// The URL extra data.
+    #[css(skip)]
     pub extra_data: RefPtr<URLExtraData>,
 
     /// Cache ImageValue, if any, so that we can reuse it while rematching a
     /// a property with this specified url value.
+    #[css(skip)]
     pub image_value: Option<RefPtr<ImageValue>>,
 }
 trivial_to_computed_value!(SpecifiedUrl);
@@ -130,17 +132,6 @@ impl SpecifiedUrl {
                 Some(RefPtr::from_addrefed(ptr))
             }
         }
-    }
-}
-
-impl ToCss for SpecifiedUrl {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str("url(")?;
-        self.serialization.to_css(dest)?;
-        dest.write_str(")")
     }
 }
 

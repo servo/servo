@@ -18,7 +18,9 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
     let s = synstructure::Structure::new(&input);
 
     let match_body = s.each_variant(|variant| {
-        let bindings = variant.bindings();
+        let bindings = variant.bindings().into_iter().filter(|binding| {
+            !cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast()).skip
+        }).collect::<Vec<_>>();
         let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
         let ast = variant.ast();
         let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
@@ -152,4 +154,5 @@ pub struct CssVariantAttrs {
 #[derive(Default, FromField)]
 struct CssFieldAttrs {
     ignore_bound: bool,
+    skip: bool,
 }
