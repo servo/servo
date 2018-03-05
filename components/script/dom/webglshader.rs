@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use angle::hl::{BuiltInResources, Output, ShaderValidator};
 use canvas_traits::webgl::{WebGLSLVersion, WebGLVersion};
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLMsgSender, WebGLParameter, WebGLResult, WebGLShaderId};
 use dom::bindings::cell::DomRefCell;
@@ -16,6 +15,7 @@ use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
 
@@ -47,7 +47,7 @@ impl WebGLShader {
                      id: WebGLShaderId,
                      shader_type: u32)
                      -> WebGLShader {
-        GLSLANG_INITIALIZATION.call_once(|| ::angle::hl::initialize().unwrap());
+        GLSLANG_INITIALIZATION.call_once(|| ::mozangle::shaders::initialize().unwrap());
         WebGLShader {
             webgl_object: WebGLObject::new_inherited(),
             id: id,

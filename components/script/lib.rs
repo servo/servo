@@ -21,7 +21,6 @@
 #![plugin(script_plugins)]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 
-extern crate angle;
 extern crate app_units;
 extern crate audio_video_metadata;
 extern crate base64;
@@ -64,6 +63,7 @@ extern crate metrics;
 extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;
+extern crate mozangle;
 #[macro_use]
 extern crate mozjs as js;
 extern crate msg;

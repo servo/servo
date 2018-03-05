@@ -99,4 +99,4 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
-angle = {git = "https://github.com/servo/angle", branch = "servo"}
+mozangle = "0.1"
