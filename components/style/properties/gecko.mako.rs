@@ -4707,14 +4707,14 @@ fn static_assert() {
 
     ${impl_simple_type_with_conversion("text_emphasis_position")}
 
-    pub fn set_text_emphasis_style(&mut self, v: longhands::text_emphasis_style::computed_value::T) {
-        use properties::longhands::text_emphasis_style::computed_value::T;
-        use properties::longhands::text_emphasis_style::{FillMode, ShapeKeyword};
+    pub fn set_text_emphasis_style(&mut self, v: values::computed::TextEmphasisStyle) {
+        use values::computed::TextEmphasisStyle;
+        use values::specified::text::{FillMode, ShapeKeyword};
 
         self.clear_text_emphasis_style_if_string();
         let (te, s) = match v {
-            T::None => (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE, ""),
-            T::Keyword(ref keyword) => {
+            TextEmphasisStyle::None => (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE, ""),
+            TextEmphasisStyle::Keyword(ref keyword) => {
                 let fill = match keyword.fill {
                     FillMode::Filled => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED,
                     FillMode::Open => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN,
@@ -4729,7 +4729,7 @@ fn static_assert() {
 
                 (shape | fill, keyword.shape.char(keyword.fill))
             },
-            T::String(ref s) => {
+            TextEmphasisStyle::String(ref s) => {
                 (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING, &**s)
             },
         };
@@ -4750,16 +4750,17 @@ fn static_assert() {
         self.copy_text_emphasis_style_from(other)
     }
 
-    pub fn clone_text_emphasis_style(&self) -> longhands::text_emphasis_style::computed_value::T {
-        use properties::longhands::text_emphasis_style::computed_value::{T, KeywordValue};
-        use properties::longhands::text_emphasis_style::{FillMode, ShapeKeyword};
+    pub fn clone_text_emphasis_style(&self) -> values::computed::TextEmphasisStyle {
+        use values::computed::TextEmphasisStyle;
+        use values::specified::text::{FillMode, ShapeKeyword};
+        use values::computed::text::{KeywordValue};
 
         if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8 {
-            return T::None;
+            return TextEmphasisStyle::None;
         }
 
         if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
-            return T::String(self.gecko.mTextEmphasisStyleString.to_string());
+            return TextEmphasisStyle::String(self.gecko.mTextEmphasisStyleString.to_string());
         }
 
         let fill =
@@ -4777,7 +4778,7 @@ fn static_assert() {
                 _ => panic!("Unexpected value in style struct for text-emphasis-style property")
             };
 
-        T::Keyword(KeywordValue { fill, shape })
+        TextEmphasisStyle::Keyword(KeywordValue { fill, shape })
     }
 
     ${impl_non_negative_length('_webkit_text_stroke_width',

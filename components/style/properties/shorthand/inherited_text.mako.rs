@@ -33,7 +33,7 @@
         if color.is_some() || style.is_some() {
             Ok(expanded! {
                 text_emphasis_color: unwrap_or_initial!(text_emphasis_color, color),
-                text_emphasis_style: unwrap_or_initial!(text_emphasis_style, style),
+                text_emphasis_style: unwrap_or_initial!(text_emphasis_style, style), // TODO: what?
             })
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
