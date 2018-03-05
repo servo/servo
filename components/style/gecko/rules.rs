@@ -6,7 +6,7 @@
 
 use byteorder::{BigEndian, WriteBytesExt};
 use computed_values::{font_stretch, font_style, font_weight};
-use counter_style;
+use counter_style::{self, CounterBound};
 use cssparser::UnicodeRange;
 use font_face::{FontFaceRuleData, Source, FontDisplay, FontWeight};
 use gecko_bindings::bindings;
@@ -324,8 +324,8 @@ impl ToNsCssValue for counter_style::Ranges {
             nscssvalue.set_auto();
         } else {
             nscssvalue.set_pair_list(self.0.into_iter().map(|range| {
-                fn set_bound(bound: Option<i32>, nscssvalue: &mut nsCSSValue) {
-                    if let Some(finite) = bound {
+                fn set_bound(bound: CounterBound, nscssvalue: &mut nsCSSValue) {
+                    if let CounterBound::Integer(finite) = bound {
                         nscssvalue.set_integer(finite)
                     } else {
                         nscssvalue.set_enum(structs::NS_STYLE_COUNTER_RANGE_INFINITE as i32)

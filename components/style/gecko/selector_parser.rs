@@ -66,7 +66,7 @@ apply_non_ts_list!(pseudo_class_name);
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use cssparser::CssStringWriter;
-        use fmt::Write;
+        use std::fmt::Write;
         macro_rules! pseudo_class_serialize {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {

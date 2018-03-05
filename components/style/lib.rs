@@ -133,9 +133,6 @@ pub mod traversal_flags;
 #[allow(non_camel_case_types)]
 pub mod values;
 
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
-
 #[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
 #[cfg(feature = "gecko")] pub use gecko_string_cache::Atom;
 #[cfg(feature = "gecko")] pub use gecko_string_cache::Namespace;
@@ -180,30 +177,6 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
-
-/// Serializes as CSS a comma-separated list of any `T` that supports being
-/// serialized as CSS.
-pub fn serialize_comma_separated_list<W, T>(
-    dest: &mut CssWriter<W>,
-    list: &[T],
-) -> fmt::Result
-where
-    W: Write,
-    T: ToCss,
-{
-    if list.is_empty() {
-        return Ok(());
-    }
-
-    list[0].to_css(dest)?;
-
-    for item in list.iter().skip(1) {
-        dest.write_str(", ")?;
-        item.to_css(dest)?;
-    }
-
-    Ok(())
-}
 
 #[cfg(feature = "gecko")] use gecko_string_cache::WeakAtom;
 #[cfg(feature = "servo")] use servo_atoms::Atom as WeakAtom;

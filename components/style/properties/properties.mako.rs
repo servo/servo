@@ -1308,7 +1308,7 @@ impl ShorthandId {
 
 /// Servo's representation of a declared value for a given `T`, which is the
 /// declared value for that property.
-#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValue<'a, T: 'a> {
     /// A known specified value from the stylesheet.
     Value(&'a T),
@@ -1323,7 +1323,7 @@ pub enum DeclaredValue<'a, T: 'a> {
 /// extra discriminant word) and synthesize dependent DeclaredValues for
 /// PropertyDeclaration instances as needed.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum DeclaredValueOwned<T> {
     /// A known specified value from the stylesheet.
     Value(T),
@@ -1756,7 +1756,7 @@ impl ToCss for CustomDeclaration {
     where
         W: fmt::Write,
     {
-        self.value.borrow().to_css(dest)
+        self.value.to_css(dest)
     }
 }
 
