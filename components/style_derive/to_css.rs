@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cg;
-use darling::{Error, FromMetaItem};
+use darling::util::Override;
 use quote::Tokens;
 use syn::{self, Ident};
 use synstructure;
@@ -80,7 +80,7 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
                 ::std::fmt::Write::write_str(dest, #identifier)
             }
         } else if let Some(function) = variant_attrs.function {
-            let mut identifier = function.name.map_or(identifier, |name| name.to_string());
+            let mut identifier = function.explicit().map_or(identifier, |name| name.to_string());
             identifier.push_str("(");
             expr = quote! {
                 ::std::fmt::Write::write_str(dest, #identifier)?;
@@ -129,7 +129,9 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
 #[derive(Default, FromDeriveInput)]
 struct CssInputAttrs {
     derive_debug: bool,
-    function: Option<Function>,
+    // Here because structs variants are also their whole type definition.
+    function: Option<Override<Ident>>,
+    // Here because structs variants are also their whole type definition.
     comma: bool,
     // Here because structs variants are also their whole type definition.
     iterable: bool,
@@ -138,7 +140,7 @@ struct CssInputAttrs {
 #[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
 pub struct CssVariantAttrs {
-    pub function: Option<Function>,
+    pub function: Option<Override<Ident>>,
     pub iterable: bool,
     pub comma: bool,
     pub dimension: bool,
@@ -150,19 +152,4 @@ pub struct CssVariantAttrs {
 #[derive(Default, FromField)]
 struct CssFieldAttrs {
     ignore_bound: bool,
-}
-
-pub struct Function {
-    name: Option<Ident>,
-}
-
-impl FromMetaItem for Function {
-    fn from_word() -> Result<Self, Error> {
-        Ok(Self { name: None })
-    }
-
-    fn from_string(name: &str) -> Result<Self, Error> {
-        let name = Ident::from(name);
-        Ok(Self { name: Some(name) })
-    }
 }
