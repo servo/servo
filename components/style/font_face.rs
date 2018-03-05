@@ -48,22 +48,14 @@ impl OneOrMoreSeparated for Source {
 /// `url()` function.
 ///
 /// <https://drafts.csswg.org/css-fonts/#src-desc>
-#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub struct UrlSource {
     /// The specified url.
     pub url: SpecifiedUrl,
     /// The format hints specified with the `format()` function.
+    #[css(skip)]
     pub format_hints: Vec<String>,
-}
-
-impl ToCss for UrlSource {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.url.to_css(dest)
-    }
 }
 
 /// A font-display value for a @font-face rule.

@@ -53,6 +53,9 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
             } else {
                 for binding in bindings {
                     let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
+                    if attrs.skip {
+                        continue;
+                    }
                     if !attrs.ignore_bound {
                         where_clause.add_trait_bound(&binding.ast().ty);
                     }
@@ -152,4 +155,5 @@ pub struct CssVariantAttrs {
 #[derive(Default, FromField)]
 struct CssFieldAttrs {
     ignore_bound: bool,
+    skip: bool,
 }
