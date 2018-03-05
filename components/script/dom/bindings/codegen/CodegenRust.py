@@ -881,11 +881,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 "exceptionCode": exceptionCode,
             }
             unwrapFailureCode = string.Template(
-            'throw_type_error(cx, "${sourceDescription} is not a typed array.");\n'
-            '${exceptionCode}').substitute(substitutions)
+                'throw_type_error(cx, "${sourceDescription} is not a typed array.");\n'
+                '${exceptionCode}').substitute(substitutions)
         else:
             unwrapFailureCode = failureCode
-
 
         templateBody = fill(
             """
@@ -6492,6 +6491,7 @@ def type_conversion_needs_root(t):
         return t.isSpiderMonkeyInterface()
 
     assert False, (t, type(t))
+
 
 def type_needs_auto_root(t):
     """
