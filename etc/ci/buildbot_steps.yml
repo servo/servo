@@ -201,6 +201,7 @@ windows-msvc-dev:
   - mach.bat package --dev
   - mach.bat build-geckolib
   - mach.bat test-stylo
+  - mach.bat smoketest
 
 windows-msvc-nightly:
   env:
