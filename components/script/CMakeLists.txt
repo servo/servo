@@ -106,7 +106,7 @@ foreach(binding IN LISTS bindings)
                    .
                    Bindings/${binding}Binding
                    ${webidls_src}/${binding}.webidl
-    DEPENDS Bindings ${bindinggen_deps} ${webidls_src}/${binding}.webidl ParserResults
+    DEPENDS Bindings ${bindinggen_deps} ${webidls} ParserResults
     VERBATIM
     )
   add_custom_target(${binding} DEPENDS Bindings/${binding}Binding.rs)
