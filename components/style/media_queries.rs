@@ -25,10 +25,11 @@ pub use gecko::media_queries::{Device, Expression};
 
 /// A type that encapsulates a media query list.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[css(comma, iterable)]
+#[css(comma)]
 #[derive(Clone, Debug, ToCss)]
 pub struct MediaList {
     /// The list of media queries.
+    #[css(iterable)]
     pub media_queries: Vec<MediaQuery>,
 }
 

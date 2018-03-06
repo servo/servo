@@ -369,9 +369,9 @@ pub enum OverflowClipBox {
 pub enum WillChange {
     /// Expresses no particular intent
     Auto,
-    #[css(comma, iterable)]
     /// <custom-ident>
-    AnimateableFeatures(Box<[CustomIdent]>),
+    #[css(comma)]
+    AnimateableFeatures(#[css(iterable)] Box<[CustomIdent]>),
 }
 
 impl WillChange {

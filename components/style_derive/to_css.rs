@@ -2,96 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg;
+use cg::{self, WhereClause};
 use darling::util::Override;
-use quote::Tokens;
-use syn::{self, Ident};
-use synstructure;
+use quote::{ToTokens, Tokens};
+use syn::{self, Data};
+use synstructure::{BindingInfo, Structure, VariantInfo};
 
 pub fn derive(input: syn::DeriveInput) -> Tokens {
     let name = &input.ident;
-    let trait_path = parse_quote!(style_traits::ToCss);
+    let trait_path = parse_quote!(::style_traits::ToCss);
     let (impl_generics, ty_generics, mut where_clause) =
         cg::trait_parts(&input, &trait_path);
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
-    let s = synstructure::Structure::new(&input);
+    if let Data::Enum(_) = input.data {
+        assert!(input_attrs.function.is_none(), "#[css(function)] is not allowed on enums");
+        assert!(!input_attrs.comma, "#[css(comma)] is not allowed on enums");
+    }
+    let s = Structure::new(&input);
 
     let match_body = s.each_variant(|variant| {
-        let bindings = variant.bindings();
-        let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
-        let ast = variant.ast();
-        let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
-        let separator = if variant_attrs.comma { ", " } else { " " };
-
-        if variant_attrs.dimension {
-            assert_eq!(bindings.len(), 1);
-            assert!(
-                variant_attrs.function.is_none() && variant_attrs.keyword.is_none(),
-                "That makes no sense"
-            );
-        }
-
-        let mut expr = if let Some(keyword) = variant_attrs.keyword {
-            assert!(bindings.is_empty());
-            let keyword = keyword.to_string();
-            quote! {
-                ::std::fmt::Write::write_str(dest, #keyword)
-            }
-        } else if !bindings.is_empty() {
-            let mut expr = quote! {};
-            if variant_attrs.iterable {
-                assert_eq!(bindings.len(), 1);
-                let binding = &bindings[0];
-                expr = quote! {
-                    #expr
-
-                    for item in #binding.iter() {
-                        writer.item(&item)?;
-                    }
-                };
-            } else {
-                for binding in bindings {
-                    let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
-                    if attrs.skip {
-                        continue;
-                    }
-                    if !attrs.ignore_bound {
-                        where_clause.add_trait_bound(&binding.ast().ty);
-                    }
-                    expr = quote! {
-                        #expr
-                        writer.item(#binding)?;
-                    };
-                }
-            }
-
-            quote! {{
-                let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
-                #expr
-                Ok(())
-            }}
-        } else {
-            quote! {
-                ::std::fmt::Write::write_str(dest, #identifier)
-            }
-        };
-
-        if variant_attrs.dimension {
-            expr = quote! {
-                #expr?;
-                ::std::fmt::Write::write_str(dest, #identifier)
-            }
-        } else if let Some(function) = variant_attrs.function {
-            let mut identifier = function.explicit().map_or(identifier, |name| name.to_string());
-            identifier.push_str("(");
-            expr = quote! {
-                ::std::fmt::Write::write_str(dest, #identifier)?;
-                #expr?;
-                ::std::fmt::Write::write_str(dest, ")")
-            }
-        }
-        Some(expr)
+        derive_variant_arm(variant, &mut where_clause)
     });
 
     let mut impls = quote! {
@@ -128,23 +59,124 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
     impls
 }
 
+fn derive_variant_arm(
+    variant: &VariantInfo,
+    where_clause: &mut WhereClause,
+) -> Tokens {
+    let bindings = variant.bindings();
+    let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
+    let ast = variant.ast();
+    let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
+    let separator = if variant_attrs.comma { ", " } else { " " };
+
+    if variant_attrs.dimension {
+        assert_eq!(bindings.len(), 1);
+        assert!(
+            variant_attrs.function.is_none() && variant_attrs.keyword.is_none(),
+            "That makes no sense"
+        );
+    }
+
+    let mut expr = if let Some(keyword) = variant_attrs.keyword {
+        assert!(bindings.is_empty());
+        let keyword = keyword.to_string();
+        quote! {
+            ::std::fmt::Write::write_str(dest, #keyword)
+        }
+    } else if !bindings.is_empty() {
+        derive_variant_fields_expr(bindings, where_clause, separator)
+    } else {
+        quote! {
+            ::std::fmt::Write::write_str(dest, #identifier)
+        }
+    };
+
+    if variant_attrs.dimension {
+        expr = quote! {
+            #expr?;
+            ::std::fmt::Write::write_str(dest, #identifier)
+        }
+    } else if let Some(function) = variant_attrs.function {
+        let mut identifier = function.explicit().map_or(identifier, |name| name);
+        identifier.push_str("(");
+        expr = quote! {
+            ::std::fmt::Write::write_str(dest, #identifier)?;
+            #expr?;
+            ::std::fmt::Write::write_str(dest, ")")
+        }
+    }
+    expr
+}
+
+fn derive_variant_fields_expr(
+    bindings: &[BindingInfo],
+    where_clause: &mut WhereClause,
+    separator: &str,
+) -> Tokens {
+    let mut iter = bindings.iter().filter_map(|binding| {
+        let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
+        if attrs.skip {
+            return None;
+        }
+        Some((binding, attrs))
+    }).peekable();
+
+    let (first, attrs) = match iter.next() {
+        Some(pair) => pair,
+        None => return quote! { Ok(()) },
+    };
+    if !attrs.iterable && iter.peek().is_none() {
+        if !attrs.ignore_bound {
+            where_clause.add_trait_bound(&first.ast().ty);
+        }
+        return quote! { ::style_traits::ToCss::to_css(#first, dest) };
+    }
+
+    let mut expr = derive_single_field_expr(first, attrs, where_clause);
+    for (binding, attrs) in iter {
+        derive_single_field_expr(binding, attrs, where_clause).to_tokens(&mut expr)
+    }
+
+    quote! {{
+        let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
+        #expr
+        Ok(())
+    }}
+}
+
+fn derive_single_field_expr(
+    field: &BindingInfo,
+    attrs: CssFieldAttrs,
+    where_clause: &mut WhereClause,
+) -> Tokens {
+    if attrs.iterable {
+        quote! {
+            for item in #field.iter() {
+                writer.item(&item)?;
+            }
+        }
+    } else {
+        if !attrs.ignore_bound {
+            where_clause.add_trait_bound(&field.ast().ty);
+        }
+        quote! { writer.item(#field)?; }
+    }
+}
+
 #[darling(attributes(css), default)]
 #[derive(Default, FromDeriveInput)]
 struct CssInputAttrs {
     derive_debug: bool,
     // Here because structs variants are also their whole type definition.
-    function: Option<Override<Ident>>,
+    function: Option<Override<String>>,
     // Here because structs variants are also their whole type definition.
     comma: bool,
-    // Here because structs variants are also their whole type definition.
-    iterable: bool,
 }
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
 pub struct CssVariantAttrs {
-    pub function: Option<Override<Ident>>,
-    pub iterable: bool,
+    pub function: Option<Override<String>>,
     pub comma: bool,
     pub dimension: bool,
     pub keyword: Option<String>,
@@ -155,5 +187,6 @@ pub struct CssVariantAttrs {
 #[derive(Default, FromField)]
 struct CssFieldAttrs {
     ignore_bound: bool,
+    iterable: bool,
     skip: bool,
 }

@@ -92,8 +92,7 @@ pub enum Content {
     #[cfg(feature = "gecko")]
     MozAltContent,
     /// Content items.
-    #[css(iterable)]
-    Items(Box<[ContentItem]>),
+    Items(#[css(iterable)] Box<[ContentItem]>),
 }
 
 /// Items for the `content` property.

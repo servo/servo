@@ -126,9 +126,7 @@
             % endif
             % if not allow_empty:
             % if separator == "Comma":
-            #[css(comma, iterable)]
-            % else:
-            #[css(iterable)]
+            #[css(comma)]
             % endif
             #[derive(ToCss)]
             % endif
@@ -136,6 +134,9 @@
                 % if allow_empty and allow_empty != "NotInitial":
                 pub Vec<single_value::T>,
                 % else:
+                % if not allow_empty:
+                #[css(iterable)]
+                % endif
                 pub SmallVec<[single_value::T; 1]>,
                 % endif
             );
@@ -189,13 +190,16 @@
         #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         % if not allow_empty:
         % if separator == "Comma":
-        #[css(comma, iterable)]
-        % else:
-        #[css(iterable)]
+        #[css(comma)]
         % endif
         #[derive(ToCss)]
         % endif
-        pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
+        pub struct SpecifiedValue(
+            % if not allow_empty:
+            #[css(iterable)]
+            % endif
+            pub Vec<single_value::SpecifiedValue>,
+        );
 
         % if allow_empty:
         impl ToCss for SpecifiedValue {
