@@ -15,6 +15,11 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
         cg::trait_parts(&input, &trait_path);
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
+    if let Data::Enum(_) = input.data {
+        assert!(input_attrs.function.is_none(), "#[css(function)] is not allowed on enums");
+        assert!(!input_attrs.comma, "#[css(comma)] is not allowed on enums");
+        assert!(!input_attrs.iterable, "#[css(iterable)] is not allowed on enums");
+    }
     let s = Structure::new(&input);
 
     let match_body = s.each_variant(|variant| {
