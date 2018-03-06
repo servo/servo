@@ -2551,14 +2551,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     /// Called when the window is resized.
     fn handle_window_size_msg(&mut self,
-                              top_level_browsing_context_id: TopLevelBrowsingContextId,
+                              top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
                               new_size: WindowSizeData,
                               size_type: WindowSizeType)
     {
         debug!("handle_window_size_msg: {:?}", new_size.initial_viewport.to_untyped());
 
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        self.resize_browsing_context(new_size, size_type, browsing_context_id);
+        if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
+            let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+            self.resize_browsing_context(new_size, size_type, browsing_context_id);
+        }
 
         if let Some(resize_channel) = self.webdriver.resize_channel.take() {
             let _ = resize_channel.send(new_size);

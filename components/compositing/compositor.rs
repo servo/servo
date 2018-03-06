@@ -646,10 +646,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
         };
-        let top_level_browsing_context_id = match self.root_pipeline {
-            Some(ref pipeline) => pipeline.top_level_browsing_context_id,
-            None => return warn!("Window resize without root pipeline."),
-        };
+        let top_level_browsing_context_id = self.root_pipeline.as_ref().map(|pipeline| {
+            pipeline.top_level_browsing_context_id
+        });
         let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
