@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg;
+use cg::{self, WhereClause};
 use darling::util::Override;
 use quote::Tokens;
 use syn::{self, Ident};
-use synstructure;
+use synstructure::{Structure, VariantInfo};
 
 pub fn derive(input: syn::DeriveInput) -> Tokens {
     let name = &input.ident;
@@ -15,83 +15,10 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
         cg::trait_parts(&input, &trait_path);
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
-    let s = synstructure::Structure::new(&input);
+    let s = Structure::new(&input);
 
     let match_body = s.each_variant(|variant| {
-        let bindings = variant.bindings();
-        let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
-        let ast = variant.ast();
-        let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
-        let separator = if variant_attrs.comma { ", " } else { " " };
-
-        if variant_attrs.dimension {
-            assert_eq!(bindings.len(), 1);
-            assert!(
-                variant_attrs.function.is_none() && variant_attrs.keyword.is_none(),
-                "That makes no sense"
-            );
-        }
-
-        let mut expr = if let Some(keyword) = variant_attrs.keyword {
-            assert!(bindings.is_empty());
-            let keyword = keyword.to_string();
-            quote! {
-                ::std::fmt::Write::write_str(dest, #keyword)
-            }
-        } else if !bindings.is_empty() {
-            let mut expr = quote! {};
-            if variant_attrs.iterable {
-                assert_eq!(bindings.len(), 1);
-                let binding = &bindings[0];
-                expr = quote! {
-                    #expr
-
-                    for item in #binding.iter() {
-                        writer.item(&item)?;
-                    }
-                };
-            } else {
-                for binding in bindings {
-                    let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
-                    if attrs.skip {
-                        continue;
-                    }
-                    if !attrs.ignore_bound {
-                        where_clause.add_trait_bound(&binding.ast().ty);
-                    }
-                    expr = quote! {
-                        #expr
-                        writer.item(#binding)?;
-                    };
-                }
-            }
-
-            quote! {{
-                let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
-                #expr
-                Ok(())
-            }}
-        } else {
-            quote! {
-                ::std::fmt::Write::write_str(dest, #identifier)
-            }
-        };
-
-        if variant_attrs.dimension {
-            expr = quote! {
-                #expr?;
-                ::std::fmt::Write::write_str(dest, #identifier)
-            }
-        } else if let Some(function) = variant_attrs.function {
-            let mut identifier = function.explicit().map_or(identifier, |name| name.to_string());
-            identifier.push_str("(");
-            expr = quote! {
-                ::std::fmt::Write::write_str(dest, #identifier)?;
-                #expr?;
-                ::std::fmt::Write::write_str(dest, ")")
-            }
-        }
-        Some(expr)
+        derive_variant_arm(variant, &mut where_clause)
     });
 
     let mut impls = quote! {
@@ -126,6 +53,86 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
     }
 
     impls
+}
+
+fn derive_variant_arm(
+    variant: &VariantInfo,
+    where_clause: &mut WhereClause,
+) -> Tokens {
+    let bindings = variant.bindings();
+    let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
+    let ast = variant.ast();
+    let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
+    let separator = if variant_attrs.comma { ", " } else { " " };
+
+    if variant_attrs.dimension {
+        assert_eq!(bindings.len(), 1);
+        assert!(
+            variant_attrs.function.is_none() && variant_attrs.keyword.is_none(),
+            "That makes no sense"
+        );
+    }
+
+    let mut expr = if let Some(keyword) = variant_attrs.keyword {
+        assert!(bindings.is_empty());
+        let keyword = keyword.to_string();
+        quote! {
+            ::std::fmt::Write::write_str(dest, #keyword)
+        }
+    } else if !bindings.is_empty() {
+        let mut expr = quote! {};
+        if variant_attrs.iterable {
+            assert_eq!(bindings.len(), 1);
+            let binding = &bindings[0];
+            expr = quote! {
+                #expr
+
+                for item in #binding.iter() {
+                    writer.item(&item)?;
+                }
+            };
+        } else {
+            for binding in bindings {
+                let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
+                if attrs.skip {
+                    continue;
+                }
+                if !attrs.ignore_bound {
+                    where_clause.add_trait_bound(&binding.ast().ty);
+                }
+                expr = quote! {
+                    #expr
+                    writer.item(#binding)?;
+                };
+            }
+        }
+
+        quote! {{
+            let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
+            #expr
+            Ok(())
+        }}
+    } else {
+        quote! {
+            ::std::fmt::Write::write_str(dest, #identifier)
+        }
+    };
+
+    if variant_attrs.dimension {
+        expr = quote! {
+            #expr?;
+            ::std::fmt::Write::write_str(dest, #identifier)
+        }
+    } else if let Some(function) = variant_attrs.function {
+        let mut identifier = function.explicit().map_or(identifier, |name| name.to_string());
+        identifier.push_str("(");
+        expr = quote! {
+            ::std::fmt::Write::write_str(dest, #identifier)?;
+            #expr?;
+            ::std::fmt::Write::write_str(dest, ")")
+        }
+    }
+    expr
 }
 
 #[darling(attributes(css), default)]
