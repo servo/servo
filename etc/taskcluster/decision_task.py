@@ -318,6 +318,7 @@ def windows_unit():
             "mach fetch",
 
             "mach build --dev",
+            "mach smoketest --angle",
             "mach test-unit",
             "mach package --dev",
         )
