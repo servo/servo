@@ -40,6 +40,7 @@ WPT_MANIFEST_PATH = wpt_path("include.ini")
 config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
+    "check-alphabetical-order": True,
     "check-ordered-json-keys": [],
     "lint-scripts": [],
     "blocked-packages": {},
@@ -506,6 +507,7 @@ def check_rust(file_name, lines):
     indent = 0
     prev_indent = 0
 
+    check_alphabetical_order = config["check-alphabetical-order"]
     decl_message = "{} is not in alphabetical order"
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
@@ -670,7 +672,7 @@ def check_rust(file_name, lines):
             crate_name = line[13:-1]
             if indent not in prev_crate:
                 prev_crate[indent] = ""
-            if prev_crate[indent] > crate_name:
+            if prev_crate[indent] > crate_name and check_alphabetical_order:
                 yield(idx + 1, decl_message.format("extern crate declaration")
                       + decl_expected.format(prev_crate[indent])
                       + decl_found.format(crate_name))
@@ -687,12 +689,12 @@ def check_rust(file_name, lines):
             if match:
                 features = map(lambda w: w.strip(), match.group(1).split(','))
                 sorted_features = sorted(features)
-                if sorted_features != features:
+                if sorted_features != features and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("feature attribute")
                           + decl_expected.format(tuple(sorted_features))
                           + decl_found.format(tuple(features)))
 
-                if prev_feature_name > sorted_features[0]:
+                if prev_feature_name > sorted_features[0] and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("feature attribute")
                           + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
                           + decl_found.format(prev_feature_name + " before " + sorted_features[0]))
@@ -717,7 +719,7 @@ def check_rust(file_name, lines):
             if prev_use:
                 current_use_cut = current_use.replace("{self,", ".").replace("{", ".")
                 prev_use_cut = prev_use.replace("{self,", ".").replace("{", ".")
-                if indent == current_indent and current_use_cut < prev_use_cut:
+                if indent == current_indent and current_use_cut < prev_use_cut and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("use statement")
                           + decl_expected.format(prev_use)
                           + decl_found.format(current_use))
@@ -743,7 +745,7 @@ def check_rust(file_name, lines):
                     prev_mod[indent] = ""
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
-                if prev_mod[indent] and mod < prev_mod[indent]:
+                if prev_mod[indent] and mod < prev_mod[indent] and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("mod declaration")
                           + decl_expected.format(prev_mod[indent])
                           + decl_found.format(mod))
@@ -760,7 +762,7 @@ def check_rust(file_name, lines):
                 derives = map(lambda w: w.strip(), match.group(1).split(','))
                 # sort, compare and report
                 sorted_derives = sorted(derives)
-                if sorted_derives != derives:
+                if sorted_derives != derives and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("derivable traits list")
                               + decl_expected.format(", ".join(sorted_derives))
                               + decl_found.format(", ".join(derives)))
