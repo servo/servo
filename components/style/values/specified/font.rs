@@ -118,7 +118,7 @@ impl ToComputedValue for FontWeight {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// A specified font-size value
 pub enum FontSize {
     /// A length; e.g. 10px.
@@ -140,21 +140,6 @@ pub enum FontSize {
     Larger,
     /// Derived from a specified system font.
     System(SystemFont)
-}
-
-impl ToCss for FontSize {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            FontSize::Length(ref lop) => lop.to_css(dest),
-            FontSize::Keyword(info) => info.kw.to_css(dest),
-            FontSize::Smaller => dest.write_str("smaller"),
-            FontSize::Larger => dest.write_str("larger"),
-            FontSize::System(sys) => sys.to_css(dest),
-        }
-    }
 }
 
 impl From<LengthOrPercentage> for FontSize {
@@ -2015,9 +2000,9 @@ impl Parse for VariationValue<Number> {
 }
 
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// text-zoom. Enable if true, disable if false
-pub struct XTextZoom(pub bool);
+pub struct XTextZoom(#[css(skip)] pub bool);
 
 impl Parse for XTextZoom {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<XTextZoom, ParseError<'i>> {
@@ -2026,18 +2011,9 @@ impl Parse for XTextZoom {
     }
 }
 
-impl ToCss for XTextZoom {
-    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// Internal property that reflects the lang attribute
-pub struct XLang(pub Atom);
+pub struct XLang(#[css(skip)] pub Atom);
 
 impl XLang {
     #[inline]
@@ -2054,15 +2030,6 @@ impl Parse for XLang {
     ) -> Result<XLang, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-    }
-}
-
-impl ToCss for XLang {
-    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        Ok(())
     }
 }
 
