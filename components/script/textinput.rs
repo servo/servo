@@ -378,9 +378,12 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         self.clear_selection();
 
+        // Calculate byte start and end for handling multi-byte characters
+        let start_index_b = len_of_first_n_code_units(&self.lines[start.line], start.index);
+        let end_index_b = len_of_first_n_code_units(&self.lines[end.line], end.index);
         let new_lines = {
-            let prefix = &self.lines[start.line][..start.index];
-            let suffix = &self.lines[end.line][end.index..];
+            let prefix = &self.lines[start.line][..start_index_b];
+            let suffix = &self.lines[end.line][end_index_b..];
             let lines_prefix = &self.lines[..start.line];
             let lines_suffix = &self.lines[end.line + 1..];
 
