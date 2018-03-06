@@ -364,6 +364,8 @@ pub struct Document {
     canceller: FetchCanceller,
     /// https://html.spec.whatwg.org/multipage/#throw-on-dynamic-markup-insertion-counter
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
+    /// https://html.spec.whatwg.org/multipage/#page-showing
+    page_showing: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1634,7 +1636,37 @@ impl Document {
         ).unwrap();
 
         // Step 8.
-        // TODO: pageshow event.
+        let document = Trusted::new(self);
+        if document.root().browsing_context().is_some() {
+            self.window.dom_manipulation_task_source().queue(
+                task!(fire_pageshow_event: move || {
+                    let document = document.root();
+                    let window = document.window();
+                    if document.page_showing.get() || !window.is_alive() {
+                        return;
+                    }
+
+                    document.page_showing.set(true);
+
+                    let event = PageTransitionEvent::new(
+                        window,
+                        atom!("pageshow"),
+                        false, // bubbles
+                        false, // cancelable
+                        false, // persisted
+                    );
+                    let event = event.upcast::<Event>();
+                    event.set_trusted(true);
+
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                        document.upcast(),
+                        &event,
+                    );
+                }),
+                self.window.upcast(),
+            ).unwrap();
+        }
 
         // Step 9.
         // TODO: pending application cache download process tasks.
@@ -2225,6 +2257,7 @@ impl Document {
             tti_window: DomRefCell::new(InteractiveWindow::new()),
             canceller: canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
+            page_showing: Cell::new(false),
         }
     }
 
