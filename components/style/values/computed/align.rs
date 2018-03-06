@@ -18,20 +18,13 @@ pub use super::specified::{AlignSelf, JustifySelf};
 ///
 /// Need to carry around both the specified and computed value to handle the
 /// special legacy keyword. Sigh.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub struct JustifyItems {
     /// The specified value for the property. Can contain `auto`.
+    #[css(skip)]
     pub specified: specified::JustifyItems,
     /// The computed value for the property. Cannot contain `auto`.
     pub computed: specified::JustifyItems,
-}
-
-impl ToCss for JustifyItems {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-        where W: fmt::Write,
-    {
-        self.computed.to_css(dest)
-    }
 }
 
 impl JustifyItems {
