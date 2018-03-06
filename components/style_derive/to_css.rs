@@ -5,7 +5,7 @@
 use cg::{self, WhereClause};
 use darling::util::Override;
 use quote::Tokens;
-use syn::{self, Ident};
+use syn::{self, Data};
 use synstructure::{Structure, VariantInfo};
 
 pub fn derive(input: syn::DeriveInput) -> Tokens {
@@ -124,7 +124,7 @@ fn derive_variant_arm(
             ::std::fmt::Write::write_str(dest, #identifier)
         }
     } else if let Some(function) = variant_attrs.function {
-        let mut identifier = function.explicit().map_or(identifier, |name| name.to_string());
+        let mut identifier = function.explicit().map_or(identifier, |name| name);
         identifier.push_str("(");
         expr = quote! {
             ::std::fmt::Write::write_str(dest, #identifier)?;
@@ -140,7 +140,7 @@ fn derive_variant_arm(
 struct CssInputAttrs {
     derive_debug: bool,
     // Here because structs variants are also their whole type definition.
-    function: Option<Override<Ident>>,
+    function: Option<Override<String>>,
     // Here because structs variants are also their whole type definition.
     comma: bool,
     // Here because structs variants are also their whole type definition.
@@ -150,7 +150,7 @@ struct CssInputAttrs {
 #[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
 pub struct CssVariantAttrs {
-    pub function: Option<Override<Ident>>,
+    pub function: Option<Override<String>>,
     pub iterable: bool,
     pub comma: bool,
     pub dimension: bool,
