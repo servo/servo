@@ -6,7 +6,7 @@ use cg::{self, WhereClause};
 use darling::util::Override;
 use quote::{ToTokens, Tokens};
 use syn::{self, Data};
-use synstructure::{Structure, VariantInfo};
+use synstructure::{BindingInfo, Structure, VariantInfo};
 
 pub fn derive(input: syn::DeriveInput) -> Tokens {
     let name = &input.ident;
@@ -84,32 +84,7 @@ fn derive_variant_arm(
             ::std::fmt::Write::write_str(dest, #keyword)
         }
     } else if !bindings.is_empty() {
-        let mut expr = quote! {};
-        for binding in bindings {
-            let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
-            if attrs.skip {
-                continue;
-            }
-            let variant_expr = if attrs.iterable {
-                quote! {
-                    for item in #binding.iter() {
-                        writer.item(&item)?;
-                    }
-                }
-            } else {
-                if !attrs.ignore_bound {
-                    where_clause.add_trait_bound(&binding.ast().ty);
-                }
-                quote!{ writer.item(#binding)?; }
-            };
-            variant_expr.to_tokens(&mut expr)
-        }
-
-        quote! {{
-            let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
-            #expr
-            Ok(())
-        }}
+        derive_variant_fields_expr(bindings, where_clause, separator)
     } else {
         quote! {
             ::std::fmt::Write::write_str(dest, #identifier)
@@ -131,6 +106,61 @@ fn derive_variant_arm(
         }
     }
     expr
+}
+
+fn derive_variant_fields_expr(
+    bindings: &[BindingInfo],
+    where_clause: &mut WhereClause,
+    separator: &str,
+) -> Tokens {
+    let mut iter = bindings.iter().filter_map(|binding| {
+        let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
+        if attrs.skip {
+            return None;
+        }
+        Some((binding, attrs))
+    }).peekable();
+
+    let (first, attrs) = match iter.next() {
+        Some(pair) => pair,
+        None => return quote! { Ok(()) },
+    };
+    if !attrs.iterable && iter.peek().is_none() {
+        if !attrs.ignore_bound {
+            where_clause.add_trait_bound(&first.ast().ty);
+        }
+        return quote! { ::style_traits::ToCss::to_css(#first, dest) };
+    }
+
+    let mut expr = derive_single_field_expr(first, attrs, where_clause);
+    for (binding, attrs) in iter {
+        derive_single_field_expr(binding, attrs, where_clause).to_tokens(&mut expr)
+    }
+
+    quote! {{
+        let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
+        #expr
+        Ok(())
+    }}
+}
+
+fn derive_single_field_expr(
+    field: &BindingInfo,
+    attrs: CssFieldAttrs,
+    where_clause: &mut WhereClause,
+) -> Tokens {
+    if attrs.iterable {
+        quote! {
+            for item in #field.iter() {
+                writer.item(&item)?;
+            }
+        }
+    } else {
+        if !attrs.ignore_bound {
+            where_clause.add_trait_bound(&field.ast().ty);
+        }
+        quote! { writer.item(#field)?; }
+    }
 }
 
 #[darling(attributes(css), default)]
