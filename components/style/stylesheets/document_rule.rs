@@ -176,9 +176,9 @@ impl UrlMatchingFunction {
 /// The `@document` rule's condition is written as a comma-separated list of
 /// URL matching functions, and the condition evaluates to true whenever any
 /// one of those functions evaluates to true.
-#[css(comma, iterable)]
+#[css(comma)]
 #[derive(Clone, Debug, ToCss)]
-pub struct DocumentCondition(Vec<UrlMatchingFunction>);
+pub struct DocumentCondition(#[css(iterable)] Vec<UrlMatchingFunction>);
 
 impl DocumentCondition {
     /// Parse a document condition.

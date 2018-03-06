@@ -547,9 +547,8 @@ impl Parse for Fallback {
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[css(iterable)]
 #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
-pub struct Symbols(pub Vec<Symbol>);
+pub struct Symbols(#[css(iterable)] pub Vec<Symbol>);
 
 impl Parse for Symbols {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {

@@ -4,7 +4,7 @@
 
 use cg::{self, WhereClause};
 use darling::util::Override;
-use quote::Tokens;
+use quote::{ToTokens, Tokens};
 use syn::{self, Data};
 use synstructure::{Structure, VariantInfo};
 
@@ -18,7 +18,6 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
     if let Data::Enum(_) = input.data {
         assert!(input_attrs.function.is_none(), "#[css(function)] is not allowed on enums");
         assert!(!input_attrs.comma, "#[css(comma)] is not allowed on enums");
-        assert!(!input_attrs.iterable, "#[css(iterable)] is not allowed on enums");
     }
     let s = Structure::new(&input);
 
@@ -86,30 +85,24 @@ fn derive_variant_arm(
         }
     } else if !bindings.is_empty() {
         let mut expr = quote! {};
-        if variant_attrs.iterable {
-            assert_eq!(bindings.len(), 1);
-            let binding = &bindings[0];
-            expr = quote! {
-                #expr
-
-                for item in #binding.iter() {
-                    writer.item(&item)?;
+        for binding in bindings {
+            let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
+            if attrs.skip {
+                continue;
+            }
+            let variant_expr = if attrs.iterable {
+                quote! {
+                    for item in #binding.iter() {
+                        writer.item(&item)?;
+                    }
                 }
-            };
-        } else {
-            for binding in bindings {
-                let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
-                if attrs.skip {
-                    continue;
-                }
+            } else {
                 if !attrs.ignore_bound {
                     where_clause.add_trait_bound(&binding.ast().ty);
                 }
-                expr = quote! {
-                    #expr
-                    writer.item(#binding)?;
-                };
-            }
+                quote!{ writer.item(#binding)?; }
+            };
+            variant_expr.to_tokens(&mut expr)
         }
 
         quote! {{
@@ -148,15 +141,12 @@ struct CssInputAttrs {
     function: Option<Override<String>>,
     // Here because structs variants are also their whole type definition.
     comma: bool,
-    // Here because structs variants are also their whole type definition.
-    iterable: bool,
 }
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
 pub struct CssVariantAttrs {
     pub function: Option<Override<String>>,
-    pub iterable: bool,
     pub comma: bool,
     pub dimension: bool,
     pub keyword: Option<String>,
@@ -167,5 +157,6 @@ pub struct CssVariantAttrs {
 #[derive(Default, FromField)]
 struct CssFieldAttrs {
     ignore_bound: bool,
+    iterable: bool,
     skip: bool,
 }
