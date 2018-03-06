@@ -44,6 +44,7 @@ packages = [
   "unicode-xid",
   "log",
   "env_logger",
+  "servo-glutin",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
