@@ -310,6 +310,7 @@ def windows_unit():
             "mach fetch",
 
             "mach build --dev",
+            "mach smoketest",
             "mach test-unit",
             "mach package --dev",
         )

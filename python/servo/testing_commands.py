@@ -977,4 +977,4 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
              category='testing')
     def smoketest(self):
         return self.context.commands.dispatch(
-            'run', self.context, params=['tests/html/close-on-load.html'])
+            'run', self.context, params=['--angle', 'tests/html/close-on-load.html'])
