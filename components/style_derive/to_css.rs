@@ -10,7 +10,7 @@ use synstructure;
 
 pub fn derive(input: syn::DeriveInput) -> Tokens {
     let name = &input.ident;
-    let trait_path = parse_quote!(style_traits::ToCss);
+    let trait_path = parse_quote!(::style_traits::ToCss);
     let (impl_generics, ty_generics, mut where_clause) =
         cg::trait_parts(&input, &trait_path);
 
