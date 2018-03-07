@@ -5,7 +5,7 @@
 use cg::{self, WhereClause};
 use darling::util::Override;
 use quote::{ToTokens, Tokens};
-use syn::{self, Data, Ident};
+use syn::{self, Data, Path};
 use synstructure::{BindingInfo, Structure, VariantInfo};
 
 pub fn derive(input: syn::DeriveInput) -> Tokens {
@@ -131,7 +131,7 @@ fn derive_variant_fields_expr(
         let mut expr = quote! { ::style_traits::ToCss::to_css(#first, dest) };
         if let Some(condition) = attrs.skip_if {
             expr = quote! {
-                if !#first.#condition() {
+                if !#condition(#first) {
                     #expr
                 }
             }
@@ -185,7 +185,7 @@ fn derive_single_field_expr(
 
     if let Some(condition) = attrs.skip_if {
         expr = quote! {
-            if !#field.#condition() {
+            if !#condition(#field) {
                 #expr
             }
         }
@@ -221,5 +221,5 @@ struct CssFieldAttrs {
     ignore_bound: bool,
     iterable: bool,
     skip: bool,
-    skip_if: Option<Ident>,
+    skip_if: Option<Path>,
 }
