@@ -79,7 +79,6 @@ fn derive_variant_arm(
 
     let mut expr = if let Some(keyword) = variant_attrs.keyword {
         assert!(bindings.is_empty());
-        let keyword = keyword.to_string();
         quote! {
             ::std::fmt::Write::write_str(dest, #keyword)
         }
