@@ -739,6 +739,9 @@ pub trait TElement
     /// The shadow root which roots the subtree this element is contained in.
     fn containing_shadow(&self) -> Option<<Self::ConcreteNode as TNode>::ConcreteShadowRoot>;
 
+    /// XBL hack for style sharing. :(
+    fn has_same_xbl_proto_binding_as(&self, _other: Self) -> bool { true }
+
     /// Return the element which we can use to look up rules in the selector
     /// maps.
     ///
