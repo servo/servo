@@ -131,12 +131,22 @@ def wpt_path(is_firefox, topdir, *paths):
     return os.path.join(topdir, rel, *paths)
 
 
-def wpt_harness_path(is_firefox, topdir, *paths):
+def wptrunner_path(is_firefox, topdir, *paths):
     wpt_root = wpt_path(is_firefox, topdir)
     if is_firefox:
         rel = os.path.join(wpt_root, "tests", "tools", "wptrunner")
     else:
         rel = os.path.join(wpt_root, "web-platform-tests", "tools", "wptrunner")
+
+    return os.path.join(topdir, rel, *paths)
+
+
+def wptserve_path(is_firefox, topdir, *paths):
+    wpt_root = wpt_path(is_firefox, topdir)
+    if is_firefox:
+        rel = os.path.join(wpt_root, "tests", "tools", "wptserve")
+    else:
+        rel = os.path.join(wpt_root, "web-platform-tests", "tools", "wptserve")
 
     return os.path.join(topdir, rel, *paths)
 
@@ -175,9 +185,9 @@ def _activate_virtualenv(topdir, is_firefox):
     # and it will check for conflicts.
     requirements_paths = [
         os.path.join("python", "requirements.txt"),
-        wpt_harness_path(is_firefox, topdir, "requirements.txt",),
-        wpt_harness_path(is_firefox, topdir, "requirements_firefox.txt"),
-        wpt_harness_path(is_firefox, topdir, "requirements_servo.txt"),
+        wptrunner_path(is_firefox, topdir, "requirements.txt",),
+        wptrunner_path(is_firefox, topdir, "requirements_firefox.txt"),
+        wptrunner_path(is_firefox, topdir, "requirements_servo.txt"),
     ]
 
     if need_pip_upgrade:
@@ -267,7 +277,8 @@ def bootstrap(topdir):
     sys.path[0:0] = [os.path.join(topdir, path) for path in SEARCH_PATHS]
 
     sys.path[0:0] = [wpt_path(is_firefox, topdir),
-                     wpt_harness_path(is_firefox, topdir)]
+                     wptrunner_path(is_firefox, topdir),
+                     wptserve_path(is_firefox, topdir)]
 
     import mach.main
     mach = mach.main.Mach(os.getcwd())
