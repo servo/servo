@@ -509,14 +509,17 @@ impl From<GridAutoFlow> for u8 {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
     /// `named area` containing for each template area
+    #[css(skip)]
     pub areas: Box<[NamedArea]>,
     /// The original CSS string value of each template area
+    #[css(iterable)]
     pub strings: Box<[Box<str>]>,
     /// The number of columns of the grid.
+    #[css(skip)]
     pub width: u32,
 }
 
@@ -593,21 +596,6 @@ impl TemplateAreas {
             strings: strings.into_boxed_slice(),
             width: width,
         })
-    }
-}
-
-impl ToCss for TemplateAreas {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        for (i, string) in self.strings.iter().enumerate() {
-            if i != 0 {
-                dest.write_str(" ")?;
-            }
-            string.to_css(dest)?;
-        }
-        Ok(())
     }
 }
 
