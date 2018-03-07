@@ -679,12 +679,14 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        // Note that in the XBL case, we should be able to assert that the
-        // scopes are different, since two elements with different XBL bindings
-        // need to necessarily have different style (and thus children of them
-        // would never pass the parent check).
-        if target.element.style_scope() != candidate.element.style_scope() {
-            trace!("Miss: Different style scopes");
+        // If two elements belong to different shadow trees, different rules may
+        // apply to them, from the respective trees.
+        //
+        // Note that we don't need the same for XBL case, since two elements
+        // with different XBL bindings need to necessarily have different style
+        // (and thus children of them would never pass the parent check).
+        if target.element.containing_shadow() != candidate.element.containing_shadow() {
+            trace!("Miss: Different containing shadow roots");
             return None;
         }
 
@@ -695,7 +697,9 @@ impl<E: TElement> StyleSharingCache<E> {
         // shadow root, they could match different rules, due to the slot being
         // assigned to yet another slot in another shadow root.
         if target.element.assigned_slot() != candidate.element.assigned_slot() {
-            trace!("Miss: Different style scopes");
+            // TODO(emilio): We could have a look at whether the shadow roots
+            // actually have slotted rules and such.
+            trace!("Miss: Different assigned slots");
             return None;
         }
 
