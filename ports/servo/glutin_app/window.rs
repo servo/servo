@@ -197,6 +197,7 @@ pub struct Window {
     fullscreen: Cell<bool>,
 
     gl: Rc<gl::Gl>,
+    suspended: Cell<bool>,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -327,6 +328,7 @@ impl Window {
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
             screen_size,
+            suspended: Cell::new(false),
         };
 
         window.present();
@@ -483,6 +485,14 @@ impl Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Resize);
                 }
             }
+            Event::Suspended(suspended) => {
+                self.suspended.set(suspended);
+                if suspended {
+                    self.set_animation_state(AnimationState::Idle);
+                } else {
+                    self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                }
+            }
             Event::Awakened => {
                 self.event_queue.borrow_mut().push(WindowEvent::Idle);
             }
@@ -574,7 +584,9 @@ impl Window {
                         events_loop.borrow_mut().run_forever(|e| {
                             self.handle_window_event(e);
                             if !self.event_queue.borrow().is_empty() {
-                                stop = servo_callback();
+                                if !self.suspended.get() {
+                                    stop = servo_callback();
+                                }
                             }
                             if stop || self.is_animating() {
                                 glutin::ControlFlow::Break
