@@ -83,10 +83,8 @@ impl Browser {
     fn handle_key_from_window(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
         match (mods, ch, key) {
             (CMD_OR_CONTROL, Some('r'), _) => {
-                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    if let Some(id) = self.browser_id {
-                        self.event_queue.push(WindowEvent::Reload(id));
-                    }
+                if let Some(id) = self.browser_id {
+                    self.event_queue.push(WindowEvent::Reload(id));
                 }
             }
             (CMD_OR_CONTROL, Some('l'), _) => {
@@ -105,9 +103,7 @@ impl Browser {
                 }
             }
             (CMD_OR_CONTROL, Some('q'), _) => {
-                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    self.event_queue.push(WindowEvent::Quit);
-                }
+                self.event_queue.push(WindowEvent::Quit);
             }
             (KeyModifiers::CONTROL, None, Key::F10) => {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
@@ -134,9 +130,7 @@ impl Browser {
                 }
             }
             (KeyModifiers::NONE, None, Key::Escape) => {
-                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    self.event_queue.push(WindowEvent::Quit);
-                }
+                self.event_queue.push(WindowEvent::Quit);
             }
             _ => {
                 let event = self.platform_handle_key(key, mods);
