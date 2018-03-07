@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#mapping">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="bookmark" href="https://bugs.chromium.org/p/chromium/issues/detail?id=598134" />
+<meta name="flags" content="" />
+<meta name="assert" content="default <table> box-sizing:border-box is not applied to non-table elements that have display:table" />
+<title>
+UA stylesheet, &lt;table>, box-sizing
+</title>
+
+<style>
+#table {
+  display: table;
+  width: 100px;
+  height: 100%;
+  background: green;
+  padding-bottom: 35px;
+}
+
+#redSquare {
+  height: 100px;
+  width: 100px;
+  background-color: red;
+  position: absolute;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+<div id="redSquare"></div>
+<div style="height:65px">
+  <div id="table"></div>
+</div>

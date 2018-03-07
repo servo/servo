@@ -131,13 +131,16 @@ class HTTPWireProtocol(object):
         if body is None and method == "POST":
             body = {}
 
-        try:
-            payload = json.dumps(body, cls=encoder, **codec_kwargs)
-        except ValueError:
-            raise ValueError("Failed to encode request body as JSON:\n"
-                "%s" % json.dumps(body, indent=2))
-        if isinstance(payload, text_type):
-            payload = body.encode("utf-8")
+        payload = None
+        if body is not None:
+            try:
+                payload = json.dumps(body, cls=encoder, **codec_kwargs)
+            except ValueError:
+                raise ValueError("Failed to encode request body as JSON:\n"
+                    "%s" % json.dumps(body, indent=2))
+
+            if isinstance(payload, text_type):
+                payload = body.encode("utf-8")
 
         if headers is None:
             headers = {}

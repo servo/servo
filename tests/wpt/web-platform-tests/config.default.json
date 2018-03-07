@@ -1,7 +1,7 @@
 {"host": "web-platform.test",
  "doc_root": null,
  "ws_doc_root": null,
- "external_host": null,
+ "host_ip": null,
  "ports":{"http":[8000, "auto"],
           "https":[8443],
           "ws":["auto"],

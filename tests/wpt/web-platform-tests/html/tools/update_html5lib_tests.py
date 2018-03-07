@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 import os
 import hashlib
@@ -14,7 +16,7 @@ try:
 
     from html5lib.tests import support
 except ImportError:
-    print """This script requires the Genshi templating library and html5lib source
+    print("""This script requires the Genshi templating library and html5lib source
 
 It is recommended that these are installed in a virtualenv:
 
@@ -30,7 +32,7 @@ pip install -e ./
 
 Then run this script again, with the virtual environment still active.
 When you are done, type "deactivate" to deactivate the virtual environment.
-"""
+""")
 
 TESTS_PATH = "html/syntax/parsing/"
 
@@ -61,7 +63,7 @@ def make_tests(script_dir, out_dir, input_file_name, test_data):
     tests = []
     innerHTML_tests = []
     ids_seen = {}
-    print input_file_name
+    print(input_file_name)
     for test in test_data:
         if "script-off" in test:
             continue
@@ -73,7 +75,7 @@ def make_tests(script_dir, out_dir, input_file_name, test_data):
         test_list = innerHTML_tests if is_innerHTML else tests
         test_id = get_hash(data, container)
         if test_id in ids_seen:
-            print "WARNING: id %s seen multiple times in file %s this time for test (%s, %s) before for test %s, skipping"%(test_id, input_file_name, container, data, ids_seen[test_id])
+            print("WARNING: id %s seen multiple times in file %s this time for test (%s, %s) before for test %s, skipping"%(test_id, input_file_name, container, data, ids_seen[test_id]))
             continue
         ids_seen[test_id] = (container, data)
         test_list.append({'string_uri_encoded_input':"\"%s\""%urllib.quote(data.encode("utf8")),

@@ -3,7 +3,6 @@ import os
 import re
 from collections import defaultdict
 from six import iteritems, itervalues, viewkeys, string_types
-from tempfile import mkstemp
 
 from .item import ManualTest, WebdriverSpecTest, Stub, RefTestNode, RefTest, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
 from .log import get_logger
@@ -91,7 +90,7 @@ class Manifest(object):
                     hash_changed = True
                 else:
                     new_type, manifest_items = old_type, self._data[old_type][rel_path]
-                if old_type == "reftest" and new_type != old_type:
+                if old_type in ("reftest", "reftest_node") and new_type != old_type:
                     reftest_changes = True
             else:
                 new_type, manifest_items = source_file.manifest_items()
@@ -235,11 +234,6 @@ def write(manifest, manifest_path):
     dir_name = os.path.dirname(manifest_path)
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
-
-    fd, temp_manifest_path = mkstemp(dir=dir_name)
-    temp_manifest = open(temp_manifest_path, "wb")
-    json.dump(manifest.to_json(), temp_manifest,
-              sort_keys=True, indent=1, separators=(',', ': '))
-    temp_manifest.write("\n")
-    os.rename(temp_manifest_path, manifest_path)
-    os.close(fd)
+    with open(manifest_path, "wb") as f:
+        json.dump(manifest.to_json(), f, sort_keys=True, indent=1, separators=(',', ': '))
+        f.write("\n")

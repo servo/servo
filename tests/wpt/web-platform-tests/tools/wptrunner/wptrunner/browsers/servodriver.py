@@ -5,7 +5,7 @@ import tempfile
 
 from mozprocess import ProcessHandler
 
-from tools.serve.serve import make_hosts_file
+from serve.serve import make_hosts_file
 
 from .base import Browser, require_arg, get_free_port, browser_command, ExecutorBrowser
 from ..executors import executor_kwargs as base_executor_kwargs
@@ -53,9 +53,8 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {"host": "127.0.0.1",
-            "external_host": "web-platform.test",
-            "bind_hostname": "true",
+    return {"host_ip": "127.0.0.1",
+            "host": "web-platform.test",
             "testharnessreport": "testharnessreport-servodriver.js",
             "supports_debugger": True}
 

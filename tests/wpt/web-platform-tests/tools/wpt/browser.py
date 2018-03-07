@@ -18,26 +18,38 @@ logger = logging.getLogger(__name__)
 
 uname = platform.uname()
 
-def path(path, exe):
-    path = path.replace("/", os.path.sep)
-    if exe and uname[0] == "Windows":
-        path += ".exe"
-    return path
-
 
 class Browser(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def install(self, dest=None):
+        """Install the browser."""
         return NotImplemented
 
     @abstractmethod
-    def install_webdriver(self):
+    def install_webdriver(self, dest=None):
+        """Install the WebDriver implementation for this browser."""
         return NotImplemented
 
     @abstractmethod
-    def version(self):
+    def find_binary(self):
+        """Find the binary of the browser.
+
+        If the WebDriver for the browser is able to find the binary itself, this
+        method doesn't need to be implemented, in which case NotImplementedError
+        is suggested to be raised to prevent accidental use.
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def find_webdriver(self):
+        """Find the binary of the WebDriver."""
+        return NotImplemented
+
+    @abstractmethod
+    def version(self, root):
+        """Retrieve the release version of the installed browser."""
         return NotImplemented
 
     @abstractmethod
@@ -56,7 +68,6 @@ class Firefox(Browser):
     binary = "firefox/firefox"
     platform_ini = "firefox/platform.ini"
     requirements = "requirements_firefox.txt"
-
 
     def platform_string(self):
         platform = {
@@ -94,40 +105,36 @@ class Firefox(Browser):
 
         return "%s%s" % (platform, bits)
 
-    def latest_nightly_listing(self):
-        resp = get("https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/")
-        resp.raise_for_status()
-        return resp.text
-
-    def get_nightly_link(self, index, platform):
-        pattern = re.compile("<a[^>]*>(firefox-(\d+)\.\d(?:\w\d)?.en-US.%s\.tar\.bz2)" % platform)
-        max_version = None
-        for match in pattern.finditer(index):
-            try:
-                version = int(match.group(2))
-            except ValueError:
-                continue
-            if max_version is None or version > max_version[0]:
-                max_version = (version, match.group(1))
-        if not max_version:
-            raise ValueError("Failed to find version to download")
-        return ("https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/%s" %
-                max_version[1])
-
     def install(self, dest=None):
         """Install Firefox."""
+
+        from mozdownload import FactoryScraper
+        import mozinstall
+
         if dest is None:
             dest = os.getcwd()
 
-        nightly_link = self.get_nightly_link(self.latest_nightly_listing(),
-                                             self.platform_string())
-        resp = get(nightly_link)
-        resp.raise_for_status()
-        untar(resp.raw, dest=dest)
+        filename = FactoryScraper('daily', branch='mozilla-central', destination=dest).download()
+
+        try:
+            mozinstall.install(filename, dest)
+        except mozinstall.mozinstall.InstallError as e:
+            if uname[0] == "Darwin":
+                # mozinstall will fail here if nightly is already installed in the venv
+                # This only occurs on macOS because shutil.copy_tree() is called in
+                # mozinstall._install_dmg and will fail if the file already exists.
+                # copytree isn't used while installing on Windows/linux, so the same error
+                # won't be thrown if we try to rewrite there.
+                mozinstall.uninstall(dest+'/Firefox Nightly.app')
+                mozinstall.install(filename, dest)
+            else:
+                raise
+
+        os.remove(filename)
         return find_executable("firefox", os.path.join(dest, "firefox"))
 
-    def find_binary(self, path=None):
-        return find_executable("firefox", path)
+    def find_binary(self):
+        return find_executable("firefox")
 
     def find_certutil(self):
         path = find_executable("certutil")
@@ -234,11 +241,13 @@ class Chrome(Browser):
 
         return "%s%s" % (platform, bits)
 
+    def find_binary(self):
+        raise NotImplementedError
+
     def find_webdriver(self):
         return find_executable("chromedriver")
 
     def install_webdriver(self, dest=None):
-        """Install latest Webdriver."""
         if dest is None:
             dest = os.pwd
         latest = get("http://chromedriver.storage.googleapis.com/LATEST_RELEASE").text.strip()
@@ -252,7 +261,6 @@ class Chrome(Browser):
         return path
 
     def version(self, root):
-        """Retrieve the release version of the installed browser."""
         output = call(self.binary, "--version")
         return re.search(r"[0-9\.]+( [a-z]+)?$", output.strip()).group(0)
 
@@ -267,6 +275,9 @@ class ChromeAndroid(Browser):
     requirements = "requirements_chrome_android.txt"
 
     def install(self, dest=None):
+        raise NotImplementedError
+
+    def find_binary(self):
         raise NotImplementedError
 
     def find_webdriver(self):
@@ -312,11 +323,13 @@ class Opera(Browser):
 
         return "%s%s" % (platform, bits)
 
+    def find_binary(self):
+        raise NotImplementedError
+
     def find_webdriver(self):
         return find_executable("operadriver")
 
     def install_webdriver(self, dest=None):
-        """Install latest Webdriver."""
         if dest is None:
             dest = os.pwd
         latest = get("https://api.github.com/repos/operasoftware/operachromiumdriver/releases/latest").json()["tag_name"]
@@ -348,14 +361,16 @@ class Edge(Browser):
     def install(self, dest=None):
         raise NotImplementedError
 
+    def find_binary(self):
+        raise NotImplementedError
+
     def find_webdriver(self):
         return find_executable("MicrosoftWebDriver")
 
     def install_webdriver(self, dest=None):
-        """Install latest Webdriver."""
         raise NotImplementedError
 
-    def version(self):
+    def version(self, root):
         raise NotImplementedError
 
 
@@ -368,14 +383,41 @@ class InternetExplorer(Browser):
     def install(self, dest=None):
         raise NotImplementedError
 
+    def find_binary(self):
+        raise NotImplementedError
+
     def find_webdriver(self):
         return find_executable("IEDriverServer.exe")
 
     def install_webdriver(self, dest=None):
-        """Install latest Webdriver."""
         raise NotImplementedError
 
-    def version(self):
+    def version(self, root):
+        raise NotImplementedError
+
+
+class Safari(Browser):
+    """Safari-specific interface.
+
+    Includes installation, webdriver installation, and wptrunner setup methods.
+    """
+
+    product = "safari"
+    requirements = "requirements_safari.txt"
+
+    def install(self, dest=None):
+        raise NotImplementedError
+
+    def find_binary(self):
+        raise NotImplementedError
+
+    def find_webdriver(self):
+        return find_executable("safaridriver")
+
+    def install_webdriver(self):
+        raise NotImplementedError
+
+    def version(self, root):
         raise NotImplementedError
 
 
@@ -388,13 +430,13 @@ class Servo(Browser):
     def install(self, dest=None):
         raise NotImplementedError
 
-    def find_binary(self, path=None):
+    def find_binary(self):
         return find_executable("servo")
 
     def find_webdriver(self):
         return None
 
-    def install_webdriver(self):
+    def install_webdriver(self, dest=None):
         raise NotImplementedError
 
     def version(self, root):
@@ -406,6 +448,27 @@ class Sauce(Browser):
 
     product = "sauce"
     requirements = "requirements_sauce.txt"
+
+    def install(self, dest=None):
+        raise NotImplementedError
+
+    def find_binary(self):
+        raise NotImplementedError
+
+    def find_webdriver(self):
+        raise NotImplementedError
+
+    def install_webdriver(self, dest=None):
+        raise NotImplementedError
+
+    def version(self, root):
+        return None
+
+class WebKit(Browser):
+    """WebKit-specific interface."""
+
+    product = "webkit"
+    requirements = "requirements_webkit.txt"
 
     def install(self, dest=None):
         raise NotImplementedError

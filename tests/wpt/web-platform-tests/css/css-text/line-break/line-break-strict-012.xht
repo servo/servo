@@ -31,26 +31,35 @@
 			span.target {
 				background-color: aqua;
 			}
+			div.wrapper {
+				display: inline-block;
+				border: 1px solid;
+				margin: 10px;
+				padding: 10px;
+			}
 		</style>
 	</head>
 	<body lang="en">
 		<p>
 			Test passes if the highlighted characters in each pair of rectangles are at the exact same horizontal position.
 		</p>
-		<!-- Katakana-Hiragana prolonged sound mark - fullwidth -->
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#x30FC;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#x30FC;</span>サンプル文</span>
-		</p>
-		<hr />
-		<!-- Katakana-Hiragana prolonged sound mark - halfwidth -->
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#xff70;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#xff70;</span>サンプル文</span>
-		</p>
+		<div class="wrapper">
+			<!-- Katakana-Hiragana prolonged sound mark - fullwidth -->
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#x30FC;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x30FC;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<!-- Katakana-Hiragana prolonged sound mark - halfwidth -->
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#xff70;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#xff70;</span>サンプル文</span>
+			</p>
+		</div>
 	</body>
 </html>

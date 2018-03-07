@@ -31,6 +31,13 @@ const gCssWideKeywordsExamples = [
   },
 ];
 
+const gVarReferenceExamples = [
+  {
+    description: 'a var() reference',
+    input: new CSSUnparsedValue([' ', new CSSVariableReferenceValue('--A')])
+  },
+];
+
 const gTestSyntaxExamples = {
   '<length>': {
     description: 'a length',
@@ -149,13 +156,52 @@ const gTestSyntaxExamples = {
     description: 'a transform',
     examples: [
       {
-        description: 'a transform containing only a translate',
+        description: 'a transform containing percents',
+        input: new CSSTransformValue([
+          new CSSTranslate(
+            new CSSUnitValue(50, 'percent'),
+            new CSSUnitValue(50, 'percent'),
+          )
+        ]),
+      },
+      {
+        description: 'a transform containing relative values',
+        input: new CSSTransformValue([
+          new CSSPerspective(new CSSUnitValue(10, 'em'))
+        ]),
+        defaultComputed: (_, result) => {
+          // Relative units compute to absolute.
+          assert_class_string(result, 'CSSTransformValue',
+            'Result must be a CSSTransformValue');
+          assert_class_string(result[0], 'CSSPerspective',
+            'First component must be a CSSTransformValue');
+          assert_is_unit('px', result[0].length);
+        }
+      },
+      {
+        description: 'a transform containing all the transform components',
         input: new CSSTransformValue([
           new CSSTranslate(
             new CSSUnitValue(0, 'px'),
             new CSSUnitValue(1, 'px'),
             new CSSUnitValue(2, 'px'),
-          )
+          ),
+          new CSSTranslate(
+            new CSSUnitValue(0, 'px'),
+            new CSSUnitValue(1, 'px'),
+          ),
+          new CSSRotate(1, 2, 3, new CSSUnitValue(45, 'deg')),
+          new CSSRotate(new CSSUnitValue(45, 'deg')),
+          new CSSScale(1, 2, 3),
+          new CSSScale(1, 2),
+          new CSSSkew(new CSSUnitValue(1, 'deg'), new CSSUnitValue(1, 'deg')),
+          new CSSSkewX(new CSSUnitValue(1, 'deg')),
+          new CSSSkewY(new CSSUnitValue(45, 'deg')),
+          new CSSPerspective(new CSSUnitValue(1, 'px')),
+          new CSSMatrixComponent(new DOMMatrixReadOnly(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
+          ),
+          new CSSMatrixComponent(new DOMMatrixReadOnly([1, 2, 3, 4, 5, 6])),
         ]),
       }
     ],
@@ -289,6 +335,13 @@ function runPropertyTests(propertyName, testCases) {
     null, // should be as specified
     () => {}, // could be anything
     'CSS-wide keywords');
+
+  // Every property should support values containing var() references.
+  testPropertyValid(propertyName,
+    gVarReferenceExamples,
+    null, // should be as specified
+    () => {}, // could compute to anything
+    'var() references');
 
   for (const testCase of testCases) {
     // <image> is a special case

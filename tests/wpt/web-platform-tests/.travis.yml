@@ -89,6 +89,15 @@ matrix:
           packages:
             - libnss3-tools
       env: JOB=wpt_integration TOXENV=py27,py27-flake8 SCRIPT=tools/ci/ci_wpt.sh
+    - os: linux
+      python: "2.7"
+      env: JOB=wptrunner_infrastructure SCRIPT=tools/ci/ci_wptrunner_infrastructure.sh
+      addons:
+        apt:
+          packages:
+            - libnss3-tools
+            - libappindicator1
+            - fonts-liberation
   exclude:
     - env:  # exclude empty env from the top-level above
   allow_failures:
