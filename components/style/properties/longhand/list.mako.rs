@@ -15,12 +15,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 //     decimal-leading-zero, armenian, upper-armenian, lower-armenian, georgian, lower-roman,
 //     upper-roman
 //
-// TODO(bholley): Missing quite a few gecko properties here as well.
-//
-// In gecko, {upper,lower}-{roman,alpha} are implemented as @counter-styles in the
-// UA, however they can also be set from pres attrs. When @counter-style is supported
-// we may need to look into this and handle these differently.
-//
 // [1]: http://dev.w3.org/csswg/css-counter-styles/
 % if product == "servo":
     ${helpers.single_keyword("list-style-type", """
