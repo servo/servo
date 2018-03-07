@@ -27,6 +27,8 @@ use std::fmt::{self, Write};
 /// * if `#[css(iterable)]` is found on a function variant, that variant needs
 ///   to have a single member, and that member needs to be iterable. The
 ///   iterable will be serialized as the arguments for the function;
+/// * an iterable field can also be annotated with `#[css(if_empty = "foo")]`
+///   to print `"foo"` if the iterator is empty;
 /// * if `#[css(dimension)]` is found on a variant, that variant needs
 ///   to have a single member. The variant would be serialized as a CSS
 ///   dimension token, like: <member><identifier>;
@@ -207,6 +209,21 @@ where
             }
         }
         Ok(())
+    }
+}
+
+/// A wrapper type that implements `ToCss` by printing its inner field.
+pub struct Verbatim<'a, T>(pub &'a T)
+where
+    T: ?Sized + 'a;
+
+impl<'a, T> ToCss for Verbatim<'a, T>
+where
+    T: AsRef<str> + ?Sized + 'a,
+{
+    #[inline]
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+        dest.write_str(self.0.as_ref())
     }
 }
 

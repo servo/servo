@@ -736,9 +736,12 @@ pub enum VariantAlternates {
     HistoricalForms,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// List of Variant Alternates
-pub struct VariantAlternatesList(pub Box<[VariantAlternates]>);
+pub struct VariantAlternatesList(
+    #[css(if_empty = "normal", iterable)]
+    pub Box<[VariantAlternates]>,
+);
 
 impl VariantAlternatesList {
     /// Returns the length of all variant alternates.
@@ -756,25 +759,6 @@ impl VariantAlternatesList {
                 _ => acc,
             }
         })
-    }
-}
-
-impl ToCss for VariantAlternatesList {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.0.is_empty() {
-            return dest.write_str("normal");
-        }
-
-        let mut iter = self.0.iter();
-        iter.next().unwrap().to_css(dest)?;
-        for alternate in iter {
-            dest.write_str(" ")?;
-            alternate.to_css(dest)?;
-        }
-        Ok(())
     }
 }
 

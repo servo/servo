@@ -150,6 +150,20 @@ fn derive_single_field_expr(
     where_clause: &mut WhereClause,
 ) -> Tokens {
     if attrs.iterable {
+        if let Some(if_empty) = attrs.if_empty {
+            return quote! {
+                {
+                    let mut iter = #field.iter().peekable();
+                    if iter.peek().is_none() {
+                        writer.item(&::style_traits::values::Verbatim(#if_empty))?;
+                    } else {
+                        for item in iter {
+                            writer.item(&item)?;
+                        }
+                    }
+                }
+            };
+        }
         quote! {
             for item in #field.iter() {
                 writer.item(&item)?;
@@ -186,6 +200,7 @@ pub struct CssVariantAttrs {
 #[darling(attributes(css), default)]
 #[derive(Default, FromField)]
 struct CssFieldAttrs {
+    if_empty: Option<String>,
     ignore_bound: bool,
     iterable: bool,
     skip: bool,
