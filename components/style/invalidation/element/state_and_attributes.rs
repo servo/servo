@@ -57,7 +57,7 @@ where
 pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
     shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode)],
-    cut_off_inheritance: bool,
+    matches_document_author_rules: bool,
     element: E,
     data: &'a mut ElementData,
     matching_context: MatchingContext<'a, E::Impl>,
@@ -68,7 +68,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
         shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode)],
-        cut_off_inheritance: bool,
+        matches_document_author_rules: bool,
         element: E,
         data: &'a mut ElementData,
         nth_index_cache: &'a mut NthIndexCache,
@@ -84,7 +84,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
         Self {
             shared_context,
             shadow_rule_datas,
-            cut_off_inheritance,
+            matches_document_author_rules,
             element,
             data,
             matching_context,
@@ -248,7 +248,7 @@ where
                 invalidates_self: false,
             };
 
-            let document_origins = if self.cut_off_inheritance {
+            let document_origins = if !self.matches_document_author_rules {
                 Origin::UserAgent.into()
             } else {
                 OriginSet::all()

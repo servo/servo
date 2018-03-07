@@ -147,6 +147,30 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
     fn host(&self) -> GeckoElement<'lr> {
         GeckoElement(unsafe { &*self.0._base.mHost.mRawPtr })
     }
+
+    #[inline]
+    fn style_data<'a>(&self) -> &'a CascadeData
+    where
+        Self: 'a,
+    {
+        debug_assert!(!self.0.mServoStyles.mPtr.is_null());
+
+        let author_styles = unsafe {
+            &*(self.0.mServoStyles.mPtr
+                as *const structs::RawServoAuthorStyles
+                as *const bindings::RawServoAuthorStyles)
+        };
+
+        let author_styles =
+            AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
+
+        debug_assert!(
+            author_styles.quirks_mode == self.as_node().owner_doc().quirks_mode() ||
+            author_styles.stylesheets.is_empty()
+        );
+
+        &author_styles.data
+    }
 }
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
@@ -1457,26 +1481,6 @@ impl<'le> TElement for GeckoElement<'le> {
         // rule_hash_target, that is, our originating element.
         let mut current = Some(self.rule_hash_target());
         while let Some(element) = current {
-            // TODO(emilio): Deal with Shadow DOM separately than with XBL
-            // (right now we still rely on get_xbl_binding_parent()).
-            //
-            // That will allow to clean up a bunch in
-            // push_applicable_declarations.
-            if let Some(shadow) = element.shadow_root() {
-                debug_assert!(!shadow.0.mServoStyles.mPtr.is_null());
-                let author_styles = unsafe {
-                    &*(shadow.0.mServoStyles.mPtr
-                        as *const structs::RawServoAuthorStyles
-                        as *const bindings::RawServoAuthorStyles)
-                };
-
-                let author_styles: &'a _ = AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
-                f(&author_styles.data, author_styles.quirks_mode);
-                if element != *self {
-                    break;
-                }
-            }
-
             if let Some(binding) = element.xbl_binding() {
                 binding.each_xbl_cascade_data(&mut f);
 

@@ -7,7 +7,7 @@
 use {Atom, LocalName, Namespace, WeakAtom};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use context::{CascadeInputs, QuirksMode};
-use dom::TElement;
+use dom::{TElement, TShadowRoot};
 use element_state::{DocumentState, ElementState};
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
@@ -599,11 +599,12 @@ impl Stylist {
 
         let mut maybe = false;
 
-        let cut_off = element.each_applicable_non_document_style_rule_data(|data, quirks_mode| {
-            maybe = maybe || f(&*data, quirks_mode);
-        });
+        let doc_author_rules_apply =
+            element.each_applicable_non_document_style_rule_data(|data, quirks_mode| {
+                maybe = maybe || f(&*data, quirks_mode);
+            });
 
-        if maybe || cut_off {
+        if maybe || !doc_author_rules_apply {
             return maybe;
         }
 
@@ -1251,6 +1252,8 @@ impl Stylist {
             }
         }
 
+        let mut match_document_author_rules = matches_author_rules;
+
         // XBL / Shadow DOM rules, which are author rules too.
         //
         // TODO(emilio): Cascade order here is wrong for Shadow DOM. In
@@ -1268,26 +1271,43 @@ impl Stylist {
             }
 
             for slot in slots.iter().rev() {
-                slot.each_xbl_cascade_data(|cascade_data, _quirks_mode| {
-                    if let Some(map) = cascade_data.slotted_rules(pseudo_element) {
-                        map.get_all_matching_rules(
-                            element,
-                            rule_hash_target,
-                            applicable_declarations,
-                            context,
-                            flags_setter,
-                            CascadeLevel::AuthorNormal
-                        );
-                    }
-                });
+                let styles = slot.containing_shadow().unwrap().style_data();
+                if let Some(map) = styles.slotted_rules(pseudo_element) {
+                    map.get_all_matching_rules(
+                        element,
+                        rule_hash_target,
+                        applicable_declarations,
+                        context,
+                        flags_setter,
+                        CascadeLevel::AuthorNormal,
+                    );
+                }
+            }
+
+            // TODO(emilio): We need to look up :host rules if the element is a
+            // shadow host, when we implement that.
+            if let Some(containing_shadow) = rule_hash_target.containing_shadow() {
+                let cascade_data = containing_shadow.style_data();
+                if let Some(map) = cascade_data.normal_rules(pseudo_element) {
+                    map.get_all_matching_rules(
+                        element,
+                        rule_hash_target,
+                        applicable_declarations,
+                        context,
+                        flags_setter,
+                        CascadeLevel::AuthorNormal,
+                    );
+                }
+
+                match_document_author_rules = false;
             }
         }
 
-        // FIXME(emilio): It looks very wrong to match XBL / Shadow DOM rules
-        // even for getDefaultComputedStyle!
+        // FIXME(emilio): It looks very wrong to match XBL rules even for
+        // getDefaultComputedStyle!
         //
         // Also, this doesn't account for the author_styles_enabled stuff.
-        let cut_off_inheritance = element.each_xbl_cascade_data(|cascade_data, quirks_mode| {
+        let cut_xbl_binding_inheritance = element.each_xbl_cascade_data(|cascade_data, quirks_mode| {
             if let Some(map) = cascade_data.normal_rules(pseudo_element) {
                 // NOTE(emilio): This is needed because the XBL stylist may
                 // think it has a different quirks mode than the document.
@@ -1314,7 +1334,9 @@ impl Stylist {
             }
         });
 
-        if matches_author_rules && !only_default_rules && !cut_off_inheritance {
+        match_document_author_rules &= !cut_xbl_binding_inheritance;
+
+        if match_document_author_rules && !only_default_rules {
             // Author normal rules.
             if let Some(map) = self.cascade_data.author.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
