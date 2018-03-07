@@ -71,6 +71,18 @@ const arguments = [
   },
 
   {
+    name: "redirected to same-origin HTMLVideoElement",
+    factory: () => {
+      return new Promise((resolve, reject) => {
+        const video = document.createElement("video");
+        video.oncanplaythrough = () => resolve(video);
+        video.onerror = reject;
+        video.src = "http://{{domains[www1]}}:{{ports[http][0]}}/common/redirect.py?location=" + getVideoURI("http://{{domains[]}}:{{ports[http][0]}}/media/movie_300");
+      });
+    },
+  },
+
+  {
     name: "unclean HTMLCanvasElement",
     factory: () => {
       return makeImage().then(image => {

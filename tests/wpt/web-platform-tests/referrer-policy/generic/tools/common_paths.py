@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os, sys, json, re
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -39,13 +41,13 @@ def load_spec_json():
     with open(spec_filename, "r") as f:
         try:
           spec_json = json.load(f)
-        except ValueError, ex:
-          print ex.message
+        except ValueError as ex:
+          print(ex.message)
           match = re_error_location.search(ex.message)
           if match:
             line_number, column = int(match.group(1)), int(match.group(2))
-            print read_nth_line(f, line_number).rstrip()
-            print " " * (column - 1) + "^"
+            print(read_nth_line(f, line_number).rstrip())
+            print(" " * (column - 1) + "^")
 
           sys.exit(1)
 

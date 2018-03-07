@@ -5,7 +5,7 @@
 .container {
   width: 100px;
   height: 100px;
-  border-radius: 2px;
+  margin-left: 2px;
   --foo: bar;
 }
 
@@ -24,8 +24,8 @@ registerPaint('geometry', class {
         return [
             '--bar',
             '--foo',
-            'align-items',
-            'border-top-left-radius',
+            'empty-cells',
+            'margin-left',
         ];
     }
     paint(ctx, geom, styleMap) {
@@ -45,9 +45,9 @@ registerPaint('geometry', class {
             ctx.strokeStyle = 'red';
         if (serializedStrings[1] != "--foo: [CSSUnparsedValue= bar]")
             ctx.strokeStyle = 'blue';
-        if (serializedStrings[2] != "align-items: [CSSKeywordValue=normal]")
+        if (serializedStrings[2] != "empty-cells: [CSSKeywordValue=show]")
             ctx.strokeStyle = 'yellow';
-        if (serializedStrings[3] != "border-top-left-radius: [CSSUnitValue=2px]")
+        if (serializedStrings[3] != "margin-left: [CSSUnitValue=2px]")
             ctx.strokeStyle = 'cyan';
         ctx.lineWidth = 4;
         ctx.strokeRect(0, 0, geom.width, geom.height);
