@@ -871,7 +871,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
-    if type.isSpiderMonkeyInterface():
+    if type.isTypedArray() or type.isArrayBuffer() or type.isArrayBufferView() or type.isSharedArrayBuffer():
         # Typed arrays can be constructed only with a prior rooted value
         assert isArgument or isinstance(needsRootingInto, basestring)
 
@@ -910,6 +910,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                           isDefinitelyObject, type, failureCode)
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
+
+    elif type.isSpiderMonkeyInterface():
+        raise TypeError("Can't handle SpiderMonkey interface arguments other than typed arrays yet")
 
     if type.isDOMString():
         nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
@@ -6485,12 +6488,9 @@ def type_needs_tracing(t):
 
 
 def type_conversion_needs_root(t):
-    assert isinstance(t, IDLObject), (t, type(t))
+    assert isinstance(t, IDLType)
 
-    if t.isType():
-        return t.isSpiderMonkeyInterface()
-
-    assert False, (t, type(t))
+    return t.isSpiderMonkeyInterface()
 
 
 def type_needs_auto_root(t):
