@@ -17,23 +17,27 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 //
 // [1]: http://dev.w3.org/csswg/css-counter-styles/
 % if product == "servo":
-    ${helpers.single_keyword("list-style-type", """
-        disc none circle square decimal disclosure-open disclosure-closed lower-alpha upper-alpha
+    ${helpers.single_keyword(
+        "list-style-type",
+        """disc none circle square decimal disclosure-open disclosure-closed lower-alpha upper-alpha
         arabic-indic bengali cambodian cjk-decimal devanagari gujarati gurmukhi kannada khmer lao
         malayalam mongolian myanmar oriya persian telugu thai tibetan cjk-earthly-branch
         cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana katakana-iroha""",
         animation_value_type="discrete",
         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type",
-        servo_restyle_damage="rebuild_and_reflow")}
+        servo_restyle_damage="rebuild_and_reflow",
+    )}
 % else:
-    ${helpers.predefined_type("list-style-type",
-                              "ListStyleType",
-                              "computed::ListStyleType::disc()",
-                              initial_specified_value="specified::ListStyleType::disc()",
-                              animation_value_type="discrete",
-                              boxed=True,
-                              spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type",
-                              servo_restyle_damage="rebuild_and_reflow")}
+    ${helpers.predefined_type(
+        "list-style-type",
+        "ListStyleType",
+        "computed::ListStyleType::disc()",
+        initial_specified_value="specified::ListStyleType::disc()",
+        animation_value_type="discrete",
+        boxed=True,
+        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type",
+        servo_restyle_damage="rebuild_and_reflow",
+    )}
 % endif
 
 ${helpers.predefined_type("list-style-image",
