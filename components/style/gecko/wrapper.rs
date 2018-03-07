@@ -616,7 +616,8 @@ impl<'le> GeckoElement<'le> {
             return None;
         }
 
-        unsafe { bindings::Gecko_GetXBLBinding(self.0).map(GeckoXBLBinding) }
+        let slots = self.extended_slots()?;
+        unsafe { slots.mXBLBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
     }
 
     #[inline]
