@@ -91,12 +91,6 @@ pub enum CounterStyleOrNone {
 }
 
 impl CounterStyleOrNone {
-    /// Returns whether the value is the `decimal` name.
-    #[inline]
-    pub fn is_decimal(&self) -> bool {
-        *self == Self::decimal()
-    }
-
     /// disc value
     pub fn disc() -> Self {
         CounterStyleOrNone::Name(CustomIdent(atom!("disc")))
