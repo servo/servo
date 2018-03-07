@@ -135,6 +135,13 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 #[derive(Clone, Copy)]
 pub struct GeckoShadowRoot<'lr>(pub &'lr structs::ShadowRoot);
 
+impl<'lr> PartialEq for GeckoShadowRoot<'lr> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 as *const _ == other.0 as *const _
+    }
+}
+
 impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
     type ConcreteNode = GeckoNode<'lr>;
 
@@ -1014,29 +1021,6 @@ impl<'le> TElement for GeckoElement<'le> {
     fn after_pseudo_element(&self) -> Option<Self> {
         self.before_or_after_pseudo(/* is_before = */ false)
     }
-
-    /// Ensure this accurately represents the rules that an element may ever
-    /// match, even in the native anonymous content case.
-    fn style_scope(&self) -> Self::ConcreteNode {
-        if self.implemented_pseudo_element().is_some() {
-            return self.closest_non_native_anonymous_ancestor().unwrap().style_scope();
-        }
-
-        if self.is_in_native_anonymous_subtree() {
-            return self.as_node().owner_doc().as_node();
-        }
-
-        if self.xbl_binding().is_some() || self.shadow_root().is_some() {
-            return self.as_node();
-        }
-
-        if let Some(parent) = self.xbl_binding_parent() {
-            return parent.as_node();
-        }
-
-        self.as_node().owner_doc().as_node()
-    }
-
 
     #[inline]
     fn is_html_element(&self) -> bool {

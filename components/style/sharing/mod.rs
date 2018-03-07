@@ -656,26 +656,6 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        // Note that in the XBL case, we should be able to assert that the
-        // scopes are different, since two elements with different XBL bindings
-        // need to necessarily have different style (and thus children of them
-        // would never pass the parent check).
-        if target.element.style_scope() != candidate.element.style_scope() {
-            trace!("Miss: Different style scopes");
-            return None;
-        }
-
-        // If the elements are not assigned to the same slot they could match
-        // different ::slotted() rules in the slot scope.
-        //
-        // If two elements are assigned to different slots, even within the same
-        // shadow root, they could match different rules, due to the slot being
-        // assigned to yet another slot in another shadow root.
-        if target.element.assigned_slot() != candidate.element.assigned_slot() {
-            trace!("Miss: Different style scopes");
-            return None;
-        }
-
         if target.local_name() != candidate.element.local_name() {
             trace!("Miss: Local Name");
             return None;
@@ -686,22 +666,46 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
+        // We do not ignore visited state here, because Gecko needs to store
+        // extra bits on visited style contexts, so these contexts cannot be
+        // shared.
+        if target.element.state() != candidate.state() {
+            trace!("Miss: User and Author State");
+            return None;
+        }
+
         if target.is_link() != candidate.element.is_link() {
             trace!("Miss: Link");
+            return None;
+        }
+
+        // If two elements belong to different shadow trees, different rules may
+        // apply to them, from the respective trees.
+        //
+        // Note that we don't need the same for XBL case, since two elements
+        // with different XBL bindings need to necessarily have different style
+        // (and thus children of them would never pass the parent check).
+        if target.element.containing_shadow() != candidate.element.containing_shadow() {
+            trace!("Miss: Different containing shadow roots");
+            return None;
+        }
+
+        // If the elements are not assigned to the same slot they could match
+        // different ::slotted() rules in the slot scope.
+        //
+        // If two elements are assigned to different slots, even within the same
+        // shadow root, they could match different rules, due to the slot being
+        // assigned to yet another slot in another shadow root.
+        if target.element.assigned_slot() != candidate.element.assigned_slot() {
+            // TODO(emilio): We could have a look at whether the shadow roots
+            // actually have slotted rules and such.
+            trace!("Miss: Different assigned slots");
             return None;
         }
 
         if target.matches_user_and_author_rules() !=
             candidate.element.matches_user_and_author_rules() {
             trace!("Miss: User and Author Rules");
-            return None;
-        }
-
-        // We do not ignore visited state here, because Gecko
-        // needs to store extra bits on visited style contexts,
-        // so these contexts cannot be shared
-        if target.element.state() != candidate.state() {
-            trace!("Miss: User and Author State");
             return None;
         }
 

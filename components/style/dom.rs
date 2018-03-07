@@ -321,7 +321,7 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
 }
 
 /// The ShadowRoot trait.
-pub trait TShadowRoot : Sized + Copy + Clone {
+pub trait TShadowRoot : Sized + Copy + Clone + PartialEq {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteShadowRoot = Self>;
 
@@ -383,15 +383,6 @@ pub trait TElement
         }
 
         depth
-    }
-
-    /// The style scope of this element is a node that represents which rules
-    /// apply to the element.
-    ///
-    /// In Servo, where we don't know about Shadow DOM or XBL, the style scope
-    /// is always the document.
-    fn style_scope(&self) -> Self::ConcreteNode {
-        self.as_node().owner_doc().as_node()
     }
 
     /// Get this node's parent element from the perspective of a restyle
