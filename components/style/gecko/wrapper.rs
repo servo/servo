@@ -1092,8 +1092,16 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { slots._base.mContainingShadow.mRawPtr.as_ref().map(GeckoShadowRoot) }
     }
 
-    /// Execute `f` for each anonymous content child element (apart from
-    /// ::before and ::after) whose originating element is `self`.
+    fn has_same_xbl_proto_binding_as(&self, other: Self) -> bool {
+        match (self.xbl_binding(), other.xbl_binding()) {
+            (None, None) => true,
+            (Some(a), Some(b)) => {
+                a.0.mPrototypeBinding == b.0.mPrototypeBinding
+            }
+            _ => false,
+        }
+    }
+
     fn each_anonymous_content_child<F>(&self, mut f: F)
     where
         F: FnMut(Self),
