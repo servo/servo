@@ -3920,7 +3920,7 @@ fn static_assert() {
         }
     </%self:simple_image_array_property>
 
-    pub fn clone_${shorthand}_size(&self) -> longhands::background_size::computed_value::T {
+    pub fn clone_${shorthand}_size(&self) -> longhands::${shorthand}_size::computed_value::T {
         use gecko_bindings::structs::nsStyleCoord_CalcValue as CalcValue;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType as DimensionType;
         use values::computed::LengthOrPercentageOrAuto;
@@ -3935,7 +3935,7 @@ fn static_assert() {
             }
         }
 
-        longhands::background_size::computed_value::T(
+        longhands::${shorthand}_size::computed_value::T(
             self.gecko.${image_layers_field}.mLayers.iter().map(|ref layer| {
                 if DimensionType::eCover as u8 == layer.mSize.mWidthType {
                     debug_assert_eq!(layer.mSize.mHeightType, DimensionType::eCover as u8);

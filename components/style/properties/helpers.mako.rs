@@ -77,10 +77,8 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, animation_value_type=None, allow_empty=False, separator='Comma',
-                            need_animatable=False, **kwargs)">
-    <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True,
-                          need_animatable=need_animatable, **kwargs)">
+<%def name="vector_longhand(name, animation_value_type=None, allow_empty=False, separator='Comma', **kwargs)">
+    <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True, **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
         % if allow_empty:
@@ -121,7 +119,7 @@
 
             /// The computed value, effectively a list of single values.
             #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-            % if need_animatable or animation_value_type == "ComputedValue":
+            % if animation_value_type == "ComputedValue":
             #[derive(Animate, ComputeSquaredDistance)]
             % endif
             % if not allow_empty:
@@ -141,10 +139,8 @@
                 % endif
             );
 
-            % if need_animatable or animation_value_type == "ComputedValue":
-                use values::animated::{ToAnimatedZero};
-
-                impl ToAnimatedZero for T {
+            % if animation_value_type == "ComputedValue":
+                impl ::values::animated::ToAnimatedZero for T {
                     #[inline]
                     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
                 }
