@@ -249,23 +249,52 @@ where
         matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
     };
 
+    // Find the end of the selector or the next combinator, then match
+    // backwards, so that we match in the same order as
+    // matches_complex_selector, which is usually faster.
+    let start_offset = from_offset;
     for component in selector.iter_raw_parse_order_from(from_offset) {
         if matches!(*component, Component::Combinator(..)) {
             debug_assert_ne!(from_offset, 0, "Selector started with a combinator?");
-            return CompoundSelectorMatchingResult::Matched {
-                next_combinator_offset: from_offset,
-            }
+            break;
         }
 
+        from_offset += 1;
+    }
+
+    debug_assert!(from_offset >= 1);
+    debug_assert!(from_offset <= selector.len());
+
+    let iter = selector.iter_from(selector.len() - from_offset);
+    debug_assert!(
+        iter.clone().next().is_some() || (
+            from_offset != selector.len() && matches!(
+                selector.combinator_at_parse_order(from_offset),
+                Combinator::SlotAssignment | Combinator::PseudoElement
+            )
+        ),
+        "Got the math wrong: {:?} | {:?} | {} {}",
+        selector,
+        selector.iter_raw_match_order().as_slice(),
+        from_offset,
+        start_offset
+    );
+
+    for component in iter {
         if !matches_simple_selector(
             component,
             element,
             &mut local_context,
-            &mut |_, _| {}) {
+            &mut |_, _| {}
+        ) {
             return CompoundSelectorMatchingResult::NotMatched;
         }
+    }
 
-        from_offset += 1;
+    if from_offset != selector.len() {
+        return CompoundSelectorMatchingResult::Matched {
+            next_combinator_offset: from_offset,
+        }
     }
 
     CompoundSelectorMatchingResult::FullyMatched
