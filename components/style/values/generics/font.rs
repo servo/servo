@@ -68,8 +68,9 @@ where
 }
 
 /// A value both for font-variation-settings and font-feature-settings.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
-pub struct FontSettings<T>(pub Box<[T]>);
+#[css(comma)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct FontSettings<T>(#[css(if_empty = "normal", iterable)] pub Box<[T]>);
 
 impl<T> FontSettings<T> {
     /// Default value of font settings as `normal`.
@@ -93,30 +94,6 @@ impl<T: Parse> Parse for FontSettings<T> {
         Ok(FontSettings(
             input.parse_comma_separated(|i| T::parse(context, i))?.into_boxed_slice()
         ))
-    }
-}
-
-impl<T: ToCss> ToCss for FontSettings<T> {
-    /// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-feature-settings
-    /// https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.0.is_empty() {
-            return dest.write_str("normal");
-        }
-
-        let mut first = true;
-        for item in self.0.iter() {
-            if !first {
-                dest.write_str(", ")?;
-            }
-            first = false;
-            item.to_css(dest)?;
-        }
-
-        Ok(())
     }
 }
 
