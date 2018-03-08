@@ -102,6 +102,13 @@ impl SpecifiedUrl {
     }
 }
 
+impl Parse for SpecifiedUrl {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let url = input.expect_url()?;
+        Self::parse_from_string(url.as_ref().to_owned(), context)
+    }
+}
+
 impl PartialEq for SpecifiedUrl {
     fn eq(&self, other: &Self) -> bool {
         // TODO(emilio): maybe we care about equality of the specified values if
@@ -109,6 +116,8 @@ impl PartialEq for SpecifiedUrl {
         self.resolved == other.resolved
     }
 }
+
+impl Eq for SpecifiedUrl {}
 
 impl ToCss for SpecifiedUrl {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result

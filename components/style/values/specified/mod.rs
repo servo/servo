@@ -116,23 +116,10 @@ pub mod ui;
 
 /// Common handling for the specified value CSS url() values.
 pub mod url {
-use cssparser::Parser;
-use parser::{Parse, ParserContext};
-use style_traits::ParseError;
-
 #[cfg(feature = "servo")]
 pub use ::servo::url::*;
 #[cfg(feature = "gecko")]
 pub use ::gecko::url::*;
-
-impl Parse for SpecifiedUrl {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let url = input.expect_url()?;
-        Self::parse_from_string(url.as_ref().to_owned(), context)
-    }
-}
-
-impl Eq for SpecifiedUrl {}
 }
 
 /// Parse a `<number>` value, with a given clamping mode.

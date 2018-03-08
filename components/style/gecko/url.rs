@@ -102,6 +102,15 @@ impl SpecifiedUrl {
     }
 }
 
+impl Parse for SpecifiedUrl {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let url = input.expect_url()?;
+        Self::parse_from_string(url.as_ref().to_owned(), context)
+    }
+}
+
+impl Eq for SpecifiedUrl {}
+
 impl MallocSizeOf for SpecifiedUrl {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // XXX: measure `serialization` once bug 1397971 lands
