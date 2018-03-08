@@ -34,10 +34,14 @@ else:
     STATIC_RUST_LANG_ORG_DIST = "https://static-rust-lang-org.s3.amazonaws.com/dist"
     URLOPEN_KWARGS = {}
 
+def remove_readonly(func, path, _):
+    "Clear the readonly bit and reattempt the removal"
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 def delete(path):
     if os.path.isdir(path) and not os.path.islink(path):
-        shutil.rmtree(path)
+        shutil.rmtree(path, onerror=remove_readonly)
     else:
         os.remove(path)
 
