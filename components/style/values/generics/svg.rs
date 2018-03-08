@@ -6,8 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{ParseError, StyleParseErrorKind};
 use values::{Either, None_};
 use values::computed::NumberOrPercentage;
 use values::computed::length::LengthOrPercentage;
@@ -199,39 +198,14 @@ pub enum SVGLength<LengthType> {
 }
 
 /// Generic value for stroke-dasharray.
-#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
-         ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
+#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
-    Values(Vec<LengthType>),
+    #[css(comma)]
+    Values(#[css(if_empty = "none", iterable)] Vec<LengthType>),
     /// `context-value`
     ContextValue,
-}
-
-impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCss {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match self {
-            &SVGStrokeDashArray::Values(ref values) => {
-                let mut iter = values.iter();
-                if let Some(first) = iter.next() {
-                    first.to_css(dest)?;
-                    for item in iter {
-                        dest.write_str(", ")?;
-                        item.to_css(dest)?;
-                    }
-                    Ok(())
-                } else {
-                    dest.write_str("none")
-                }
-            }
-            &SVGStrokeDashArray::ContextValue => {
-                dest.write_str("context-value")
-            }
-        }
-    }
 }
 
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
