@@ -673,31 +673,31 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
-    fn PassMozMap(&self, _: MozMap<i32>) {}
-    fn PassNullableMozMap(&self, _: Option<MozMap<i32> >) {}
-    fn PassMozMapOfNullableInts(&self, _: MozMap<Option<i32>>) {}
-    fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<Option<i32>>>) {}
-    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<Option<i32>> >>) {}
-    fn PassCastableObjectMozMap(&self, _: MozMap<DomRoot<TestBinding>>) {}
-    fn PassNullableCastableObjectMozMap(&self, _: MozMap<Option<DomRoot<TestBinding>>>) {}
-    fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
-    fn PassNullableCastableObjectNullableMozMap(&self, _: Option<MozMap<Option<DomRoot<TestBinding>>>>) {}
-    fn PassOptionalMozMap(&self, _: Option<MozMap<i32>>) {}
-    fn PassOptionalNullableMozMap(&self, _: Option<Option<MozMap<i32>>>) {}
-    fn PassOptionalNullableMozMapWithDefaultValue(&self, _: Option<MozMap<i32>>) {}
-    fn PassOptionalObjectMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
-    fn PassStringMozMap(&self, _: MozMap<DOMString>) {}
-    fn PassByteStringMozMap(&self, _: MozMap<ByteString>) {}
-    fn PassMozMapOfMozMaps(&self, _: MozMap<MozMap<i32>>) {}
+    fn PassMozMap(&self, _: MozMap<DOMString, i32>) {}
+    fn PassNullableMozMap(&self, _: Option<MozMap<DOMString, i32> >) {}
+    fn PassMozMapOfNullableInts(&self, _: MozMap<DOMString, Option<i32>>) {}
+    fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<DOMString, Option<i32>>>) {}
+    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<DOMString, Option<i32>> >>) {}
+    fn PassCastableObjectMozMap(&self, _: MozMap<DOMString, DomRoot<TestBinding>>) {}
+    fn PassNullableCastableObjectMozMap(&self, _: MozMap<DOMString, Option<DomRoot<TestBinding>>>) {}
+    fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<DOMString, DomRoot<TestBinding>>>) {}
+    fn PassNullableCastableObjectNullableMozMap(&self, _: Option<MozMap<DOMString, Option<DomRoot<TestBinding>>>>) {}
+    fn PassOptionalMozMap(&self, _: Option<MozMap<DOMString, i32>>) {}
+    fn PassOptionalNullableMozMap(&self, _: Option<Option<MozMap<DOMString, i32>>>) {}
+    fn PassOptionalNullableMozMapWithDefaultValue(&self, _: Option<MozMap<DOMString, i32>>) {}
+    fn PassOptionalObjectMozMap(&self, _: Option<MozMap<DOMString, DomRoot<TestBinding>>>) {}
+    fn PassStringMozMap(&self, _: MozMap<DOMString, DOMString>) {}
+    fn PassByteStringMozMap(&self, _: MozMap<DOMString, ByteString>) {}
+    fn PassMozMapOfMozMaps(&self, _: MozMap<DOMString, MozMap<DOMString, i32>>) {}
     fn PassMozMapUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
     fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
     fn PassMozMapUnion3(&self, _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord) {}
-    fn ReceiveMozMap(&self) -> MozMap<i32> { MozMap::new() }
-    fn ReceiveNullableMozMap(&self) -> Option<MozMap<i32>> { Some(MozMap::new()) }
-    fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> { MozMap::new() }
-    fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<Option<i32>>> { Some(MozMap::new()) }
-    fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> { MozMap::new() }
-    fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> { MozMap::new() }
+    fn ReceiveMozMap(&self) -> MozMap<DOMString, i32> { MozMap::new() }
+    fn ReceiveNullableMozMap(&self) -> Option<MozMap<DOMString, i32>> { Some(MozMap::new()) }
+    fn ReceiveMozMapOfNullableInts(&self) -> MozMap<DOMString, Option<i32>> { MozMap::new() }
+    fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<DOMString, Option<i32>>> { Some(MozMap::new()) }
+    fn ReceiveMozMapOfMozMaps(&self) -> MozMap<DOMString, MozMap<DOMString, i32>> { MozMap::new() }
+    fn ReceiveAnyMozMap(&self) -> MozMap<DOMString, JSVal> { MozMap::new() }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]

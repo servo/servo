@@ -101,13 +101,13 @@ def innerContainerType(type):
 
 def wrapInNativeContainerType(type, inner):
     if type.isSequence():
-        containerType = "Vec"
+        return CGWrapper(inner, pre="Vec" + "<", post=">")
     elif type.isRecord():
-        containerType = "MozMap"
+        key = type.inner.keyType if type.nullable() else type.keyType
+        return CGRecord(key, inner)
     else:
         raise TypeError("Unexpected container type %s", type)
 
-    return CGWrapper(inner, pre=containerType + "<", post=">")
 
 
 builtinNames = {
@@ -1902,6 +1902,30 @@ class CGWrapper(CGThing):
             defn = stripTrailingWhitespace(
                 defn.replace("\n", "\n" + (" " * len(self.pre))))
         return self.pre + defn + self.post
+
+
+class CGRecord(CGThing):
+    """
+    CGThing that wraps value CGThing in record with key type equal to keyType parameter
+    """
+    def __init__(self, keyType, value):
+        CGThing.__init__(self)
+        assert keyType.isString()
+        self.keyType = keyType
+        self.value = value
+
+    def define(self):
+        if self.keyType.isByteString():
+            keyDef = "ByteString"
+        elif self.keyType.isDOMString():
+            keyDef = "DOMString"
+        elif self.keyType.isUSVString():
+            keyDef = "USVString"
+        else:
+            assert False
+        
+        defn = keyDef + ", " + self.value.define() 
+        return "MozMap<" + defn + ">"
 
 
 class CGImports(CGWrapper):

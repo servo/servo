@@ -18,17 +18,36 @@ use js::jsapi::JS_NewPlainObject;
 use js::jsapi::MutableHandleValue;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
+use js::jsapi::HandleId;
 use js::rust::IdVector;
 use std::collections::HashMap;
+use std::hash::Hash;
+use std::cmp::Eq;
+use std::marker::Sized;
 use std::ops::Deref;
+
+pub trait MozMapKey : Eq + Hash + Sized {
+    unsafe fn to_utf16_vec(&self) -> Vec<u16>;
+    unsafe fn from_handle_id(cx: *mut JSContext, id: HandleId) -> Option<Self>;
+}
+
+impl MozMapKey for DOMString {
+    unsafe fn to_utf16_vec(&self) -> Vec<u16> {
+        self.encode_utf16().collect::<Vec<_>>()
+    }
+    
+    unsafe fn from_handle_id(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
+        jsid_to_string(cx, id)
+    }
+}
 
 /// The `MozMap` (open-ended dictionary) type.
 #[derive(Clone, JSTraceable)]
-pub struct MozMap<T> {
-    map: HashMap<DOMString, T>,
+pub struct MozMap<K: MozMapKey, V> {
+    map: HashMap<K, V>,
 }
 
-impl<T> MozMap<T> {
+impl<K: MozMapKey, V> MozMap<K, V> {
     /// Create an empty `MozMap`.
     pub fn new() -> Self {
         MozMap {
@@ -37,16 +56,17 @@ impl<T> MozMap<T> {
     }
 }
 
-impl<T> Deref for MozMap<T> {
-    type Target = HashMap<DOMString, T>;
+impl<K: MozMapKey, V> Deref for MozMap<K, V> {
+    type Target = HashMap<K, V>;
 
-    fn deref(&self) -> &HashMap<DOMString, T> {
+    fn deref(&self) -> &HashMap<K, V> {
         &self.map
     }
 }
 
-impl<T, C> FromJSValConvertible for MozMap<T>
-    where T: FromJSValConvertible<Config=C>,
+impl<K, V, C> FromJSValConvertible for MozMap<K, V>
+    where K: MozMapKey,
+          V: FromJSValConvertible<Config=C>,
           C: Clone,
 {
     type Config = C;
@@ -69,12 +89,12 @@ impl<T, C> FromJSValConvertible for MozMap<T>
                 return Err(());
             }
 
-            let property = match T::from_jsval(cx, property.handle(), config.clone())? {
+            let property = match V::from_jsval(cx, property.handle(), config.clone())? {
                 ConversionResult::Success(property) => property,
                 ConversionResult::Failure(message) => return Ok(ConversionResult::Failure(message)),
             };
 
-            let key = jsid_to_string(cx, id.handle()).unwrap();
+            let key = K::from_handle_id(cx, id.handle()).unwrap();
             map.insert(key, property);
         }
 
@@ -84,7 +104,9 @@ impl<T, C> FromJSValConvertible for MozMap<T>
     }
 }
 
-impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
+impl<K, V> ToJSValConvertible for MozMap<K, V>
+    where K: MozMapKey,
+          V: ToJSValConvertible  {
     #[inline]
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rooted!(in(cx) let js_object = JS_NewPlainObject(cx));
@@ -92,7 +114,7 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
 
         rooted!(in(cx) let mut js_value = UndefinedValue());
         for (key, value) in &self.map {
-            let key = key.encode_utf16().collect::<Vec<_>>();
+            let key = key.to_utf16_vec();
             value.to_jsval(cx, js_value.handle_mut());
 
             assert!(JS_DefineUCProperty2(cx,
