@@ -152,7 +152,8 @@ impl Image {
     /// for insertion in the cascade.
     #[cfg(feature = "servo")]
     pub fn for_cascade(url: ServoUrl) -> Self {
-        GenericImage::Url(SpecifiedUrl::for_cascade(url))
+        use values::CssUrl;
+        GenericImage::Url(CssUrl::for_cascade(url))
     }
 
     /// Parses a `-moz-element(# <element-id>)`.

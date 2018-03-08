@@ -28,10 +28,8 @@ use stylesheets::keyframes_rule::parse_keyframe_list;
 use stylesheets::stylesheet::Namespaces;
 use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
-use values::CustomIdent;
-use values::KeyframesName;
+use values::{CssUrl, CustomIdent, KeyframesName};
 use values::computed::font::FamilyName;
-use values::specified::url::SpecifiedUrl;
 
 /// The parser for the top-level rules in a stylesheet.
 pub struct TopLevelRuleParser<'a, R: 'a> {
@@ -134,7 +132,7 @@ pub enum AtRuleBlockPrelude {
 /// A rule prelude for at-rule without block.
 pub enum AtRuleNonBlockPrelude {
     /// A @import rule prelude.
-    Import(SpecifiedUrl, Arc<Locked<MediaList>>, SourceLocation),
+    Import(CssUrl, Arc<Locked<MediaList>>, SourceLocation),
     /// A @namespace rule prelude.
     Namespace(Option<Prefix>, Namespace, SourceLocation),
 }
@@ -174,13 +172,13 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 }
 
                 let url_string = input.expect_url_or_string()?.as_ref().to_owned();
-                let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
+                let url = CssUrl::parse_from_string(url_string, &self.context)?;
 
                 let media = parse_media_query_list(&self.context, input,
                                                    self.error_context.error_reporter);
                 let media = Arc::new(self.shared_lock.wrap(media));
 
-                let prelude = AtRuleNonBlockPrelude::Import(specified_url, media, location);
+                let prelude = AtRuleNonBlockPrelude::Import(url, media, location);
                 return Ok(AtRuleType::WithoutBlock(prelude));
             },
             "namespace" => {
@@ -228,12 +226,12 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
     #[inline]
     fn rule_without_block(&mut self, prelude: AtRuleNonBlockPrelude) -> CssRule {
         match prelude {
-            AtRuleNonBlockPrelude::Import(specified_url, media, location) => {
+            AtRuleNonBlockPrelude::Import(url, media, location) => {
                 let loader =
                     self.loader.expect("Expected a stylesheet loader for @import");
 
                 let import_rule = loader.request_stylesheet(
-                    specified_url,
+                    url,
                     location,
                     &self.context,
                     &self.shared_lock,

@@ -17,10 +17,10 @@ use servo_arc::{Arc, RawOffsetArc};
 use std::mem;
 use style_traits::ParseError;
 
-/// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
+/// A CSS url() value for gecko.
 #[css(function = "url")]
 #[derive(Clone, Debug, PartialEq, ToCss)]
-pub struct SpecifiedUrl {
+pub struct CssUrl {
     /// The URL in unresolved string form.
     ///
     /// Refcounted since cloning this should be cheap and data: uris can be
@@ -31,9 +31,8 @@ pub struct SpecifiedUrl {
     #[css(skip)]
     pub extra_data: RefPtr<URLExtraData>,
 }
-trivial_to_computed_value!(SpecifiedUrl);
 
-impl SpecifiedUrl {
+impl CssUrl {
     /// Try to parse a URL from a string value that is a valid CSS token for a
     /// URL.
     ///
@@ -41,7 +40,7 @@ impl SpecifiedUrl {
     pub fn parse_from_string<'a>(url: String,
                                  context: &ParserContext)
                                  -> Result<Self, ParseError<'a>> {
-        Ok(SpecifiedUrl {
+        Ok(CssUrl {
             serialization: Arc::new(url),
             extra_data: context.url_data.clone(),
         })
@@ -55,9 +54,8 @@ impl SpecifiedUrl {
     }
 
     /// Convert from URLValueData to SpecifiedUrl.
-    pub unsafe fn from_url_value_data(url: &URLValueData)
-                                       -> Result<SpecifiedUrl, ()> {
-        Ok(SpecifiedUrl {
+    unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
+        Ok(CssUrl {
             serialization: if url.mUsingRustString {
                 let arc_type = url.mStrings.mRustString.as_ref()
                     as *const _ as
@@ -102,16 +100,16 @@ impl SpecifiedUrl {
     }
 }
 
-impl Parse for SpecifiedUrl {
+impl Parse for CssUrl {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let url = input.expect_url()?;
         Self::parse_from_string(url.as_ref().to_owned(), context)
     }
 }
 
-impl Eq for SpecifiedUrl {}
+impl Eq for CssUrl {}
 
-impl MallocSizeOf for SpecifiedUrl {
+impl MallocSizeOf for CssUrl {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // XXX: measure `serialization` once bug 1397971 lands
 
@@ -122,13 +120,47 @@ impl MallocSizeOf for SpecifiedUrl {
     }
 }
 
+/// A specified url() value for general usage.
+#[derive(Clone, Debug, PartialEq, Eq, MallocSizeOf, ToCss)]
+pub struct SpecifiedUrl {
+    /// The specified url value.
+    pub url: CssUrl,
+}
+trivial_to_computed_value!(SpecifiedUrl);
+
+impl SpecifiedUrl {
+    fn from_css_url(url: CssUrl) -> Self {
+        SpecifiedUrl { url }
+    }
+
+    /// Convert from URLValueData to SpecifiedUrl.
+    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
+        CssUrl::from_url_value_data(url).map(Self::from_css_url)
+    }
+
+    /// Create a bundled URI suitable for sending to Gecko
+    /// to be constructed into a css::URLValue.
+    ///
+    /// XXX This is added temporially. It would be removed once we store
+    /// URLValue in SpecifiedUrl directly.
+    pub fn for_ffi(&self) -> ServoBundledURI {
+        self.url.for_ffi()
+    }
+}
+
+impl Parse for SpecifiedUrl {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        CssUrl::parse(context, input).map(Self::from_css_url)
+    }
+}
+
 /// A specified url() value for image.
 ///
 /// This exists so that we can construct `ImageValue` and reuse it.
 #[derive(Clone, Debug, ToCss)]
 pub struct SpecifiedImageUrl {
     /// The specified url value.
-    pub url: SpecifiedUrl,
+    pub url: CssUrl,
     /// Gecko's ImageValue so that we can reuse it while rematching a
     /// property with this specified value.
     #[css(skip)]
@@ -137,7 +169,7 @@ pub struct SpecifiedImageUrl {
 trivial_to_computed_value!(SpecifiedImageUrl);
 
 impl SpecifiedImageUrl {
-    fn from_specified_url(url: SpecifiedUrl) -> Self {
+    fn from_css_url(url: CssUrl) -> Self {
         let image_value = unsafe {
             let ptr = bindings::Gecko_ImageValue_Create(url.for_ffi());
             // We do not expect Gecko_ImageValue_Create returns null.
@@ -152,12 +184,12 @@ impl SpecifiedImageUrl {
         url: String,
         context: &ParserContext
     ) -> Result<Self, ParseError<'a>> {
-        SpecifiedUrl::parse_from_string(url, context).map(Self::from_specified_url)
+        CssUrl::parse_from_string(url, context).map(Self::from_css_url)
     }
 
     /// Convert from URLValueData to SpecifiedUrl.
     pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
-        SpecifiedUrl::from_url_value_data(url).map(Self::from_specified_url)
+        CssUrl::from_url_value_data(url).map(Self::from_css_url)
     }
 
     /// Convert from nsStyleImageRequest to SpecifiedUrl.
@@ -174,7 +206,7 @@ impl SpecifiedImageUrl {
 
 impl Parse for SpecifiedImageUrl {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        SpecifiedUrl::parse(context, input).map(Self::from_specified_url)
+        CssUrl::parse(context, input).map(Self::from_css_url)
     }
 }
 
