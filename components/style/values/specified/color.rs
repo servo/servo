@@ -160,12 +160,14 @@ impl Parse for Color {
             Err(e) => {
                 #[cfg(feature = "gecko")]
                 {
-                    if let Ok(system) = input.try(SystemColor::parse) {
-                        return Ok(Color::System(system));
-                    }
+                    if let Ok(ident) = input.expect_ident() {
+                        if let Ok(system) = SystemColor::from_ident(ident) {
+                            return Ok(Color::System(system));
+                        }
 
-                    if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
-                        return Ok(Color::Special(c));
+                        if let Ok(c) = gecko::SpecialColorKeyword::from_ident(ident) {
+                            return Ok(Color::Special(c));
+                        }
                     }
                 }
 
