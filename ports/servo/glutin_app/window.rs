@@ -487,9 +487,7 @@ impl Window {
             }
             Event::Suspended(suspended) => {
                 self.suspended.set(suspended);
-                if suspended {
-                    self.set_animation_state(AnimationState::Idle);
-                } else {
+                if !suspended {
                     self.event_queue.borrow_mut().push(WindowEvent::Idle);
                 }
             }
@@ -565,7 +563,7 @@ impl Window {
     }
 
     fn is_animating(&self) -> bool {
-        self.animation_state.get() == AnimationState::Animating
+        self.animation_state.get() == AnimationState::Animating && !self.suspended.get()
     }
 
     pub fn run<T>(&self, mut servo_callback: T) where T: FnMut() -> bool {
