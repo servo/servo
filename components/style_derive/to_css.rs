@@ -5,7 +5,7 @@
 use cg::{self, WhereClause};
 use darling::util::Override;
 use quote::{ToTokens, Tokens};
-use syn::{self, Data};
+use syn::{self, Data, Path};
 use synstructure::{BindingInfo, Structure, VariantInfo};
 
 pub fn derive(input: syn::DeriveInput) -> Tokens {
@@ -79,7 +79,6 @@ fn derive_variant_arm(
 
     let mut expr = if let Some(keyword) = variant_attrs.keyword {
         assert!(bindings.is_empty());
-        let keyword = keyword.to_string();
         quote! {
             ::std::fmt::Write::write_str(dest, #keyword)
         }
@@ -129,7 +128,15 @@ fn derive_variant_fields_expr(
         if !attrs.ignore_bound {
             where_clause.add_trait_bound(&first.ast().ty);
         }
-        return quote! { ::style_traits::ToCss::to_css(#first, dest) };
+        let mut expr = quote! { ::style_traits::ToCss::to_css(#first, dest) };
+        if let Some(condition) = attrs.skip_if {
+            expr = quote! {
+                if !#condition(#first) {
+                    #expr
+                }
+            }
+        }
+        return expr;
     }
 
     let mut expr = derive_single_field_expr(first, attrs, where_clause);
@@ -149,7 +156,7 @@ fn derive_single_field_expr(
     attrs: CssFieldAttrs,
     where_clause: &mut WhereClause,
 ) -> Tokens {
-    if attrs.iterable {
+    let mut expr = if attrs.iterable {
         if let Some(if_empty) = attrs.if_empty {
             return quote! {
                 {
@@ -174,7 +181,17 @@ fn derive_single_field_expr(
             where_clause.add_trait_bound(&field.ast().ty);
         }
         quote! { writer.item(#field)?; }
+    };
+
+    if let Some(condition) = attrs.skip_if {
+        expr = quote! {
+            if !#condition(#field) {
+                #expr
+            }
+        }
     }
+
+    expr
 }
 
 #[darling(attributes(css), default)]
@@ -204,4 +221,5 @@ struct CssFieldAttrs {
     ignore_bound: bool,
     iterable: bool,
     skip: bool,
+    skip_if: Option<Path>,
 }
