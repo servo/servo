@@ -696,7 +696,7 @@ def set_gecko_property(ffi_name, expr):
             }
             SVGPaintKind::PaintServer(url) => {
                 unsafe {
-                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.for_ffi());
+                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.url_value.get());
                 }
             }
             SVGPaintKind::Color(color) => {
@@ -936,18 +936,9 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_css_url(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use gecko_bindings::sugar::refptr::RefPtr;
         match v {
             Either::First(url) => {
-                let refptr = unsafe {
-                    let ptr = bindings::Gecko_NewURLValue(url.for_ffi());
-                    if ptr.is_null() {
-                        self.gecko.${gecko_ffi_name}.clear();
-                        return;
-                    }
-                    RefPtr::from_addrefed(ptr)
-                };
-                self.gecko.${gecko_ffi_name}.set_move(refptr)
+                self.gecko.${gecko_ffi_name}.set_move(url.url_value.clone())
             }
             Either::Second(_none) => {
                 unsafe {
@@ -4443,7 +4434,7 @@ fn static_assert() {
                 },
                 Url(ref url) => {
                     unsafe {
-                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.for_ffi());
+                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.url_value.get());
                     }
                 },
             }
@@ -4969,7 +4960,7 @@ fn static_assert() {
             % if ident == "clip_path":
             ShapeSource::ImageOrUrl(ref url) => {
                 unsafe {
-                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.for_ffi())
+                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.url_value.get())
                 }
             }
             % elif ident == "shape_outside":

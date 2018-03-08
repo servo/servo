@@ -9,7 +9,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
 use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::root::{nsStyleImageRequest, RustString};
-use gecko_bindings::structs::root::mozilla::css::ImageValue;
+use gecko_bindings::structs::root::mozilla::css::{ImageValue, URLValue};
 use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
@@ -121,36 +121,56 @@ impl MallocSizeOf for CssUrl {
 }
 
 /// A specified url() value for general usage.
-#[derive(Clone, Debug, PartialEq, Eq, MallocSizeOf, ToCss)]
+#[derive(Clone, Debug, ToCss)]
 pub struct SpecifiedUrl {
     /// The specified url value.
     pub url: CssUrl,
+    /// Gecko's URLValue so that we can reuse it while rematching a
+    /// property with this specified value.
+    #[css(skip)]
+    pub url_value: RefPtr<URLValue>,
 }
 trivial_to_computed_value!(SpecifiedUrl);
 
 impl SpecifiedUrl {
     fn from_css_url(url: CssUrl) -> Self {
-        SpecifiedUrl { url }
+        let url_value = unsafe {
+            let ptr = bindings::Gecko_NewURLValue(url.for_ffi());
+            // We do not expect Gecko_NewURLValue returns null.
+            debug_assert!(!ptr.is_null());
+            RefPtr::from_addrefed(ptr)
+        };
+        SpecifiedUrl { url, url_value }
     }
 
     /// Convert from URLValueData to SpecifiedUrl.
     pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
         CssUrl::from_url_value_data(url).map(Self::from_css_url)
     }
+}
 
-    /// Create a bundled URI suitable for sending to Gecko
-    /// to be constructed into a css::URLValue.
-    ///
-    /// XXX This is added temporially. It would be removed once we store
-    /// URLValue in SpecifiedUrl directly.
-    pub fn for_ffi(&self) -> ServoBundledURI {
-        self.url.for_ffi()
+impl PartialEq for SpecifiedUrl {
+    fn eq(&self, other: &Self) -> bool {
+        self.url.eq(&other.url)
     }
 }
+
+impl Eq for SpecifiedUrl {}
 
 impl Parse for SpecifiedUrl {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         CssUrl::parse(context, input).map(Self::from_css_url)
+    }
+}
+
+impl MallocSizeOf for SpecifiedUrl {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.url.size_of(ops);
+        // Although this is a RefPtr, this is the primary reference because
+        // SpecifiedUrl is responsible for creating the url_value. So we
+        // measure unconditionally here.
+        n += unsafe { bindings::Gecko_URLValue_SizeOfIncludingThis(self.url_value.get()) };
+        n
     }
 }
 

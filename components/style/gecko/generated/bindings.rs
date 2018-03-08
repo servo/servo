@@ -1378,7 +1378,7 @@ extern "C" {
     pub fn Gecko_NewShapeImage(shape: *mut StyleShapeSource);
 }
 extern "C" {
-    pub fn Gecko_StyleShapeSource_SetURLValue(shape: *mut StyleShapeSource, uri: ServoBundledURI);
+    pub fn Gecko_StyleShapeSource_SetURLValue(shape: *mut StyleShapeSource, uri: *mut URLValue);
 }
 extern "C" {
     pub fn Gecko_ResetFilters(effects: *mut nsStyleEffects, new_len: usize);
@@ -1387,13 +1387,13 @@ extern "C" {
     pub fn Gecko_CopyFiltersFrom(aSrc: *mut nsStyleEffects, aDest: *mut nsStyleEffects);
 }
 extern "C" {
-    pub fn Gecko_nsStyleFilter_SetURLValue(effects: *mut nsStyleFilter, uri: ServoBundledURI);
+    pub fn Gecko_nsStyleFilter_SetURLValue(effects: *mut nsStyleFilter, uri: *mut URLValue);
 }
 extern "C" {
     pub fn Gecko_nsStyleSVGPaint_CopyFrom(dest: *mut nsStyleSVGPaint, src: *const nsStyleSVGPaint);
 }
 extern "C" {
-    pub fn Gecko_nsStyleSVGPaint_SetURLValue(paint: *mut nsStyleSVGPaint, uri: ServoBundledURI);
+    pub fn Gecko_nsStyleSVGPaint_SetURLValue(paint: *mut nsStyleSVGPaint, uri: *mut URLValue);
 }
 extern "C" {
     pub fn Gecko_nsStyleSVGPaint_Reset(paint: *mut nsStyleSVGPaint);
@@ -1412,6 +1412,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_NewURLValue(uri: ServoBundledURI) -> *mut URLValue;
+}
+extern "C" {
+    pub fn Gecko_URLValue_SizeOfIncludingThis(url: *mut URLValue) -> usize;
 }
 extern "C" {
     pub fn Gecko_AddRefCSSURLValueArbitraryThread(aPtr: *mut URLValue);
@@ -1522,7 +1525,7 @@ extern "C" {
     pub fn Gecko_CSSValue_SetArray(css_value: nsCSSValueBorrowedMut, len: i32);
 }
 extern "C" {
-    pub fn Gecko_CSSValue_SetURL(css_value: nsCSSValueBorrowedMut, uri: ServoBundledURI);
+    pub fn Gecko_CSSValue_SetURL(css_value: nsCSSValueBorrowedMut, uri: *mut URLValue);
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetInt(css_value: nsCSSValueBorrowedMut, integer: i32, unit: nsCSSUnit);
