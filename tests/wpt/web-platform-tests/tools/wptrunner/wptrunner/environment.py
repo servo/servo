@@ -107,7 +107,8 @@ class TestEnvironment(object):
             cm.__enter__()
             self.env_extras_cms.append(cm)
 
-        self.servers = serve.start(self.config, self.ssl_env,
+        self.servers = serve.start(self.config,
+                                   self.ssl_env,
                                    self.get_routes())
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
@@ -143,19 +144,19 @@ class TestEnvironment(object):
                 "ws": [8888]
             },
             "check_subdomains": False,
-            "bind_hostname": self.options["bind_hostname"],
             "ssl": {}
         }
 
         if "host" in self.options:
             local_config["host"] = self.options["host"]
 
+        if "bind_hostname" in self.options:
+            local_config["bind_hostname"] = self.options["bind_hostname"]
+
         with open(default_config_path) as f:
             default_config = json.load(f)
 
-        #TODO: allow non-default configuration for ssl
-
-        local_config["external_host"] = self.options.get("external_host", None)
+        local_config["host_ip"] = self.options.get("host_ip", None)
         local_config["ssl"]["encrypt_after_connect"] = self.options.get("encrypt_after_connect", False)
 
         config = serve.merge_json(default_config, local_config)
@@ -200,10 +201,14 @@ class TestEnvironment(object):
         for path, format_args, content_type, route in [
                 ("testharness_runner.html", {}, "text/html", "/testharness_runner.html"),
                 (self.options.get("testharnessreport", "testharnessreport.js"),
-                 {"output": self.pause_after_test}, "text/javascript",
+                 {"output": self.pause_after_test}, "text/javascript;charset=utf8",
                  "/resources/testharnessreport.js")]:
             path = os.path.normpath(os.path.join(here, path))
-            route_builder.add_static(path, format_args, content_type, route)
+            # Note that .headers. files don't apply to static routes, so we need to
+            # readd any static headers here.
+            headers = {"Cache-Control": "max-age=3600"}
+            route_builder.add_static(path, format_args, content_type, route,
+                                     headers=headers)
 
         data = b""
         with open(os.path.join(repo_root, "resources", "testdriver.js"), "rb") as fp:
@@ -230,20 +235,23 @@ class TestEnvironment(object):
             if not failed:
                 return
             time.sleep(0.5)
-        raise EnvironmentError("Servers failed to start (scheme:port): %s" % ("%s:%s" for item in failed))
+        raise EnvironmentError("Servers failed to start: %s" %
+                               ", ".join("%s:%s" % item for item in failed))
 
     def test_servers(self):
         failed = []
+        host = self.config.get("host_ip") or self.config.get("host")
         for scheme, servers in self.servers.iteritems():
             for port, server in servers:
                 if self.test_server_port:
                     s = socket.socket()
                     try:
-                        s.connect((self.config["host"], port))
+                        s.connect((host, port))
                     except socket.error:
-                        failed.append((scheme, port))
+                        failed.append((host, port))
                     finally:
                         s.close()
 
                 if not server.is_alive():
                     failed.append((scheme, port))
+        return failed

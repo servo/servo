@@ -25,6 +25,12 @@
 					margin-left: 2em;
 					width: 10em
 				}
+				div.wrapper {
+					display: inline-block;
+					border: 1px solid;
+					margin: 10px;
+					padding: 10px;
+				}
 				span.attention {
 					color: red;
 				}
@@ -35,59 +41,62 @@
 		<p>
 			Test passes if each pair of upper and lower text in the square box is identical.
 		</p>
-		<hr />
-		<div>
-			IDEOGRAPHIC COMMA
-		</div>
-		<div class="parent">
-			<div class="test">
-				これらは満たす文字で、それらも満たす文字です。
+		<div class="wrapper">
+			<div>
+				IDEOGRAPHIC COMMA
 			</div>
-			<br />
-			<div class="no-wrap">
-				これらは満たす文字で、<br />それらも満たす文字で<br />す。
-			</div>
-		</div>
-		<hr />
-		<div>
-			IDEOGRAPHIC FULL STOP
-		</div>
-		<div class="parent">
-			<div class="test">
-				これは満たす文字です。
-			</div>
-			<br />
-			<div class="no-wrap">
-				これは満たす文字です。
+			<div class="parent">
+				<div class="test">
+					これらは満たす文字で、それらも満たす文字です。
+				</div>
+				<br />
+				<div class="no-wrap">
+					これらは満たす文字で、<br />それらも満たす文字で<br />す。
+				</div>
 			</div>
 		</div>
-		<hr />
-		<div>
-			HALFWIDTH IDEOGRAPHIC COMMA
-		</div>
-		<div class="parent">
-			<div class="test">
-				ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ｡
+		<div class="wrapper">
+			<div>
+				IDEOGRAPHIC FULL STOP
 			</div>
-			<br />
-			<div class="no-wrap">
-				ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､<br />ﾐﾀｽﾓｼﾞ｡
-			</div>
-		</div>
-		<hr />
-		<div>
-			HALFWIDTH IDEOGRAPHIC FULL STOP
-		</div>
-		<div class="parent">
-			<div class="test">
-				ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡
-			</div>
-			<br />
-			<div class="no-wrap">
-				ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡<br />ﾐﾀｽﾓｼﾞ｡
+			<div class="parent">
+				<div class="test">
+					これは満たす文字です。
+				</div>
+				<br />
+				<div class="no-wrap">
+					これは満たす文字です。
+				</div>
 			</div>
 		</div>
-		<hr />
+		<div class="wrapper">
+			<div>
+				HALFWIDTH IDEOGRAPHIC COMMA
+			</div>
+			<div class="parent">
+				<div class="test">
+					ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ｡
+				</div>
+				<br />
+				<div class="no-wrap">
+					ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､ﾐﾀｽﾓｼﾞ､<br />ﾐﾀｽﾓｼﾞ｡
+				</div>
+			</div>
+		</div>
+		<div class="wrapper">
+			<div>
+				HALFWIDTH IDEOGRAPHIC FULL STOP
+			</div>
+			<div class="parent">
+				<div class="test">
+					ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡
+				</div>
+				<br />
+				<div class="no-wrap">
+					ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡ﾐﾀｽﾓｼﾞ｡<br />ﾐﾀｽﾓｼﾞ｡
+				</div>
+			</div>
+		</div>
 		<p>
 			<span class="attention">* You will need a Japanese font.</span><br />
 			If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and reload this page.

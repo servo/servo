@@ -12,7 +12,7 @@
 
   /* Properties under test. */
   --foo: bar;
-  border-radius: 2px;
+  margin-left: 2px;
 }
 
 @supports (display: layout(test)) {
@@ -60,8 +60,8 @@ const tmpl = (test, idx) => {
 const tests = [
   {property: '--bar', expected: '[CSSUnparsedValue=]'},
   {property: '--foo', expected: '[CSSUnparsedValue= bar]'},
-  {property: 'align-items', expected: '[CSSKeywordValue=normal]'},
-  {property: 'border-top-left-radius', expected: '[CSSUnitValue=2px]'},
+  {property: 'empty-cells', expected: '[CSSKeywordValue=show]'},
+  {property: 'margin-left', expected: '[CSSUnitValue=2px]'},
 ];
 
 const workletSource = tests.map(tmpl).join('\n');

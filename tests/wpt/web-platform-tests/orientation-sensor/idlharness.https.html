@@ -31,7 +31,7 @@ function fetchText(url) {
 promise_test(() => {
   return Promise.all([
     "/interfaces/dom.idl",
-    "/interfaces/generic-sensor.idl",
+    "/interfaces/sensors.idl",
     "/interfaces/orientation-sensor.idl",
   ].map(fetchText)).then(doTest);
 }, "Test IDL implementation of Orientation Sensor");

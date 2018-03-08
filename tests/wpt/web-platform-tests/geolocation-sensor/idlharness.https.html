@@ -28,7 +28,7 @@ function fetchText(url) {
 
 promise_test(() => {
   return Promise.all([
-    "/interfaces/generic-sensor.idl",
+    "/interfaces/sensors.idl",
     "/interfaces/geolocation-sensor.idl"
   ].map(fetchText)).then(doTest);
 }, "Test IDL implementation of Geolocation Sensor");

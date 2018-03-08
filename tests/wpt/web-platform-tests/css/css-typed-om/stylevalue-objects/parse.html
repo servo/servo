@@ -23,6 +23,12 @@ test(() => {
 }, 'CSSStyleValue.parse() with a valid list-valued property returns a CSSStyleValue');
 
 test(() => {
+  const result = CSSStyleValue.parse('margin', '1px 2px 3px 4px');
+  assert_true(result instanceof CSSStyleValue,
+              'Result must be a subclass of CSSStyleValue');
+}, 'CSSStyleValue.parse() with a valid shorthand property returns a CSSStyleValue');
+
+test(() => {
   const result = CSSStyleValue.parse('--foo', 'auto');
   assert_true(result instanceof CSSStyleValue,
               'Result must be a subclass of CSSStyleValue');

@@ -1,3 +1,7 @@
+---
+layout: page
+title: Chrome for Android
+---
 To run WPT on Chrome on an Android device, some additional set up is required.
 
 First of all, as usual Android development, we need to have `adb` and be able to
@@ -19,5 +23,5 @@ update the /etc/hosts file to include
 After this, we may run wpt with the `chrome_android` product
 
 ```
-./wpt run chrome_android <test>
+./wpt run chrome_android [test_list]
 ```
