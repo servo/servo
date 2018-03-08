@@ -308,6 +308,20 @@ pub enum NonTSPseudoClass {
     Visited,
 }
 
+impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
+    type Impl = SelectorImpl;
+
+    #[inline]
+    fn is_host(&self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn is_active_or_hover(&self) -> bool {
+        matches!(*self, NonTSPseudoClass::Active | NonTSPseudoClass::Hover)
+    }
+}
+
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use self::NonTSPseudoClass::*;
@@ -423,12 +437,6 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type NamespaceUrl = Namespace;
     type BorrowedLocalName = LocalName;
     type BorrowedNamespaceUrl = Namespace;
-
-    #[inline]
-    fn is_active_or_hover(pseudo_class: &Self::NonTSPseudoClass) -> bool {
-        matches!(*pseudo_class, NonTSPseudoClass::Active |
-                                NonTSPseudoClass::Hover)
-    }
 }
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
