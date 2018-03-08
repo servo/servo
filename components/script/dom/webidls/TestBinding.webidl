@@ -457,6 +457,7 @@ interface TestBinding {
   void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
 
   void passMozMap(record<DOMString, long> arg);
+  void PassMozMapWithUSVStringKey(record<USVString, long> arg);
   void passNullableMozMap(record<DOMString, long>? arg);
   void passMozMapOfNullableInts(record<DOMString, long?> arg);
   void passOptionalMozMapOfNullableInts(optional record<DOMString, long?> arg);
@@ -478,6 +479,7 @@ interface TestBinding {
   void passMozMapUnion3((TestBinding or sequence<sequence<ByteString>> or record<DOMString, ByteString>) init);
 
   record<DOMString, long> receiveMozMap();
+  record<USVString, long> ReceiveMozMapWithUSVStringKey();
   record<DOMString, long>? receiveNullableMozMap();
   record<DOMString, long?> receiveMozMapOfNullableInts();
   record<DOMString, long?>? receiveNullableMozMapOfNullableInts();
