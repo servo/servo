@@ -13,7 +13,7 @@ use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ToCss};
 use stylesheets::{StylesheetContents, StylesheetInDocument};
-use values::specified::url::SpecifiedUrl;
+use values::CssUrl;
 
 /// A sheet that is held from an import rule.
 #[cfg(feature = "gecko")]
@@ -80,7 +80,7 @@ impl DeepCloneWithLock for ImportSheet {
 #[derive(Debug)]
 pub struct ImportRule {
     /// The `<url>` this `@import` rule is loading.
-    pub url: SpecifiedUrl,
+    pub url: CssUrl,
 
     /// The stylesheet is always present.
     ///

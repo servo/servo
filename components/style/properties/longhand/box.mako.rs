@@ -611,7 +611,6 @@ ${helpers.single_keyword("-moz-appearance",
 
 ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
-                          boxed= product == "gecko",
                           animation_value_type="none",
                           gecko_ffi_name="mBinding",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)")}

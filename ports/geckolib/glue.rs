@@ -3544,7 +3544,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
     use style::properties::longhands::background_image::SpecifiedValue as BackgroundImage;
     use style::values::Either;
     use style::values::generics::image::Image;
-    use style::values::specified::url::SpecifiedUrl;
+    use style::values::specified::url::SpecifiedImageUrl;
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     let string = unsafe { (*value).to_string() };
@@ -3555,8 +3555,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
         ParsingMode::DEFAULT,
         QuirksMode::NoQuirks,
     );
-    if let Ok(mut url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
-        url.build_image_value();
+    if let Ok(url) = SpecifiedImageUrl::parse_from_string(string.into(), &context) {
         let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
             vec![Either::Second(Image::Url(url))]
         ));

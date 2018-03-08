@@ -47,7 +47,6 @@ ${helpers.predefined_type("list-style-image",
                           initial_value="specified::ListStyleImage::none()",
                           initial_specified_value="specified::ListStyleImage::none()",
                           animation_value_type="discrete",
-                          boxed=product == "gecko",
                           spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image",
                           servo_restyle_damage="rebuild_and_reflow")}
 

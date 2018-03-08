@@ -11,7 +11,7 @@ use context::QuirksMode;
 use cssparser::{Parser, Token, serialize_identifier};
 use num_traits::One;
 use parser::{ParserContext, Parse};
-use self::url::SpecifiedUrl;
+use self::url::{SpecifiedImageUrl, SpecifiedUrl};
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -116,23 +116,10 @@ pub mod ui;
 
 /// Common handling for the specified value CSS url() values.
 pub mod url {
-use cssparser::Parser;
-use parser::{Parse, ParserContext};
-use style_traits::ParseError;
-
 #[cfg(feature = "servo")]
-pub use ::servo::url::*;
+pub use ::servo::url::{SpecifiedUrl, SpecifiedImageUrl};
 #[cfg(feature = "gecko")]
-pub use ::gecko::url::*;
-
-impl Parse for SpecifiedUrl {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let url = input.expect_url()?;
-        Self::parse_from_string(url.as_ref().to_owned(), context)
-    }
-}
-
-impl Eq for SpecifiedUrl {}
+pub use ::gecko::url::{SpecifiedUrl, SpecifiedImageUrl};
 }
 
 /// Parse a `<number>` value, with a given clamping mode.
@@ -533,6 +520,9 @@ impl Parse for PositiveInteger {
 
 #[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
+
+/// The specified value of a `<url>` for image or `none`.
+pub type ImageUrlOrNone = Either<SpecifiedImageUrl, None_>;
 
 /// The specified value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;

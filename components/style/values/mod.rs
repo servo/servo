@@ -17,6 +17,11 @@ use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
+#[cfg(feature = "servo")]
+pub use servo::url::CssUrl;
+#[cfg(feature = "gecko")]
+pub use gecko::url::CssUrl;
+
 pub mod animated;
 pub mod computed;
 pub mod distance;

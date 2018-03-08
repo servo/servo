@@ -15,14 +15,10 @@ use media_queries::Device;
 use properties;
 use properties::{ComputedValues, LonghandId, StyleBuilder};
 use rule_cache::RuleCacheConditions;
-#[cfg(feature = "servo")]
-use servo_url::ServoUrl;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
 use std::fmt::{self, Write};
-#[cfg(feature = "servo")]
-use std::sync::Arc;
 use style_traits::{CssWriter, ToCss};
 use style_traits::cursor::CursorKind;
 use super::{CSSFloat, CSSInteger};
@@ -84,6 +80,7 @@ pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::MozForceBrokenImageIcon;
+pub use self::url::{ComputedUrl, ComputedImageUrl};
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -116,6 +113,14 @@ pub mod text;
 pub mod time;
 pub mod transform;
 pub mod ui;
+
+/// Common handling for the computed value CSS url() values.
+pub mod url {
+#[cfg(feature = "servo")]
+pub use ::servo::url::{ComputedUrl, ComputedImageUrl};
+#[cfg(feature = "gecko")]
+pub use ::gecko::url::{ComputedUrl, ComputedImageUrl};
+}
 
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.
@@ -636,47 +641,8 @@ impl ClipRectOrAuto {
     }
 }
 
-/// The computed value of a CSS `url()`, resolved relative to the stylesheet URL.
-#[cfg(feature = "servo")]
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum ComputedUrl {
-    /// The `url()` was invalid or it wasn't specified by the user.
-    Invalid(#[ignore_malloc_size_of = "Arc"] Arc<String>),
-    /// The resolved `url()` relative to the stylesheet URL.
-    Valid(ServoUrl),
-}
-
-/// TODO: Properly build ComputedUrl for gecko
-#[cfg(feature = "gecko")]
-pub type ComputedUrl = specified::url::SpecifiedUrl;
-
-#[cfg(feature = "servo")]
-impl ComputedUrl {
-    /// Returns the resolved url if it was valid.
-    pub fn url(&self) -> Option<&ServoUrl> {
-        match *self {
-            ComputedUrl::Valid(ref url) => Some(url),
-            _ => None,
-        }
-    }
-}
-
-#[cfg(feature = "servo")]
-impl ToCss for ComputedUrl {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let string = match *self {
-            ComputedUrl::Valid(ref url) => url.as_str(),
-            ComputedUrl::Invalid(ref invalid_string) => invalid_string,
-        };
-
-        dest.write_str("url(")?;
-        string.to_css(dest)?;
-        dest.write_str(")")
-    }
-}
-
 /// <url> | <none>
 pub type UrlOrNone = Either<ComputedUrl, None_>;
+
+/// <url> | <none> for image
+pub type ImageUrlOrNone = Either<ComputedImageUrl, None_>;

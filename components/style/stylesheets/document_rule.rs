@@ -17,7 +17,7 @@ use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRules;
-use values::specified::url::SpecifiedUrl;
+use values::CssUrl;
 
 #[derive(Debug)]
 /// A @-moz-document rule
@@ -75,7 +75,7 @@ impl DeepCloneWithLock for DocumentRule {
 pub enum UrlMatchingFunction {
     /// Exact URL matching function. It evaluates to true whenever the
     /// URL of the document being styled is exactly the URL given.
-    Url(SpecifiedUrl),
+    Url(CssUrl),
     /// URL prefix matching function. It evaluates to true whenever the
     /// URL of the document being styled has the argument to the
     /// function as an initial substring (which is true when the two
@@ -130,7 +130,7 @@ impl UrlMatchingFunction {
             input.parse_nested_block(|input| {
                 Ok(UrlMatchingFunction::Regexp(input.expect_string()?.as_ref().to_owned()))
             })
-        } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+        } else if let Ok(url) = input.try(|input| CssUrl::parse(context, input)) {
             Ok(UrlMatchingFunction::Url(url))
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))

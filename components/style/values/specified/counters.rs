@@ -18,7 +18,7 @@ use values::generics::counters::CounterReset as GenericCounterReset;
 use values::specified::Attr;
 use values::specified::Integer;
 #[cfg(feature = "gecko")]
-use values::specified::url::SpecifiedUrl;
+use values::specified::url::SpecifiedImageUrl;
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<Integer>;
@@ -119,5 +119,5 @@ pub enum ContentItem {
     Attr(Attr),
     /// `url(url)`
     #[cfg(feature = "gecko")]
-    Url(SpecifiedUrl),
+    Url(SpecifiedImageUrl),
 }
