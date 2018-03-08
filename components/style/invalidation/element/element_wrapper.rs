@@ -271,28 +271,37 @@ where
     }
 
     fn parent_element(&self) -> Option<Self> {
-        self.element.parent_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+        let parent = self.element.parent_element()?;
+        Some(Self::new(parent, self.snapshot_map))
+    }
+
+    fn parent_node_is_shadow_root(&self) -> bool {
+        self.element.parent_node_is_shadow_root()
+    }
+
+    fn containing_shadow_host(&self) -> Option<Self> {
+        let host = self.element.containing_shadow_host()?;
+        Some(Self::new(host, self.snapshot_map))
     }
 
     fn first_child_element(&self) -> Option<Self> {
-        self.element.first_child_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+        let child = self.element.first_child_element()?;
+        Some(Self::new(child, self.snapshot_map))
     }
 
     fn last_child_element(&self) -> Option<Self> {
-        self.element.last_child_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+        let child = self.element.last_child_element()?;
+        Some(Self::new(child, self.snapshot_map))
     }
 
     fn prev_sibling_element(&self) -> Option<Self> {
-        self.element.prev_sibling_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+        let sibling = self.element.prev_sibling_element()?;
+        Some(Self::new(sibling, self.snapshot_map))
     }
 
     fn next_sibling_element(&self) -> Option<Self> {
-        self.element.next_sibling_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+        let sibling = self.element.next_sibling_element()?;
+        Some(Self::new(sibling, self.snapshot_map))
     }
 
     #[inline]

@@ -659,6 +659,14 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         }
     }
 
+    fn parent_node_is_shadow_root(&self) -> bool {
+        false
+    }
+
+    fn containing_shadow_host(&self) -> Option<Self> {
+        None
+    }
+
     fn first_child_element(&self) -> Option<ServoLayoutElement<'le>> {
         self.as_node().dom_children().filter_map(|n| n.as_element()).next()
     }
@@ -1196,6 +1204,14 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
     fn parent_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::parent_element called");
+        None
+    }
+
+    fn parent_node_is_shadow_root(&self) -> bool {
+        false
+    }
+
+    fn containing_shadow_host(&self) -> Option<Self> {
         None
     }
 

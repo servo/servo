@@ -2570,6 +2570,14 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.upcast::<Node>().GetParentElement()
     }
 
+    fn parent_node_is_shadow_root(&self) -> bool {
+        false
+    }
+
+    fn containing_shadow_host(&self) -> Option<Self> {
+        None
+    }
+
     fn match_pseudo_element(
         &self,
         _pseudo: &PseudoElement,

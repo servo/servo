@@ -274,6 +274,20 @@ impl NonTSPseudoClass {
     }
 }
 
+impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
+    type Impl = SelectorImpl;
+
+    #[inline]
+    fn is_active_or_hover(&self) -> bool {
+        matches!(*self, NonTSPseudoClass::Active | NonTSPseudoClass::Hover)
+    }
+
+    #[inline]
+    fn is_host(&self) -> bool {
+        false // TODO(emilio)
+    }
+}
+
 /// The dummy struct we use to implement our selector parsing.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelectorImpl;
@@ -291,12 +305,6 @@ impl ::selectors::SelectorImpl for SelectorImpl {
 
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
-
-    #[inline]
-    fn is_active_or_hover(pseudo_class: &Self::NonTSPseudoClass) -> bool {
-        matches!(*pseudo_class, NonTSPseudoClass::Active |
-                                NonTSPseudoClass::Hover)
-    }
 }
 
 impl<'a> SelectorParser<'a> {

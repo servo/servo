@@ -1822,10 +1822,19 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn parent_element(&self) -> Option<Self> {
-        // FIXME(emilio): This will need to jump across if the parent node is a
-        // shadow root to get the shadow host.
         let parent_node = self.as_node().parent_node();
         parent_node.and_then(|n| n.as_element())
+    }
+
+    #[inline]
+    fn parent_node_is_shadow_root(&self) -> bool {
+        self.as_node().parent_node().map_or(false, |p| p.is_shadow_root())
+    }
+
+    #[inline]
+    fn containing_shadow_host(&self) -> Option<Self> {
+        let shadow = self.containing_shadow()?;
+        Some(shadow.host())
     }
 
     #[inline]
