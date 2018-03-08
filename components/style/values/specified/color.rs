@@ -52,8 +52,8 @@ mod gecko {
         MozDefaultColor,
         MozDefaultBackgroundColor,
         MozHyperlinktext,
-        MozActiveHyperlinktext,
-        MozVisitedHyperlinktext,
+        MozActivehyperlinktext,
+        MozVisitedhyperlinktext,
     }
 }
 
@@ -368,8 +368,8 @@ impl Color {
                         Keyword::MozDefaultColor => pres_context.mDefaultColor,
                         Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
                         Keyword::MozHyperlinktext => pres_context.mLinkColor,
-                        Keyword::MozActiveHyperlinktext => pres_context.mActiveLinkColor,
-                        Keyword::MozVisitedHyperlinktext => pres_context.mVisitedLinkColor,
+                        Keyword::MozActivehyperlinktext => pres_context.mActiveLinkColor,
+                        Keyword::MozVisitedhyperlinktext => pres_context.mVisitedLinkColor,
                     })
                 })
             }
