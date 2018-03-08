@@ -674,6 +674,7 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledMethodEnabled(&self) {}
 
     fn PassMozMap(&self, _: MozMap<DOMString, i32>) {}
+    fn PassMozMapWithUSVStringKey(&self, _: MozMap<USVString, i32>) {}
     fn PassNullableMozMap(&self, _: Option<MozMap<DOMString, i32> >) {}
     fn PassMozMapOfNullableInts(&self, _: MozMap<DOMString, Option<i32>>) {}
     fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<DOMString, Option<i32>>>) {}
@@ -693,6 +694,7 @@ impl TestBindingMethods for TestBinding {
     fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
     fn PassMozMapUnion3(&self, _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord) {}
     fn ReceiveMozMap(&self) -> MozMap<DOMString, i32> { MozMap::new() }
+    fn ReceiveMozMapWithUSVStringKey(&self) -> MozMap<USVString, i32> { MozMap::new() }
     fn ReceiveNullableMozMap(&self) -> Option<MozMap<DOMString, i32>> { Some(MozMap::new()) }
     fn ReceiveMozMapOfNullableInts(&self) -> MozMap<DOMString, Option<i32>> { MozMap::new() }
     fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<DOMString, Option<i32>>> { Some(MozMap::new()) }

@@ -5,7 +5,7 @@
 //! The `MozMap` (open-ended dictionary) type.
 
 use dom::bindings::conversions::jsid_to_string;
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
 use js::jsapi::GetPropertyKeys;
 use js::jsapi::HandleValue;
@@ -19,6 +19,7 @@ use js::jsapi::MutableHandleValue;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::jsapi::HandleId;
+use js::jsapi::JS_IdToValue;
 use js::rust::IdVector;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -38,6 +39,22 @@ impl MozMapKey for DOMString {
     
     unsafe fn from_handle_id(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
         jsid_to_string(cx, id)
+    }
+}
+
+impl MozMapKey for USVString {
+    unsafe fn to_utf16_vec(&self) -> Vec<u16> {
+        self.0.encode_utf16().collect::<Vec<_>>()
+    }
+
+    unsafe fn from_handle_id(cx: *mut JSContext, id: HandleId) -> Option<USVString>      {
+        rooted!(in(cx) let mut jsid_value = UndefinedValue());
+        JS_IdToValue(cx, *id.ptr, jsid_value.handle_mut());
+
+        match USVString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
+            ConversionResult::Success(s) => return Some(s),
+            ConversionResult::Failure(_) => return None
+        }
     }
 }
 
