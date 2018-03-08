@@ -2578,7 +2578,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         false
     }
 
-
     fn first_child_element(&self) -> Option<DomRoot<Element>> {
         self.node.child_elements().next()
     }
