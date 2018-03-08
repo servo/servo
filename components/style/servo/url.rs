@@ -4,7 +4,8 @@
 
 //! Common handling for the specified value CSS url() values.
 
-use parser::ParserContext;
+use cssparser::Parser;
+use parser::{Parse, ParserContext};
 use servo_url::ServoUrl;
 use std::fmt::{self, Write};
 // Note: We use std::sync::Arc rather than servo_arc::Arc here because the
@@ -12,7 +13,7 @@ use std::fmt::{self, Write};
 // the threshold.
 use std::sync::Arc;
 use style_traits::{CssWriter, ParseError, ToCss};
-use values::computed::{Context, ToComputedValue, ComputedUrl};
+use values::computed::{Context, ToComputedValue};
 
 /// A specified url() value for servo.
 ///
@@ -174,3 +175,41 @@ impl ToComputedValue for SpecifiedUrl {
 
 /// A specified image url() value for servo.
 pub type SpecifiedImageUrl = SpecifiedUrl;
+
+/// The computed value of a CSS `url()`, resolved relative to the stylesheet URL.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum ComputedUrl {
+    /// The `url()` was invalid or it wasn't specified by the user.
+    Invalid(#[ignore_malloc_size_of = "Arc"] Arc<String>),
+    /// The resolved `url()` relative to the stylesheet URL.
+    Valid(ServoUrl),
+}
+
+impl ComputedUrl {
+    /// Returns the resolved url if it was valid.
+    pub fn url(&self) -> Option<&ServoUrl> {
+        match *self {
+            ComputedUrl::Valid(ref url) => Some(url),
+            _ => None,
+        }
+    }
+}
+
+impl ToCss for ComputedUrl {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        let string = match *self {
+            ComputedUrl::Valid(ref url) => url.as_str(),
+            ComputedUrl::Invalid(ref invalid_string) => invalid_string,
+        };
+
+        dest.write_str("url(")?;
+        string.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
+
+/// The computed value of a CSS `url()` for image.
+pub type ComputedImageUrl = ComputedUrl;

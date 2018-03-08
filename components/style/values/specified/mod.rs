@@ -117,9 +117,9 @@ pub mod ui;
 /// Common handling for the specified value CSS url() values.
 pub mod url {
 #[cfg(feature = "servo")]
-pub use ::servo::url::*;
+pub use ::servo::url::{SpecifiedUrl, SpecifiedImageUrl};
 #[cfg(feature = "gecko")]
-pub use ::gecko::url::*;
+pub use ::gecko::url::{SpecifiedUrl, SpecifiedImageUrl};
 }
 
 /// Parse a `<number>` value, with a given clamping mode.

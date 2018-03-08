@@ -196,3 +196,8 @@ impl MallocSizeOf for SpecifiedImageUrl {
         n
     }
 }
+
+/// The computed value of a CSS `url()`.
+pub type ComputedUrl = SpecifiedUrl;
+/// The computed value of a CSS `url()` for image.
+pub type ComputedImageUrl = SpecifiedImageUrl;
