@@ -155,12 +155,12 @@ impl nsStyleImage {
             },
             GenericImage::Url(ref url) => {
                 unsafe {
-                    Gecko_SetLayerImageImageValue(self, url.image_value.clone().unwrap().get());
+                    Gecko_SetLayerImageImageValue(self, url.image_value.as_ref().unwrap().get());
                 }
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.clone().unwrap().get());
+                    Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.as_ref().unwrap().get());
                     Gecko_InitializeImageCropRect(self);
 
                     // Set CropRect

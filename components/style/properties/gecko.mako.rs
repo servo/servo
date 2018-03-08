@@ -4073,7 +4073,7 @@ fn static_assert() {
             longhands::list_style_image::computed_value::T(Either::First(ref url)) => {
                 unsafe {
                     Gecko_SetListStyleImageImageValue(&mut self.gecko,
-                                                      url.image_value.clone().unwrap().get());
+                                                      url.image_value.as_ref().unwrap().get());
                 }
                 // We don't need to record this struct as uncacheable, like when setting
                 // background-image to a url() value, since only properties in reset structs
@@ -5291,7 +5291,7 @@ clip-path
         for i in 0..v.images.len() {
             unsafe {
                 Gecko_SetCursorImageValue(&mut self.gecko.mCursorImages[i],
-                                          v.images[i].url.clone().image_value.unwrap().get());
+                                          v.images[i].url.image_value.as_ref().unwrap().get());
             }
 
             // We don't need to record this struct as uncacheable, like when setting
@@ -5551,7 +5551,7 @@ clip-path
                         ContentItem::Url(ref url) => {
                             unsafe {
                                 bindings::Gecko_SetContentDataImageValue(&mut self.gecko.mContents[i],
-                                    url.image_value.clone().unwrap().get())
+                                    url.image_value.as_ref().unwrap().get())
                             }
                         }
                     }

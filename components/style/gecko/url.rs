@@ -150,7 +150,7 @@ impl MallocSizeOf for SpecifiedUrl {
             // Although this is a RefPtr, this is the primary reference because
             // SpecifiedUrl is responsible for creating the image_value. So we
             // measure unconditionally here.
-            n += unsafe { Gecko_ImageValue_SizeOfIncludingThis(image_value.clone().get()) };
+            n += unsafe { Gecko_ImageValue_SizeOfIncludingThis(image_value.get()) };
         }
 
         n
