@@ -356,7 +356,10 @@ impl<Impl: SelectorImpl> Visit for Selector<Impl> where Impl::NonTSPseudoClass: 
     }
 }
 
-impl<Impl: SelectorImpl> Visit for Component<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
+impl<Impl: SelectorImpl> Visit for Component<Impl>
+where
+    Impl::NonTSPseudoClass: Visit<Impl=Impl>
+{
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
