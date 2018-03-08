@@ -250,7 +250,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -261,7 +260,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
             >,
         >,
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -279,7 +277,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -290,7 +287,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
             >,
         >,
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,

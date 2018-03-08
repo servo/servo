@@ -27,11 +27,14 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&binding.ast());
             if field_attrs.constant {
                 if cg::is_parameterized(&binding.ast().ty, &where_clause.params, None) {
-                    where_clause.add_predicate(cg::where_predicate(
-                        binding.ast().ty.clone(),
-                        &parse_quote!(std::clone::Clone),
-                        None,
-                    ));
+                    cg::add_predicate(
+                        &mut where_clause.inner,
+                        cg::where_predicate(
+                            binding.ast().ty.clone(),
+                            &parse_quote!(std::clone::Clone),
+                            None,
+                        ),
+                    );
                 }
                 quote! {
                     let #mapped_binding = ::std::clone::Clone::clone(#binding);
