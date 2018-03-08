@@ -6,9 +6,10 @@
 
 use crate::dom::bindings::conversions::jsid_to_string;
 use crate::dom::bindings::error::report_pending_exception;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use indexmap::IndexMap;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
+use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::JSContext;
 use js::jsapi::JS_NewPlainObject;
 use js::jsapi::JSITER_HIDDEN;
@@ -20,6 +21,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::GetPropertyKeys;
 use js::rust::wrappers::JS_DefineUCProperty2;
 use js::rust::wrappers::JS_GetPropertyById;
+use js::rust::wrappers::JS_IdToValue;
 use js::rust::HandleId;
 use js::rust::HandleValue;
 use js::rust::IdVector;
@@ -41,6 +43,23 @@ impl MozMapKey for DOMString {
 
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
         jsid_to_string(cx, id)
+    }
+}
+
+impl MozMapKey for USVString {
+    fn to_utf16_vec(&self) -> Vec<u16> {
+        self.0.encode_utf16().collect::<Vec<_>>()
+    }
+
+    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<USVString> {
+        rooted!(in(cx) let mut jsid_value = UndefinedValue());
+        let raw_id: RawHandleId = id.into();
+        JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
+
+        match USVString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
+            ConversionResult::Success(s) => return Some(s),
+            ConversionResult::Failure(_) => return None
+        }
     }
 }
 
