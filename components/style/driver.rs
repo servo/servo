@@ -42,7 +42,6 @@ where
         token.traversal_root().expect("Should've ensured we needed to traverse");
 
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
-    let is_nightly  = traversal.shared_context().options.is_nightly();
     let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
 
     // Declare the main-thread context, as well as the worker-thread contexts,
@@ -113,8 +112,9 @@ where
             nodes_remaining_at_current_depth = discovered.len();
         }
     }
-    // Accumulate statistics
-    if dump_stats || is_nightly {
+
+    // dump statistics to stdout if requested
+    if dump_stats {
         let mut aggregate =
             mem::replace(&mut context.thread_local.statistics, Default::default());
         let parallel = maybe_tls.is_some();
@@ -128,9 +128,8 @@ where
             });
         }
 
-        // dump to stdout if requested
-        if dump_stats && aggregate.is_large_traversal() {
-            aggregate.finish(traversal, parallel, start_time.unwrap());
+        aggregate.finish(traversal, parallel, start_time.unwrap());
+        if aggregate.is_large_traversal() {
              println!("{}", aggregate);
         }
     }
