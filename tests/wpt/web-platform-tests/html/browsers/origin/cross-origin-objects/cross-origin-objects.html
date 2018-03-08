@@ -127,11 +127,11 @@ addTest(function() {
  * [[GetPrototypeOf]]
  */
 addTest(function() {
-  assert_true(Object.getPrototypeOf(C) === null, "cross-origin Window proto is null");
-  assert_true(Object.getPrototypeOf(C.location) === null, "cross-origin Location proto is null (__proto__)");
+  assert_equals(Object.getPrototypeOf(C), null, "cross-origin Window proto is null");
+  assert_equals(Object.getPrototypeOf(C.location), null, "cross-origin Location proto is null (__proto__)");
   var protoGetter = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get;
-  assert_true(protoGetter.call(C) === null, "cross-origin Window proto is null");
-  assert_true(protoGetter.call(C.location) === null, "cross-origin Location proto is null (__proto__)");
+  assert_equals(protoGetter.call(C), null, "cross-origin Window proto is null");
+  assert_equals(protoGetter.call(C.location), null, "cross-origin Location proto is null (__proto__)");
   assert_throws("SecurityError", function() { C.__proto__; }, "__proto__ property not available cross-origin");
   assert_throws("SecurityError", function() { C.location.__proto__; }, "__proto__ property not available cross-origin");
 
@@ -349,8 +349,8 @@ addTest(function() {
 }, "[[OwnPropertyKeys]] should not reorder where 'then' appears if it's a named subframe, nor add another copy of 'then'");
 
 addTest(function() {
-  assert_true(B.eval('parent.C') === C, "A and B observe the same identity for C's Window");
-  assert_true(B.eval('parent.C.location') === C.location, "A and B observe the same identity for C's Location");
+  assert_equals(B.eval('parent.C'), C, "A and B observe the same identity for C's Window");
+  assert_equals(B.eval('parent.C.location'), C.location, "A and B observe the same identity for C's Location");
 }, "A and B jointly observe the same identity for cross-origin Window and Location");
 
 function checkFunction(f, proto) {
@@ -373,17 +373,17 @@ addTest(function() {
 
 addTest(function() {
   checkFunction(close, Function.prototype);
-  assert_true(close != B.close, 'same-origin Window functions get their own object');
-  assert_true(close != C.close, 'cross-origin Window functions get their own object');
+  assert_not_equals(close, B.close, 'same-origin Window functions get their own object');
+  assert_not_equals(close, C.close, 'cross-origin Window functions get their own object');
   var close_B = B.eval('parent.C.close');
-  assert_true(close != close_B, 'close_B is unique when viewed by the parent');
-  assert_true(close_B != C.close, 'different Window functions per-incumbent script settings object');
+  assert_not_equals(close, close_B, 'close_B is unique when viewed by the parent');
+  assert_not_equals(close_B, C.close, 'different Window functions per-incumbent script settings object');
   checkFunction(close_B, B.Function.prototype);
 
   checkFunction(location.replace, Function.prototype);
-  assert_true(location.replace != C.location.replace, "cross-origin Location functions get their own object");
+  assert_not_equals(location.replace, C.location.replace, "cross-origin Location functions get their own object");
   var replace_B = B.eval('parent.C.location.replace');
-  assert_true(replace_B != C.location.replace, 'different Location functions per-incumbent script settings object');
+  assert_not_equals(replace_B, C.location.replace, 'different Location functions per-incumbent script settings object');
   checkFunction(replace_B, B.Function.prototype);
 }, "Same-origin observers get different functions for cross-origin objects");
 
@@ -393,8 +393,8 @@ addTest(function() {
   var get_self_parent = Object.getOwnPropertyDescriptor(window, 'parent').get;
   var get_parent_A = Object.getOwnPropertyDescriptor(C, 'parent').get;
   var get_parent_B = B.eval('Object.getOwnPropertyDescriptor(parent.C, "parent").get');
-  assert_true(get_self_parent != get_parent_A, 'different Window accessors per-incumbent script settings object');
-  assert_true(get_parent_A != get_parent_B, 'different Window accessors per-incumbent script settings object');
+  assert_not_equals(get_self_parent, get_parent_A, 'different Window accessors per-incumbent script settings object');
+  assert_not_equals(get_parent_A, get_parent_B, 'different Window accessors per-incumbent script settings object');
   checkFunction(get_self_parent, Function.prototype);
   checkFunction(get_parent_A, Function.prototype);
   checkFunction(get_parent_B, B.Function.prototype);
@@ -404,8 +404,8 @@ addTest(function() {
   var set_self_href = Object.getOwnPropertyDescriptor(window.location, 'href').set;
   var set_href_A = Object.getOwnPropertyDescriptor(C.location, 'href').set;
   var set_href_B = B.eval('Object.getOwnPropertyDescriptor(parent.C.location, "href").set');
-  assert_true(set_self_href != set_href_A, 'different Location accessors per-incumbent script settings object');
-  assert_true(set_href_A != set_href_B, 'different Location accessors per-incumbent script settings object');
+  assert_not_equals(set_self_href, set_href_A, 'different Location accessors per-incumbent script settings object');
+  assert_not_equals(set_href_A, set_href_B, 'different Location accessors per-incumbent script settings object');
   checkFunction(set_self_href, Function.prototype);
   checkFunction(set_href_A, Function.prototype);
   checkFunction(set_href_B, B.Function.prototype);

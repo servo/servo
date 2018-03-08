@@ -27,17 +27,17 @@ function integrity(desc, url, integrity, initRequestMode, shouldPass) {
   }
 }
 
-var topSha256 = "sha256-KHIDZcXnR2oBHk9DrAA+5fFiR6JjudYjqoXtMR1zvzk=";
-var topSha384 = "sha384-MgZYnnAzPM/MjhqfOIMfQK5qcFvGZsGLzx4Phd7/A8fHTqqLqXqKo8cNzY3xEPTL";
-var topSha512 = "sha512-D6yns0qxG0E7+TwkevZ4Jt5t7Iy3ugmAajG/dlf6Pado1JqTyneKXICDiqFIkLMRExgtvg8PlxbKTkYfRejSOg==";
-var invalidSha256 = "sha256-dKUcPOn/AlUjWIwcHeHNqYXPlvyGiq+2dWOdFcE+24I=";
-var invalidSha512 = "sha512-oUceBRNxPxnY60g/VtPCj2syT4wo4EZh2CgYdWy9veW8+OsReTXoh7dizMGZafvx9+QhMS39L/gIkxnPIn41Zg==";
+const topSha256 = "sha256-KHIDZcXnR2oBHk9DrAA+5fFiR6JjudYjqoXtMR1zvzk=";
+const topSha384 = "sha384-MgZYnnAzPM/MjhqfOIMfQK5qcFvGZsGLzx4Phd7/A8fHTqqLqXqKo8cNzY3xEPTL";
+const topSha512 = "sha512-D6yns0qxG0E7+TwkevZ4Jt5t7Iy3ugmAajG/dlf6Pado1JqTyneKXICDiqFIkLMRExgtvg8PlxbKTkYfRejSOg==";
+const invalidSha256 = "sha256-dKUcPOn/AlUjWIwcHeHNqYXPlvyGiq+2dWOdFcE+24I=";
+const invalidSha512 = "sha512-oUceBRNxPxnY60g/VtPCj2syT4wo4EZh2CgYdWy9veW8+OsReTXoh7dizMGZafvx9+QhMS39L/gIkxnPIn41Zg==";
 
-var url = "../resources/top.txt";
-var corsUrl = "http://{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "top.txt";
-/* Enable CORS*/
-corsUrl += "?pipe=header(Access-Control-Allow-Origin,*)";
-var corsUrl2 = "https://{{host}}:{{ports[https][0]}}/fetch/api/resource/top.txt";
+const path = dirname(location.pathname) + RESOURCES_DIR + "top.txt";
+const url = path;
+const corsUrl =
+  `http://{{host}}:{{ports[http][1]}}${path}?pipe=header(Access-Control-Allow-Origin,*)`;
+const corsUrl2 = `https://{{host}}:{{ports[https][0]}}${path}`
 
 integrity("Empty string integrity", url, "", /* initRequestMode */ undefined,
           /* shouldPass */ true);

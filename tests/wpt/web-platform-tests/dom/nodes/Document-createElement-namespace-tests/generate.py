@@ -1,4 +1,7 @@
 #!/usr/bin/python
+
+from __future__ import print_function
+
 import os
 import sys
 
@@ -51,11 +54,11 @@ EXTENSIONS = (
 
 def __main__():
     if len(sys.argv) > 1:
-        print "No arguments expected, aborting"
+        print("No arguments expected, aborting")
         return
 
     if not os.access(THIS_NAME, os.F_OK):
-        print "Must be run from the directory of " + THIS_NAME + ", aborting"
+        print("Must be run from the directory of " + THIS_NAME + ", aborting")
         return
 
     for name in os.listdir("."):

@@ -113,8 +113,7 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {"bind_hostname": "true",
-            "supports_debugger": False}
+    return {"supports_debugger": False}
 
 
 def get_tar(url, dest):

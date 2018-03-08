@@ -27,6 +27,21 @@ dictionary ImageObject {
              DOMString sizes;
              DOMString type;
 };
+[Constructor(DOMString type, CanMakePaymentEventInit eventInitDict),
+ Exposed=ServiceWorker]
+interface CanMakePaymentEvent : ExtendableEvent {
+    readonly attribute USVString                           topLevelOrigin;
+    readonly attribute USVString                           paymentRequestOrigin;
+    readonly attribute FrozenArray<PaymentMethodData>      methodData;
+    readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
+    void respondWith(Promise<boolean> canMakePaymentResponse);
+};
+dictionary CanMakePaymentEventInit : ExtendableEventInit {
+    USVString                        topLevelOrigin;
+    USVString                        paymentRequestOrigin;
+    sequence<PaymentMethodData>      methodData;
+    sequence<PaymentDetailsModifier> modifiers;
+};
 [Constructor(DOMString type, PaymentRequestEventInit eventInitDict),
  Exposed=ServiceWorker]
 interface PaymentRequestEvent : ExtendableEvent {

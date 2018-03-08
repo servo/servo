@@ -32,7 +32,7 @@ const styleMap = document.styleSheets[0].rules[0].styleMap;
 
 test(() => {
   const properties = [...styleMap.keys()];
-  assert_array_equals(properties, ['height', 'transition-duration', 'width', '--foo']);
+  assert_array_equals(properties, ['height', 'width', '--foo', 'transition-duration']);
 }, 'Declared StylePropertyMap only contains properties in the style rule');
 
 test(() => {
