@@ -6,14 +6,16 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
+use properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use unicode_segmentation::UnicodeSegmentation;
 use values::computed::{Context, ToComputedValue};
+use values::computed::text::KeywordValue as ComputedKeywordValue;
 use values::computed::text::LineHeight as ComputedLineHeight;
 use values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
-use values::computed::text::KeywordValue as ComputedKeywordValue;
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::MozTabSize as GenericMozTabSize;
@@ -21,8 +23,6 @@ use values::generics::text::Spacing;
 use values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
 use values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
-use properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
-use unicode_segmentation::UnicodeSegmentation;
 
 /// A specified type for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<Number, Integer>;
@@ -588,10 +588,10 @@ impl ShapeKeyword {
         let fill = fill == FillMode::Filled;
         match *self {
             ShapeKeyword::Dot => if fill { "\u{2022}" } else { "\u{25e6}" },
-            ShapeKeyword::Circle =>  if fill { "\u{25cf}" } else { "\u{25cb}" },
-            ShapeKeyword::DoubleCircle =>  if fill { "\u{25c9}" } else { "\u{25ce}" },
-            ShapeKeyword::Triangle =>  if fill { "\u{25b2}" } else { "\u{25b3}" },
-            ShapeKeyword::Sesame =>  if fill { "\u{fe45}" } else { "\u{fe46}" },
+            ShapeKeyword::Circle => if fill { "\u{25cf}" } else { "\u{25cb}" },
+            ShapeKeyword::DoubleCircle => if fill { "\u{25c9}" } else { "\u{25ce}" },
+            ShapeKeyword::Triangle => if fill { "\u{25b2}" } else { "\u{25b3}" },
+            ShapeKeyword::Sesame => if fill { "\u{fe45}" } else { "\u{fe46}" },
         }
     }
 }
