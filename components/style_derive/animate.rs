@@ -32,16 +32,22 @@ pub fn derive(input: DeriveInput) -> Tokens {
             let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&result.ast());
             if field_attrs.constant {
                 if cg::is_parameterized(&result.ast().ty, &where_clause.params, None) {
-                    where_clause.add_predicate(cg::where_predicate(
-                        result.ast().ty.clone(),
-                        &parse_quote!(std::cmp::PartialEq),
-                        None,
-                    ));
-                    where_clause.add_predicate(cg::where_predicate(
-                        result.ast().ty.clone(),
-                        &parse_quote!(std::clone::Clone),
-                        None,
-                    ));
+                    cg::add_predicate(
+                        &mut where_clause.inner,
+                        cg::where_predicate(
+                            result.ast().ty.clone(),
+                            &parse_quote!(std::cmp::PartialEq),
+                            None,
+                        ),
+                    );
+                    cg::add_predicate(
+                        &mut where_clause.inner,
+                        cg::where_predicate(
+                            result.ast().ty.clone(),
+                            &parse_quote!(std::clone::Clone),
+                            None,
+                        ),
+                    );
                 }
                 quote! {
                     if #this != #other {

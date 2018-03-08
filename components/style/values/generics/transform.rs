@@ -7,8 +7,6 @@
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
 use values::{computed, CSSFloat};
 use values::computed::length::Length as ComputedLength;
 use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
@@ -250,7 +248,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -261,7 +258,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
             >,
         >,
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -279,7 +275,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -290,7 +285,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
             >,
         >,
         #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -304,10 +298,9 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     },
 }
 
-#[derive(Animate, ToComputedValue)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// A value of the `transform` property
-pub struct Transform<T>(pub Vec<T>);
+pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 
 impl<Angle, Number, Length, Integer, LengthOrPercentage>
     TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> {
@@ -512,27 +505,6 @@ where
             },
         };
         Ok(matrix)
-    }
-}
-
-impl<T: ToCss> ToCss for Transform<T> {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.0.is_empty() {
-            return dest.write_str("none");
-        }
-
-        let mut first = true;
-        for operation in &self.0 {
-            if !first {
-                dest.write_str(" ")?;
-            }
-            first = false;
-            operation.to_css(dest)?
-        }
-        Ok(())
     }
 }
 

@@ -2,28 +2,41 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg::{self, WhereClause};
+use cg;
 use darling::util::Override;
 use quote::{ToTokens, Tokens};
-use syn::{self, Data, Path};
+use syn::{self, Data, GenericParam, Path, WhereClause};
 use synstructure::{BindingInfo, Structure, VariantInfo};
 
-pub fn derive(input: syn::DeriveInput) -> Tokens {
-    let name = &input.ident;
-    let trait_path = parse_quote!(::style_traits::ToCss);
-    let (impl_generics, ty_generics, mut where_clause) =
-        cg::trait_parts(&input, &trait_path);
+pub fn derive(mut input: syn::DeriveInput) -> Tokens {
+    let mut where_clause = input.generics.where_clause.take();
+    for param in &input.generics.params {
+        let param = match *param {
+            GenericParam::Type(ref param) => param,
+            _ => continue,
+        };
+        cg::add_predicate(
+            &mut where_clause,
+            parse_quote!(#param: ::style_traits::ToCss),
+        );
+    }
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
     if let Data::Enum(_) = input.data {
         assert!(input_attrs.function.is_none(), "#[css(function)] is not allowed on enums");
         assert!(!input_attrs.comma, "#[css(comma)] is not allowed on enums");
     }
-    let s = Structure::new(&input);
 
-    let match_body = s.each_variant(|variant| {
-        derive_variant_arm(variant, &mut where_clause)
-    });
+    let match_body = {
+        let s = Structure::new(&input);
+        s.each_variant(|variant| {
+            derive_variant_arm(variant, &mut where_clause)
+        })
+    };
+    input.generics.where_clause = where_clause;
+
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let mut impls = quote! {
         impl #impl_generics ::style_traits::ToCss for #name #ty_generics #where_clause {
@@ -34,7 +47,7 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
                 dest: &mut ::style_traits::CssWriter<W>,
             ) -> ::std::fmt::Result
             where
-                W: ::std::fmt::Write
+                W: ::std::fmt::Write,
             {
                 match *self {
                     #match_body
@@ -61,7 +74,7 @@ pub fn derive(input: syn::DeriveInput) -> Tokens {
 
 fn derive_variant_arm(
     variant: &VariantInfo,
-    where_clause: &mut WhereClause,
+    generics: &mut Option<WhereClause>,
 ) -> Tokens {
     let bindings = variant.bindings();
     let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
@@ -83,7 +96,7 @@ fn derive_variant_arm(
             ::std::fmt::Write::write_str(dest, #keyword)
         }
     } else if !bindings.is_empty() {
-        derive_variant_fields_expr(bindings, where_clause, separator)
+        derive_variant_fields_expr(bindings, generics, separator)
     } else {
         quote! {
             ::std::fmt::Write::write_str(dest, #identifier)
@@ -109,7 +122,7 @@ fn derive_variant_arm(
 
 fn derive_variant_fields_expr(
     bindings: &[BindingInfo],
-    where_clause: &mut WhereClause,
+    where_clause: &mut Option<WhereClause>,
     separator: &str,
 ) -> Tokens {
     let mut iter = bindings.iter().filter_map(|binding| {
@@ -125,8 +138,9 @@ fn derive_variant_fields_expr(
         None => return quote! { Ok(()) },
     };
     if !attrs.iterable && iter.peek().is_none() {
-        if !attrs.ignore_bound {
-            where_clause.add_trait_bound(&first.ast().ty);
+        if attrs.field_bound {
+            let ty = &first.ast().ty;
+            cg::add_predicate(where_clause, parse_quote!(#ty: ::style_traits::ToCss));
         }
         let mut expr = quote! { ::style_traits::ToCss::to_css(#first, dest) };
         if let Some(condition) = attrs.skip_if {
@@ -154,7 +168,7 @@ fn derive_variant_fields_expr(
 fn derive_single_field_expr(
     field: &BindingInfo,
     attrs: CssFieldAttrs,
-    where_clause: &mut WhereClause,
+    where_clause: &mut Option<WhereClause>,
 ) -> Tokens {
     let mut expr = if attrs.iterable {
         if let Some(if_empty) = attrs.if_empty {
@@ -177,8 +191,9 @@ fn derive_single_field_expr(
             }
         }
     } else {
-        if !attrs.ignore_bound {
-            where_clause.add_trait_bound(&field.ast().ty);
+        if attrs.field_bound {
+            let ty = &field.ast().ty;
+            cg::add_predicate(where_clause, parse_quote!(#ty: ::style_traits::ToCss));
         }
         quote! { writer.item(#field)?; }
     };
@@ -218,7 +233,7 @@ pub struct CssVariantAttrs {
 #[derive(Default, FromField)]
 struct CssFieldAttrs {
     if_empty: Option<String>,
-    ignore_bound: bool,
+    field_bound: bool,
     iterable: bool,
     skip: bool,
     skip_if: Option<Path>,
