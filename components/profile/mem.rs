@@ -12,6 +12,7 @@ use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
+use std::time::Instant;
 use time::duration_from_seconds;
 
 pub struct Profiler {
@@ -20,6 +21,9 @@ pub struct Profiler {
 
     /// Registered memory reporters.
     reporters: HashMap<String, Reporter>,
+
+    /// Instant at which this profiler was created.
+    created: Instant,
 }
 
 const JEMALLOC_HEAP_ALLOCATED_STR: &'static str = "jemalloc-heap-allocated";
@@ -69,6 +73,7 @@ impl Profiler {
         Profiler {
             port: port,
             reporters: HashMap::new(),
+            created: Instant::now(),
         }
     }
 
@@ -111,7 +116,8 @@ impl Profiler {
     }
 
     fn handle_print_msg(&self) {
-        println!("Begin memory reports");
+        let elapsed = self.created.elapsed();
+        println!("Begin memory reports {}", elapsed.as_secs());
         println!("|");
 
         // Collect reports from memory reporters.
