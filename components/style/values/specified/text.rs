@@ -520,7 +520,6 @@ impl ToComputedValue for TextAlign {
 
 /// Specified value of text-emphasis-style property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-#[cfg_attr(feature = "servo", derive(ToComputedValue))]
 pub enum TextEmphasisStyle {
     /// <fill> <shape>
     Keyword(KeywordValue),
