@@ -14,6 +14,7 @@ import os.path
 import platform
 import shutil
 from socket import error as socket_error
+import stat
 import StringIO
 import sys
 import zipfile
