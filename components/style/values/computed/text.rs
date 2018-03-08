@@ -152,15 +152,22 @@ impl TextDecorationsInEffect {
 /// A specified value for the `-moz-tab-size` property.
 pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
 
+/// computed value for the text-emphasis-style property
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum TextEmphasisStyle {
+    /// Keyword value for the text-emphasis-style property (`filled` `open`)
     Keyword(KeywordValue),
+    /// `none`
     None,
+    /// String (will be used only first character) for the text-emphasis-style property
     String(String),
 }
 
+/// Keyword value for the text-emphasis-style property
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub struct KeywordValue {
+    /// fill for the text-emphasis-style property
     pub fill: FillMode,
+    /// shape for the text-emphasis-style property
     pub shape: ShapeKeyword,
 }

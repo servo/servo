@@ -518,18 +518,26 @@ impl ToComputedValue for TextAlign {
     }
 }
 
+/// Specified value of text-emphasis-style property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 #[cfg_attr(feature = "servo", derive(ToComputedValue))]
 pub enum TextEmphasisStyle {
+    /// <fill> <shape>
     Keyword(KeywordValue),
+    /// `none`
     None,
+    /// String (will be used only first character) for the text-emphasis-style property
     String(String),
 }
 
+/// Keyword value for the text-emphasis-style property
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum KeywordValue {
+    /// <fill>
     Fill(FillMode),
+    /// <shape>
     Shape(ShapeKeyword),
+    /// <fill> <shape>
     FillAndShape(FillMode, ShapeKeyword),
 }
 
@@ -551,22 +559,32 @@ impl KeywordValue {
     }
 }
 
+/// Fill mode for the text-emphasis-style property
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
 pub enum FillMode {
+    /// `filled`
     Filled,
+    /// `open`
     Open,
 }
 
+/// Shape keyword for the text-emphasis-style property
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
 pub enum ShapeKeyword {
+    /// `dot`
     Dot,
+    /// `circle`
     Circle,
+    /// `double-circle`
     DoubleCircle,
+    /// `triangle`
     Triangle,
+    /// `sesame`
     Sesame,
 }
 
 impl ShapeKeyword {
+    /// converts fill mode to a unicode char
     pub fn char(&self, fill: FillMode) -> &str {
         let fill = fill == FillMode::Filled;
         match *self {
