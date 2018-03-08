@@ -423,20 +423,17 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type NamespaceUrl = Namespace;
     type BorrowedLocalName = LocalName;
     type BorrowedNamespaceUrl = Namespace;
-
-    #[inline]
-    fn is_active_or_hover(pseudo_class: &Self::NonTSPseudoClass) -> bool {
-        matches!(*pseudo_class, NonTSPseudoClass::Active |
-                                NonTSPseudoClass::Hover)
-    }
 }
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
 
-    fn parse_non_ts_pseudo_class(&self, location: SourceLocation, name: CowRcStr<'i>)
-                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
+    fn parse_non_ts_pseudo_class(
+        &self,
+        location: SourceLocation,
+        name: CowRcStr<'i>,
+    ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
             "active" => Active,
@@ -468,10 +465,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         Ok(pseudo_class)
     }
 
-    fn parse_non_ts_functional_pseudo_class<'t>(&self,
-                                                name: CowRcStr<'i>,
-                                                parser: &mut CssParser<'i, 't>)
-                                                -> Result<NonTSPseudoClass, ParseError<'i>> {
+    fn parse_non_ts_functional_pseudo_class<'t>(
+        &self,
+        name: CowRcStr<'i>,
+        parser: &mut CssParser<'i, 't>,
+    ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
             "lang" => {
@@ -489,8 +487,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self, location: SourceLocation, name: CowRcStr<'i>)
-                             -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_pseudo_element(
+        &self,
+        location: SourceLocation,
+        name: CowRcStr<'i>,
+    ) -> Result<PseudoElement, ParseError<'i>> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,
