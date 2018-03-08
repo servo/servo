@@ -646,9 +646,17 @@ pub enum ComputedUrl {
     Valid(ServoUrl),
 }
 
-/// TODO: Properly build ComputedUrl for gecko
+/// The computed value of a CSS `url()` for image.
+#[cfg(feature = "servo")]
+pub type ComputedImageUrl = ComputedUrl;
+
+// TODO: Properly build ComputedUrl for gecko
+/// The computed value of a CSS `url()`.
 #[cfg(feature = "gecko")]
 pub type ComputedUrl = specified::url::SpecifiedUrl;
+/// The computed value of a CSS `url()` for image.
+#[cfg(feature = "gecko")]
+pub type ComputedImageUrl = specified::url::SpecifiedImageUrl;
 
 #[cfg(feature = "servo")]
 impl ComputedUrl {
@@ -680,3 +688,6 @@ impl ToCss for ComputedUrl {
 
 /// <url> | <none>
 pub type UrlOrNone = Either<ComputedUrl, None_>;
+
+/// <url> | <none> for image
+pub type ImageUrlOrNone = Either<ComputedImageUrl, None_>;

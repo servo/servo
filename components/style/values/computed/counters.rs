@@ -18,7 +18,7 @@ use values::generics::counters::CounterReset as GenericCounterReset;
 #[cfg(feature = "gecko")]
 use values::specified::Attr;
 #[cfg(feature = "gecko")]
-use values::specified::url::SpecifiedUrl;
+use values::specified::url::SpecifiedImageUrl;
 pub use values::specified::{Content, ContentItem};
 
 /// A computed value for the `counter-increment` property.
@@ -79,8 +79,7 @@ impl Parse for Content {
         let mut content = vec![];
         loop {
             #[cfg(feature = "gecko")] {
-                if let Ok(mut url) = input.try(|i| SpecifiedUrl::parse(_context, i)) {
-                    url.build_image_value();
+                if let Ok(url) = input.try(|i| SpecifiedImageUrl::parse(_context, i)) {
                     content.push(ContentItem::Url(url));
                     continue;
                 }

@@ -13,7 +13,7 @@ use values::{Either, None_};
 use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
-use values::specified::UrlOrNone;
+use values::specified::ImageUrlOrNone;
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
@@ -75,7 +75,7 @@ impl Parse for ListStyleType {
 
 /// Specified and computed `list-style-image` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub struct ListStyleImage(pub UrlOrNone);
+pub struct ListStyleImage(pub ImageUrlOrNone);
 
 // FIXME(nox): This is wrong, there are different types for specified
 // and computed URLs in Servo.
@@ -90,19 +90,11 @@ impl ListStyleImage {
 }
 
 impl Parse for ListStyleImage {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<ListStyleImage, ParseError<'i>> {
-        #[allow(unused_mut)]
-        let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
-
-        #[cfg(feature = "gecko")]
-        {
-            if let Either::First(ref mut url) = value {
-                url.build_image_value();
-            }
-        }
-
-        return Ok(ListStyleImage(value));
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<ListStyleImage, ParseError<'i>> {
+        ImageUrlOrNone::parse(context, input).map(ListStyleImage)
     }
 }
 

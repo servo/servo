@@ -163,3 +163,5 @@ impl ToComputedValue for SpecifiedUrl {
     }
 }
 
+/// A specified image url() value for servo.
+pub type SpecifiedImageUrl = SpecifiedUrl;

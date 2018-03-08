@@ -31,14 +31,14 @@ use values::generics::position::Position as GenericPosition;
 use values::specified::{Angle, Color, Length, LengthOrPercentage};
 use values::specified::{Number, NumberOrPercentage, Percentage, RGBAColor};
 use values::specified::position::{LegacyPosition, Position, PositionComponent, Side, X, Y};
-use values::specified::url::SpecifiedUrl;
+use values::specified::url::SpecifiedImageUrl;
 
 /// A specified image layer.
 pub type ImageLayer = Either<None_, Image>;
 
 /// Specified values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
-pub type Image = GenericImage<Gradient, MozImageRect, SpecifiedUrl>;
+pub type Image = GenericImage<Gradient, MozImageRect, SpecifiedImageUrl>;
 
 /// Specified values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
@@ -124,16 +124,11 @@ pub type ColorStop = GenericColorStop<RGBAColor, LengthOrPercentage>;
 
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
-pub type MozImageRect = GenericMozImageRect<NumberOrPercentage, SpecifiedUrl>;
+pub type MozImageRect = GenericMozImageRect<NumberOrPercentage, SpecifiedImageUrl>;
 
 impl Parse for Image {
-    #[cfg_attr(not(feature = "gecko"), allow(unused_mut))]
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Image, ParseError<'i>> {
-        if let Ok(mut url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-            #[cfg(feature = "gecko")]
-            {
-                url.build_image_value();
-            }
+        if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse(context, input)) {
             return Ok(GenericImage::Url(url));
         }
         if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
@@ -145,11 +140,7 @@ impl Parse for Image {
                 return Ok(GenericImage::PaintWorklet(paint_worklet));
             }
         }
-        if let Ok(mut image_rect) = input.try(|input| MozImageRect::parse(context, input)) {
-            #[cfg(feature = "gecko")]
-            {
-                image_rect.url.build_image_value();
-            }
+        if let Ok(image_rect) = input.try(|input| MozImageRect::parse(context, input)) {
             return Ok(GenericImage::Rect(Box::new(image_rect)));
         }
         Ok(GenericImage::Element(Image::parse_element(input)?))
@@ -944,7 +935,7 @@ impl Parse for MozImageRect {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
             let string = i.expect_url_or_string()?;
-            let url = SpecifiedUrl::parse_from_string(string.as_ref().to_owned(), context)?;
+            let url = SpecifiedImageUrl::parse_from_string(string.as_ref().to_owned(), context)?;
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;
             i.expect_comma()?;
@@ -953,14 +944,7 @@ impl Parse for MozImageRect {
             let bottom = NumberOrPercentage::parse_non_negative(context, i)?;
             i.expect_comma()?;
             let left = NumberOrPercentage::parse_non_negative(context, i)?;
-
-            Ok(MozImageRect {
-                url: url,
-                top: top,
-                right: right,
-                bottom: bottom,
-                left: left,
-            })
+            Ok(MozImageRect { url, top, right, bottom, left })
         })
     }
 }

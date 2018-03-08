@@ -4,13 +4,15 @@
 
 //! Common handling for the specified value CSS url() values.
 
+use cssparser::Parser;
+use gecko_bindings::bindings;
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
 use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::root::{nsStyleImageRequest, RustString};
 use gecko_bindings::structs::root::mozilla::css::ImageValue;
 use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use parser::ParserContext;
+use parser::{Parse, ParserContext};
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem;
 use style_traits::ParseError;
@@ -28,11 +30,6 @@ pub struct SpecifiedUrl {
     /// The URL extra data.
     #[css(skip)]
     pub extra_data: RefPtr<URLExtraData>,
-
-    /// Cache ImageValue, if any, so that we can reuse it while rematching a
-    /// a property with this specified url value.
-    #[css(skip)]
-    pub image_value: Option<RefPtr<ImageValue>>,
 }
 trivial_to_computed_value!(SpecifiedUrl);
 
@@ -47,7 +44,6 @@ impl SpecifiedUrl {
         Ok(SpecifiedUrl {
             serialization: Arc::new(url),
             extra_data: context.url_data.clone(),
-            image_value: None,
         })
     }
 
@@ -71,21 +67,7 @@ impl SpecifiedUrl {
                 Arc::new(url.mStrings.mString.as_ref().to_string())
             },
             extra_data: url.mExtraData.to_safe(),
-            image_value: None,
         })
-    }
-
-    /// Convert from nsStyleImageRequest to SpecifiedUrl.
-    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Result<SpecifiedUrl, ()> {
-        if image_request.mImageValue.mRawPtr.is_null() {
-            return Err(());
-        }
-
-        let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
-        let ref url_value_data = image_value._base;
-        let mut result = Self::from_url_value_data(url_value_data)?;
-        result.build_image_value();
-        Ok(result)
     }
 
     /// Returns true if this URL looks like a fragment.
@@ -118,41 +100,90 @@ impl SpecifiedUrl {
             mExtraData: self.extra_data.get(),
         }
     }
-
-    /// Build and carry an image value on request.
-    pub fn build_image_value(&mut self) {
-        use gecko_bindings::bindings::Gecko_ImageValue_Create;
-
-        debug_assert_eq!(self.image_value, None);
-        self.image_value = {
-            unsafe {
-                let ptr = Gecko_ImageValue_Create(self.for_ffi());
-                // We do not expect Gecko_ImageValue_Create returns null.
-                debug_assert!(!ptr.is_null());
-                Some(RefPtr::from_addrefed(ptr))
-            }
-        }
-    }
 }
 
 impl MallocSizeOf for SpecifiedUrl {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        use gecko_bindings::bindings::Gecko_ImageValue_SizeOfIncludingThis;
-
-        let mut n = 0;
-
         // XXX: measure `serialization` once bug 1397971 lands
 
         // We ignore `extra_data`, because RefPtr is tricky, and there aren't
         // many of them in practise (sharing is common).
 
-        if let Some(ref image_value) = self.image_value {
-            // Although this is a RefPtr, this is the primary reference because
-            // SpecifiedUrl is responsible for creating the image_value. So we
-            // measure unconditionally here.
-            n += unsafe { Gecko_ImageValue_SizeOfIncludingThis(image_value.get()) };
+        0
+    }
+}
+
+/// A specified url() value for image.
+///
+/// This exists so that we can construct `ImageValue` and reuse it.
+#[derive(Clone, Debug, ToCss)]
+pub struct SpecifiedImageUrl {
+    /// The specified url value.
+    pub url: SpecifiedUrl,
+    /// Gecko's ImageValue so that we can reuse it while rematching a
+    /// property with this specified value.
+    #[css(skip)]
+    pub image_value: RefPtr<ImageValue>,
+}
+trivial_to_computed_value!(SpecifiedImageUrl);
+
+impl SpecifiedImageUrl {
+    fn from_specified_url(url: SpecifiedUrl) -> Self {
+        let image_value = unsafe {
+            let ptr = bindings::Gecko_ImageValue_Create(url.for_ffi());
+            // We do not expect Gecko_ImageValue_Create returns null.
+            debug_assert!(!ptr.is_null());
+            RefPtr::from_addrefed(ptr)
+        };
+        SpecifiedImageUrl { url, image_value }
+    }
+
+    /// Parse a URL from a string value. See SpecifiedUrl::parse_from_string.
+    pub fn parse_from_string<'a>(
+        url: String,
+        context: &ParserContext
+    ) -> Result<Self, ParseError<'a>> {
+        SpecifiedUrl::parse_from_string(url, context).map(Self::from_specified_url)
+    }
+
+    /// Convert from URLValueData to SpecifiedUrl.
+    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
+        SpecifiedUrl::from_url_value_data(url).map(Self::from_specified_url)
+    }
+
+    /// Convert from nsStyleImageRequest to SpecifiedUrl.
+    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Result<Self, ()> {
+        if image_request.mImageValue.mRawPtr.is_null() {
+            return Err(());
         }
 
+        let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
+        let url_value_data = &image_value._base;
+        Self::from_url_value_data(url_value_data)
+    }
+}
+
+impl Parse for SpecifiedImageUrl {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        SpecifiedUrl::parse(context, input).map(Self::from_specified_url)
+    }
+}
+
+impl PartialEq for SpecifiedImageUrl {
+    fn eq(&self, other: &Self) -> bool {
+        self.url.eq(&other.url)
+    }
+}
+
+impl Eq for SpecifiedImageUrl {}
+
+impl MallocSizeOf for SpecifiedImageUrl {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.url.size_of(ops);
+        // Although this is a RefPtr, this is the primary reference because
+        // SpecifiedUrl is responsible for creating the image_value. So we
+        // measure unconditionally here.
+        n += unsafe { bindings::Gecko_ImageValue_SizeOfIncludingThis(self.image_value.get()) };
         n
     }
 }

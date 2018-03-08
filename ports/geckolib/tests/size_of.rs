@@ -42,10 +42,10 @@ size_of_test!(test_size_of_rule_node, RuleNode, 80);
 // we only pass `&mut SourcePropertyDeclaration` references around.
 size_of_test!(test_size_of_parsed_declaration, style::properties::SourcePropertyDeclaration, 608);
 
-size_of_test!(test_size_of_computed_image, computed::image::Image, 40);
-size_of_test!(test_size_of_specified_image, specified::image::Image, 40);
+size_of_test!(test_size_of_computed_image, computed::image::Image, 32);
+size_of_test!(test_size_of_specified_image, specified::image::Image, 32);
 
 // FIXME(bz): These can shrink if we move the None_ value inside the
 // enum instead of paying an extra word for the Either discriminant.
-size_of_test!(test_size_of_computed_image_layer, computed::image::ImageLayer, 40);
-size_of_test!(test_size_of_specified_image_layer, specified::image::ImageLayer, 40);
+size_of_test!(test_size_of_computed_image_layer, computed::image::ImageLayer, 32);
+size_of_test!(test_size_of_specified_image_layer, specified::image::ImageLayer, 32);
