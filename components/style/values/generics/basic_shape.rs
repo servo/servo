@@ -62,9 +62,9 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToComputedValue, ToCss)]
 pub enum BasicShape<H, V, LengthOrPercentage> {
-    Inset(InsetRect<LengthOrPercentage>),
-    Circle(Circle<H, V, LengthOrPercentage>),
-    Ellipse(Ellipse<H, V, LengthOrPercentage>),
+    Inset(#[css(field_bound)] InsetRect<LengthOrPercentage>),
+    Circle(#[css(field_bound)] Circle<H, V, LengthOrPercentage>),
+    Ellipse(#[css(field_bound)] Ellipse<H, V, LengthOrPercentage>),
     Polygon(Polygon<LengthOrPercentage>),
 }
 

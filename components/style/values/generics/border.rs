@@ -32,7 +32,7 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 /// A generic value for the `border-*-radius` longhand properties.
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub struct BorderCornerRadius<L>(pub Size<L>);
+pub struct BorderCornerRadius<L>(#[css(field_bound)] pub Size<L>);
 
 impl<L> BorderCornerRadius<L> {
     /// Trivially create a `BorderCornerRadius`.
@@ -44,7 +44,7 @@ impl<L> BorderCornerRadius<L> {
 /// A generic value for the `border-spacing` property.
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
 #[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
-pub struct BorderSpacing<L>(pub Size<L>);
+pub struct BorderSpacing<L>(#[css(field_bound)] pub Size<L>);
 
 impl<L> BorderSpacing<L> {
     /// Trivially create a `BorderCornerRadius`.
