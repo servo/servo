@@ -54,8 +54,7 @@ impl<'input, 'path> WhereClause<'input, 'path> {
         }
 
         let output_type = map_type_params(ty, &self.params, &mut |ident| {
-            let ty = Type::Path(syn::TypePath { qself: None, path: ident.clone().into() });
-            fmap_output_type(ty, trait_path, output)
+            parse_quote!(<#ident as ::#trait_path>::#output)
         });
 
         let pred = where_predicate(
@@ -111,14 +110,6 @@ where
     })
 }
 
-pub fn fmap_output_type(
-    ty: Type,
-    trait_path: &Path,
-    trait_output: Ident,
-) -> Type {
-    parse_quote!(<#ty as ::#trait_path>::#trait_output)
-}
-
 pub fn fmap_trait_output(
     input: &DeriveInput,
     trait_path: &Path,
@@ -133,11 +124,7 @@ pub fn fmap_trait_output(
                     &GenericParam::Type(ref data) => {
                         let ident = data.ident;
                         GenericArgument::Type(
-                            fmap_output_type(
-                                parse_quote!(#ident),
-                                trait_path,
-                                trait_output
-                            )
+                            parse_quote!(<#ident as ::#trait_path>::#trait_output),
                         )
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg)
