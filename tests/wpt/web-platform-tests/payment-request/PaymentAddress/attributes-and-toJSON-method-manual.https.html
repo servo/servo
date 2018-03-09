@@ -67,23 +67,38 @@ function runManualTest(button, expected = {}) {
   <li>
     <button onclick="
     const expectedAddress = {
-      country: 'AF',
-      addressLine: '1 wpt street',
-      region: '',
-      city: 'Kabul',
+      country: 'AU',
+      regionCode: 'AU-QLD',
+      addressLine: '55 test st',
+      city: 'Chapel Hill',
       dependentLocality: '',
-      postalCode: '1001',
+      postalCode: '6095',
       sortingCode: '',
-      languageCode: 'fa',
+      languageCode: 'en',
       organization: 'w3c',
       recipient: 'web platform test',
-      phone: '+93555555555',
+      phone: '+61733780000',
     };
     runManualTest(this, expectedAddress);">
       If the requestShipping member is true, then shippingAddress's PaymentAddress must match the expected values.
     </button>
-    "web platform test" as recipient, at address "1 wpt street" in "Kabul, Afghanistan", zip/postal code 1001.
-    Set the organization to "w3c". Set the phone number to "+93 55 555 5555"
+    Please use:
+    <dl>
+      <dt>Recipient:</dt>
+      <dd>web platform test</dd>
+      <dt>Address line:</dt>
+      <dd>55 test st</dd>
+      <dt>Country</dt>
+      <dd>Australia</dd>
+      <dt>Suburb</dt>
+      <dd>Chapel Hill</dd>
+      <dt>postal code </dt>
+      <dd>6095</dd>
+      <dt>organization</dt>
+      <dd>w3c</dd>
+      <dt>Phone number</dt>
+      <dd>+61 7 3378 0000</dd>
+    </dl>
   </li>
 </ol>
 <small>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script>
+    window.addEventListener('securitypolicyviolation', function(e) {
+      window.opener.postMessage({result: 'fail', violatedDirective: e.violatedDirective}, '*');
+    });
+  </script>
+</head>
+
+<body>
+<script>
+  try {
+    location.href = "{{GET[target]}}";
+  } catch(ex) {}
+</script>
+</body>

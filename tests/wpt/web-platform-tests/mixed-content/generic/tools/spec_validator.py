@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import json, sys
 from common_paths import *
 
@@ -143,16 +145,16 @@ def assert_valid_spec_json(spec_json):
     error_details = {}
     try:
         validate(spec_json, error_details)
-    except AssertionError, err:
-        print 'ERROR:', err.message
-        print json.dumps(error_details, indent=4)
+    except AssertionError as err:
+        print('ERROR:', err.message)
+        print(json.dumps(error_details, indent=4))
         sys.exit(1)
 
 
 def main():
     spec_json = load_spec_json();
     assert_valid_spec_json(spec_json)
-    print "Spec JSON is valid."
+    print("Spec JSON is valid.")
 
 
 if __name__ == '__main__':

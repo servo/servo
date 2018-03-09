@@ -14,9 +14,9 @@ function check_timing_entry(entry, url, decodedBodySize, encodedBodySize) {
     'The entryType of preload response timing entry must be "resource' +
     '" :' + url);
   assert_equals(
-    entry.initiatorType, 'other',
+    entry.initiatorType, 'navigation',
     'The initiatorType of preload response timing entry must be ' +
-    '"other":' + url);
+    '"navigation":' + url);
 
   // If the server returns the redirect response, |decodedBodySize| is null and
   // |entry.decodedBodySize| shuld be 0. Otherwise |entry.decodedBodySize| must

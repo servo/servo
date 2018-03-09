@@ -150,8 +150,10 @@ class BrowserSetup(object):
         if self.prompt_install(self.name):
             return self.browser.install(venv.path)
 
-    def setup(self, kwargs):
+    def install_requirements(self):
         self.venv.install_requirements(os.path.join(wpt_root, "tools", "wptrunner", self.browser.requirements))
+
+    def setup(self, kwargs):
         self.setup_kwargs(kwargs)
 
 
@@ -225,6 +227,7 @@ class Chrome(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install chromedriver binary")
+
 
 class ChromeAndroid(BrowserSetup):
     name = "chrome_android"
@@ -314,6 +317,23 @@ https://selenium-release.storage.googleapis.com/index.html
             kwargs["webdriver_binary"] = webdriver_binary
 
 
+class Safari(BrowserSetup):
+    name = "safari"
+    browser_cls = browser.Safari
+
+    def install(self, venv):
+        raise NotImplementedError
+
+    def setup_kwargs(self, kwargs):
+        if kwargs["webdriver_binary"] is None:
+            webdriver_binary = self.browser.find_webdriver()
+
+            if webdriver_binary is None:
+                raise WptrunError("Unable to locate safaridriver binary")
+
+            kwargs["webdriver_binary"] = webdriver_binary
+
+
 class Sauce(BrowserSetup):
     name = "sauce"
     browser_cls = browser.Sauce
@@ -343,15 +363,28 @@ class Servo(BrowserSetup):
             kwargs["binary"] = binary
 
 
+class WebKit(BrowserSetup):
+    name = "webkit"
+    browser_cls = browser.WebKit
+
+    def install(self, venv):
+        raise NotImplementedError
+
+    def setup_kwargs(self, kwargs):
+        pass
+
+
 product_setup = {
     "firefox": Firefox,
     "chrome": Chrome,
     "chrome_android": ChromeAndroid,
     "edge": Edge,
     "ie": InternetExplorer,
+    "safari": Safari,
     "servo": Servo,
     "sauce": Sauce,
     "opera": Opera,
+    "webkit": WebKit,
 }
 
 
@@ -376,6 +409,7 @@ def setup_wptrunner(venv, prompt=True, install=False, **kwargs):
         raise WptrunError("Unsupported product %s" % kwargs["product"])
 
     setup_cls = product_setup[kwargs["product"]](venv, prompt, sub_product)
+    setup_cls.install_requirements()
 
     if install:
         logger.info("Installing browser")

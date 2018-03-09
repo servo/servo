@@ -8,7 +8,7 @@
 <meta name="flags" content="">
 <style>
 body { margin-top: 0; margin-bottom: 0; } /* Shouldn't matter, but in some browsers does. -007 tests this aspect specifically. */
-div {
+div div {
   writing-mode: vertical-rl;
   font-family: monospace;
   font-size: 20px;
@@ -46,5 +46,7 @@ section {
 <p>Test passes if there is a <strong>green rectangle</strong> below and <strong>no red</strong>.
 
 <section>
+<div>
 <div><aside id="red">0</aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside><aside class="spacer"></aside> <span>0</span></div>
+</div>
 </section>

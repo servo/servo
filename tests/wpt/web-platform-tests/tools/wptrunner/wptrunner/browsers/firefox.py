@@ -122,9 +122,9 @@ def env_options():
     # domains to localhost without relying on the network stack.
     #
     # https://github.com/w3c/web-platform-tests/pull/9480
-    return {"host": "127.0.0.1",
-            "external_host": "web-platform.test",
-            "bind_hostname": "false",
+    return {"host_ip": "127.0.0.1",
+            "host": "web-platform.test",
+            "bind_hostname": False,
             "certificate_domain": "web-platform.test",
             "supports_debugger": True}
 

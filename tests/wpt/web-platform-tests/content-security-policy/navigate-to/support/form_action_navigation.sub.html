@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script>
+    window.addEventListener('securitypolicyviolation', function(e) {
+      top.postMessage({result: 'fail', violatedDirective: e.violatedDirective}, '*');
+    });
+  </script>
+</head>
+
+<body>
+<form action='{{GET[action]}}' target='_self' id='form'>
+  <input type="text" name="dummy">
+</form>
+
+<script>
+  document.getElementById('form').submit();
+</script>
+</body>

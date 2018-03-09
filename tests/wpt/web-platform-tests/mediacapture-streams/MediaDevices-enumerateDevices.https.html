@@ -20,20 +20,18 @@ test(function () {
   assert_true(undefined !== navigator.mediaDevices.enumerateDevices, "navigator.mediaDevices.enumerateDevices exists");
   var p = navigator.mediaDevices.enumerateDevices()
   p.then(function(list){
-    for(let mediainfo of list){
-      // TODO check the type of mediainfo
+    for (let mediainfo of list) {
       assert_true(undefined !== mediainfo.deviceId, "mediaInfo's deviceId should exist.");
       assert_true(undefined !== mediainfo.kind,     "mediaInfo's kind     should exist.");
       assert_true(undefined !== mediainfo.label,    "mediaInfo's label    should exist.");
       assert_true(undefined !== mediainfo.groupId,  "mediaInfo's groupId  should exist.");
       // TODO the values of some of those fields should be empty string by default if no permission has been requested.
-      if( mediainfo.kind == "audioinput" ||
+      if ( mediainfo.kind == "audioinput" ||
           mediainfo.kind == "videoinput") {
-        // NOTE ALEX: looks like nobody has implemented that. How can I make it a separate test,
-        // ...        to have better granularity?
-        // assert_true(undefined !== mediainfo.getCapabilities(), "MediaDeviceInfo.getCapabilities() exists.");
-        // var cap = mediainfo.getcapabilities();
-      } else if ( mediainfo.kind !== "audiooutput" ) {
+        assert_true(mediainfo instanceof InputDeviceInfo);
+      } else if ( mediainfo.kind == "audiooutput" ) {
+        assert_true(mediainfo instanceof MediaDeviceInfo);
+      } else {
         assert_unreached("mediainfo.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
       }
     }

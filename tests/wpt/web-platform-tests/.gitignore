@@ -3,6 +3,8 @@
 *.sw[po]
 *~
 MANIFEST.json
+!content-security-policy/support/manifest.json
+!payment-handler/manifest.json
 \#*
 _certs
 .virtualenv

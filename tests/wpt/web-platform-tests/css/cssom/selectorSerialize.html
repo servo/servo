@@ -19,7 +19,7 @@
               var style_element = document.getElementById("teststyles");
               style_element.firstChild.data = source + "{ font-size: 1em; }";
               var sheet = style_element.sheet;
-              assert_equals(sheet.cssRules[0].selectorText, expected_result);
+              assert_equals(sheet.cssRules[sheet.cssRules.length - 1].selectorText, expected_result);
             }
 
             function run_tests_on_anplusb_selector(source) {
@@ -73,8 +73,6 @@
             }, 'single pseudo (simple) selector "lang" which accepts arguments in the sequence of simple selectors that is not a universal selector')
 
 
-
-
             test(function(){
                 run_tests_on_anplusb_selector(':nth-child');
             }, 'single pseudo (simple) selector "nth-child" which accepts arguments in the sequence of simple selectors that is not a universal selector')
@@ -98,10 +96,25 @@
                 assert_selector_serializes_to(' :not(  :hover   ) ', ':not(:hover)');
             }, 'single pseudo (simple) selector ":not" which accepts arguments in the sequence of simple selectors that is not a universal selector')
 
-
-
-
-
+            var escaped_ns_rule = "@namespace ns\\:odd url(ns);";
+            test(function() {
+                assert_selector_serializes_to("[ns\\:foo]", "[ns\\:foo]");
+            }, "escaped character in attribute name");
+            test(function() {
+                assert_selector_serializes_to("[\\30zonk]", "[\\30 zonk]");
+            }, "escaped character as code point in attribute name");
+            test(function() {
+                assert_selector_serializes_to("[\\@]", "[\\@]");
+            }, "escaped character (@) in attribute name");
+            test(function() {
+                assert_selector_serializes_to("[*|ns\\:foo]", "[*|ns\\:foo]");
+            }, "escaped character in attribute name with any namespace");
+            test(function() {
+                assert_selector_serializes_to(escaped_ns_rule + "[ns\\:odd|foo]", "[ns\\:odd|foo]");
+            }, "escaped character in attribute prefix");
+            test(function() {
+                assert_selector_serializes_to(escaped_ns_rule + "[ns\\:odd|odd\\:name]", "[ns\\:odd|odd\\:name]");
+            }, "escaped character in both attribute prefix and name");
         </script>
     </body>
 </html>

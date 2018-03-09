@@ -137,6 +137,22 @@ promise_test(t => {
       throw error1;
     }
   });
+  const writer = ws.getWriter();
+
+  const abortPromise1 = writer.abort(undefined);
+  const abortPromise2 = writer.abort(undefined);
+
+  assert_equals(abortPromise1, abortPromise2, 'the promises must be the same');
+
+  return promise_rejects(t, error1, abortPromise1, 'promise must have matching rejection');
+}, 'WritableStream if sink\'s abort throws, the promise returned by multiple writer.abort()s is the same and rejects');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    abort() {
+      throw error1;
+    }
+  });
 
   return promise_rejects(t, error1, ws.abort(undefined),
     'rejection reason of abortPromise must be the error thrown by abort');
@@ -195,7 +211,6 @@ promise_test(t => {
     abortPromise,
     promise_rejects(t, new TypeError(), writer.write(), 'writing should reject with a TypeError'),
     promise_rejects(t, new TypeError(), writer.close(), 'closing should reject with a TypeError'),
-    promise_rejects(t, new TypeError(), writer.abort(), 'aborting should reject with a TypeError'),
     promise_rejects(t, new TypeError(), writer.ready, 'ready should reject with a TypeError'),
     promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError')
   ]).then(() => {
@@ -1232,11 +1247,43 @@ promise_test(t => {
   const ws = new WritableStream();
   const abortPromise1 = ws.abort();
   const abortPromise2 = ws.abort();
-  return Promise.all([
-    abortPromise1,
-    promise_rejects(t, new TypeError(), abortPromise2, 'second abort() should reject')
-  ]);
-}, 'when calling abort() twice on the same stream, the second call should reject');
+  assert_equals(abortPromise1, abortPromise2, 'the promises must be the same');
+
+  return abortPromise1.then(
+      v => assert_equals(v, undefined, 'abort() should fulfill with undefined'));
+}, 'when calling abort() twice on the same stream, both should give the same promise that fulfills with undefined');
+
+promise_test(t => {
+  const ws = new WritableStream();
+  const abortPromise1 = ws.abort();
+
+  return abortPromise1.then(v1 => {
+    assert_equals(v1, undefined, 'first abort() should fulfill with undefined');
+
+    const abortPromise2 = ws.abort();
+    assert_not_equals(abortPromise2, abortPromise1, 'because we waited, the second promise should be a new promise');
+
+    return abortPromise2.then(v2 => {
+      assert_equals(v2, undefined, 'second abort() should fulfill with undefined');
+    });
+  });
+}, 'when calling abort() twice on the same stream, but sequentially so so there\'s no pending abort the second time, ' +
+   'both should fulfill with undefined');
+
+promise_test(t => {
+  const ws = new WritableStream({
+    start(c) {
+      c.error(error1);
+    }
+  });
+
+  const writer = ws.getWriter();
+
+  return promise_rejects(t, error1, writer.closed, 'writer.closed should reject').then(() => {
+    return writer.abort().then(
+      v => assert_equals(v, undefined, 'abort() should fulfill with undefined'));
+  });
+}, 'calling abort() on an errored stream should fulfill with undefined');
 
 promise_test(t => {
   let controller;

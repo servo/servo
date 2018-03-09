@@ -38,8 +38,7 @@ def env_extras(**kwargs):
     return []
 
 def env_options():
-    return {"bind_hostname": "true",
-            "supports_debugger": False}
+    return {"supports_debugger": False}
 
 class EdgeBrowser(Browser):
     used_ports = set()

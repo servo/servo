@@ -28,7 +28,9 @@ def test_sauceconnect_success():
         env_config = {
             "domains": {"": "example.net"}
         }
-        sauce_connect.__enter__(None, env_config)
+        sauce_connect(None, env_config)
+        with sauce_connect:
+            pass
 
 
 @pytest.mark.parametrize("readyfile,returncode", [
@@ -57,8 +59,10 @@ def test_sauceconnect_failure_exit(readyfile, returncode):
         env_config = {
             "domains": {"": "example.net"}
         }
+        sauce_connect(None, env_config)
         with pytest.raises(sauce.SauceException):
-            sauce_connect.__enter__(None, env_config)
+            with sauce_connect:
+                pass
 
         # Given we appear to exit immediately with these mocks, sleep shouldn't be called
         sleep.assert_not_called()
@@ -82,8 +86,10 @@ def test_sauceconnect_failure_never_ready():
         env_config = {
             "domains": {"": "example.net"}
         }
+        sauce_connect(None, env_config)
         with pytest.raises(sauce.SauceException):
-            sauce_connect.__enter__(None, env_config)
+            with sauce_connect:
+                pass
 
         # We should sleep while waiting for it to create the readyfile
         sleep.assert_called()
@@ -110,15 +116,15 @@ def test_sauceconnect_tunnel_domains():
         env_config = {
             "domains": {"foo": "foo.bar.example.com", "": "example.net"}
         }
-        sauce_connect.__enter__(None, env_config)
-
-        Popen.assert_called_once()
-        args, kwargs = Popen.call_args
-        cmd = args[0]
-        assert "--tunnel-domains" in cmd
-        i = cmd.index("--tunnel-domains")
-        rest = cmd[i+1:]
-        assert len(rest) >= 1
-        if len(rest) > 1:
-            assert rest[1].startswith("-"), "--tunnel-domains takes a comma separated list (not a space separated list)"
-        assert set(rest[0].split(",")) == {"foo.bar.example.com", "example.net"}
+        sauce_connect(None, env_config)
+        with sauce_connect:
+            Popen.assert_called_once()
+            args, kwargs = Popen.call_args
+            cmd = args[0]
+            assert "--tunnel-domains" in cmd
+            i = cmd.index("--tunnel-domains")
+            rest = cmd[i+1:]
+            assert len(rest) >= 1
+            if len(rest) > 1:
+                assert rest[1].startswith("-"), "--tunnel-domains takes a comma separated list (not a space separated list)"
+            assert set(rest[0].split(",")) == {"foo.bar.example.com", "example.net"}
