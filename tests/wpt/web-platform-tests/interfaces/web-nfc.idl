@@ -1,0 +1,60 @@
+
+      dictionary NFCMessage {
+        sequence<NFCRecord> records;
+        USVString url;
+      };
+
+      typedef (DOMString or unrestricted double or ArrayBuffer or Dictionary) NFCRecordData;
+
+      dictionary NFCRecord {
+        NFCRecordType recordType;
+        USVString mediaType;
+        NFCRecordData data;
+      };
+
+        enum NFCRecordType {
+          "empty",
+          "text",
+          "url",
+          "json",
+          "opaque"
+        };
+
+    partial interface Navigator {
+      readonly attribute NFC nfc;
+    };
+
+    typedef (DOMString or ArrayBuffer or NFCMessage) NFCPushMessage;
+
+    interface NFC {
+      Promise<void> push(NFCPushMessage message, optional NFCPushOptions options);
+      Promise<void> cancelPush(optional NFCPushTarget target="any");
+      Promise<long> watch(MessageCallback callback, optional NFCWatchOptions options);
+      Promise<void> cancelWatch(optional long id);
+    };
+
+    callback MessageCallback = void (NFCMessage message);
+
+      dictionary NFCPushOptions {
+        NFCPushTarget target = "any";
+        unrestricted double timeout = Infinity;
+        boolean ignoreRead = true;
+      };
+
+      enum NFCPushTarget {
+        "tag",
+        "peer",
+        "any"
+      };
+
+        dictionary NFCWatchOptions {
+          USVString url = "";
+          NFCRecordType? recordType;
+          USVString mediaType = "";
+          NFCWatchMode mode = "web-nfc-only";
+        };
+
+      enum NFCWatchMode {
+        "web-nfc-only",
+        "any"
+      };

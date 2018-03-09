@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>letter-spacing should not be applied to zero-width format controls</title>
+<link rel=match href="reference/letter-spacing-control-chars-001.ref.html">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<style>
+.test {
+  font: 12px/2 monospace;
+  letter-spacing: 4px;
+}
+</style>
+</head>
+<body>
+The two lines below should match:<br>
+<div class=test>
+&#x200b;let&#x200b;ter&#x200b;spac&#x200b;ing&#x200b; should not be
+&#x200c;af&#x200c;fec&#x200c;ted&#x200c; by
+&#x200d;ze&#x200d;ro&#x200d;-&#x200d;width&#x200d;
+&#x2060;for&#x2060;mat&#x2060;
+&#xfeff;char&#xfeff;ac&#xfeff;ters&#xfeff;
+</div>
+<div class=test>
+letterspacing should not be
+affected by
+zero-width
+format
+characters
+</div>
+</body>
+</html>

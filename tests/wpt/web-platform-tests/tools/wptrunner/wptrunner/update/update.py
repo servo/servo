@@ -92,6 +92,7 @@ class UpdateMetadata(Step):
             state.suite_name = kwargs["suite_name"]
             state.product = kwargs["product"]
             state.config = kwargs["config"]
+            state.extra_properties = kwargs["extra_property"]
             runner = MetadataUpdateRunner(self.logger, state)
             runner.run()
 

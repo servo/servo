@@ -68,6 +68,7 @@ interface PaymentAddress {
   readonly attribute DOMString country;
   readonly attribute FrozenArray<DOMString> addressLine;
   readonly attribute DOMString region;
+  readonly attribute DOMString regionCode;
   readonly attribute DOMString city;
   readonly attribute DOMString dependentLocality;
   readonly attribute DOMString postalCode;

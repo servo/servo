@@ -139,7 +139,7 @@ const passModifiers = failModifiers.map(modifier => {
 });
 
 // PaymentDetailsInit
-const validDetails = Object.freeze({
+const failDetails = Object.freeze({
   displayItems: failPaymentItems,
   id: "this cannot be changed",
   modifiers: failModifiers,
@@ -156,7 +156,7 @@ const neutralDetails = Object.freeze({
 
 function smokeTest() {
   promise_test(async t => {
-    const request = new PaymentRequest(validMethods, validDetails);
+    const request = new PaymentRequest(validMethods, failDetails);
     await promise_rejects(
       t,
       new TypeError(),
@@ -178,7 +178,7 @@ function runUpdateDetailsAlgorithm(
   const testAssertion = buttonElement.textContent.trim();
   buttonElement.disabled = true;
   promise_test(async t => {
-    const request = new PaymentRequest(validMethods, validDetails, options);
+    const request = new PaymentRequest(validMethods, failDetails, options);
     const detailsPromise = Promise.resolve(details);
     const acceptPromise = request.show(detailsPromise);
     assert_equals(request.id, "this cant be changed", "id must never change.");

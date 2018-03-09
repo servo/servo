@@ -10,7 +10,7 @@
 'use strict';
 
 promise_test(async t => {
-  const urls = ['/interfaces/html.idl', 'cookie-store.idl'];
+  const urls = ['/interfaces/html.idl', '/interfaces/cookie-store.idl'];
   const [html, cookie_store] = await Promise.all(
     urls.map(url => fetch(url).then(response => response.text())));
 

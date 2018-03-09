@@ -4,6 +4,7 @@
 # This tool creates .html test files for the WPT harness from corresponding .test
 # files that it finds in the tree for this test collection.
 
+from __future__ import print_function
 
 import re
 import time
@@ -40,7 +41,7 @@ for curdir, subdirList, fileList in os.walk(DEFDIR, topdown=True):
     try:
       testJSON = json.load(open(theFile, "r"))
     except ValueError as e:
-      print "parse of " + theFile + " failed: " + e[0]
+      print("parse of " + theFile + " failed: " + e[0])
     else:
       theFile = re.sub("\.\./", "", theFile)
       defList.append(theFile)
@@ -65,7 +66,7 @@ for curdir, subdirList, fileList in os.walk(TESTTREE, topdown=True):
     try:
       testJSON = json.load(open(theFile, "r"))
     except ValueError as e:
-      print "parse of " + theFile + " failed: " + e[0]
+      print("parse of " + theFile + " failed: " + e[0])
     else:
       try:
         testType = testJSON['testType']

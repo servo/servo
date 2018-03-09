@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import re
 import shutil
@@ -184,7 +186,7 @@ def main():
 
     for k, v in path_changes.iteritems():
         if os.path.basename(k) in filename_changes:
-            print "Got duplicate name:" + os.path.basename(k)
+            print("Got duplicate name:" + os.path.basename(k))
         filename_changes[os.path.basename(k)] = os.path.basename(v)
 
     for path in source_paths(work_path):

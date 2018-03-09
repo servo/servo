@@ -19,7 +19,7 @@ promise_test(() => {
   return delay(50).then(() => {
     controller.close();
     assert_throws(new TypeError(), () => controller.close(), 'close should throw a TypeError the second time');
-    assert_throws(new TypeError(), () => controller.error(), 'error should throw a TypeError on a closed stream');
+    controller.error();
   });
 
 }, 'ReadableStreamController methods should continue working properly when scripts lose their reference to the ' +
