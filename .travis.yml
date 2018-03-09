@@ -26,6 +26,7 @@ matrix:
          - ./mach clean
          - ./mach build-geckolib
          - ./mach test-stylo
+         - python ./etc/memory_reports_over_time.py --test
          - bash etc/ci/lockfile_changed.sh
       cache:
         directories:
