@@ -678,7 +678,7 @@ pub enum ConstellationMsg {
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Inform the constellation of a window being resized.
-    WindowSize(TopLevelBrowsingContextId, WindowSizeData, WindowSizeType),
+    WindowSize(Option<TopLevelBrowsingContextId>, WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
