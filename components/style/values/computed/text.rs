@@ -15,7 +15,7 @@ use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::MozTabSize as GenericMozTabSize;
 use values::generics::text::Spacing;
-use values::specified::text::{TextOverflowSide, TextDecorationLine, FillMode, ShapeKeyword};
+use values::specified::text::{TextDecorationLine, TextEmphasisFillMode, TextEmphasisShapeKeyword, TextOverflowSide};
 
 pub use values::specified::TextAlignKeyword as TextAlign;
 
@@ -156,18 +156,18 @@ pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum TextEmphasisStyle {
     /// Keyword value for the text-emphasis-style property (`filled` `open`)
-    Keyword(KeywordValue),
+    Keyword(TextEmphasisKeywordValue),
     /// `none`
     None,
-    /// String (will be used only first character) for the text-emphasis-style property
+    /// String (will be used only first grapheme cluster) for the text-emphasis-style property
     String(String),
 }
 
 /// Keyword value for the text-emphasis-style property
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub struct KeywordValue {
+pub struct TextEmphasisKeywordValue {
     /// fill for the text-emphasis-style property
-    pub fill: FillMode,
+    pub fill: TextEmphasisFillMode,
     /// shape for the text-emphasis-style property
-    pub shape: ShapeKeyword,
+    pub shape: TextEmphasisShapeKeyword,
 }

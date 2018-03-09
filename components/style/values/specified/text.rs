@@ -12,8 +12,8 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use unicode_segmentation::UnicodeSegmentation;
 use values::computed::{Context, ToComputedValue};
-use values::computed::text::KeywordValue as ComputedKeywordValue;
 use values::computed::text::LineHeight as ComputedLineHeight;
+use values::computed::text::TextEmphasisKeywordValue as ComputedTextEmphasisKeywordValue;
 use values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
 use values::generics::text::InitialLetter as GenericInitialLetter;
@@ -522,37 +522,37 @@ impl ToComputedValue for TextAlign {
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum TextEmphasisStyle {
     /// <fill> <shape>
-    Keyword(KeywordValue),
+    Keyword(TextEmphasisKeywordValue),
     /// `none`
     None,
-    /// String (will be used only first character) for the text-emphasis-style property
+    /// String (will be used only first grapheme cluster) for the text-emphasis-style property
     String(String),
 }
 
 /// Keyword value for the text-emphasis-style property
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub enum KeywordValue {
+pub enum TextEmphasisKeywordValue {
     /// <fill>
-    Fill(FillMode),
+    Fill(TextEmphasisFillMode),
     /// <shape>
-    Shape(ShapeKeyword),
+    Shape(TextEmphasisShapeKeyword),
     /// <fill> <shape>
-    FillAndShape(FillMode, ShapeKeyword),
+    FillAndShape(TextEmphasisFillMode, TextEmphasisShapeKeyword),
 }
 
-impl KeywordValue {
-    fn fill(&self) -> Option<FillMode> {
+impl TextEmphasisKeywordValue {
+    fn fill(&self) -> Option<TextEmphasisFillMode> {
         match *self {
-            KeywordValue::Fill(fill) |
-            KeywordValue::FillAndShape(fill, _) => Some(fill),
+            TextEmphasisKeywordValue::Fill(fill) |
+            TextEmphasisKeywordValue::FillAndShape(fill, _) => Some(fill),
             _ => None,
         }
     }
 
-    fn shape(&self) -> Option<ShapeKeyword> {
+    fn shape(&self) -> Option<TextEmphasisShapeKeyword> {
         match *self {
-            KeywordValue::Shape(shape) |
-            KeywordValue::FillAndShape(_, shape) => Some(shape),
+            TextEmphasisKeywordValue::Shape(shape) |
+            TextEmphasisKeywordValue::FillAndShape(_, shape) => Some(shape),
             _ => None,
         }
     }
@@ -560,7 +560,7 @@ impl KeywordValue {
 
 /// Fill mode for the text-emphasis-style property
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
-pub enum FillMode {
+pub enum TextEmphasisFillMode {
     /// `filled`
     Filled,
     /// `open`
@@ -569,7 +569,7 @@ pub enum FillMode {
 
 /// Shape keyword for the text-emphasis-style property
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
-pub enum ShapeKeyword {
+pub enum TextEmphasisShapeKeyword {
     /// `dot`
     Dot,
     /// `circle`
@@ -582,16 +582,16 @@ pub enum ShapeKeyword {
     Sesame,
 }
 
-impl ShapeKeyword {
+impl TextEmphasisShapeKeyword {
     /// converts fill mode to a unicode char
-    pub fn char(&self, fill: FillMode) -> &str {
-        let fill = fill == FillMode::Filled;
+    pub fn char(&self, fill: TextEmphasisFillMode) -> &str {
+        let fill = fill == TextEmphasisFillMode::Filled;
         match *self {
-            ShapeKeyword::Dot => if fill { "\u{2022}" } else { "\u{25e6}" },
-            ShapeKeyword::Circle => if fill { "\u{25cf}" } else { "\u{25cb}" },
-            ShapeKeyword::DoubleCircle => if fill { "\u{25c9}" } else { "\u{25ce}" },
-            ShapeKeyword::Triangle => if fill { "\u{25b2}" } else { "\u{25b3}" },
-            ShapeKeyword::Sesame => if fill { "\u{fe45}" } else { "\u{fe46}" },
+            TextEmphasisShapeKeyword::Dot => if fill { "\u{2022}" } else { "\u{25e6}" },
+            TextEmphasisShapeKeyword::Circle => if fill { "\u{25cf}" } else { "\u{25cb}" },
+            TextEmphasisShapeKeyword::DoubleCircle => if fill { "\u{25c9}" } else { "\u{25ce}" },
+            TextEmphasisShapeKeyword::Triangle => if fill { "\u{25b2}" } else { "\u{25b3}" },
+            TextEmphasisShapeKeyword::Sesame => if fill { "\u{fe45}" } else { "\u{fe46}" },
         }
     }
 }
@@ -605,12 +605,12 @@ impl ToComputedValue for TextEmphasisStyle {
             TextEmphasisStyle::Keyword(ref keyword) => {
                 let default_shape = if context.style().get_inheritedbox()
                                                 .clone_writing_mode() == SpecifiedWritingMode::HorizontalTb {
-                    ShapeKeyword::Circle
+                    TextEmphasisShapeKeyword::Circle
                 } else {
-                    ShapeKeyword::Sesame
+                    TextEmphasisShapeKeyword::Sesame
                 };
-                ComputedTextEmphasisStyle::Keyword(ComputedKeywordValue {
-                    fill: keyword.fill().unwrap_or(FillMode::Filled),
+                ComputedTextEmphasisStyle::Keyword(ComputedTextEmphasisKeywordValue {
+                    fill: keyword.fill().unwrap_or(TextEmphasisFillMode::Filled),
                     shape: keyword.shape().unwrap_or(default_shape),
                 })
             },
@@ -627,7 +627,7 @@ impl ToComputedValue for TextEmphasisStyle {
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
             ComputedTextEmphasisStyle::Keyword(ref keyword) =>
-                TextEmphasisStyle::Keyword(KeywordValue::FillAndShape(keyword.fill, keyword.shape)),
+                TextEmphasisStyle::Keyword(TextEmphasisKeywordValue::FillAndShape(keyword.fill, keyword.shape)),
             ComputedTextEmphasisStyle::None => TextEmphasisStyle::None,
             ComputedTextEmphasisStyle::String(ref string) => TextEmphasisStyle::String(string.clone())
         }
@@ -649,17 +649,17 @@ impl Parse for TextEmphasisStyle {
         }
 
         // Handle a pair of keywords
-        let mut shape = input.try(ShapeKeyword::parse).ok();
-        let fill = input.try(FillMode::parse).ok();
+        let mut shape = input.try(TextEmphasisShapeKeyword::parse).ok();
+        let fill = input.try(TextEmphasisFillMode::parse).ok();
         if shape.is_none() {
-            shape = input.try(ShapeKeyword::parse).ok();
+            shape = input.try(TextEmphasisShapeKeyword::parse).ok();
         }
 
         // At least one of shape or fill must be handled
         let keyword_value = match (fill, shape) {
-            (Some(fill), Some(shape)) => KeywordValue::FillAndShape(fill, shape),
-            (Some(fill), None) => KeywordValue::Fill(fill),
-            (None, Some(shape)) => KeywordValue::Shape(shape),
+            (Some(fill), Some(shape)) => TextEmphasisKeywordValue::FillAndShape(fill, shape),
+            (Some(fill), None) => TextEmphasisKeywordValue::Fill(fill),
+            (None, Some(shape)) => TextEmphasisKeywordValue::Shape(shape),
             _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         };
         Ok(TextEmphasisStyle::Keyword(keyword_value))

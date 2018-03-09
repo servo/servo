@@ -4709,22 +4709,22 @@ fn static_assert() {
 
     pub fn set_text_emphasis_style(&mut self, v: values::computed::TextEmphasisStyle) {
         use values::computed::TextEmphasisStyle;
-        use values::specified::text::{FillMode, ShapeKeyword};
+        use values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 
         self.clear_text_emphasis_style_if_string();
         let (te, s) = match v {
             TextEmphasisStyle::None => (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE, ""),
             TextEmphasisStyle::Keyword(ref keyword) => {
                 let fill = match keyword.fill {
-                    FillMode::Filled => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED,
-                    FillMode::Open => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN,
+                    TextEmphasisFillMode::Filled => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED,
+                    TextEmphasisFillMode::Open => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN,
                 };
                 let shape = match keyword.shape {
-                    ShapeKeyword::Dot => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT,
-                    ShapeKeyword::Circle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE,
-                    ShapeKeyword::DoubleCircle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE,
-                    ShapeKeyword::Triangle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE,
-                    ShapeKeyword::Sesame => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME,
+                    TextEmphasisShapeKeyword::Dot => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT,
+                    TextEmphasisShapeKeyword::Circle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE,
+                    TextEmphasisShapeKeyword::DoubleCircle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE,
+                    TextEmphasisShapeKeyword::Triangle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE,
+                    TextEmphasisShapeKeyword::Sesame => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME,
                 };
 
                 (shape | fill, keyword.shape.char(keyword.fill))
@@ -4752,8 +4752,8 @@ fn static_assert() {
 
     pub fn clone_text_emphasis_style(&self) -> values::computed::TextEmphasisStyle {
         use values::computed::TextEmphasisStyle;
-        use values::specified::text::{FillMode, ShapeKeyword};
-        use values::computed::text::{KeywordValue};
+        use values::computed::text::TextEmphasisKeywordValue;
+        use values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 
         if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8 {
             return TextEmphasisStyle::None;
@@ -4766,19 +4766,19 @@ fn static_assert() {
         let fill =
             self.gecko.mTextEmphasisStyle & structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN as u8 == 0;
 
-        let fill = if fill { FillMode::Filled } else { FillMode::Open };
+        let fill = if fill { TextEmphasisFillMode::Filled } else { TextEmphasisFillMode::Open };
 
         let shape =
             match self.gecko.mTextEmphasisStyle as u32 & !structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN {
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT => ShapeKeyword::Dot,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE => ShapeKeyword::Circle,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE => ShapeKeyword::DoubleCircle,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE => ShapeKeyword::Triangle,
-                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME => ShapeKeyword::Sesame,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT => TextEmphasisShapeKeyword::Dot,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE => TextEmphasisShapeKeyword::Circle,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE => TextEmphasisShapeKeyword::DoubleCircle,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE => TextEmphasisShapeKeyword::Triangle,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME => TextEmphasisShapeKeyword::Sesame,
                 _ => panic!("Unexpected value in style struct for text-emphasis-style property")
             };
 
-        TextEmphasisStyle::Keyword(KeywordValue { fill, shape })
+        TextEmphasisStyle::Keyword(TextEmphasisKeywordValue { fill, shape })
     }
 
     ${impl_non_negative_length('_webkit_text_stroke_width',
