@@ -4,21 +4,59 @@
 
 use cg;
 use quote::Tokens;
-use syn::{Ident, DeriveInput};
+use syn::DeriveInput;
 use synstructure::BindStyle;
 
-pub fn derive(input: DeriveInput) -> Tokens {
-    let name = &input.ident;
-    let trait_path = parse_quote!(values::computed::ToComputedValue);
-    let (impl_generics, ty_generics, mut where_clause, computed_value_type) =
-        cg::fmap_trait_parts(&input, &trait_path, Ident::from("ComputedValue"));
+pub fn derive(mut input: DeriveInput) -> Tokens {
+    let mut where_clause = input.generics.where_clause.take();
+    let (to_body, from_body) = {
+        let params = input.generics.type_params().collect::<Vec<_>>();
+        for param in &params {
+            cg::add_predicate(
+                &mut where_clause,
+                parse_quote!(#param: ::values::computed::ToComputedValue),
+            );
+        }
 
-    if input.generics.params.is_empty() {
+        let to_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
+            let attrs = cg::parse_field_attrs::<ComputedValueAttrs>(&binding.ast());
+            if attrs.field_bound {
+                let ty = &binding.ast().ty;
+
+                let output_type = cg::map_type_params(ty, &params, &mut |ident| {
+                    parse_quote!(<#ident as ::values::computed::ToComputedValue>::ComputedValue)
+                });
+
+                cg::add_predicate(
+                    &mut where_clause,
+                    parse_quote!(
+                        #ty: ::values::computed::ToComputedValue<ComputedValue = #output_type>
+                    ),
+                );
+            }
+            quote! {
+                ::values::computed::ToComputedValue::to_computed_value(#binding, context)
+            }
+        });
+        let from_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
+            quote! {
+                ::values::computed::ToComputedValue::from_computed_value(#binding)
+            }
+        });
+
+        (to_body, from_body)
+    };
+
+    input.generics.where_clause = where_clause;
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    if input.generics.type_params().next().is_none() {
         return quote! {
             impl #impl_generics ::values::computed::ToComputedValue for #name #ty_generics
             #where_clause
             {
-                type ComputedValue = #computed_value_type;
+                type ComputedValue = Self;
 
                 #[inline]
                 fn to_computed_value(
@@ -36,39 +74,11 @@ pub fn derive(input: DeriveInput) -> Tokens {
         }
     }
 
-    let to_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
-        let attrs = cg::parse_field_attrs::<ComputedValueAttrs>(&binding.ast());
-        if attrs.clone {
-            if cg::is_parameterized(&binding.ast().ty, &where_clause.params, None) {
-                cg::add_predicate(
-                    &mut where_clause.inner,
-                    cg::where_predicate(
-                        binding.ast().ty.clone(),
-                        &parse_quote!(std::clone::Clone),
-                        None,
-                    ),
-                );
-            }
-            quote! { ::std::clone::Clone::clone(#binding) }
-        } else {
-            if !attrs.ignore_bound {
-                where_clause.add_trait_bound(&binding.ast().ty);
-            }
-            quote! {
-                ::values::computed::ToComputedValue::to_computed_value(#binding, context)
-            }
-        }
-    });
-    let from_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
-        let attrs = cg::parse_field_attrs::<ComputedValueAttrs>(&binding.ast());
-        if attrs.clone {
-            quote! { ::std::clone::Clone::clone(#binding) }
-        } else {
-            quote! {
-                ::values::computed::ToComputedValue::from_computed_value(#binding)
-            }
-        }
-    });
+    let computed_value_type = cg::fmap_trait_output(
+        &input,
+        &parse_quote!(values::computed::ToComputedValue),
+        "ComputedValue".into(),
+    );
 
     quote! {
         impl #impl_generics ::values::computed::ToComputedValue for #name #ty_generics #where_clause {
@@ -95,6 +105,5 @@ pub fn derive(input: DeriveInput) -> Tokens {
 #[darling(attributes(compute), default)]
 #[derive(Default, FromField)]
 struct ComputedValueAttrs {
-    clone: bool,
-    ignore_bound: bool,
+    field_bound: bool,
 }

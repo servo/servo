@@ -54,8 +54,7 @@ impl<'input, 'path> WhereClause<'input, 'path> {
         }
 
         let output_type = map_type_params(ty, &self.params, &mut |ident| {
-            let ty = Type::Path(syn::TypePath { qself: None, path: ident.clone().into() });
-            fmap_output_type(ty, trait_path, output)
+            parse_quote!(<#ident as ::#trait_path>::#output)
         });
 
         let pred = where_predicate(
@@ -111,22 +110,12 @@ where
     })
 }
 
-fn fmap_output_type(
-    ty: Type,
+pub fn fmap_trait_output(
+    input: &DeriveInput,
     trait_path: &Path,
     trait_output: Ident,
-) -> Type {
-    parse_quote!(<#ty as ::#trait_path>::#trait_output)
-}
-
-pub fn fmap_trait_parts<'input, 'path>(
-    input: &'input DeriveInput,
-    trait_path: &'path Path,
-    trait_output: Ident,
-) -> (ImplGenerics<'input>, TypeGenerics<'input>, WhereClause<'input, 'path>, Path) {
-    let (impl_generics, ty_generics, mut where_clause) = trait_parts(input, trait_path);
-    where_clause.trait_output = Some(trait_output);
-    let output_ty = PathSegment {
+) -> Path {
+    let segment = PathSegment {
         ident: input.ident.clone(),
         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
             args: input.generics.params.iter().map(|arg| {
@@ -135,11 +124,7 @@ pub fn fmap_trait_parts<'input, 'path>(
                     &GenericParam::Type(ref data) => {
                         let ident = data.ident;
                         GenericArgument::Type(
-                            fmap_output_type(
-                                parse_quote!(#ident),
-                                trait_path,
-                                trait_output
-                            )
+                            parse_quote!(<#ident as ::#trait_path>::#trait_output),
                         )
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg)
@@ -151,7 +136,7 @@ pub fn fmap_trait_parts<'input, 'path>(
 
         })
     };
-    (impl_generics, ty_generics, where_clause, output_ty.into())
+    segment.into()
 }
 
 pub fn is_parameterized(

@@ -247,7 +247,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[allow(missing_docs)]
     #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
-        #[compute(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -257,7 +256,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
                 LengthOrPercentage,
             >,
         >,
-        #[compute(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -267,14 +265,12 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
                 LengthOrPercentage,
             >,
         >,
-        #[compute(clone)]
         progress: computed::Percentage,
     },
     /// A intermediate type for accumulation of mismatched transform lists.
     #[allow(missing_docs)]
     #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
-        #[compute(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -284,7 +280,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
                 LengthOrPercentage,
             >,
         >,
-        #[compute(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
