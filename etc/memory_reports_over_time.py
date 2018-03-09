@@ -28,7 +28,8 @@ def extract_memory_reports(lines):
         elif line == 'End memory reports\n':
             in_report = False
         elif in_report:
-            report_lines[-1].append(line.strip())
+            if line.startswith('|'):
+                report_lines[-1].append(line.strip())
     return (report_lines, times)
 
 
