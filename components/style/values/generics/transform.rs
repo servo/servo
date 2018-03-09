@@ -298,7 +298,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     },
 }
 
-#[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// A value of the `transform` property
 pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 
