@@ -132,8 +132,8 @@ pub struct ColorStop<Color, LengthOrPercentage> {
 
 /// Specified values for a paint worklet.
 /// <https://drafts.css-houdini.org/css-paint-api/>
-#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct PaintWorklet {
     /// The name the worklet was registered with.
     pub name: Atom,
@@ -142,8 +142,6 @@ pub struct PaintWorklet {
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     pub arguments: Vec<Arc<custom_properties::SpecifiedValue>>,
 }
-
-trivial_to_computed_value!(PaintWorklet);
 
 impl ToCss for PaintWorklet {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
