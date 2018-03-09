@@ -126,7 +126,16 @@ pub fn fmap_trait_parts<'input, 'path>(
 ) -> (ImplGenerics<'input>, TypeGenerics<'input>, WhereClause<'input, 'path>, Path) {
     let (impl_generics, ty_generics, mut where_clause) = trait_parts(input, trait_path);
     where_clause.trait_output = Some(trait_output);
-    let output_ty = PathSegment {
+    let output_ty = fmap_trait_output(input, trait_path, trait_output);
+    (impl_generics, ty_generics, where_clause, output_ty)
+}
+
+pub fn fmap_trait_output(
+    input: &DeriveInput,
+    trait_path: &Path,
+    trait_output: Ident,
+) -> Path {
+    let segment = PathSegment {
         ident: input.ident.clone(),
         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
             args: input.generics.params.iter().map(|arg| {
@@ -151,7 +160,7 @@ pub fn fmap_trait_parts<'input, 'path>(
 
         })
     };
-    (impl_generics, ty_generics, where_clause, output_ty.into())
+    segment.into()
 }
 
 pub fn is_parameterized(
