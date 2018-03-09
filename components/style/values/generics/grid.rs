@@ -666,7 +666,7 @@ pub enum GridTemplateComponent<L, I> {
     /// `none` value.
     None,
     /// The grid `<track-list>`
-    TrackList(TrackList<L, I>),
+    TrackList(#[compute(field_bound)] TrackList<L, I>),
     /// A `subgrid <line-name-list>?`
     Subgrid(LineNameList),
 }

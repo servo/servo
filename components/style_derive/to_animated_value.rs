@@ -15,7 +15,6 @@ pub fn derive(mut input: DeriveInput) -> quote::Tokens {
             parse_quote!(#param: ::values::animated::ToAnimatedValue),
         );
     }
-    input.generics.where_clause = where_clause;
 
     let to_body = cg::fmap_match(&input, BindStyle::Move, |binding| {
         quote!(::values::animated::ToAnimatedValue::to_animated_value(#binding))
@@ -24,6 +23,7 @@ pub fn derive(mut input: DeriveInput) -> quote::Tokens {
         quote!(::values::animated::ToAnimatedValue::from_animated_value(#binding))
     });
 
+    input.generics.where_clause = where_clause;
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let animated_value_type = cg::fmap_trait_output(

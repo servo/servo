@@ -111,23 +111,12 @@ where
     })
 }
 
-fn fmap_output_type(
+pub fn fmap_output_type(
     ty: Type,
     trait_path: &Path,
     trait_output: Ident,
 ) -> Type {
     parse_quote!(<#ty as ::#trait_path>::#trait_output)
-}
-
-pub fn fmap_trait_parts<'input, 'path>(
-    input: &'input DeriveInput,
-    trait_path: &'path Path,
-    trait_output: Ident,
-) -> (ImplGenerics<'input>, TypeGenerics<'input>, WhereClause<'input, 'path>, Path) {
-    let (impl_generics, ty_generics, mut where_clause) = trait_parts(input, trait_path);
-    where_clause.trait_output = Some(trait_output);
-    let output_ty = fmap_trait_output(input, trait_path, trait_output);
-    (impl_generics, ty_generics, where_clause, output_ty)
 }
 
 pub fn fmap_trait_output(
