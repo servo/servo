@@ -72,6 +72,15 @@ def transform_report_for_test(report):
         remaining += map(lambda (k, v): (name + '/' + k, v), list(value['children'].items()))
     return transformed
 
+def test_extract_memory_reports():
+    input = ["Begin memory reports",
+"|",
+"  154.56 MiB -- explicit\n",
+"|     107.88 MiB -- system-heap-unclassified\n",
+"End memory reports\n"]
+    expected = ([['|', '|     107.88 MiB -- system-heap-unclassified']], ['reports'])
+    assert(extract_memory_reports(input) == expected)
+    return 0
 
 def test():
     input = '''|
@@ -111,6 +120,7 @@ def test():
 
 def usage():
     print('%s --test - run automated tests' % sys.argv[0])
+    print('%s --test-extract-memory-reports run automated tests for extract_memory_reports' % sys.argv[0])
     print('%s file - extract all memory reports that are present in file' % sys.argv[0])
     return 1
 
@@ -121,6 +131,9 @@ if __name__ == "__main__":
 
     if sys.argv[1] == '--test':
         sys.exit(test())
+        
+    if sys.argv[1] == '--test-extract-memory-reports':
+        sys.exit(test_extract_memory_reports())
 
     with open(sys.argv[1]) as f:
         lines = f.readlines()
