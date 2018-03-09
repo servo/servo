@@ -224,8 +224,12 @@ impl WebGLRenderingContext {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 
+        let webgl_chan = match window.webgl_chan() {
+            Some(chan) => chan,
+            None => return Err("WebGL initialization failed early on".into()),
+        };
+
         let (sender, receiver) = webgl_channel().unwrap();
-        let webgl_chan = window.webgl_chan();
         webgl_chan.send(WebGLMsg::CreateContext(webgl_version, size, attrs, sender))
                   .unwrap();
         let result = receiver.recv().unwrap();
