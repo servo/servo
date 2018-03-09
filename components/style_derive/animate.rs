@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg;
+use cg::{self, WhereClause};
 use quote::Tokens;
 use syn::{DeriveInput, Path};
-use synstructure;
+use synstructure::{Structure, VariantInfo};
 
 pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
@@ -14,62 +14,18 @@ pub fn derive(input: DeriveInput) -> Tokens {
         cg::trait_parts(&input, &trait_path);
 
     let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
-    let s = synstructure::Structure::new(&input);
+    let s = Structure::new(&input);
     let mut append_error_clause = s.variants().len() > 1;
 
     let mut match_body = s.variants().iter().fold(quote!(), |body, variant| {
-        let variant_attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
-        if variant_attrs.error {
-            append_error_clause = true;
-            return body;
-        }
-        let (this_pattern, this_info) = cg::ref_pattern(&variant, "this");
-        let (other_pattern, other_info) = cg::ref_pattern(&variant, "other");
-        let (result_value, result_info) = cg::value(&variant, "result");
-        let mut computations = quote!();
-        let iter = result_info.iter().zip(this_info.iter().zip(&other_info));
-        computations.append_all(iter.map(|(result, (this, other))| {
-            let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&result.ast());
-            if field_attrs.constant {
-                if cg::is_parameterized(&result.ast().ty, &where_clause.params, None) {
-                    cg::add_predicate(
-                        &mut where_clause.inner,
-                        cg::where_predicate(
-                            result.ast().ty.clone(),
-                            &parse_quote!(std::cmp::PartialEq),
-                            None,
-                        ),
-                    );
-                    cg::add_predicate(
-                        &mut where_clause.inner,
-                        cg::where_predicate(
-                            result.ast().ty.clone(),
-                            &parse_quote!(std::clone::Clone),
-                            None,
-                        ),
-                    );
-                }
-                quote! {
-                    if #this != #other {
-                        return Err(());
-                    }
-                    let #result = ::std::clone::Clone::clone(#this);
-                }
-            } else {
-                where_clause.add_trait_bound(&result.ast().ty);
-                quote! {
-                    let #result =
-                        ::values::animated::Animate::animate(#this, #other, procedure)?;
-                }
+        let arm = match derive_variant_arm(variant, &mut where_clause) {
+            Ok(arm) => arm,
+            Err(()) => {
+                append_error_clause = true;
+                return body;
             }
-        }));
-        quote! {
-            #body
-            (&#this_pattern, &#other_pattern) => {
-                #computations
-                Ok(#result_value)
-            }
-        }
+        };
+        quote! { #body #arm }
     });
 
     if append_error_clause {
@@ -97,6 +53,44 @@ pub fn derive(input: DeriveInput) -> Tokens {
             }
         }
     }
+}
+
+fn derive_variant_arm(
+    variant: &VariantInfo,
+    where_clause: &mut WhereClause,
+) -> Result<Tokens, ()> {
+    let variant_attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
+    if variant_attrs.error {
+        return Err(());
+    }
+    let (this_pattern, this_info) = cg::ref_pattern(&variant, "this");
+    let (other_pattern, other_info) = cg::ref_pattern(&variant, "other");
+    let (result_value, result_info) = cg::value(&variant, "result");
+    let mut computations = quote!();
+    let iter = result_info.iter().zip(this_info.iter().zip(&other_info));
+    computations.append_all(iter.map(|(result, (this, other))| {
+        let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&result.ast());
+        if field_attrs.constant {
+            quote! {
+                if #this != #other {
+                    return Err(());
+                }
+                let #result = ::std::clone::Clone::clone(#this);
+            }
+        } else {
+            where_clause.add_trait_bound(&result.ast().ty);
+            quote! {
+                let #result =
+                    ::values::animated::Animate::animate(#this, #other, procedure)?;
+            }
+        }
+    }));
+    Ok(quote! {
+        (&#this_pattern, &#other_pattern) => {
+            #computations
+            Ok(#result_value)
+        }
+    })
 }
 
 #[darling(attributes(animate), default)]

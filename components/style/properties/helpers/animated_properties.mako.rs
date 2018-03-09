@@ -78,7 +78,7 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 /// a shorthand with at least one transitionable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum TransitionProperty {
     /// A shorthand.
     Shorthand(ShorthandId),
@@ -88,8 +88,6 @@ pub enum TransitionProperty {
     /// unknown property.
     Unsupported(CustomIdent),
 }
-
-trivial_to_computed_value!(TransitionProperty);
 
 impl TransitionProperty {
     /// Returns `all`.

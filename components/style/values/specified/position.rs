@@ -509,7 +509,7 @@ impl From<GridAutoFlow> for u8 {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
     /// `named area` containing for each template area
@@ -614,10 +614,8 @@ impl Parse for TemplateAreas {
     }
 }
 
-trivial_to_computed_value!(TemplateAreas);
-
 /// Arc type for `Arc<TemplateAreas>`
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
 
 impl Parse for TemplateAreasArc {
@@ -630,8 +628,6 @@ impl Parse for TemplateAreasArc {
         Ok(TemplateAreasArc(Arc::new(parsed)))
     }
 }
-
-trivial_to_computed_value!(TemplateAreasArc);
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
