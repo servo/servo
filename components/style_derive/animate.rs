@@ -71,24 +71,6 @@ fn derive_variant_arm(
     computations.append_all(iter.map(|(result, (this, other))| {
         let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&result.ast());
         if field_attrs.constant {
-            if cg::is_parameterized(&result.ast().ty, &where_clause.params, None) {
-                cg::add_predicate(
-                    &mut where_clause.inner,
-                    cg::where_predicate(
-                        result.ast().ty.clone(),
-                        &parse_quote!(std::cmp::PartialEq),
-                        None,
-                    ),
-                );
-                cg::add_predicate(
-                    &mut where_clause.inner,
-                    cg::where_predicate(
-                        result.ast().ty.clone(),
-                        &parse_quote!(std::clone::Clone),
-                        None,
-                    ),
-                );
-            }
             quote! {
                 if #this != #other {
                     return Err(());
