@@ -267,7 +267,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
                 LengthOrPercentage,
             >,
         >,
-        #[compute(clone)]
         progress: computed::Percentage,
     },
     /// A intermediate type for accumulation of mismatched transform lists.

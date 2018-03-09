@@ -42,10 +42,8 @@ pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, 
     /// The color stops and interpolation hints.
     pub items: Vec<GradientItem<Color, LengthOrPercentage>>,
     /// True if this is a repeating gradient.
-    #[compute(clone)]
     pub repeating: bool,
     /// Compatibility mode.
-    #[compute(clone)]
     pub compat_mode: CompatMode,
 }
 
