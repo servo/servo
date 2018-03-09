@@ -7,6 +7,7 @@ matrix:
       script:
          - ./mach test-tidy --no-progress --all
          - ./mach test-tidy --no-progress --self-test
+         - python ./etc/memory_reports_over_time.py --test
          - bash etc/ci/check_no_panic.sh
          - bash etc/ci/manifest_changed.sh
       cache: false
@@ -26,7 +27,6 @@ matrix:
          - ./mach clean
          - ./mach build-geckolib
          - ./mach test-stylo
-         - python ./etc/memory_reports_over_time.py --test
          - bash etc/ci/lockfile_changed.sh
       cache:
         directories:
