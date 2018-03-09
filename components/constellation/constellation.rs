@@ -325,7 +325,7 @@ pub struct Constellation<Message, LTF, STF> {
     phantom: PhantomData<(Message, LTF, STF)>,
 
     /// Entry point to create and get channels to a WebGLThread.
-    webgl_threads: WebGLThreads,
+    webgl_threads: Option<WebGLThreads>,
 
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
@@ -370,7 +370,7 @@ pub struct InitialConstellationState {
     pub webrender_api_sender: webrender_api::RenderApiSender,
 
     /// Entry point to create and get channels to a WebGLThread.
-    pub webgl_threads: WebGLThreads,
+    pub webgl_threads: Option<WebGLThreads>,
 
     /// A channel to the webgl thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
@@ -740,7 +740,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             webrender_api_sender: self.webrender_api_sender.clone(),
             webrender_document: self.webrender_document,
             is_private,
-            webgl_chan: self.webgl_threads.pipeline(),
+            webgl_chan: self.webgl_threads.as_ref().map(|threads| threads.pipeline()),
             webvr_chan: self.webvr_chan.clone()
         });
 
@@ -1431,9 +1431,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        debug!("Exiting WebGL thread.");
-        if let Err(e) = self.webgl_threads.exit() {
-            warn!("Exit WebGL Thread failed ({})", e);
+        if let Some(webgl_threads) = self.webgl_threads.as_ref() {
+            debug!("Exiting WebGL thread.");
+            if let Err(e) = webgl_threads.exit() {
+                warn!("Exit WebGL Thread failed ({})", e);
+            }
         }
 
         if let Some(chan) = self.webvr_chan.as_ref() {
