@@ -8,7 +8,7 @@ use rustc::hir::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
 use syntax::{ast, codemap};
-use utils::{match_def_path, in_derive_expn};
+use utils::match_def_path;
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects");
@@ -123,13 +123,14 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             }
         }
     }
+
     /// Function arguments that are #[must_root] types are not allowed
     fn check_fn(&mut self,
                 cx: &LateContext<'a, 'tcx>,
                 kind: visit::FnKind,
-                decl: &'tcx hir::FnDecl,
-                body: &'tcx hir::Body,
-                span: codemap::Span,
+                _decl: &'tcx hir::FnDecl,
+                _body: &'tcx hir::Body,
+                _span: codemap::Span,
                 id: ast::NodeId) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _, _) |
@@ -139,97 +140,20 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             visit::FnKind::Closure(_) => return,
         };
 
-        if !in_derive_expn(span) {
-            let def_id = cx.tcx.hir.local_def_id(id);
-            let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
-
-            for (arg, ty) in decl.inputs.iter().zip(sig.inputs().0.iter()) {
-                if is_unrooted_ty(cx, ty, false) {
-                    cx.span_lint(UNROOTED_MUST_ROOT, arg.span, "Type must be rooted")
+        let def_id = cx.tcx.hir.local_def_id(id);
+        let mir = cx.tcx.optimized_mir(def_id);
+        for (i, decl) in mir.local_decls.iter().enumerate() {
+            match i {
+                0 => if !in_new_function && is_unrooted_ty(cx, decl.ty, false) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Function return type must be rooted.")
+                }
+                _ if i <= mir.arg_count => if is_unrooted_ty(cx, decl.ty, false) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Function argument type must be rooted.")
+                }
+                _ => if is_unrooted_ty(cx, decl.ty, in_new_function) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Type of binding/expression must be rooted.")
                 }
             }
-
-            if !in_new_function {
-                if is_unrooted_ty(cx, sig.output().0, false) {
-                    cx.span_lint(UNROOTED_MUST_ROOT, decl.output.span(), "Type must be rooted")
-                }
-            }
         }
-
-        let mut visitor = FnDefVisitor {
-            cx: cx,
-            in_new_function: in_new_function,
-        };
-        visit::walk_expr(&mut visitor, &body.value);
-    }
-}
-
-struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
-    cx: &'a LateContext<'b, 'tcx>,
-    in_new_function: bool,
-}
-
-impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
-    fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
-        let cx = self.cx;
-
-        fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
-            let ty = cx.tables.expr_ty(&subexpr);
-            if is_unrooted_ty(cx, ty, in_new_function) {
-                cx.span_lint(UNROOTED_MUST_ROOT,
-                             subexpr.span,
-                             &format!("Expression of type {:?} must be rooted", ty))
-            }
-        }
-
-        match expr.node {
-            // Trait casts from #[must_root] types are not allowed
-            hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
-            // This catches assignments... the main point of this would be to catch mutable
-            // references to `JS<T>`.
-            // FIXME: Enable this? Triggers on certain kinds of uses of DomRefCell.
-            // hir::ExprAssign(_, ref rhs) => require_rooted(cx, self.in_new_function, &*rhs),
-            // This catches calls; basically, this enforces the constraint that only constructors
-            // can call other constructors.
-            // FIXME: Enable this? Currently triggers with constructs involving DomRefCell, and
-            // constructs like Vec<JS<T>> and RootedVec<JS<T>>.
-            // hir::ExprCall(..) if !self.in_new_function => {
-            //     require_rooted(cx, self.in_new_function, expr);
-            // }
-            _ => {
-                // TODO(pcwalton): Check generics with a whitelist of allowed generics.
-            }
-        }
-
-        visit::walk_expr(self, expr);
-    }
-
-    fn visit_pat(&mut self, pat: &'tcx hir::Pat) {
-        let cx = self.cx;
-
-        // We want to detect pattern bindings that move a value onto the stack.
-        // When "default binding modes" https://github.com/rust-lang/rust/issues/42640
-        // are implemented, the `Unannotated` case could cause false-positives.
-        // These should be fixable by adding an explicit `ref`.
-        match pat.node {
-            hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, _, _, _) |
-            hir::PatKind::Binding(hir::BindingAnnotation::Mutable, _, _, _) => {
-                let ty = cx.tables.pat_ty(pat);
-                if is_unrooted_ty(cx, ty, self.in_new_function) {
-                    cx.span_lint(UNROOTED_MUST_ROOT,
-                                pat.span,
-                                &format!("Expression of type {:?} must be rooted", ty))
-                }
-            }
-            _ => {}
-        }
-
-        visit::walk_pat(self, pat);
-    }
-
-    fn visit_ty(&mut self, _: &'tcx hir::Ty) {}
-
-    fn nested_visit_map<'this>(&'this mut self) -> hir::intravisit::NestedVisitorMap<'this, 'tcx> {
-        hir::intravisit::NestedVisitorMap::OnlyBodies(&self.cx.tcx.hir)
     }
 }
