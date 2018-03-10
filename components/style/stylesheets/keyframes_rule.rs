@@ -126,7 +126,7 @@ impl KeyframePercentage {
     }
 
     fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<KeyframePercentage, ParseError<'i>> {
-        let token = input.next()?;
+        let token = input.next()?.clone();
         match token {
             Token::Ident(ref identifier) if identifier.as_ref().eq_ignore_ascii_case("from") => {
                 Ok(KeyframePercentage::new(0.))
@@ -135,9 +135,11 @@ impl KeyframePercentage {
                 Ok(KeyframePercentage::new(1.))
             },
             Token::Percentage { unit_value: percentage, .. } if percentage >= 0. && percentage <= 1. => {
-                Ok(KeyframePercentage::new(percentage)),
-                _ => Err(input.new_unexpected_token_error(token.clone())),
-            }
+                Ok(KeyframePercentage::new(percentage))   
+            },
+            _ => {
+                Err(input.new_unexpected_token_error(token))
+            },
         }
     }
 }
