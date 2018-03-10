@@ -38,6 +38,7 @@ use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
 use js::rust::CustomAutoRooterGuard;
+use js::typedarray;
 use script_traits::MsDuration;
 use servo_config::prefs::PREFS;
 use std::borrow::ToOwned;
@@ -428,6 +429,9 @@ impl TestBindingMethods for TestBinding {
     fn PassByteString(&self, _: ByteString) {}
     fn PassEnum(&self, _: TestEnum) {}
     fn PassInterface(&self, _: &Blob) {}
+    fn PassTypedArray(&self, _: typedarray::Int8Array) {}
+    fn PassTypedArray2(&self, _: typedarray::ArrayBuffer) {}
+    fn PassTypedArray3(&self, _: typedarray::ArrayBufferView) {}
     fn PassUnion(&self, _: HTMLElementOrLong) {}
     fn PassUnion2(&self, _: EventOrString) {}
     fn PassUnion3(&self, _: BlobOrString) {}
