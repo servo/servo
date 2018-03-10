@@ -21,6 +21,9 @@ import subprocess
 from subprocess import PIPE
 import sys
 import tarfile
+from xml.etree.ElementTree import XML
+from servo.util import download_file
+import urllib2
 
 from mach.registrar import Registrar
 import toml
@@ -29,6 +32,7 @@ from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
+NIGHTLY_REPOSITORY_URL = "https://servo-builds.s3.amazonaws.com/"
 
 
 @contextlib.contextmanager
@@ -387,6 +391,77 @@ class CommandBase(object):
               "and try again." % ("release" if release else "dev",
                                   " --release" if release else ""))
         sys.exit()
+
+    def get_nightly_binary_path(self, nightly_date):
+        if nightly_date is None:
+            return
+        if not nightly_date:
+            print(
+                "No nightly date has been provided although the --nightly or -n flag has been passed.")
+            sys.exit(1)
+        # Will alow us to fetch the relevant builds from the nightly repository
+        os_prefix = "linux"
+        if is_windows():
+            print("The nightly flag is not supported on windows yet.")
+            sys.exit(1)
+        if is_macosx():
+            print("The nightly flag is not supported on mac yet.")
+            sys.exit(1)
+        nightly_date = nightly_date.strip()
+        # Fetch the filename to download from the build list
+        repository_index = NIGHTLY_REPOSITORY_URL + "?list-type=2&prefix=nightly"
+        req = urllib2.Request(
+            "{}/{}/{}".format(repository_index, os_prefix, nightly_date))
+        try:
+            response = urllib2.urlopen(req).read()
+            tree = XML(response)
+            namespaces = {'ns': tree.tag[1:tree.tag.index('}')]}
+            file_to_download = tree.find('ns:Contents', namespaces).find(
+                'ns:Key', namespaces).text
+        except urllib2.URLError as e:
+            print("Could not fetch the available nightly versions from the repository : {}".format(
+                e.reason))
+            sys.exit(1)
+        except AttributeError as e:
+            print("Could not fetch a nightly version for date {} and platform {}".format(
+                nightly_date, os_prefix))
+            sys.exit(1)
+
+        nightly_target_directory = path.join(self.context.topdir, "target")
+        # Once extracted, the nightly folder name is the tar name without the extension
+        # (eg /foo/bar/baz.tar.gz extracts to /foo/bar/baz)
+        destination_file = path.join(
+            nightly_target_directory, file_to_download)
+        destination_folder = os.path.splitext(destination_file)[0]
+        nightlies_folder = path.join(
+            nightly_target_directory, 'nightly', os_prefix)
+
+        # Make sure the target directory exists
+        if not os.path.isdir(nightlies_folder):
+            print("The nightly folder for the target does not exist yet. Creating {}".format(
+                nightlies_folder))
+            os.makedirs(nightlies_folder)
+
+        # Download the nightly version
+        if os.path.isfile(path.join(nightlies_folder, destination_file)):
+            print("The nightly file {} has already been downloaded.".format(
+                destination_file))
+        else:
+            print("The nightly {} does not exist yet, downloading it.".format(
+                destination_file))
+            download_file(destination_file, NIGHTLY_REPOSITORY_URL +
+                          file_to_download, destination_file)
+
+        # Extract the downloaded nightly version
+        if os.path.isdir(destination_folder):
+            print("The nightly file {} has already been extracted.".format(
+                destination_folder))
+        else:
+            print("Extracting to {}...".format(destination_folder))
+            with tarfile.open(os.path.join(nightlies_folder, destination_file), "r") as tar:
+                tar.extractall(destination_folder)
+
+        return path.join(destination_folder, "servo", "servo")
 
     def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False, test_unit=False):
         """Return an extended environment dictionary."""

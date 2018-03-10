@@ -600,7 +600,7 @@ interface WebGLRenderingContextBase
 
     DOMString? getShaderSource(WebGLShader? shader);
 
-    //any getTexParameter(GLenum target, GLenum pname);
+    any getTexParameter(GLenum target, GLenum pname);
 
     //any getUniform(WebGLProgram? program, WebGLUniformLocation? location);
 

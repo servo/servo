@@ -51,7 +51,7 @@ standardSetup(function() {
 
     // test harness function
     window.promise_test(function() {
-        return fetchIdl("interfaces.idl") // load the IDL file ...
+        return fetchIdl("/interfaces/webauthn.idl") // load the IDL file ...
             .then(function(idls) {
                 return runIdlTests(idls); // ... then run the tests.
             });

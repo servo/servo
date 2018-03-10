@@ -257,9 +257,9 @@ pub struct Window {
 
     test_runner: MutNullableDom<TestRunner>,
 
-    /// A handle for communicating messages to the webvr thread, if available.
+    /// A handle for communicating messages to the WebGL thread, if available.
     #[ignore_malloc_size_of = "channels are hard"]
-    webgl_chan: WebGLChan,
+    webgl_chan: Option<WebGLChan>,
 
     /// A handle for communicating messages to the webvr thread, if available.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -402,7 +402,7 @@ impl Window {
         self.current_viewport.clone().get()
     }
 
-    pub fn webgl_chan(&self) -> WebGLChan {
+    pub fn webgl_chan(&self) -> Option<WebGLChan> {
         self.webgl_chan.clone()
     }
 
@@ -1756,7 +1756,7 @@ impl Window {
         origin: MutableOrigin,
         navigation_start: u64,
         navigation_start_precise: u64,
-        webgl_chan: WebGLChan,
+        webgl_chan: Option<WebGLChan>,
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,

@@ -14,8 +14,6 @@ use gecko_bindings::bindings;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
-#[allow(unused_imports)]
-use std::ascii::AsciiExt;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
@@ -120,7 +118,7 @@ impl ToComputedValue for FontWeight {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// A specified font-size value
 pub enum FontSize {
     /// A length; e.g. 10px.
@@ -144,21 +142,6 @@ pub enum FontSize {
     System(SystemFont)
 }
 
-impl ToCss for FontSize {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            FontSize::Length(ref lop) => lop.to_css(dest),
-            FontSize::Keyword(info) => info.kw.to_css(dest),
-            FontSize::Smaller => dest.write_str("smaller"),
-            FontSize::Larger => dest.write_str("larger"),
-            FontSize::System(sys) => sys.to_css(dest),
-        }
-    }
-}
-
 impl From<LengthOrPercentage> for FontSize {
     fn from(other: LengthOrPercentage) -> Self {
         FontSize::Length(other)
@@ -169,8 +152,8 @@ impl From<LengthOrPercentage> for FontSize {
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ToCss)]
 pub enum FontFamily {
     /// List of `font-family`
-    #[css(iterable, comma)]
-    Values(FontFamilyList),
+    #[css(comma)]
+    Values(#[css(iterable)] FontFamilyList),
     /// System font
     System(SystemFont),
 }
@@ -735,11 +718,11 @@ pub enum VariantAlternates {
     #[css(function)]
     Stylistic(CustomIdent),
     /// Enables display with stylistic sets
-    #[css(comma, function, iterable)]
-    Styleset(Box<[CustomIdent]>),
+    #[css(comma, function)]
+    Styleset(#[css(iterable)] Box<[CustomIdent]>),
     /// Enables display of specific character variants
-    #[css(comma, function, iterable)]
-    CharacterVariant(Box<[CustomIdent]>),
+    #[css(comma, function)]
+    CharacterVariant(#[css(iterable)] Box<[CustomIdent]>),
     /// Enables display of swash glyphs
     #[css(function)]
     Swash(CustomIdent),
@@ -753,9 +736,12 @@ pub enum VariantAlternates {
     HistoricalForms,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 /// List of Variant Alternates
-pub struct VariantAlternatesList(pub Box<[VariantAlternates]>);
+pub struct VariantAlternatesList(
+    #[css(if_empty = "normal", iterable)]
+    pub Box<[VariantAlternates]>,
+);
 
 impl VariantAlternatesList {
     /// Returns the length of all variant alternates.
@@ -773,25 +759,6 @@ impl VariantAlternatesList {
                 _ => acc,
             }
         })
-    }
-}
-
-impl ToCss for VariantAlternatesList {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.0.is_empty() {
-            return dest.write_str("normal");
-        }
-
-        let mut iter = self.0.iter();
-        iter.next().unwrap().to_css(dest)?;
-        for alternate in iter {
-            dest.write_str(" ")?;
-            alternate.to_css(dest)?;
-        }
-        Ok(())
     }
 }
 
@@ -1653,7 +1620,7 @@ impl Parse for FontVariantNumeric {
     }
 }
 
-/// This property provides low-level control over OpenType or TrueType font variations.
+/// This property provides low-level control over OpenType or TrueType font features.
 pub type SpecifiedFontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
 /// Define initial settings that apply when the font defined by an @font-face
@@ -1855,7 +1822,6 @@ impl ToComputedValue for FontLanguageOverride {
 
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> computed::FontLanguageOverride {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
         match *self {
             FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
             FontLanguageOverride::Override(ref lang) => {
@@ -1910,7 +1876,71 @@ impl Parse for FontLanguageOverride {
 
 /// This property provides low-level control over OpenType or TrueType font
 /// variations.
-pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
+pub type SpecifiedFontVariationSettings = FontSettings<VariationValue<Number>>;
+
+/// Define initial settings that apply when the font defined by an @font-face
+/// rule is rendered.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub enum FontVariationSettings {
+    /// Value of `FontSettings`
+    Value(SpecifiedFontVariationSettings),
+    /// System font
+    System(SystemFont)
+}
+
+impl FontVariationSettings {
+    #[inline]
+    /// Get default value of `font-variation-settings` as normal
+    pub fn normal() -> FontVariationSettings {
+        FontVariationSettings::Value(FontSettings::normal())
+    }
+
+    /// Get `font-variation-settings` with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontVariationSettings::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontVariationSettings::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontVariationSettings {
+    type ComputedValue = computed::FontVariationSettings;
+
+    fn to_computed_value(&self, context: &Context) -> computed::FontVariationSettings {
+        match *self {
+            FontVariationSettings::Value(ref v) => v.to_computed_value(context),
+            FontVariationSettings::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    context.cached_system_font.as_ref().unwrap().font_variation_settings.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontVariationSettings) -> Self {
+        FontVariationSettings::Value(ToComputedValue::from_computed_value(other))
+    }
+}
+
+impl Parse for FontVariationSettings {
+    /// normal | <variation-tag-value>#
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<FontVariationSettings, ParseError<'i>> {
+        SpecifiedFontVariationSettings::parse(context, input).map(FontVariationSettings::Value)
+    }
+}
 
 fn parse_one_feature_value<'i, 't>(
     context: &ParserContext,
@@ -1954,9 +1984,9 @@ impl Parse for VariationValue<Number> {
 }
 
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// text-zoom. Enable if true, disable if false
-pub struct XTextZoom(pub bool);
+pub struct XTextZoom(#[css(skip)] pub bool);
 
 impl Parse for XTextZoom {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<XTextZoom, ParseError<'i>> {
@@ -1965,18 +1995,9 @@ impl Parse for XTextZoom {
     }
 }
 
-impl ToCss for XTextZoom {
-    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// Internal property that reflects the lang attribute
-pub struct XLang(pub Atom);
+pub struct XLang(#[css(skip)] pub Atom);
 
 impl XLang {
     #[inline]
@@ -1993,15 +2014,6 @@ impl Parse for XLang {
     ) -> Result<XLang, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-    }
-}
-
-impl ToCss for XLang {
-    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        Ok(())
     }
 }
 

@@ -40,13 +40,14 @@ pub use values::specified::font::{XTextZoom, XLang, MozScriptSizeMultiplier, Fon
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontWeight(pub u16);
 
-#[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
+#[derive(PartialEq, ToAnimatedZero, ToCss)]
 /// The computed value of font-size
 pub struct FontSize {
     /// The size.
     pub size: NonNegativeLength,
     /// If derived from a keyword, the keyword and additional transformations applied to it
+    #[css(skip)]
     pub keyword_info: Option<KeywordInfo>,
 }
 
@@ -156,12 +157,6 @@ impl FontSize {
             let device = context.builder.device;
             context.builder.mutate_font().fixup_font_min_size(device);
         }
-    }
-}
-
-impl ToCss for FontSize {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-        self.size.to_css(dest)
     }
 }
 

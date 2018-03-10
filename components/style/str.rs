@@ -7,7 +7,6 @@
 #![deny(missing_docs)]
 
 use num_traits::ToPrimitive;
-#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::convert::AsRef;
 use std::fmt::{self, Write};

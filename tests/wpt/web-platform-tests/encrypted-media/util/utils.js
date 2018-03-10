@@ -173,32 +173,34 @@ function arrayBufferAsString(buffer)
     return '0x' + array.map( function( x ) { return x < 16 ? '0'+x.toString(16) : x.toString(16); } ).join('');
 }
 
-function dumpKeyStatuses(keyStatuses)
+function dumpKeyStatuses(keyStatuses,short)
 {
     var userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.indexOf('edge') === -1) {
-        consoleWrite("for (var entry of keyStatuses)");
+        if (!short) { consoleWrite("for (var entry of keyStatuses)"); }
         for (var entry of keyStatuses) {
             consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
         }
-        consoleWrite("for (var keyId of keyStatuses.keys())");
-        for (var keyId of keyStatuses.keys()) {
-            consoleWrite(arrayBufferAsString(keyId));
+        if (!short) {
+            consoleWrite("for (var keyId of keyStatuses.keys())");
+            for (var keyId of keyStatuses.keys()) {
+                consoleWrite(arrayBufferAsString(keyId));
+            }
+            consoleWrite("for (var status of keyStatuses.values())");
+            for (var status of keyStatuses.values()) {
+                consoleWrite(status);
+            }
+            consoleWrite("for (var entry of keyStatuses.entries())");
+            for (var entry of keyStatuses.entries()) {
+                consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
+            }
+            consoleWrite("keyStatuses.forEach()");
+            keyStatuses.forEach(function(status, keyId) {
+                consoleWrite(arrayBufferAsString(keyId) + ": " + status);
+            });
         }
-        consoleWrite("for (var status of keyStatuses.values())");
-        for (var status of keyStatuses.values()) {
-            consoleWrite(status);
-        }
-        consoleWrite("for (var entry of keyStatuses.entries())");
-        for (var entry of keyStatuses.entries()) {
-            consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
-        }
-        consoleWrite("keyStatuses.forEach()");
-        keyStatuses.forEach(function(status, keyId) {
-            consoleWrite(arrayBufferAsString(keyId) + ": " + status);
-        });
     } else {
-        consoleWrite("keyStatuses.forEach()");
+        if (!short) { consoleWrite("keyStatuses.forEach()"); }
         keyStatuses.forEach(function(keyId, status) {
             consoleWrite(arrayBufferAsString(keyId) + ": " + status);
         });

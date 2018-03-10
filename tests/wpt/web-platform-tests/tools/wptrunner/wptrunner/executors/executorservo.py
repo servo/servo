@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from mozprocess import ProcessHandler
 
-from tools.serve.serve import make_hosts_file
+from serve.serve import make_hosts_file
 
 from .base import (ExecutorException,
                    Protocol,

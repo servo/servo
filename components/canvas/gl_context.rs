@@ -24,6 +24,9 @@ pub enum GLContextFactory {
 impl GLContextFactory {
     /// Creates a new GLContextFactory that uses the currently bound GL context to create shared contexts.
     pub fn current_native_handle(proxy: &CompositorProxy) -> Option<GLContextFactory> {
+        // FIXME(emilio): This assumes a single GL backend per platform which is
+        // not true on Linux, we probably need a third `Egl` variant or abstract
+        // it a bit more...
         NativeGLContext::current_handle().map(|handle| {
             if cfg!(target_os = "windows") {
                 // Used to dispatch functions from the GLContext thread to the main thread's event loop.

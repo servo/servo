@@ -10,13 +10,15 @@
                                     font-size line-height font-family
                                     ${'font-size-adjust' if product == 'gecko' else ''}
                                     ${'font-kerning' if product == 'gecko' else ''}
+                                    ${'font-optical-sizing' if product == 'gecko' else ''}
                                     ${'font-variant-alternates' if product == 'gecko' else ''}
                                     ${'font-variant-east-asian' if product == 'gecko' else ''}
                                     ${'font-variant-ligatures' if product == 'gecko' else ''}
                                     ${'font-variant-numeric' if product == 'gecko' else ''}
                                     ${'font-variant-position' if product == 'gecko' else ''}
                                     ${'font-language-override' if product == 'gecko' else ''}
-                                    ${'font-feature-settings' if product == 'gecko' else ''}"
+                                    ${'font-feature-settings' if product == 'gecko' else ''}
+                                    ${'font-variation-settings' if product == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use parser::Parse;
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
@@ -30,7 +32,8 @@
         gecko_sub_properties = "kerning language_override size_adjust \
                                 variant_alternates variant_east_asian \
                                 variant_ligatures variant_numeric \
-                                variant_position feature_settings".split()
+                                variant_position feature_settings \
+                                variation_settings optical_sizing".split()
     %>
     % if product == "gecko":
         % for prop in gecko_sub_properties:
@@ -155,11 +158,24 @@
             % endif
 
             % if product == "gecko":
-                % for name in gecko_sub_properties:
-                    if self.font_${name} != &font_${name}::get_initial_specified_value() {
-                        return Ok(());
-                    }
-                % endfor
+            if let Some(v) = self.font_optical_sizing {
+                if v != &font_optical_sizing::get_initial_specified_value() {
+                    return Ok(());
+                }
+            }
+            if let Some(v) = self.font_variation_settings {
+                if v != &font_variation_settings::get_initial_specified_value() {
+                    return Ok(());
+                }
+            }
+
+            % for name in gecko_sub_properties:
+            % if name != "optical_sizing" and name != "variation_settings":
+            if self.font_${name} != &font_${name}::get_initial_specified_value() {
+                return Ok(());
+            }
+            % endif
+            % endfor
             % endif
 
             // In case of serialization for canvas font, we need to drop
@@ -193,12 +209,22 @@
             let mut all = true;
 
             % for prop in SYSTEM_FONT_LONGHANDS:
-                if let Some(s) = self.${prop}.get_system() {
-                    debug_assert!(sys.is_none() || s == sys.unwrap());
-                    sys = Some(s);
-                } else {
-                    all = false;
+            % if prop == "font_optical_sizing" or prop == "font_variation_settings":
+            if let Some(value) = self.${prop} {
+            % else:
+            {
+                let value = self.${prop};
+            % endif
+                match value.get_system() {
+                    Some(s) => {
+                        debug_assert!(sys.is_none() || s == sys.unwrap());
+                        sys = Some(s);
+                    }
+                    None => {
+                        all = false;
+                    }
                 }
+            }
             % endfor
             if self.line_height != &LineHeight::normal() {
                 all = false

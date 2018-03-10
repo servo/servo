@@ -6,8 +6,6 @@
 //!
 //! https://drafts.csswg.org/css-align/
 
-use std::fmt;
-use style_traits::{CssWriter, ToCss};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
 
@@ -17,21 +15,31 @@ pub use super::specified::{AlignSelf, JustifySelf};
 /// The computed value for the `justify-items` property.
 ///
 /// Need to carry around both the specified and computed value to handle the
-/// special legacy keyword. Sigh.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// special legacy keyword without destroying style sharing.
+///
+/// In particular, `justify-items` is a reset property, so we ought to be able
+/// to share its computed representation across elements as long as they match
+/// the same rules. Except that it's not true if the specified value for
+/// `justify-items` is `auto` and the computed value of the parent has the
+/// `legacy` modifier.
+///
+/// So instead of computing `auto` "normally" looking at get_parent_position(),
+/// marking it as uncacheable, we carry the specified value around and handle
+/// the special case in `StyleAdjuster` instead, only when the result of the
+/// computation would vary.
+///
+/// Note that we also need to special-case this property in matching.rs, in
+/// order to properly handle changes to the legacy keyword... This all kinda
+/// sucks :(.
+///
+/// See the discussion in https://bugzil.la/1384542.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub struct JustifyItems {
     /// The specified value for the property. Can contain `auto`.
+    #[css(skip)]
     pub specified: specified::JustifyItems,
     /// The computed value for the property. Cannot contain `auto`.
     pub computed: specified::JustifyItems,
-}
-
-impl ToCss for JustifyItems {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-        where W: fmt::Write,
-    {
-        self.computed.to_css(dest)
-    }
 }
 
 impl JustifyItems {

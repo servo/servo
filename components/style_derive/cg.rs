@@ -5,11 +5,11 @@
 use darling::{FromDeriveInput, FromField, FromVariant};
 use quote::{ToTokens, Tokens};
 use std::collections::HashSet;
-use syn::{self, DeriveInput, Field, Ident};
-use syn::{ImplGenerics, Path, PathArguments, PathSegment, AngleBracketedGenericArguments, GenericParam};
-use syn::{QSelf, Type, TypeGenerics, TypeParam};
-use syn::{TypeSlice, TypeArray, TypeTuple, TypePath, TypeParen};
-use syn::{Variant, WherePredicate, GenericArgument, Binding};
+use syn::{self, AngleBracketedGenericArguments, Binding, DeriveInput, Field};
+use syn::{GenericArgument, GenericParam, Ident, ImplGenerics, Path};
+use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray, TypeGenerics};
+use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
+use syn::{Variant, WherePredicate};
 use syn::visit::{self, Visit};
 use synstructure::{self, BindingInfo, BindStyle, VariantAst, VariantInfo};
 
@@ -42,20 +42,19 @@ impl<'input, 'path> WhereClause<'input, 'path> {
         let output = if let Some(output) = self.trait_output {
             output
         } else {
-            self.add_predicate(where_predicate(ty.clone(), trait_path, None));
+            add_predicate(&mut self.inner, where_predicate(ty.clone(), trait_path, None));
             return;
         };
 
         if let Type::Path(syn::TypePath { ref path, .. }) = *ty {
             if path_to_ident(path).is_some() {
-                self.add_predicate(where_predicate(ty.clone(), trait_path, None));
+                add_predicate(&mut self.inner, where_predicate(ty.clone(), trait_path, None));
                 return;
             }
         }
 
         let output_type = map_type_params(ty, &self.params, &mut |ident| {
-            let ty = Type::Path(syn::TypePath { qself: None, path: ident.clone().into() });
-            fmap_output_type(ty, trait_path, output)
+            parse_quote!(<#ident as ::#trait_path>::#output)
         });
 
         let pred = where_predicate(
@@ -64,29 +63,28 @@ impl<'input, 'path> WhereClause<'input, 'path> {
             Some((output, output_type)),
         );
 
-        self.add_predicate(pred);
+        add_predicate(&mut self.inner, pred);
 
         if let Some(found) = found {
             for ident in found {
                 let ty = Type::Path(syn::TypePath { qself: None, path: ident.into() });
                 if !self.bounded_types.contains(&ty) {
                     self.bounded_types.insert(ty.clone());
-                    self.add_predicate(
+                    add_predicate(
+                        &mut self.inner,
                         where_predicate(ty, trait_path, None),
                     );
                 };
             }
         }
     }
+}
 
-    pub fn add_predicate(&mut self, pred: WherePredicate) {
-        if let Some(ref mut inner) = self.inner {
-            inner.predicates.push(pred);
-        } else {
-            self.inner = Some(parse_quote!(where));
-            self.add_predicate(pred);
-        }
-    }
+pub fn add_predicate(
+    where_clause: &mut Option<syn::WhereClause>,
+    pred: WherePredicate,
+) {
+    where_clause.get_or_insert(parse_quote!(where)).predicates.push(pred);
 }
 
 pub fn fmap_match<F>(
@@ -112,22 +110,12 @@ where
     })
 }
 
-fn fmap_output_type(
-    ty: Type,
+pub fn fmap_trait_output(
+    input: &DeriveInput,
     trait_path: &Path,
     trait_output: Ident,
-) -> Type {
-    parse_quote!(<#ty as ::#trait_path>::#trait_output)
-}
-
-pub fn fmap_trait_parts<'input, 'path>(
-    input: &'input DeriveInput,
-    trait_path: &'path Path,
-    trait_output: Ident,
-) -> (ImplGenerics<'input>, TypeGenerics<'input>, WhereClause<'input, 'path>, Path) {
-    let (impl_generics, ty_generics, mut where_clause) = trait_parts(input, trait_path);
-    where_clause.trait_output = Some(trait_output);
-    let output_ty = PathSegment {
+) -> Path {
+    let segment = PathSegment {
         ident: input.ident.clone(),
         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
             args: input.generics.params.iter().map(|arg| {
@@ -136,11 +124,7 @@ pub fn fmap_trait_parts<'input, 'path>(
                     &GenericParam::Type(ref data) => {
                         let ident = data.ident;
                         GenericArgument::Type(
-                            fmap_output_type(
-                                parse_quote!(#ident),
-                                trait_path,
-                                trait_output
-                            )
+                            parse_quote!(<#ident as ::#trait_path>::#trait_output),
                         )
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg)
@@ -152,7 +136,7 @@ pub fn fmap_trait_parts<'input, 'path>(
 
         })
     };
-    (impl_generics, ty_generics, where_clause, output_ty.into())
+    segment.into()
 }
 
 pub fn is_parameterized(

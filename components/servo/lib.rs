@@ -566,23 +566,31 @@ fn create_constellation(user_agent: Cow<'static, str>,
 
     // GLContext factory used to create WebGL Contexts
     let gl_factory = if opts::get().should_use_osmesa() {
-        GLContextFactory::current_osmesa_handle().unwrap()
+        GLContextFactory::current_osmesa_handle()
     } else {
-        GLContextFactory::current_native_handle(&compositor_proxy).unwrap()
+        GLContextFactory::current_native_handle(&compositor_proxy)
     };
 
     // Initialize WebGL Thread entry point.
-    let (webgl_threads, image_handler, output_handler) = WebGLThreads::new(gl_factory,
-                                                                           window_gl,
-                                                                           webrender_api_sender.clone(),
-                                                                           webvr_compositor.map(|c| c as Box<_>));
-    // Set webrender external image handler for WebGL textures
-    webrender.set_external_image_handler(image_handler);
+    let webgl_threads = gl_factory.map(|factory| {
+        let (webgl_threads, image_handler, output_handler) =
+            WebGLThreads::new(
+                factory,
+                window_gl,
+                webrender_api_sender.clone(),
+                webvr_compositor.map(|c| c as Box<_>),
+            );
 
-    // Set DOM to texture handler, if enabled.
-    if let Some(output_handler) = output_handler {
-        webrender.set_output_image_handler(output_handler);
-    }
+        // Set webrender external image handler for WebGL textures
+        webrender.set_external_image_handler(image_handler);
+
+        // Set DOM to texture handler, if enabled.
+        if let Some(output_handler) = output_handler {
+            webrender.set_output_image_handler(output_handler);
+        }
+
+        webgl_threads
+    });
 
     let initial_state = InitialConstellationState {
         compositor_proxy,

@@ -18,7 +18,7 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
 
 /// <https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box>
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum GeometryBox {
     FillBox,
     StrokeBox,
@@ -32,7 +32,7 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
 /// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(Animate, Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
 #[derive(ToComputedValue, ToCss)]
 pub enum ShapeBox {
     MarginBox,
@@ -49,7 +49,6 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     ImageOrUrl(ImageOrUrl),
     Shape(
         BasicShape,
-        #[animation(constant)]
         Option<ReferenceBox>,
     ),
     #[animation(error)]
@@ -62,9 +61,9 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToComputedValue, ToCss)]
 pub enum BasicShape<H, V, LengthOrPercentage> {
-    Inset(InsetRect<LengthOrPercentage>),
-    Circle(Circle<H, V, LengthOrPercentage>),
-    Ellipse(Ellipse<H, V, LengthOrPercentage>),
+    Inset(#[css(field_bound)] InsetRect<LengthOrPercentage>),
+    Circle(#[css(field_bound)] Circle<H, V, LengthOrPercentage>),
+    Ellipse(#[css(field_bound)] Ellipse<H, V, LengthOrPercentage>),
     Polygon(Polygon<LengthOrPercentage>),
 }
 

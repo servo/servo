@@ -205,7 +205,7 @@ promise_test(t => {
   return Promise.all([
     abortPromise,
     cancelPromise,
-    promise_rejects(t, new TypeError(), writer.closed, 'writer.closed should reject with a TypeError')]);
+    promise_rejects(t, thrownError, writer.closed, 'writer.closed should reject with thrownError')]);
 }, 'abort should set the close reason for the writable when it happens before cancel during start, but cancel should ' +
              'still succeed');
 
@@ -229,7 +229,7 @@ promise_test(t => {
       writePromise,
       abortPromise,
       cancelPromise,
-      promise_rejects(t, new TypeError(), writer.closed, 'writer.closed should reject with a TypeError')]);
+      promise_rejects(t, thrownError, writer.closed, 'writer.closed should reject with thrownError')]);
   });
 }, 'abort should set the close reason for the writable when it happens before cancel during underlying sink write, ' +
              'but cancel should still succeed');
@@ -269,9 +269,9 @@ promise_test(t => {
       controller = c;
     }
   });
-  return ts.writable.abort().then(() => {
+  return ts.writable.abort(thrownError).then(() => {
     controller.error(ignoredError);
-    return promise_rejects(t, new TypeError(), ts.writable.getWriter().closed, 'closed should reject with a TypeError');
+    return promise_rejects(t, thrownError, ts.writable.getWriter().closed, 'closed should reject with thrownError');
   });
 }, 'controller.error() should do nothing after writable.abort() has completed');
 
@@ -325,15 +325,22 @@ promise_test(t => {
     // write should start synchronously
     const writePromise = writer.write(0);
     // The underlying sink's abort() is not called until the write() completes.
-    const abortPromise = writer.abort();
+    const abortPromise = writer.abort(thrownError);
     // Perform a read to relieve backpressure and permit the write() to complete.
     const readPromise = ts.readable.getReader().read();
     return Promise.all([
-      promise_rejects(t, new TypeError(), readPromise, 'read() should reject'),
-      promise_rejects(t, new TypeError(), writePromise, 'write() should reject'),
+      promise_rejects(t, thrownError, readPromise, 'read() should reject'),
+      promise_rejects(t, thrownError, writePromise, 'write() should reject'),
       abortPromise
     ]);
   });
 }, 'a write() that was waiting for backpressure should reject if the writable is aborted');
+
+promise_test(t => {
+  const ts = new TransformStream();
+  ts.writable.abort(thrownError);
+  const reader = ts.readable.getReader();
+  return promise_rejects(t, thrownError, reader.read(), 'read() should reject with thrownError');
+}, 'the readable should be errored with the reason passed to the writable abort() method');
 
 done();

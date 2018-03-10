@@ -20,15 +20,19 @@ Or to run in a specified copy of Firefox:
 
     ./wpt run --binary ~/local/firefox/firefox firefox dom/historical.html
 
-On Windows `edge` is also supported, and if you have a sauce labs
-account, any browser can be run using product `sauce`. For details on
-how to pass information to sauce, including credentials see `./wpt run
---help`. That also details a large number of other options for
-customising the test run.
+`./wpt run --help` lists the supported products.
 
+For details on the supported products and a large number of other options for
+customising the test run, see `./wpt run --help`.
+
+Additional browser-specific documentation:
+
+  * [Chrome for Android][chrome android]
+
+  * [Safari][safari]
 
 ## From Inside a Browser
-Tests that have been merged on GitHub are mirrored at [http://w3c-test.org/].
+Tests that have been merged on GitHub are mirrored at [http://w3c-test.org/][w3c-test].
 
 For running multiple tests inside a browser, there is a test runner
 located at `/tools/runner/index.html`.
@@ -65,6 +69,9 @@ channel `#testing`). It's possible edge-case behavior isn't properly
 documented!
 
 
+[chrome android]: {{ site.baseurl }}{% link _running-tests/chrome_android.md %}
+[safari]: {{ site.baseurl }}{% link _running-tests/safari.md %}
 [public-test-infra]: https://lists.w3.org/Archives/Public/public-test-infra/
 [IRC]: irc://irc.w3.org:6667/testing
 [web irc]: http://irc.w3.org
+[w3c-test]: http://w3c-test.org

@@ -28,7 +28,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
         let (this_pattern, this_info) = cg::ref_pattern(&variant, "this");
         let (other_pattern, other_info) = cg::ref_pattern(&variant, "other");
         let sum = if this_info.is_empty() {
-            quote! { ::values::distance::SquaredDistance::Value(0.) }
+            quote! { ::values::distance::SquaredDistance::from_sqrt(0.) }
         } else {
             let mut sum = quote!();
             sum.append_separated(this_info.iter().zip(&other_info).map(|(this, other)| {

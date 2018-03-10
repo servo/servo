@@ -26,7 +26,7 @@ use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
-use values::specified::font::{SpecifiedFontFeatureSettings, FontVariationSettings};
+use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -48,22 +48,14 @@ impl OneOrMoreSeparated for Source {
 /// `url()` function.
 ///
 /// <https://drafts.csswg.org/css-fonts/#src-desc>
-#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub struct UrlSource {
     /// The specified url.
     pub url: SpecifiedUrl,
     /// The format hints specified with the `format()` function.
+    #[css(skip)]
     pub format_hints: Vec<String>,
-}
-
-impl ToCss for UrlSource {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.url.to_css(dest)
-    }
 }
 
 /// A font-display value for a @font-face rule.
@@ -397,7 +389,7 @@ font_face_descriptors! {
         "font-feature-settings" feature_settings / mFontFeatureSettings: SpecifiedFontFeatureSettings,
 
         /// The variation settings of this font face.
-        "font-variation-settings" variation_settings / mFontVariationSettings: FontVariationSettings,
+        "font-variation-settings" variation_settings / mFontVariationSettings: SpecifiedFontVariationSettings,
 
         /// The language override of this font face.
         "font-language-override" language_override / mFontLanguageOverride: font_language_override::SpecifiedValue,

@@ -260,18 +260,16 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        let mut xbl_stylists = SmallVec::<[_; 3]>::new();
-        // FIXME(emilio): This is wrong, needs to account for ::slotted rules
-        // that may apply to elements down the tree.
-        let cut_off_inheritance =
+        let mut non_document_styles = SmallVec::<[_; 3]>::new();
+        let matches_doc_author_rules =
             element.each_applicable_non_document_style_rule_data(|data, quirks_mode| {
-                xbl_stylists.push((data, quirks_mode))
+                non_document_styles.push((data, quirks_mode))
             });
 
         let mut processor = StateAndAttrInvalidationProcessor::new(
             shared_context,
-            &xbl_stylists,
-            cut_off_inheritance,
+            &non_document_styles,
+            matches_doc_author_rules,
             element,
             self,
             nth_index_cache,

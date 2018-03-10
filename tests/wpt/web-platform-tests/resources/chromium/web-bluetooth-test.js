@@ -13,6 +13,23 @@ function toMojoCentralState(state) {
   }
 }
 
+// Canonicalizes UUIDs and converts them to Mojo UUIDs.
+function canonicalizeAndConvertToMojoUUID(uuids) {
+  let canonicalUUIDs = uuids.map(val => ({uuid: BluetoothUUID.getService(val)}));
+  return canonicalUUIDs;
+}
+
+// Converts WebIDL a record<DOMString, BufferSource> to a map<K, array<uint8>> to
+// use for Mojo, where the value for K is calculated using keyFn.
+function convertToMojoMap(record, keyFn) {
+  let map = new Map();
+  for (const [key, value] of Object.entries(record)) {
+    let buffer = ArrayBuffer.isView(value) ? value.buffer : value;
+    map.set(keyFn(key), Array.from(new Uint8Array(buffer)));
+  }
+  return map;
+}
+
 // Mapping of the property names of
 // BluetoothCharacteristicProperties defined in
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
@@ -43,7 +60,6 @@ function ArrayToMojoCharacteristicProperties(arr) {
 
   return struct;
 }
-
 
 class FakeBluetooth {
   constructor() {
@@ -110,20 +126,60 @@ class FakeCentral {
   async simulatePreconnectedPeripheral({
     address, name, knownServiceUUIDs = []}) {
 
-    // Canonicalize and convert to mojo UUIDs.
-    knownServiceUUIDs.forEach((val, i, arr) => {
-      knownServiceUUIDs[i] = {uuid: BluetoothUUID.getService(val)};
-    });
-
     await this.fake_central_ptr_.simulatePreconnectedPeripheral(
-      address, name, knownServiceUUIDs);
+      address, name, canonicalizeAndConvertToMojoUUID(knownServiceUUIDs));
 
+    return this.fetchOrCreatePeripheral_(address);
+  }
+
+  // Simulates an advertisement packet described by |scanResult| being received
+  // from a device. If central is currently scanning, the device will appear on
+  // the list of discovered devices.
+  async simulateAdvertisementReceived(scanResult) {
+    if ('uuids' in scanResult.scanRecord) {
+      scanResult.scanRecord.uuids =
+          canonicalizeAndConvertToMojoUUID(scanResult.scanRecord.uuids);
+    }
+
+    // Convert the optional appearance and txPower fields to the corresponding
+    // Mojo structures, since Mojo does not support optional interger values. If
+    // the fields are undefined, set the hasValue field as false and value as 0.
+    // Otherwise, set the hasValue field as true and value with the field value.
+    const has_appearance = 'appearance' in scanResult.scanRecord;
+    scanResult.scanRecord.appearance = {
+      hasValue: has_appearance,
+      value: (has_appearance ? scanResult.scanRecord.appearance : 0)
+    }
+
+    const has_tx_power = 'txPower' in scanResult.scanRecord;
+    scanResult.scanRecord.txPower = {
+      hasValue: has_tx_power,
+      value: (has_tx_power ? scanResult.scanRecord.txPower : 0)
+    }
+
+    // Convert manufacturerData from a record<DOMString, BufferSource> into a
+    // map<uint8, array<uint8>> for Mojo.
+    if ('manufacturerData' in scanResult.scanRecord) {
+      scanResult.scanRecord.manufacturerData = convertToMojoMap(
+          scanResult.scanRecord.manufacturerData, Number);
+    }
+
+    // TODO(https://crbug.com/817603): Add a conversion process for serviceData
+    // when the field is added in Mojo.
+
+    await this.fake_central_ptr_.simulateAdvertisementReceived(
+        new bluetooth.mojom.ScanResult(scanResult));
+
+    return this.fetchOrCreatePeripheral_(scanResult.deviceAddress);
+  }
+
+  // Create a fake_peripheral object from the given address.
+  fetchOrCreatePeripheral_(address) {
     let peripheral = this.peripherals_.get(address);
     if (peripheral === undefined) {
       peripheral = new FakePeripheral(address, this.fake_central_ptr_);
       this.peripherals_.set(address, peripheral);
     }
-
     return peripheral;
   }
 }

@@ -58,11 +58,13 @@ class PostBuildCommands(CommandBase):
                      help='Launch with software rendering')
     @CommandArgument('--bin', default=None,
                      help='Launch with specific binary')
+    @CommandArgument('--nightly', '-n', default=None,
+                     help='Specify a YYYY-MM-DD nightly build to run')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
-            headless=False, software=False, bin=None):
+            headless=False, software=False, bin=None, nightly=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -95,7 +97,7 @@ class PostBuildCommands(CommandBase):
             shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
-        args = [bin or self.get_binary_path(release, dev)]
+        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(release, dev)]
 
         if headless:
             set_osmesa_env(args[0], env)
@@ -160,14 +162,17 @@ class PostBuildCommands(CommandBase):
                      help='Use dev build')
     @CommandArgument('--bin', default=None,
                      help='Launch with specific binary')
+    @CommandArgument('--nightly', '-n', default=None,
+                     help='Specify a YYYY-MM-DD nightly build to run')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def rr_record(self, release=False, dev=False, bin=None, params=[]):
+    def rr_record(self, release=False, dev=False, bin=None, nightly=None, params=[]):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        servo_cmd = [bin or self.get_binary_path(release, dev)] + params
+        servo_cmd = [bin or self.get_nightly_binary_path(nightly) or
+                     self.get_binary_path(release, dev)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             check_call(rr_cmd + servo_cmd)

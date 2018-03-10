@@ -4,7 +4,7 @@ importScripts('/resources/testharness.js');
 importScripts('/resources/WebIDLParser.js', '/resources/idlharness.js');
 
 promise_test(t => {
-  return fetch('interfaces.idl')
+  return fetch('/interfaces/storage.idl')
     .then(response => response.text())
     .then(idls => {
       var idl_array = new IdlArray();

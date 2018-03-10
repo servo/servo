@@ -722,8 +722,10 @@
         }
     }
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let align = AlignItems::parse(context, input)?;
         if align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -742,13 +744,18 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if self.align_items.0 == self.justify_items.0 {
-                self.align_items.to_css(dest)
-            } else {
-                self.align_items.to_css(dest)?;
-                dest.write_str(" ")?;
-                self.justify_items.to_css(dest)
+            if self.align_items.has_extra_flags() ||
+               self.justify_items.has_extra_flags() {
+                return Ok(());
             }
+
+            self.align_items.to_css(dest)?;
+            if self.align_items.0 != self.justify_items.0 {
+                dest.write_str(" ")?;
+                self.justify_items.to_css(dest)?;
+            }
+
+            Ok(())
         }
     }
 </%helpers:shorthand>

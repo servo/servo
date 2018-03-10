@@ -30,7 +30,7 @@ function fetchText(url) {
 promise_test(() => {
   return Promise.all([
     "/interfaces/dom.idl",
-    "/interfaces/generic-sensor.idl",
+    "/interfaces/sensors.idl",
     "/interfaces/ambient-light.idl",
   ].map(fetchText)).then(doTest);
 }, "Test IDL implementation of Ambient Light Sensor");

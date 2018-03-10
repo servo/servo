@@ -15,7 +15,7 @@ doctest = false
 atomic_refcell = "0.1"
 cssparser = "0.23.0"
 cstr = "0.1.2"
-env_logger = "0.4"
+env_logger = { version = "0.4", default-features = false }
 euclid = "0.17"
 geckoservo = {path = "../../../ports/geckolib"}
 libc = "0.2"

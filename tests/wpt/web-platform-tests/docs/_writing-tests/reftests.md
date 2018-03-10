@@ -99,14 +99,15 @@ leaf nodes.)
 ## Controlling When Comparison Occurs
 
 By default reftest screenshots are taken after the `load` event has
-fired. In some cases it is necessary to delay the screenshot later
-than this, for example because some DOM manipulation is required to
-set up the desired test conditions. To enable this, the test may have
-a `class="reftest-wait"` attribute specified on the root element. This
-will cause the screenshot to be delayed until the `load` event has
-fired and the `reftest-wait` class has been removed from the root
-element. Note that in neither case is exact timing of the screenshot
-guaranteed: it is only guaranteed to be after those events.
+fired, and web fonts (if any) are loaded. In some cases it is
+necessary to delay the screenshot later than this, for example because
+some DOM manipulation is required to set up the desired test
+conditions. To enable this, the test may have a `class="reftest-wait"`
+attribute specified on the root element. This will cause the
+screenshot to be delayed until the `load` event has fired and the
+`reftest-wait` class has been removed from the root element. Note that
+in neither case is exact timing of the screenshot guaranteed: it is
+only guaranteed to be after those events.
 
 ## Fuzzy Matching
 

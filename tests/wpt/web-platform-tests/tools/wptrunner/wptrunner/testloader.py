@@ -376,6 +376,7 @@ class TagFilter(object):
             if test.tags & self.tags:
                 yield test
 
+
 class ManifestLoader(object):
     def __init__(self, test_paths, force_manifest_update=False, manifest_download=False):
         do_delayed_imports()
@@ -430,8 +431,7 @@ class ManifestLoader(object):
 
         manifest.write(manifest_file, manifest_path)
 
-    def load_manifest(self, tests_path, metadata_path, url_base="/"):
-        manifest_path = os.path.join(metadata_path, "MANIFEST.json")
+    def load_manifest(self, tests_path, manifest_path, url_base="/", **kwargs):
         if (not os.path.exists(manifest_path) or
             self.force_manifest_update):
             self.update_manifest(manifest_path, tests_path, url_base, download=self.manifest_download)
@@ -443,6 +443,7 @@ class ManifestLoader(object):
             manifest.write(manifest_file, manifest_path)
 
         return manifest_file
+
 
 def iterfilter(filters, iter):
     for f in filters:

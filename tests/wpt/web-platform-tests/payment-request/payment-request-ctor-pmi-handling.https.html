@@ -60,6 +60,8 @@ test(() => {
     "i488jh6-g18-fck-yb-v7-i",
     "x-x-t-t-c34-o",
     "basic-card",
+    // gets coerced to "basic-card", for compat with old version of spec
+    ["basic-card"],
   ];
   for (const validMethod of validMethods) {
     try {
@@ -105,6 +107,8 @@ test(() => {
     " basic-card ",
     "this is not supported",
     " ",
+    "foo,var",
+    ["visa","mastercard"], // stringifies to "visa,mastercard"
   ];
   for (const invalidMethod of invalidMethods) {
     assert_throws(
@@ -116,7 +120,7 @@ test(() => {
       `expected RangeError processing invalid standardized PMI "${invalidMethod}"`
     );
   }
-});
+}, "Must throw on syntactically invalid standardized payment method identifiers");
 
 test(() => {
   const invalidMethods = [

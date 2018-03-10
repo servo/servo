@@ -189,7 +189,7 @@ promise_test(t => {
   const writer = ws.getWriter();
 
   return promise_rejects(t, error1, writer.abort(abortReason), 'abort should reject with the thrown error')
-  .then(() => promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'));
+  .then(() => promise_rejects(t, abortReason, writer.closed, 'closed should reject with abortReason'));
 }, 'abort: throwing method should cause abort() and closed to reject');
 
 done();
