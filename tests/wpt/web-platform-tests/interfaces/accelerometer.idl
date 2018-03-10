@@ -6,10 +6,10 @@ interface Accelerometer : Sensor {
   readonly attribute double? z;
 };
 
-enum LocalCoordinateSystem { "device", "screen" };
+enum AccelerometerLocalCoordinateSystem { "device", "screen" };
 
 dictionary AccelerometerSensorOptions : SensorOptions {
-  LocalCoordinateSystem referenceFrame = "device";
+  AccelerometerLocalCoordinateSystem referenceFrame = "device";
 };
 
 [Constructor(optional AccelerometerSensorOptions options), SecureContext,

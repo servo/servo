@@ -80,10 +80,10 @@ promise_test(t => {
 
     return Promise.all([
       promise_rejects(t, error1, rs.getReader().closed, 'the readable stream must be errored with error1'),
-      promise_rejects(t, new TypeError(), ws.getWriter().closed,
-        'closed must reject with a TypeError indicating the writable stream was aborted'),
-      promise_rejects(t, new TypeError(), closePromise,
-        'close() must reject with a TypeError indicating the writable stream was aborted'),
+      promise_rejects(t, error1, ws.getWriter().closed,
+        'closed must reject with error1'),
+      promise_rejects(t, error1, closePromise,
+        'close() must reject with error1')
     ]);
   });
 

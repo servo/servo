@@ -1,0 +1,3 @@
+Set-Cookie: a=b
+Set-Cookie: =
+Set-Cookie: c=d

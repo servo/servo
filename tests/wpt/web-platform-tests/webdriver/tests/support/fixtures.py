@@ -179,7 +179,8 @@ def new_session(configuration, request):
         global _current_session
         if _current_session is not None and _current_session.session_id:
             _current_session.end()
-            _current_session = None
+
+        _current_session = None
 
     def create_session(body):
         global _current_session

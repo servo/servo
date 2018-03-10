@@ -32,7 +32,7 @@ Additional browser-specific documentation:
   * [Safari][safari]
 
 ## From Inside a Browser
-Tests that have been merged on GitHub are mirrored at [http://w3c-test.org/].
+Tests that have been merged on GitHub are mirrored at [http://w3c-test.org/][w3c-test].
 
 For running multiple tests inside a browser, there is a test runner
 located at `/tools/runner/index.html`.
@@ -74,3 +74,4 @@ documented!
 [public-test-infra]: https://lists.w3.org/Archives/Public/public-test-infra/
 [IRC]: irc://irc.w3.org:6667/testing
 [web irc]: http://irc.w3.org
+[w3c-test]: http://w3c-test.org

@@ -20,22 +20,4 @@ test(() => {
 }, 'Constructing a CSSVariableReferenceValue with an invalid variable name ' +
    'throws SyntaxError');
 
-test(() => {
-  let result = new CSSVariableReferenceValue('--foo');
-  assert_throws(new TypeError(), () => result.variable = '');
-
-  assert_equals(result.variable, '--foo',
-    'Variable member should not have changed');
-}, 'Updating CSSVariableReferenceValue.variable to an empty variable name ' +
-   'throws TypeError');
-
-test(() => {
-  let result = new CSSVariableReferenceValue('--foo');
-  assert_throws(new TypeError(), () => result.variable = 'bar');
-
-  assert_equals(result.variable, '--foo',
-    'Variable member should not have changed');
-}, 'Updating CSSVariableReferenceValue.variable to an invalid variable name ' +
-   'throws TypeError');
-
 </script>

@@ -1,0 +1,2 @@
+Set-Cookie: foo
+Set-Cookie: ; bar

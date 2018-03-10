@@ -1,4 +1,8 @@
-[Constructor(DOMString type, optional UIEventInit eventInitDict)]
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the UI Events spec.
+// See https://w3c.github.io/uievents/
+
+[Constructor(DOMString type, optional UIEventInit eventInitDict), Exposed=Window]
 interface UIEvent : Event {
   readonly attribute Window? view;
   readonly attribute long detail;
@@ -9,7 +13,7 @@ dictionary UIEventInit : EventInit {
   long detail = 0;
 };
 
-[Constructor(DOMString type, optional FocusEventInit eventInitDict)]
+[Constructor(DOMString type, optional FocusEventInit eventInitDict), Exposed=Window]
 interface FocusEvent : UIEvent {
   readonly attribute EventTarget? relatedTarget;
 };
@@ -18,7 +22,7 @@ dictionary FocusEventInit : UIEventInit {
   EventTarget? relatedTarget = null;
 };
 
-[Constructor(DOMString type, optional MouseEventInit eventInitDict)]
+[Constructor(DOMString type, optional MouseEventInit eventInitDict), Exposed=Window]
 interface MouseEvent : UIEvent {
   readonly attribute long screenX;
   readonly attribute long screenY;
@@ -67,7 +71,7 @@ dictionary EventModifierInit : UIEventInit {
   boolean modifierSymbolLock = false;
 };
 
-[Constructor(DOMString type, optional WheelEventInit eventInitDict)]
+[Constructor(DOMString type, optional WheelEventInit eventInitDict), Exposed=Window]
 interface WheelEvent : MouseEvent {
   // DeltaModeCode
   const unsigned long DOM_DELTA_PIXEL = 0x00;
@@ -87,19 +91,18 @@ dictionary WheelEventInit : MouseEventInit {
   unsigned long deltaMode = 0;
 };
 
-[Constructor(DOMString type, optional InputEventInit eventInitDict)]
+[Constructor(DOMString type, optional InputEventInit eventInitDict), Exposed=Window]
 interface InputEvent : UIEvent {
   readonly attribute DOMString? data;
   readonly attribute boolean isComposing;
 };
-
 
 dictionary InputEventInit : UIEventInit {
   DOMString? data = "";
   boolean isComposing = false;
 };
 
-[Constructor(DOMString type, optional KeyboardEventInit eventInitDict)]
+[Constructor(DOMString type, optional KeyboardEventInit eventInitDict), Exposed=Window]
 interface KeyboardEvent : UIEvent {
   // KeyLocationCode
   const unsigned long DOM_KEY_LOCATION_STANDARD = 0x00;
@@ -130,7 +133,7 @@ dictionary KeyboardEventInit : EventModifierInit {
   boolean isComposing = false;
 };
 
-[Constructor(DOMString type, optional CompositionEventInit eventInitDict)]
+[Constructor(DOMString type, optional CompositionEventInit eventInitDict), Exposed=Window]
 interface CompositionEvent : UIEvent {
   readonly attribute DOMString data;
 };

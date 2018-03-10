@@ -114,16 +114,16 @@ promise_test(t => {
   let writer;
   const strategy = {
     size() {
-      writer.abort('nice');
+      writer.abort(error1);
       return 1;
     }
   };
 
   const ws = recordingWritableStream({}, strategy);
   writer = ws.getWriter();
-  return promise_rejects(t, new TypeError(), writer.write('a'), 'write() promise should reject')
+  return promise_rejects(t, error1, writer.write('a'), 'write() promise should reject')
       .then(() => {
-        assert_array_equals(ws.events, ['abort', 'nice'], 'sink.write() should not be called');
+        assert_array_equals(ws.events, ['abort', error1], 'sink.write() should not be called');
       });
 }, 'abort() should work when called from within strategy.size()');
 
