@@ -135,7 +135,7 @@ impl KeyframePercentage {
                 Ok(KeyframePercentage::new(1.))
             },
             Token::Percentage { unit_value: percentage, .. } if percentage >= 0. && percentage <= 1. => {
-                Ok(KeyframePercentage::new(percentage))   
+                Ok(KeyframePercentage::new(percentage))
             },
             _ => {
                 Err(input.new_unexpected_token_error(token))
