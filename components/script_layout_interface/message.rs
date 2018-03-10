@@ -94,7 +94,7 @@ pub enum Msg {
     UpdateScrollStateFromScript(ScrollState),
 
     /// Tells layout that script has added some paint worklet modules.
-    RegisterPaint(Atom, Vec<Atom>, Box<Painter>),
+    RegisterPaint(Atom, Vec<Atom>, usize, bool, Box<Painter>),
 
     /// Send to layout the precise time when the navigation started.
     SetNavigationStart(u64),

@@ -233,6 +233,8 @@ pub enum MainThreadScriptMsg {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
+        input_arguments_len: usize,
+        alpha: bool,
         painter: Box<Painter>
     },
     /// Dispatches a job queue.
@@ -734,6 +736,8 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
+        input_arguments_len: usize,
+        alpha: bool,
         painter: Box<Painter>)
     {
         let window = self.documents.borrow().find_window(pipeline_id);
@@ -742,7 +746,7 @@ impl ScriptThread {
             None => return warn!("Paint worklet registered after pipeline {} closed.", pipeline_id),
         };
         let _ = window.layout_chan().send(
-            Msg::RegisterPaint(name, properties, painter),
+            Msg::RegisterPaint(name, properties, input_arguments_len, alpha, painter),
         );
     }
 
@@ -1349,12 +1353,16 @@ impl ScriptThread {
                 pipeline_id,
                 name,
                 properties,
+                input_arguments_len,
+                alpha,
                 painter,
             } => {
                 self.handle_register_paint_worklet(
                     pipeline_id,
                     name,
                     properties,
+                    input_arguments_len,
+                    alpha,
                     painter,
                 )
             },

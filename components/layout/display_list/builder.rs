@@ -1023,7 +1023,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties, arguments)
             },
             None => {
-                debug!("Worklet {} called before registration.", name);
+                debug!("Paint worklet {} does not have a valid definition.", name);
                 return None;
             },
         };

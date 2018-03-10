@@ -96,6 +96,8 @@ impl WorkletGlobalScope {
         &self,
         name: Atom,
         properties: Vec<Atom>,
+        input_arguments_len: usize,
+        alpha: bool,
         painter: Box<Painter>,
     ) {
         self.to_script_thread_sender
@@ -103,6 +105,8 @@ impl WorkletGlobalScope {
                 pipeline_id: self.globalscope.pipeline_id(),
                 name,
                 properties,
+                input_arguments_len,
+                alpha,
                 painter,
             })
             .expect("Worklet thread outlived script thread.");

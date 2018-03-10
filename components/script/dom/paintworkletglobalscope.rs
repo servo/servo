@@ -506,7 +506,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         // Inform layout that there is a registered paint worklet.
         // TODO: layout will end up getting this message multiple times.
         let painter = self.painter(name.clone());
-        self.worklet_global.register_paint_worklet(name, properties, painter);
+        self.worklet_global.register_paint_worklet(name, properties, input_arguments.len(), alpha, painter);
 
         Ok(())
     }

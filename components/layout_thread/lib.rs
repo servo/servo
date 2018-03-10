@@ -112,7 +112,7 @@ use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::hash_map::{HashMap, Entry};
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
@@ -741,8 +741,7 @@ impl LayoutThread {
             Msg::SetFinalUrl(final_url) => {
                 self.url = final_url;
             },
-            Msg::RegisterPaint(name, mut properties, painter) => {
-                debug!("Registering the painter");
+            Msg::RegisterPaint(name, mut properties, input_arguments_len, alpha, painter) => {
                 let properties = properties.drain(..)
                     .filter_map(|name| PropertyId::parse(&*name)
                         .ok().map(|id| (name.clone(), id)))
@@ -750,10 +749,12 @@ impl LayoutThread {
                     .collect();
                 let registered_painter = RegisteredPainterImpl {
                     name: name.clone(),
-                    properties: properties,
-                    painter: painter,
+                    properties,
+                    input_arguments_len,
+                    alpha,
+                    painter,
                 };
-                self.registered_painters.0.insert(name, registered_painter);
+                self.registered_painters.insert_painter(name, registered_painter);
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -1773,6 +1774,15 @@ struct RegisteredPainterImpl {
     painter: Box<Painter>,
     name: Atom,
     properties: FnvHashMap<Atom, PropertyId>,
+    // TODO: should be a vec of argument syntaxes
+    input_arguments_len: usize,
+    alpha: bool,
+}
+
+impl RegisteredPainterImpl {
+    fn parameters(&self) -> (&FnvHashMap<Atom, PropertyId>, usize, bool) {
+        (&self.properties, self.input_arguments_len, self.alpha)
+    }
 }
 
 impl SpeculativePainter for RegisteredPainterImpl {
@@ -1804,16 +1814,58 @@ impl Painter for RegisteredPainterImpl {
 
 impl RegisteredPainter for RegisteredPainterImpl {}
 
-struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
+enum PaintDefinition {
+    Registered(RegisteredPainterImpl),
+    Conflict,
+}
+
+struct RegisteredPaintersImpl(FnvHashMap<Atom, PaintDefinition>);
+
+impl RegisteredPaintersImpl {
+    fn insert_painter(&mut self, name: Atom, painter: RegisteredPainterImpl) {
+        match self.0.entry(name) {
+            Entry::Occupied(mut occupied) => {
+                let is_equivalent = match *occupied.get() {
+                    PaintDefinition::Registered(ref old_painter) => {
+                        painter.parameters() == old_painter.parameters()
+                    }
+                    PaintDefinition::Conflict => {
+                        warn!("Ignoring registration of painter {} due to previous conflict",
+                              painter.name);
+                        return;
+                    }
+                };
+
+                if is_equivalent {
+                    debug!("Painter {} already registered", painter.name);
+                } else {
+                    warn!("Conflicting registrations of painter {}", painter.name);
+                    occupied.insert(PaintDefinition::Conflict);
+                }
+            }
+            Entry::Vacant(vacant) => {
+                debug!("Registering painter {}", painter.name);
+                vacant.insert(PaintDefinition::Registered(painter));
+            }
+        }
+    }
+
+    fn get_painter(&self, name: &Atom) -> Option<&RegisteredPainterImpl> {
+        match self.0.get(name) {
+            Some(&PaintDefinition::Registered(ref painter)) => Some(painter),
+            Some(&PaintDefinition::Conflict) | None => None,
+        }
+    }
+}
 
 impl RegisteredSpeculativePainters for RegisteredPaintersImpl  {
     fn get(&self, name: &Atom) -> Option<&RegisteredSpeculativePainter> {
-        self.0.get(&name).map(|painter| painter as &RegisteredSpeculativePainter)
+        self.get_painter(name).map(|painter| painter as &RegisteredSpeculativePainter)
     }
 }
 
 impl RegisteredPainters for RegisteredPaintersImpl {
     fn get(&self, name: &Atom) -> Option<&RegisteredPainter> {
-        self.0.get(&name).map(|painter| painter as &RegisteredPainter)
+        self.get_painter(name).map(|painter| painter as &RegisteredPainter)
     }
 }
