@@ -548,7 +548,7 @@ promise_test(() => {
   return rs.pipeTo(ws).then(
     () => assert_unreached('the promise must not fulfill'),
     err => {
-      assert_equals(err.name, 'TypeError', 'the promise must reject with a TypeError (_not_ with error1)');
+      assert_equals(err, error1, 'the promise must reject with error1');
 
       assert_array_equals(rs.eventsWithoutPulls, ['cancel', err]);
       assert_array_equals(ws.events, ['abort', error1]);
@@ -575,7 +575,7 @@ promise_test(t => {
       return ws.getWriter().closed.then(
         () => assert_unreached('the promise must not fulfill'),
         err => {
-          assert_equals(err.name, 'TypeError', 'the promise must reject with a TypeError (_not_ with error1)');
+          assert_equals(err, error1, 'the promise must reject with error1');
 
           assert_array_equals(rs.eventsWithoutPulls, ['cancel', err]);
           assert_array_equals(ws.events, ['abort', error1]);
@@ -594,7 +594,7 @@ promise_test(t => {
 
   ws.abort(error1);
 
-  return promise_rejects(t, new TypeError(), rs.pipeTo(ws, { preventCancel: true })).then(() => {
+  return promise_rejects(t, error1, rs.pipeTo(ws, { preventCancel: true })).then(() => {
     assert_array_equals(rs.eventsWithoutPulls, []);
     assert_array_equals(ws.events, ['abort', error1]);
   });
