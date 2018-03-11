@@ -197,7 +197,7 @@ impl FontHandleMethods for FontHandle {
             if idx != 0 as FT_UInt {
                 Some(idx as GlyphId)
             } else {
-                debug!("Invalid codepoint: {}", codepoint);
+                debug!("Invalid codepoint: U+{:04X} ('{}')", codepoint as u32, codepoint);
                 None
             }
         }
