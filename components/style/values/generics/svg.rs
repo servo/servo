@@ -15,10 +15,9 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// An SVG paint value
 ///
 /// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
-#[animate(no_bound(UrlPaintServer))]
+#[animation(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
-#[distance(no_bound(UrlPaintServer))]
 pub struct SVGPaint<ColorType, UrlPaintServer> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType, UrlPaintServer>,
@@ -31,11 +30,9 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 /// Whereas the spec only allows PaintServer
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
-#[animate(no_bound(UrlPaintServer))]
+#[animation(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
-#[distance(no_bound(UrlPaintServer))]
-#[zero(no_bound(UrlPaintServer))]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
     /// `none`
     #[animation(error)]

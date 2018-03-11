@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use animate::{AnimationVariantAttrs, AnimationFieldAttrs};
+use animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
 use cg;
-use darling::util::IdentList;
 use quote;
 use syn;
 use synstructure;
 
 pub fn derive(mut input: syn::DeriveInput) -> quote::Tokens {
-    let input_attrs = cg::parse_input_attrs::<ZeroInputAttrs>(&input);
-    let no_bound = input_attrs.no_bound.unwrap_or_default();
+    let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
+    let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
         if !no_bound.contains(&param.ident) {
@@ -62,10 +61,4 @@ pub fn derive(mut input: syn::DeriveInput) -> quote::Tokens {
             }
         }
     }
-}
-
-#[darling(attributes(zero), default)]
-#[derive(Default, FromDeriveInput)]
-struct ZeroInputAttrs {
-    no_bound: Option<IdentList>,
 }

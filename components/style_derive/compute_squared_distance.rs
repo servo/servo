@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use animate::AnimationVariantAttrs;
+use animate::{AnimationInputAttrs, AnimationVariantAttrs};
 use cg;
-use darling::util::IdentList;
 use quote::Tokens;
 use syn::{DeriveInput, Path};
 use synstructure;
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
-    let input_attrs = cg::parse_input_attrs::<DistanceInputAttrs>(&input);
-    let no_bound = input_attrs.no_bound.unwrap_or_default();
+    let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
+    let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
         if !no_bound.contains(&param.ident) {
@@ -67,6 +66,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     input.generics.where_clause = where_clause;
 
     if append_error_clause {
+        let input_attrs = cg::parse_input_attrs::<DistanceInputAttrs>(&input);
         if let Some(fallback) = input_attrs.fallback {
             match_body.append_all(quote! {
                 (this, other) => #fallback(this, other)
@@ -99,7 +99,6 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
 #[derive(Default, FromDeriveInput)]
 struct DistanceInputAttrs {
     fallback: Option<Path>,
-    no_bound: Option<IdentList>,
 }
 
 #[darling(attributes(distance), default)]

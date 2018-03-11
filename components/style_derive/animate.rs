@@ -9,8 +9,8 @@ use syn::{DeriveInput, Path};
 use synstructure::{Structure, VariantInfo};
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
-    let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
-    let no_bound = input_attrs.no_bound.unwrap_or_default();
+    let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
+    let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
         if !no_bound.contains(&param.ident) {
@@ -37,6 +37,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     });
 
     if append_error_clause {
+        let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
         if let Some(fallback) = input_attrs.fallback {
             match_body.append_all(quote! {
                 (this, other) => #fallback(this, other, procedure)
@@ -104,13 +105,21 @@ fn derive_variant_arm(variant: &VariantInfo) -> Result<Tokens, ()> {
 #[derive(Default, FromDeriveInput)]
 struct AnimateInputAttrs {
     fallback: Option<Path>,
-    no_bound: Option<IdentList>,
+}
+
+#[darling(attributes(animation), default)]
+#[derive(Default, FromDeriveInput)]
+pub struct AnimationInputAttrs {
+    pub no_bound: Option<IdentList>,
 }
 
 #[darling(attributes(animation), default)]
 #[derive(Default, FromVariant)]
 pub struct AnimationVariantAttrs {
     pub error: bool,
+    // Only here because of structs, where the struct definition acts as a
+    // variant itself.
+    pub no_bound: Option<IdentList>,
 }
 
 #[darling(attributes(animation), default)]
