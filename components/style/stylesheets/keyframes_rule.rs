@@ -5,7 +5,7 @@
 //! Keyframes: https://drafts.csswg.org/css-animations/#keyframes
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CowRcStr};
-use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
+use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation, Token};
 use error_reporting::{NullReporter, ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
 use properties::{DeclarationSource, Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
@@ -126,20 +126,21 @@ impl KeyframePercentage {
     }
 
     fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<KeyframePercentage, ParseError<'i>> {
-        let percentage = if input.try(|input| input.expect_ident_matching("from")).is_ok() {
-            KeyframePercentage::new(0.)
-        } else if input.try(|input| input.expect_ident_matching("to")).is_ok() {
-            KeyframePercentage::new(1.)
-        } else {
-            let percentage = input.expect_percentage()?;
-            if percentage >= 0. && percentage <= 1. {
-                KeyframePercentage::new(percentage)
-            } else {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            }
-        };
-
-        Ok(percentage)
+        let token = input.next()?.clone();
+        match token {
+            Token::Ident(ref identifier) if identifier.as_ref().eq_ignore_ascii_case("from") => {
+                Ok(KeyframePercentage::new(0.))
+            },
+            Token::Ident(ref identifier) if identifier.as_ref().eq_ignore_ascii_case("to") => {
+                Ok(KeyframePercentage::new(1.))
+            },
+            Token::Percentage { unit_value: percentage, .. } if percentage >= 0. && percentage <= 1. => {
+                Ok(KeyframePercentage::new(percentage))
+            },
+            _ => {
+                Err(input.new_unexpected_token_error(token))
+            },
+        }
     }
 }
 
