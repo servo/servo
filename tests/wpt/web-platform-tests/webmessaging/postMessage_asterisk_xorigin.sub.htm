@@ -42,7 +42,18 @@
 
     window.onmessage = t.step_func(function(e)
     {
-        ActualResult.push(e.data, e.origin);
+        // Messages from TARGET1 and TARGET2 can come in any order
+        // (since one of them is cross-origin and can run in parallel).
+        // To make the tests immune to message reordering, always
+        // put the response from TARGET1 at the start of the list.
+        if (e.data.toString() === "#1")
+        {
+            ActualResult = [e.data, e.origin].concat(ActualResult);
+        }
+        else if (e.data.toString() === "#2")
+        {
+            ActualResult = ActualResult.concat([e.data, e.origin]);
+        }
 
         if (ActualResult.length >= ExpectedResult.length)
         {

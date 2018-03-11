@@ -69,21 +69,30 @@ python wpt serve
 ```
 
 This will start HTTP servers on two ports and a websockets server on
-one port. By default one web server starts on port 8000 and the other
+one port. By default the web servers start on ports 8000 and 8443 and the other
 ports are randomly-chosen free ports. Tests must be loaded from the
 *first* HTTP server in the output. To change the ports, copy the
 `config.default.json` file to `config.json` and edit the new file,
 replacing the part that reads:
 
 ```
-"http": [8000, "auto"]
+"http": [8000, "auto"],
+"https":[8443]
 ```
 
-to some port of your choice e.g.
+to some ports of your choice e.g.
 
 ```
-"http": [1234, "auto"]
+"http": [1234, "auto"],
+"https":[5678]
 ```
+
+After your `hosts` file is configured, the servers will be locally accessible at:
+
+http://web-platform.test:8000/<br>
+https://web-platform.test:8443/ *
+
+\**See [Trusting Root CA](#trusting-root-ca)*
 
 Running Tests Automatically
 ---------------------------
@@ -222,7 +231,7 @@ Certificates
 ============
 
 By default pregenerated certificates for the web-platform.test domain
-are provided in the repository. If you wish to generate new
+are provided in [`tools/certs`](tools/certs). If you wish to generate new
 certificates for any reason it's possible to use OpenSSL when starting
 the server, or starting a test run, by providing the
 `--ssl-type=openssl` argument to the `wpt serve` or `wpt run`
@@ -259,6 +268,11 @@ Then edit the JSON so that the key `ssl/openssl/base_conf_path` has a
 value that is the path to the OpenSSL config file (typically this
 will be `C:\\OpenSSL-Win32\\bin\\openssl.cfg`).
 
+### Trusting Root CA
+
+To prevent browser SSL warnings when running HTTPS tests locally, the
+web-platform-tests Root CA file `rootca.pem` in [tools/certs](tools/certs)
+must be added as a trusted certificate in your OS/browser.
 
 Publication
 ===========

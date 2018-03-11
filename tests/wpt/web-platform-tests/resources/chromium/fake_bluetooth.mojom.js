@@ -190,6 +190,61 @@
     encoder.skip(1);
     encoder.skip(1);
   };
+  function ServiceDataMap(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  ServiceDataMap.prototype.initDefaults_ = function() {
+    this.serviceData = null;
+  };
+  ServiceDataMap.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  ServiceDataMap.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 16}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate ServiceDataMap.serviceData
+    err = messageValidator.validateMapPointer(offset + codec.kStructHeaderSize + 0, false, codec.String, new codec.ArrayOf(codec.Uint8), false);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    return validator.validationError.NONE;
+  };
+
+  ServiceDataMap.encodedSize = codec.kStructHeaderSize + 8;
+
+  ServiceDataMap.decode = function(decoder) {
+    var packed;
+    var val = new ServiceDataMap();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    val.serviceData = decoder.decodeMapPointer(codec.String, new codec.ArrayOf(codec.Uint8));
+    return val;
+  };
+
+  ServiceDataMap.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(ServiceDataMap.encodedSize);
+    encoder.writeUint32(0);
+    encoder.encodeMapPointer(codec.String, new codec.ArrayOf(codec.Uint8), val.serviceData);
+  };
   function ScanRecord(values) {
     this.initDefaults_();
     this.initFields_(values);
@@ -202,6 +257,7 @@
     this.appearance = null;
     this.txPower = null;
     this.manufacturerData = null;
+    this.serviceData = null;
   };
   ScanRecord.prototype.initFields_ = function(fields) {
     for(var field in fields) {
@@ -217,7 +273,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 48}
+      {version: 0, numBytes: 56}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -253,10 +309,16 @@
     if (err !== validator.validationError.NONE)
         return err;
 
+
+    // validate ScanRecord.serviceData
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 40, ServiceDataMap, true);
+    if (err !== validator.validationError.NONE)
+        return err;
+
     return validator.validationError.NONE;
   };
 
-  ScanRecord.encodedSize = codec.kStructHeaderSize + 40;
+  ScanRecord.encodedSize = codec.kStructHeaderSize + 48;
 
   ScanRecord.decode = function(decoder) {
     var packed;
@@ -268,6 +330,7 @@
     val.appearance = decoder.decodeStructPointer(Appearance);
     val.txPower = decoder.decodeStructPointer(Power);
     val.manufacturerData = decoder.decodeMapPointer(codec.Uint8, new codec.ArrayOf(codec.Uint8));
+    val.serviceData = decoder.decodeStructPointer(ServiceDataMap);
     return val;
   };
 
@@ -280,6 +343,7 @@
     encoder.encodeStructPointer(Appearance, val.appearance);
     encoder.encodeStructPointer(Power, val.txPower);
     encoder.encodeMapPointer(codec.Uint8, new codec.ArrayOf(codec.Uint8), val.manufacturerData);
+    encoder.encodeStructPointer(ServiceDataMap, val.serviceData);
   };
   function ScanResult(values) {
     this.initDefaults_();
@@ -4192,6 +4256,7 @@
   exports.CentralState = CentralState;
   exports.Appearance = Appearance;
   exports.Power = Power;
+  exports.ServiceDataMap = ServiceDataMap;
   exports.ScanRecord = ScanRecord;
   exports.ScanResult = ScanResult;
   exports.CharacteristicProperties = CharacteristicProperties;
