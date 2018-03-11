@@ -18,6 +18,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[animate(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
+#[distance(no_bound(UrlPaintServer))]
 pub struct SVGPaint<ColorType, UrlPaintServer> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType, UrlPaintServer>,
@@ -33,6 +34,7 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 #[animate(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[distance(no_bound(UrlPaintServer))]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
     /// `none`
     #[animation(error)]
@@ -205,7 +207,11 @@ pub enum SVGLength<LengthType> {
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     #[css(comma)]
-    Values(#[css(if_empty = "none", iterable)] Vec<LengthType>),
+    Values(
+        #[css(if_empty = "none", iterable)]
+        #[distance(field_bound)]
+        Vec<LengthType>,
+    ),
     /// `context-value`
     ContextValue,
 }
