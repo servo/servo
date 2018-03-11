@@ -35,7 +35,7 @@ use image::png::PNGEncoder;
 use js::error::throw_type_error;
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
-use profile_traits::receiver;
+use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;
 use std::iter::repeat;
@@ -259,7 +259,7 @@ impl HTMLCanvasElement {
 
         let data = match self.context.borrow().as_ref() {
             Some(&CanvasContext::Context2d(ref context)) => {
-                let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+                let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender));
                 context.get_ipc_renderer().send(msg).unwrap();
 

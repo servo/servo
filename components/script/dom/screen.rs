@@ -13,7 +13,7 @@ use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
-use profile_traits::receiver;
+use profile_traits::ipc;
 use script_traits::ScriptMsg;
 
 #[dom_struct]
@@ -37,14 +37,14 @@ impl Screen {
     }
 
     fn screen_size(&self) -> Size2D<u32> {
-        let (send, recv) = receiver::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
+        let (send, recv) = ipc::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
         recv.recv().unwrap_or(Size2D::zero())
     }
 
     fn screen_avail_size(&self) -> Size2D<u32> {
-        let (send, recv) = receiver::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
+        let (send, recv) = ipc::channel::<(Size2D<u32>)>(self.global().time_profiler_chan().clone()).unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
         recv.recv().unwrap_or(Size2D::zero())

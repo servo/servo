@@ -17,7 +17,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use profile_traits::receiver;
+use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use task_source::TaskSource;
@@ -53,7 +53,7 @@ impl Storage {
 impl StorageMethods for Storage {
     // https://html.spec.whatwg.org/multipage/#dom-storage-length
     fn Length(&self) -> u32 {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         self.get_storage_thread().send(StorageThreadMsg::Length(sender, self.get_url(), self.storage_type)).unwrap();
         receiver.recv().unwrap() as u32
@@ -61,7 +61,7 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-key
     fn Key(&self, index: u32) -> Option<DOMString> {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         self.get_storage_thread()
             .send(StorageThreadMsg::Key(sender, self.get_url(), self.storage_type, index))
@@ -71,7 +71,7 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-getitem
     fn GetItem(&self, name: DOMString) -> Option<DOMString> {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
         let msg = StorageThreadMsg::GetItem(sender, self.get_url(), self.storage_type, name);
@@ -81,7 +81,7 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
     fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
         let value = String::from(value);
 
@@ -100,7 +100,7 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-removeitem
     fn RemoveItem(&self, name: DOMString) {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
         let msg = StorageThreadMsg::RemoveItem(sender, self.get_url(), self.storage_type, name.clone());
@@ -112,7 +112,7 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-clear
     fn Clear(&self) {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         self.get_storage_thread().send(StorageThreadMsg::Clear(sender, self.get_url(), self.storage_type)).unwrap();
         if receiver.recv().unwrap() {
@@ -122,7 +122,7 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         self.get_storage_thread().send(StorageThreadMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
         receiver.recv()

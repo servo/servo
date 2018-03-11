@@ -63,8 +63,8 @@ use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
+use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
-use profile_traits::receiver;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{TrustedNodeAddress, PendingImageState};
 use script_layout_interface::message::{Msg, Reflow, ReflowGoal, ScriptReflow};
@@ -541,7 +541,7 @@ impl WindowMethods for Window {
             stderr.flush().unwrap();
         }
 
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.send_to_constellation(ScriptMsg::Alert(s.to_string(), sender));
 
         let should_display_alert_dialog = receiver.recv().unwrap();
@@ -1177,7 +1177,7 @@ impl Window {
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (send, recv) =
-            receiver::channel::<(Size2D<u32>, Point2D<i32>)>(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledIpc::channel::<(Size2D<u32>, Point2D<i32>)>(self.global().time_profiler_chan().clone()).unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
@@ -1296,7 +1296,7 @@ impl Window {
             let nodes = images.entry(id).or_insert(vec![]);
             if nodes.iter().find(|n| &***n as *const _ == &*node as *const _).is_none() {
                 let (responder, responder_listener) =
-                    receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+                    ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let pipeline = self.upcast::<GlobalScope>().pipeline_id();
                 let image_cache_chan = self.image_cache_chan.clone();
                 ROUTER.add_route(responder_listener.to_opaque(), Box::new(move |message| {

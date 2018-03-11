@@ -25,7 +25,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use profile_traits::receiver;
+use profile_traits::ipc;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -130,7 +130,7 @@ impl BluetoothDevice {
     }
 
     pub fn is_represented_device_null(&self) -> bool {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread().send(
             BluetoothRequest::IsRepresentedDeviceNull(self.Id().to_string(), sender)).unwrap();
         receiver.recv().unwrap()
@@ -205,7 +205,7 @@ impl BluetoothDevice {
         }
 
         // Step 3.
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread().send(
             BluetoothRequest::GATTServerDisconnect(String::from(self.Id()), sender)).unwrap();
         receiver.recv().unwrap().map_err(Error::from)
