@@ -4,18 +4,25 @@
 
 use animate::{AnimationVariantAttrs, AnimationFieldAttrs};
 use cg;
+use darling::util::IdentList;
 use quote;
 use syn;
 use synstructure;
 
-pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
-    let name = &input.ident;
-    let trait_path = parse_quote!(values::animated::ToAnimatedZero);
-    let (impl_generics, ty_generics, mut where_clause) =
-        cg::trait_parts(&input, &trait_path);
+pub fn derive(mut input: syn::DeriveInput) -> quote::Tokens {
+    let input_attrs = cg::parse_input_attrs::<ZeroInputAttrs>(&input);
+    let no_bound = input_attrs.no_bound.unwrap_or_default();
+    let mut where_clause = input.generics.where_clause.take();
+    for param in input.generics.type_params() {
+        if !no_bound.contains(&param.ident) {
+            cg::add_predicate(
+                &mut where_clause,
+                parse_quote!(#param: ::values::animated::ToAnimatedZero),
+            );
+        }
+    }
 
-    let s = synstructure::Structure::new(&input);
-    let to_body = s.each_variant(|variant| {
+    let to_body = synstructure::Structure::new(&input).each_variant(|variant| {
         let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
         if attrs.error {
             return Some(quote! { Err(()) });
@@ -26,21 +33,10 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         computations.append_all(bindings_pairs.map(|(binding, mapped_binding)| {
             let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&binding.ast());
             if field_attrs.constant {
-                if cg::is_parameterized(&binding.ast().ty, &where_clause.params, None) {
-                    cg::add_predicate(
-                        &mut where_clause.inner,
-                        cg::where_predicate(
-                            binding.ast().ty.clone(),
-                            &parse_quote!(std::clone::Clone),
-                            None,
-                        ),
-                    );
-                }
                 quote! {
                     let #mapped_binding = ::std::clone::Clone::clone(#binding);
                 }
             } else {
-                where_clause.add_trait_bound(&binding.ast().ty);
                 quote! {
                     let #mapped_binding =
                         ::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;
@@ -50,6 +46,10 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         computations.append_all(quote! { Ok(#mapped) });
         Some(computations)
     });
+    input.generics.where_clause = where_clause;
+
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     quote! {
         impl #impl_generics ::values::animated::ToAnimatedZero for #name #ty_generics #where_clause {
@@ -62,4 +62,10 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             }
         }
     }
+}
+
+#[darling(attributes(zero), default)]
+#[derive(Default, FromDeriveInput)]
+struct ZeroInputAttrs {
+    no_bound: Option<IdentList>,
 }

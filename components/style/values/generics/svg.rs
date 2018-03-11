@@ -35,6 +35,7 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 #[distance(no_bound(UrlPaintServer))]
+#[zero(no_bound(UrlPaintServer))]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
     /// `none`
     #[animation(error)]
