@@ -207,7 +207,7 @@ mod bindings {
             let mut builder = Builder::default()
                 .rust_target(RustTarget::Stable_1_0);
             let rustfmt_path = env::var_os("MOZ_AUTOMATION").and_then(|_| {
-                env::var_os("TOOLTOOL_DIR")
+                env::var_os("TOOLTOOL_DIR").or_else(|| env::var_os("MOZ_SRC"))
             }).map(PathBuf::from);
 
             builder = match rustfmt_path {
