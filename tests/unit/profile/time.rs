@@ -53,9 +53,8 @@ fn channel_profiler_test() {
     assert_eq!(val_profile_receiver, 43);
 
     let (sender, receiver) = ipc::channel().unwrap();
-    thread::spawn(move || {
-        chan.send(ProfilerMsg::Get((ProfilerCategory::IpcReceiver, None), sender));
-    });
+    chan.send(ProfilerMsg::Get((ProfilerCategory::IpcReceiver, None), sender.clone()));
+
     match receiver.recv().unwrap() {
         ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e9),  // asserts that the time spent in the sleeping thread is more than 1.5 seconds
         ProfilerData::NoRecords => assert!(false),
