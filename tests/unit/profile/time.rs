@@ -4,7 +4,10 @@
 
 use ipc_channel::ipc;
 use profile::time;
-use profile_traits::time::ProfilerMsg;
+use profile_traits::time::{ProfilerCategory, ProfilerData, ProfilerMsg};
+use profile_traits::ipc as ProfiledIpc;
+use std::thread;
+use std::time::Duration;
 
 #[test]
 fn time_profiler_smoke_test() {
@@ -35,6 +38,29 @@ fn time_profiler_stats_test() {
     assert_eq!(5.324, odd_median);
     assert_eq!(1.234, odd_min);
     assert_eq!(13.2599, odd_max);
+}
+
+#[test]
+fn channel_profiler_test() {
+    let chan = time::Profiler::create(&None, None);
+    let (profiled_sender, profiled_receiver) = ProfiledIpc::channel(chan.clone()).unwrap();
+    thread::spawn(move || {
+        thread::sleep(Duration::from_secs(2));
+        profiled_sender.send(43).unwrap();
+    });
+
+    let val_profile_receiver = profiled_receiver.recv().unwrap();
+    assert_eq!(val_profile_receiver, 43);
+
+    let (sender, receiver) = ipc::channel().unwrap();
+    thread::spawn(move || {
+        chan.send(ProfilerMsg::Get((ProfilerCategory::IpcReceiver, None), sender));
+    });
+    match receiver.recv().unwrap() {
+        ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e9),  // asserts that the time spent in the sleeping thread is more than 1.5 seconds
+        ProfilerData::NoRecords => assert!(false),
+    };
+
 }
 
 #[cfg(debug_assertions)]

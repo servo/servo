@@ -10,7 +10,7 @@ use influent::create_client;
 use influent::measurement::{Measurement, Value};
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
-use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
+use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, ProfilerData, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use servo_config::opts::OutputOptions;
 use std::{f64, thread, u32, u64};
@@ -316,6 +316,13 @@ impl Profiler {
             ProfilerMsg::Print => if let Some(ProfilerMsg::Time(..)) = self.last_msg {
                 // only print if more data has arrived since the last printout
                 self.print_buckets();
+            },
+            ProfilerMsg::Get(k, sender) => {
+                let vec_option= self.buckets.get(&k);
+                match vec_option {
+                    Some(vec_entry) => sender.send(ProfilerData::Record(vec_entry.to_vec())).unwrap(),
+                    None => sender.send(ProfilerData::NoRecords).unwrap(),
+                };
             },
             ProfilerMsg::Exit(chan) => {
                 heartbeats::cleanup();
