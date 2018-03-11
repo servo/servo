@@ -12,7 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use profile_traits::receiver;
+use profile_traits::ipc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
  #[dom_struct]
@@ -41,7 +41,7 @@ impl TestRunner {
 impl TestRunnerMethods for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
-        let (sender, receiver) = receiver::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread().send(BluetoothRequest::Test(String::from(dataSetName), sender)).unwrap();
         match receiver.recv().unwrap().into() {
             Ok(()) => {

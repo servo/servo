@@ -18,7 +18,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::TraversalDirection;
-use profile_traits::receiver::channel;
+use profile_traits::ipc::channel;
 use script_traits::ScriptMsg;
 
 enum PushOrReplace {

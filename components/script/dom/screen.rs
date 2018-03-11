@@ -13,7 +13,7 @@ use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::TypedSize2D;
-use profile_traits::receiver;
+use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use style_traits::CSSPixel;
 use webrender_api::DeviceUintSize;
@@ -39,7 +39,7 @@ impl Screen {
     }
 
     fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = receiver::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
+        let (send, recv) = ipc::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();
@@ -48,7 +48,7 @@ impl Screen {
     }
 
     fn screen_avail_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = receiver::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
+        let (send, recv) = ipc::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();

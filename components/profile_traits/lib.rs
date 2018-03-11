@@ -18,6 +18,6 @@ extern crate signpost;
 
 #[allow(unsafe_code)]
 pub mod energy;
+pub mod ipc;
 pub mod mem;
-pub mod receiver;
 pub mod time;
