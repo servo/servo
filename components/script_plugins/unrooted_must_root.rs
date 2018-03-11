@@ -8,7 +8,7 @@ use rustc::hir::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
 use syntax::{ast, codemap};
-use utils::match_def_path;
+use utils::{match_def_path, in_derive_expn};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects");
@@ -130,7 +130,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                 kind: visit::FnKind,
                 _decl: &'tcx hir::FnDecl,
                 _body: &'tcx hir::Body,
-                _span: codemap::Span,
+                span: codemap::Span,
                 id: ast::NodeId) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _, _) |
@@ -142,17 +142,25 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
 
         let def_id = cx.tcx.hir.local_def_id(id);
         let mir = cx.tcx.optimized_mir(def_id);
-        for (i, decl) in mir.local_decls.iter().enumerate() {
-            match i {
-                0 => if !in_new_function && is_unrooted_ty(cx, decl.ty, false) {
-                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Function return type must be rooted.")
-                }
-                _ if i <= mir.arg_count => if is_unrooted_ty(cx, decl.ty, false) {
+
+        if !in_derive_expn(span) {
+            let ret_decl = mir.local_decls.iter().next().unwrap();
+            if !in_new_function && is_unrooted_ty(cx, ret_decl.ty, false) {
+                cx.span_lint(UNROOTED_MUST_ROOT, ret_decl.source_info.span, "Function return type must be rooted.")
+            }
+
+            for decl_ind in mir.args_iter() {
+                let decl = &mir.local_decls[decl_ind];
+                if is_unrooted_ty(cx, decl.ty, false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Function argument type must be rooted.")
                 }
-                _ => if is_unrooted_ty(cx, decl.ty, in_new_function) {
-                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Type of binding/expression must be rooted.")
-                }
+            }
+        }
+
+        for decl_ind in mir.vars_iter() {
+            let decl = &mir.local_decls[decl_ind];
+            if is_unrooted_ty(cx, decl.ty, in_new_function) {
+                cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Type of binding/expression must be rooted.")
             }
         }
     }

@@ -8,12 +8,14 @@ pub mod unrooted_must_root {
     #![feature(plugin)]
     #![plugin(script_plugins)]
 
+    #[derive(Clone, Debug)]  // derive should not be checked
     #[must_root] struct Foo(i32);
     #[must_root] struct Bar(Foo);
 
     impl Foo {
         fn new() -> Box<Foo> {
-            Box::new(Foo(0))
+            let ret = Box::new(Foo(0));  // Box should be allowed as a binding type within constructors
+            ret
         }
 
         fn new_with(x: i32) -> Foo {
@@ -21,19 +23,9 @@ pub mod unrooted_must_root {
         }
     }
 
-    // MIR check gives this errors:
-    // ---- lib.rs - unrooted_must_root::ok (line 6) stdout ----
-    //         error: Type of binding/expression must be rooted.
-    // --> lib.rs:15:18
-    //    |
-    // 10 |         Box::new(Foo(0))
-    //    |                  ^^^^^^
-    //    |
-    //    = note: #[deny(unrooted_must_root)] on by default
-
     fn foo1(_: &Foo) {}
     fn foo2(_: &()) -> &Foo { unimplemented!() }
-    fn new_hack() -> Foo { Foo::new_with(0) }
+    fn new_foo() -> Foo { Foo::new_with(0) }
 
     fn main() {}
     ```
@@ -82,6 +74,23 @@ pub mod unrooted_must_root {
     pub fn return_type() {}
 
     /**
+    ```
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+
+    #[must_root] struct Foo([i32; 42]);
+
+    fn foo(x: &Foo) -> i32 {
+        let y = Foo(x.0).0;
+        y[4]
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn allow_subexpression() {}
+
+    /**
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
@@ -96,7 +105,41 @@ pub mod unrooted_must_root {
     fn main() {}
     ```
     */
-    pub fn expression() {}
+    pub fn local_var() {}
+
+    /**
+    ```compile_fail
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+
+    #[must_root] struct Foo(i32);
+
+    fn foo(x: &Foo) -> i32 {
+        let y = Box::new(Foo(x.0 + 3));
+        y.0
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn ban_box() {}
+
+    /**
+    ```
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+
+    #[must_root] struct Foo(i32);
+
+    fn foo(x: &Foo) -> i32 {
+        let y = &Box::new(Foo(x.0 + 3));
+        y.0
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn allow_box_ref() {}
 
     /**
     ```compile_fail
