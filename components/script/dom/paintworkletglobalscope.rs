@@ -501,10 +501,8 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         debug!("Registering definition {}.", name);
         self.paint_definitions.borrow_mut().insert(name.clone(), definition);
 
-        // TODO: Step 21.
-
+        // Step 21.
         // Inform layout that there is a registered paint worklet.
-        // TODO: layout will end up getting this message multiple times.
         let painter = self.painter(name.clone());
         self.worklet_global.register_paint_worklet(name, properties, input_arguments.len(), alpha, painter);
 
