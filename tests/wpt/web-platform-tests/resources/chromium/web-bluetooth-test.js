@@ -164,8 +164,12 @@ class FakeCentral {
           scanResult.scanRecord.manufacturerData, Number);
     }
 
-    // TODO(https://crbug.com/817603): Add a conversion process for serviceData
-    // when the field is added in Mojo.
+    // Convert serviceData from a record<DOMString, BufferSource> into a
+    // map<string, array<uint8>> for Mojo.
+    if ('serviceData' in scanResult.scanRecord) {
+      scanResult.scanRecord.serviceData.serviceData = convertToMojoMap(
+          scanResult.scanRecord.serviceData, BluetoothUUID.getService);
+    }
 
     await this.fake_central_ptr_.simulateAdvertisementReceived(
         new bluetooth.mojom.ScanResult(scanResult));

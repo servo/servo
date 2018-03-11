@@ -16,28 +16,30 @@
 <script>
 "use strict";
 //NOTE ALEX: for completion, a test for ondevicechange event is missing.
-test(function () {
+promise_test(function() {
   assert_true(undefined !== navigator.mediaDevices.enumerateDevices, "navigator.mediaDevices.enumerateDevices exists");
-  var p = navigator.mediaDevices.enumerateDevices()
-  p.then(function(list){
+  return navigator.mediaDevices.enumerateDevices().then(function(list) {
     for (let mediainfo of list) {
       assert_true(undefined !== mediainfo.deviceId, "mediaInfo's deviceId should exist.");
       assert_true(undefined !== mediainfo.kind,     "mediaInfo's kind     should exist.");
       assert_true(undefined !== mediainfo.label,    "mediaInfo's label    should exist.");
       assert_true(undefined !== mediainfo.groupId,  "mediaInfo's groupId  should exist.");
       // TODO the values of some of those fields should be empty string by default if no permission has been requested.
-      if ( mediainfo.kind == "audioinput" ||
-          mediainfo.kind == "videoinput") {
+      if ( mediainfo.kind == "audioinput" || mediainfo.kind == "videoinput") {
         assert_true(mediainfo instanceof InputDeviceInfo);
+        var capabilities = mediainfo.getCapabilities();
+        assert_equals(typeof capabilities, "object", "capabilities must be an object.");
+        assert_equals(typeof capabilities.deviceId, "string", "deviceId must be a string.");
+        assert_equals(typeof capabilities.groupId, "string", "groupId must be a string.");
+        if (mediainfo.kind == "audioinput") {
+          assert_equals(typeof capabilities.echoCancellation, "object", "echoCancellation must be an object.");
+        }
       } else if ( mediainfo.kind == "audiooutput" ) {
         assert_true(mediainfo instanceof MediaDeviceInfo);
       } else {
         assert_unreached("mediainfo.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
       }
     }
-  })
-  p.catch(function(err){
-    assert_unreached("A call to enumerateDevices() should never fail.");
   });
 }, "mediaDevices.enumerateDevices() is present and working on navigator");
 </script>
