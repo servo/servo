@@ -112,6 +112,16 @@ impl WorkletGlobalScope {
             .expect("Worklet thread outlived script thread.");
     }
 
+    /// Invalidate a paint worklet's definition in the script thread.
+    pub fn invalidate_paint_worklet(&self, name: Atom) {
+        let pipeline_id = self.globalscope.pipeline_id();
+        self.to_script_thread_sender
+            .send(
+                MainThreadScriptMsg::InvalidatePaintWorklet(pipeline_id, name)
+            )
+            .expect("Worklet thread outlived script thread.");
+    }
+
     /// The base URL of this global.
     pub fn base_url(&self) -> ServoUrl {
         self.base_url.clone()

@@ -756,6 +756,9 @@ impl LayoutThread {
                 };
                 self.registered_painters.insert_painter(name, registered_painter);
             },
+            Msg::InvalidatePaint(name) => {
+                self.registered_painters.invalidate_painter(name);
+            },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
                 return false
@@ -1848,6 +1851,11 @@ impl RegisteredPaintersImpl {
                 vacant.insert(PaintDefinition::Registered(painter));
             }
         }
+    }
+
+    fn invalidate_painter(&mut self, name: Atom) {
+        debug!("Invalidating definition of painter {}", name);
+        self.0.insert(name, PaintDefinition::Conflict);
     }
 
     fn get_painter(&self, name: &Atom) -> Option<&RegisteredPainterImpl> {

@@ -96,6 +96,9 @@ pub enum Msg {
     /// Tells layout that script has added some paint worklet modules.
     RegisterPaint(Atom, Vec<Atom>, usize, bool, Box<Painter>),
 
+    /// Tells layout that script has encountered a paint worklet that isn't valid in all scopes.
+    InvalidatePaint(Atom),
+
     /// Send to layout the precise time when the navigation started.
     SetNavigationStart(u64),
 }

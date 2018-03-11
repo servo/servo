@@ -237,6 +237,9 @@ pub enum MainThreadScriptMsg {
         alpha: bool,
         painter: Box<Painter>
     },
+    /// Notifies the script that a paint worklet scope has encountered a paint worklet that
+    /// wasn't registered.
+    InvalidatePaintWorklet(PipelineId, Atom),
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
 }
@@ -731,23 +734,14 @@ impl ScriptThread {
         })
     }
 
-    fn handle_register_paint_worklet(
-        &self,
-        pipeline_id: PipelineId,
-        name: Atom,
-        properties: Vec<Atom>,
-        input_arguments_len: usize,
-        alpha: bool,
-        painter: Box<Painter>)
+    fn handle_paint_worklet_msg(&self, pipeline_id: PipelineId, msg: Msg)
     {
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {
             Some(window) => window,
-            None => return warn!("Paint worklet registered after pipeline {} closed.", pipeline_id),
+            None => return warn!("Paint worklet task after pipeline {} closed.", pipeline_id),
         };
-        let _ = window.layout_chan().send(
-            Msg::RegisterPaint(name, properties, input_arguments_len, alpha, painter),
-        );
+        let _ = window.layout_chan().send(msg);
     }
 
     pub fn push_new_element_queue() {
@@ -1141,7 +1135,8 @@ impl ScriptThread {
                     MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, ..)) => {
                         category
                     },
-                    MainThreadScriptMsg::RegisterPaintWorklet { .. } => {
+                    MainThreadScriptMsg::RegisterPaintWorklet { .. } |
+                    MainThreadScriptMsg::InvalidatePaintWorklet(..) => {
                         ScriptThreadEventCategory::WorkletEvent
                     },
                     _ => ScriptThreadEventCategory::ScriptEvent,
@@ -1196,6 +1191,7 @@ impl ScriptThread {
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
+                    MainThreadScriptMsg::InvalidatePaintWorklet(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::DispatchJobQueue { .. }  => None,
                 }
             },
@@ -1357,15 +1353,18 @@ impl ScriptThread {
                 alpha,
                 painter,
             } => {
-                self.handle_register_paint_worklet(
-                    pipeline_id,
+                let msg = Msg::RegisterPaint(
                     name,
                     properties,
                     input_arguments_len,
                     alpha,
                     painter,
-                )
+                );
+                self.handle_paint_worklet_msg(pipeline_id, msg)
             },
+            MainThreadScriptMsg::InvalidatePaintWorklet(pipeline_id, name) => {
+                self.handle_paint_worklet_msg(pipeline_id, Msg::InvalidatePaint(name))
+            }
             MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
                 self.job_queue_map.run_job(scope_url, self)
             }

@@ -208,14 +208,15 @@ impl PaintWorkletGlobalScope {
         let cx = self.worklet_global.get_cx();
         let _ac = JSAutoCompartment::new(cx, self.worklet_global.reflector().get_jsobject().get());
 
-        // TODO: Steps 1-2.1.
-        // Step 2.2-5.1.
+        // TODO: Step 1.
+        // Step 2-5.1.
         rooted!(in(cx) let mut class_constructor = UndefinedValue());
         rooted!(in(cx) let mut paint_function = UndefinedValue());
         let rendering_context = match self.paint_definitions.borrow().get(name) {
             None => {
-                // Step 2.2.
-                warn!("Drawing un-registered paint definition {}.", name);
+                // Step 2.
+                warn!("Paint class {} was not registered in all worklet scopes.", name);
+                self.worklet_global.invalidate_paint_worklet(name.clone());
                 return self.invalid_image(size_in_dpx, vec![]);
             }
             Some(definition) => {
