@@ -14,6 +14,7 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
+use dom::performanceresourcetiming::InitiatorType;
 use dom::promise::Promise;
 use dom::request::Request;
 use dom::response::Response;
@@ -21,12 +22,12 @@ use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
-use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
+use net_traits::{FetchChannels, FetchResponseListener, NetworkError, ResourceFetchTiming};
 use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::request::RequestInit as NetTraitsRequestInit;
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use servo_url::ServoUrl;
 use std::mem;
 use std::rc::Rc;
@@ -37,6 +38,7 @@ struct FetchContext {
     fetch_promise: Option<TrustedPromise>,
     response_object: Trusted<Response>,
     body: Vec<u8>,
+    resource_timing: ResourceFetchTiming,
 }
 
 /// RAII fetch canceller object. By default initialized to not having a canceller
@@ -159,6 +161,7 @@ pub fn Fetch(
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
         body: vec![],
+        resource_timing: ResourceFetchTiming::new(),
     }));
     let listener = NetworkListener {
         context: fetch_context,
@@ -257,6 +260,28 @@ impl FetchResponseListener for FetchContext {
         response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for FetchContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::Fetch, self.resource_timing_global().get_url().clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.response_object.root().global()
     }
 }
 

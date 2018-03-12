@@ -24,11 +24,13 @@ use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use dom::mediaerror::MediaError;
 use dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
+use dom::performanceresourcetiming::InitiatorType;
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -40,9 +42,9 @@ use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, SubLevel, TopLevel};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseListener, FetchMetadata, Metadata};
-use net_traits::NetworkError;
+use net_traits::{NetworkError, ResourceFetchTiming};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use script_layout_interface::HTMLMediaData;
 use script_thread::ScriptThread;
 use servo_media::Error as ServoMediaError;
@@ -721,7 +723,7 @@ impl HTMLMediaElement {
                     HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
                 };
                 let request = RequestInit {
-                    url,
+                    url: url.clone(),
                     destination,
                     credentials_mode: CredentialsMode::Include,
                     use_url_credentials: true,
@@ -732,7 +734,7 @@ impl HTMLMediaElement {
                     ..RequestInit::default()
                 };
 
-                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
+                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url)));
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let window = window_from_node(self);
                 let listener = NetworkListener {
@@ -1251,6 +1253,10 @@ struct HTMLMediaElementContext {
     next_progress_event: Timespec,
     /// True if this response is invalid and should be ignored.
     ignore_response: bool,
+    /// timing data for this resource
+    resource_timing: ResourceFetchTiming,
+    /// url for the resource
+    url: ServoUrl,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1370,6 +1376,30 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.queue_dedicated_media_source_failure_steps();
         }
     }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for HTMLMediaElementContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem.root().upcast::<Element>().local_name().to_string());
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        (document_from_node(&*self.elem.root()).global())
+    }
 }
 
 impl PreInvoke for HTMLMediaElementContext {
@@ -1380,13 +1410,15 @@ impl PreInvoke for HTMLMediaElementContext {
 }
 
 impl HTMLMediaElementContext {
-    fn new(elem: &HTMLMediaElement) -> HTMLMediaElementContext {
+    fn new(elem: &HTMLMediaElement, url: ServoUrl) -> HTMLMediaElementContext {
         HTMLMediaElementContext {
             elem: Trusted::new(elem),
             metadata: None,
             generation_id: elem.generation_id.get(),
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             ignore_response: false,
+            resource_timing: ResourceFetchTiming::new(),
+            url: url,
         }
     }
 }

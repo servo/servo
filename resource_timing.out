@@ -1,0 +1,1548 @@
+Running 36 tests in web-platform-tests
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing-tojson.html:
+  │ FAIL [expected PASS] Untitled
+  │   → missing = in const declaration
+  │ 
+  └ http://web-platform.test:8000/resource-timing/resource-timing-tojson.html:43:17
+
+  ▶ ERROR [expected OK] /resource-timing/clear_resource_timing_functionality.html
+  └   → this.performanceContext.clearResourceTimings is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/clear_resource_timing_functionality.html:
+  │ FAIL [expected PASS] 4 resource timing entries should be stored in this page.
+  │   → assert_equals: 4 resource timing entries should be stored in this page. expected 4 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  │ onload_test@http://web-platform.test:8000/resource-timing/clear_resource_timing_functionality.html:17:9
+  └ load@http://web-platform.test:8000/resource-timing/clear_resource_timing_functionality.html:1:1
+
+  ▶ ERROR [expected OK] /resource-timing/idlharness.html
+  └   → memberHolderObject is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: operation clearResourceTimings()
+  │   → assert_own_property: interface prototype object missing non-static operation expected property "clearResourceTimings" missing
+  │ FAIL [expected PASS] Performance interface: operation setResourceTimingBufferSize(unsigned long)
+  │   → assert_own_property: interface prototype object missing non-static operation expected property "setResourceTimingBufferSize" missing
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: operation toJSON()
+  │   → assert_own_property: interface prototype object missing non-static operation expected property "toJSON" missing
+  │ 
+  │ IdlInterface.prototype.test_member_operation/<@http://web-platform.test:8000/resources/idlharness.js:2009:13
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ IdlInterface.prototype.test_member_operation@http://web-platform.test:8000/resources/idlharness.js:1961:5
+  │ IdlInterface.prototype.test_members@http://web-platform.test:8000/resources/idlharness.js:2318:21
+  │ IdlInterface.prototype.test@http://web-platform.test:8000/resources/idlharness.js:1248:5
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:716:9
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: calling setResourceTimingBufferSize(unsigned long) on window.performance with too few arguments must throw TypeError
+  │   → assert_inherits: property "setResourceTimingBufferSize" not found in prototype chain
+  │ 
+  │ IdlInterface.prototype.test_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2546:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ IdlInterface.prototype.test_interface_of@http://web-platform.test:8000/resources/idlharness.js:2539:13
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2367:9
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "initiatorType" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "nextHopProtocol" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "workerStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "redirectStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "redirectEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "fetchStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "domainLookupStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "domainLookupEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "connectStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "connectEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "secureConnectionStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "requestStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "responseStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "responseEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "transferSize" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "encodedBodySize" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "decodedBodySize" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "toJSON()" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ 
+  │ IdlInterface.prototype.test_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2493:17
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_interface_of@http://web-platform.test:8000/resources/idlharness.js:2490:13
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2367:9
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: window.performance must inherit property "clearResourceTimings()" with the proper type
+  │   → assert_inherits: property "clearResourceTimings" not found in prototype chain
+  │ FAIL [expected PASS] Performance interface: window.performance must inherit property "setResourceTimingBufferSize(unsigned long)" with the proper type
+  │   → assert_inherits: property "setResourceTimingBufferSize" not found in prototype chain
+  │ FAIL [expected PASS] Performance interface: window.performance must inherit property "onresourcetimingbufferfull" with the proper type
+  │   → assert_inherits: property "onresourcetimingbufferfull" not found in prototype chain
+  │ 
+  │ IdlInterface.prototype.test_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2496:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_interface_of@http://web-platform.test:8000/resources/idlharness.js:2490:13
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2367:9
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Stringification of window.performance.getEntriesByType('resource')[0]
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ 
+  │ IdlInterface.prototype.test_primary_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2427:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_primary_interface_of@http://web-platform.test:8000/resources/idlharness.js:2424:5
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2354:5
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] PerformanceResourceTiming must be primary interface of window.performance.getEntriesByType('resource')[0]
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ 
+  │ IdlInterface.prototype.test_primary_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2405:13
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_primary_interface_of@http://web-platform.test:8000/resources/idlharness.js:2402:9
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2354:5
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: attribute onresourcetimingbufferfull
+  │   → assert_true: The prototype object must have a property "onresourcetimingbufferfull" expected true got false
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: attribute transferSize
+  │   → assert_true: The prototype object must have a property "transferSize" expected true got false
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: attribute encodedBodySize
+  │   → assert_true: The prototype object must have a property "encodedBodySize" expected true got false
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: attribute decodedBodySize
+  │   → assert_true: The prototype object must have a property "decodedBodySize" expected true got false
+  │ 
+  │ IdlInterface.prototype.test_member_attribute/<@http://web-platform.test:8000/resources/idlharness.js:1915:13
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ IdlInterface.prototype.test_member_attribute@http://web-platform.test:8000/resources/idlharness.js:1866:5
+  │ IdlInterface.prototype.test_members@http://web-platform.test:8000/resources/idlharness.js:2303:17
+  │ IdlInterface.prototype.test@http://web-platform.test:8000/resources/idlharness.js:1248:5
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:716:9
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ ERROR [expected OK] /resource-timing/resource_TAO_cross_origin_redirect_chain.html
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_TAO_cross_origin_redirect_chain.html:
+  │ FAIL [expected PASS] There should be one entry.
+  │   → assert_equals: There should be one entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_TAO_cross_origin_redirect_chain.html:23:9
+
+  /resource-timing/resource_TAO_null.htm
+  /resource-timing/resource_TAO_space.htm
+  /resource-timing/resource_TAO_match_origin.htm
+  /resource-timing/resource_TAO_origin_uppercase.htm
+  /resource-timing/resource_ignore_failures.html
+  /resource-timing/resource_TAO_multi.htm
+  ▶ Unexpected subtest result in /resource-timing/resource_cached.htm:
+  │ FAIL [expected PASS] There should be two entries
+  │   → assert_equals: There should be two entries expected 2 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_cached.htm:37:5
+
+  ▶ ERROR [expected OK] /resource-timing/resource_memory_cached.sub.html
+  └   → entries[0] is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_memory_cached.sub.html:
+  │ FAIL [expected PASS] There should be only one entry
+  │   → assert_equals: There should be only one entry expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_memory_cached.sub.html:43:5
+  └ step_timeout/<@http://web-platform.test:8000/resources/testharness.js:708:13
+
+  ▶ Unexpected subtest result in /resource-timing/resource_memory_cached.sub.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/blue.png?id=cached is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_memory_cached.sub.html:49:5
+  └ step_timeout/<@http://web-platform.test:8000/resources/testharness.js:708:13
+
+  ▶ ERROR [expected OK] /resource-timing/resource_TAO_origin.htm
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_TAO_origin.htm:
+  │ FAIL [expected PASS] The iframe should have one resource timing entry.
+  │   → assert_equals: The iframe should have one resource timing entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_TAO_origin.htm:31:5
+
+  ▶ Unexpected subtest result in /resource-timing/resource_dedicated_worker.html:
+  │ FAIL [expected PASS] There should be six entries: 4 scripts, 1 stylesheet, and the worker itself
+  │   → assert_equals: There should be six entries: 4 scripts, 1 stylesheet, and the worker itself expected 6 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ worker.onmessage@http://web-platform.test:8000/resource-timing/resource_dedicated_worker.html:19:3
+
+  ▶ Unexpected subtest result in /resource-timing/resource_connection_reuse.html:
+  │ FAIL [expected PASS] There should be 2 PerformanceEntries
+  │   → assert_equals: There should be 2 PerformanceEntries expected 2 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_connection_reuse.html:37:5
+
+  ▶ Unexpected subtest result in /resource-timing/resource_script_types.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=1 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=2 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=3 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=4 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=5 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=6 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=7 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=8 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=9 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_script_types.html:60:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_script_types.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_buffer_full_when_shrink_buffer_size.html:
+  │ FAIL [expected PASS] This test validates the functionality of onresourcetimingbufferfull in resource timing.
+  │   → this.performanceContext.setResourceTimingBufferSize is undefined
+  │ 
+  │ PerformanceContext.prototype.setResourceTimingBufferSize@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:185:9
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_buffer_full_when_shrink_buffer_size.html:21:9
+  └ load@http://web-platform.test:8000/resource-timing/resource_timing_buffer_full_when_shrink_buffer_size.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <frame> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:41:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <iframe> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:37:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <embed> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:45:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <object> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:49:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_dynamic_insertion.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.css is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.png is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/inject_resource_test.html is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_dynamic_insertion.html:53:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_dynamic_insertion.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/single-entry-per-resource.html:
+  │ FAIL [expected PASS] One resource when reusing data
+  │   → entryTypes cannot be empty
+  │ 
+  └ @http://web-platform.test:8000/resource-timing/single-entry-per-resource.html:21:3
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing.worker.html:
+  │ FAIL [expected PASS] Performance Resouce Entries in workers
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ @http://web-platform.test:8000/resource-timing/resource_timing.worker.js:18:3
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ async_test@http://web-platform.test:8000/resources/testharness.js:517:13
+  └ @http://web-platform.test:8000/resource-timing/resource_timing.worker.js:17:1
+
+  /resource-timing/resource_ignore_data_url.html
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_cross_origin_redirect.html:
+  │ FAIL [expected PASS] This test validates the values in resource timing for a cross-origin redirect.
+  │   → entry is undefined
+  │ 
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_cross_origin_redirect.html:19:9
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_buffer_full_when_populate_entries.html:
+  │ FAIL [expected PASS] This test validates the functionality of onresourcetimingbufferfull in resource timing.
+  │   → this.performanceContext.setResourceTimingBufferSize is undefined
+  │ 
+  │ PerformanceContext.prototype.setResourceTimingBufferSize@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:185:9
+  └ @http://web-platform.test:8000/resource-timing/resource_timing_buffer_full_when_populate_entries.html:17:5
+
+  ▶ ERROR [expected OK] /resource-timing/resource_timing_cross_origin_redirect_chain.html
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_cross_origin_redirect_chain.html:
+  │ FAIL [expected PASS] There should be one entry.
+  │   → assert_equals: There should be one entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_cross_origin_redirect_chain.html:23:9
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_same_origin_redirect.html:
+  │ FAIL [expected PASS] This test validates the values of the redirectStart/End in resource timing for a same-origin resource redirect.
+  │   → entry is undefined
+  │ 
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_same_origin_redirect.html:19:9
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] 'iframe (Potentially Cached): Immediately fetch the same URL, exercising the cache hit path (if any).
+  │   → assert_unreached: At most, 1 entry should be added to the performance timeline during a fetch. Reached unreachable code
+  │ 
+  │ createOnloadCallbackFn/<@http://web-platform.test:8000/resource-timing/resource-timing.js:419:29
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] 'iframe (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'xmlhttprequest (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'script (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'link (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ 
+  │ window.onload/</<.test/<@http://web-platform.test:8000/resource-timing/resource-timing.js:207:29
+  │ createOnloadCallbackFn/</<@http://web-platform.test:8000/resource-timing/resource-timing.js:426:29
+  │ assertInvariants/<@http://web-platform.test:8000/resource-timing/resource-timing.js:257:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] 'iframe: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'xmlhttprequest: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'script: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'link: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ 
+  │ window.onload/</<.test/<@http://web-platform.test:8000/resource-timing/resource-timing.js:159:29
+  │ createOnloadCallbackFn/</<@http://web-platform.test:8000/resource-timing/resource-timing.js:426:29
+  │ assertInvariants/<@http://web-platform.test:8000/resource-timing/resource-timing.js:257:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] No timeline entry for about:blank
+  │   → assert_equals: 'name' did not match expected 'url'. expected "about:blank" but got "first-paint"
+  │ FAIL [expected PASS] Setting 'document.domain' does not effect same-origin checks
+  │   → assert_equals: 'name' did not match expected 'url'. expected "http://web-platform.test:8000/resource-timing/iframe-setdomain.sub.html" but got "first-paint"
+  │ 
+  │ createOnloadCallbackFn/<@http://web-platform.test:8000/resource-timing/resource-timing.js:415:29
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_store_and_clear_during_callback.html:
+  │ FAIL [expected PASS] This test validates the behavior of read and clear operation in onresourcetimingbufferfull callback of resource timing.
+  │   → this.performanceContext.setResourceTimingBufferSize is undefined
+  │ 
+  │ PerformanceContext.prototype.setResourceTimingBufferSize@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:185:9
+  └ @http://web-platform.test:8000/resource-timing/resource_timing_store_and_clear_during_callback.html:26:5
+
+  /resource-timing/resource_TAO_match_wildcard.htm
+  /resource-timing/resource_TAO_wildcard.htm
+  ▶ ERROR [expected OK] /resource-timing/resource_TAO_zero.htm
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_TAO_zero.htm:
+  │ FAIL [expected PASS] There should be one resource timing entry.
+  │   → assert_equals: There should be one resource timing entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_TAO_zero.htm:30:5
+
+  /resource-timing/resource_initiator_types.html
+  ▶ Unexpected subtest result in /resource-timing/resource_redirects.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/resource_timing_test0.css is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/blue.png is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/blank_page_green.htm is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/empty_script.js is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/blank_page_green.htm?id=xhr is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_redirects.html:42:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_redirects.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_reparenting.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/blue.png?id=move_to_child is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_reparenting.html:42:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_reparenting.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_TAO_cross_origin_redirect.html:
+  │ FAIL [expected PASS] This test validates the values in resource timing for a timing allowed cross-origin redirect.
+  │   → entry is undefined
+  │ 
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_TAO_cross_origin_redirect.html:19:9
+
+  ▶ TIMEOUT [expected OK] /resource-timing/test_resource_timing.html
+  │ 
+  │ VMware, Inc.
+  │ softpipe
+  │ 3.3 (Core Profile) Mesa 17.3.0-devel
+  │ processing fetch msg at: 55544538214777
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/test_resource_timing.html
+  │ start time: 55544538413361
+  │ querying cache at 55544538775200
+  │ request start is 55544538938990
+  │ connect start: 55544538979715
+  │ connect end at 55544539752906
+  │ response start is 55544539873572
+  │ response end is 55544541506172
+  │ zero redirects? 0
+  │ done at 55544543685128
+  │ 
+  │ processing fetch msg at: 55544555119639
+  │ spawning fetch thread for http://web-platform.test:8000/resources/testharness.js
+  │ start time: 55544555303096
+  │ querying cache at 55544555572835
+  │ request start is 55544555657583
+  │ connect start: 55544555669319
+  │ connect end at 55544555839731
+  │ response start is 55544555983922
+  │ response end is 55544557294121
+  │ zero redirects? 0
+  │ done at 55544582414623
+  │ 
+  │ processing fetch msg at: 55544618046264
+  │ spawning fetch thread for http://web-platform.test:8000/resources/testharnessreport.js
+  │ start time: 55544618214375
+  │ querying cache at 55544618479851
+  │ request start is 55544618573285
+  │ connect start: 55544618585172
+  │ connect end at 55544618748705
+  │ response start is 55544618902262
+  │ response end is 55544620121712
+  │ zero redirects? 0
+  │ done at 55544621693774
+  │ 
+  │ processing fetch msg at: 55544625950890
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/test_resource_timing.js
+  │ start time: 55544626127576
+  │ querying cache at 55544626370627
+  │ request start is 55544626459430
+  │ response start is 55544626649337
+  │ response end is 55544628165627
+  │ zero redirects? 0
+  │ done at 55544631756175
+  │ 
+  │ fetch async requesting resource: file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ processing fetch msg at: 55544669903852
+  │ spawning fetch thread for file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ start time: 55544670029954
+  │ zero redirects? 0
+  │ done at 55544673913965
+  │ 
+  │ processing fetch msg at: 55544733965854
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.css
+  │ start time: 55544734198457
+  │ querying cache at 55544734654614
+  │ request start is 55544734954671
+  │ connect start: 55544735000454
+  │ processing fetch msg at: 55544735930353
+  │ connect end at 55544735955936
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.js
+  │ response start is 55544736572095
+  │ start time: 55544737010136
+  │ querying cache at 55544737589100
+  │ request start is 55544737742146
+  │ connect start: 55544737759133
+  │ connect end at 55544738670533
+  │ response start is 55544738989891
+  │ processing fetch msg at: 55544739433446
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/gzip_xml.py
+  │ start time: 55544739715522
+  │ querying cache at 55544740110676
+  │ request start is 55544740258726
+  │ connect start: 55544740275710
+  │ connect end at 55544740852801
+  │ response start is 55544741107110
+  │ processing fetch msg at: 55544741863960
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.png
+  │ start time: 55544742145123
+  │ querying cache at 55544742449593
+  │ request start is 55544742593464
+  │ connect start: 55544742611190
+  │ connect end at 55544742842472
+  │ response start is 55544743075882
+  │ response end is 55544744274812
+  │ response end is 55544744763350
+  │ zero redirects? 0
+  │ done at 55544747254784
+  │ 
+  │ zero redirects? 0
+  │ done at 55544750378271
+  │ 
+  │ response end is 55544751408510
+  │ response end is 55544752312137
+  │ zero redirects? 0
+  │ done at 55544753673003
+  │ 
+  │ zero redirects? 0
+  │ done at 55544754392309
+  │ 
+  │ ERROR 2018-05-01T08:57:51Z: webrender::display_list_flattener: Unknown pipeline used for iframe IframeDisplayItem { clip_id: Clip(2, PipelineId(0, 1)), pipeline_id: PipelineId(1, 2) }
+  │ processing fetch msg at: 55544767570711
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.html
+  │ start time: 55544767749742
+  │ querying cache at 55544768041844
+  │ request start is 55544768145064
+  │ response start is 55544768362522
+  │ response end is 55544769921181
+  │ zero redirects? 0
+  │ done at 55544772137023
+  │ 
+  │ ERROR 2018-05-01T08:57:51Z: webrender::display_list_flattener: Unknown pipeline used for iframe IframeDisplayItem { clip_id: Clip(2, PipelineId(0, 1)), pipeline_id: PipelineId(1, 2) }
+  │ fetch async requesting resource: file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ processing fetch msg at: 55544793709430
+  │ spawning fetch thread for file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ start time: 55544793900165
+  │ zero redirects? 0
+  │ done at 55544798680228
+  │ 
+  │ fetch async requesting resource: file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ processing fetch msg at: 55544812548011
+  │ spawning fetch thread for file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ start time: 55544812736144
+  │ zero redirects? 0
+  │ done at 55544818203930
+  └ 
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ TIMEOUT [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (link)
+  └   → Test timed out
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct order of timing attributes (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct network transfer attributes (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct protocol attribute (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (xmlhttprequest)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:177:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:174:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (iframe)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (img)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (script)
+  │   → actual is undefined
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:213:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:211:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (xmlhttprequest)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:187:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:185:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (iframe)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (img)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (script)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:177:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:174:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (xmlhttprequest)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:225:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:223:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (xmlhttprequest)
+  │   → actual is undefined
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:213:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:211:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (xmlhttprequest)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:160:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:158:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (iframe)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (img)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (script)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:225:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:223:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (iframe)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (img)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (script)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:160:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:158:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (iframe)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (img)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (script)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:187:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:185:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+
+Ran 36 tests finished in 27.0 seconds.
+  • 10 ran as expected. 0 tests skipped.
+  • 7 tests had errors unexpectedly
+  • 1 tests timed out unexpectedly
+  • 26 tests had unexpected subtest results
+
+Tests with unexpected results:
+  ▶ Unexpected subtest result in /resource-timing/resource-timing-tojson.html:
+  │ FAIL [expected PASS] Untitled
+  │   → missing = in const declaration
+  │ 
+  └ http://web-platform.test:8000/resource-timing/resource-timing-tojson.html:43:17
+
+  ▶ ERROR [expected OK] /resource-timing/clear_resource_timing_functionality.html
+  └   → this.performanceContext.clearResourceTimings is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/clear_resource_timing_functionality.html:
+  │ FAIL [expected PASS] 4 resource timing entries should be stored in this page.
+  │   → assert_equals: 4 resource timing entries should be stored in this page. expected 4 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  │ onload_test@http://web-platform.test:8000/resource-timing/clear_resource_timing_functionality.html:17:9
+  └ load@http://web-platform.test:8000/resource-timing/clear_resource_timing_functionality.html:1:1
+
+  ▶ ERROR [expected OK] /resource-timing/idlharness.html
+  └   → memberHolderObject is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: operation clearResourceTimings()
+  │   → assert_own_property: interface prototype object missing non-static operation expected property "clearResourceTimings" missing
+  │ FAIL [expected PASS] Performance interface: operation setResourceTimingBufferSize(unsigned long)
+  │   → assert_own_property: interface prototype object missing non-static operation expected property "setResourceTimingBufferSize" missing
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: operation toJSON()
+  │   → assert_own_property: interface prototype object missing non-static operation expected property "toJSON" missing
+  │ 
+  │ IdlInterface.prototype.test_member_operation/<@http://web-platform.test:8000/resources/idlharness.js:2009:13
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ IdlInterface.prototype.test_member_operation@http://web-platform.test:8000/resources/idlharness.js:1961:5
+  │ IdlInterface.prototype.test_members@http://web-platform.test:8000/resources/idlharness.js:2318:21
+  │ IdlInterface.prototype.test@http://web-platform.test:8000/resources/idlharness.js:1248:5
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:716:9
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: calling setResourceTimingBufferSize(unsigned long) on window.performance with too few arguments must throw TypeError
+  │   → assert_inherits: property "setResourceTimingBufferSize" not found in prototype chain
+  │ 
+  │ IdlInterface.prototype.test_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2546:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ IdlInterface.prototype.test_interface_of@http://web-platform.test:8000/resources/idlharness.js:2539:13
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2367:9
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "initiatorType" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "nextHopProtocol" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "workerStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "redirectStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "redirectEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "fetchStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "domainLookupStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "domainLookupEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "connectStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "connectEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "secureConnectionStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "requestStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "responseStart" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "responseEnd" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "transferSize" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "encodedBodySize" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "decodedBodySize" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: window.performance.getEntriesByType('resource')[0] must inherit property "toJSON()" with the proper type
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ 
+  │ IdlInterface.prototype.test_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2493:17
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_interface_of@http://web-platform.test:8000/resources/idlharness.js:2490:13
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2367:9
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: window.performance must inherit property "clearResourceTimings()" with the proper type
+  │   → assert_inherits: property "clearResourceTimings" not found in prototype chain
+  │ FAIL [expected PASS] Performance interface: window.performance must inherit property "setResourceTimingBufferSize(unsigned long)" with the proper type
+  │   → assert_inherits: property "setResourceTimingBufferSize" not found in prototype chain
+  │ FAIL [expected PASS] Performance interface: window.performance must inherit property "onresourcetimingbufferfull" with the proper type
+  │   → assert_inherits: property "onresourcetimingbufferfull" not found in prototype chain
+  │ 
+  │ IdlInterface.prototype.test_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2496:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_interface_of@http://web-platform.test:8000/resources/idlharness.js:2490:13
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2367:9
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Stringification of window.performance.getEntriesByType('resource')[0]
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ 
+  │ IdlInterface.prototype.test_primary_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2427:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_primary_interface_of@http://web-platform.test:8000/resources/idlharness.js:2424:5
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2354:5
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] PerformanceResourceTiming must be primary interface of window.performance.getEntriesByType('resource')[0]
+  │   → assert_equals: wrong typeof object expected "object" but got "undefined"
+  │ 
+  │ IdlInterface.prototype.test_primary_interface_of/<@http://web-platform.test:8000/resources/idlharness.js:2405:13
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ IdlInterface.prototype.test_primary_interface_of@http://web-platform.test:8000/resources/idlharness.js:2402:9
+  │ IdlInterface.prototype.test_object@http://web-platform.test:8000/resources/idlharness.js:2354:5
+  │ IdlArray.prototype.test/<@http://web-platform.test:8000/resources/idlharness.js:721:17
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:719:13
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ Unexpected subtest result in /resource-timing/idlharness.html:
+  │ FAIL [expected PASS] Performance interface: attribute onresourcetimingbufferfull
+  │   → assert_true: The prototype object must have a property "onresourcetimingbufferfull" expected true got false
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: attribute transferSize
+  │   → assert_true: The prototype object must have a property "transferSize" expected true got false
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: attribute encodedBodySize
+  │   → assert_true: The prototype object must have a property "encodedBodySize" expected true got false
+  │ FAIL [expected PASS] PerformanceResourceTiming interface: attribute decodedBodySize
+  │   → assert_true: The prototype object must have a property "decodedBodySize" expected true got false
+  │ 
+  │ IdlInterface.prototype.test_member_attribute/<@http://web-platform.test:8000/resources/idlharness.js:1915:13
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ IdlInterface.prototype.test_member_attribute@http://web-platform.test:8000/resources/idlharness.js:1866:5
+  │ IdlInterface.prototype.test_members@http://web-platform.test:8000/resources/idlharness.js:2303:17
+  │ IdlInterface.prototype.test@http://web-platform.test:8000/resources/idlharness.js:1248:5
+  │ IdlArray.prototype.test@http://web-platform.test:8000/resources/idlharness.js:716:9
+  │ @http://web-platform.test:8000/resource-timing/idlharness.html:92:3
+  └ @http://web-platform.test:8000/resource-timing/idlharness.html:83:2
+
+  ▶ ERROR [expected OK] /resource-timing/resource_TAO_cross_origin_redirect_chain.html
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_TAO_cross_origin_redirect_chain.html:
+  │ FAIL [expected PASS] There should be one entry.
+  │   → assert_equals: There should be one entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_TAO_cross_origin_redirect_chain.html:23:9
+
+  ▶ Unexpected subtest result in /resource-timing/resource_cached.htm:
+  │ FAIL [expected PASS] There should be two entries
+  │   → assert_equals: There should be two entries expected 2 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_cached.htm:37:5
+
+  ▶ ERROR [expected OK] /resource-timing/resource_memory_cached.sub.html
+  └   → entries[0] is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_memory_cached.sub.html:
+  │ FAIL [expected PASS] There should be only one entry
+  │   → assert_equals: There should be only one entry expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_memory_cached.sub.html:43:5
+  └ step_timeout/<@http://web-platform.test:8000/resources/testharness.js:708:13
+
+  ▶ Unexpected subtest result in /resource-timing/resource_memory_cached.sub.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/blue.png?id=cached is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_memory_cached.sub.html:49:5
+  └ step_timeout/<@http://web-platform.test:8000/resources/testharness.js:708:13
+
+  ▶ ERROR [expected OK] /resource-timing/resource_TAO_origin.htm
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_TAO_origin.htm:
+  │ FAIL [expected PASS] The iframe should have one resource timing entry.
+  │   → assert_equals: The iframe should have one resource timing entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_TAO_origin.htm:31:5
+
+  ▶ Unexpected subtest result in /resource-timing/resource_dedicated_worker.html:
+  │ FAIL [expected PASS] There should be six entries: 4 scripts, 1 stylesheet, and the worker itself
+  │   → assert_equals: There should be six entries: 4 scripts, 1 stylesheet, and the worker itself expected 6 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ worker.onmessage@http://web-platform.test:8000/resource-timing/resource_dedicated_worker.html:19:3
+
+  ▶ Unexpected subtest result in /resource-timing/resource_connection_reuse.html:
+  │ FAIL [expected PASS] There should be 2 PerformanceEntries
+  │   → assert_equals: There should be 2 PerformanceEntries expected 2 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_connection_reuse.html:37:5
+
+  ▶ Unexpected subtest result in /resource-timing/resource_script_types.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=1 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=2 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=3 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=4 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=5 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=6 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=7 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=8 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/empty_script.js?id=9 is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_script_types.html:60:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_script_types.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_buffer_full_when_shrink_buffer_size.html:
+  │ FAIL [expected PASS] This test validates the functionality of onresourcetimingbufferfull in resource timing.
+  │   → this.performanceContext.setResourceTimingBufferSize is undefined
+  │ 
+  │ PerformanceContext.prototype.setResourceTimingBufferSize@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:185:9
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_buffer_full_when_shrink_buffer_size.html:21:9
+  └ load@http://web-platform.test:8000/resource-timing/resource_timing_buffer_full_when_shrink_buffer_size.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <frame> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:41:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <iframe> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:37:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <embed> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:45:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_subframe_self_navigation.html:
+  │ FAIL [expected PASS] Subsequent <object> navigations don't appear in the resource-timing buffer.
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ runTest@http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:21:5
+  │ @http://web-platform.test:8000/resource-timing/resource_subframe_self_navigation.html:49:11
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ promise_test/tests.promise_tests<@http://web-platform.test:8000/resources/testharness.js:532:27
+
+  ▶ Unexpected subtest result in /resource-timing/resource_dynamic_insertion.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.css is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.png is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/inject_resource_test.html is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_dynamic_insertion.html:53:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_dynamic_insertion.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/single-entry-per-resource.html:
+  │ FAIL [expected PASS] One resource when reusing data
+  │   → entryTypes cannot be empty
+  │ 
+  └ @http://web-platform.test:8000/resource-timing/single-entry-per-resource.html:21:3
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing.worker.html:
+  │ FAIL [expected PASS] Performance Resouce Entries in workers
+  │   → performance.clearResourceTimings is not a function
+  │ 
+  │ @http://web-platform.test:8000/resource-timing/resource_timing.worker.js:18:3
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ async_test@http://web-platform.test:8000/resources/testharness.js:517:13
+  └ @http://web-platform.test:8000/resource-timing/resource_timing.worker.js:17:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_cross_origin_redirect.html:
+  │ FAIL [expected PASS] This test validates the values in resource timing for a cross-origin redirect.
+  │   → entry is undefined
+  │ 
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_cross_origin_redirect.html:19:9
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_buffer_full_when_populate_entries.html:
+  │ FAIL [expected PASS] This test validates the functionality of onresourcetimingbufferfull in resource timing.
+  │   → this.performanceContext.setResourceTimingBufferSize is undefined
+  │ 
+  │ PerformanceContext.prototype.setResourceTimingBufferSize@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:185:9
+  └ @http://web-platform.test:8000/resource-timing/resource_timing_buffer_full_when_populate_entries.html:17:5
+
+  ▶ ERROR [expected OK] /resource-timing/resource_timing_cross_origin_redirect_chain.html
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_cross_origin_redirect_chain.html:
+  │ FAIL [expected PASS] There should be one entry.
+  │   → assert_equals: There should be one entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_cross_origin_redirect_chain.html:23:9
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_same_origin_redirect.html:
+  │ FAIL [expected PASS] This test validates the values of the redirectStart/End in resource timing for a same-origin resource redirect.
+  │   → entry is undefined
+  │ 
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_same_origin_redirect.html:19:9
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] 'iframe (Potentially Cached): Immediately fetch the same URL, exercising the cache hit path (if any).
+  │   → assert_unreached: At most, 1 entry should be added to the performance timeline during a fetch. Reached unreachable code
+  │ 
+  │ createOnloadCallbackFn/<@http://web-platform.test:8000/resource-timing/resource-timing.js:419:29
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] 'iframe (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'xmlhttprequest (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'script (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'link (Redirected): 250ms delay before 'redirectEnd', another 250ms delay before 'responseStart'.
+  │   → entry is undefined
+  │ 
+  │ window.onload/</<.test/<@http://web-platform.test:8000/resource-timing/resource-timing.js:207:29
+  │ createOnloadCallbackFn/</<@http://web-platform.test:8000/resource-timing/resource-timing.js:426:29
+  │ assertInvariants/<@http://web-platform.test:8000/resource-timing/resource-timing.js:257:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] 'iframe: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'xmlhttprequest: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'script: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ FAIL [expected PASS] 'link: 250ms delay before 'responseStart', another 250ms delay before 'responseEnd'.
+  │   → entry is undefined
+  │ 
+  │ window.onload/</<.test/<@http://web-platform.test:8000/resource-timing/resource-timing.js:159:29
+  │ createOnloadCallbackFn/</<@http://web-platform.test:8000/resource-timing/resource-timing.js:426:29
+  │ assertInvariants/<@http://web-platform.test:8000/resource-timing/resource-timing.js:257:25
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource-timing.html:
+  │ FAIL [expected PASS] No timeline entry for about:blank
+  │   → assert_equals: 'name' did not match expected 'url'. expected "about:blank" but got "first-paint"
+  │ FAIL [expected PASS] Setting 'document.domain' does not effect same-origin checks
+  │   → assert_equals: 'name' did not match expected 'url'. expected "http://web-platform.test:8000/resource-timing/iframe-setdomain.sub.html" but got "first-paint"
+  │ 
+  │ createOnloadCallbackFn/<@http://web-platform.test:8000/resource-timing/resource-timing.js:415:29
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  └ Test.prototype.step_func/<@http://web-platform.test:8000/resources/testharness.js:1514:20
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_store_and_clear_during_callback.html:
+  │ FAIL [expected PASS] This test validates the behavior of read and clear operation in onresourcetimingbufferfull callback of resource timing.
+  │   → this.performanceContext.setResourceTimingBufferSize is undefined
+  │ 
+  │ PerformanceContext.prototype.setResourceTimingBufferSize@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:185:9
+  └ @http://web-platform.test:8000/resource-timing/resource_timing_store_and_clear_during_callback.html:26:5
+
+  ▶ ERROR [expected OK] /resource-timing/resource_TAO_zero.htm
+  └   → entry is undefined
+
+  ▶ Unexpected subtest result in /resource-timing/resource_TAO_zero.htm:
+  │ FAIL [expected PASS] There should be one resource timing entry.
+  │   → assert_equals: There should be one resource timing entry. expected 1 but got 0
+  │ 
+  │ test_equals/<@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:27
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_equals@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:129:5
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_TAO_zero.htm:30:5
+
+  ▶ Unexpected subtest result in /resource-timing/resource_redirects.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/resource_timing_test0.css is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/blue.png is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/blank_page_green.htm is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/empty_script.js is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ FAIL [expected PASS] http://web-platform.test:8000/common/redirect.py?location=/resource-timing/resources/blank_page_green.htm?id=xhr is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_redirects.html:42:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_redirects.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_reparenting.html:
+  │ FAIL [expected PASS] http://web-platform.test:8000/resource-timing/resources/blue.png?id=move_to_child is expected to be in the Resource Timing buffer
+  │   → assert_unreached: Reached unreachable code
+  │ 
+  │ test_fail/<@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:26
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ test@http://web-platform.test:8000/resources/testharness.js:500:9
+  │ wp_test@http://web-platform.test:8000/resource-timing/resources/webperftestharness.js:52:5
+  │ test_fail@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:47:5
+  │ test_resource_entries@http://web-platform.test:8000/resource-timing/resources/webperftestharnessextension.js:87:13
+  │ onload_test@http://web-platform.test:8000/resource-timing/resource_reparenting.html:42:5
+  └ load@http://web-platform.test:8000/resource-timing/resource_reparenting.html:1:1
+
+  ▶ Unexpected subtest result in /resource-timing/resource_timing_TAO_cross_origin_redirect.html:
+  │ FAIL [expected PASS] This test validates the values in resource timing for a timing allowed cross-origin redirect.
+  │   → entry is undefined
+  │ 
+  └ onload_test@http://web-platform.test:8000/resource-timing/resource_timing_TAO_cross_origin_redirect.html:19:9
+
+  ▶ TIMEOUT [expected OK] /resource-timing/test_resource_timing.html
+  │ 
+  │ VMware, Inc.
+  │ softpipe
+  │ 3.3 (Core Profile) Mesa 17.3.0-devel
+  │ processing fetch msg at: 55544538214777
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/test_resource_timing.html
+  │ start time: 55544538413361
+  │ querying cache at 55544538775200
+  │ request start is 55544538938990
+  │ connect start: 55544538979715
+  │ connect end at 55544539752906
+  │ response start is 55544539873572
+  │ response end is 55544541506172
+  │ zero redirects? 0
+  │ done at 55544543685128
+  │ 
+  │ processing fetch msg at: 55544555119639
+  │ spawning fetch thread for http://web-platform.test:8000/resources/testharness.js
+  │ start time: 55544555303096
+  │ querying cache at 55544555572835
+  │ request start is 55544555657583
+  │ connect start: 55544555669319
+  │ connect end at 55544555839731
+  │ response start is 55544555983922
+  │ response end is 55544557294121
+  │ zero redirects? 0
+  │ done at 55544582414623
+  │ 
+  │ processing fetch msg at: 55544618046264
+  │ spawning fetch thread for http://web-platform.test:8000/resources/testharnessreport.js
+  │ start time: 55544618214375
+  │ querying cache at 55544618479851
+  │ request start is 55544618573285
+  │ connect start: 55544618585172
+  │ connect end at 55544618748705
+  │ response start is 55544618902262
+  │ response end is 55544620121712
+  │ zero redirects? 0
+  │ done at 55544621693774
+  │ 
+  │ processing fetch msg at: 55544625950890
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/test_resource_timing.js
+  │ start time: 55544626127576
+  │ querying cache at 55544626370627
+  │ request start is 55544626459430
+  │ response start is 55544626649337
+  │ response end is 55544628165627
+  │ zero redirects? 0
+  │ done at 55544631756175
+  │ 
+  │ fetch async requesting resource: file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ processing fetch msg at: 55544669903852
+  │ spawning fetch thread for file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ start time: 55544670029954
+  │ zero redirects? 0
+  │ done at 55544673913965
+  │ 
+  │ processing fetch msg at: 55544733965854
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.css
+  │ start time: 55544734198457
+  │ querying cache at 55544734654614
+  │ request start is 55544734954671
+  │ connect start: 55544735000454
+  │ processing fetch msg at: 55544735930353
+  │ connect end at 55544735955936
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.js
+  │ response start is 55544736572095
+  │ start time: 55544737010136
+  │ querying cache at 55544737589100
+  │ request start is 55544737742146
+  │ connect start: 55544737759133
+  │ connect end at 55544738670533
+  │ response start is 55544738989891
+  │ processing fetch msg at: 55544739433446
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/gzip_xml.py
+  │ start time: 55544739715522
+  │ querying cache at 55544740110676
+  │ request start is 55544740258726
+  │ connect start: 55544740275710
+  │ connect end at 55544740852801
+  │ response start is 55544741107110
+  │ processing fetch msg at: 55544741863960
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.png
+  │ start time: 55544742145123
+  │ querying cache at 55544742449593
+  │ request start is 55544742593464
+  │ connect start: 55544742611190
+  │ connect end at 55544742842472
+  │ response start is 55544743075882
+  │ response end is 55544744274812
+  │ response end is 55544744763350
+  │ zero redirects? 0
+  │ done at 55544747254784
+  │ 
+  │ zero redirects? 0
+  │ done at 55544750378271
+  │ 
+  │ response end is 55544751408510
+  │ response end is 55544752312137
+  │ zero redirects? 0
+  │ done at 55544753673003
+  │ 
+  │ zero redirects? 0
+  │ done at 55544754392309
+  │ 
+  │ ERROR 2018-05-01T08:57:51Z: webrender::display_list_flattener: Unknown pipeline used for iframe IframeDisplayItem { clip_id: Clip(2, PipelineId(0, 1)), pipeline_id: PipelineId(1, 2) }
+  │ processing fetch msg at: 55544767570711
+  │ spawning fetch thread for http://web-platform.test:8000/resource-timing/resources/resource_timing_test0.html
+  │ start time: 55544767749742
+  │ querying cache at 55544768041844
+  │ request start is 55544768145064
+  │ response start is 55544768362522
+  │ response end is 55544769921181
+  │ zero redirects? 0
+  │ done at 55544772137023
+  │ 
+  │ ERROR 2018-05-01T08:57:51Z: webrender::display_list_flattener: Unknown pipeline used for iframe IframeDisplayItem { clip_id: Clip(2, PipelineId(0, 1)), pipeline_id: PipelineId(1, 2) }
+  │ fetch async requesting resource: file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ processing fetch msg at: 55544793709430
+  │ spawning fetch thread for file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ start time: 55544793900165
+  │ zero redirects? 0
+  │ done at 55544798680228
+  │ 
+  │ fetch async requesting resource: file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ processing fetch msg at: 55544812548011
+  │ spawning fetch thread for file:///Users/ddh/mozilla/servo/servo-1/resources/ahem/AHEM____.TTF
+  │ start time: 55544812736144
+  │ zero redirects? 0
+  │ done at 55544818203930
+  └ 
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ TIMEOUT [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (link)
+  └   → Test timed out
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct order of timing attributes (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct network transfer attributes (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  └ NOTRUN [expected PASS] PerformanceEntry has correct protocol attribute (link)
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (xmlhttprequest)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:177:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:174:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (iframe)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (img)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (script)
+  │   → actual is undefined
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:213:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:211:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (xmlhttprequest)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:187:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:185:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (iframe)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (img)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct name, initiatorType, startTime, and duration (script)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:177:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:174:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (xmlhttprequest)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:225:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:223:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct network transfer attributes (xmlhttprequest)
+  │   → actual is undefined
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:213:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:211:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (xmlhttprequest)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:160:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:158:5
+  └ onload/xmlhttp.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:111:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (iframe)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (img)
+  │   → actual is undefined
+  │ FAIL [expected PASS] PerformanceEntry has correct protocol attribute (script)
+  │   → actual is undefined
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:225:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:223:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (iframe)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (img)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ FAIL [expected PASS] window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (script)
+  │   → assert_equals: should have a single entry for each resource (without type) expected 1 but got 0
+  │ 
+  │ resource_load/<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:160:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:158:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+
+  ▶ Unexpected subtest result in /resource-timing/test_resource_timing.html:
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (iframe)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (img)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ FAIL [expected PASS] PerformanceEntry has correct order of timing attributes (script)
+  │   → assert_equals: There should be a single matching entry expected 1 but got 0
+  │ 
+  │ test@http://web-platform.test:8000/resource-timing/test_resource_timing.js:187:9
+  │ Test.prototype.step@http://web-platform.test:8000/resources/testharness.js:1490:20
+  │ resource_load@http://web-platform.test:8000/resource-timing/test_resource_timing.js:185:5
+  └ onload/element.onload</<@http://web-platform.test:8000/resource-timing/test_resource_timing.js:118:21
+

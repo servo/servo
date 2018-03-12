@@ -10,14 +10,10 @@ typedef double DOMHighResTimeStamp;
 typedef sequence<PerformanceEntry> PerformanceEntryList;
 
 [Exposed=(Window, Worker)]
-interface Performance {
+interface Performance : EventTarget {
   DOMHighResTimeStamp now();
-};
-
-[Exposed=(Window)]
-partial interface Performance {
-  readonly attribute PerformanceTiming timing;
-  /*  readonly attribute PerformanceNavigation navigation; */
+  readonly attribute DOMHighResTimeStamp timeOrigin;
+  // [Default] object toJSON();
 };
 
 // https://w3c.github.io/performance-timeline/#extensions-to-the-performance-interface
@@ -38,4 +34,11 @@ partial interface Performance {
   [Throws]
   void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
   void clearMeasures(optional DOMString measureName);
+};
+
+// FIXME(avada): this should be deprecated, but is currently included for web compat
+// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
+[Exposed=(Window)]
+partial interface Performance {
+  PerformanceNavigationTiming timing();
 };
