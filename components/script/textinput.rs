@@ -379,11 +379,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             usize::MAX
         };
-        
+
         // If len_of_first_n_code_units returns None, we are over allowed_to_insert_count
         let last_char_index_opt = len_of_first_n_code_units(&*insert, allowed_to_insert_count);
         self.clear_selection();
-        if last_char_index_opt.is_some() {    
+        if last_char_index_opt.is_some() {
             let chars_to_insert = &insert[..last_char_index_opt.unwrap()];
 
             let new_lines = {
@@ -420,7 +420,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             self.lines = new_lines;
         }
         self.assert_ok_selection();
-    
+
     }
 
     /// Return the length in UTF-8 bytes of the current line under the editing point.
