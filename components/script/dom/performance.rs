@@ -16,8 +16,8 @@ use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
 use dom::performancemark::PerformanceMark;
 use dom::performancemeasure::PerformanceMeasure;
+use dom::performancenavigationtiming::PerformanceNavigationTiming;
 use dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
-use dom::performancetiming::PerformanceTiming;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use metrics::ToMs;
@@ -111,7 +111,7 @@ struct PerformanceObserver {
 #[dom_struct]
 pub struct Performance {
     reflector_: Reflector,
-    timing: Option<Dom<PerformanceTiming>>,
+    navigation_timing: Option<Dom<PerformanceNavigationTiming>>,
     entries: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
@@ -124,8 +124,8 @@ impl Performance {
                      navigation_start_precise: u64) -> Performance {
         Performance {
             reflector_: Reflector::new(),
-            timing: if global.is::<Window>() {
-                Some(Dom::from_ref(&*PerformanceTiming::new(global.as_window(),
+            navigation_timing: if global.is::<Window>() {
+                Some(Dom::from_ref(&*PerformanceNavigationTiming::new(global.as_window(),
                                                            navigation_start,
                                                            navigation_start_precise)))
             } else {
@@ -249,7 +249,7 @@ impl Performance {
     }
 
     fn now(&self) -> f64 {
-        let nav_start = match self.timing {
+        let nav_start = match self.navigation_timing {
             Some(ref timing) => timing.navigation_start_precise(),
             None => self.navigation_start_precise,
         };
@@ -259,12 +259,12 @@ impl Performance {
 
 impl PerformanceMethods for Performance {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
-    fn Timing(&self) -> DomRoot<PerformanceTiming> {
-        match self.timing {
+    /* fn NavigationTiming(&self) -> DomRoot<PerformanceNavigationTiming> {
+        match self.navigation_timing {
             Some(ref timing) => DomRoot::from_ref(&*timing),
             None => unreachable!("Are we trying to expose Performance.timing in workers?"),
         }
-    }
+    } */
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
