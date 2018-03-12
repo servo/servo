@@ -28,6 +28,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::is_forbidden_header_name;
 use crate::dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use crate::dom::node::Node;
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::urlsearchparams::URLSearchParams;
@@ -36,7 +37,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -60,6 +61,7 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
@@ -95,6 +97,7 @@ struct XHRContext {
     gen_id: GenerationId,
     buf: DomRefCell<Vec<u8>>,
     sync_status: DomRefCell<Option<ErrorResult>>,
+    resource_timing: ResourceFetchTiming,
 }
 
 #[derive(Clone)]
@@ -257,12 +260,34 @@ impl XMLHttpRequest {
                     .process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+            fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
                 let rv = self
                     .xhr
                     .root()
-                    .process_response_complete(self.gen_id, response);
+                    .process_response_complete(self.gen_id, response.map(|_| ()));
                 *self.sync_status.borrow_mut() = Some(rv);
+            }
+
+            fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+                &mut self.resource_timing
+            }
+
+            fn resource_timing(&self) -> &ResourceFetchTiming {
+                &self.resource_timing
+            }
+
+            fn submit_resource_timing(&mut self) {
+                network_listener::submit_timing(self)
+            }
+        }
+
+        impl ResourceTimingListener for XHRContext {
+            fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+                (InitiatorType::XMLHttpRequest, self.resource_timing_global().get_url().clone())
+            }
+
+            fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+                self.xhr.root().global()
             }
         }
 
@@ -1424,6 +1449,7 @@ impl XMLHttpRequest {
             gen_id: self.generation_id.get(),
             buf: DomRefCell::new(vec![]),
             sync_status: DomRefCell::new(None),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
 
         let (task_source, script_port) = if self.sync.get() {

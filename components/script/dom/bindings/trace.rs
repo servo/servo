@@ -80,7 +80,7 @@ use net_traits::request::{Request, RequestInit};
 use net_traits::response::HttpsState;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -466,6 +466,7 @@ unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamTy
 unsafe_no_jsmanaged_fields!(dyn Player<Error = ServoMediaError>);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
+unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

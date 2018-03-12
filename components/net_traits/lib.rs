@@ -35,6 +35,7 @@ use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
 use servo_url::ServoUrl;
 use std::error::Error;
+use time::precise_time_ns;
 use url::percent_encoding;
 
 pub mod blob_url_store;
@@ -157,7 +158,7 @@ pub enum FetchResponseMsg {
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(Vec<u8>),
-    ProcessResponseEOF(Result<(), NetworkError>),
+    ProcessResponseEOF(Result<ResourceFetchTiming, NetworkError>),
 }
 
 pub trait FetchTaskTarget {
@@ -207,7 +208,10 @@ pub trait FetchResponseListener {
     fn process_request_eof(&mut self);
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>);
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>);
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>);
+    fn resource_timing(&self) -> &ResourceFetchTiming;
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming;
+    fn submit_resource_timing(&mut self);
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
@@ -231,7 +235,7 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         if let Some(e) = response.get_network_error() {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
         } else {
-            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(response.get_resource_timing().clone())));
         }
     }
 }
@@ -248,7 +252,25 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessRequestEOF => listener.process_request_eof(),
             FetchResponseMsg::ProcessResponse(meta) => listener.process_response(meta),
             FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
-            FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
+            FetchResponseMsg::ProcessResponseEOF(data) => {
+                match data {
+                    Ok(ref response_resource_timing) => {
+                        // update listener with values from response
+                        *listener.resource_timing_mut() = response_resource_timing.clone();
+                        listener.process_response_eof(Ok(response_resource_timing.clone()));
+                        // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
+
+                        listener.submit_resource_timing();
+                    },
+                    // TODO Resources for which the fetch was initiated, but was later aborted
+                    // (e.g. due to a network error) MAY be included as PerformanceResourceTiming
+                    // objects in the Performance Timeline and MUST contain initialized attribute
+                    // values for processed substeps of the processing model.
+                    Err(e) => {
+                        listener.process_response_eof(Err(e))
+                    },
+                }
+            },
         }
     }
 }
@@ -418,6 +440,55 @@ pub struct ResourceCorsData {
     pub origin: ServoUrl,
 }
 
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ResourceFetchTiming {
+    pub timing_type: ResourceTimingType,
+    /// Number of redirects until final resource (currently limited to 20)
+    pub redirect_count: u16,
+    pub request_start: u64,
+    pub response_start: u64,
+    // pub response_end: u64,
+    // pub redirect_start: u64,
+    // pub redirect_end: u64,
+    // pub connect_start: u64,
+    // pub connect_end: u64,
+}
+
+pub enum ResourceAttribute {
+    RedirectCount(u16),
+    RequestStart,
+    ResponseStart,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum ResourceTimingType {
+    Resource,
+    Navigation,
+    Error,
+    None,
+}
+
+impl ResourceFetchTiming {
+    pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
+        ResourceFetchTiming {
+            timing_type: timing_type,
+            redirect_count: 0,
+            request_start: 0,
+            response_start: 0,
+        }
+    }
+
+    // TODO currently this is being set with precise time ns when it should be time since
+    // time origin (as described in Performance::now)
+    pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
+        match attribute {
+            ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
+            ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
+            ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
+        }
+    }
+}
+
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct Metadata {
@@ -449,6 +520,8 @@ pub struct Metadata {
 
     /// Referrer Policy of the Request used to obtain Response
     pub referrer_policy: Option<ReferrerPolicy>,
+    /// Performance information for navigation events
+    pub timing: Option<ResourceFetchTiming>,
 }
 
 impl Metadata {
@@ -465,6 +538,7 @@ impl Metadata {
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,
+            timing: None,
         }
     }
 
@@ -523,7 +597,7 @@ pub fn load_whole_resource(
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
-            FetchResponseMsg::ProcessResponseEOF(Ok(())) => return Ok((metadata.unwrap(), buf)),
+            FetchResponseMsg::ProcessResponseEOF(Ok(_)) => return Ok((metadata.unwrap(), buf)),
             FetchResponseMsg::ProcessResponse(Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
         }

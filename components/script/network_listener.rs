@@ -2,10 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::performanceentry::PerformanceEntry;
+use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
-use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Action, FetchResponseListener, FetchResponseMsg, ResourceTimingType};
+use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
@@ -14,6 +20,29 @@ pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<Listener>>,
     pub task_source: NetworkingTaskSource,
     pub canceller: Option<TaskCanceller>,
+}
+
+pub trait ResourceTimingListener {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl);
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
+}
+
+pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &T) {
+    if listener.resource_timing().timing_type != ResourceTimingType::Resource {
+        warn!("Submitting non-resource ({:?}) timing as resource", listener.resource_timing().timing_type);
+        return;
+    }
+
+    let (initiator_type, url) = listener.resource_timing_information();
+    if initiator_type == InitiatorType::Other {
+        warn!("Ignoring InitiatorType::Other resource {:?}", url);
+        return;
+    }
+
+    let global = listener.resource_timing_global();
+    let performance_entry = PerformanceResourceTiming::new(
+        &global, url, initiator_type, None, &listener.resource_timing());
+    global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {

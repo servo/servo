@@ -25,6 +25,7 @@ use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attri
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -33,27 +34,30 @@ use crate::dom::htmlpictureelement::HTMLPictureElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use cssparser::{Parser, ParserInput};
+
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::request::RequestInit;
-use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use num_traits::ToPrimitive;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
@@ -164,6 +168,11 @@ struct ImageContext {
     id: PendingImageId,
     /// Used to mark abort
     aborted: Cell<bool>,
+    /// The document associated with this request
+    doc: Trusted<Document>,
+    /// timing data for this resource
+    resource_timing: ResourceFetchTiming,
+    url: ServoUrl,
 }
 
 impl FetchResponseListener for ImageContext {
@@ -213,9 +222,32 @@ impl FetchResponseListener for ImageContext {
         }
     }
 
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(response));
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for ImageContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::LocalName("img".to_string()), self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.doc.root().global()
     }
 }
 
@@ -306,6 +338,9 @@ impl HTMLImageElement {
             status: Ok(()),
             id: id,
             aborted: Cell::new(false),
+            doc: Trusted::new(&document),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            url: img_url.clone(),
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

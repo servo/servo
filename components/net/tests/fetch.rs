@@ -33,6 +33,7 @@ use net::fetch::methods::{CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
+use net_traits::{IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::IncludeSubdomains;
@@ -127,7 +128,7 @@ fn test_fetch_blob() {
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
@@ -147,7 +148,7 @@ fn test_fetch_blob() {
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.to_simple())).unwrap();
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);
-    let fetch_response = fetch_with_context(&mut request, &context);
+    let fetch_response = fetch_with_context(&mut request, &mut context);
 
     assert!(!fetch_response.is_network_error());
 
@@ -649,12 +650,13 @@ fn test_fetch_with_hsts() {
         .unwrap();
     let ssl_client = create_ssl_connector_builder(&ca_content);
 
-    let context = FetchContext {
+    let mut context = FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy()),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(ResourceTimingType::Navigation)))
     };
 
     {
@@ -668,7 +670,7 @@ fn test_fetch_with_hsts() {
     request.referrer = Referrer::NoReferrer;
     // Set the flag.
     request.local_urls_only = false;
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
     server.close();
     assert_eq!(
         response.internal_response.unwrap().url().unwrap().scheme(),

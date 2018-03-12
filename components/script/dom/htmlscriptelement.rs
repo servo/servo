@@ -23,16 +23,18 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -166,6 +168,8 @@ struct ScriptContext {
     url: ServoUrl,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
+    /// Timing object for this resource
+    resource_timing: ResourceFetchTiming,
 }
 
 impl FetchResponseListener for ScriptContext {
@@ -208,7 +212,7 @@ impl FetchResponseListener for ScriptContext {
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
         // Step 5.
         let load = response.and(self.status.clone()).map(|_| {
             let metadata = self.metadata.take().unwrap();
@@ -240,6 +244,30 @@ impl FetchResponseListener for ScriptContext {
         }
 
         document.finish_load(LoadType::Script(self.url.clone()));
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for ScriptContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem.root().upcast::<Element>().local_name().to_string());
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        (document_from_node(&*self.elem.root()).global())
     }
 }
 
@@ -290,6 +318,7 @@ fn fetch_a_classic_script(
         metadata: None,
         url: url.clone(),
         status: Ok(()),
+        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();

@@ -6,13 +6,16 @@ use crate::document_loader::LoadType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use ipc_channel::ipc;
@@ -22,6 +25,7 @@ use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestIni
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
 };
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -79,6 +83,7 @@ pub struct StylesheetContext {
     /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
+    resource_timing: ResourceFetchTiming,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -108,7 +113,7 @@ impl FetchResponseListener for StylesheetContext {
         self.data.append(&mut payload);
     }
 
-    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
         let elem = self.elem.root();
         let document = self.document.root();
         let mut successful = false;
@@ -207,6 +212,30 @@ impl FetchResponseListener for StylesheetContext {
             elem.upcast::<EventTarget>().fire_event(event);
         }
     }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for StylesheetContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem.root().upcast::<Element>().local_name().to_string());
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        document_from_node(&*self.elem.root()).global()
+    }
 }
 
 pub struct StylesheetLoader<'a> {
@@ -241,6 +270,7 @@ impl<'a> StylesheetLoader<'a> {
             document: Trusted::new(&*document),
             origin_clean: true,
             request_generation_id: gen,
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

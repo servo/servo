@@ -16,8 +16,9 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::fetch::FetchCanceller;
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
@@ -34,6 +35,7 @@ use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
 use net_traits::{FetchResponseListener, FetchResponseMsg, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -91,6 +93,8 @@ struct EventSourceContext {
     event_type: String,
     data: String,
     last_event_id: String,
+
+    resource_timing: ResourceFetchTiming,
 }
 
 impl EventSourceContext {
@@ -398,11 +402,33 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
         if let Some(_) = self.incomplete_utf8.take() {
             self.parse("\u{FFFD}".chars());
         }
         self.reestablish_the_connection();
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for EventSourceContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+         (InitiatorType::Other, self.event_source.root().url().clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.event_source.root().global()
     }
 }
 
@@ -461,6 +487,10 @@ impl EventSource {
 
     pub fn request(&self) -> RequestInit {
         self.request.borrow().clone().unwrap()
+    }
+
+    pub fn url(&self) -> &ServoUrl {
+        &self.url
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource
@@ -533,6 +563,7 @@ impl EventSource {
             event_type: String::new(),
             data: String::new(),
             last_event_id: String::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),

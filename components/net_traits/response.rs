@@ -5,6 +5,7 @@
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
 use crate::{FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use crate::{ResourceFetchTiming, ResourceTimingType};
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlExposeHeaders, ContentType};
 use http::{HeaderMap, StatusCode};
@@ -119,10 +120,12 @@ pub struct Response {
     /// https://fetch.spec.whatwg.org/#concept-response-aborted
     #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
     pub aborted: Arc<AtomicBool>,
+    /// track network metrics
+    pub resource_timing: ResourceFetchTiming,
 }
 
 impl Response {
-    pub fn new(url: ServoUrl) -> Response {
+    pub fn new(url: ServoUrl, resource_timing: ResourceFetchTiming) -> Response {
         Response {
             response_type: ResponseType::Default,
             termination_reason: None,
@@ -141,11 +144,12 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
+            resource_timing: resource_timing,
         }
     }
 
-    pub fn from_init(init: ResponseInit) -> Response {
-        let mut res = Response::new(init.url);
+    pub fn from_init(init: ResponseInit, resource_timing_type: ResourceTimingType) -> Response {
+        let mut res = Response::new(init.url, ResourceFetchTiming::new(resource_timing_type));
         res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;
@@ -174,6 +178,7 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Error),
         }
     }
 
@@ -217,6 +222,10 @@ impl Response {
         } else {
             self
         }
+    }
+
+    pub fn get_resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
     }
 
     /// Convert to a filtered response, of type `filter_type`.
