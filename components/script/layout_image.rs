@@ -7,11 +7,17 @@
 //! no guarantee that the responsible nodes will still exist in the future if the
 //! layout thread holds on to them during asynchronous operations.
 
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::str::DOMString;
+use dom::document::Document;
 use dom::node::{Node, document_from_node};
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError};
+use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError, ResourceFetchTiming};
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestInit as FetchRequestInit};
 use network_listener::{NetworkListener, PreInvoke};
@@ -21,6 +27,8 @@ use std::sync::{Arc, Mutex};
 struct LayoutImageContext {
     id: PendingImageId,
     cache: Arc<ImageCache>,
+    resource_timing: ResourceFetchTiming,
+    doc: Trusted<Document>,
 }
 
 impl FetchResponseListener for LayoutImageContext {
@@ -39,8 +47,22 @@ impl FetchResponseListener for LayoutImageContext {
     }
 
     fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+        // TODO notify_pending_response doesn't use the ResourceFetchTiming
         self.cache.notify_pending_response(self.id,
-                                           FetchResponseMsg::ProcessResponseEOF(response));
+                                           FetchResponseMsg::ProcessResponseEOF(
+                                           response.map(|_| ResourceFetchTiming::new())));
+    }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        let local_name = DOMString::from("other");
+        let global = self.doc.root().global();
+        let entry = PerformanceResourceTiming::new(
+            &global, global.get_url().clone(), local_name, None, &self.resource_timing);
+        global.performance().queue_entry(entry.upcast::<PerformanceEntry>(), false);
     }
 }
 
@@ -50,13 +72,15 @@ pub fn fetch_image_for_layout(url: ServoUrl,
                               node: &Node,
                               id: PendingImageId,
                               cache: Arc<ImageCache>) {
+    let document = document_from_node(node);
+    let window = document.window();
+
     let context = Arc::new(Mutex::new(LayoutImageContext {
         id: id,
         cache: cache,
+        resource_timing: ResourceFetchTiming::new(),
+        doc: Trusted::new(&document),
     }));
-
-    let document = document_from_node(node);
-    let window = document.window();
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let listener = NetworkListener {

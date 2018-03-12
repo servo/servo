@@ -11,9 +11,12 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom::promise::Promise;
 use dom::request::Request;
 use dom::response::Response;
@@ -21,7 +24,7 @@ use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
-use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
+use net_traits::{FetchChannels, FetchResponseListener, NetworkError, ResourceFetchTiming};
 use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
@@ -36,6 +39,8 @@ struct FetchContext {
     fetch_promise: Option<TrustedPromise>,
     response_object: Trusted<Response>,
     body: Vec<u8>,
+    resource_timing: ResourceFetchTiming,
+    global: Trusted<GlobalScope>,
 }
 
 /// RAII fetch canceller object. By default initialized to not having a canceller
@@ -150,6 +155,8 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
         body: vec![],
+        resource_timing: ResourceFetchTiming::new(),
+        global: Trusted::new(global),
     }));
     let listener = NetworkListener {
         context: fetch_context,
@@ -179,6 +186,7 @@ impl FetchResponseListener for FetchContext {
 
     #[allow(unrooted_must_root)]
     fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
+        println!("fetch process response");
         let promise = self.fetch_promise.take().expect("fetch promise is missing").root();
 
         // JSAutoCompartment needs to be manually made.
@@ -234,6 +242,18 @@ impl FetchResponseListener for FetchContext {
         response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.
+    }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        let local_name = DOMString::from("fetch");
+        let global = self.global.root();
+        let performance_entry = PerformanceResourceTiming::new(
+            &global, global.get_url().clone(), local_name, None, &self.resource_timing);
+        global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
     }
 }
 

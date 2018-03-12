@@ -690,8 +690,8 @@ impl HttpCache {
         let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
                filtered: _,
-               unsafe_: metadata }) |
-            Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
+               unsafe_: m }) |
+            Ok(FetchMetadata::Unfiltered(m)) => m,
             _ => return,
         };
         if !response_is_cacheable(&metadata) {

@@ -7,12 +7,15 @@ use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use encoding_rs::UTF_8;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -20,13 +23,14 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::ResourceFetchTiming;
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::mem;
-use std::sync::Mutex;
+use std::sync:: Mutex;
 use std::sync::atomic::AtomicBool;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
@@ -77,6 +81,7 @@ pub struct StylesheetContext {
     /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
+    resource_timing: ResourceFetchTiming,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -100,10 +105,11 @@ impl FetchResponseListener for StylesheetContext {
 
         self.metadata = metadata.ok().map(|m| {
             match m {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                FetchMetadata::Unfiltered(m)  => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
             }
         });
+
     }
 
     fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
@@ -192,6 +198,20 @@ impl FetchResponseListener for StylesheetContext {
             elem.upcast::<EventTarget>().fire_event(event);
         }
     }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        let elem = self.elem.root();
+        let document = document_from_node(&*elem);
+
+        let local_name = DOMString::from(&**elem.upcast::<Element>().local_name());
+        let performance_entry = PerformanceResourceTiming::new(
+            &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
+        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+    }
 }
 
 pub struct StylesheetLoader<'a> {
@@ -222,6 +242,7 @@ impl<'a> StylesheetLoader<'a> {
             document: Trusted::new(&*document),
             origin_clean: true,
             request_generation_id: gen,
+            resource_timing: ResourceFetchTiming::new(),
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

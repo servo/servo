@@ -66,7 +66,7 @@ use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId};
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageCache, PendingImageId};
@@ -424,6 +424,7 @@ unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(CanvasId);
+unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

@@ -4,7 +4,7 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
@@ -117,6 +117,8 @@ pub struct Response {
     /// https://fetch.spec.whatwg.org/#concept-response-aborted
     #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
     pub aborted: Arc<AtomicBool>,
+    /// track network metrics
+    resource_timing: ResourceFetchTiming,
 }
 
 impl Response {
@@ -139,6 +141,7 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
+            resource_timing: ResourceFetchTiming::new(),    // TODO is there a way to initialize this?
         }
     }
 
@@ -169,6 +172,7 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
+            resource_timing: ResourceFetchTiming::new(),
         }
     }
 
@@ -212,6 +216,14 @@ impl Response {
         } else {
             self
         }
+    }
+
+    pub fn get_resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    pub fn get_resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
     }
 
     /// Convert to a filtered response, of type `filter_type`.
@@ -318,22 +330,22 @@ impl Response {
                     match self.response_type {
                         ResponseType::Basic => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Basic(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Cors => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Cors(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Default => unreachable!(),
                         ResponseType::Error(ref network_err) =>
                             Err(network_err.clone()),
                         ResponseType::Opaque => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Opaque,
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::OpaqueRedirect => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::OpaqueRedirect,
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         })
                     }
                 },

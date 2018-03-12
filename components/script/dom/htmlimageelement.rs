@@ -31,6 +31,8 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlmapelement::HTMLMapElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom::progressevent::ProgressEvent;
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
@@ -41,7 +43,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
-use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
+use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg, ResourceFetchTiming};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
@@ -141,6 +143,11 @@ struct ImageContext {
     status: Result<(), NetworkError>,
     /// The cache ID for this request.
     id: PendingImageId,
+    /// The document associated with this request
+    doc: Trusted<Document>,
+    /// timing data for this resource
+    resource_timing: ResourceFetchTiming,
+    url: ServoUrl,
 }
 
 impl FetchResponseListener for ImageContext {
@@ -152,10 +159,12 @@ impl FetchResponseListener for ImageContext {
             self.id,
             FetchResponseMsg::ProcessResponse(metadata.clone()));
 
-        let metadata = metadata.ok().map(|meta| {
-            match meta {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+        let metadata = metadata.ok().map(|m| {
+            match m {
+                FetchMetadata::Unfiltered(m) => {
+                    m },
+                FetchMetadata::Filtered { unsafe_, .. } => {
+                    unsafe_ },
             }
         });
 
@@ -179,9 +188,22 @@ impl FetchResponseListener for ImageContext {
     }
 
     fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+        // notify_pending_response doesn't use the resource timing
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(response));
+            FetchResponseMsg::ProcessResponseEOF(response.map(|_| ResourceFetchTiming::new())));
+    }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        let local_name = DOMString::from("img");
+        let global = self.doc.root().global();
+        let entry = PerformanceResourceTiming::new(
+            &global, self.url.clone(), local_name, None, &self.resource_timing);
+        global.performance().queue_entry(entry.upcast::<PerformanceEntry>(), false);
     }
 }
 
@@ -260,6 +282,9 @@ impl HTMLImageElement {
             image_cache: window.image_cache(),
             status: Ok(()),
             id: id,
+            doc: Trusted::new(&document),
+            resource_timing: ResourceFetchTiming::new(),
+            url: img_url.clone(),
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

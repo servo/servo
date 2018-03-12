@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoParserBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::settings_stack::is_execution_stack_empty;
 use dom::bindings::str::DOMString;
@@ -26,6 +26,8 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
@@ -39,7 +41,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use msg::constellation_msg::PipelineId;
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming};
 use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
@@ -591,6 +593,8 @@ pub struct ParserContext {
     id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
+    /// timing data for this resource
+    resource_timing: ResourceFetchTiming,
 }
 
 impl ParserContext {
@@ -600,6 +604,7 @@ impl ParserContext {
             is_synthesized_document: false,
             id: id,
             url: url,
+            resource_timing: ResourceFetchTiming::new(),
         }
     }
 }
@@ -735,6 +740,23 @@ impl FetchResponseListener for ParserContext {
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
             parser.parse_sync();
+        }
+    }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        match self.parser {
+            Some(ref parser) => {
+                let document = &*parser.root().document;
+                let local_name = DOMString::from("other");
+                let performance_entry = PerformanceResourceTiming::new(
+                    &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
+                document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+            },
+            None => ()
         }
     }
 }

@@ -82,14 +82,14 @@ pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: &mut Request,
              target: Target,
-             context: &FetchContext) {
+             context: &mut FetchContext) {
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
 pub fn fetch_with_cors_cache(request: &mut Request,
                              cache: &mut CorsCache,
                              target: Target,
-                             context: &FetchContext) {
+                             context: &mut FetchContext) {
     // Step 1.
     if request.window == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
@@ -121,7 +121,7 @@ pub fn fetch_with_cors_cache(request: &mut Request,
     }
 
     // Step 8.
-    main_fetch(request, cache, false, false, target, &mut None, &context);
+    main_fetch(request, cache, false, false, target, &mut None, context);
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -131,7 +131,7 @@ pub fn main_fetch(request: &mut Request,
                   recursive_flag: bool,
                   target: Target,
                   done_chan: &mut DoneChannel,
-                  context: &FetchContext)
+                  context: &mut FetchContext)
                   -> Response {
     // Step 1.
     let mut response = None;
@@ -452,7 +452,7 @@ fn scheme_fetch(request: &mut Request,
                cache: &mut CorsCache,
                target: Target,
                done_chan: &mut DoneChannel,
-               context: &FetchContext)
+               context: &mut FetchContext)
                -> Response {
     let url = request.current_url();
 

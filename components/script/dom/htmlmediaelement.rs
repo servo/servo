@@ -28,6 +28,8 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -36,7 +38,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, SubLevel, TopLevel};
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
+use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::ScriptThread;
@@ -988,6 +990,8 @@ struct HTMLMediaElementContext {
     have_metadata: bool,
     /// True if this response is invalid and should be ignored.
     ignore_response: bool,
+    /// timing data for this resource
+    resource_timing: ResourceFetchTiming,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -997,6 +1001,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        println!("media process response");
         self.metadata = metadata.ok().map(|m| {
             match m {
                 FetchMetadata::Unfiltered(m) => m,
@@ -1090,6 +1095,23 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.queue_dedicated_media_source_failure_steps();
         }
     }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        let elem = self.elem.root();
+        let document = document_from_node(&*elem);
+        // TODO this isn't always a url
+        // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
+        let url = ServoUrl::parse(&elem.current_src.borrow()).unwrap();
+
+        let local_name = DOMString::from(&**elem.upcast::<Element>().local_name());
+        let performance_entry = PerformanceResourceTiming::new(
+           &document.global(), url, local_name, None, &self.resource_timing);
+        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+    }
 }
 
 impl PreInvoke for HTMLMediaElementContext {
@@ -1109,6 +1131,7 @@ impl HTMLMediaElementContext {
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             have_metadata: false,
             ignore_response: false,
+            resource_timing: ResourceFetchTiming::new(),
         }
     }
 

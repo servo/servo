@@ -67,7 +67,6 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
      ResourceThreads::new(private_core, storage))
 }
 
-
 /// Create a CoreResourceThread
 pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -413,7 +412,7 @@ impl CoreResourceManager {
             // todo load context / mimesniff in fetch
             // todo referrer policy?
             // todo service worker stuff
-            let context = FetchContext {
+            let mut context = FetchContext {
                 state: http_state,
                 user_agent: ua,
                 devtools_chan: dc,
@@ -430,9 +429,9 @@ impl CoreResourceManager {
                                         true,
                                         &mut sender,
                                         &mut None,
-                                        &context);
+                                        &mut context);
                 },
-                None => fetch(&mut request, &mut sender, &context),
+                None => fetch(&mut request, &mut sender, &mut context),
             };
         }).expect("Thread spawning failed");
     }

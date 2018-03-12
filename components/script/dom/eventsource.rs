@@ -14,6 +14,8 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom_struct::dom_struct;
 use euclid::Length;
 use hyper::header::{Accept, qitem};
@@ -24,7 +26,7 @@ use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
-use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
+use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError, ResourceFetchTiming};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
@@ -88,6 +90,9 @@ struct EventSourceContext {
     event_type: String,
     data: String,
     last_event_id: String,
+
+    resource_timing: ResourceFetchTiming,
+    global: Trusted<GlobalScope>,
 }
 
 impl EventSourceContext {
@@ -329,6 +334,7 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        println!("eventsource process response");
         match metadata {
             Ok(fm) => {
                 let meta = match fm {
@@ -389,6 +395,18 @@ impl FetchResponseListener for EventSourceContext {
             self.parse("\u{FFFD}".chars());
         }
         self.reestablish_the_connection();
+    }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        let local_name = DOMString::from("other");
+        let global = self.global.root();
+        let performance_entry = PerformanceResourceTiming::new(
+            &global, global.get_url().clone(), local_name, None, &self.resource_timing);
+        global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
     }
 }
 
@@ -481,6 +499,8 @@ impl EventSource {
             event_type: String::new(),
             data: String::new(),
             last_event_id: String::new(),
+            resource_timing: ResourceFetchTiming::new(),
+            global: Trusted::new(global),
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),

@@ -21,6 +21,8 @@ use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -28,7 +30,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
@@ -153,7 +155,10 @@ struct ScriptContext {
     /// The initial URL requested.
     url: ServoUrl,
     /// Indicates whether the request failed, and why
-    status: Result<(), NetworkError>
+    status: Result<(), NetworkError>,
+
+    /// Timing object for this resource
+    resource_timing: ResourceFetchTiming,
 }
 
 impl FetchResponseListener for ScriptContext {
@@ -220,6 +225,20 @@ impl FetchResponseListener for ScriptContext {
 
         document.finish_load(LoadType::Script(self.url.clone()));
     }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&self) {
+        let elem = self.elem.root();
+        let document = document_from_node(&*elem);
+
+        let local_name = DOMString::from(&**elem.upcast::<Element>().local_name());
+        let performance_entry = PerformanceResourceTiming::new(
+            &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
+        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+    }
 }
 
 impl PreInvoke for ScriptContext {}
@@ -266,7 +285,8 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         data: vec!(),
         metadata: None,
         url: url.clone(),
-        status: Ok(())
+        status: Ok(()),
+        resource_timing: ResourceFetchTiming::new(),
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
