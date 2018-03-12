@@ -14,7 +14,7 @@
 // Connect the PeerConnection to another PC and wait until it is
 // properly connected, so that DTMF can be sent.
 function createDtmfSender(pc = new RTCPeerConnection()) {
-  var dtmfSender;
+  let dtmfSender;
   return getTrackFromUserMedia('audio')
   .then(([track, mediaStream]) => {
     const sender = pc.addTrack(track, mediaStream);
@@ -28,6 +28,9 @@ function createDtmfSender(pc = new RTCPeerConnection()) {
     exchangeIceCandidates(pc, pc2);
     return doSignalingHandshake(pc, pc2);
   }).then(() => {
+    if (!('canInsertDTMF' in dtmfSender)) {
+      return Promise.resolve();
+    }
     // Wait until dtmfSender.canInsertDTMF becomes true.
     // Up to 150 ms has been observed in test. Wait 1 second
     // in steps of 10 ms.
@@ -35,7 +38,7 @@ function createDtmfSender(pc = new RTCPeerConnection()) {
     // make test return a clear error message on failure.
     return new Promise((resolve, reject) => {
       let counter = 0;
-      let checkfunc = function() {
+      step_timeout(function checkCanInsertDTMF() {
         if (dtmfSender.canInsertDTMF) {
           resolve();
         } else {
@@ -44,14 +47,11 @@ function createDtmfSender(pc = new RTCPeerConnection()) {
             return;
           }
           ++counter;
-          step_timeout(checkfunc, 10);
+          step_timeout(checkCanInsertDTMF, 10);
         }
-      };
-      checkfunc();
+      }, 0);
     });
   }).then(() => {
-    assert_true(dtmfSender.canInsertDTMF,
-                'Failed to create usable dtmfSender:');
     return dtmfSender;
   });
 }
