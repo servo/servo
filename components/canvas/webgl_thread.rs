@@ -758,6 +758,8 @@ impl WebGLImpl {
                 Self::buffer_parameter(ctx.gl(), target, param_id, chan),
             WebGLCommand::GetParameter(param_id, chan) =>
                 Self::parameter(ctx.gl(), param_id, chan),
+            WebGLCommand::GetTexParameter(target, pname, chan) =>
+                Self::get_tex_parameter(ctx.gl(), target, pname, chan),
             WebGLCommand::GetProgramParameter(program_id, param_id, chan) =>
                 Self::program_parameter(ctx.gl(), program_id, param_id, chan),
             WebGLCommand::GetShaderParameter(shader_id, param_id, chan) =>
@@ -1058,6 +1060,27 @@ impl WebGLImpl {
             _ => Err(WebGLError::InvalidEnum)
         };
 
+        chan.send(result).unwrap();
+    }
+
+    fn get_tex_parameter(gl: &gl::Gl,
+                       target: u32,
+                       pname: u32,
+                       chan: WebGLSender<WebGLResult<WebGLParameter>> ) {
+        let result = match pname {
+            gl::TEXTURE_MAG_FILTER |
+            gl::TEXTURE_MIN_FILTER |
+            gl::TEXTURE_WRAP_S |
+            gl::TEXTURE_WRAP_T => {
+                let parameter = gl.get_tex_parameter_iv(target, pname);
+                if parameter == 0 {
+                    Ok(WebGLParameter::Invalid)
+                } else {
+                    Ok(WebGLParameter::Int(parameter))
+                }
+            }
+            _ => Err(WebGLError::InvalidEnum)
+        };
         chan.send(result).unwrap();
     }
 

@@ -19,6 +19,9 @@ requirements:
  - tools/wptrunner/requirements_servo.txt:
       update: all
       pin: True
+ - tools/wptrunner/requirements_safari.txt:
+      update: all
+      pin: True
  - tools/wptrunner/requirements_sauce.txt:
       update: all
       pin: True
@@ -37,4 +40,3 @@ requirements:
  - tools/wpt/requirements.txt:
       update: all
       pin: True
-

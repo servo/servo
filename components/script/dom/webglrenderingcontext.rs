@@ -224,8 +224,12 @@ impl WebGLRenderingContext {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 
+        let webgl_chan = match window.webgl_chan() {
+            Some(chan) => chan,
+            None => return Err("WebGL initialization failed early on".into()),
+        };
+
         let (sender, receiver) = webgl_channel().unwrap();
-        let webgl_chan = window.webgl_chan();
         webgl_chan.send(WebGLMsg::CreateContext(webgl_version, size, attrs, sender))
                   .unwrap();
         let result = receiver.recv().unwrap();
@@ -1333,6 +1337,37 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 rval.get()
             }
             WebGLParameter::Invalid => NullValue(),
+        }
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    unsafe fn GetTexParameter(&self, _cx: *mut JSContext, target: u32, pname: u32) -> JSVal {
+        let texture = match target {
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => self.bound_texture(target),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return NullValue();
+            }
+        };
+        if texture.is_some() {
+            let (sender, receiver) = webgl_channel().unwrap();
+            self.send_command(WebGLCommand::GetTexParameter(target, pname, sender));
+            match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+                WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Bool(_) => panic!("Texture parameter should not be bool"),
+                WebGLParameter::Float(_) => panic!("Texture parameter should not be float"),
+                WebGLParameter::FloatArray(_) => panic!("Texture parameter should not be float array"),
+                WebGLParameter::String(_) => panic!("Texture parameter should not be string"),
+                WebGLParameter::Invalid => {
+                    self.webgl_error(InvalidEnum);
+                    NullValue()
+                }
+            }
+        } else {
+            self.webgl_error(InvalidOperation);
+            NullValue()
         }
     }
 

@@ -12,7 +12,7 @@
 
   /* Properties under test. */
   --foo: bar;
-  border-radius: 2px;
+  margin-left: 2px;
 }
 
 @supports (display: layout(test)) {
@@ -30,7 +30,7 @@
 <script id="code" type="text/worklet">
 registerLayout('test', class {
   static get inputProperties() {
-    return [ '--bar', '--foo', 'align-items', 'border-top-left-radius'];
+    return [ '--bar', '--foo', 'empty-cells', 'margin-left'];
   }
 
   *intrinsicSizes() {}
@@ -38,8 +38,8 @@ registerLayout('test', class {
     const expected = [
       {property: '--bar', value: '[CSSUnparsedValue=]'},
       {property: '--foo', value: '[CSSUnparsedValue= bar]'},
-      {property: 'align-items', value: '[CSSKeywordValue=normal]'},
-      {property: 'border-top-left-radius', value: '[CSSUnitValue=2px]'},
+      {property: 'empty-cells', value: '[CSSKeywordValue=show]'},
+      {property: 'margin-left', value: '[CSSUnitValue=2px]'},
     ];
 
     const actual = Array.from(styleMap.keys()).sort().map((property) => {

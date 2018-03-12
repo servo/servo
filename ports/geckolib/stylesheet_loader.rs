@@ -13,7 +13,7 @@ use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 use style::stylesheets::import_rule::ImportSheet;
-use style::values::specified::url::SpecifiedUrl;
+use style::values::CssUrl;
 
 pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut SheetLoadData, *mut LoaderReusableStyleSheets);
 
@@ -29,7 +29,7 @@ impl StylesheetLoader {
 impl StyleStylesheetLoader for StylesheetLoader {
     fn request_stylesheet(
         &self,
-        url: SpecifiedUrl,
+        url: CssUrl,
         source_location: SourceLocation,
         _context: &ParserContext,
         lock: &SharedRwLock,

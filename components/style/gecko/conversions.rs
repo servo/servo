@@ -17,7 +17,7 @@ use gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
-use values::computed::{Angle, CalcLengthOrPercentage, ComputedUrl, Gradient, Image};
+use values::computed::{Angle, CalcLengthOrPercentage, ComputedImageUrl, Gradient, Image};
 use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage, TextAlign};
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
@@ -155,12 +155,12 @@ impl nsStyleImage {
             },
             GenericImage::Url(ref url) => {
                 unsafe {
-                    Gecko_SetLayerImageImageValue(self, url.image_value.clone().unwrap().get());
+                    Gecko_SetLayerImageImageValue(self, url.image_value.get());
                 }
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.clone().unwrap().get());
+                    Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.get());
                     Gecko_InitializeImageCropRect(self);
 
                     // Set CropRect
@@ -419,13 +419,11 @@ impl nsStyleImage {
         }
     }
 
-    unsafe fn get_image_url(self: &nsStyleImage) -> ComputedUrl {
+    unsafe fn get_image_url(self: &nsStyleImage) -> ComputedImageUrl {
         use gecko_bindings::bindings::Gecko_GetURLValue;
         let url_value = Gecko_GetURLValue(self);
-        let mut url = ComputedUrl::from_url_value_data(url_value.as_ref().unwrap())
-                                    .expect("Could not convert to ComputedUrl");
-        url.build_image_value();
-        url
+        ComputedImageUrl::from_url_value_data(url_value.as_ref().unwrap())
+            .expect("Could not convert to ComputedUrl")
     }
 
     unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {

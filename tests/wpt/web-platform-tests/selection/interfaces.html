@@ -5,58 +5,14 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
-<script type=text/plain>
-// http://w3c.github.io/selection-api/#selection-interface
-interface Selection {
-    readonly attribute Node?         anchorNode;
-    readonly attribute unsigned long anchorOffset;
-    readonly attribute Node?         focusNode;
-    readonly attribute unsigned long focusOffset;
-    readonly attribute boolean       isCollapsed;
-    readonly attribute unsigned long rangeCount;
-    readonly attribute DOMString     type;
-    Range     getRangeAt(unsigned long index);
-    void      addRange(Range range);
-    void      removeRange(Range range);
-    void      removeAllRanges();
-    void      empty();
-    void      collapse(Node? node, optional unsigned long offset = 0);
-    void      setPosition(Node? node, optional unsigned long offset = 0);
-    void      collapseToStart();
-    void      collapseToEnd();
-    void      extend(Node node, optional unsigned long offset = 0);
-    void      setBaseAndExtent(Node anchorNode,
-                               unsigned long anchorOffset,
-                               Node focusNode,
-                               unsigned long focusOffset);
-    void      selectAllChildren(Node node);
-    [CEReactions]
-    void      deleteFromDocument();
-    boolean   containsNode(Node node,
-                           optional boolean allowPartialContainment = false);
-    stringifier DOMString ();
-};
-
-partial interface Document {
-    Selection? getSelection();
-};
-
-partial interface Window {
-    Selection? getSelection();
-};
-
-partial interface GlobalEventHandlers {
-    attribute EventHandler onselectstart;
-    attribute EventHandler onselectionchange;
-};
-</script>
 <script>
 "use strict";
 
-function doTest([dom, cssom, touchevents, uievents, html]) {
+function doTest([selection, dom, cssom, touchevents, uievents, html]) {
   var idlArray = new IdlArray();
+  idlArray.add_untested_idls('interface SVGElement {};');
   idlArray.add_untested_idls(dom + cssom + touchevents + uievents + html);
-  idlArray.add_idls(document.querySelector("script[type=text\\/plain]").textContent);
+  idlArray.add_idls(selection);
   idlArray.add_objects({Selection: ['getSelection()']});
   idlArray.test();
 }
@@ -66,7 +22,8 @@ function fetchData(url) {
 }
 
 promise_test(function() {
-  return Promise.all([fetchData("/interfaces/dom.idl"),
+  return Promise.all([fetchData("/interfaces/selection-api.idl"),
+                      fetchData("/interfaces/dom.idl"),
                       fetchData("/interfaces/cssom.idl"),
                       fetchData("/interfaces/touchevents.idl"),
                       fetchData("/interfaces/uievents.idl"),

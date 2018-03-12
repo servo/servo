@@ -13,7 +13,7 @@ use style_traits::cursor::CursorKind;
 use values::generics::pointing::CaretColor as GenericCaretColor;
 use values::specified::color::Color;
 #[cfg(feature = "gecko")]
-use values::specified::url::SpecifiedUrl;
+use values::specified::url::SpecifiedImageUrl;
 
 /// The specified value for the `cursor` property.
 ///
@@ -39,7 +39,7 @@ pub struct Cursor {
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct CursorImage {
     /// The url to parse images from.
-    pub url: SpecifiedUrl,
+    pub url: SpecifiedImageUrl,
     /// The <x> and <y> coordinates.
     pub hotspot: Option<(f32, f32)>,
 }

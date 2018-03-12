@@ -52,8 +52,8 @@ mod gecko {
         MozDefaultColor,
         MozDefaultBackgroundColor,
         MozHyperlinktext,
-        MozActiveHyperlinktext,
-        MozVisitedHyperlinktext,
+        MozActivehyperlinktext,
+        MozVisitedhyperlinktext,
     }
 }
 
@@ -160,12 +160,14 @@ impl Parse for Color {
             Err(e) => {
                 #[cfg(feature = "gecko")]
                 {
-                    if let Ok(system) = input.try(SystemColor::parse) {
-                        return Ok(Color::System(system));
-                    }
+                    if let Ok(ident) = input.expect_ident() {
+                        if let Ok(system) = SystemColor::from_ident(ident) {
+                            return Ok(Color::System(system));
+                        }
 
-                    if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
-                        return Ok(Color::Special(c));
+                        if let Ok(c) = gecko::SpecialColorKeyword::from_ident(ident) {
+                            return Ok(Color::Special(c));
+                        }
                     }
                 }
 
@@ -368,8 +370,8 @@ impl Color {
                         Keyword::MozDefaultColor => pres_context.mDefaultColor,
                         Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
                         Keyword::MozHyperlinktext => pres_context.mLinkColor,
-                        Keyword::MozActiveHyperlinktext => pres_context.mActiveLinkColor,
-                        Keyword::MozVisitedHyperlinktext => pres_context.mVisitedLinkColor,
+                        Keyword::MozActivehyperlinktext => pres_context.mActiveLinkColor,
+                        Keyword::MozVisitedhyperlinktext => pres_context.mVisitedLinkColor,
                     })
                 })
             }

@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests basic cookie setting functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "0001", name: "Set cookie."},
+        {file: "0002", name: "Set cookie with future expiration."},
+        {file: "0003", name: "Set expired cookie along with valid cookie."},
+        {file: "0004", name: "Ignore cookie without key."},
+        {file: "0005", name: "Set cookie with age."},
+        {file: "0006", name: "Set no cookie with max-age=0."},
+        {file: "0007", name: "Set cookie with version=1."},
+        {file: "0008", name: "Set cookie with version=1000."},
+        {file: "0009", name: "Set cookie with custom value."},
+        // TODO(fhorschig): Could 0010 break when run on a HTTPS try server?
+        {file: "0010", name: "Dont accept 'secure' cookies over http."},
+        {file: "0011", name: "Ignore separators in cookie values."},
+        {file: "0012", name: "Ignore values with separators and without ';'."},
+        {file: "0013", name: "Use last value for cookies with identical keys."},
+        {file: "0014", name: "Keep alphabetic key order."},
+        {file: "0015", name: "Keep alphabetic single-char key order."},
+        {file: "0016", name: "Keep non-alphabetic key order."},
+        {file: "0017", name: "Keep order if comma-separated."},
+        {file: "0018", name: "Ignore keys after semicolon."},
+        {file: "0019", name: "Ignore attributes after semicolon."},
+        {file: "0020", name: "Ignore cookies without key and value."},
+        {file: "0021", name: "Ignore cookie without key in all 'Set-Cookie'."},
+        {file: "0022", name: "Set cookie without value in all 'Set-Cookie'."},
+        {file: "0023", name: "Ignore cookies without '=' in all 'Set-Cookie'."},
+        {file: "0024", name: "Ignore malformed cookies in all 'Set-Cookie'."},
+        {file: "0025", name: "Ignore cookies with ';' in all 'Set-Cookie'."},
+        {file: "0026", name: "Ignore malformed cookies in all 'Set-Cookie' v2."},
+        {file: "0027", name: "Ignore malformed cookies in all 'Set-Cookie' v3."},
+        // TODO(fhorschig): Ask about 0028's expectations ... should be empty?
+        {file: "0028", name: "[INVALID EXPECTATION] Ignore malformed cookies in all 'Set-Cookie' v4."},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

@@ -212,7 +212,7 @@ impl nsCSSValue {
 
     /// Set to a url value
     pub fn set_url(&mut self, url: &SpecifiedUrl) {
-        unsafe { bindings::Gecko_CSSValue_SetURL(self, url.for_ffi()) }
+        unsafe { bindings::Gecko_CSSValue_SetURL(self, url.url_value.get()) }
     }
 
     /// Set to an array of given length

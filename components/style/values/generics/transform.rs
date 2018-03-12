@@ -7,8 +7,6 @@
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
 use values::{computed, CSSFloat};
 use values::computed::length::Length as ComputedLength;
 use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
@@ -80,12 +78,13 @@ pub struct TransformOrigin<H, V, Depth> {
 /// A generic timing function.
 ///
 /// <https://drafts.csswg.org/css-timing-1/#single-timing-function-production>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum TimingFunction<Integer, Number> {
     /// `linear | ease | ease-in | ease-out | ease-in-out`
     Keyword(TimingKeyword),
     /// `cubic-bezier(<number>, <number>, <number>, <number>)`
     #[allow(missing_docs)]
+    #[css(comma, function)]
     CubicBezier {
         x1: Number,
         y1: Number,
@@ -93,8 +92,10 @@ pub enum TimingFunction<Integer, Number> {
         y2: Number,
     },
     /// `step-start | step-end | steps(<integer>, [ start | end ]?)`
-    Steps(Integer, StepPosition),
+    #[css(comma, function)]
+    Steps(Integer, #[css(skip_if = "is_end")] StepPosition),
     /// `frames(<integer>)`
+    #[css(comma, function)]
     Frames(Integer),
 }
 
@@ -119,6 +120,11 @@ pub enum StepPosition {
     End,
 }
 
+#[inline]
+fn is_end(position: &StepPosition) -> bool {
+    *position == StepPosition::End
+}
+
 impl<H, V, D> TransformOrigin<H, V, D> {
     /// Returns a new transform origin.
     pub fn new(horizontal: H, vertical: V, depth: D) -> Self {
@@ -135,51 +141,6 @@ impl<Integer, Number> TimingFunction<Integer, Number> {
     #[inline]
     pub fn ease() -> Self {
         TimingFunction::Keyword(TimingKeyword::Ease)
-    }
-}
-
-impl<Integer, Number> ToCss for TimingFunction<Integer, Number>
-where
-    Integer: ToCss,
-    Number: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            TimingFunction::Keyword(keyword) => keyword.to_css(dest),
-            TimingFunction::CubicBezier {
-                ref x1,
-                ref y1,
-                ref x2,
-                ref y2,
-            } => {
-                dest.write_str("cubic-bezier(")?;
-                x1.to_css(dest)?;
-                dest.write_str(", ")?;
-                y1.to_css(dest)?;
-                dest.write_str(", ")?;
-                x2.to_css(dest)?;
-                dest.write_str(", ")?;
-                y2.to_css(dest)?;
-                dest.write_str(")")
-            },
-            TimingFunction::Steps(ref intervals, position) => {
-                dest.write_str("steps(")?;
-                intervals.to_css(dest)?;
-                if position != StepPosition::End {
-                    dest.write_str(", ")?;
-                    position.to_css(dest)?;
-                }
-                dest.write_str(")")
-            },
-            TimingFunction::Frames(ref frames) => {
-                dest.write_str("frames(")?;
-                frames.to_css(dest)?;
-                dest.write_str(")")
-            },
-        }
     }
 }
 
@@ -286,8 +247,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     #[allow(missing_docs)]
     #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
-        #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -297,8 +256,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
                 LengthOrPercentage,
             >,
         >,
-        #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -308,15 +265,12 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
                 LengthOrPercentage,
             >,
         >,
-        #[compute(clone)]
         progress: computed::Percentage,
     },
     /// A intermediate type for accumulation of mismatched transform lists.
     #[allow(missing_docs)]
     #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
-        #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         from_list: Transform<
             TransformOperation<
                 Angle,
@@ -326,8 +280,6 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
                 LengthOrPercentage,
             >,
         >,
-        #[compute(ignore_bound)]
-        #[css(ignore_bound)]
         to_list: Transform<
             TransformOperation<
                 Angle,
@@ -341,10 +293,9 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     },
 }
 
-#[derive(Animate, ToComputedValue)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// A value of the `transform` property
-pub struct Transform<T>(pub Vec<T>);
+pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 
 impl<Angle, Number, Length, Integer, LengthOrPercentage>
     TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> {
@@ -549,27 +500,6 @@ where
             },
         };
         Ok(matrix)
-    }
-}
-
-impl<T: ToCss> ToCss for Transform<T> {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.0.is_empty() {
-            return dest.write_str("none");
-        }
-
-        let mut first = true;
-        for operation in &self.0 {
-            if !first {
-                dest.write_str(" ")?;
-            }
-            first = false;
-            operation.to_css(dest)?
-        }
-        Ok(())
     }
 }
 

@@ -22,7 +22,7 @@
     <script>
         setup(function() {
 
-            fetch( 'EncryptedMediaExtensions.idl')
+            fetch( '/interfaces/encrypted-media.idl' )
             .then( function( response ) {
                 if ( !response.ok ) throw new Error( 'IDL fetch failed' );
                 return response.text();

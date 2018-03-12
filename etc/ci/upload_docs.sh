@@ -38,9 +38,6 @@ cp apis.html ../../target/doc/servo/
 echo "Copied apis.html."
 cd ../..
 
-# Clean up the traces of the current doc build.
-./etc/ci/clean_build_artifacts.sh
-
 echo "Starting ghp-import."
 ghp-import -n target/doc
 echo "Finished ghp-import."
@@ -48,3 +45,6 @@ git push -qf \
     "https://${TOKEN}@github.com/servo/doc.servo.org.git" gh-pages \
     &>/dev/null
 echo "Finished git push."
+
+# Clean up the traces of the current doc build.
+./etc/ci/clean_build_artifacts.sh

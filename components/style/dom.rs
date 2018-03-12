@@ -330,6 +330,11 @@ pub trait TShadowRoot : Sized + Copy + Clone {
 
     /// Get the shadow host that hosts this ShadowRoot.
     fn host(&self) -> <Self::ConcreteNode as TNode>::ConcreteElement;
+
+    /// Get the style data for this ShadowRoot.
+    fn style_data<'a>(&self) -> &'a CascadeData
+    where
+        Self: 'a;
 }
 
 /// The element trait, the main abstraction the style crate acts over.
@@ -760,7 +765,8 @@ pub trait TElement
 
     /// Implements Gecko's `nsBindingManager::WalkRules`.
     ///
-    /// Returns whether to cut off the inheritance.
+    /// Returns whether to cut off the binding inheritance, that is, whether
+    /// document rules should _not_ apply.
     fn each_xbl_cascade_data<'a, F>(&self, _: F) -> bool
     where
         Self: 'a,
@@ -778,15 +784,22 @@ pub trait TElement
         Self: 'a,
         F: FnMut(&'a CascadeData, QuirksMode),
     {
-        let cut_off_inheritance = self.each_xbl_cascade_data(&mut f);
+        let mut doc_rules_apply = !self.each_xbl_cascade_data(&mut f);
+
+        if let Some(shadow) = self.containing_shadow() {
+            doc_rules_apply = false;
+            f(shadow.style_data(), self.as_node().owner_doc().quirks_mode());
+        }
 
         let mut current = self.assigned_slot();
         while let Some(slot) = current {
-            slot.each_xbl_cascade_data(&mut f);
+            // Slots can only have assigned nodes when in a shadow tree.
+            let data = slot.containing_shadow().unwrap().style_data();
+            f(data, self.as_node().owner_doc().quirks_mode());
             current = slot.assigned_slot();
         }
 
-        cut_off_inheritance
+        doc_rules_apply
     }
 
     /// Does a rough (and cheap) check for whether or not transitions might need to be updated that

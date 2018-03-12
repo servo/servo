@@ -20,6 +20,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import print_function
+
 """build_svg_tests.py.
 
 This script builds a set of SVG-in-HTML test files for the Nu Html Checker
@@ -218,7 +220,7 @@ def validate_svg_dtd(filename,svg):
     if status == "Valid":
         return True
 
-    print "    ('%s', 'DTD %s')," % (filename, status)
+    print("    ('%s', 'DTD %s')," % (filename, status))
     return False
 
 
@@ -234,11 +236,11 @@ def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:],"",["svgdir=","outdir="])
     except getopt.GetoptError:
-        print 'build-svg-tests.py --svgdir <indir> --outdir <outdir>'
+        print('build-svg-tests.py --svgdir <indir> --outdir <outdir>')
         sys.exit(2)
 
     for opt, arg in opts:
-        print opt, arg
+        print(opt, arg)
         if opt in ("-s", "--svgdir"):
             svgdirectory = arg
         elif opt in ("-o", "--outdir"):

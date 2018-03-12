@@ -317,7 +317,7 @@ promise_test(t => {
   // call to TransformStreamDefaultSink.
   return delay(0).then(() => {
     controller.enqueue('a');
-    return Promise.all([promise_rejects(t, new TypeError(), reader.read(), 'read() should reject'), abortPromise]);
+    return Promise.all([promise_rejects(t, error1, reader.read(), 'read() should reject'), abortPromise]);
   });
 }, 'writer.abort() inside size() should work');
 

@@ -74,6 +74,7 @@ use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, P
 use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
+use style::stylist::CascadeData;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
     let ptr = data.ptr.as_ptr() as *mut StyleData;
@@ -164,6 +165,13 @@ impl<'lr> TShadowRoot for ShadowRoot<'lr> {
     }
 
     fn host(&self) -> ServoLayoutElement<'lr> {
+        match self.0 { }
+    }
+
+    fn style_data<'a>(&self) -> &'a CascadeData
+    where
+        Self: 'a,
+    {
         match self.0 { }
     }
 }

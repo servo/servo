@@ -42,8 +42,7 @@ def env_extras(**kwargs):
     return []
 
 def env_options():
-    return {"bind_hostname": "true",
-            "supports_debugger": False}
+    return {"supports_debugger": False}
 
 class InternetExplorerBrowser(Browser):
     used_ports = set()

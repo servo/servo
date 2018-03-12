@@ -14,6 +14,7 @@ import os.path
 import platform
 import shutil
 from socket import error as socket_error
+import stat
 import StringIO
 import sys
 import zipfile
@@ -35,9 +36,15 @@ else:
     URLOPEN_KWARGS = {}
 
 
+def remove_readonly(func, path, _):
+    "Clear the readonly bit and reattempt the removal"
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
 def delete(path):
     if os.path.isdir(path) and not os.path.islink(path):
-        shutil.rmtree(path)
+        shutil.rmtree(path, onerror=remove_readonly)
     else:
         os.remove(path)
 

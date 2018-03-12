@@ -263,7 +263,7 @@ where
         Self {
             entries: vec![],
             data_validity: DataValidity::Valid,
-            dirty: false,
+            dirty: true,
         }
     }
 }
@@ -595,6 +595,11 @@ where
     /// Whether anything has changed since the last time this was flushed.
     pub fn dirty(&self) -> bool {
         self.collection.dirty
+    }
+
+    /// Whether the collection is empty.
+    pub fn is_empty(&self) -> bool {
+        self.collection.len() == 0
     }
 
     fn collection_for(

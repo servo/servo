@@ -63,7 +63,6 @@ pub mod system_colors {
                           IMESelectedConvertedTextBackground IMESelectedConvertedTextForeground
                           IMESelectedConvertedTextUnderline SpellCheckerUnderline""".split()
     %>
-    use cssparser::Parser;
     use gecko_bindings::bindings::Gecko_GetLookAndFeelSystemColor;
     use gecko_bindings::structs::root::mozilla::LookAndFeel_ColorID;
     use std::fmt::{self, Write};
@@ -109,7 +108,7 @@ pub mod system_colors {
     }
 
     impl SystemColor {
-        pub fn parse<'i, 't>(input: &mut Parser<'i, 't>,) -> Result<Self, ()> {
+        pub fn from_ident<'i, 't>(ident: &str) -> Result<Self, ()> {
             ascii_case_insensitive_phf_map! {
                 color_name -> SystemColor = {
                     % for color in system_colors:
@@ -118,7 +117,6 @@ pub mod system_colors {
                 }
             }
 
-            let ident = input.expect_ident().map_err(|_| ())?;
             color_name(ident).cloned().ok_or(())
         }
     }

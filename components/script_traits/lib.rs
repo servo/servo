@@ -539,8 +539,8 @@ pub struct InitialScriptState {
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
     pub content_process_shutdown_chan: IpcSender<()>,
-    /// A channel to the webgl thread used in this pipeline.
-    pub webgl_chan: WebGLPipeline,
+    /// A channel to the WebGL thread used in this pipeline.
+    pub webgl_chan: Option<WebGLPipeline>,
     /// A channel to the webvr thread, if available.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
     /// The Webrender document ID associated with this thread.
@@ -678,7 +678,7 @@ pub enum ConstellationMsg {
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Inform the constellation of a window being resized.
-    WindowSize(TopLevelBrowsingContextId, WindowSizeData, WindowSizeType),
+    WindowSize(Option<TopLevelBrowsingContextId>, WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command

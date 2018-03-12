@@ -13,7 +13,7 @@
 			@font-face
 			{
 				font-family: "mplus-1p-regular";
-				src: url("support/mplus-1p-regular.woff") format("woff");
+				src: url("/fonts/mplus-1p-regular.woff") format("woff");
 				/* filesize: 803300 bytes (784.5 KBytes) */
 				/*
 				mplus-1p-regular.ttf can be downloaded at/from [TBD later]
@@ -31,6 +31,12 @@
 			span.target {
 				background-color: aqua;
 			}
+			div.wrapper {
+				display: inline-block;
+				border: 1px solid;
+				margin: 10px;
+				padding: 10px;
+			}
 		</style>
 	</head>
 	<body lang="en">
@@ -38,46 +44,53 @@
 			Test passes if the highlighted characters in each pair of rectangles are at the exact same horizontal position.
 		</p>
 		<!-- iteration marks -->
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#x3005;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#x3005;</span>サンプル文</span>
-		</p>
-		<hr />
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#x303b;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#x303b;</span>サンプル文</span>
-		</p>
-		<hr />
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#x309d;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#x309d;</span>サンプル文</span>
-		</p>
-		<hr />
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#x309e;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#x309e;</span>サンプル文</span>
-		</p>
-		<hr />
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#x30fd;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#x30fd;</span>サンプル文</span>
-		</p>
-		<hr />
-		<p class="test" lang="ja">
-			<span>サンプル文サンプル文<span class="target">&#x30fe;</span>サンプル文</span>
-		</p>
-		<p class="control" lang="ja">
-			<span>サンプル文サンプル<br />文<span class="target">&#x30fe;</span>サンプル文</span>
-		</p>
+		<div class="wrapper">
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#x3005;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x3005;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#x303b;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x303b;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#x309d;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x309d;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#x309e;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x309e;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#x30fd;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x30fd;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<p class="test" lang="ja">
+				<span>サンプル文サンプル文<span class="target">&#x30fe;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x30fe;</span>サンプル文</span>
+			</p>
+		</div>
 	</body>
 </html>

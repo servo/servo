@@ -6,8 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{ParseError, StyleParseErrorKind};
 use values::{Either, None_};
 use values::computed::NumberOrPercentage;
 use values::computed::length::LengthOrPercentage;
@@ -16,6 +15,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// An SVG paint value
 ///
 /// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
+#[animation(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct SVGPaint<ColorType, UrlPaintServer> {
@@ -30,6 +30,7 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 /// Whereas the spec only allows PaintServer
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
+#[animation(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
@@ -199,39 +200,18 @@ pub enum SVGLength<LengthType> {
 }
 
 /// Generic value for stroke-dasharray.
-#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
-         ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
+#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
-    Values(Vec<LengthType>),
+    #[css(comma)]
+    Values(
+        #[css(if_empty = "none", iterable)]
+        #[distance(field_bound)]
+        Vec<LengthType>,
+    ),
     /// `context-value`
     ContextValue,
-}
-
-impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCss {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match self {
-            &SVGStrokeDashArray::Values(ref values) => {
-                let mut iter = values.iter();
-                if let Some(first) = iter.next() {
-                    first.to_css(dest)?;
-                    for item in iter {
-                        dest.write_str(", ")?;
-                        item.to_css(dest)?;
-                    }
-                    Ok(())
-                } else {
-                    dest.write_str("none")
-                }
-            }
-            &SVGStrokeDashArray::ContextValue => {
-                dest.write_str("context-value")
-            }
-        }
-    }
 }
 
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in

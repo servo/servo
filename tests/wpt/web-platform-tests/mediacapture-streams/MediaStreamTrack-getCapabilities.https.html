@@ -6,24 +6,13 @@
 <script src=/resources/testharnessreport.js></script>
 <script>
   promise_test(() => {
-  return navigator.mediaDevices.getUserMedia({audio: true})
+  return navigator.mediaDevices.getUserMedia({audio: true, video: true})
     .then(stream => {
-      var capabilities = stream.getAudioTracks()[0].getCapabilities();
-      assert_true(undefined !== capabilities.deviceId, "MediaTrackCapabilities's deviceId should exist.");
-      assert_true(undefined !== capabilities.echoCancellation, "MediaTrackCapabilities's echoCancellation should exist.");
-    });
-  });
-
-  promise_test(() => {
-  return navigator.mediaDevices.getUserMedia({video: true})
-    .then(stream => {
-      var capabilities = stream.getVideoTracks()[0].getCapabilities();
-      assert_true(undefined !== capabilities.deviceId, "MediaTrackCapabilities's deviceId should exist.");
-      assert_true(undefined !== capabilities.width, "MediaTrackCapabilities's width should exist.");
-      assert_true(undefined !== capabilities.height, "MediaTrackCapabilities's height should exist.");
-      assert_true(undefined !== capabilities.aspectRatio, "MediaTrackCapabilities's aspectRatio should exist.");
-      assert_true(undefined !== capabilities.frameRate, "MediaTrackCapabilities's frameRate should exist.");
-      assert_true(undefined !== capabilities.facingMode, "MediaTrackCapabilities's facingMode should exist.");
+      var audioCapabilities = stream.getAudioTracks()[0].getCapabilities();
+      var videoCapabilities = stream.getVideoTracks()[0].getCapabilities();
+      assert_true(undefined !== audioCapabilities.deviceId, "MediaTrackCapabilities's deviceId should exist for an audio track.");
+      assert_true(undefined !== audioCapabilities.echoCancellation, "MediaTrackCapabilities's echoCancellation should exist for an audio track.");
+      assert_true(undefined !== videoCapabilities.deviceId, "MediaTrackCapabilities's deviceId should exist for a video track.");
     });
   });
 </script>

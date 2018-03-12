@@ -8,7 +8,7 @@ interface OrientationSensor : Sensor {
 
 enum LocalCoordinateSystem { "device", "screen" };
 
-dictionary OrientationSensorOptions : SensorOptions {
+dictionary OrientationSensorOptions : SensorOptions  {
   LocalCoordinateSystem referenceFrame = "device";
 };
 

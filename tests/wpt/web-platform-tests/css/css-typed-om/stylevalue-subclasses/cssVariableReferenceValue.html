@@ -1,55 +1,40 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSSVariableReferenceValue tests</title>
-<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#cssvariablereferencevalue">
-<meta name="assert" content="Test CSSVariableReferenceValue constructor and attributes" />
+<title>CSSVariableReferenceValue Constructor</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-cssvariablereferencevalue-cssvariablereferencevalue">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/testhelper.js"></script>
+<body>
+<div id="log"></div>
 <script>
 'use strict';
 
 test(() => {
   const result = new CSSVariableReferenceValue('--foo');
-
-  assert_not_equals(result, null,
-      'A CSSVariableReferenceValue should be created');
+  assert_not_equals(result, null, 'a CSSVariableReferenceValue is created');
   assert_equals(result.variable, '--foo',
-      'Variable member should be same as passed in the constructor');
-  assert_equals(result.fallback, null,
-      'Fallback member should be null');
+                'variable is same as passed by constructor');
+  assert_equals(result.fallback, null, 'fallback');
 }, 'CSSVariableReferenceValue can be constructed with no fallback');
 
 test(() => {
   const result = new CSSVariableReferenceValue('--foo', null);
-
-  assert_not_equals(result, null,
-      'A CSSVariableReferenceValue should be created');
+  assert_not_equals(result, null, 'a CSSVariableReferenceValue is created');
   assert_equals(result.variable, '--foo',
-      'Variable member should be same as passed in the constructor');
-  assert_equals(result.fallback, null, 'Fallback member should be null');
+                'variable is same as passed by constructor');
+  assert_equals(result.fallback, null, 'fallback');
 }, 'CSSVariableReferenceValue can be constructed with null fallback');
 
 test(() => {
   const result = new CSSVariableReferenceValue('--foo',
       new CSSUnparsedValue(['lemon']));
-
-  assert_not_equals(result, null,
-      'A CSSVariableReferenceValue should be created');
+  assert_not_equals(result, null, 'a CSSVariableReferenceValue is created');
   assert_equals(result.variable, '--foo',
-      'Variable member should be same as passed in the constructor');
-  assert_not_equals(result.fallback, null,
-      'Fallback member should not be null');
+                'variable is same as passed by constructor');
+  assert_not_equals(result.fallback, null, 'fallback');
   assert_style_value_equals(result.fallback, new CSSUnparsedValue(['lemon']),
-      'Fallback member should be as same as passed in the constructor');
+                            'fallback is same as passed by constructor');
 }, 'CSSVariableReferenceValue can be constructed with valid fallback');
-
-test(() => {
-  let result = new CSSVariableReferenceValue('--foo');
-  result.variable = '--bar';
-
-  assert_equals(result.variable, '--bar',
-      'Variable member should be updated to new value');
-}, 'CSSVariableReferenceValue.variable can updated to a valid variable name');
 
 </script>

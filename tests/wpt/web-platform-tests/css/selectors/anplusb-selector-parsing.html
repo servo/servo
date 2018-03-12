@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Selectors: Test parsing of an+b selectors</title>
+        <link rel="author" title="Chris Nardi" href="mailto:cnardi@chromium.org">
+        <link rel="help" href="https://drafts.csswg.org/selectors-3/#nth-child-pseudo">
+        <link rel="help" href="https://drafts.csswg.org/selectors-3/#nth-last-child-pseudo">
+        <link rel="help" href="https://drafts.csswg.org/selectors-3/#nth-of-type-pseudo">
+        <link rel="help" href="https://drafts.csswg.org/selectors-3/#nth-last-of-type-pseudo">
+        <meta charset="utf-8">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <style id="teststyles">
+        </style>
+    </head>
+    <body>
+        <script>
+            function add_selector_style(source) {
+                var style_element = document.getElementById("teststyles");
+                style_element.firstChild.data = source + "{ font-size: 1em; }";
+                return style_element.sheet;
+            }
+
+            function assert_selector_serializes_to(source, expected_result) {
+                test(function() {
+                    var sheet = add_selector_style(source);
+                    assert_equals(sheet.cssRules[0].selectorText, expected_result);
+                }, source + " should be parsed and serialized correctly");
+            }
+
+            function assert_invalid_selector(source) {
+                test(function() {
+                    var sheet = add_selector_style(source);
+                    assert_equals(sheet.cssRules[0], undefined);
+                }, source + " should not parse");
+            }
+
+            function run_tests_on_anplusb_selector(source) {
+                assert_selector_serializes_to(source + '(1n+0)', source + '(n)');
+                assert_selector_serializes_to(source + '(n+0)', source + '(n)');
+                assert_selector_serializes_to(source + '(n)', source + '(n)');
+                assert_selector_serializes_to(source + '(-n+0)', source + '(-n)');
+                assert_selector_serializes_to(source + '(-n)', source + '(-n)');
+                assert_selector_serializes_to(source + '(N)', source + '(n)');
+                assert_selector_serializes_to(source + '(+n+3)', source + '(n+3)');
+                assert_selector_serializes_to(source + '( +n + 7 )', source + '(n+7)');
+                assert_selector_serializes_to(source + '(  N- 123)', source + '(n-123)');
+                assert_selector_serializes_to(source + '(n- 10)', source + '(n-10)');
+                assert_selector_serializes_to(source + '(-n\n- 1)', source + '(-n-1)');
+                assert_selector_serializes_to(source + '( 23n\n\n+\n\n123 )', source + '(23n+123)');
+
+                assert_invalid_selector(source + '(n- 1 2)');
+                assert_invalid_selector(source + '(n-b1)');
+                assert_invalid_selector(source + '(n-+1)');
+                assert_invalid_selector(source + '(n-1n)');
+                assert_invalid_selector(source + '(-n -b1)');
+                assert_invalid_selector(source + '(-1n- b1)');
+                assert_invalid_selector(source + '(-n-13b1)');
+                assert_invalid_selector(source + '(-n-+1)');
+                assert_invalid_selector(source + '(-n+n)');
+                assert_invalid_selector(source + '(+ 1n)');
+                assert_invalid_selector(source + '(  n +12 3)');
+                assert_invalid_selector(source + '(  12 n )');
+                assert_invalid_selector(source + '(+12n-0+1)');
+                assert_invalid_selector(source + '(+12N -- 1)');
+                assert_invalid_selector(source + '(+12 N )');
+                assert_invalid_selector(source + '(+ n + 7)');
+            }
+
+            run_tests_on_anplusb_selector(':nth-child');
+            run_tests_on_anplusb_selector(':nth-last-child');
+            run_tests_on_anplusb_selector(':nth-of-type');
+            run_tests_on_anplusb_selector(':nth-last-of-type');
+        </script>
+    </body>
+</html>

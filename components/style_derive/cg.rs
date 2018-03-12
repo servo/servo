@@ -3,90 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use darling::{FromDeriveInput, FromField, FromVariant};
-use quote::{ToTokens, Tokens};
-use std::collections::HashSet;
-use syn::{self, DeriveInput, Field, Ident};
-use syn::{ImplGenerics, Path, PathArguments, PathSegment, AngleBracketedGenericArguments, GenericParam};
-use syn::{QSelf, Type, TypeGenerics, TypeParam};
-use syn::{TypeSlice, TypeArray, TypeTuple, TypePath, TypeParen};
-use syn::{Variant, WherePredicate, GenericArgument, Binding};
-use syn::visit::{self, Visit};
+use quote::Tokens;
+use syn::{self, AngleBracketedGenericArguments, Binding, DeriveInput, Field};
+use syn::{GenericArgument, GenericParam, Ident, Path};
+use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray};
+use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
+use syn::{Variant, WherePredicate};
 use synstructure::{self, BindingInfo, BindStyle, VariantAst, VariantInfo};
 
-pub struct WhereClause<'input, 'path> {
-    pub inner: Option<syn::WhereClause>,
-    pub params: Vec<&'input TypeParam>,
-    trait_path: &'path Path,
-    trait_output: Option<Ident>,
-    bounded_types: HashSet<Type>,
-}
-
-impl<'input, 'path> ToTokens for WhereClause<'input, 'path> {
-    fn to_tokens(&self, tokens: &mut Tokens) {
-        self.inner.to_tokens(tokens);
-    }
-}
-
-impl<'input, 'path> WhereClause<'input, 'path> {
-    pub fn add_trait_bound(&mut self, ty: &Type) {
-        let trait_path = self.trait_path;
-        let mut found = self.trait_output.map(|_| HashSet::new());
-        if self.bounded_types.contains(&ty) {
-            return;
-        }
-        if !is_parameterized(&ty, &self.params, found.as_mut()) {
-            return;
-        }
-        self.bounded_types.insert(ty.clone());
-
-        let output = if let Some(output) = self.trait_output {
-            output
-        } else {
-            self.add_predicate(where_predicate(ty.clone(), trait_path, None));
-            return;
-        };
-
-        if let Type::Path(syn::TypePath { ref path, .. }) = *ty {
-            if path_to_ident(path).is_some() {
-                self.add_predicate(where_predicate(ty.clone(), trait_path, None));
-                return;
-            }
-        }
-
-        let output_type = map_type_params(ty, &self.params, &mut |ident| {
-            let ty = Type::Path(syn::TypePath { qself: None, path: ident.clone().into() });
-            fmap_output_type(ty, trait_path, output)
-        });
-
-        let pred = where_predicate(
-            ty.clone(),
-            trait_path,
-            Some((output, output_type)),
-        );
-
-        self.add_predicate(pred);
-
-        if let Some(found) = found {
-            for ident in found {
-                let ty = Type::Path(syn::TypePath { qself: None, path: ident.into() });
-                if !self.bounded_types.contains(&ty) {
-                    self.bounded_types.insert(ty.clone());
-                    self.add_predicate(
-                        where_predicate(ty, trait_path, None),
-                    );
-                };
-            }
-        }
-    }
-
-    pub fn add_predicate(&mut self, pred: WherePredicate) {
-        if let Some(ref mut inner) = self.inner {
-            inner.predicates.push(pred);
-        } else {
-            self.inner = Some(parse_quote!(where));
-            self.add_predicate(pred);
-        }
-    }
+pub fn add_predicate(
+    where_clause: &mut Option<syn::WhereClause>,
+    pred: WherePredicate,
+) {
+    where_clause.get_or_insert(parse_quote!(where)).predicates.push(pred);
 }
 
 pub fn fmap_match<F>(
@@ -112,22 +41,12 @@ where
     })
 }
 
-fn fmap_output_type(
-    ty: Type,
+pub fn fmap_trait_output(
+    input: &DeriveInput,
     trait_path: &Path,
     trait_output: Ident,
-) -> Type {
-    parse_quote!(<#ty as ::#trait_path>::#trait_output)
-}
-
-pub fn fmap_trait_parts<'input, 'path>(
-    input: &'input DeriveInput,
-    trait_path: &'path Path,
-    trait_output: Ident,
-) -> (ImplGenerics<'input>, TypeGenerics<'input>, WhereClause<'input, 'path>, Path) {
-    let (impl_generics, ty_generics, mut where_clause) = trait_parts(input, trait_path);
-    where_clause.trait_output = Some(trait_output);
-    let output_ty = PathSegment {
+) -> Path {
+    let segment = PathSegment {
         ident: input.ident.clone(),
         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
             args: input.generics.params.iter().map(|arg| {
@@ -136,11 +55,7 @@ pub fn fmap_trait_parts<'input, 'path>(
                     &GenericParam::Type(ref data) => {
                         let ident = data.ident;
                         GenericArgument::Type(
-                            fmap_output_type(
-                                parse_quote!(#ident),
-                                trait_path,
-                                trait_output
-                            )
+                            parse_quote!(<#ident as ::#trait_path>::#trait_output),
                         )
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg)
@@ -152,37 +67,7 @@ pub fn fmap_trait_parts<'input, 'path>(
 
         })
     };
-    (impl_generics, ty_generics, where_clause, output_ty.into())
-}
-
-pub fn is_parameterized(
-    ty: &Type,
-    params: &[&TypeParam],
-    found: Option<&mut HashSet<Ident>>,
-) -> bool {
-    struct IsParameterized<'a, 'b> {
-        params: &'a [&'a TypeParam],
-        has_free: bool,
-        found: Option<&'b mut HashSet<Ident>>,
-    }
-
-    impl<'a, 'b, 'ast> Visit<'ast> for IsParameterized<'a, 'b> {
-        fn visit_path(&mut self, path: &'ast Path) {
-            if let Some(ident) = path_to_ident(path) {
-                if self.params.iter().any(|param| param.ident == ident) {
-                    self.has_free = true;
-                    if let Some(ref mut found) = self.found {
-                        found.insert(ident.clone());
-                    }
-                }
-            }
-            visit::visit_path(self, path);
-        }
-    }
-
-    let mut visitor = IsParameterized { params, has_free: false, found };
-    visitor.visit_type(ty);
-    visitor.has_free
+    segment.into()
 }
 
 pub fn map_type_params<F>(ty: &Type, params: &[&TypeParam], f: &mut F) -> Type
@@ -330,33 +215,6 @@ pub fn ref_pattern<'a>(
     (v.pat(), v.bindings().iter().cloned().collect())
 }
 
-pub fn trait_parts<'input, 'path>(
-    input: &'input DeriveInput,
-    trait_path: &'path Path,
-) -> (ImplGenerics<'input>, TypeGenerics<'input>, WhereClause<'input, 'path>) {
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let where_clause = WhereClause {
-        inner: where_clause.cloned(),
-        params: input.generics.type_params().into_iter().collect::<Vec<&TypeParam>>(),
-        trait_path,
-        trait_output: None,
-        bounded_types: HashSet::new()
-    };
-    (impl_generics, ty_generics, where_clause)
-}
-
-fn trait_ref(path: &Path, output: Option<(Ident, Type)>) -> Path {
-    let segments = path.segments.iter().collect::<Vec<&PathSegment>>();
-    let (name, parent) = segments.split_last().unwrap();
-
-    let last_segment: PathSegment = if let Some((param, ty)) = output {
-        parse_quote!(#name<#param = #ty>)
-    } else {
-        parse_quote!(#name)
-    };
-    parse_quote!(::#(#parent::)*#last_segment)
-}
-
 pub fn value<'a>(
     variant: &'a VariantInfo,
     prefix: &str,
@@ -365,15 +223,6 @@ pub fn value<'a>(
     v.bindings_mut().iter_mut().for_each(|b| { b.binding = Ident::from(format!("{}_{}", b.binding, prefix)) });
     v.bind_with(|_| BindStyle::Move);
     (v.pat(), v.bindings().iter().cloned().collect())
-}
-
-pub fn where_predicate(
-    bounded_ty: Type,
-    trait_path: &Path,
-    trait_output: Option<(Ident, Type)>,
-) -> WherePredicate {
-    let trait_ref = trait_ref(trait_path, trait_output);
-    parse_quote!(#bounded_ty: #trait_ref)
 }
 
 /// Transforms "FooBar" to "foo-bar".
