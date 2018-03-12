@@ -34,6 +34,7 @@ use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
+use net_traits::{ResourceFetchTiming, ResourceAttribute};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
@@ -50,8 +51,7 @@ use std::str::FromStr;
 use std::sync::RwLock;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
-use time;
-use time::Tm;
+use time::{self, Tm};
 use unicase::UniCase;
 use uuid;
 
@@ -381,7 +381,8 @@ fn obtain_response(connector: &Pool<Connector>,
                    iters: u32,
                    request_id: Option<&str>,
                    is_xhr: bool)
-                   -> Result<(HyperResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
+                   -> Result<(HyperResponse, Option<ChromeToDevtoolsControlMsg>),
+                             NetworkError> {
     let null_data = None;
 
     // loop trying connections in connection pool
@@ -420,6 +421,7 @@ fn obtain_response(connector: &Pool<Connector>,
             info!("{:?}", data);
         }
 
+        // this is not the same connect_start as used in PerformanceResourceTiming
         let connect_start = precise_time_ms();
 
         let request = HyperRequest::with_connector(method.clone(),
@@ -446,6 +448,7 @@ fn obtain_response(connector: &Pool<Connector>,
             }
         }
 
+        // TODO response_start: should be time immediately after receiving first byte of response
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error))
@@ -456,6 +459,7 @@ fn obtain_response(connector: &Pool<Connector>,
             },
             Err(e) => return Err(NetworkError::Internal(e.description().to_owned())),
         };
+        // TODO response_end
 
         let send_end = precise_time_ms();
 
@@ -486,12 +490,13 @@ pub fn http_fetch(request: &mut Request,
                   authentication_fetch_flag: bool,
                   target: Target,
                   done_chan: &mut DoneChannel,
-                  context: &FetchContext)
+                  context: &mut FetchContext)
                   -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
     // Step 1
     let mut response: Option<Response> = None;
+    let mut resource_timing = ResourceFetchTiming::new();
 
     // Step 2
     // nothing to do, since actual_response is a function on response
@@ -563,8 +568,14 @@ pub fn http_fetch(request: &mut Request,
         }
 
         // Substep 3
+        // TODO maybe set fetch_start (if this is the last resource)
+        // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
+        //   attributes to this as well
+        // TODO maybe set redirect_start if this resource initiates the redirect
+        resource_timing.set_attribute(ResourceAttribute::RequestStart);
+
         let mut fetch_result = http_network_or_cache_fetch(
-            request, authentication_fetch_flag, cors_flag, done_chan, context);
+            request, authentication_fetch_flag, cors_flag, done_chan, context, &mut resource_timing);
 
         // Substep 4
         if cors_flag && cors_check(&request, &fetch_result).is_err() {
@@ -607,8 +618,14 @@ pub fn http_fetch(request: &mut Request,
             }
         };
     }
+
+    // TODO redirect_end: last byte of response of last redirect
     // set back to default
     response.return_internal = true;
+    resource_timing.set_attribute(ResourceAttribute::RedirectCount(request.redirect_count as u16));
+
+    *response.get_resource_timing_mut() = resource_timing;
+
     // Step 6
     response
 }
@@ -620,7 +637,7 @@ pub fn http_redirect_fetch(request: &mut Request,
                            cors_flag: bool,
                            target: Target,
                            done_chan: &mut DoneChannel,
-                           context: &FetchContext)
+                           context: &mut FetchContext)
                            -> Response {
     // Step 1
     assert!(response.return_internal);
@@ -713,7 +730,8 @@ fn http_network_or_cache_fetch(request: &mut Request,
                                authentication_fetch_flag: bool,
                                cors_flag: bool,
                                done_chan: &mut DoneChannel,
-                               context: &FetchContext)
+                               context: &mut FetchContext,
+                               mut resource_timing: &mut ResourceFetchTiming)
                                -> Response {
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
@@ -942,7 +960,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
     if response.is_none() {
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
-                                                  done_chan, context);
+                                                  done_chan, context, &mut resource_timing);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.safe() {
@@ -998,7 +1016,8 @@ fn http_network_or_cache_fetch(request: &mut Request,
         // Substep 4
         response = http_network_or_cache_fetch(http_request,
                                                true /* authentication flag */,
-                                               cors_flag, done_chan, context);
+                                               cors_flag, done_chan, context,
+                                               &mut resource_timing);
     }
 
     // Step 24
@@ -1037,7 +1056,8 @@ fn http_network_or_cache_fetch(request: &mut Request,
 fn http_network_fetch(request: &Request,
                       credentials_flag: bool,
                       done_chan: &mut DoneChannel,
-                      context: &FetchContext)
+                      context: &mut FetchContext,
+                      resource_timing: &mut ResourceFetchTiming)
                       -> Response {
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
@@ -1083,7 +1103,7 @@ fn http_network_fetch(request: &Request,
         }
     }
 
-    let mut response = Response::new(url.clone());
+    let mut response = Response::new(url.clone(), resource_timing.to_owned());
     response.status = Some(res.status);
     response.raw_status = Some((res.status_raw().0,
                                 res.status_raw().1.as_bytes().to_vec()));
@@ -1100,6 +1120,7 @@ fn http_network_fetch(request: &Request,
         FetchMetadata::Unfiltered(m) => m,
         FetchMetadata::Filtered { unsafe_, .. } => unsafe_
     };
+
     let devtools_sender = context.devtools_chan.clone();
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
@@ -1224,7 +1245,7 @@ fn http_network_fetch(request: &Request,
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
 fn cors_preflight_fetch(request: &Request,
                         cache: &mut CorsCache,
-                        context: &FetchContext)
+                        context: &mut FetchContext)
                         -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.clone()), request.pipeline_id);
@@ -1253,7 +1274,8 @@ fn cors_preflight_fetch(request: &Request,
     }
 
     // Step 5
-    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
+    let mut resource_timing = ResourceFetchTiming::new();
+    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context, &mut resource_timing);
 
     // Step 6
     if cors_check(&request, &response).is_ok() &&

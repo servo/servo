@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- TODO use test harness  -->
+<html>
+  <head>
+  </head>
+  <body onload="loadResources()">
+    <script>
+       function loadResources()
+       {
+          var image1 = new Image();
+          image1.onload = resourceTiming;
+          image1.src = 'https://www.w3.org/Icons/w3c_main.png';
+       }
+
+       function resourceTiming()
+       {
+           var resourceList = window.performance.getEntriesByType("resource");
+           assert
+           for (i = 0; i < resourceList.length; i++)
+           {
+              if (resourceList[i].initiatorType == "img")
+              {
+                 assert_true(resourceList[i] instanceof PerformanceResourceTiming, "Should be PerformanceResourceTiming");
+                 assert_greater_than((resourceList[i].responseEnd - resourceList[i].startTime), 0);
+                 // alert("End to end resource fetch: " + (resourceList[i].responseEnd - resourceList[i].startTime));
+              }
+           }
+       }
+    </script>
+    <img id="image0" src="https://www.w3.org/Icons/w3c_home.png">
+  </body>
+</html>

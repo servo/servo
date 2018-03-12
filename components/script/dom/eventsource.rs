@@ -14,6 +14,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
+use dom::performanceresourcetiming::InitiatorType;
 use dom_struct::dom_struct;
 use euclid::Length;
 use hyper::header::{Accept, qitem};
@@ -24,10 +25,10 @@ use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
-use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
+use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError, ResourceFetchTiming};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -88,6 +89,8 @@ struct EventSourceContext {
     event_type: String,
     data: String,
     last_event_id: String,
+
+    resource_timing: ResourceFetchTiming,
 }
 
 impl EventSourceContext {
@@ -390,6 +393,24 @@ impl FetchResponseListener for EventSourceContext {
         }
         self.reestablish_the_connection();
     }
+
+    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for EventSourceContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+         (InitiatorType::Other, self.event_source.root().url().clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.event_source.root().global()
+    }
 }
 
 impl PreInvoke for EventSourceContext {
@@ -421,6 +442,10 @@ impl EventSource {
 
     pub fn request(&self) -> RequestInit {
         self.request.borrow().clone().unwrap()
+    }
+
+    pub fn url(&self) -> &ServoUrl {
+        &self.url
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource
@@ -482,6 +507,7 @@ impl EventSource {
             event_type: String::new(),
             data: String::new(),
             last_event_id: String::new(),
+            resource_timing: ResourceFetchTiming::new(),
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),

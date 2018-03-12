@@ -11848,6 +11848,11 @@
      {}
     ]
    ],
+   "mozilla/window_resource_performance.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/worklets/syntax_error.js": [
     [
      {}
@@ -71109,6 +71114,10 @@
   "mozilla/window_resize_not_triggered_on_load.html": [
    "2170a71432a48dab66eae049e027b75e731468f5",
    "testharness"
+  ],
+  "mozilla/window_resource_performance.html": [
+   "2f5e78b58aaa5bf4998424819119aa60d2cc4311",
+   "support"
   ],
   "mozilla/window_setInterval.html": [
    "186923778bd11cdbd4743fadb86f5e2ea4f29fdf",
