@@ -26,6 +26,7 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -34,6 +35,7 @@ use dom::htmlpictureelement::HTMLPictureElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node, UnbindContext};
+use dom::performanceresourcetiming::InitiatorType;
 use dom::progressevent::ProgressEvent;
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
@@ -45,13 +47,13 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, TopLevel, SubLevel};
-use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
+use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg, ResourceFetchTiming};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::RequestInit;
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use num_traits::ToPrimitive;
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
@@ -162,6 +164,11 @@ struct ImageContext {
     id: PendingImageId,
     /// Used to mark abort
     aborted: Cell<bool>,
+    /// The document associated with this request
+    doc: Trusted<Document>,
+    /// timing data for this resource
+    resource_timing: ResourceFetchTiming,
+    url: ServoUrl,
 }
 
 impl FetchResponseListener for ImageContext {
@@ -216,8 +223,37 @@ impl FetchResponseListener for ImageContext {
     }
 
     fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+<<<<<<< d60b14bed5085598a25f016c96c4789a5b01f6e1
         self.image_cache
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
+=======
+        // notify_pending_response doesn't use the resource timing
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(response.map(|_| ResourceFetchTiming::new())));
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for ImageContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::LocalName("img".to_string()), self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.doc.root().global()
+>>>>>>> refactored performance timing to align with updated spec
     }
 }
 
@@ -306,7 +342,13 @@ impl HTMLImageElement {
             image_cache: window.image_cache(),
             status: Ok(()),
             id: id,
+<<<<<<< d60b14bed5085598a25f016c96c4789a5b01f6e1
             aborted: Cell::new(false),
+=======
+            doc: Trusted::new(&document),
+            resource_timing: ResourceFetchTiming::new(),
+            url: img_url.clone(),
+>>>>>>> refactored performance timing to align with updated spec
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

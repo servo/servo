@@ -24,7 +24,7 @@ use std::rc::Rc;
 const VALID_ENTRY_TYPES: &'static [&'static str] = &[
     "mark",    // User Timing API
     "measure", // User Timing API
-    // "resource", XXX Resource Timing API
+    "resource", // Resource Timing API
     // "server", XXX Server Timing API
     "paint", // Paint Timing API
 ];

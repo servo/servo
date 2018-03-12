@@ -28,6 +28,7 @@ use dom::globalscope::GlobalScope;
 use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::node::Node;
+use dom::performanceresourcetiming::InitiatorType;
 use dom::progressevent::ProgressEvent;
 use dom::servoparser::ServoParser;
 use dom::urlsearchparams::URLSearchParams;
@@ -54,11 +55,11 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
-use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
+use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -95,6 +96,7 @@ struct XHRContext {
     gen_id: GenerationId,
     buf: DomRefCell<Vec<u8>>,
     sync_status: DomRefCell<Option<ErrorResult>>,
+    resource_timing: ResourceFetchTiming,
 }
 
 #[derive(Clone)]
@@ -263,6 +265,28 @@ impl XMLHttpRequest {
                     .root()
                     .process_response_complete(self.gen_id, response);
                 *self.sync_status.borrow_mut() = Some(rv);
+            }
+
+            fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+                &mut self.resource_timing
+            }
+
+            fn resource_timing(&self) -> &ResourceFetchTiming {
+                &self.resource_timing
+            }
+
+            fn submit_resource_timing(&mut self) {
+                network_listener::submit_timing(self)
+            }
+        }
+
+        impl ResourceTimingListener for XHRContext {
+            fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+                (InitiatorType::XMLHttpRequest, self.resource_timing_global().get_url().clone())
+            }
+
+            fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+                self.xhr.root().global()
             }
         }
 
@@ -1380,6 +1404,7 @@ impl XMLHttpRequest {
             gen_id: self.generation_id.get(),
             buf: DomRefCell::new(vec![]),
             sync_status: DomRefCell::new(None),
+            resource_timing: ResourceFetchTiming::new(),
         }));
 
         let (task_source, script_port) = if self.sync.get() {

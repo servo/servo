@@ -59,6 +59,10 @@ impl PerformanceEntry {
     pub fn start_time(&self) -> f64 {
         self.start_time
     }
+
+    pub fn duration(&self) -> f64 {
+        self.duration
+    }
 }
 
 impl PerformanceEntryMethods for PerformanceEntry {

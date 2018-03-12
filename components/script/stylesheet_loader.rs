@@ -7,12 +7,15 @@ use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
+use dom::performanceresourcetiming::InitiatorType;
 use encoding_rs::UTF_8;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -20,8 +23,9 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::ResourceFetchTiming;
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -78,6 +82,7 @@ pub struct StylesheetContext {
     /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
+    resource_timing: ResourceFetchTiming,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -97,9 +102,17 @@ impl FetchResponseListener for StylesheetContext {
             }
         }
 
+<<<<<<< d60b14bed5085598a25f016c96c4789a5b01f6e1
         self.metadata = metadata.ok().map(|m| match m {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+=======
+        self.metadata = metadata.ok().map(|m| {
+            match m {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+            }
+>>>>>>> refactored performance timing to align with updated spec
         });
     }
 
@@ -208,6 +221,30 @@ impl FetchResponseListener for StylesheetContext {
             elem.upcast::<EventTarget>().fire_event(event);
         }
     }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for StylesheetContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem.root().upcast::<Element>().local_name().to_string());
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        document_from_node(&*self.elem.root()).global()
+    }
 }
 
 pub struct StylesheetLoader<'a> {
@@ -242,6 +279,7 @@ impl<'a> StylesheetLoader<'a> {
             document: Trusted::new(&*document),
             origin_clean: true,
             request_generation_id: gen,
+            resource_timing: ResourceFetchTiming::new(),
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

@@ -16,7 +16,7 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf, MallocUnconditionalShallowSizeOf};
 use malloc_size_of::Measurable;
-use net_traits::{Metadata, FetchMetadata};
+use net_traits::{Metadata, FetchMetadata, ResourceFetchTiming};
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use servo_arc::Arc;
@@ -311,7 +311,8 @@ fn create_cached_response(request: &Request,
     cached_headers: &Headers,
     done_chan: &mut DoneChannel)
     -> CachedResponse {
-    let mut response = Response::new(cached_resource.data.metadata.data.final_url.clone());
+    let resource_timing = ResourceFetchTiming::new();
+    let mut response = Response::new(cached_resource.data.metadata.data.final_url.clone(), resource_timing);
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock().unwrap() {
@@ -644,7 +645,9 @@ impl HttpCache {
                 // Received a response with 304 status code, in response to a request that matches a cached resource.
                 // 1. update the headers of the cached resource.
                 // 2. return a response, constructed from the cached resource.
-                let mut constructed_response = Response::new(cached_resource.data.metadata.data.final_url.clone());
+                let resource_timing = ResourceFetchTiming::new();
+                let mut constructed_response = Response::new(cached_resource.data.metadata.data.final_url.clone(),
+                    resource_timing);
                 constructed_response.body = cached_resource.body.clone();
                 constructed_response.status = cached_resource.data.status.clone();
                 constructed_response.https_state = cached_resource.data.https_state.clone();
@@ -704,8 +707,8 @@ impl HttpCache {
         let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
                filtered: _,
-               unsafe_: metadata }) |
-            Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
+               unsafe_: m }) |
+            Ok(FetchMetadata::Unfiltered(m)) => m,
             _ => return,
         };
         if !response_is_cacheable(&metadata) {

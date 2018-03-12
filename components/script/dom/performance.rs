@@ -9,15 +9,16 @@ use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList a
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
 use dom::performancemark::PerformanceMark;
 use dom::performancemeasure::PerformanceMeasure;
+use dom::performancenavigationtiming::PerformanceNavigationTiming;
 use dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
-use dom::performancetiming::PerformanceTiming;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use metrics::ToMs;
@@ -129,8 +130,7 @@ struct PerformanceObserver {
 
 #[dom_struct]
 pub struct Performance {
-    reflector_: Reflector,
-    timing: Option<Dom<PerformanceTiming>>,
+    eventtarget: EventTarget,
     entries: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
@@ -154,10 +154,6 @@ impl Performance {
             } else {
                 None
             },
-            entries: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
-            observers: DomRefCell::new(Vec::new()),
-            pending_notification_observers_task: Cell::new(false),
-            navigation_start_precise,
         }
     }
 
@@ -172,8 +168,6 @@ impl Performance {
                 navigation_start,
                 navigation_start_precise,
             )),
-            global,
-            PerformanceBinding::Wrap,
         )
     }
 
@@ -293,26 +287,29 @@ impl Performance {
     }
 
     fn now(&self) -> f64 {
-        let nav_start = match self.timing {
-            Some(ref timing) => timing.navigation_start_precise(),
-            None => self.navigation_start_precise,
-        };
-        (time::precise_time_ns() - nav_start).to_ms()
+        (time::precise_time_ns() - self.navigation_start_precise).to_ms()
     }
 }
 
 impl PerformanceMethods for Performance {
+    // FIXME(avada): this should be deprecated in the future, but some sites still use it
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
-    fn Timing(&self) -> DomRoot<PerformanceTiming> {
-        match self.timing {
-            Some(ref timing) => DomRoot::from_ref(&*timing),
-            None => unreachable!("Are we trying to expose Performance.timing in workers?"),
+    fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
+        let entries = self.GetEntriesByType(DOMString::from("navigation"));
+        if entries.len() > 0 {
+            return DomRoot::from_ref(entries[0].downcast::<PerformanceNavigationTiming>().unwrap());
         }
+        unreachable!("Are we trying to expose Performance.timing in workers?");
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.now())
+    }
+
+    // https://www.w3.org/TR/hr-time-2/#dom-performance-timeorigin
+    fn TimeOrigin(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.navigation_start_precise as f64)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
