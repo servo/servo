@@ -1280,7 +1280,8 @@ impl ScriptThread {
                 match fetch_data {
                     FetchResponseMsg::ProcessResponse(metadata) => self.handle_fetch_metadata(id, metadata),
                     FetchResponseMsg::ProcessResponseChunk(chunk) => self.handle_fetch_chunk(id, chunk),
-                    FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof),
+                    // TODO don't throw away resource timing
+                    FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof.map(|_| ())),
                     _ => unreachable!(),
                 };
             },
@@ -2534,9 +2535,12 @@ impl ScriptThread {
 
     fn handle_fetch_metadata(&self, id: PipelineId, fetch_metadata: Result<FetchMetadata, NetworkError>) {
         match fetch_metadata {
-            Ok(_) => {},
-            Err(ref e) => warn!("Network error: {:?}", e),
+            Ok(_) => (),
+            Err(ref e) => {
+                warn!("Network error: {:?}", e);
+            },
         };
+
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
         let parser = incomplete_parser_contexts.iter_mut().find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {

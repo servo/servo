@@ -344,6 +344,8 @@ pub struct Document {
     top_level_dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
+    unload_event_start: Cell<u64>,
+    unload_event_end: Cell<u64>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
     https_state: Cell<HttpsState>,
     /// The document's origin.
@@ -392,6 +394,7 @@ pub struct Document {
     salvageable: Cell<bool>,
     /// Whether the unload event has already been fired.
     fired_unload: Cell<bool>,
+    redirect_count: Cell<u16>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2134,6 +2137,14 @@ impl Document {
         self.load_event_end.get()
     }
 
+    pub fn get_unload_event_start(&self) -> u64 {
+        self.unload_event_start.get()
+    }
+
+    pub fn get_unload_event_end(&self) -> u64 {
+        self.unload_event_end.get()
+    }
+
     pub fn start_tti(&self) {
         if self.get_interactive_metrics().needs_tti() {
             self.tti_window.borrow_mut().start_window();
@@ -2447,6 +2458,8 @@ impl Document {
             top_level_dom_complete: Cell::new(Default::default()),
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
+            unload_event_start: Cell::new(Default::default()),
+            unload_event_end: Cell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             origin: origin,
             referrer: referrer,
@@ -2465,7 +2478,8 @@ impl Document {
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
-            fired_unload: Cell::new(false)
+            fired_unload: Cell::new(false),
+            redirect_count: Cell::new(0),
         }
     }
 
@@ -2525,7 +2539,16 @@ impl Document {
             let node = document.upcast::<Node>();
             node.set_owner_doc(&document);
         }
+
         document
+    }
+
+    pub fn get_redirect_count(&self) -> u16 {
+        self.redirect_count.get()
+    }
+
+    pub fn set_redirect_count(&self, count: u16) {
+        self.redirect_count.set(count)
     }
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
@@ -3947,6 +3970,7 @@ impl DocumentMethods for Document {
 
         // Step 10.
         // TODO: prompt to unload.
+        // TODO: set unload_event_start and unload_event_end
 
         window_from_node(self).set_navigation_start();
 
