@@ -159,9 +159,8 @@ fn len_of_first_n_chars(text: &str, n: usize) -> usize {
 /// The length in bytes of the first n code units a string when encoded in UTF-16.
 ///
 /// If the string is fewer than n code units, returns the length of the whole string.
-
-
-fn len_of_first_n_code_units(text: &str, n: usize) -> Option<usize> {//usize {
+/// Return `None` if `n` would split a non-BMP code point.
+fn len_of_first_n_code_units(text: &str, n: usize) -> Option<usize> {
     if n == 0 {
         return Some(0);
     }
