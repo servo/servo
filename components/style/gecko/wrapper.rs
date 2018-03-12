@@ -135,6 +135,13 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 #[derive(Clone, Copy)]
 pub struct GeckoShadowRoot<'lr>(pub &'lr structs::ShadowRoot);
 
+impl<'lr> PartialEq for GeckoShadowRoot<'lr> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 as *const _ == other.0 as *const _
+    }
+}
+
 impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
     type ConcreteNode = GeckoNode<'lr>;
 
@@ -1040,29 +1047,6 @@ impl<'le> TElement for GeckoElement<'le> {
         self.before_or_after_pseudo(/* is_before = */ false)
     }
 
-    /// Ensure this accurately represents the rules that an element may ever
-    /// match, even in the native anonymous content case.
-    fn style_scope(&self) -> Self::ConcreteNode {
-        if self.implemented_pseudo_element().is_some() {
-            return self.closest_non_native_anonymous_ancestor().unwrap().style_scope();
-        }
-
-        if self.is_in_native_anonymous_subtree() {
-            return self.as_node().owner_doc().as_node();
-        }
-
-        if self.xbl_binding().is_some() || self.shadow_root().is_some() {
-            return self.as_node();
-        }
-
-        if let Some(parent) = self.xbl_binding_parent() {
-            return parent.as_node();
-        }
-
-        self.as_node().owner_doc().as_node()
-    }
-
-
     #[inline]
     fn is_html_element(&self) -> bool {
         self.namespace_id() == (structs::root::kNameSpaceID_XHTML as i32)
@@ -1108,8 +1092,16 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { slots._base.mContainingShadow.mRawPtr.as_ref().map(GeckoShadowRoot) }
     }
 
-    /// Execute `f` for each anonymous content child element (apart from
-    /// ::before and ::after) whose originating element is `self`.
+    fn has_same_xbl_proto_binding_as(&self, other: Self) -> bool {
+        match (self.xbl_binding(), other.xbl_binding()) {
+            (None, None) => true,
+            (Some(a), Some(b)) => {
+                a.0.mPrototypeBinding == b.0.mPrototypeBinding
+            }
+            _ => false,
+        }
+    }
+
     fn each_anonymous_content_child<F>(&self, mut f: F)
     where
         F: FnMut(Self),

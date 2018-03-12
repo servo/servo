@@ -679,12 +679,28 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        // Note that in the XBL case, we should be able to assert that the
-        // scopes are different, since two elements with different XBL bindings
-        // need to necessarily have different style (and thus children of them
-        // would never pass the parent check).
-        if target.element.style_scope() != candidate.element.style_scope() {
-            trace!("Miss: Different style scopes");
+        // If two elements belong to different shadow trees, different rules may
+        // apply to them, from the respective trees.
+        if target.element.containing_shadow() != candidate.element.containing_shadow() {
+            trace!("Miss: Different containing shadow roots");
+            return None;
+        }
+
+        // Note that in theory we shouldn't need this XBL check. However, XBL is
+        // absolutely broken in all sorts of ways.
+        //
+        // A style change that changes which XBL binding applies to an element
+        // arrives there, with the element still having the old prototype
+        // binding attached. And thus we try to match revalidation selectors
+        // with the old XBL binding, because we can't look at the new ones of
+        // course. And that causes us to revalidate with the wrong selectors and
+        // hit assertions.
+        //
+        // Other than this, we don't need anything else like the containing XBL
+        // binding parent or what not, since two elements with different XBL
+        // bindings will necessarily end up with different style.
+        if !target.element.has_same_xbl_proto_binding_as(candidate.element) {
+            trace!("Miss: Different proto bindings");
             return None;
         }
 
@@ -695,7 +711,9 @@ impl<E: TElement> StyleSharingCache<E> {
         // shadow root, they could match different rules, due to the slot being
         // assigned to yet another slot in another shadow root.
         if target.element.assigned_slot() != candidate.element.assigned_slot() {
-            trace!("Miss: Different style scopes");
+            // TODO(emilio): We could have a look at whether the shadow roots
+            // actually have slotted rules and such.
+            trace!("Miss: Different assigned slots");
             return None;
         }
 

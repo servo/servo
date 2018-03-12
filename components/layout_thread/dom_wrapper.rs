@@ -151,10 +151,10 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Impossible { }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct ShadowRoot<'lr>(Impossible, PhantomData<&'lr ()>);
 
 impl<'lr> TShadowRoot for ShadowRoot<'lr> {
