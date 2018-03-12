@@ -161,7 +161,7 @@ fn len_of_first_n_chars(text: &str, n: usize) -> usize {
 /// If the string is fewer than n code units, returns the length of the whole string.
 
 
-fn len_of_first_n_code_units_new(text: &str, n: usize) -> Option<usize> {//usize {
+fn len_of_first_n_code_units(text: &str, n: usize) -> Option<usize> {//usize {
     if n == 0 {
         return Some(0);
     }
@@ -178,19 +178,6 @@ fn len_of_first_n_code_units_new(text: &str, n: usize) -> Option<usize> {//usize
         }
     }
     Some(utf8_len)
-}
-
-fn len_of_first_n_code_units(text: &str, n: usize) -> usize {
-    let mut utf8_len = 0;
-    let mut utf16_len = 0;
-    for c in text.chars() {
-        utf16_len += c.len_utf16();
-        if utf16_len > n {
-            break;
-        }
-        utf8_len += c.len_utf8();
-    }
-    utf8_len
 }
 
 impl<T: ClipboardProvider> TextInput<T> {
@@ -393,58 +380,48 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             usize::MAX
         };
-        println!("line: {}", &self.lines[start.line]);
-        println!("line bytes:");
-        for x in self.lines[start.line].bytes() {
-            println!("byte: {}", x);
-        }
         
-        let last_char_index_new = len_of_first_n_code_units_new(&*insert, allowed_to_insert_count).unwrap_or(999 as usize);
-        let last_char_index = len_of_first_n_code_units(&*insert, allowed_to_insert_count);
-        println!("last_char_index_new: {} last_char_index: {}", last_char_index_new, last_char_index);
-        let chars_to_insert = &insert[..last_char_index];
-
+        // If len_of_first_n_code_units returns None, we are over allowed_to_insert_count
+        let last_char_index_opt = len_of_first_n_code_units(&*insert, allowed_to_insert_count);
         self.clear_selection();
-        let start_index_code_units_new = len_of_first_n_code_units_new(&self.lines[start.line], start.index).unwrap_or(999 as usize);
-        let end_index_code_units_new = len_of_first_n_code_units_new(&self.lines[end.line], end.index).unwrap_or(999 as usize);
-        let start_index_code_units = len_of_first_n_code_units(&self.lines[start.line], start.index);
-        let end_index_code_units = len_of_first_n_code_units(&self.lines[end.line], end.index);
-        println!("start.index: {} end.index: {} start_index_code_units: {} end_index_code_units: {} start_index_code_units_new: {} end_index_code_units_new: {}", start.index, end.index, start_index_code_units, end_index_code_units, start_index_code_units_new, end_index_code_units_new);
-        println!("old new start end index diff: {} {}", start.index == start_index_code_units_new, end.index == end_index_code_units_new);
-        let new_lines = {
-            let prefix = &self.lines[start.line][..start.index];
-            let suffix = &self.lines[end.line][end.index..];
-            let lines_prefix = &self.lines[..start.line];
-            let lines_suffix = &self.lines[end.line + 1..];
+        if last_char_index_opt.is_some() {    
+            let chars_to_insert = &insert[..last_char_index_opt.unwrap()];
 
-            let mut insert_lines = if self.multiline {
-                chars_to_insert.split('\n').map(|s| DOMString::from(s)).collect()
-            } else {
-                vec!(DOMString::from(chars_to_insert))
+            let new_lines = {
+                let prefix = &self.lines[start.line][..start.index];
+                let suffix = &self.lines[end.line][end.index..];
+                let lines_prefix = &self.lines[..start.line];
+                let lines_suffix = &self.lines[end.line + 1..];
+
+                let mut insert_lines = if self.multiline {
+                    chars_to_insert.split('\n').map(|s| DOMString::from(s)).collect()
+                } else {
+                    vec!(DOMString::from(chars_to_insert))
+                };
+
+                // FIXME(ajeffrey): effecient append for DOMStrings
+                let mut new_line = prefix.to_owned();
+
+                new_line.push_str(&insert_lines[0]);
+                insert_lines[0] = DOMString::from(new_line);
+
+                let last_insert_lines_index = insert_lines.len() - 1;
+                self.edit_point.index = insert_lines[last_insert_lines_index].len();
+                self.edit_point.line = start.line + last_insert_lines_index;
+
+                // FIXME(ajeffrey): effecient append for DOMStrings
+                insert_lines[last_insert_lines_index].push_str(suffix);
+
+                let mut new_lines = vec!();
+                new_lines.extend_from_slice(lines_prefix);
+                new_lines.extend_from_slice(&insert_lines);
+                new_lines.extend_from_slice(lines_suffix);
+                new_lines
             };
-
-            // FIXME(ajeffrey): effecient append for DOMStrings
-            let mut new_line = prefix.to_owned();
-
-            new_line.push_str(&insert_lines[0]);
-            insert_lines[0] = DOMString::from(new_line);
-
-            let last_insert_lines_index = insert_lines.len() - 1;
-            self.edit_point.index = insert_lines[last_insert_lines_index].len();
-            self.edit_point.line = start.line + last_insert_lines_index;
-
-            // FIXME(ajeffrey): effecient append for DOMStrings
-            insert_lines[last_insert_lines_index].push_str(suffix);
-
-            let mut new_lines = vec!();
-            new_lines.extend_from_slice(lines_prefix);
-            new_lines.extend_from_slice(&insert_lines);
-            new_lines.extend_from_slice(lines_suffix);
-            new_lines
-        };
-
-        self.lines = new_lines;
+            self.lines = new_lines;
+        }
         self.assert_ok_selection();
+    
     }
 
     /// Return the length in UTF-8 bytes of the current line under the editing point.
@@ -957,8 +934,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     pub fn set_selection_range(&mut self, start: u32, end: u32, direction: SelectionDirection) {
-        let mut start = start as usize;
-        let mut end = end as usize;
+        // convert code point counts start and end to byte counts
+        let mut start = len_of_first_n_code_units(&self.get_content(), start as usize).unwrap();
+        let mut end = len_of_first_n_code_units(&self.get_content(), end as usize).unwrap();
         let text_end = self.get_content().len();
 
         if end > text_end {
