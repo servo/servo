@@ -11,15 +11,16 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancemark::PerformanceMark;
 use crate::dom::performancemeasure::PerformanceMeasure;
+use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
-use crate::dom::performancetiming::PerformanceTiming;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use metrics::ToMs;
@@ -131,8 +132,7 @@ struct PerformanceObserver {
 
 #[dom_struct]
 pub struct Performance {
-    reflector_: Reflector,
-    timing: Option<Dom<PerformanceTiming>>,
+    eventtarget: EventTarget,
     entries: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
@@ -140,22 +140,9 @@ pub struct Performance {
 }
 
 impl Performance {
-    fn new_inherited(
-        global: &GlobalScope,
-        navigation_start: u64,
-        navigation_start_precise: u64,
-    ) -> Performance {
+    fn new_inherited(navigation_start_precise: u64) -> Performance {
         Performance {
-            reflector_: Reflector::new(),
-            timing: if global.is::<Window>() {
-                Some(Dom::from_ref(&*PerformanceTiming::new(
-                    global.as_window(),
-                    navigation_start,
-                    navigation_start_precise,
-                )))
-            } else {
-                None
-            },
+            eventtarget: EventTarget::new_inherited(),
             entries: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
             observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
@@ -163,17 +150,9 @@ impl Performance {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        navigation_start: u64,
-        navigation_start_precise: u64,
-    ) -> DomRoot<Performance> {
+    pub fn new(global: &GlobalScope, navigation_start_precise: u64) -> DomRoot<Performance> {
         reflect_dom_object(
-            Box::new(Performance::new_inherited(
-                global,
-                navigation_start,
-                navigation_start_precise,
-            )),
+            Box::new(Performance::new_inherited(navigation_start_precise)),
             global,
             PerformanceBinding::Wrap,
         )
@@ -296,26 +275,33 @@ impl Performance {
     }
 
     fn now(&self) -> f64 {
-        let nav_start = match self.timing {
-            Some(ref timing) => timing.navigation_start_precise(),
-            None => self.navigation_start_precise,
-        };
-        (time::precise_time_ns() - nav_start).to_ms()
+        (time::precise_time_ns() - self.navigation_start_precise).to_ms()
     }
 }
 
 impl PerformanceMethods for Performance {
+    // FIXME(avada): this should be deprecated in the future, but some sites still use it
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
-    fn Timing(&self) -> DomRoot<PerformanceTiming> {
-        match self.timing {
-            Some(ref timing) => DomRoot::from_ref(&*timing),
-            None => unreachable!("Are we trying to expose Performance.timing in workers?"),
+    fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
+        let entries = self.GetEntriesByType(DOMString::from("navigation"));
+        if entries.len() > 0 {
+            return DomRoot::from_ref(
+                entries[0]
+                    .downcast::<PerformanceNavigationTiming>()
+                    .unwrap(),
+            );
         }
+        unreachable!("Are we trying to expose Performance.timing in workers?");
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.now())
+    }
+
+    // https://www.w3.org/TR/hr-time-2/#dom-performance-timeorigin
+    fn TimeOrigin(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.navigation_start_precise as f64)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries

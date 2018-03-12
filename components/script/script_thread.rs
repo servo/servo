@@ -107,7 +107,10 @@ use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
+use net_traits::{
+    Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads,
+    ResourceTimingType,
+};
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
@@ -3097,9 +3100,12 @@ impl ScriptThread {
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match fetch_metadata {
-            Ok(_) => {},
-            Err(ref e) => warn!("Network error: {:?}", e),
+            Ok(_) => (),
+            Err(ref e) => {
+                warn!("Network error: {:?}", e);
+            },
         };
+
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
         let parser = incomplete_parser_contexts
             .iter_mut()
@@ -3119,12 +3125,13 @@ impl ScriptThread {
         }
     }
 
-    fn handle_fetch_eof(&self, id: PipelineId, eof: Result<(), NetworkError>) {
+    fn handle_fetch_eof(&self, id: PipelineId, eof: Result<ResourceFetchTiming, NetworkError>) {
         let idx = self
             .incomplete_parser_contexts
             .borrow()
             .iter()
             .position(|&(pipeline_id, _)| pipeline_id == id);
+
         if let Some(idx) = idx {
             let (_, mut ctxt) = self.incomplete_parser_contexts.borrow_mut().remove(idx);
             ctxt.process_response_eof(eof);
@@ -3161,7 +3168,7 @@ impl ScriptThread {
 
         context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(chunk);
-        context.process_response_eof(Ok(()));
+        context.process_response_eof(Ok(ResourceFetchTiming::new(ResourceTimingType::None)));
     }
 
     fn handle_css_error_reporting(

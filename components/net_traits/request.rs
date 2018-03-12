@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::ReferrerPolicy;
+use crate::ResourceTimingType;
 use http::HeaderMap;
 use hyper::Method;
 use msg::constellation_msg::PipelineId;
@@ -363,6 +364,14 @@ impl Request {
             Destination::Xslt |
             Destination::None => true,
             _ => false,
+        }
+    }
+
+    pub fn timing_type(&self) -> ResourceTimingType {
+        if self.is_navigation_request() {
+            ResourceTimingType::Navigation
+        } else {
+            ResourceTimingType::Resource
         }
     }
 }

@@ -22,7 +22,7 @@ use mime_guess::guess_mime_type;
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
+use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
@@ -55,6 +55,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub cancellation_listener: Arc<Mutex<CancellationListener>>,
+    pub timing: Arc<Mutex<ResourceFetchTiming>>,
 }
 
 pub struct CancellationListener {
@@ -503,7 +504,7 @@ fn scheme_fetch(
 
     match url.scheme() {
         "about" if url.path() == "blank" => {
-            let mut response = Response::new(url);
+            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
             response
                 .headers
                 .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
@@ -517,7 +518,8 @@ fn scheme_fetch(
 
         "data" => match decode(&url) {
             Ok((mime, bytes)) => {
-                let mut response = Response::new(url);
+                let mut response =
+                    Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                 *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                 response.headers.typed_insert(ContentType::from(mime));
                 response
@@ -537,7 +539,8 @@ fn scheme_fetch(
                 if let Ok(file) = File::open(file_path.clone()) {
                     let mime = guess_mime_type(file_path);
 
-                    let mut response = Response::new(url);
+                    let mut response =
+                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     response.headers.typed_insert(ContentType::from(mime));
 
                     let (done_sender, done_receiver) = unbounded();
@@ -656,7 +659,8 @@ fn scheme_fetch(
 
             match load_blob_sync(url.clone(), context.filemanager.clone()) {
                 Ok((headers, bytes)) => {
-                    let mut response = Response::new(url);
+                    let mut response =
+                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     response.headers = headers;
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response

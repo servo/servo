@@ -43,6 +43,7 @@ use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
+use net_traits::ResourceAttribute;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -408,14 +409,8 @@ fn obtain_response(
         },
     }
 
-    if log_enabled!(log::Level::Info) {
-        info!("{} {}", method, url);
-        for header in headers.iter() {
-            info!(" - {:?}", header);
-        }
-        info!("{:?}", data);
-    }
-
+    // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
+    // fetch passes the timing allow check
     let connect_start = precise_time_ms();
     // https://url.spec.whatwg.org/#percent-encoded-bytes
     let request = HyperRequest::builder()
@@ -435,6 +430,8 @@ fn obtain_response(
         Err(e) => return Box::new(future::result(Err(NetworkError::from_http_error(&e)))),
     };
     *request.headers_mut() = headers.clone();
+
+    //TODO(#21262) connect_end
     let connect_end = precise_time_ms();
 
     let request_id = request_id.map(|v| v.to_owned());
@@ -448,6 +445,8 @@ fn obtain_response(
             .request(request)
             .and_then(move |res| {
                 let send_end = precise_time_ms();
+
+                // TODO(#21271) response_start: immediately after receiving first byte of response
 
                 let msg = if let Some(request_id) = request_id {
                     if let Some(pipeline_id) = pipeline_id {
@@ -483,6 +482,7 @@ fn obtain_response(
             })
             .map_err(move |e| NetworkError::from_hyper_error(&e)),
     )
+    // TODO(#21263) response_end (also needs to be set above if fetch is aborted due to an error)
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
@@ -571,6 +571,19 @@ pub fn http_fetch(
         }
 
         // Substep 3
+        // TODO(#21258) maybe set fetch_start (if this is the last resource)
+        // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
+        //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
+        //   secure_connection_start)
+        // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
+        // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
+        //   (https://w3c.github.io/resource-timing/#dfn-starttime)
+        context
+            .timing
+            .lock()
+            .unwrap()
+            .set_attribute(ResourceAttribute::RequestStart);
+
         let mut fetch_result = http_network_or_cache_fetch(
             request,
             authentication_fetch_flag,
@@ -640,8 +653,22 @@ pub fn http_fetch(
             },
         };
     }
+
+    // TODO redirect_end: last byte of response of last redirect
+
     // set back to default
     response.return_internal = true;
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::RedirectCount(
+            request.redirect_count as u16,
+        ));
+
+    let timing = &*context.timing.lock().unwrap();
+    response.resource_timing = timing.clone();
+
     // Step 6
     response
 }
@@ -1199,7 +1226,8 @@ fn http_network_fetch(
         }
     }
 
-    let mut response = Response::new(url.clone());
+    let timing = &*context.timing.lock().unwrap();
+    let mut response = Response::new(url.clone(), timing.clone());
     response.status = Some((
         res.status(),
         res.status().canonical_reason().unwrap_or("").into(),
@@ -1224,6 +1252,7 @@ fn http_network_fetch(
         FetchMetadata::Unfiltered(m) => m,
         FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
     };
+
     let devtools_sender = context.devtools_chan.clone();
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();

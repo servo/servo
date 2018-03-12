@@ -11,9 +11,13 @@ test(function() {
   assert_true(window.performance instanceof Performance, "Should be Performance");
 
   assert_not_equals(window.performance.timing, undefined);
-  assert_true(window.performance.timing instanceof PerformanceTiming, "Should be PerformanceTiming");
 
-  assert_greater_than(window.performance.timing.navigationStart, 0);
+  var entries = window.performance.getEntries();
+  assert_not_equals(entries.length, 0);
+  assert_true(entries[0] instanceof PerformanceNavigationTiming);
+
+  // TODO(#21254) navigationTiming/startTime is not fully implemented yet, so this assertion will fail
+  assert_greater_than(entries[0].startTime, 0);
 
   var last = window.performance.now();
   assert_greater_than(last, 0);

@@ -39,6 +39,7 @@ test_interfaces([
   "PerformanceObserver",
   "PerformanceObserverEntryList",
   "PerformancePaintTiming",
+  "PerformanceResourceTiming",
   "ProgressEvent",
   "PromiseRejectionEvent",
   "Request",
