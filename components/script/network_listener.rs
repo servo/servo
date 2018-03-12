@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::DomRoot;
+use dom::globalscope::GlobalScope;
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
+use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
@@ -14,6 +20,19 @@ pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<Listener>>,
     pub task_source: NetworkingTaskSource,
     pub canceller: Option<TaskCanceller>,
+}
+
+pub trait ResourceTimingListener {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl);
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
+}
+
+pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &T) {
+    let (initiator_type, url) = listener.resource_timing_information();
+    let global = listener.resource_timing_global();
+    let performance_entry = PerformanceResourceTiming::new(
+        &global, url, initiator_type, None, &listener.resource_timing());
+    global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
