@@ -2,23 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg::{self, WhereClause};
+use cg;
+use darling::util::IdentList;
 use quote::Tokens;
 use syn::{DeriveInput, Path};
 use synstructure::{Structure, VariantInfo};
 
-pub fn derive(input: DeriveInput) -> Tokens {
-    let name = &input.ident;
-    let trait_path = parse_quote!(values::animated::Animate);
-    let (impl_generics, ty_generics, mut where_clause) =
-        cg::trait_parts(&input, &trait_path);
+pub fn derive(mut input: DeriveInput) -> Tokens {
+    let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
+    let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
+    let mut where_clause = input.generics.where_clause.take();
+    for param in input.generics.type_params() {
+        if !no_bound.contains(&param.ident) {
+            cg::add_predicate(
+                &mut where_clause,
+                parse_quote!(#param: ::values::animated::Animate),
+            );
+        }
+    }
+    input.generics.where_clause = where_clause;
 
-    let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
     let s = Structure::new(&input);
     let mut append_error_clause = s.variants().len() > 1;
 
     let mut match_body = s.variants().iter().fold(quote!(), |body, variant| {
-        let arm = match derive_variant_arm(variant, &mut where_clause) {
+        let arm = match derive_variant_arm(variant) {
             Ok(arm) => arm,
             Err(()) => {
                 append_error_clause = true;
@@ -29,6 +37,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
     });
 
     if append_error_clause {
+        let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
         if let Some(fallback) = input_attrs.fallback {
             match_body.append_all(quote! {
                 (this, other) => #fallback(this, other, procedure)
@@ -37,6 +46,9 @@ pub fn derive(input: DeriveInput) -> Tokens {
             match_body.append_all(quote! { _ => Err(()) });
         }
     }
+
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     quote! {
         impl #impl_generics ::values::animated::Animate for #name #ty_generics #where_clause {
@@ -55,10 +67,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
     }
 }
 
-fn derive_variant_arm(
-    variant: &VariantInfo,
-    where_clause: &mut WhereClause,
-) -> Result<Tokens, ()> {
+fn derive_variant_arm(variant: &VariantInfo) -> Result<Tokens, ()> {
     let variant_attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
     if variant_attrs.error {
         return Err(());
@@ -78,7 +87,6 @@ fn derive_variant_arm(
                 let #result = ::std::clone::Clone::clone(#this);
             }
         } else {
-            where_clause.add_trait_bound(&result.ast().ty);
             quote! {
                 let #result =
                     ::values::animated::Animate::animate(#this, #other, procedure)?;
@@ -100,9 +108,18 @@ struct AnimateInputAttrs {
 }
 
 #[darling(attributes(animation), default)]
+#[derive(Default, FromDeriveInput)]
+pub struct AnimationInputAttrs {
+    pub no_bound: Option<IdentList>,
+}
+
+#[darling(attributes(animation), default)]
 #[derive(Default, FromVariant)]
 pub struct AnimationVariantAttrs {
     pub error: bool,
+    // Only here because of structs, where the struct definition acts as a
+    // variant itself.
+    pub no_bound: Option<IdentList>,
 }
 
 #[darling(attributes(animation), default)]

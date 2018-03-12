@@ -21,6 +21,10 @@ use std::ops::Add;
 ///
 /// If the two values are not similar, an error is returned unless a fallback
 /// function has been specified through `#[distance(fallback)]`.
+///
+/// Trait bounds for type parameter `Foo` can be opted out of with
+/// `#[animation(no_bound(Foo))]` on the type definition, trait bounds for
+/// fields can be opted into with `#[distance(field_bound)]` on the field.
 pub trait ComputeSquaredDistance {
     /// Computes the squared distance between two animatable values.
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()>;

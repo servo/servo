@@ -15,6 +15,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// An SVG paint value
 ///
 /// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
+#[animation(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct SVGPaint<ColorType, UrlPaintServer> {
@@ -29,6 +30,7 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 /// Whereas the spec only allows PaintServer
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
+#[animation(no_bound(UrlPaintServer))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
@@ -203,7 +205,11 @@ pub enum SVGLength<LengthType> {
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     #[css(comma)]
-    Values(#[css(if_empty = "none", iterable)] Vec<LengthType>),
+    Values(
+        #[css(if_empty = "none", iterable)]
+        #[distance(field_bound)]
+        Vec<LengthType>,
+    ),
     /// `context-value`
     ContextValue,
 }
