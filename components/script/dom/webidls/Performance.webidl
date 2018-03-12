@@ -10,14 +10,10 @@ typedef double DOMHighResTimeStamp;
 typedef sequence<PerformanceEntry> PerformanceEntryList;
 
 [Exposed=(Window, Worker)]
-interface Performance {
+interface Performance : EventTarget {
   DOMHighResTimeStamp now();
-};
-
-[Exposed=(Window)]
-partial interface Performance {
-  readonly attribute PerformanceTiming timing;
-  /*  readonly attribute PerformanceNavigation navigation; */
+  readonly attribute DOMHighResTimeStamp timeOrigin;
+  // [Default] object toJSON();
 };
 
 // https://w3c.github.io/performance-timeline/#extensions-to-the-performance-interface

@@ -388,6 +388,7 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     ROUTER.add_route(action_receiver.to_opaque(),
                      Box::new(move |message| f(message.to().unwrap())));
+    println!("fetch async requesting resource: {}", request.url);
     core_resource_thread.send(
         CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 }
