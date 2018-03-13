@@ -1078,13 +1078,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = "${val}.get().to_object()"
         default = "ptr::null_mut()"
 
-        # TODO: Do we need to do the same for dictionaries?
-        if isMember == "Union":
+        if isMember in ("Dictionary", "Union"):
             templateBody = "RootedTraceableBox::from_box(Heap::boxed(%s))" % templateBody
             default = "RootedTraceableBox::new(Heap::default())"
             declType = CGGeneric("RootedTraceableBox<Heap<*mut JSObject>>")
-        elif isMember == "Dictionary":
-            declType = CGGeneric("Heap<*mut JSObject>")
         else:
             # TODO: Need to root somehow
             # https://github.com/servo/servo/issues/6382
@@ -6119,7 +6116,8 @@ class CGDictionary(CGThing):
             conversion = self.getMemberConversion(memberInfo, member.type)
             if isInitial:
                 return CGGeneric("%s: %s,\n" % (name, conversion.define()))
-            if member.type.isAny() or member.type.isObject():
+            # TODO: Root Heap<JSVal> using RootedTraceableBox
+            if member.type.isAny():
                 return CGGeneric("dictionary.%s.set(%s);\n" % (name, conversion.define()))
             return CGGeneric("dictionary.%s = %s;\n" % (name, conversion.define()))
 
