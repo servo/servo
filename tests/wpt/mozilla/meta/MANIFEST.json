@@ -31972,6 +31972,12 @@
      {}
     ]
    ],
+   "mozilla/codegen_unions.html": [
+    [
+     "/_mozilla/mozilla/codegen_unions.html",
+     {}
+    ]
+   ],
    "mozilla/collections.html": [
     [
      "/_mozilla/mozilla/collections.html",
@@ -64749,6 +64755,10 @@
   ],
   "mozilla/client-top-left-height-width.html": [
    "5183977a0d29ba4d74d049c9391090e3c27264a8",
+   "testharness"
+  ],
+  "mozilla/codegen_unions.html": [
+   "7f772fffb75acc92f9c949a482d387b3ed18d0ed",
    "testharness"
   ],
   "mozilla/collections.html": [
