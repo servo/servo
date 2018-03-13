@@ -17,7 +17,6 @@ bluetooth_test(() => getMeasurementIntervalCharacteristic()
     .then(() => characteristic.getDescriptor(user_description.name))
     .then(() => null, (e) => assert_unreached('Caught error unexpectedly.', e))
     .then(() => fake_characteristic.remove())
-    .then(() => fake_peripheral.setNextGATTDiscoveryResponse({HCI_SUCCESS}))
     .then(() => fake_peripheral.simulateGATTServicesChanged())
     .then(() => assert_promise_rejects_with_message(
       characteristic.getDescriptor(user_description.name), expected)),

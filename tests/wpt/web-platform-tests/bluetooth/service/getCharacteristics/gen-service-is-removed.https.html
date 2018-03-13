@@ -16,7 +16,6 @@ let service, fake_service, fake_peripheral;
 bluetooth_test(() => getHealthThermometerService()
     .then(_ => ({service, fake_service, fake_peripheral} = _))
     .then(() => fake_service.remove())
-    .then(() => fake_peripheral.setNextGATTDiscoveryResponse({HCI_SUCCESS}))
     .then(() => fake_peripheral.simulateGATTServicesChanged())
     .then(() => assert_promise_rejects_with_message(
         service.getCharacteristics(),
