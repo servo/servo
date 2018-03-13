@@ -377,7 +377,7 @@ impl ToComputedValue for Opacity {
     }
 }
 
-/// An specified `<integer>`, optionally coming from a `calc()` expression.
+/// A specified `<integer>`, optionally coming from a `calc()` expression.
 ///
 /// <https://drafts.csswg.org/css-values/#integers>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd)]
