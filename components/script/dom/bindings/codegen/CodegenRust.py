@@ -870,7 +870,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
-    if type.isTypedArray() or type.isArrayBuffer() or type.isArrayBufferView() or type.isSharedArrayBuffer():
+    if is_typed_array(type):
         if failureCode is None:
             substitutions = {
                 "sourceDescription": sourceDescription,
@@ -4178,7 +4178,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isObject():
         name = type.name
         typeName = "Heap<*mut JSObject>"
-    elif type.isTypedArray() or type.isArrayBuffer() or type.isArrayBufferView() or type.isSharedArrayBuffer():
+    elif is_typed_array(type):
         name = type.name
         typeName = "typedarray::Heap" + name
     else:
@@ -6467,7 +6467,7 @@ def type_needs_tracing(t):
         if t.isUnion():
             return any(type_needs_tracing(member) for member in t.flatMemberTypes)
 
-        if t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView() or t.isSharedArrayBuffer():
+        if is_typed_array(t):
             return True
 
         return False
@@ -6490,6 +6490,12 @@ def type_needs_tracing(t):
     assert False, (t, type(t))
 
 
+def is_typed_array(t):
+    assert isinstance(t, IDLObject), (t, type(t))
+
+    return t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView() or t.isSharedArrayBuffer()
+
+
 def type_needs_auto_root(t):
     """
     Certain IDL types, such as `sequence<any>` or `sequence<object>` need to be
@@ -6500,8 +6506,8 @@ def type_needs_auto_root(t):
     if t.isType():
         if t.isSequence() and (t.inner.isAny() or t.inner.isObject()):
             return True
-        # SpiderMonkey interfaces
-        if t.isTypedArray() or t.isArrayBuffer() or t.isArrayBufferView() or t.isSharedArrayBuffer():
+        # SpiderMonkey interfaces, we currently don't support any other except typed arrays
+        if is_typed_array(t):
             return True
 
     return False
