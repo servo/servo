@@ -228,6 +228,8 @@ interface TestBinding {
   TestDictionary receiveTestDictionaryWithSuccessOnKeyword();
   boolean dictMatchesPassedValues(TestDictionary arg);
 
+  (DOMString or object) receiveUnionIdentity((DOMString or object) arg);
+
   void passBoolean(boolean arg);
   void passByte(byte arg);
   void passOctet(octet arg);
