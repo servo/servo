@@ -1,0 +1,18 @@
+<!doctype html>
+<title>CSS Scoping Module Level 1 - Dynamic fallback content</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors-data-model">
+<link rel="match" href="reference/green-box.html"/>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host">
+</div>
+<script>
+  let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <slot name="myslot">FAIL</slot>
+  `;
+  document.body.offsetTop;
+  host.innerHTML = `
+    <div slot="myslot" style="width: 100px; height: 100px; background: green"></div>
+  `;
+</script>

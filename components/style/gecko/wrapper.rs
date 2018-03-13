@@ -171,6 +171,7 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
         let author_styles =
             AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
 
+        debug_assert!(!author_styles.stylesheets.dirty());
         debug_assert!(
             author_styles.quirks_mode == self.as_node().owner_doc().quirks_mode() ||
             author_styles.stylesheets.is_empty()

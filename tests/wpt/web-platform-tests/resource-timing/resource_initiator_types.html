@@ -18,6 +18,7 @@ let ol_font_loaded = false;
 let ul_font_loaded = false;
 let xhr_loaded = false;
 let tests_run = false;
+let frameset_loaded = false;
 
 function check_finished() {
     if (!ul_font_loaded) {
@@ -26,7 +27,7 @@ function check_finished() {
     if (!ol_font_loaded) {
         ol_font_loaded = check_font_loaded('ol');
     }
-    if (page_loaded && ol_font_loaded && ul_font_loaded && background_loaded && xhr_loaded) {
+    if (page_loaded && ol_font_loaded && ul_font_loaded && background_loaded && xhr_loaded && frameset_loaded) {
         perform_test();
     } else {
         step_timeout(check_finished, 100);
@@ -64,38 +65,86 @@ function onload_test() {
     step_timeout(check_finished, 100);
 }
 
+function frameset_onload() {
+    frameset_loaded = true;
+
+    step_timeout(check_finished, 100);
+}
+
 function perform_test() {
     if (tests_run) {
         return;
     }
     tests_run = true;
     const context = new PerformanceContext(document.getElementById('frameContext').contentWindow.performance);
-    const entries = context.getEntriesByType('resource');
+    let entries = context.getEntriesByType('resource');
+
+    // check for frameset
+    if (document.getElementById('frameContext2') &&
+        document.getElementById('frameContext2').contentWindow) {
+        const context2 = new PerformanceContext(document.getElementById('frameContext2').contentWindow.performance);
+        entries = entries.concat(context2.getEntriesByType('resource'));
+    }
 
     const index = window.location.pathname.lastIndexOf('/');
     const pathname = window.location.pathname.substring(0, index) + '/resources/';
     const font_pathname = window.location.pathname.substring(0, index - 15) + 'fonts/Ahem.ttf';
 
     let expected_entries = {};
-    expected_entries[font_pathname] = 'css';
-    expected_entries[pathname + 'resource_timing_test0.png'] = 'img';
-    expected_entries[pathname + 'blank_page_green.htm'] = 'iframe';
-    expected_entries[pathname + 'empty_script.js'] = 'script';
-    expected_entries[pathname + 'resource_timing_test0.css?id=embed'] = 'embed';
-    expected_entries[pathname + 'resource_timing_test0.css?id=n1'] = 'css';
-    expected_entries[font_pathname + '?id=n1'] = 'css';
-    expected_entries[pathname + 'blue.png?id=1'] = 'css';
-    expected_entries[pathname + 'blue.png?id=2'] = 'css';
-    expected_entries[pathname + 'blue.png?id=async_xhr'] = 'xmlhttprequest';
-    expected_entries[pathname + 'blue.png?id=body'] = 'body';
-    expected_entries[pathname + 'blue.png?id=input'] = 'input';
-    expected_entries[pathname + 'blue.png?id=n1'] = 'css';
-    expected_entries[pathname + 'blue.png?id=object'] = 'object';
-    expected_entries[pathname + 'blue.png?id=poster'] = 'video';
-    expected_entries[pathname + 'nested.css'] = 'link';
+    addEntryIfExists(entries, expected_entries, font_pathname, 'css');
+    addEntryIfExists(entries, expected_entries, pathname + 'resource_timing_test0.png', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'resource_timing_test0.png?id=srcset-srcset', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'resource_timing_test0.png?id=srcset-src', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'blank_page_green.htm', 'iframe');
+    addEntryIfExists(entries, expected_entries, pathname + 'blank_page_green.htm?id=frame', 'frame');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty_script.js', 'script');
+    addEntryIfExists(entries, expected_entries, pathname + 'resource_timing_test0.css?id=embed', 'embed');
+    addEntryIfExists(entries, expected_entries, pathname + 'resource_timing_test0.css?id=n1', 'css');
+    addEntryIfExists(entries, expected_entries, font_pathname + '?id=n1', 'css');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=cursor', 'css');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=1', 'css');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=2', 'css');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=async_xhr', 'xmlhttprequest');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=body', 'body');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=input', 'input');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=n1', 'css');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=object', 'object');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=video-poster', 'video');
+    addEntryIfExists(entries, expected_entries, '/media/test.mp4?id=video-src', 'video');
+    addEntryIfExists(entries, expected_entries, '/media/test.mp4?id=video-source', 'source');
+    addEntryIfExists(entries, expected_entries, '/media/test.ogv?id=video-source', 'source');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=video-track', 'track');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-src', 'audio');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-wav', 'source');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-mpeg', 'source');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-ogg', 'source');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-source', 'source');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-img', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-notsupported-img', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-img-src', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-img-srcset', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-99x-img-src', 'img');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=svg-image', 'image');
+    addEntryIfExists(entries, expected_entries, pathname + 'nested.css', 'link');
+    addEntryIfExists(entries, expected_entries, pathname + 'nested.css?id=prefetch', 'link');
+    addEntryIfExists(entries, expected_entries, pathname + 'nested.css?id=preload', 'link');
+    addEntryIfExists(entries, expected_entries, pathname + 'blank_page_green.htm?id=prerender', 'link');
+    addEntryIfExists(entries, expected_entries, pathname + 'manifest.json', 'link');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=beacon', 'beacon');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=fetch', 'fetch');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?favicon', 'link');
+    addEntryIfExists(entries, expected_entries, pathname + 'eventsource.py?id=eventsource', 'eventsource');
 
     test_resource_entries(entries, expected_entries);
     done();
+}
+
+function addEntryIfExists(entries, expected_entries, path, initiatorType) {
+    const url = window.location.protocol + "//" + window.location.host + path;
+
+    if (entries.find(function(entry) { return entry.name === url; })) {
+        expected_entries[path] = initiatorType;
+    }
 }
 
 window.on_test_body_created = check_finished;
@@ -110,5 +159,6 @@ window.on_async_xhr_done = function() {
 <p>This test validates that all of the initiator types are represented.</p>
 <div id="log"></div>
 <iframe id="frameContext" onload="onload_test();" src="resources/all_resource_types.htm" style="width: 250px; height: 250px;"></iframe>
+<iframe id="frameContext2" onload="frameset_onload();" src="resources/green_frame.htm" style="width: 250px; height: 250px;"></iframe>
 </body>
 </html>

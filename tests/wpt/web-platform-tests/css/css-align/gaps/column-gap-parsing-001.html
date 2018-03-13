@@ -11,6 +11,7 @@
   #columnGapVw { column-gap: 2vw; }
   #columnGapPercent { column-gap: 15%; }
   #columnGapCalc { column-gap: calc(10px + 4px); }
+  #columnGapCalcFixedPercent { column-gap: calc(5px + 10%); }
   .columnGapInitial { column-gap: initial; }
   .columnGapInherit { column-gap: inherit; }
 
@@ -31,6 +32,7 @@
   <div id="columnGapVw"></div>
   <div id="columnGapPercent"></div>
   <div id="columnGapCalc"></div>
+  <div id="columnGapCalcFixedPercent"></div>
   <div id="columnGapInitial" class="columnGapInitial"></div>
   <div class="columnGapPx">
     <div id="columnGapInitialPx" class="columnGapInitial"></div>
@@ -81,6 +83,11 @@
         var target = document.getElementById("columnGapCalc");
         assert_equals(getComputedStyle(target).columnGap, "14px");
       }, "column-gap accepts calc()");
+    test(
+      function(){
+        var target = document.getElementById("columnGapCalcFixedPercent");
+        assert_equals(getComputedStyle(target).columnGap, "calc(5px + 10%)");
+      }, "column-gap accepts calc() mixing fixed and percentage values");
     test(
       function(){
         var target = document.getElementById("columnGapInitial");

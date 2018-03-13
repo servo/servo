@@ -41,7 +41,7 @@ pub mod webdriver_msg;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use euclid::{Size2D, Length, Point2D, Vector2D, Rect, TypedScale, TypedSize2D};
+use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use gfx_traits::Epoch;
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -69,7 +69,7 @@ use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::{ExternalScrollId, DevicePixel, DocumentId, ImageKey};
+use webrender_api::{ExternalScrollId, DevicePixel, DeviceUintSize, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -650,7 +650,7 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed in the browsing context with the given ID.
     SendKeys(BrowsingContextId, Vec<(Key, KeyModifiers, KeyState)>),
     /// Set the window size.
-    SetWindowSize(TopLevelBrowsingContextId, Size2D<u32>, IpcSender<WindowSizeData>),
+    SetWindowSize(TopLevelBrowsingContextId, DeviceUintSize, IpcSender<WindowSizeData>),
     /// Take a screenshot of the window.
     TakeScreenshot(TopLevelBrowsingContextId, IpcSender<Option<Image>>),
 }

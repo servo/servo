@@ -42,6 +42,7 @@ function performChromiumSetup() {
     `${prefix}/mojo_layouttest_test.mojom.js`,
     `${prefix}/uuid.mojom.js`,
     `${prefix}/fake_bluetooth.mojom.js`,
+    `${prefix}/fake_bluetooth_chooser.mojom.js`,
     `${prefix}/web-bluetooth-test.js`,
   ].concat(extra))
       // Call setBluetoothFakeAdapter() to clean up any fake adapters left over

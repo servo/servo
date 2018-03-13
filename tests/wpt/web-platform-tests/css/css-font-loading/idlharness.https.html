@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Font Loading API IDL tests</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontfacesetloadevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+"use strict";
+
+function doTest([dom, cssfontloading]) {
+  const idl_array = new IdlArray();
+  idl_array.add_untested_idls(dom);
+  idl_array.add_untested_idls("[Exposed=Worker] interface WorkerGlobalScope : EventTarget { };");
+  idl_array.add_objects({Document: ["document"]});
+  idl_array.add_idls(cssfontloading);
+  idl_array.test();
+}
+
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+  return Promise.all([
+    "/interfaces/dom.idl",
+    "/interfaces/css-font-loading.idl",
+  ].map(fetchText)).then(doTest);
+}, "Test IDL implementation of CSS Font Loading");
+</script>

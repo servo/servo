@@ -65,8 +65,6 @@ def test_help():
 
 @pytest.mark.slow
 @pytest.mark.remote_network
-@pytest.mark.xfail(sys.platform == "darwin",
-                   reason="https://github.com/w3c/web-platform-tests/issues/9090")
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="Tests currently don't work on Windows for path reasons")
 def test_run_firefox(manifest_dir):
@@ -77,7 +75,10 @@ def test_run_firefox(manifest_dir):
 
     os.environ["MOZ_HEADLESS"] = "1"
     try:
-        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "firefox")
+        if sys.platform == "darwin":
+            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "Firefox Nightly.app")
+        else:
+            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "firefox")
         if os.path.exists(fx_path):
             shutil.rmtree(fx_path)
         with pytest.raises(SystemExit) as excinfo:
@@ -122,12 +123,14 @@ def test_install_chromedriver():
 
 @pytest.mark.slow
 @pytest.mark.remote_network
-@pytest.mark.xfail(sys.platform == "darwin",
-                   reason="https://github.com/w3c/web-platform-tests/issues/9090")
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="Tests currently don't work on Windows for path reasons")
 def test_install_firefox():
-    fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "firefox")
+
+    if sys.platform == "darwin":
+        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "Firefox Nightly.app")
+    else:
+        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "firefox")
     if os.path.exists(fx_path):
         shutil.rmtree(fx_path)
     with pytest.raises(SystemExit) as excinfo:

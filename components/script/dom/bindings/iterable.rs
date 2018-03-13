@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValu
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -131,10 +131,10 @@ fn key_and_value_return(cx: *mut JSContext,
                         value: HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };
     dict.done = false;
-    let values = vec![Heap::default(), Heap::default()];
-    values[0].set(key.get());
-    values[1].set(value.get());
-    dict.value = Some(values);
+    dict.value = Some(vec![key, value]
+        .into_iter()
+        .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
+        .collect());
     rooted!(in(cx) let mut dict_value = UndefinedValue());
     unsafe {
         dict.to_jsval(cx, dict_value.handle_mut());

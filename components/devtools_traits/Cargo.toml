@@ -13,7 +13,7 @@ path = "lib.rs"
 bitflags = "1.0"
 hyper = "0.10"
 hyper_serde = "0.8"
-ipc-channel = "0.9"
+ipc-channel = "0.10"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 msg = {path = "../msg"}

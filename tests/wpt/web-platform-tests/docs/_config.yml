@@ -41,3 +41,5 @@ exclude:
   - vendor/bundle/
   - .bundle/
   - OWNERS
+sass:
+    sass_dir: assets/

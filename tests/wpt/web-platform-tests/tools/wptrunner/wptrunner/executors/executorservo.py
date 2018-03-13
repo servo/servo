@@ -16,11 +16,12 @@ from mozprocess import ProcessHandler
 from serve.serve import make_hosts_file
 
 from .base import (ExecutorException,
-                   Protocol,
+                   ConnectionlessProtocol,
                    RefTestImplementation,
                    testharness_result_converter,
                    reftest_result_converter,
-                   WdspecExecutor, WebDriverProtocol)
+                   WdspecExecutor,
+                   WebDriverProtocol)
 from .process import ProcessTestExecutor
 from ..browsers.base import browser_command
 from ..wpttest import WdspecResult, WdspecSubtestResult
@@ -50,7 +51,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.pause_after_test = pause_after_test
         self.result_data = None
         self.result_flag = None
-        self.protocol = Protocol(self, browser)
+        self.protocol = ConnectionlessProtocol(self, browser)
         self.hosts_path = write_hosts_file(server_config)
 
     def teardown(self):
@@ -181,7 +182,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
                                      timeout_multiplier=timeout_multiplier,
                                      debug_info=debug_info)
 
-        self.protocol = Protocol(self, browser)
+        self.protocol = ConnectionlessProtocol(self, browser)
         self.screenshot_cache = screenshot_cache
         self.implementation = RefTestImplementation(self)
         self.tempdir = tempfile.mkdtemp()
@@ -283,6 +284,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
 class ServoDriverProtocol(WebDriverProtocol):
     server_cls = ServoDriverServer
+
 
 class ServoWdspecExecutor(WdspecExecutor):
     protocol_cls = ServoDriverProtocol

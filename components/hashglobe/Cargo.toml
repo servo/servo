@@ -13,4 +13,4 @@ readme = "README.md"
 libc = "0.2"
 
 [dev-dependencies]
-rand = "0.3"
+rand = "0.4"

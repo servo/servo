@@ -15,12 +15,8 @@ hosts_fixup() {
 
 install_chrome() {
     channel=$1
-    # The package name for Google Chrome Dev uses "unstable", not "dev".
-    if [[ $channel == "dev" ]]; then
-        channel="unstable"
-    fi
     deb_archive=google-chrome-${channel}_current_amd64.deb
-    wget https://dl.google.com/linux/direct/$deb_archive
+    wget -q https://dl.google.com/linux/direct/$deb_archive
 
     # If the environment provides an installation of Google Chrome, the
     # existing binary may take precedence over the one introduced in this

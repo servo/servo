@@ -14,6 +14,14 @@ promise_test(async t => {
   const idl_array = new IdlArray();
 
   idl_array.add_untested_idls(
+    `[Global=Event, Exposed=ServiceWorker]
+     interface Event {};`);
+  idl_array.add_untested_idls('dictionary EventHandler {};');
+  idl_array.add_untested_idls('dictionary EventInit {};');
+  idl_array.add_untested_idls(
+    `[Global=EventTarget, Exposed=ServiceWorker]
+     interface EventTarget {};`);
+  idl_array.add_untested_idls(
     `[Global=ServiceWorker, Exposed=ServiceWorker]
      interface ServiceWorkerGlobalScope {};`);
   idl_array.add_untested_idls(
@@ -24,6 +32,7 @@ promise_test(async t => {
 
   idl_array.add_objects({
     CookieStore: [self.cookieStore],
+    CookieChangeEvent: [new CookieChangeEvent('change')],
   });
   idl_array.test();
 }, 'Interface test');

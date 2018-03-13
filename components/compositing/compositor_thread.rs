@@ -6,7 +6,6 @@
 
 use SendableFrameTree;
 use compositor::CompositingReason;
-use euclid::{Point2D, Size2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
@@ -20,7 +19,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use webrender;
-use webrender_api;
+use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
 
 
 /// Used to wake up the event loop, provided by the servo port/embedder.
@@ -119,15 +118,16 @@ pub enum EmbedderMsg {
     /// Alerts the embedder that the current page has changed its title.
     ChangePageTitle(TopLevelBrowsingContextId, Option<String>),
     /// Move the window to a point
-    MoveTo(TopLevelBrowsingContextId, Point2D<i32>),
+    MoveTo(TopLevelBrowsingContextId, DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(TopLevelBrowsingContextId, Size2D<u32>),
+    ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
     /// Get Window Informations size and position
-    GetClientWindow(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    GetClientWindow(TopLevelBrowsingContextId,
+                    IpcSender<(DeviceUintSize, DeviceIntPoint)>),
     /// Get screen size (pixel)
-    GetScreenSize(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>)>),
+    GetScreenSize(TopLevelBrowsingContextId, IpcSender<(DeviceUintSize)>),
     /// Get screen available size (pixel)
-    GetScreenAvailSize(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>)>),
+    GetScreenAvailSize(TopLevelBrowsingContextId, IpcSender<(DeviceUintSize)>),
     /// Wether or not to follow a link
     AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.

@@ -34,6 +34,10 @@ promise_test(function() {
         if (mediainfo.kind == "audioinput") {
           assert_equals(typeof capabilities.echoCancellation, "object", "echoCancellation must be an object.");
         }
+        if (mediainfo.kind == "videoinput") {
+          assert_equals(typeof capabilities.facingMode, "object", "facingMode must be an object.");
+          verifyVideoRangeProperties(capabilities);
+        }
       } else if ( mediainfo.kind == "audiooutput" ) {
         assert_true(mediainfo instanceof MediaDeviceInfo);
       } else {
@@ -42,6 +46,33 @@ promise_test(function() {
     }
   });
 }, "mediaDevices.enumerateDevices() is present and working on navigator");
+
+function verifyVideoRangeProperties(capabilities) {
+  if (capabilities.hasOwnProperty('width')) {
+      assert_equals(Object.keys(capabilities.width).length, 2);
+      assert_true(capabilities.width.hasOwnProperty('min'));
+      assert_true(capabilities.width.hasOwnProperty('max'));
+      assert_less_than_equal(capabilities.width.min, capabilities.width.max);
+  }
+  if (capabilities.hasOwnProperty('height')) {
+    assert_equals(Object.keys(capabilities.height).length, 2);
+    assert_true(capabilities.height.hasOwnProperty('min'));
+    assert_true(capabilities.height.hasOwnProperty('max'));
+    assert_less_than_equal(capabilities.height.min, capabilities.height.max);
+  }
+  if (capabilities.hasOwnProperty('aspectRatio')) {
+    assert_equals(Object.keys(capabilities.aspectRatio).length, 2);
+    assert_true(capabilities.aspectRatio.hasOwnProperty('min'));
+    assert_true(capabilities.aspectRatio.hasOwnProperty('max'));
+    assert_less_than_equal(capabilities.aspectRatio.min, capabilities.aspectRatio.max);
+  }
+  if (capabilities.hasOwnProperty('frameRate')) {
+    assert_equals(Object.keys(capabilities.frameRate).length, 2);
+    assert_true(capabilities.frameRate.hasOwnProperty('min'));
+    assert_true(capabilities.frameRate.hasOwnProperty('max'));
+    assert_less_than_equal(capabilities.frameRate.min, capabilities.frameRate.max);
+  }
+}
 </script>
 </body>
 </html>

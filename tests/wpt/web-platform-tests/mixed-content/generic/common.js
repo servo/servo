@@ -305,6 +305,26 @@ function requestViaLinkPrefetch(url) {
 }
 
 /**
+ * Initiates a new beacon request.
+ * @param {string} url The URL of a resource to prefetch.
+ * @return {Promise} The promise for success/error events.
+ */
+async function requestViaSendBeacon(url) {
+  function wait(ms) {
+    return new Promise(resolve => step_timeout(resolve, ms));
+  }
+  if (!navigator.sendBeacon(url)) {
+    // If mixed-content check fails, it should return false.
+    throw new Error('sendBeacon() fails.');
+  }
+  // We don't have a means to see the result of sendBeacon() request
+  // for sure. Let's wait for a while and let the generic test function
+  // ask the server for the result.
+  await wait(500);
+  return 'allowed';
+}
+
+/**
  * Creates a new media element with a child source element, binds loadeddata and
  *     error events, sets attributes and appends to document.body.
  * @param {string} type The type of the media element (audio/video/picture).

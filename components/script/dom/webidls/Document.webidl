@@ -118,7 +118,7 @@ partial /*sealed*/ interface Document {
 
   // dynamic markup insertion
   [CEReactions, Throws]
-  Document open(optional DOMString type = "text/html", optional DOMString replace = "");
+  Document open(optional DOMString type, optional DOMString replace = "");
   // WindowProxy open(DOMString url, DOMString name, DOMString features, optional boolean replace = false);
   [CEReactions, Throws]
   void close();

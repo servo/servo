@@ -8,4 +8,4 @@ license = "MPL-2.0"
 build = "build.rs"
 
 [build-dependencies]
-gcc = "0.3.4"
+cc = "1.0"

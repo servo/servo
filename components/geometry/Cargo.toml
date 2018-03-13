@@ -14,4 +14,5 @@ app_units = "0.6"
 euclid = "0.17"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+style_traits = { path = "../style_traits" }
 webrender_api = { git = "https://github.com/servo/webrender" }

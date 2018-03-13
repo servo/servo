@@ -21,7 +21,7 @@ hyper = "0.10"
 hyper_serde = "0.8"
 hyper-openssl = "0.2.2"
 immeta = "0.3.6"
-ipc-channel = "0.9"
+ipc-channel = "0.10"
 lazy_static = "1"
 log = "0.3.5"
 matches = "0.1"
@@ -35,12 +35,12 @@ serde = "1.0"
 serde_json = "1.0"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-servo-websocket = "0.20"
+servo-websocket = { version = "0.21", default-features = false, features = ["sync"] }
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
 url = "1.2"
-uuid = {version = "0.5", features = ["v4"]}
+uuid = {version = "0.6", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]

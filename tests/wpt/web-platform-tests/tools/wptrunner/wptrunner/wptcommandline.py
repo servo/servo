@@ -4,6 +4,7 @@ import os
 import sys
 from collections import OrderedDict
 from distutils.spawn import find_executable
+from datetime import datetime, timedelta
 
 import config
 import wpttest
@@ -82,6 +83,36 @@ scheme host and port.""")
     mode_group.add_argument("--verify-log-full", action="store_true",
                             default=False,
                             help="Output per-iteration test results when running verify")
+    mode_group.add_argument("--verify-repeat-loop", action="store",
+                            default=10,
+                            help="Number of iterations for a run that reloads each test without restart.",
+                            type=int)
+    mode_group.add_argument("--verify-repeat-restart", action="store",
+                            default=5,
+                            help="Number of iterations, for a run that restarts the runner between each iteration",
+                            type=int)
+    chaos_mode_group = mode_group.add_mutually_exclusive_group()
+    chaos_mode_group.add_argument("--verify-no-chaos-mode", action="store_false",
+                                  default=True,
+                                  dest="verify_chaos_mode",
+                                  help="Disable chaos mode when running on Firefox")
+    chaos_mode_group.add_argument("--verify-chaos-mode", action="store_true",
+                                  default=True,
+                                  dest="verify_chaos_mode",
+                                  help="Enable chaos mode when running on Firefox")
+    mode_group.add_argument("--verify-max-time", action="store",
+                            default=None,
+                            help="The maximum number of minutes for the job to run",
+                            type=lambda x: timedelta(minutes=float(x)))
+    output_results_group = mode_group.add_mutually_exclusive_group()
+    output_results_group.add_argument("--verify-no-output-results", action="store_false",
+                                      dest="verify_output_results",
+                                      default=True,
+                                      help="Prints individuals test results and messages")
+    output_results_group.add_argument("--verify-output-results", action="store_true",
+                                      dest="verify_output_results",
+                                      default=True,
+                                      help="Disable printing individuals test results and messages")
 
     test_selection_group = parser.add_argument_group("Test Selection")
     test_selection_group.add_argument("--test-types", action="store",

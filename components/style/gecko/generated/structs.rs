@@ -12245,6 +12245,10 @@ pub mod root {
             pub static mut StylePrefs_sMozDocumentEnabledInContent: bool;
         }
         extern "C" {
+            #[link_name = "\u{1}_ZN7mozilla10StylePrefs28sMozDocumentURLPrefixHackEnabledE"]
+            pub static mut StylePrefs_sMozDocumentURLPrefixHackEnabled: bool;
+        }
+        extern "C" {
             #[link_name = "\u{1}_ZN7mozilla10StylePrefs32sGridTemplateSubgridValueEnabledE"]
             pub static mut StylePrefs_sGridTemplateSubgridValueEnabled: bool;
         }

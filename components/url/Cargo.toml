@@ -16,4 +16,4 @@ serde = {version = "1.0"}
 servo_rand = {path = "../rand"}
 url = "1.2"
 url_serde = {version = "0.2"}
-uuid = {version = "0.5.0", features = ["v4", "serde"]}
+uuid = {version = "0.6.0", features = ["v4", "serde"]}

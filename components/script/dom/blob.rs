@@ -5,7 +5,7 @@
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use dom::bindings::codegen::UnionTypes::BlobOrString;
+use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
@@ -43,7 +43,7 @@ pub enum BlobImpl {
     /// relative positions of current slicing range,
     /// IMPORTANT: The depth of tree is only two, i.e. the parent Blob must be
     /// either File-based or Memory-based
-    Sliced(Dom<Blob>, RelativePos),
+    Sliced(Dom<Blob>, RelativePos)
 }
 
 impl BlobImpl {
@@ -117,7 +117,7 @@ impl Blob {
 
     // https://w3c.github.io/FileAPI/#constructorBlob
     pub fn Constructor(global: &GlobalScope,
-                       blobParts: Option<Vec<BlobOrString>>,
+                       blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
                        -> Fallible<DomRoot<Blob>> {
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
@@ -329,18 +329,26 @@ fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
 
 /// Extract bytes from BlobParts, used by Blob and File constructor
 /// <https://w3c.github.io/FileAPI/#constructorBlob>
-pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Result<Vec<u8>, ()> {
+#[allow(unsafe_code)]
+pub fn blob_parts_to_bytes(mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>) -> Result<Vec<u8>, ()> {
     let mut ret = vec![];
-
-    for blobpart in &blobparts {
+    for blobpart in &mut blobparts {
         match blobpart {
-            &BlobOrString::String(ref s) => {
+            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::String(ref s) => {
                 ret.extend(s.as_bytes());
             },
-            &BlobOrString::Blob(ref b) => {
+            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(ref b) => {
                 let bytes = b.get_bytes().unwrap_or(vec![]);
                 ret.extend(bytes);
             },
+            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBuffer(ref mut a) => unsafe {
+                let bytes = a.as_slice();
+                ret.extend(bytes);
+            },
+            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBufferView(ref mut a) => unsafe {
+                let bytes = a.as_slice();
+                ret.extend(bytes);
+            }
         }
     }
 

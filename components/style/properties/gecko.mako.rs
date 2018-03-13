@@ -131,7 +131,7 @@ impl ComputedValues {
             return None;
         }
 
-        let atom = Atom::from(atom);
+        let atom = unsafe { Atom::from_raw(atom) };
         PseudoElement::from_atom(&atom)
     }
 
@@ -3248,12 +3248,15 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
+        use Atom;
 
         let property = self.gecko.mTransitions[index].mProperty;
         if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
             let atom = self.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
             debug_assert!(!atom.is_null());
-            TransitionProperty::Unsupported(CustomIdent(atom.into()))
+            TransitionProperty::Unsupported(CustomIdent(unsafe{
+                Atom::from_raw(atom)
+            }))
         } else if property == eCSSPropertyExtra_no_properties {
             // Actually, we don't expect TransitionProperty::Unsupported also represents "none",
             // but if the caller wants to convert it, it is fine. Please use it carefully.
@@ -3343,13 +3346,13 @@ fn static_assert() {
     pub fn animation_name_at(&self, index: usize)
         -> longhands::animation_name::computed_value::SingleComputedValue {
         use properties::longhands::animation_name::single_value::SpecifiedValue as AnimationName;
+        use Atom;
 
         let atom = self.gecko.mAnimations[index].mName.mRawPtr;
         if atom == atom!("").as_ptr() {
-            AnimationName(None)
-        } else {
-            AnimationName(Some(KeyframesName::from_atom(atom.into())))
+            return AnimationName(None)
         }
+        AnimationName(Some(KeyframesName::from_atom(unsafe { Atom::from_raw(atom) })))
     }
     pub fn copy_animation_name_from(&mut self, other: &Self) {
         self.gecko.mAnimationNameCount = other.gecko.mAnimationNameCount;
@@ -3549,16 +3552,19 @@ fn static_assert() {
         use properties::longhands::will_change::computed_value::T;
         use gecko_bindings::structs::nsAtom;
         use values::CustomIdent;
+        use Atom;
 
         if self.gecko.mWillChange.len() == 0 {
-            T::Auto
-        } else {
-            let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
-                CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
-            }).collect();
-
-            T::AnimateableFeatures(custom_idents.into_boxed_slice())
+            return T::Auto
         }
+
+        let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
+            unsafe {
+                CustomIdent(Atom::from_raw(gecko_atom.mRawPtr as *mut nsAtom))
+            }
+        }).collect();
+
+        T::AnimateableFeatures(custom_idents.into_boxed_slice())
     }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>

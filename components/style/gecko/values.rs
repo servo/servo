@@ -507,7 +507,7 @@ impl CounterStyleOrNone {
 
         let name = unsafe { bindings::Gecko_CounterStyle_GetName(gecko_value) };
         if !name.is_null() {
-            let name = Atom::from(name);
+            let name = unsafe { Atom::from_raw(name) };
             if name == atom!("none") {
                 Either::First(CounterStyleOrNone::None)
             } else {

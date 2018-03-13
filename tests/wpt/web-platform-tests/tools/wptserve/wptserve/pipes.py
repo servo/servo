@@ -398,6 +398,8 @@ def template(request, content, escape_type="html"):
                 value = request.server.config['not_domains']
             else:
                 value = request.server.config['domains']
+        elif field == "host":
+            value = request.server.config["browser_host"]
         elif field in request.server.config:
             value = request.server.config[tokens[0][1]]
         elif field == "location":

@@ -1066,21 +1066,8 @@ impl WebGLImpl {
     fn get_tex_parameter(gl: &gl::Gl,
                        target: u32,
                        pname: u32,
-                       chan: WebGLSender<WebGLResult<WebGLParameter>> ) {
-        let result = match pname {
-            gl::TEXTURE_MAG_FILTER |
-            gl::TEXTURE_MIN_FILTER |
-            gl::TEXTURE_WRAP_S |
-            gl::TEXTURE_WRAP_T => {
-                let parameter = gl.get_tex_parameter_iv(target, pname);
-                if parameter == 0 {
-                    Ok(WebGLParameter::Invalid)
-                } else {
-                    Ok(WebGLParameter::Int(parameter))
-                }
-            }
-            _ => Err(WebGLError::InvalidEnum)
-        };
+                       chan: WebGLSender<i32> ) {
+        let result = gl.get_tex_parameter_iv(target, pname);
         chan.send(result).unwrap();
     }
 
@@ -1117,25 +1104,16 @@ impl WebGLImpl {
     fn vertex_attrib_offset(gl: &gl::Gl,
                             index: u32,
                             pname: u32,
-                            chan: WebGLSender<WebGLResult<isize>>) {
-        let result = match pname {
-                gl::VERTEX_ATTRIB_ARRAY_POINTER => Ok(gl.get_vertex_attrib_pointer_v(index, pname)),
-                _ => Err(WebGLError::InvalidEnum),
-        };
-
+                            chan: WebGLSender<isize>) {
+        let result = gl.get_vertex_attrib_pointer_v(index, pname);
         chan.send(result).unwrap();
     }
 
     fn buffer_parameter(gl: &gl::Gl,
                         target: u32,
                         param_id: u32,
-                        chan: WebGLSender<WebGLResult<WebGLParameter>>) {
-        let result = match param_id {
-            gl::BUFFER_SIZE |
-            gl::BUFFER_USAGE =>
-                Ok(WebGLParameter::Int(gl.get_buffer_parameter_iv(target, param_id))),
-            _ => Err(WebGLError::InvalidEnum),
-        };
+                        chan: WebGLSender<i32>) {
+        let result = gl.get_buffer_parameter_iv(target, param_id);
 
         chan.send(result).unwrap();
     }
@@ -1178,21 +1156,8 @@ impl WebGLImpl {
     fn shader_precision_format(gl: &gl::Gl,
                                shader_type: u32,
                                precision_type: u32,
-                               chan: WebGLSender<WebGLResult<(i32, i32, i32)>>) {
-        let result = match precision_type {
-            gl::LOW_FLOAT |
-            gl::MEDIUM_FLOAT |
-            gl::HIGH_FLOAT |
-            gl::LOW_INT |
-            gl::MEDIUM_INT |
-            gl::HIGH_INT => {
-                Ok(gl.get_shader_precision_format(shader_type, precision_type))
-            },
-            _=> {
-                Err(WebGLError::InvalidEnum)
-            }
-        };
-
+                               chan: WebGLSender<(i32, i32, i32)>) {
+        let result = gl.get_shader_precision_format(shader_type, precision_type);
         chan.send(result).unwrap();
     }
 

@@ -16,6 +16,7 @@
   #gapPercent { gap: 15%; }
   #gapPercentTwo { gap: 15% 10%; }
   #gapCalc { gap: calc(10px + 4px); }
+  #gapCalcFixedPercent { gap: calc(5px + 10%); }
   #gapCalcTwo { gap: calc(10px + 4px) calc(20px - 8px); }
   .gapInitial { gap: initial; }
   .gapInherit { gap: inherit; }
@@ -44,6 +45,7 @@
   <div id="gapPercent"></div>
   <div id="gapPercentTwo"></div>
   <div id="gapCalc"></div>
+  <div id="gapCalcFixedPercent"></div>
   <div id="gapCalcTwo"></div>
   <div id="gapInitial" class="gapInitial"></div>
   <div class="gapPx">
@@ -135,6 +137,12 @@
         assert_equals(getComputedStyle(target).rowGap, "14px");
         assert_equals(getComputedStyle(target).columnGap, "14px");
       }, "gap accepts calc()");
+    test(
+      function(){
+        var target = document.getElementById("gapCalcFixedPercent");
+        assert_equals(getComputedStyle(target).rowGap, "calc(5px + 10%)");
+        assert_equals(getComputedStyle(target).columnGap, "calc(5px + 10%)");
+      }, "gap accepts calc() mixing fixed and percentage values");
     test(
       function(){
         var target = document.getElementById("gapCalcTwo");

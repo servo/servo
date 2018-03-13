@@ -15,13 +15,16 @@ pub enum FillRule {
     Evenodd,
 }
 
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub struct CanvasId(pub u64);
+
 #[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
-    Canvas2d(Canvas2dMsg),
+    Canvas2d(Canvas2dMsg, CanvasId),
     FromLayout(FromLayoutMsg),
-    FromScript(FromScriptMsg),
-    Recreate(Size2D<i32>),
-    Close,
+    FromScript(FromScriptMsg, CanvasId),
+    Recreate(Size2D<i32>, CanvasId),
+    Close(CanvasId),
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -36,7 +39,7 @@ pub enum Canvas2dMsg {
     DrawImage(Vec<u8>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     DrawImageSelf(Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     DrawImageInOther(
-        IpcSender<CanvasMsg>, Size2D<f64>, Rect<f64>, Rect<f64>, bool, IpcSender<()>),
+        IpcSender<CanvasMsg>, CanvasId, Size2D<f64>, Rect<f64>, Rect<f64>, bool, IpcSender<()>),
     BeginPath,
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     ClearRect(Rect<f32>),

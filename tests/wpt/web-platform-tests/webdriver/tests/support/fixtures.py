@@ -4,6 +4,7 @@ import json
 import os
 import urlparse
 import re
+import sys
 
 import webdriver
 

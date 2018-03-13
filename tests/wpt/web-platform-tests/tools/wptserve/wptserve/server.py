@@ -111,7 +111,7 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
     daemon_threads = True
 
     def __init__(self, server_address, request_handler_cls,
-                 router, rewriter, bind_hostname,
+                 router, rewriter, bind_address,
                  config=None, use_ssl=False, key_file=None, certificate=None,
                  encrypt_after_connect=False, latency=None, **kwargs):
         """Server for HTTP(s) Requests
@@ -141,10 +141,10 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
                                       This enables the server to act as a
                                       self-proxy.
 
-        :param bind_hostname True to bind the server to both the hostname and
-                             port specified in the server_address parameter.
-                             False to bind the server only to the port in the
-                             server_address parameter, but not to the hostname.
+        :param bind_address True to bind the server to both the IP address and
+                            port specified in the server_address parameter.
+                            False to bind the server only to the port in the
+                            server_address parameter, but not to the address.
         :param latency: Delay in ms to wait before seving each response, or
                         callable that returns a delay in ms
         """
@@ -156,7 +156,7 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         self.latency = latency
 
-        if bind_hostname:
+        if bind_address:
             hostname_port = server_address
         else:
             hostname_port = ("",server_address[1])
@@ -168,7 +168,8 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             Server.config = config
         else:
             self.logger.debug("Using default configuration")
-            Server.config = {"host": server_address[0],
+            Server.config = {"browser_host": server_address[0],
+                             "server_host": server_address[0],
                              "domains": {"": server_address[0]},
                              "ports": {"http": [self.server_address[1]]}}
 
@@ -343,7 +344,7 @@ class WebTestHttpd(object):
     :param rewrites: List of rewrites with which to initialize the rewriter_cls
     :param config: Dictionary holding environment configuration settings for
                    handlers to read, or None to use the default values.
-    :param bind_hostname: Boolean indicating whether to bind server to hostname.
+    :param bind_address: Boolean indicating whether to bind server to IP address.
     :param latency: Delay in ms to wait before seving each response, or
                     callable that returns a delay in ms
 
@@ -381,7 +382,7 @@ class WebTestHttpd(object):
                  server_cls=None, handler_cls=WebTestRequestHandler,
                  use_ssl=False, key_file=None, certificate=None, encrypt_after_connect=False,
                  router_cls=Router, doc_root=os.curdir, routes=None,
-                 rewriter_cls=RequestRewriter, bind_hostname=True, rewrites=None,
+                 rewriter_cls=RequestRewriter, bind_address=True, rewrites=None,
                  latency=None, config=None):
 
         if routes is None:
@@ -409,7 +410,7 @@ class WebTestHttpd(object):
                                     self.router,
                                     self.rewriter,
                                     config=config,
-                                    bind_hostname=bind_hostname,
+                                    bind_address=bind_address,
                                     use_ssl=use_ssl,
                                     key_file=key_file,
                                     certificate=certificate,

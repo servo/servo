@@ -197,6 +197,7 @@ SET TIMEOUT: screen-orientation/lock-bad-argument.html
 SET TIMEOUT: screen-orientation/onchange-event.html
 SET TIMEOUT: screen-orientation/resources/sandboxed-iframe-locking.html
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
+SET TIMEOUT: service-workers/cache-storage/script-tests/cache-abort.js
 SET TIMEOUT: service-workers/service-worker/activation.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-frame-resource.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-request-redirect.https.html
@@ -889,25 +890,7 @@ SUPPORT-WRONG-DIR: css/css-timing/testcommon.js
 MISSING-LINK: css/css-typed-om/CSSMatrixComponent-DOMMatrix-mutable.html
 MISSING-LINK: css/css-typed-om/declared-styleMap-accepts-inherit.html
 MISSING-LINK: css/css-typed-om/styleMap-update-function.html
-MISSING-LINK: css/cssom/CSS.html
-MISSING-LINK: css/cssom/CSSKeyframeRule.html
-MISSING-LINK: css/cssom/CSSKeyframesRule.html
-MISSING-LINK: css/cssom/CSSNamespaceRule.html
-MISSING-LINK: css/cssom/CSSRuleList.html
-MISSING-LINK: css/cssom/CSSStyleSheet.html
-MISSING-LINK: css/cssom/GetBoundingRect.html
-MISSING-LINK: css/cssom/historical.html
-MISSING-LINK: css/cssom/MediaList.html
-MISSING-LINK: css/cssom/overflow-serialization.html
-MISSING-LINK: css/cssom/selectorText-modification-restyle-001.html
-MISSING-LINK: css/cssom/serialization-CSSDeclaration-with-important.html
-MISSING-LINK: css/cssom/serialize-values.html
-MISSING-LINK: css/cssom/serialize-variable-reference.html
-MISSING-LINK: css/cssom/shorthand-serialization.html
 SUPPORT-WRONG-DIR: css/cssom/stylesheet-same-origin.css
-MISSING-LINK: css/cssom/stylesheet-same-origin.sub.html
-MISSING-LINK: css/cssom/StyleSheetList.html
-MISSING-LINK: css/cssom/variable-names.html
 MISSING-LINK: css/cssom-view/DOMRectList.html
 MISSING-LINK: css/cssom-view/elementFromPoint-002.html
 MISSING-LINK: css/cssom-view/elementFromPoint-003.html

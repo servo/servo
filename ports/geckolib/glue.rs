@@ -934,6 +934,23 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_Property_IsShorthand(
+    prop_name: *const nsACString,
+    found: *mut bool
+) -> bool {
+    let prop_id = PropertyId::parse(prop_name.as_ref().unwrap().as_str_unchecked());
+    let prop_id = match prop_id {
+        Ok(ref p) if p.enabled_for_all_content() => p,
+        _ => {
+            *found = false;
+            return false;
+        }
+    };
+    *found = true;
+    prop_id.is_shorthand()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool {
     use style::properties::animated_properties;
     animated_properties::nscsspropertyid_is_animatable(property)
@@ -2020,9 +2037,9 @@ pub extern "C" fn Servo_KeyframesRule_GetName(rule: RawServoKeyframesRuleBorrowe
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed, name: *mut nsAtom) {
+pub unsafe extern "C" fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed, name: *mut nsAtom) {
     write_locked_arc(rule, |rule: &mut KeyframesRule| {
-        rule.name = KeyframesName::Ident(CustomIdent(unsafe { Atom::from_addrefed(name) }));
+        rule.name = KeyframesName::Ident(CustomIdent(Atom::from_addrefed(name)));
     })
 }
 
@@ -2167,7 +2184,7 @@ pub extern "C" fn Servo_FontFeatureValuesRule_GetValueText(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(
+pub unsafe extern "C" fn Servo_ComputedValues_GetForAnonymousBox(
     parent_style_or_null: ServoStyleContextBorrowedOrNull,
     pseudo_tag: *mut nsAtom,
     raw_data: RawServoStyleSetBorrowed,
@@ -2176,7 +2193,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(
     let guard = global_style_data.shared_lock.read();
     let guards = StylesheetGuards::same(&guard);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let atom = Atom::from(pseudo_tag);
+    let atom = Atom::from_raw(pseudo_tag);
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon box pseudo?");
 
@@ -2478,7 +2495,7 @@ fn get_pseudo_style(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Inherit(
+pub unsafe extern "C" fn Servo_ComputedValues_Inherit(
     raw_data: RawServoStyleSetBorrowed,
     pseudo_tag: *mut nsAtom,
     parent_style_context: ServoStyleContextBorrowedOrNull,
@@ -2487,7 +2504,7 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     let for_text = target == structs::InheritTarget::Text;
-    let atom = Atom::from(pseudo_tag);
+    let atom = Atom::from_raw(pseudo_tag);
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon-box? Gah!");
 
@@ -3210,7 +3227,7 @@ pub extern "C" fn Servo_DeclarationBlock_PropertyIsSet(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(
+pub unsafe extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(
     declarations: RawServoDeclarationBlockBorrowed,
     property: nsCSSPropertyID,
     value: *mut nsAtom,
@@ -3220,7 +3237,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(
 
     let long = get_longhand_from_id!(property);
     let prop = match_wrap_declared! { long,
-        XLang => Lang(Atom::from(value)),
+        XLang => Lang(Atom::from_raw(value)),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
@@ -4138,7 +4155,7 @@ fn fill_in_missing_keyframe_values(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_GetKeyframesForName(
+pub unsafe extern "C" fn Servo_StyleSet_GetKeyframesForName(
     raw_data: RawServoStyleSetBorrowed,
     name: *mut nsAtom,
     inherited_timing_function: nsTimingFunctionBorrowed,
@@ -4148,7 +4165,7 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(
                   "keyframes should be initially empty");
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    let name = Atom::from(name);
+    let name = Atom::from_raw(name);
 
     let animation = match data.stylist.get_animation(&name) {
         Some(animation) => animation,
@@ -4183,11 +4200,11 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(
         // Look for an existing keyframe with the same offset and timing
         // function or else add a new keyframe at the beginning of the keyframe
         // array.
-        let keyframe = unsafe {
-            Gecko_GetOrCreateKeyframeAtStart(keyframes,
-                                             step.start_percentage.0 as f32,
-                                             &timing_function)
-        };
+        let keyframe = Gecko_GetOrCreateKeyframeAtStart(
+            keyframes,
+            step.start_percentage.0 as f32,
+            &timing_function,
+        );
 
         match step.value {
             KeyframesStepValue::ComputedValues => {
@@ -4197,12 +4214,10 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(
                 // animation should be set to the underlying computed value for
                 // that keyframe.
                 for property in animation.properties_changed.iter() {
-                    unsafe {
-                        Gecko_AppendPropertyValuePair(
-                            &mut (*keyframe).mPropertyValues,
-                            property.to_nscsspropertyid(),
-                        );
-                    }
+                    Gecko_AppendPropertyValuePair(
+                        &mut (*keyframe).mPropertyValues,
+                        property.to_nscsspropertyid(),
+                    );
                 }
                 if current_offset == 0.0 {
                     has_complete_initial_keyframe = true;
@@ -4249,23 +4264,19 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(
                         continue;
                     }
 
-                    let pair = unsafe {
-                        Gecko_AppendPropertyValuePair(
-                            &mut (*keyframe).mPropertyValues,
-                            id.to_nscsspropertyid(),
-                        )
-                    };
+                    let pair = Gecko_AppendPropertyValuePair(
+                        &mut (*keyframe).mPropertyValues,
+                        id.to_nscsspropertyid(),
+                    );
 
-                    unsafe {
-                        (*pair).mServoDeclarationBlock.set_arc_leaky(
-                            Arc::new(global_style_data.shared_lock.wrap(
-                                PropertyDeclarationBlock::with_one(
-                                    declaration.clone(),
-                                    Importance::Normal,
-                                )
-                            ))
-                        );
-                    }
+                    (*pair).mServoDeclarationBlock.set_arc_leaky(
+                        Arc::new(global_style_data.shared_lock.wrap(
+                            PropertyDeclarationBlock::with_one(
+                                declaration.clone(),
+                                Importance::Normal,
+                            )
+                        ))
+                    );
 
                     if current_offset == 0.0 {
                         properties_set_at_start.insert(id);
@@ -4276,19 +4287,14 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(
                 }
 
                 if custom_properties.any_normal() {
-                    let pair = unsafe {
-                        Gecko_AppendPropertyValuePair(
-                            &mut (*keyframe).mPropertyValues,
-                            nsCSSPropertyID::eCSSPropertyExtra_variable,
-                        )
-                    };
+                    let pair = Gecko_AppendPropertyValuePair(
+                        &mut (*keyframe).mPropertyValues,
+                        nsCSSPropertyID::eCSSPropertyExtra_variable,
+                    );
 
-                    unsafe {
-                        (*pair).mServoDeclarationBlock.set_arc_leaky(Arc::new(
-                            global_style_data.shared_lock.wrap(custom_properties)
-                        ));
-                    }
-
+                    (*pair).mServoDeclarationBlock.set_arc_leaky(Arc::new(
+                        global_style_data.shared_lock.wrap(custom_properties)
+                    ));
                 }
             },
         }
@@ -4498,7 +4504,7 @@ pub extern "C" fn Servo_StyleSet_HasDocumentStateDependency(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetCustomPropertyValue(
+pub unsafe extern "C" fn Servo_GetCustomPropertyValue(
     computed_values: ServoStyleContextBorrowed,
     name: *const nsAString,
     value: *mut nsAString,
@@ -4508,13 +4514,13 @@ pub extern "C" fn Servo_GetCustomPropertyValue(
         None => return false,
     };
 
-    let name = unsafe { Atom::from(&*name) };
+    let name = Atom::from(&*name);
     let computed_value = match custom_properties.get(&name) {
         Some(v) => v,
         None => return false,
     };
 
-    computed_value.to_css(&mut CssWriter::new(unsafe { value.as_mut().unwrap() })).unwrap();
+    computed_value.to_css(&mut CssWriter::new(&mut *value)).unwrap();
     true
 }
 

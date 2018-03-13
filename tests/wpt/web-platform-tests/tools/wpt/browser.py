@@ -65,28 +65,9 @@ class Firefox(Browser):
     """
 
     product = "firefox"
-    binary = "firefox/firefox"
-    platform_ini = "firefox/platform.ini"
+    binary = "browsers/firefox/firefox"
+    platform_ini = "browsers/firefox/platform.ini"
     requirements = "requirements_firefox.txt"
-
-    def platform_string(self):
-        platform = {
-            "Linux": "linux",
-            "Windows": "win",
-            "Darwin": "mac"
-        }.get(uname[0])
-
-        if platform is None:
-            raise ValueError("Unable to construct a valid Firefox package name for current platform")
-
-        if platform == "linux":
-            bits = "-%s" % uname[4]
-        elif platform == "win":
-            bits = "64" if uname[4] == "x86_64" else "32"
-        else:
-            bits = ""
-
-        return "%s%s" % (platform, bits)
 
     def platform_string_geckodriver(self):
         platform = {
@@ -111,38 +92,69 @@ class Firefox(Browser):
         from mozdownload import FactoryScraper
         import mozinstall
 
-        if dest is None:
-            dest = os.getcwd()
+        platform = {
+            "Linux": "linux",
+            "Windows": "win",
+            "Darwin": "mac"
+        }.get(uname[0])
 
-        filename = FactoryScraper('daily', branch='mozilla-central', destination=dest).download()
+        if platform is None:
+            raise ValueError("Unable to construct a valid Firefox package name for current platform")
+
+        if dest is None:
+            # os.getcwd() doesn't include the venv path
+            dest = os.path.join(os.getcwd(), "_venv")
+
+        dest = os.path.join(dest, "browsers")
+
+        filename = FactoryScraper("daily", branch="mozilla-central", destination=dest).download()
 
         try:
             mozinstall.install(filename, dest)
         except mozinstall.mozinstall.InstallError as e:
-            if uname[0] == "Darwin":
-                # mozinstall will fail here if nightly is already installed in the venv
-                # This only occurs on macOS because shutil.copy_tree() is called in
-                # mozinstall._install_dmg and will fail if the file already exists.
-                # copytree isn't used while installing on Windows/linux, so the same error
-                # won't be thrown if we try to rewrite there.
-                mozinstall.uninstall(dest+'/Firefox Nightly.app')
+            if platform == "mac" and os.path.exists(os.path.join(dest, "Firefox Nightly.app")):
+                # mozinstall will fail if nightly is already installed in the venv because
+                # mac installation uses shutil.copy_tree
+                mozinstall.uninstall(os.path.join(dest, "Firefox Nightly.app"))
                 mozinstall.install(filename, dest)
             else:
                 raise
 
         os.remove(filename)
-        return find_executable("firefox", os.path.join(dest, "firefox"))
+        return self.find_binary_path(dest)
 
-    def find_binary(self):
+    def find_binary_path(self, path=None):
+        """Looks for the firefox binary in the virtual environment"""
+
         platform = {
             "Linux": "linux",
             "Windows": "win",
-            "Darwin": "macos"
+            "Darwin": "mac"
         }.get(uname[0])
 
-        path = find_executable("firefox")
+        if path is None:
+            #os.getcwd() doesn't include the venv path
+            path = os.path.join(os.getcwd(), "_venv", "browsers")
 
-        if not path and platform == "macos":
+        binary = None
+
+        if platform == "linux":
+            binary = find_executable("firefox", os.path.join(path, "firefox"))
+        elif platform == "win":
+            import mozinstall
+            binary = mozinstall.get_binary(path, "firefox")
+        elif platform == "mac":
+            binary = find_executable("firefox", os.path.join(path, "Firefox Nightly.app", "Contents", "MacOS"))
+
+        return binary
+
+    def find_binary(self, venv_path=None):
+        if venv_path is None:
+            venv_path = os.path.join(os.getcwd(), venv_path)
+
+        binary = self.find_binary_path(os.path.join(venv_path, "browsers"))
+
+        if not binary and uname[0] == "Darwin":
             macpaths = ["/Applications/FirefoxNightly.app/Contents/MacOS",
                         os.path.expanduser("~/Applications/FirefoxNightly.app/Contents/MacOS"),
                         "/Applications/Firefox Developer Edition.app/Contents/MacOS",
@@ -151,7 +163,10 @@ class Firefox(Browser):
                         os.path.expanduser("~/Applications/Firefox.app/Contents/MacOS")]
             return find_executable("firefox", os.pathsep.join(macpaths))
 
-        return path
+        if binary is None:
+            return find_executable("firefox")
+
+        return binary
 
     def find_certutil(self):
         path = find_executable("certutil")

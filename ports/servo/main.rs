@@ -42,6 +42,7 @@ extern crate sig;
 extern crate style_traits;
 extern crate tinyfiledialogs;
 extern crate webrender_api;
+extern crate winit;
 #[cfg(target_os = "windows")] extern crate winapi;
 #[cfg(target_os = "windows")] extern crate user32;
 

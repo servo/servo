@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — line breaking for nowrap and floats</title>
+<meta name=assert content="When whitespace: nowrap is specified, floats should not cause line breaks">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#white-space-property">
+<link rel=match href="reference/line-breaking-012-ref.html">
+<style>
+.container {
+    position: relative;
+    color:green;
+    line-height: 1em;
+    font-family: Ahem;
+    font-size: 20px;
+}
+
+.wrapper {
+    white-space: nowrap;
+}
+
+span {
+    float: left;
+}
+
+.fail {
+    color: red;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: -1;
+}
+</style>
+<body>
+  <p>There should be a green rectangle and no red.</p>
+  <div class="container">
+    <div class="fail">XX</div>
+    <div class="wrapper">X<span>X<span></div>
+  </div>
+</body>
+</html>
