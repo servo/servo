@@ -14,7 +14,8 @@ use dom_struct::dom_struct;
 use euclid::TypedSize2D;
 use ipc_channel::ipc;
 use script_traits::ScriptMsg;
-use style_traits::{CSSPixel, DevicePixel};
+use style_traits::CSSPixel;
+use webrender_api::DeviceUintSize;
 
 #[dom_struct]
 pub struct Screen {
@@ -37,7 +38,7 @@ impl Screen {
     }
 
     fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = ipc::channel::<(TypedSize2D<u32, DevicePixel>)>().unwrap();
+        let (send, recv) = ipc::channel::<DeviceUintSize>().unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();
@@ -46,7 +47,7 @@ impl Screen {
     }
 
     fn screen_avail_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = ipc::channel::<(TypedSize2D<u32, DevicePixel>)>().unwrap();
+        let (send, recv) = ipc::channel::<DeviceUintSize>().unwrap();
         self.window.upcast::<GlobalScope>()
             .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
         let dpr = self.window.device_pixel_ratio();

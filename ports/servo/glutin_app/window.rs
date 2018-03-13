@@ -40,7 +40,7 @@ use style_traits::cursor::CursorKind;
 use tinyfiledialogs;
 #[cfg(target_os = "windows")]
 use user32;
-use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
+use webrender_api::{DeviceIntPoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
 #[cfg(target_os = "windows")]
 use winapi;
 use winit;
@@ -222,8 +222,7 @@ impl Window {
 
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<Window> {
-        let win_size: TypedSize2D<u32, DevicePixel> =
-            (window_size.to_f32() * window_creation_scale_factor()).to_u32();
+        let win_size: DeviceUintSize = (window_size.to_f32() * window_creation_scale_factor()).to_u32();
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 
@@ -882,7 +881,7 @@ impl WindowMethods for Window {
         self.inner_size.get().to_f32() * self.hidpi_factor()
     }
 
-    fn client_window(&self, _: BrowserId) -> (TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>) {
+    fn client_window(&self, _: BrowserId) -> (DeviceUintSize, DeviceIntPoint) {
         let (size, point) = match self.kind {
             WindowKind::Window(ref window, ..) => {
                 // TODO(ajeffrey): can this fail?
@@ -903,11 +902,11 @@ impl WindowMethods for Window {
         ((size * dpr).to_u32(), (point * dpr).to_i32())
     }
 
-    fn screen_size(&self, _: BrowserId) -> TypedSize2D<u32, DevicePixel> {
+    fn screen_size(&self, _: BrowserId) -> DeviceUintSize {
         (self.screen_size.to_f32() * self.hidpi_factor()).to_u32()
     }
 
-    fn screen_avail_size(&self, browser_id: BrowserId) -> TypedSize2D<u32, DevicePixel> {
+    fn screen_avail_size(&self, browser_id: BrowserId) -> DeviceUintSize {
         // FIXME: Glutin doesn't have API for available size. Fallback to screen size
         self.screen_size(browser_id)
     }
@@ -916,7 +915,7 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn set_inner_size(&self, _: BrowserId, size: TypedSize2D<u32, DevicePixel>) {
+    fn set_inner_size(&self, _: BrowserId, size: DeviceUintSize) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
                 let size = size.to_f32() / self.hidpi_factor();
@@ -926,7 +925,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_position(&self, _: BrowserId, point: TypedPoint2D<i32, DevicePixel>) {
+    fn set_position(&self, _: BrowserId, point: DeviceIntPoint) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
                 let point = point.to_f32() / self.hidpi_factor();

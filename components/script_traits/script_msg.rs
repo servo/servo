@@ -13,7 +13,7 @@ use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
 use canvas_traits::canvas::CanvasMsg;
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use euclid::{Size2D, TypedPoint2D, TypedSize2D};
+use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TraversalDirection};
@@ -23,9 +23,10 @@ use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
-use style_traits::{DevicePixel, CSSPixel};
+use style_traits::CSSPixel;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
+use webrender_api::{DeviceIntPoint, DeviceUintSize};
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -136,11 +137,11 @@ pub enum ScriptMsg {
     /// Send a key event
     SendKeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Get Window Informations size and position
-    GetClientWindow(IpcSender<(TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>)>),
+    GetClientWindow(IpcSender<(DeviceUintSize, DeviceIntPoint)>),
     /// Move the window to a point
-    MoveTo(TypedPoint2D<i32, DevicePixel>),
+    MoveTo(DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(TypedSize2D<u32, DevicePixel>),
+    ResizeTo(DeviceUintSize),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// A log entry, with the top-level browsing context id and thread name
@@ -155,9 +156,9 @@ pub enum ScriptMsg {
     /// Enter or exit fullscreen
     SetFullscreenState(bool),
     /// Get the screen size (pixel)
-    GetScreenSize(IpcSender<(TypedSize2D<u32, DevicePixel>)>),
+    GetScreenSize(IpcSender<(DeviceUintSize)>),
     /// Get the available screen size (pixel)
-    GetScreenAvailSize(IpcSender<(TypedSize2D<u32, DevicePixel>)>),
+    GetScreenAvailSize(IpcSender<(DeviceUintSize)>),
     /// Requests that the compositor shut down.
     Exit,
 }
