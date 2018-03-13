@@ -13,6 +13,14 @@ const properties = {
                          'accuracy', 'altitudeAccuracy', 'heading', 'speed'],
   'ProximitySensor' : ['timestamp', 'max']
 };
+const spatialSensors = ['Accelerometer',
+                       'LinearAccelerationSensor',
+                       'GravitySensor',
+                       'Gyroscope',
+                       'Magnetometer',
+                       'UncalibratedMagnetometer',
+                       'AbsoluteOrientationSensor',
+                       'RelativeOrientationSensor'];
 
 function assert_reading_not_null(sensor) {
   for (let property in properties[sensor.constructor.name]) {
@@ -242,6 +250,24 @@ function runGenericSensorTests(sensorType) {
     sensor.stop();
   }, `${sensorType.name}: sensor receives suspend / resume notifications when\
   cross-origin subframe is focused`);
+
+  if (spatialSensors.indexOf(sensorType.name) == -1) {
+    // The sensorType does not represent a spatial sensor.
+    return;
+  }
+
+  promise_test(async t => {
+    const sensor = new sensorType({referenceFrame: "screen"});
+    const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
+    sensor.start();
+
+    await sensorWatcher.wait_for("reading");
+    //TODO use mock data to verify sensor readings, blocked by issue:
+    // https://github.com/w3c/web-platform-tests/issues/9686
+    assert_reading_not_null(sensor);
+
+    sensor.stop();
+  }, `${sensorType.name}: sensor reading is correct when options.referenceFrame is 'screen'`);
 }
 
 function runGenericSensorInsecureContext(sensorType) {

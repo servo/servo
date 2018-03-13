@@ -444,8 +444,37 @@ class Servo(Browser):
     product = "servo"
     requirements = "requirements_servo.txt"
 
+    def platform_components(self):
+        platform = {
+            "Linux": "linux",
+            "Windows": "win",
+            "Darwin": "mac"
+        }.get(uname[0])
+
+        if platform is None:
+            raise ValueError("Unable to construct a valid Servo package for current platform")
+
+        if platform == "linux":
+            extension = ".tar.gz"
+            decompress = untar
+        elif platform == "win" or platform == "mac":
+            raise ValueError("Unable to construct a valid Servo package for current platform")
+
+        return (platform, extension, decompress)
+
     def install(self, dest=None):
-        raise NotImplementedError
+        """Install latest Browser Engine."""
+        if dest is None:
+            dest = os.pwd
+
+        platform, extension, decompress = self.platform_components()
+        url = "https://download.servo.org/nightly/%s/servo-latest%s" % (platform, extension)
+
+        decompress(get(url).raw, dest=dest)
+        path = find_executable("servo", os.path.join(dest, "servo"))
+        st = os.stat(path)
+        os.chmod(path, st.st_mode | stat.S_IEXEC)
+        return path
 
     def find_binary(self):
         return find_executable("servo")
@@ -457,7 +486,9 @@ class Servo(Browser):
         raise NotImplementedError
 
     def version(self, root):
-        return None
+        """Retrieve the release version of the installed browser."""
+        output = call(self.binary, "--version")
+        return re.search(r"[0-9\.]+( [a-z]+)?$", output.strip()).group(0)
 
 
 class Sauce(Browser):

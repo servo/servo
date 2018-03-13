@@ -12,7 +12,8 @@ const TESTS = {
   // specified -> expected
   "rgb(calc(0), calc(255 + 0), calc(140 - 139 - 1))": "rgb(0, 255, 0)",
   "rgba(calc(0%) calc(100%) calc(0%) / calc(10% * 10))": "rgb(0, 255, 0)",
-  "hsl(calc(5deg * (360 / 5)), calc(10% * 10), calc(10% * 10))": "rgb(255, 255, 255)"
+  "hsl(calc(5deg * (360 / 5)), calc(10% * 10), calc(10% * 10))": "rgb(255, 255, 255)",
+  "hsla(calc(5 * (360 / 5)), calc(10% * 10), calc(10% * 10), calc(1.0))": "rgb(255, 255, 255)"
 }
 
 test(function() {

@@ -352,7 +352,8 @@ class Servo(BrowserSetup):
     browser_cls = browser.Servo
 
     def install(self, venv):
-        raise NotImplementedError
+        if self.prompt_install(self.name):
+            return self.browser.install(venv.path)
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:

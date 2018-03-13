@@ -548,7 +548,7 @@ interface DOMTokenList {
   [CEReactions] void add(DOMString... tokens);
   [CEReactions] void remove(DOMString... tokens);
   [CEReactions] boolean toggle(DOMString token, optional boolean force);
-  [CEReactions] void replace(DOMString token, DOMString newToken);
+  [CEReactions] boolean replace(DOMString token, DOMString newToken);
   boolean supports(DOMString token);
   [CEReactions] stringifier attribute DOMString value;
   //  iterable<DOMString>;

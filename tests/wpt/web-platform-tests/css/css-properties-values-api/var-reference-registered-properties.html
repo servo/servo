@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-css-registerproperty" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+    --registered-length-1: 10px;
+    --registered-length-2: var(--registered-length-1);
+    --registered-length-3: var(--length-1);
+    --registered-length-4: calc(var(--length-1) + 40px);
+    --registered-length-5: var(--invalid, 70px);
+    --registered-length-6: calc(var(--registered-length-3)*4);
+    --registered-length-7: var(--123px, 6px);
+
+    --length-1: 20px;
+    --length-2: var(--registered-length-1);
+    --length-3: calc(var(--123px, 6px) + var(--123px));
+
+    --percentage: 10%;
+    --registered-length-invalid: var(--percentage);
+
+    --registered-token-stream-1:var(--invalid);
+    --registered-token-stream-2:var(--invalid,fallback);
+    --token-stream-1:var(--registered-token-stream-1,moo);
+}
+</style>
+<div id=element></div>
+<script>
+CSS.registerProperty({name: '--123px', syntax: '<length>', initialValue: '123px'});
+
+CSS.registerProperty({name: '--registered-length-1', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--registered-length-2', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--registered-length-3', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--registered-length-4', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--registered-length-5', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--registered-length-6', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--registered-length-7', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--registered-length-invalid', syntax: '<length>', initialValue: '15px'});
+
+CSS.registerProperty({name: '--registered-token-stream-1', syntax: '*'});
+CSS.registerProperty({name: '--registered-token-stream-2', syntax: '*'});
+
+test(function() {
+    computedStyle = getComputedStyle(element);
+    assert_equals(computedStyle.getPropertyValue('--registered-length-1'), '10px');
+    assert_equals(computedStyle.getPropertyValue('--registered-length-2'), '10px');
+    assert_equals(computedStyle.getPropertyValue('--registered-length-3'), '20px');
+    assert_equals(computedStyle.getPropertyValue('--registered-length-4'), '60px');
+    assert_equals(computedStyle.getPropertyValue('--registered-length-5'), '70px');
+    assert_equals(computedStyle.getPropertyValue('--registered-length-6'), '80px');
+    assert_equals(computedStyle.getPropertyValue('--registered-length-7'), '123px');
+    assert_equals(computedStyle.getPropertyValue('--length-1'), ' 20px');
+    assert_equals(computedStyle.getPropertyValue('--length-2'), '  10px');
+    assert_equals(computedStyle.getPropertyValue('--length-3'), ' calc(123px + 123px)');
+    assert_equals(computedStyle.getPropertyValue('--registered-length-invalid'), '15px');
+
+    assert_equals(computedStyle.getPropertyValue('--registered-token-stream-1'), '');
+    assert_equals(computedStyle.getPropertyValue('--registered-token-stream-2'), 'fallback');
+    assert_equals(computedStyle.getPropertyValue('--token-stream-1'), 'moo');
+}, "var() references work with registered properties");
+</script>

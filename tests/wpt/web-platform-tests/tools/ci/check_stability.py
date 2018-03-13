@@ -172,22 +172,6 @@ def get_parser():
     return parser
 
 
-def set_default_args(kwargs):
-    kwargs.set_if_none("sauce_platform",
-                       os.environ.get("PLATFORM"))
-    kwargs.set_if_none("sauce_build",
-                       os.environ.get("TRAVIS_BUILD_NUMBER"))
-    python_version = os.environ.get("TRAVIS_PYTHON_VERSION")
-    kwargs.set_if_none("sauce_tags",
-                       [python_version] if python_version else [])
-    kwargs.set_if_none("sauce_tunnel_id",
-                       os.environ.get("TRAVIS_JOB_NUMBER"))
-    kwargs.set_if_none("sauce_user",
-                       os.environ.get("SAUCE_USERNAME"))
-    kwargs.set_if_none("sauce_key",
-                       os.environ.get("SAUCE_ACCESS_KEY"))
-
-
 def pr():
     pr = os.environ.get("TRAVIS_PULL_REQUEST", "false")
     return pr if pr != "false" else None
@@ -301,10 +285,6 @@ def run(venv, wpt_args, **kwargs):
 
     browser_name = wpt_args.product.split(":")[0]
 
-    if browser_name == "sauce" and not wpt_args.sauce_key:
-        logger.warning("Cannot run tests on Sauce Labs. No access key.")
-        return retcode
-
     pr_number = pr()
 
     with TravisFold("browser_setup"):
@@ -337,8 +317,6 @@ def run(venv, wpt_args, **kwargs):
                 logger.debug("Affected tests:\n%s" % "".join(" * %s\n" % item for item in files_affected))
 
             wpt_kwargs["test_list"] = list(tests_changed | files_affected)
-
-        set_default_args(wpt_kwargs)
 
         do_delayed_imports()
 
