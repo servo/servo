@@ -882,7 +882,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             unwrapFailureCode = failureCode
 
-        typeName = type.name
+        typeName = type.unroll().name  # unroll because it may be nullable
+
         if isMember == "Union":
             typeName = "Heap" + typeName
 
@@ -902,7 +903,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if isMember == "Union":
             templateBody = "RootedTraceableBox::new(%s)" % templateBody
 
-        declType = CGGeneric("typedarray::%s" % type.name)
+        declType = CGGeneric("typedarray::%s" % typeName)
         if type.nullable():
             templateBody = "Some(%s)" % templateBody
             declType = CGWrapper(declType, pre="Option<", post=">")

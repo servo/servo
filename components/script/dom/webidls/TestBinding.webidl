@@ -294,6 +294,7 @@ interface TestBinding {
   // void passNullableEnum(TestEnum? arg);
   void passNullableInterface(Blob? arg);
   void passNullableObject(object? arg);
+  void passNullableTypedArray(Int8Array? arg);
   void passNullableUnion((HTMLElement or long)? arg);
   void passNullableUnion2((Event or DOMString)? data);
   void passNullableUnion3((DOMString or sequence<long>)? data);
