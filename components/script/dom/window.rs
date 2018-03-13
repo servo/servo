@@ -116,7 +116,7 @@ use timers::{IsInterval, TimerCallback};
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
-use webrender_api::{ExternalScrollId, DocumentId};
+use webrender_api::{ExternalScrollId, DeviceIntPoint, DeviceUintSize, DocumentId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -1180,7 +1180,7 @@ impl Window {
     }
 
     fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
-        let (send, recv) = ipc::channel::<(TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>)>().unwrap();
+        let (send, recv) = ipc::channel::<(DeviceUintSize, DeviceIntPoint)>().unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
         let (size, point) = recv.recv().unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
         let dpr = self.device_pixel_ratio();

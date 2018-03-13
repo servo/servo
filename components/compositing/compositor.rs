@@ -6,7 +6,7 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg};
-use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale};
+use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -21,7 +21,7 @@ use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, To
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use servo_config::opts;
-use servo_geometry::DeviceIndependentPixel;
+use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
 use std::collections::HashMap;
 use std::fs::File;
 use std::rc::Rc;
@@ -33,7 +33,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_api::{self, DeviceUintRect, DeviceUintSize, HitTestFlags, HitTestResult};
+use webrender_api::{self, DeviceIntPoint, DevicePoint, DeviceUintRect, DeviceUintSize, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollEventPhase, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
@@ -201,7 +201,7 @@ struct ScrollZoomEvent {
     /// Scroll by this offset, or to Start or End
     scroll_location: ScrollLocation,
     /// Apply changes to the frame at this location
-    cursor: TypedPoint2D<i32, DevicePixel>,
+    cursor: DeviceIntPoint,
     /// The scroll event phase.
     phase: ScrollEventPhase,
     /// The number of OS events that have been coalesced together into this one event.
@@ -274,7 +274,7 @@ impl RenderTargetInfo {
     }
 }
 
-fn initialize_png(gl: &gl::Gl, width: Length<u32, DevicePixel>, height: Length<u32, DevicePixel>) -> RenderTargetInfo {
+fn initialize_png(gl: &gl::Gl, width: DeviceUintLength, height: DeviceUintLength) -> RenderTargetInfo {
     let framebuffer_ids = gl.gen_framebuffers(1);
     gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
@@ -729,7 +729,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn hit_test_at_point(&self, point: TypedPoint2D<f32, DevicePixel>) -> HitTestResult {
+    fn hit_test_at_point(&self, point: DevicePoint) -> HitTestResult {
         let dppx = self.page_zoom * self.hidpi_factor();
         let scaled_point = (point / dppx).to_untyped();
 
@@ -743,7 +743,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     }
 
-    pub fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
         if opts::get().convert_mouse_to_touch {
             self.on_touch_move(TouchId(0), cursor);
             return
@@ -752,7 +752,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.dispatch_mouse_window_move_event_class(cursor);
     }
 
-    fn dispatch_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
+    fn dispatch_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
         let root_pipeline_id = match self.get_root_pipeline_id() {
             Some(root_pipeline_id) => root_pipeline_id,
             None => return,
@@ -784,7 +784,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         &self,
         event_type: TouchEventType,
         identifier: TouchId,
-        point: TypedPoint2D<f32, DevicePixel>)
+        point: DevicePoint)
     {
         let results = self.hit_test_at_point(point);
         if let Some(item) = results.items.first() {
@@ -805,7 +805,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn on_touch_event(&mut self,
                           event_type: TouchEventType,
                           identifier: TouchId,
-                          location: TypedPoint2D<f32, DevicePixel>) {
+                          location: DevicePoint) {
         match event_type {
             TouchEventType::Down => self.on_touch_down(identifier, location),
             TouchEventType::Move => self.on_touch_move(identifier, location),
@@ -814,12 +814,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    fn on_touch_down(&mut self, identifier: TouchId, point: DevicePoint) {
         self.touch_handler.on_touch_down(identifier, point);
         self.send_touch_event(TouchEventType::Down, identifier, point);
     }
 
-    fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    fn on_touch_move(&mut self, identifier: TouchId, point: DevicePoint) {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
@@ -850,7 +850,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    fn on_touch_up(&mut self, identifier: TouchId, point: DevicePoint) {
         self.send_touch_event(TouchEventType::Up, identifier, point);
 
         if let TouchAction::Click = self.touch_handler.on_touch_up(identifier, point) {
@@ -858,14 +858,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    fn on_touch_cancel(&mut self, identifier: TouchId, point: DevicePoint) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(identifier, point);
         self.send_touch_event(TouchEventType::Cancel, identifier, point);
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>
-    fn simulate_mouse_click(&mut self, p: TypedPoint2D<f32, DevicePixel>) {
+    fn simulate_mouse_click(&mut self, p: DevicePoint) {
         let button = MouseButton::Left;
         self.dispatch_mouse_window_move_event_class(p);
         self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseDown(button, p));
@@ -875,7 +875,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn on_scroll_event(&mut self,
                            delta: ScrollLocation,
-                           cursor: TypedPoint2D<i32, DevicePixel>,
+                           cursor: DeviceIntPoint,
                            phase: TouchEventType) {
         match phase {
             TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
@@ -890,7 +890,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_scroll_window_event(&mut self,
                               scroll_location: ScrollLocation,
-                              cursor: TypedPoint2D<i32, DevicePixel>) {
+                              cursor: DeviceIntPoint) {
         let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
             (false, None) => ScrollEventPhase::Start,
             (false, Some(last_scroll)) if last_scroll.elapsed() > Duration::from_millis(80) =>
@@ -909,7 +909,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_scroll_start_window_event(&mut self,
                                     scroll_location: ScrollLocation,
-                                    cursor: TypedPoint2D<i32, DevicePixel>) {
+                                    cursor: DeviceIntPoint) {
         self.scroll_in_progress = true;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
@@ -922,7 +922,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_scroll_end_window_event(&mut self,
                                   scroll_location: ScrollLocation,
-                                  cursor: TypedPoint2D<i32, DevicePixel>) {
+                                  cursor: DeviceIntPoint) {
         self.scroll_in_progress = false;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
@@ -1375,8 +1375,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn draw_img(&self,
                 render_target_info: RenderTargetInfo,
-                width: Length<u32, DevicePixel>,
-                height: Length<u32, DevicePixel>)
+                width: DeviceUintLength,
+                height: DeviceUintLength)
                 -> RgbImage {
         let width = width.get() as usize;
         let height = height.get() as usize;

@@ -6,7 +6,6 @@
 
 use SendableFrameTree;
 use compositor::CompositingReason;
-use euclid::{TypedPoint2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
@@ -17,11 +16,10 @@ use script_traits::{AnimationState, ConstellationMsg, EventResult, LoadData};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::sync::mpsc::{Receiver, Sender};
-use style_traits::DevicePixel;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use webrender;
-use webrender_api;
+use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
 
 
 /// Used to wake up the event loop, provided by the servo port/embedder.
@@ -120,16 +118,16 @@ pub enum EmbedderMsg {
     /// Alerts the embedder that the current page has changed its title.
     ChangePageTitle(TopLevelBrowsingContextId, Option<String>),
     /// Move the window to a point
-    MoveTo(TopLevelBrowsingContextId, TypedPoint2D<i32, DevicePixel>),
+    MoveTo(TopLevelBrowsingContextId, DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(TopLevelBrowsingContextId, TypedSize2D<u32, DevicePixel>),
+    ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
     /// Get Window Informations size and position
     GetClientWindow(TopLevelBrowsingContextId,
-                    IpcSender<(TypedSize2D<u32, DevicePixel>, TypedPoint2D<i32, DevicePixel>)>),
+                    IpcSender<(DeviceUintSize, DeviceIntPoint)>),
     /// Get screen size (pixel)
-    GetScreenSize(TopLevelBrowsingContextId, IpcSender<(TypedSize2D<u32, DevicePixel>)>),
+    GetScreenSize(TopLevelBrowsingContextId, IpcSender<(DeviceUintSize)>),
     /// Get screen available size (pixel)
-    GetScreenAvailSize(TopLevelBrowsingContextId, IpcSender<(TypedSize2D<u32, DevicePixel>)>),
+    GetScreenAvailSize(TopLevelBrowsingContextId, IpcSender<(DeviceUintSize)>),
     /// Wether or not to follow a link
     AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
