@@ -369,7 +369,7 @@ impl TestBindingMethods for TestBinding {
                 nullableFloatValue: None,
                 nullableLongLongValue: None,
                 nullableLongValue: None,
-                nullableObjectValue: Heap::default(),
+                nullableObjectValue: RootedTraceableBox::new(Heap::default()),
                 nullableOctetValue: None,
                 nullableShortValue: None,
                 nullableStringValue: None,
