@@ -10,6 +10,7 @@ use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGL2Constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -1542,6 +1543,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
+        if target == WebGL2Constants::READ_FRAMEBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidOperation);
         }
@@ -2283,6 +2288,78 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             -1
         }
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    unsafe fn GetFramebufferAttachmentParameter(
+        &self,
+        cx: *mut JSContext,
+        target: u32,
+        attachment: u32,
+        pname: u32
+    ) -> JSVal {
+        // Check if currently bound framebuffer is non-zero as per spec.
+        if self.bound_framebuffer.get().is_none() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        }
+
+        // Note: commented out stuff is for the WebGL2 standard.
+        let target_matches = match target {
+            // constants::READ_FRAMEBUFFER |
+            // constants::DRAW_FRAMEBUFFER => true,
+            constants::FRAMEBUFFER => true,
+            _ => false
+        };
+        let attachment_matches = match attachment {
+            // constants::MAX_COLOR_ATTACHMENTS ... gl::COLOR_ATTACHMENT0 |
+            // constants::BACK |
+            constants::COLOR_ATTACHMENT0 |
+            constants::DEPTH_STENCIL_ATTACHMENT |
+            constants::DEPTH_ATTACHMENT |
+            constants::STENCIL_ATTACHMENT => true,
+            _ => false,
+        };
+        let pname_matches = match pname {
+            // constants::FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING |
+            // constants::FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE |
+            // constants::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_RED_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER |
+            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
+            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
+            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE |
+            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL => true,
+            _ => false
+        };
+
+        if !target_matches || !attachment_matches || !pname_matches {
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        // special case that returns `WebGLRenderbuffer` or `WebGLTexture` dom object
+        if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
+            let texture = self.bound_texture(constants::TEXTURE_2D);
+            if texture.is_some() {
+                return optional_root_object_to_js_or_null!(cx, texture);
+            }
+            if self.bound_renderbuffer.get().is_some() {
+                return object_binding_to_js_or_null!(cx, &self.bound_renderbuffer);
+            }
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, sender));
+
+        Int32Value(receiver.recv().unwrap())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
