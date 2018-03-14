@@ -13634,6 +13634,107 @@ pub mod root {
             );
         }
         #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct ServoTraversalStatistics {
+            pub mElementsTraversed: u32,
+            pub mElementsStyled: u32,
+            pub mElementsMatched: u32,
+            pub mStylesShared: u32,
+            pub mStylesReused: u32,
+        }
+        extern "C" {
+            #[link_name = "\u{1}_ZN7mozilla24ServoTraversalStatistics7sActiveE"]
+            pub static mut ServoTraversalStatistics_sActive: bool;
+        }
+        extern "C" {
+            #[link_name = "\u{1}_ZN7mozilla24ServoTraversalStatistics10sSingletonE"]
+            pub static mut ServoTraversalStatistics_sSingleton:
+                root::mozilla::ServoTraversalStatistics;
+        }
+        #[test]
+        fn bindgen_test_layout_ServoTraversalStatistics() {
+            assert_eq!(
+                ::std::mem::size_of::<ServoTraversalStatistics>(),
+                20usize,
+                concat!("Size of: ", stringify!(ServoTraversalStatistics))
+            );
+            assert_eq!(
+                ::std::mem::align_of::<ServoTraversalStatistics>(),
+                4usize,
+                concat!("Alignment of ", stringify!(ServoTraversalStatistics))
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoTraversalStatistics>())).mElementsTraversed
+                        as *const _ as usize
+                },
+                0usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoTraversalStatistics),
+                    "::",
+                    stringify!(mElementsTraversed)
+                )
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoTraversalStatistics>())).mElementsStyled as *const _
+                        as usize
+                },
+                4usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoTraversalStatistics),
+                    "::",
+                    stringify!(mElementsStyled)
+                )
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoTraversalStatistics>())).mElementsMatched
+                        as *const _ as usize
+                },
+                8usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoTraversalStatistics),
+                    "::",
+                    stringify!(mElementsMatched)
+                )
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoTraversalStatistics>())).mStylesShared as *const _
+                        as usize
+                },
+                12usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoTraversalStatistics),
+                    "::",
+                    stringify!(mStylesShared)
+                )
+            );
+            assert_eq!(
+                unsafe {
+                    &(*(::std::ptr::null::<ServoTraversalStatistics>())).mStylesReused as *const _
+                        as usize
+                },
+                16usize,
+                concat!(
+                    "Offset of field: ",
+                    stringify!(ServoTraversalStatistics),
+                    "::",
+                    stringify!(mStylesReused)
+                )
+            );
+        }
+        impl Clone for ServoTraversalStatistics {
+            fn clone(&self) -> Self {
+                *self
+            }
+        }
+        #[repr(C)]
         #[derive(Debug)]
         pub struct CSSFontFaceDescriptors {
             pub mFamily: root::nsCSSValue,
