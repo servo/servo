@@ -142,6 +142,18 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetExtension(cx, name)
     }
 
+    #[allow(unsafe_code)]
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    unsafe fn GetFramebufferAttachmentParameter(
+        &self,
+        cx: *mut JSContext,
+        target: u32,
+        attachment: u32,
+        pname: u32
+    ) -> JSVal {
+        self.base.GetFramebufferAttachmentParameter(cx, target, attachment, pname)
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ActiveTexture(&self, texture: u32) {
         self.base.ActiveTexture(texture)
