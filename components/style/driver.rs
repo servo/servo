@@ -7,7 +7,7 @@
 
 #![deny(missing_docs)]
 
-use context::{StyleContext, ThreadLocalStyleContext};
+use context::{StyleContext, ThreadLocalStyleContext, TraversalStatistics};
 use dom::{SendNode, TElement, TNode};
 use parallel;
 use parallel::{DispatchMode, WORK_UNIT_MAX};
@@ -128,9 +128,14 @@ where
             });
         }
 
-        aggregate.finish(traversal, parallel, start_time.unwrap());
-        if aggregate.is_large_traversal() {
-             println!("{}", aggregate);
+        let stats = TraversalStatistics::new(
+            aggregate,
+            traversal,
+            parallel,
+            start_time.unwrap()
+        );
+        if stats.is_large {
+             println!("{}", stats);
         }
     }
 }
