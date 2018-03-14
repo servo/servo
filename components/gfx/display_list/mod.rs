@@ -28,8 +28,8 @@ use std::fmt;
 use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipMode, ColorF};
 use webrender_api::{ComplexClipRegion, ExtendMode, ExternalScrollId, FilterOp, FontInstanceKey};
 use webrender_api::{GlyphInstance, GradientStop, ImageBorder, ImageKey, ImageRendering};
-use webrender_api::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D, LineStyle};
-use webrender_api::{LocalClip, MixBlendMode, NormalBorder, ScrollPolicy, ScrollSensitivity};
+use webrender_api::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
+use webrender_api::{LineStyle, MixBlendMode, NormalBorder, ScrollPolicy, ScrollSensitivity};
 use webrender_api::{StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
@@ -375,8 +375,8 @@ pub struct BaseDisplayItem {
     /// Metadata attached to this display item.
     pub metadata: DisplayItemMetadata,
 
-    /// The local clip for this item.
-    pub local_clip: LocalClip,
+    /// The clip rectangle to use for this item.
+    pub clip_rect: LayoutRect,
 
     /// The section of the display list that this item belongs to.
     pub section: DisplayListSection,
@@ -392,7 +392,7 @@ impl BaseDisplayItem {
     #[inline(always)]
     pub fn new(bounds: LayoutRect,
                metadata: DisplayItemMetadata,
-               local_clip: LocalClip,
+               clip_rect: LayoutRect,
                section: DisplayListSection,
                stacking_context_id: StackingContextId,
                clipping_and_scrolling: ClippingAndScrolling)
@@ -400,7 +400,7 @@ impl BaseDisplayItem {
         BaseDisplayItem {
             bounds,
             metadata,
-            local_clip,
+            clip_rect,
             section,
             stacking_context_id,
             clipping_and_scrolling,
@@ -416,7 +416,7 @@ impl BaseDisplayItem {
                 pointing: None,
             },
             // Create a rectangle of maximal size.
-            local_clip: LocalClip::from(LayoutRect::max_rect()),
+            clip_rect: LayoutRect::max_rect(),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
             clipping_and_scrolling: ClippingAndScrolling::simple(ClipScrollNodeIndex(0)),
@@ -958,7 +958,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::DefineClipScrollNode(_) => "".to_owned(),
             },
             self.bounds(),
-            self.base().local_clip
+            self.base().clip_rect
         )
     }
 }

@@ -75,8 +75,8 @@ use style_traits::cursor::CursorKind;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{self, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ExternalScrollId};
 use webrender_api::{FilterOp, GlyphInstance, ImageRendering, LayoutRect, LayoutSize};
-use webrender_api::{LayoutTransform, LayoutVector2D, LineStyle, LocalClip, NormalBorder};
-use webrender_api::{ScrollPolicy, ScrollSensitivity, StickyOffsetBounds};
+use webrender_api::{LayoutTransform, LayoutVector2D, LineStyle, NormalBorder, ScrollPolicy};
+use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
 
 fn establishes_containing_block_for_absolute(
     flags: StackingContextCollectionFlags,
@@ -384,7 +384,7 @@ impl<'a> DisplayListBuildState<'a> {
     fn create_base_display_item(
         &self,
         bounds: &Rect<Au>,
-        clip: LocalClip,
+        clip_rect: &Rect<Au>,
         node: OpaqueNode,
         cursor: Option<CursorKind>,
         section: DisplayListSection,
@@ -404,7 +404,7 @@ impl<'a> DisplayListBuildState<'a> {
                 // Store cursor id in display list.
                 pointing: cursor.map(|x| x as u16),
             },
-            clip,
+            clip_rect.to_layout(),
             section,
             self.current_stacking_context_id,
             clipping_and_scrolling,
@@ -856,7 +856,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let base = state.create_base_display_item(
             &bounds,
-            LocalClip::Rect(bounds.to_layout()),
+            &bounds,
             self.node,
             style.get_cursor(CursorKind::Default),
             display_list_section,
@@ -973,7 +973,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Create the image display item.
         let base = state.create_base_display_item(
             &placement.bounds,
-            LocalClip::Rect(placement.css_clip.to_layout()),
+            &placement.css_clip,
             self.node,
             style.get_cursor(CursorKind::Default),
             display_list_section,
@@ -1071,7 +1071,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let base = state.create_base_display_item(
             &placement.bounds,
-            LocalClip::Rect(placement.css_clip.to_layout()),
+            &placement.css_clip,
             self.node,
             style.get_cursor(CursorKind::Default),
             display_list_section,
@@ -1132,7 +1132,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
             let base = state.create_base_display_item(
                 &bounds,
-                LocalClip::from(clip.to_layout()),
+                clip,
                 self.node,
                 style.get_cursor(CursorKind::Default),
                 display_list_section,
@@ -1221,7 +1221,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Append the border to the display list.
         let base = state.create_base_display_item(
             &bounds,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             style.get_cursor(CursorKind::Default),
             display_list_section,
@@ -1344,7 +1344,7 @@ impl FragmentDisplayListBuilding for Fragment {
             .to_layout();
         let base = state.create_base_display_item(
             &bounds,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             style.get_cursor(CursorKind::Default),
             DisplayListSection::Outlines,
@@ -1371,7 +1371,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Compute the text fragment bounds and draw a border surrounding them.
         let base = state.create_base_display_item(
             stacking_relative_border_box,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
@@ -1397,7 +1397,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let base = state.create_base_display_item(
             &baseline,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
@@ -1418,7 +1418,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // This prints a debug border around the border of this fragment.
         let base = state.create_base_display_item(
             stacking_relative_border_box,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             self.style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
@@ -1455,7 +1455,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let background_color = style.resolve_color(style.get_background().background_color);
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
-                LocalClip::from(clip.to_layout()),
+                clip,
                 self.node,
                 self.style.get_cursor(CursorKind::Default),
                 display_list_section,
@@ -1499,7 +1499,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let base = state.create_base_display_item(
             &insertion_point_bounds,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             self.style.get_cursor(cursor),
             display_list_section,
@@ -1661,20 +1661,23 @@ impl FragmentDisplayListBuilding for Fragment {
             self.stacking_relative_content_box(stacking_relative_border_box);
 
         let create_base_display_item = |state: &mut DisplayListBuildState| {
-            let layout_rect = stacking_relative_border_box.to_layout();
-
             // Adjust the clipping region as necessary to account for `border-radius`.
-            let radii =
-                build_border_radius_for_inner_rect(&stacking_relative_border_box, &self.style);
+            let radii = build_border_radius_for_inner_rect(
+                &stacking_relative_border_box,
+                &self.style
+            );
 
             if !radii.is_zero() {
-                let clip_id = state.add_late_clip_node(layout_rect, radii);
+                let clip_id = state.add_late_clip_node(
+                    stacking_relative_border_box.to_layout(),
+                    radii
+                );
                 state.current_clipping_and_scrolling = ClippingAndScrolling::simple(clip_id);
             }
 
             state.create_base_display_item(
                 &stacking_relative_content_box,
-                LocalClip::Rect(layout_rect),
+                &stacking_relative_border_box,
                 self.node,
                 self.style.get_cursor(CursorKind::Default),
                 DisplayListSection::Content,
@@ -1925,7 +1928,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Base item for all text/shadows
         let base = state.create_base_display_item(
             &stacking_relative_content_box,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             self.style().get_cursor(cursor),
             DisplayListSection::Content,
@@ -2046,7 +2049,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_box.to_physical(self.style.writing_mode, container_size);
         let base = state.create_base_display_item(
             &stacking_relative_box,
-            LocalClip::from(clip.to_layout()),
+            clip,
             self.node,
             self.style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
@@ -2920,7 +2923,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
         color.a = 1.0;
         let base = state.create_base_display_item(
             &stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2)),
-            LocalClip::from(self.clip.to_layout()),
+            &self.clip,
             node,
             None,
             DisplayListSection::Content,
