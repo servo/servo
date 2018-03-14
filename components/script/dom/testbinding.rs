@@ -293,6 +293,14 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveInterfaceSequence(&self) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
     }
+    #[allow(unsafe_code)]
+    unsafe fn ReceiveUnionIdentity(
+        &self,
+        _: *mut JSContext,
+        arg: UnionTypes::StringOrObject,
+    ) -> UnionTypes::StringOrObject {
+        arg
+    }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
     fn ReceiveNullableByte(&self) -> Option<i8> { Some(0) }
