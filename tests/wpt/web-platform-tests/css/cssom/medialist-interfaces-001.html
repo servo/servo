@@ -57,7 +57,7 @@
       assert_equals(mediaList.mediaText, "all, screen");
 
     }, "mediatest_medialist_serialize_comma",
-    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
+    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serialize-a-media-query-list"],
       assert: ["To serialize a comma-separated list concatenate all items of the list in list order while separating them by \",\" (U+002C), followed by a space (U+0020)."] });
 
     test(function() {
@@ -75,11 +75,11 @@
 
       mediaList.appendMedium('screen');
       mediaList.appendMedium('print');
-      assert_equals(mediaList.mediaText, "all, print, screen");
+      assert_equals(mediaList.mediaText, "all, screen, print");
 
-    }, "mediatest_medialist_serialize_lexicographical",
-    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
-      assert: ["Each media query in the list of media queries should be sorted in lexicographical order."] });
+    }, "mediatest_medialist_serialize_order",
+    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serialize-a-media-query-list"],
+      assert: ["Each media query should be sorted in the same order as they appear in the list of media queries."] });
 
   </script>
  </body>

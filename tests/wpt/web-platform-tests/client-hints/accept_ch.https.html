@@ -1,0 +1,30 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+// If the response for the HTML file contains "Accept-CH: device-memory" in
+// the response headers, then the browser should attach device-memory client
+// hint in the HTTP request headers. Test this functionality by fetching an
+// XHR from this page. The response headers for this page include
+// "Accept-CH: device-memory".
+//
+// echo_device_memory_header_received.py includes "device-memory-received" in
+// the response headers only if the request included "device-memory" in the
+// headers.
+
+  promise_test(t => {
+  return fetch("/client-hints/echo_device_memory_header_received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser included "device-memory" in the headers when
+    // fetching the XHR.
+    assert_true(r.headers.has("device-memory-received"));
+  });
+}, "Accept-CH header test");
+
+</script>
+
+</body>
+</html>

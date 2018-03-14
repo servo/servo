@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for PaymentRequest.abort() method</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#abort-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+setup({
+  // Ignore unhandled rejections resulting from .show()'s acceptPromise
+  // not being explicitly handled.
+  allow_uncaught_exception: true,
+  explicit_done: true,
+  explicit_timeout: true,
+});
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
+const defaultMethods = Object.freeze([basicCard]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+promise_test(async t => {
+  // request is in "created" state
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  await promise_rejects(t, "InvalidStateError", request.abort());
+}, `Throws if the promise [[state]] is not "interactive"`);
+
+function manualTest1(elem){
+  elem.disabled = true;
+  promise_test(async t => {
+    // request is in "created" state.
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    await promise_rejects(t, "InvalidStateError", request.abort());
+    // Call it again, for good measure.
+    await promise_rejects(t, "InvalidStateError", request.abort());
+    // The request's state is "created", so let's show it
+    // which changes the state to "interactive.".
+    const acceptPromise = request.show();
+    // Let's set request the state to "closed" by calling .abort()
+    try {
+      await request.abort();
+    } catch (err) {
+      assert_unreached("Unexpected promise rejection: " + err.message);
+    }
+    // The request is now "closed", so...
+    await promise_rejects(t, "InvalidStateError", request.abort());
+    await promise_rejects(t, "AbortError", acceptPromise);
+  }, elem.textContent.trim());
+}
+
+function manualTest2(elem){
+  elem.disabled = true;
+  promise_test(async t => {
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    const acceptPromise = request.show();
+    try {
+      await request.abort();
+    } catch (err) {
+      assert_unreached("Unexpected promise rejection: " + err.message);
+    }
+    await promise_rejects(t, "AbortError", acceptPromise);
+    // As request is now "closed", trying to show it will fail
+    await promise_rejects(t, "InvalidStateError", request.show());
+  }, elem.textContent.trim());
+  done();
+}
+</script>
+
+<h2>Test for PaymentRequest.abort() method</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  No payment sheet will be shown, but the tests will run in the background.
+</p>
+<ol>
+  <li>
+    <button onclick="manualTest1(this)">
+      Calling abort must not change the [[state]] until after "interactive".
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest2(this)">
+      Calling .abort() causes acceptPromise to reject and closes the request.
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/w3c/web-platform-tests/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/w3c/web-platform-tests/blob/master/payment-request/OWNERS">owners</a>.
+</small>

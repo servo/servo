@@ -1,20 +1,30 @@
-*#
+# Python
 *.py[co]
+.virtualenv/
+_venv/
+.cache/
+.pytest_cache/
+
+# Node
+node_modules/
+
+# WPT repo stuff
+/MANIFEST.json
+
+testharness_runner.html
+!/testharness_runner.html
+!/tools/wptrunner/wptrunner/testharness_runner.html
+
+_certs
+config.json
+
+# Various OS/editor specific files
+*#
 *.sw[po]
 *~
-MANIFEST.json
-!content-security-policy/support/manifest.json
-!payment-handler/manifest.json
 \#*
-_certs
-.virtualenv
-config.json
-node_modules
 scratch
-testharness_runner.html
-webdriver/.idea
+.idea/
 .vscode/
 .DS_Store
 *.rej
-_venv
-webdriver/.cache
