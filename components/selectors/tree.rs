@@ -31,6 +31,12 @@ pub trait Element: Sized + Clone + Debug {
 
     fn parent_element(&self) -> Option<Self>;
 
+    /// Whether the parent node of this element is a shadow root.
+    fn parent_node_is_shadow_root(&self) -> bool;
+
+    /// The host of the containing shadow root, if any.
+    fn containing_shadow_host(&self) -> Option<Self>;
+
     /// The parent of a given pseudo-element, after matching a pseudo-element
     /// selector.
     ///
