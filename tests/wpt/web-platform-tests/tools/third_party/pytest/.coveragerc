@@ -1,0 +1,4 @@
+[run]
+omit =
+    # standlonetemplate is read dynamically and tested by test_genscript
+    *standalonetemplate.py

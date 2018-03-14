@@ -11,56 +11,15 @@
 <h1>idlharness test</h1>
 <p>This test validates the WebIDL included in the Encoding Living Standard.</p>
 
-<script type="text/plain" class="untested-idl">
-interface Window {};
-</script>
-
-<script type="text/plain" class="idl">
-// 8.1 Interface TextDecoder
-
-dictionary TextDecoderOptions {
-  boolean fatal = false;
-  boolean ignoreBOM = false;
-};
-
-dictionary TextDecodeOptions {
-  boolean stream = false;
-};
-
-[Constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options),
- Exposed=(Window,Worker)]
-interface TextDecoder {
-  readonly attribute DOMString encoding;
-  readonly attribute boolean fatal;
-  readonly attribute boolean ignoreBOM;
-  USVString decode(optional BufferSource input, optional TextDecodeOptions options);
-};
-
-// 8.2 Interface TextDecoder
-
-[Constructor,
- Exposed=(Window,Worker)]
-interface TextEncoder {
-  readonly attribute DOMString encoding;
-  [NewObject] Uint8Array encode(optional USVString input = "");
-};
-</script>
-
 <script>
-function select(selector) {
-  return [].slice.call(document.querySelectorAll(selector))
-    .map(function(e) { return e.textContent; })
-    .join('\n\n');
-}
-
-var idl = select('.idl')
-var untested = select('.untested-idl');
-var idl_array = new IdlArray();
-idl_array.add_untested_idls(untested);
-idl_array.add_idls(idl);
-idl_array.add_objects({
-  TextEncoder: ['new TextEncoder()'],
-  TextDecoder: ['new TextDecoder()']
-});
-idl_array.test();
+promise_test(async() => {
+  const text = await (await fetch('/interfaces/encoding.idl')).text();
+  const idl_array = new IdlArray();
+  idl_array.add_idls(text);
+  idl_array.add_objects({
+    TextEncoder: ['new TextEncoder()'],
+    TextDecoder: ['new TextDecoder()']
+  });
+  idl_array.test();
+}, 'Test driver');
 </script>

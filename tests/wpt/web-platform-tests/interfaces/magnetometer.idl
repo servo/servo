@@ -6,10 +6,10 @@ interface Magnetometer : Sensor {
   readonly attribute double? z;
 };
 
-enum LocalCoordinateSystem { "device", "screen" };
+enum MagnetometerLocalCoordinateSystem { "device", "screen" };
 
 dictionary MagnetometerSensorOptions : SensorOptions {
-  LocalCoordinateSystem referenceFrame = "device";
+  MagnetometerLocalCoordinateSystem referenceFrame = "device";
 };
 
 [Constructor(optional MagnetometerSensorOptions sensorOptions), SecureContext,
