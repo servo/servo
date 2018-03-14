@@ -750,6 +750,8 @@ impl WebGLImpl {
                 Self::active_uniform(ctx.gl(), program_id, index, chan),
             WebGLCommand::GetAttribLocation(program_id, name, chan) =>
                 Self::attrib_location(ctx.gl(), program_id, name, chan),
+            WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, chan) =>
+                Self::get_framebuffer_attachment_parameter(ctx.gl(), target, attachment, pname, chan),
             WebGLCommand::GetVertexAttrib(index, pname, chan) =>
                 Self::vertex_attrib(ctx.gl(), index, pname, chan),
             WebGLCommand::GetVertexAttribOffset(index, pname, chan) =>
@@ -1198,6 +1200,55 @@ impl WebGLImpl {
 
     fn get_extensions(gl: &gl::Gl, chan: WebGLSender<String>) {
         chan.send(gl.get_string(gl::EXTENSIONS)).unwrap();
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    fn get_framebuffer_attachment_parameter(
+        gl: &gl::Gl,
+        target: u32,
+        attachment: u32,
+        pname: u32,
+        chan: WebGLSender<WebGLResult<WebGLParameter>>
+    ) {
+        // Note: commented out stuff is for the WebGL2 standard.
+        let target_matches = match target {
+            //gl::READ_FRAMEBUFFER |
+            //gl::DRAW_FRAMEBUFFER => true,
+            gl::FRAMEBUFFER => true,
+            _ => false
+        };
+        let attachment_matches = match attachment {
+            //gl::MAX_COLOR_ATTACHMENTS ... gl::COLOR_ATTACHMENT0 |
+            //gl::BACK |
+            gl::COLOR_ATTACHMENT0 |
+            gl::DEPTH_STENCIL_ATTACHMENT |
+            gl::DEPTH_ATTACHMENT |
+            gl::STENCIL_ATTACHMENT => true,
+            _ => false,
+        };
+        let pname_matches = match pname {
+            //gl::FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE |
+            //gl::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE |
+            //gl::FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING |
+            //gl::FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE |
+            //gl::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE |
+            //gl::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE |
+            //gl::FRAMEBUFFER_ATTACHMENT_RED_SIZE |
+            //gl::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE |
+            //gl::FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER |
+            gl::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
+            gl::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
+            gl::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE |
+            gl::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL => true,
+            _ => false
+        };
+        let parameter = if target_matches && attachment_matches && pname_matches {
+            Ok(WebGLParameter::Int(
+                gl.get_framebuffer_attachment_parameter_iv(target, attachment, pname)))
+        } else {
+            Err(WebGLError::InvalidEnum)
+        };
+        chan.send(parameter).unwrap();
     }
 
     fn uniform_location(gl: &gl::Gl,

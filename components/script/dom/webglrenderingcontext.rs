@@ -2285,6 +2285,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    unsafe fn GetFramebufferAttachmentParameter(&self, _cx: *mut JSContext,
+                                         target: u32, attachment: u32, pname: u32) -> JSVal
+    {
+        // Check if currently bound framebuffer is non-zero as per spec.
+        if let None = self.bound_framebuffer.get() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, sender));
+
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(value) => Int32Value(value),
+            WebGLParameter::Bool(_) => panic!("Framebuffer attachment parameter should not be bool"),
+            WebGLParameter::Float(_) => panic!("Framebuffer attachment parameter should not be float"),
+            WebGLParameter::FloatArray(_) => panic!("Framebuffer attachment parameter should not be float array"),
+            WebGLParameter::String(_) => panic!("Framebuffer attachment parameter should not be string"),
+            WebGLParameter::Invalid => {
+                self.webgl_error(InvalidOperation);
+                NullValue()
+            }
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetProgramInfoLog(&self, program: Option<&WebGLProgram>) -> Option<DOMString> {
         if let Some(program) = program {
