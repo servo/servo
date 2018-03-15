@@ -19,13 +19,13 @@ use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject};
-use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
-use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFunctionNativeReserved};
-use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot, PromiseState};
-use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise, GetPromiseState};
-use js::jsapi::{SetFunctionNativeReserved, NewFunctionWithReserved, AddPromiseReactions};
-use js::jsapi::Heap;
+use js::jsapi::{AddPromiseReactions, AddRawValueRoot, CallArgs, CallOriginalPromiseReject};
+use js::jsapi::{CallOriginalPromiseResolve, GetFunctionNativeReserved, GetPromiseState};
+use js::jsapi::{HandleObject, HandleValue, Heap, IsPromiseObject, JS_ClearPendingException};
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetContext, JS_GetFunctionObject};
+use js::jsapi::{JS_GetObjectRuntime, JS_NewFunction, MutableHandleObject};
+use js::jsapi::{NewFunctionWithReserved, NewPromiseObject, PromiseState, RejectPromise};
+use js::jsapi::{RemoveRawValueRoot, ResolvePromise, SetFunctionNativeReserved};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
 use std::ptr;
 use std::rc::Rc;
@@ -61,8 +61,13 @@ impl PromiseHelper for Rc<Promise> {
 impl Drop for Promise {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        let cx = self.global().get_cx();
         unsafe {
+            let object = self.permanent_js_root.get().to_object();
+            assert!(!object.is_null());
+            let runtime = JS_GetObjectRuntime(object);
+            assert!(!runtime.is_null());
+            let cx = JS_GetContext(runtime);
+            assert!(!cx.is_null());
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
