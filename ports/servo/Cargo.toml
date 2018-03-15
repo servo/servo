@@ -42,6 +42,7 @@ servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
 tinyfiledialogs = "3.0"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+winit = "0.11.2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"
