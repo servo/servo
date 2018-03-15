@@ -22,6 +22,7 @@ use str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use values::CustomIdent;
+use values::specified::Integer;
 
 /// Parse a counter style name reference.
 ///
@@ -450,9 +451,7 @@ pub struct Ranges(pub Vec<Range<CounterBound>>);
 #[derive(Clone, Copy, Debug, ToCss)]
 pub enum CounterBound {
     /// An integer bound.
-    ///
-    /// FIXME(https://github.com/servo/servo/issues/20197)
-    Integer(i32),
+    Integer(Integer),
     /// The infinite bound.
     Infinite,
 }
@@ -482,7 +481,7 @@ fn parse_bound<'i, 't>(
     let location = input.current_source_location();
     match *input.next()? {
         Token::Number { int_value: Some(v), .. } => {
-            Ok(CounterBound::Integer(v))
+            Ok(CounterBound::Integer(Integer::new(v)))
         }
         Token::Ident(ref ident) if ident.eq_ignore_ascii_case("infinite") => {
             Ok(CounterBound::Infinite)
