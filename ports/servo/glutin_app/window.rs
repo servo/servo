@@ -12,10 +12,7 @@ use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedScale, TypedSize
 use gdi32;
 use gleam::gl;
 use glutin;
-use glutin::{Api, ElementState, Event, GlContext, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
-use glutin::TouchPhase;
-#[cfg(target_os = "macos")]
-use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
+use glutin::{Api, GlContext, GlRequest};
 use msg::constellation_msg::{self, Key, TopLevelBrowsingContextId as BrowserId};
 use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use net_traits::net_error_list::NetError;
@@ -46,6 +43,11 @@ use user32;
 use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
 #[cfg(target_os = "windows")]
 use winapi;
+use winit;
+use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
+#[cfg(target_os = "macos")]
+use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
+
 
 bitflags! {
     struct GlutinKeyModifiers: u8 {
@@ -78,7 +80,7 @@ const LINE_HEIGHT: f32 = 38.0;
 const MULTISAMPLES: u16 = 16;
 
 #[cfg(target_os = "macos")]
-fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
+fn builder_with_platform_options(mut builder: winit::WindowBuilder) -> winit::WindowBuilder {
     if opts::get().headless || opts::get().output_file.is_some() {
         // Prevent the window from showing in Dock.app, stealing focus,
         // or appearing at all when running in headless mode or generating an
@@ -89,7 +91,7 @@ fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::
 }
 
 #[cfg(not(target_os = "macos"))]
-fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
+fn builder_with_platform_options(builder: winit::WindowBuilder) -> winit::WindowBuilder {
     builder
 }
 
@@ -168,7 +170,7 @@ impl HeadlessContext {
 }
 
 enum WindowKind {
-    Window(glutin::GlWindow, RefCell<glutin::EventsLoop>),
+    Window(glutin::GlWindow, RefCell<winit::EventsLoop>),
     Headless(HeadlessContext),
 }
 
@@ -178,7 +180,7 @@ pub struct Window {
     screen_size: Size2D<u32>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
 
-    mouse_down_button: Cell<Option<glutin::MouseButton>>,
+    mouse_down_button: Cell<Option<winit::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32>>,
     event_queue: RefCell<Vec<WindowEvent>>,
 
@@ -239,8 +241,8 @@ impl Window {
             inner_size = TypedSize2D::new(width, height);
             WindowKind::Headless(HeadlessContext::new(width, height))
         } else {
-            let events_loop = glutin::EventsLoop::new();
-            let mut window_builder = glutin::WindowBuilder::new()
+            let events_loop = winit::EventsLoop::new();
+            let mut window_builder = winit::WindowBuilder::new()
                 .with_title("Servo".to_string())
                 .with_decorations(!opts::get().no_native_titlebar)
                 .with_transparency(opts::get().no_native_titlebar)
@@ -401,21 +403,21 @@ impl Window {
         }
     }
 
-    fn handle_window_event(&self, event: glutin::Event) {
+    fn handle_window_event(&self, event: winit::Event) {
         match event {
             Event::WindowEvent {
-                event: glutin::WindowEvent::ReceivedCharacter(ch),
+                event: winit::WindowEvent::ReceivedCharacter(ch),
                 ..
             } => self.handle_received_character(ch),
             Event::WindowEvent {
-                event: glutin::WindowEvent::KeyboardInput {
-                    input: glutin::KeyboardInput {
+                event: winit::WindowEvent::KeyboardInput {
+                    input: winit::KeyboardInput {
                         state, virtual_keycode: Some(virtual_keycode), ..
                     }, ..
                 }, ..
             } => self.handle_keyboard_input(state, virtual_keycode),
             Event::WindowEvent {
-                event: glutin::WindowEvent::MouseInput {
+                event: winit::WindowEvent::MouseInput {
                     state, button, ..
                 }, ..
             } => {
@@ -425,7 +427,7 @@ impl Window {
                 }
             },
             Event::WindowEvent {
-                event: glutin::WindowEvent::CursorMoved {
+                event: winit::WindowEvent::CursorMoved {
                     position: (x, y),
                     ..
                 },
@@ -436,7 +438,7 @@ impl Window {
                     WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
             }
             Event::WindowEvent {
-                event: glutin::WindowEvent::MouseWheel { delta, phase, .. },
+                event: winit::WindowEvent::MouseWheel { delta, phase, .. },
                 ..
             } => {
                 let (dx, dy) = match delta {
@@ -448,7 +450,7 @@ impl Window {
                 self.scroll_window(scroll_location, phase);
             },
             Event::WindowEvent {
-                event: glutin::WindowEvent::Touch(touch),
+                event: winit::WindowEvent::Touch(touch),
                 ..
             } => {
                 use script_traits::TouchId;
@@ -459,17 +461,17 @@ impl Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
             }
             Event::WindowEvent {
-                event: glutin::WindowEvent::Refresh,
+                event: winit::WindowEvent::Refresh,
                 ..
             } => self.event_queue.borrow_mut().push(WindowEvent::Refresh),
             Event::WindowEvent {
-                event: glutin::WindowEvent::Closed,
+                event: winit::WindowEvent::Closed,
                 ..
             } => {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             }
             Event::WindowEvent {
-                event: glutin::WindowEvent::Resized(width, height),
+                event: winit::WindowEvent::Resized(width, height),
                 ..
             } => {
                 // width and height are DevicePixel.
@@ -524,7 +526,7 @@ impl Window {
     }
 
     /// Helper function to handle a click
-    fn handle_mouse(&self, button: glutin::MouseButton, action: glutin::ElementState, x: i32, y: i32) {
+    fn handle_mouse(&self, button: winit::MouseButton, action: winit::ElementState, x: i32, y: i32) {
         use script_traits::MouseButton;
 
         // FIXME(tkuehn): max pixel dist should be based on pixel density
@@ -587,9 +589,9 @@ impl Window {
                                 }
                             }
                             if stop || self.is_animating() {
-                                glutin::ControlFlow::Break
+                                winit::ControlFlow::Break
                             } else {
-                                glutin::ControlFlow::Continue
+                                winit::ControlFlow::Continue
                             }
                         });
                     }
@@ -715,7 +717,7 @@ impl Window {
         }
     }
 
-    fn glutin_key_to_script_key(key: glutin::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
+    fn glutin_key_to_script_key(key: winit::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
         // TODO(negge): add more key mappings
         match key {
             VirtualKeyCode::A => Ok(Key::A),
@@ -957,7 +959,7 @@ impl WindowMethods for Window {
 
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
         struct GlutinEventLoopWaker {
-            proxy: Option<Arc<glutin::EventsLoopProxy>>,
+            proxy: Option<Arc<winit::EventsLoopProxy>>,
         }
         impl GlutinEventLoopWaker {
             fn new(window: &Window) -> GlutinEventLoopWaker {
@@ -1061,7 +1063,7 @@ impl WindowMethods for Window {
     fn set_cursor(&self, cursor: CursorKind) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
-                use glutin::MouseCursor;
+                use winit::MouseCursor;
 
                 let glutin_cursor = match cursor {
                     CursorKind::Auto => MouseCursor::Default,
@@ -1272,7 +1274,7 @@ fn glutin_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
 }
 
 fn is_printable(key_code: VirtualKeyCode) -> bool {
-    use glutin::VirtualKeyCode::*;
+    use winit::VirtualKeyCode::*;
     match key_code {
         Escape |
         F1 |
