@@ -16,7 +16,7 @@ use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
 use dom::performancemark::PerformanceMark;
 use dom::performancemeasure::PerformanceMeasure;
-use dom::performancenavigationtiming::PerformanceNavigationTiming;
+use dom::performancenavigationtiming::PerformanceNavigationTiming; 
 use dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use dom::window::Window;
 use dom_struct::dom_struct;

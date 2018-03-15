@@ -14,11 +14,25 @@ use servo_url::ServoUrl;
 #[dom_struct]
 pub struct PerformanceResourceTiming {
     reflector_: Reflector,
-    navigation_start: u64,
-    navigation_start_precise: u64,
     // returns the resolved URL of the requested resource
     // does not change even if redirected to a different URl
     name: ServoUrl,
+    initiator_type: DOMString,
+    next_hop: DOMString,
+    worker_start: f64,
+    redirect_start: f64,
+    fetch_start: f64,
+    domain_lookup_start: f64,
+    domain_lookup_end: f64,
+    connect_start: f64,
+    connect_end: f64,
+    secure_connection_start: f64,
+    request_start: f64,
+    response_start: f64,
+    redirect_start: f64,
+    transfer_size: f64,	//size in octets
+    encoded_body_size: f64, //size in octets
+    decoded_body_size: f64, //size in octets
 }
 
 impl PerformanceResourceTiming {
@@ -111,4 +125,29 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
         Finite::wrap(Default::default())
     }
 
+}
+
+impl PerformanceEntryMethods for PerformanceEntry {
+    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
+    // This attribute MUST return the resolved URL of the requested resource. This attribute MUST NOT change even if the fetch redirected to a different URL
+    fn Name(&self) -> DOMString {
+        DOMString::from(self.name().url.as_url())
+    }
+
+    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
+    fn EntryType(&self) -> DOMString {
+        DOMString::from("resource")
+    }
+
+    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
+    fn StartTime(&self) -> Finite<f64> {
+    	// TODO time immediately before UA queues resource for fetching
+        Finite::wrap(self.startTime)
+    }
+
+    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
+    fn Duration(&self) -> Finite<f64> {
+    	// TODO responseEnd-startTime
+        self.performance_entry.Duration()
+    }
 }
