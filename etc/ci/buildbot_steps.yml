@@ -45,6 +45,7 @@ mac-dev-unit:
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
+  - python ./etc/memory_reports_over_time.py --test
   - ./mach package --dev
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
@@ -109,6 +110,7 @@ linux-dev:
     - ./mach test-tidy --no-progress --self-test
     - ./mach build --dev
     - ./mach test-unit
+    - python ./etc/memory_reports_over_time.py --test
     - ./mach package --dev
     - ./mach build --dev --no-default-features --features default-except-unstable
     - ./mach build-geckolib
