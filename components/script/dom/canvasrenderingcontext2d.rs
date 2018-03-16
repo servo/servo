@@ -565,6 +565,7 @@ impl CanvasRenderingContext2D {
     pub fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.ipc_renderer.send(CanvasMsg::Canvas2d(msg, self.get_canvas_id())).unwrap()
     }
+
     pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.ipc_renderer.clone()
     }
