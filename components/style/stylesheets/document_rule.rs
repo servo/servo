@@ -224,6 +224,10 @@ impl DocumentCondition {
             return true;
         }
 
+        if !unsafe { structs::StylePrefs_sMozDocumentURLPrefixHackEnabled } {
+            return false;
+        }
+
         // Allow a single url-prefix() for compatibility.
         //
         // See bug 1446470 and dependencies.
