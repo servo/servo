@@ -23,6 +23,7 @@ Servo.app
 .config.mk.last
 /glfw
 capture_webrender/
+/components/compositing/webrender_revision.rs
 
 # Editors
 
