@@ -15,7 +15,7 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRules;
 use values::CssUrl;
 
@@ -186,8 +186,17 @@ impl DocumentCondition {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        input.parse_comma_separated(|input| UrlMatchingFunction::parse(context, input))
-             .map(DocumentCondition)
+        let conditions = input.parse_comma_separated(|input| {
+            UrlMatchingFunction::parse(context, input)
+        })?;
+
+        let condition = DocumentCondition(conditions);
+        if !condition.allowed_in(context) {
+            return Err(input.new_custom_error(
+                StyleParseErrorKind::UnsupportedAtRule("-moz-document".into())
+            ))
+        }
+        Ok(condition)
     }
 
     /// Evaluate a document condition.
@@ -195,5 +204,37 @@ impl DocumentCondition {
         self.0.iter().any(|url_matching_function| {
             url_matching_function.evaluate(device)
         })
+    }
+
+    #[cfg(feature = "servo")]
+    fn allowed_in(&self, _: &ParserContext) -> bool {
+        false
+    }
+
+    #[cfg(feature = "gecko")]
+    fn allowed_in(&self, context: &ParserContext) -> bool {
+        use gecko_bindings::structs;
+        use stylesheets::Origin;
+
+        if context.stylesheet_origin != Origin::Author {
+            return true;
+        }
+
+        if unsafe { structs::StylePrefs_sMozDocumentEnabledInContent } {
+            return true;
+        }
+
+        // Allow a single url-prefix() for compatibility.
+        //
+        // See bug 1446470 and dependencies.
+        if self.0.len() != 1 {
+            return false;
+        }
+
+        // NOTE(emilio): This technically allows url-prefix("") too, but...
+        match self.0[0] {
+            UrlMatchingFunction::UrlPrefix(ref prefix) => prefix.is_empty(),
+            _ => false
+        }
     }
 }
