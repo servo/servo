@@ -14395,6 +14395,130 @@ pub mod root {
             *self
         }
     }
+    pub type nscoord = i32;
+    pub type nscolor = u32;
+    #[repr(C)]
+    pub struct nsISupports__bindgen_vtable(::std::os::raw::c_void);
+    /// Basic component object model interface. Objects which implement
+    /// this interface support runtime interface discovery (QueryInterface)
+    /// and a reference counted memory model (AddRef/Release). This is
+    /// modelled after the win32 IUnknown API.
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsISupports {
+        pub vtable_: *const nsISupports__bindgen_vtable,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsISupports_COMTypeInfo {
+        pub _address: u8,
+    }
+    #[test]
+    fn bindgen_test_layout_nsISupports() {
+        assert_eq!(
+            ::std::mem::size_of::<nsISupports>(),
+            8usize,
+            concat!("Size of: ", stringify!(nsISupports))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsISupports>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsISupports))
+        );
+    }
+    impl Clone for nsISupports {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct PRThread {
+        _unused: [u8; 0],
+    }
+    impl Clone for PRThread {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsCycleCollectingAutoRefCnt {
+        pub mRefCntAndFlags: usize,
+    }
+    pub type nsCycleCollectingAutoRefCnt_Suspect = ::std::option::Option<
+        unsafe extern "C" fn(
+            aPtr: *mut ::std::os::raw::c_void,
+            aCp: *mut root::nsCycleCollectionParticipant,
+            aRefCnt: *mut root::nsCycleCollectingAutoRefCnt,
+            aShouldDelete: *mut bool,
+        ),
+    >;
+    #[test]
+    fn bindgen_test_layout_nsCycleCollectingAutoRefCnt() {
+        assert_eq!(
+            ::std::mem::size_of::<nsCycleCollectingAutoRefCnt>(),
+            8usize,
+            concat!("Size of: ", stringify!(nsCycleCollectingAutoRefCnt))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsCycleCollectingAutoRefCnt>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsCycleCollectingAutoRefCnt))
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsCycleCollectingAutoRefCnt>())).mRefCntAndFlags as *const _
+                    as usize
+            },
+            0usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsCycleCollectingAutoRefCnt),
+                "::",
+                stringify!(mRefCntAndFlags)
+            )
+        );
+    }
+    impl Clone for nsCycleCollectingAutoRefCnt {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsAutoRefCnt {
+        pub mValue: root::nsrefcnt,
+    }
+    pub const nsAutoRefCnt_isThreadSafe: bool = false;
+    #[test]
+    fn bindgen_test_layout_nsAutoRefCnt() {
+        assert_eq!(
+            ::std::mem::size_of::<nsAutoRefCnt>(),
+            8usize,
+            concat!("Size of: ", stringify!(nsAutoRefCnt))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsAutoRefCnt>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsAutoRefCnt))
+        );
+        assert_eq!(
+            unsafe { &(*(::std::ptr::null::<nsAutoRefCnt>())).mValue as *const _ as usize },
+            0usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsAutoRefCnt),
+                "::",
+                stringify!(mValue)
+            )
+        );
+    }
+    impl Clone for nsAutoRefCnt {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
     /// @see nsTAString
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
