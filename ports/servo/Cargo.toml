@@ -13,6 +13,15 @@ path = "main.rs"
 test = false
 bench = false
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[package.metadata.winres]
+FileDescription = "Servo"
+LegalCopyright = "© The Servo Project Developers"
+OriginalFilename = "servo.exe"
+ProductName = "Servo"
+
 [features]
 default = ["unstable", "default-except-unstable"]
 default-except-unstable = ["webdriver", "max_log_level"]
