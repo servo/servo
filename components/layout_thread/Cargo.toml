@@ -26,6 +26,7 @@ layout_traits = {path = "../layout_traits"}
 lazy_static = "1"
 libc = "0.2"
 log = "0.3.5"
+time = "0.1.17"
 malloc_size_of = { path = "../malloc_size_of" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}

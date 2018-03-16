@@ -46,6 +46,7 @@ extern crate servo_geometry;
 extern crate servo_url;
 extern crate style;
 extern crate style_traits;
+extern crate time as std_time;
 extern crate webrender_api;
 
 mod dom_wrapper;
@@ -260,6 +261,9 @@ pub struct LayoutThread {
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
+
+    /// The time a layout query has waited before serviced by layout thread.
+    layout_query_timestamp: u64,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -329,6 +333,12 @@ impl Deref for ScriptReflowResult {
     type Target = ScriptReflow;
     fn deref(&self) -> &ScriptReflow {
         &self.script_reflow
+    }
+}
+
+impl DerefMut for ScriptReflowResult {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.script_reflow
     }
 }
 
@@ -541,6 +551,7 @@ impl LayoutThread {
                 },
             layout_threads: layout_threads,
             paint_time_metrics: paint_time_metrics,
+            layout_query_timestamp: 0u64,
         }
     }
 
@@ -858,6 +869,9 @@ impl LayoutThread {
         // Drop the root flow explicitly to avoid holding style data, such as
         // rule nodes.  The `Stylist` checks when it is dropped that all rule
         // nodes have been GCed, so we want drop anyone who holds them first.
+        let now = std_time::precise_time_ns();
+        let waiting_time = now - self.layout_query_timestamp;
+        debug!("layout: query has been waited: {}", waiting_time);
         self.root_flow.borrow_mut().take();
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
@@ -1066,6 +1080,9 @@ impl LayoutThread {
     fn handle_reflow<'a, 'b>(&mut self,
                              data: &mut ScriptReflowResult,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        // Set layout query timestamp
+        data.reflow_goal.set_timestamp();
+
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
@@ -1080,10 +1097,11 @@ impl LayoutThread {
 
         let element = match document.root_element() {
             None => {
+                self.layout_query_timestamp = data.reflow_goal.timestamp().expect("Not a QueryMsg");
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
                 match data.reflow_goal {
-                    ReflowGoal::LayoutQuery(ref quermsg, _) => match quermsg {
+                    ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
                         &QueryMsg::ContentBoxQuery(_) => {
                             rw_data.content_box_response = None;
                         },
