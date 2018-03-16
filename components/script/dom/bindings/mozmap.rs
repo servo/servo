@@ -8,22 +8,22 @@ use dom::bindings::conversions::jsid_to_string;
 use dom::bindings::str::{DOMString, USVString};
 use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
 use js::jsapi::GetPropertyKeys;
+use js::jsapi::HandleId;
 use js::jsapi::HandleValue;
 use js::jsapi::JSContext;
 use js::jsapi::JSITER_OWNONLY;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::JS_DefineUCProperty2;
 use js::jsapi::JS_GetPropertyById;
+use js::jsapi::JS_IdToValue;
 use js::jsapi::JS_NewPlainObject;
 use js::jsapi::MutableHandleValue;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
-use js::jsapi::HandleId;
-use js::jsapi::JS_IdToValue;
 use js::rust::IdVector;
+use std::cmp::Eq;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::cmp::Eq;
 use std::marker::Sized;
 use std::ops::Deref;
 
@@ -36,7 +36,7 @@ impl MozMapKey for DOMString {
     unsafe fn to_utf16_vec(&self) -> Vec<u16> {
         self.encode_utf16().collect::<Vec<_>>()
     }
-    
+
     unsafe fn from_handle_id(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
         jsid_to_string(cx, id)
     }

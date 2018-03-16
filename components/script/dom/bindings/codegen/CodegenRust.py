@@ -109,7 +109,6 @@ def wrapInNativeContainerType(type, inner):
         raise TypeError("Unexpected container type %s", type)
 
 
-
 builtinNames = {
     IDLType.Tags.bool: 'bool',
     IDLType.Tags.int8: 'i8',
@@ -1921,8 +1920,8 @@ class CGRecord(CGThing):
             keyDef = "USVString"
         else:
             assert False
-        
-        defn = keyDef + ", " + self.value.define() 
+
+        defn = keyDef + ", " + self.value.define()
         return "MozMap<" + defn + ">"
 
 
