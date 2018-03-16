@@ -7,7 +7,7 @@
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use compositing::windowing::{WebRenderDebugOption, WindowMethods};
-use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
+use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -40,7 +40,7 @@ use style_traits::cursor::CursorKind;
 use tinyfiledialogs;
 #[cfg(target_os = "windows")]
 use user32;
-use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
+use webrender_api::{DeviceIntPoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
 #[cfg(target_os = "windows")]
 use winapi;
 use winit;
@@ -177,18 +177,18 @@ enum WindowKind {
 /// The type of a window.
 pub struct Window {
     kind: WindowKind,
-    screen_size: Size2D<u32>,
+    screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
 
     mouse_down_button: Cell<Option<winit::MouseButton>>,
-    mouse_down_point: Cell<Point2D<i32>>,
+    mouse_down_point: Cell<TypedPoint2D<i32, DeviceIndependentPixel>>,
     event_queue: RefCell<Vec<WindowEvent>>,
 
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
     browser_id: Cell<Option<BrowserId>>,
 
-    mouse_pos: Cell<Point2D<i32>>,
+    mouse_pos: Cell<TypedPoint2D<i32, DeviceIndependentPixel>>,
     key_modifiers: Cell<GlutinKeyModifiers>,
     current_url: RefCell<Option<ServoUrl>>,
 
@@ -222,9 +222,7 @@ impl Window {
 
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<Window> {
-        let win_size: TypedSize2D<u32, DevicePixel> =
-            (window_size.to_f32() * window_creation_scale_factor())
-                .to_usize().cast().expect("Window size should fit in u32");
+        let win_size: DeviceUintSize = (window_size.to_f32() * window_creation_scale_factor()).to_u32();
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 
@@ -237,7 +235,7 @@ impl Window {
         let screen_size;
         let inner_size;
         let window_kind = if opts::get().headless {
-            screen_size = Size2D::new(width, height);
+            screen_size = TypedSize2D::new(width, height);
             inner_size = TypedSize2D::new(width, height);
             WindowKind::Headless(HeadlessContext::new(width, height))
         } else {
@@ -268,7 +266,7 @@ impl Window {
             }
 
             let (screen_width, screen_height) = events_loop.get_primary_monitor().get_dimensions();
-            screen_size = Size2D::new(screen_width, screen_height);
+            screen_size = TypedSize2D::new(screen_width, screen_height);
             // TODO(ajeffrey): can this fail?
             let (width, height) = glutin_window.get_inner_size().expect("Failed to get window inner size.");
             inner_size = TypedSize2D::new(width, height);
@@ -316,11 +314,11 @@ impl Window {
             kind: window_kind,
             event_queue: RefCell::new(vec!()),
             mouse_down_button: Cell::new(None),
-            mouse_down_point: Cell::new(Point2D::new(0, 0)),
+            mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
 
             browser_id: Cell::new(None),
 
-            mouse_pos: Cell::new(Point2D::new(0, 0)),
+            mouse_pos: Cell::new(TypedPoint2D::new(0, 0)),
             key_modifiers: Cell::new(GlutinKeyModifiers::empty()),
             current_url: RefCell::new(None),
 
@@ -422,8 +420,7 @@ impl Window {
                 }, ..
             } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
-                    let mouse_pos = self.mouse_pos.get();
-                    self.handle_mouse(button, state, mouse_pos.x, mouse_pos.y);
+                    self.handle_mouse(button, state, self.mouse_pos.get());
                 }
             },
             Event::WindowEvent {
@@ -433,7 +430,7 @@ impl Window {
                 },
                 ..
             } => {
-                self.mouse_pos.set(Point2D::new(x as i32, y as i32));
+                self.mouse_pos.set(TypedPoint2D::new(x as i32, y as i32));
                 self.event_queue.borrow_mut().push(
                     WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
             }
@@ -481,7 +478,7 @@ impl Window {
                 }
                 // window.set_inner_size() takes DeviceIndependentPixel.
                 let new_size = TypedSize2D::new(width as f32, height as f32);
-                let new_size = (new_size / self.hidpi_factor()).cast().expect("Window size should fit in u32");
+                let new_size = (new_size / self.hidpi_factor()).to_u32();
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
                     self.event_queue.borrow_mut().push(WindowEvent::Resize);
@@ -518,37 +515,37 @@ impl Window {
             }
         }
 
-        let mouse_pos = self.mouse_pos.get();
-        let event = WindowEvent::Scroll(scroll_location,
-                                        TypedPoint2D::new(mouse_pos.x as i32, mouse_pos.y as i32),
-                                        phase);
+        let pos = self.mouse_pos.get().to_f32() * self.hidpi_factor();
+        let event = WindowEvent::Scroll(scroll_location, pos.to_i32(), phase);
         self.event_queue.borrow_mut().push(event);
     }
 
     /// Helper function to handle a click
-    fn handle_mouse(&self, button: winit::MouseButton, action: winit::ElementState, x: i32, y: i32) {
+    fn handle_mouse(&self, button: winit::MouseButton,
+                    action: winit::ElementState,
+                    coords: TypedPoint2D<i32, DeviceIndependentPixel>) {
         use script_traits::MouseButton;
 
         // FIXME(tkuehn): max pixel dist should be based on pixel density
         let max_pixel_dist = 10f64;
+        let scaled_coords = coords.to_f32() * self.hidpi_factor();
         let event = match action {
             ElementState::Pressed => {
-                self.mouse_down_point.set(Point2D::new(x, y));
+                self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(MouseButton::Left, TypedPoint2D::new(x as f32, y as f32))
+                MouseWindowEvent::MouseDown(MouseButton::Left, scaled_coords)
             }
             ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left,
-                                                               TypedPoint2D::new(x as f32, y as f32));
+                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, scaled_coords);
                 match self.mouse_down_button.get() {
                     None => mouse_up_event,
                     Some(but) if button == but => {
-                        let pixel_dist = self.mouse_down_point.get() - Point2D::new(x, y);
+                        let pixel_dist = self.mouse_down_point.get() - coords;
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
                             self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(mouse_up_event));
-                            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x as f32, y as f32))
+                            MouseWindowEvent::Click(MouseButton::Left, scaled_coords)
                         } else {
                             mouse_up_event
                         }
@@ -871,7 +868,7 @@ impl WindowMethods for Window {
     }
 
     fn framebuffer_size(&self) -> DeviceUintSize {
-        (self.inner_size.get().to_f32() * self.hidpi_factor()).to_usize().cast().expect("Window size should fit in u32")
+        (self.inner_size.get().to_f32() * self.hidpi_factor()).to_u32()
     }
 
     fn window_rect(&self) -> DeviceUintRect {
@@ -880,34 +877,32 @@ impl WindowMethods for Window {
         DeviceUintRect::new(origin, size)
     }
 
-    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
-        self.inner_size.get().to_f32()
-    }
-
-    fn client_window(&self, _: BrowserId) -> (Size2D<u32>, Point2D<i32>) {
-        match self.kind {
+    fn client_window(&self, _: BrowserId) -> (DeviceUintSize, DeviceIntPoint) {
+        let (size, point) = match self.kind {
             WindowKind::Window(ref window, ..) => {
                 // TODO(ajeffrey): can this fail?
                 let (width, height) = window.get_outer_size().expect("Failed to get window outer size.");
-                let size = Size2D::new(width, height);
+                let size = TypedSize2D::new(width as f32, height as f32);
                 // TODO(ajeffrey): can this fail?
                 let (x, y) = window.get_position().expect("Failed to get window position.");
-                let origin = Point2D::new(x as i32, y as i32);
+                let origin = TypedPoint2D::new(x as f32, y as f32);
                 (size, origin)
             }
             WindowKind::Headless(ref context) => {
-                let size = TypedSize2D::new(context.width, context.height);
-                (size, Point2D::zero())
+                let size = TypedSize2D::new(context.width as f32, context.height as f32);
+                let origin = TypedPoint2D::zero();
+                (size, origin)
             }
-        }
-
+        };
+        let dpr = self.hidpi_factor();
+        ((size * dpr).to_u32(), (point * dpr).to_i32())
     }
 
-    fn screen_size(&self, _: BrowserId) -> Size2D<u32> {
-        self.screen_size
+    fn screen_size(&self, _: BrowserId) -> DeviceUintSize {
+        (self.screen_size.to_f32() * self.hidpi_factor()).to_u32()
     }
 
-    fn screen_avail_size(&self, browser_id: BrowserId) -> Size2D<u32> {
+    fn screen_avail_size(&self, browser_id: BrowserId) -> DeviceUintSize {
         // FIXME: Glutin doesn't have API for available size. Fallback to screen size
         self.screen_size(browser_id)
     }
@@ -916,19 +911,21 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn set_inner_size(&self, _: BrowserId, size: Size2D<u32>) {
+    fn set_inner_size(&self, _: BrowserId, size: DeviceUintSize) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
+                let size = size.to_f32() / self.hidpi_factor();
                 window.set_inner_size(size.width as u32, size.height as u32)
             }
             WindowKind::Headless(..) => {}
         }
     }
 
-    fn set_position(&self, _: BrowserId, point: Point2D<i32>) {
+    fn set_position(&self, _: BrowserId, point: DeviceIntPoint) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
-                window.set_position(point.x, point.y)
+                let point = point.to_f32() / self.hidpi_factor();
+                window.set_position(point.x as i32, point.y as i32)
             }
             WindowKind::Headless(..) => {}
         }
@@ -1112,7 +1109,7 @@ impl WindowMethods for Window {
     fn set_favicon(&self, _: BrowserId, _: ServoUrl) {
     }
 
-    fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
+    fn prepare_for_composite(&self, _width: Length<u32, DevicePixel>, _height: Length<u32, DevicePixel>) -> bool {
         true
     }
 
