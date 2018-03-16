@@ -10,20 +10,19 @@ use std::path::Path;
 use std::process;
 use std::process::{Command, Stdio};
 
-#[cfg(windows)]
-fn main() {
-    let mut res = winres::WindowsResource::new();
-    res.set_icon("../../resources/Servo.ico");
-    res.set_manifest_file("platform/windows/servo.exe.manifest");
-    res.compile().unwrap();
-}
-
-#[cfg(not(windows))]
 fn main() {
     // build.rs is not platform-specific, so we have to check the target here.
     let target = env::var("TARGET").unwrap();
     if target.contains("android") {
         android_main()
+    }
+
+    #[cfg(windows)]
+    {
+        let mut res = winres::WindowsResource::new();
+        res.set_icon("../../resources/Servo.ico");
+        res.set_manifest_file("platform/windows/servo.exe.manifest");
+        res.compile().unwrap();
     }
 }
 
