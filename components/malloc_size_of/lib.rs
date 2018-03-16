@@ -758,8 +758,6 @@ malloc_size_of_is_0!(webrender_api::ImageRendering);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::LineStyle);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::LocalClip);
-#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::MixBlendMode);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::NormalBorder);

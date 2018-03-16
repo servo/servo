@@ -63,7 +63,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
         };
         webrender_api::LayoutPrimitiveInfo {
             rect: self.base().bounds,
-            local_clip: self.base().local_clip,
+            clip_rect: self.base().clip_rect,
             // TODO(gw): Make use of the WR backface visibility functionality.
             is_backface_visible: true,
             tag,
