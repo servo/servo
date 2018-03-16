@@ -10,6 +10,7 @@ use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGL2Constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -1542,6 +1543,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
+        if target == WebGL2Constants::READ_FRAMEBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidOperation);
         }
