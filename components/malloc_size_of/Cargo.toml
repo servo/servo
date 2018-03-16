@@ -16,7 +16,7 @@ app_units = "0.6"
 cssparser = "0.23.0"
 euclid = "0.17"
 hashglobe = { path = "../hashglobe" }
-mozjs = { version = "0.2", features = ["promises"], optional = true }
+mozjs = { version = "0.3", features = ["promises"], optional = true }
 selectors = { path = "../selectors" }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
