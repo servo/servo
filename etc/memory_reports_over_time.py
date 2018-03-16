@@ -115,12 +115,12 @@ def test():
     assert(sorted(transformed.keys()) == sorted(expected.keys()))
     for k, v in transformed.items():
         assert(v == expected[k])
+    test_extract_memory_reports()
     return 0
 
 
 def usage():
     print('%s --test - run automated tests' % sys.argv[0])
-    print('%s --test-extract-memory-reports run automated tests for extract_memory_reports' % sys.argv[0])
     print('%s file - extract all memory reports that are present in file' % sys.argv[0])
     return 1
 
@@ -131,9 +131,6 @@ if __name__ == "__main__":
 
     if sys.argv[1] == '--test':
         sys.exit(test())
-        
-    if sys.argv[1] == '--test-extract-memory-reports':
-        sys.exit(test_extract_memory_reports())
 
     with open(sys.argv[1]) as f:
         lines = f.readlines()
