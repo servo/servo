@@ -20,6 +20,7 @@ pub struct PerformanceNavigationTiming {
     navigation_start: u64,
     navigation_start_precise: u64,
     document: Dom<Document>,
+    name: DOMString,
 }
 
 impl PerformanceNavigationTiming {
@@ -46,6 +47,10 @@ impl PerformanceNavigationTiming {
         reflect_dom_object(Box::new(timing),
                            window,
                            PerformanceNavigationTimingBinding::Wrap)
+    }
+
+    pub fn set_name(name: DOMString) {
+        self.name = name;
     }
 }
 
@@ -97,6 +102,43 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
     // Servo-only timing for when top-level content (not iframes) is complete
     fn TopLevelDomComplete(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.document.get_top_level_dom_complete() as f64)
+    }
+
+    // TODO type
+
+    // TODO redirectCount
+}
+
+// https://w3c.github.io/navigation-timing/#sec-navigation-timing
+impl PerformanceEntry for PerformanceNavigationTiming {
+    pub fn Name(&self) -> DOMString {
+        self.name
+    }
+
+    pub fn EntryType(&self) -> DOMHighResTimeStamp {
+        DOMString::from("navigation")
+    }
+
+    // TODO it says it has to return DOMHighResTimeStamp with time 0
+    pub fn StartTime(&self) -> f64 {
+        Finite::wrap(0.0)
+    }
+
+    // TODO make sure that this still works with start time of 0
+    pub fn Duration(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.document.get_load_event_end() - self.StartTime())
+    }
+}
+
+// https://w3c.github.io/navigation-timing/#PerformanceResourceTiming
+impl PerformanceResourceTiming for PerformanceNavigationTiming {
+    pub fn InitiatorType(&self) -> DOMString {
+        DOMString::from("navigation")
+    }
+
+    pub fn WorkerStart(&self) -> DOMHighResTimeStamp {
+        //TODO
+        Finite::Wrap(Default::default)
     }
 }
 

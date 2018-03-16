@@ -12,6 +12,8 @@ typedef sequence<PerformanceEntry> PerformanceEntryList;
 [Exposed=(Window, Worker)]
 interface Performance {
   DOMHighResTimeStamp now();
+  readonly attribute DOMHighResTimeStamp timeOrigin;
+  // [Default] object toJSON();
 };
 
 // https://w3c.github.io/performance-timeline/#extensions-to-the-performance-interface

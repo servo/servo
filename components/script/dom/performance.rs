@@ -111,7 +111,6 @@ struct PerformanceObserver {
 #[dom_struct]
 pub struct Performance {
     reflector_: Reflector,
-    navigation_timing: Option<Dom<PerformanceNavigationTiming>>,
     entries: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
@@ -124,13 +123,6 @@ impl Performance {
                      navigation_start_precise: u64) -> Performance {
         Performance {
             reflector_: Reflector::new(),
-            navigation_timing: if global.is::<Window>() {
-                Some(Dom::from_ref(&*PerformanceNavigationTiming::new(global.as_window(),
-                                                           navigation_start,
-                                                           navigation_start_precise)))
-            } else {
-                None
-            },
             entries: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
             observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
@@ -258,14 +250,6 @@ impl Performance {
 }
 
 impl PerformanceMethods for Performance {
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
-    /* fn NavigationTiming(&self) -> DomRoot<PerformanceNavigationTiming> {
-        match self.navigation_timing {
-            Some(ref timing) => DomRoot::from_ref(&*timing),
-            None => unreachable!("Are we trying to expose Performance.timing in workers?"),
-        }
-    } */
-
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.now())
