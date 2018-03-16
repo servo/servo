@@ -1230,6 +1230,9 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
+            (_, Some('3'), _) => if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT {
+                self.event_queue.borrow_mut().push(WindowEvent::CaptureWebRender);
+            }
             (KeyModifiers::CONTROL, None, Key::F10) => {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
                 self.event_queue.borrow_mut().push(event);
