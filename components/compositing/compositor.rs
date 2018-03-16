@@ -23,6 +23,7 @@ use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEven
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
+use std::env;
 use std::fs::File;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -30,7 +31,7 @@ use std::time::{Duration, Instant};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
-use time::{precise_time_ns, precise_time_s};
+use time::{now, precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, DeviceUintRect, DeviceUintSize, HitTestFlags, HitTestResult};
@@ -1529,6 +1530,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut txn = webrender_api::Transaction::new();
         txn.generate_frame();
         self.webrender_api.send_transaction(self.webrender_document, txn);
+    }
+
+    pub fn capture_webrender(&mut self) {
+        match env::current_dir() {
+            Ok(current_dir) => {
+                let capture_id = now().to_timespec().sec.to_string();
+                let capture_path = current_dir.join("capture_webrender").join(capture_id);
+                self.webrender_api.save_capture(capture_path, webrender_api::CaptureBits::all());
+            },
+            Err(err) => println!("could not locate path to save captures: {:?}", err)
+        }
     }
 }
 

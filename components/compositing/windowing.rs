@@ -84,6 +84,8 @@ pub enum WindowEvent {
     SelectBrowser(TopLevelBrowsingContextId),
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
+    /// Capture current WebRender
+    CaptureWebRender,
 }
 
 impl Debug for WindowEvent {
@@ -108,6 +110,7 @@ impl Debug for WindowEvent {
             WindowEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
             WindowEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
             WindowEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
+            WindowEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
         }
     }
 }
