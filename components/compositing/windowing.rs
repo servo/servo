@@ -17,7 +17,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use style_traits::DevicePixel;
 use style_traits::cursor::CursorKind;
-use webrender_api::{DeviceIntPoint, DeviceSize, DevicePoint, DeviceUintSize, DeviceUintRect, ScrollLocation};
+use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintSize, DeviceUintRect, ScrollLocation};
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -122,8 +122,6 @@ pub trait WindowMethods {
     fn framebuffer_size(&self) -> DeviceUintSize;
     /// Returns the position and size of the window within the rendering area.
     fn window_rect(&self) -> DeviceUintRect;
-    /// Returns the size of the window.
-    fn size(&self) -> DeviceSize;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 

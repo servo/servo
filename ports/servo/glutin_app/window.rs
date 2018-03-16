@@ -868,17 +868,13 @@ impl WindowMethods for Window {
     }
 
     fn framebuffer_size(&self) -> DeviceUintSize {
-        self.size().to_u32()
+        (self.inner_size.get().to_f32() * self.hidpi_factor()).to_u32()
     }
 
     fn window_rect(&self) -> DeviceUintRect {
         let size = self.framebuffer_size();
         let origin = TypedPoint2D::zero();
         DeviceUintRect::new(origin, size)
-    }
-
-    fn size(&self) -> TypedSize2D<f32, DevicePixel> {
-        self.inner_size.get().to_f32() * self.hidpi_factor()
     }
 
     fn client_window(&self, _: BrowserId) -> (DeviceUintSize, DeviceIntPoint) {
