@@ -333,6 +333,10 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 self.compositor.toggle_webrender_debug(option);
             }
 
+            WindowEvent::CaptureWebRender => {
+                self.compositor.capture_webrender();
+            }
+
             WindowEvent::NewBrowser(url, response_chan) => {
                 let msg = ConstellationMsg::NewBrowser(url, response_chan);
                 if let Err(e) = self.constellation_chan.send(msg) {
