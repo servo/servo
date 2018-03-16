@@ -95,9 +95,9 @@ promise_test(t => {
     url += '?url=' + get_host_info().HTTPS_REMOTE_ORIGIN + '/media/foo.vtt';
     // Add '&mode' to tell the service worker to do a CORS request.
     url += '&mode=cors';
-    // Add '&credentials=anonymous' to allow Access-Control-Allow-Origin=* so
+    // Add '&credentials=same-origin' to allow Access-Control-Allow-Origin=* so
     // that CORS will succeed if the service approves it.
-    url += '&credentials=anonymous';
+    url += '&credentials=same-origin';
     return load_track(url)
       .then(result => {
           assert_equals(result, 'load event');
@@ -142,9 +142,9 @@ promise_test(t => {
     url += '?url=' + encodeURIComponent(redirector_url + encodeURIComponent(redirect_target));
     // Add '&mode' to tell the service worker to do a CORS request.
     url += '&mode=cors';
-    // Add '&credentials=anonymous' to allow Access-Control-Allow-Origin=* so
+    // Add '&credentials=same-origin' to allow Access-Control-Allow-Origin=* so
     // that CORS will succeed if the server approves it.
-    url += '&credentials=anonymous';
+    url += '&credentials=same-origin';
     return load_track(url)
       .then(result => {
           assert_equals(result, 'error event');
@@ -160,9 +160,9 @@ promise_test(t => {
     url += '?url=' + encodeURIComponent(redirector_url + encodeURIComponent(redirect_target));
     // Add '&mode' to tell the service worker to do a CORS request.
     url += '&mode=cors';
-    // Add '&credentials=anonymous' to allow Access-Control-Allow-Origin=* so
+    // Add '&credentials=same-origin' to allow Access-Control-Allow-Origin=* so
     // that CORS will succeed if the server approves it.
-    url += '&credentials=anonymous';
+    url += '&credentials=same-origin';
     return load_track(url)
       .then(result => {
           assert_equals(result, 'load event');

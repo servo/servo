@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#height-distribution-algorithm">
+<link rel="bookmark" href="https://bugs.chromium.org/p/chromium/issues/detail?id=708345" />
+<meta name="flags" content="" />
+<meta name="assert" content="All rows of equal intrinsic height should be increased the same amount, regardless of which group they are in, thead+tbody case" />
+<title>
+all row groups receive extra height distribution
+</title>
+
+<style>
+table {
+  border-collapse: collapse;
+}
+
+td {
+  padding: 0px;
+}
+
+td div {
+  width: 100px;
+  height:10px;
+}
+
+thead, tbody {
+  outline: 2px solid lightblue;
+}
+
+</style>
+
+<table id="theTable" style="height:100px">
+  <thead data-expected-height=50>
+    <tr>
+      <td><div></div></td>
+    </tr>
+  </thead>
+  <tbody data-expected-height=50>
+    <tr>
+      <td><div></div></td>
+    </tr>
+  </tbody>
+</table>
+
+<script>
+checkLayout('#theTable')
+</script>

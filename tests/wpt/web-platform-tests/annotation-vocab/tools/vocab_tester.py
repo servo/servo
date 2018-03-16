@@ -3,6 +3,8 @@
 # License: Apache2
 # Last Modified: 2016-09-02
 
+from __future__ import print_function
+
 import json
 from rdflib import ConjunctiveGraph, URIRef
 from pyld import jsonld
@@ -164,14 +166,14 @@ frame_js = json.loads(data)
 try:
     expanded = expand(example_js, context_js)
 except:
-    print "Context is invalid, failed Test 1"
+    print("Context is invalid, failed Test 1")
 
 
 # Test2: JSON-LD context document can be used to convert JSON-LD serialized Annotations into RDF triples.
 try:
     jsonld_nq = to_rdf(example_js, {"base": "http://example.org/", "format": "application/nquads"})
 except:
-    print "Cannot use context to convert JSON-LD to NQuads"
+    print("Cannot use context to convert JSON-LD to NQuads")
 
 
 # Test3: Graphs produced are isomorphic
@@ -183,7 +185,7 @@ try:
     assert(len(rl_g.store) == len(js_g.store))
     assert(rl_g.isomorphic(js_g))
 except:
-    print "Different triples from two parsers, or non-isomorphic graphs"
+    print("Different triples from two parsers, or non-isomorphic graphs")
 
 
 # Test4: The graphs produced can be converted back into JSON-LD without loss of information
@@ -192,7 +194,7 @@ try:
     js2 = validator.compact_and_clean(js)
     assert(js2 == example_js)
 except:
-    print "Failed to recompact parsed data"
+    print("Failed to recompact parsed data")
     raise
 
 
@@ -228,13 +230,13 @@ for p in props:
     for r in ranges:
         if not r in classes and not str(r).startswith("http://www.w3.org/2001/XMLSchema#") and \
             not r == rdfsresource:
-            print "Found inconsistent property: %s has unknown range" % p
+            print("Found inconsistent property: %s has unknown range" % p)
 
 for c in classes:
     parents = list(g.objects(c, rdfssco))
     for p in parents:
         if not p in classes and not p in otherClasses:
-            print "Found inconsistent class: %s has unknown superClass" % c
+            print("Found inconsistent class: %s has unknown superClass" % c)
 
 
-print "Done."
+print("Done.")

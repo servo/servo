@@ -159,7 +159,7 @@ impl Animate for Au {
 
 impl<T> Animate for Size2D<T>
 where
-    T: Animate + Copy,
+    T: Animate,
 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -172,7 +172,7 @@ where
 
 impl<T> Animate for Point2D<T>
 where
-    T: Animate + Copy,
+    T: Animate,
 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {

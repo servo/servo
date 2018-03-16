@@ -1,5 +1,6 @@
 [Exposed=(Window,Worker,Worklet)]
-namespace console {
+namespace console { // but see namespace object requirements below
+  // Logging
   void assert(optional boolean condition = false, any... data);
   void clear();
   void count(optional DOMString label = "default");
@@ -13,10 +14,12 @@ namespace console {
   void dir(any item, optional object? options);
   void dirxml(any... data);
 
+  // Grouping
   void group(any... data);
   void groupCollapsed(any... data);
   void groupEnd();
 
+  // Timing
   void time(optional DOMString label = "default");
   void timeEnd(optional DOMString label = "default");
 };

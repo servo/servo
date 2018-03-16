@@ -14,6 +14,7 @@
     <style id="styleElement" type="text/css">
         @import url("support/a-green.css");
         @import url("support/a-green.css") screen;
+        @import url("support/a-green.css") all;
         @page { background-color: red; }
     </style>
 </head>
@@ -21,12 +22,13 @@
     <div id="log"></div>
 
     <script type="text/javascript">
-        var styleSheet, ruleList, rule, ruleWithMedia;
+        var styleSheet, ruleList, rule, ruleWithMedia, ruleWithMediaAll;
         setup(function() {
             styleSheet = document.getElementById("styleElement").sheet;
             ruleList = styleSheet.cssRules;
             rule = ruleList[0];
             ruleWithMedia = ruleList[1];
+            ruleWithMediaAll = ruleList[2];
         });
 
         test(function() {
@@ -63,6 +65,7 @@
             assert_equals(typeof rule.cssText, "string");
             assert_equals(rule.cssText, '@import url("support/a-green.css");');
             assert_equals(ruleWithMedia.cssText, '@import url("support/a-green.css") screen;');
+            assert_equals(ruleWithMediaAll.cssText, '@import url("support/a-green.css") all;');
             assert_equals(rule.parentRule, null);
             assert_true(rule.parentStyleSheet instanceof CSSStyleSheet);
         }, "Values of CSSRule attributes");
@@ -91,7 +94,7 @@
         }, "CSSImportRule : MediaList mediaText attribute should be updated due to [PutForwards]");
 
         test(function() {
-            var ruleWithPage = ruleList[2];
+            var ruleWithPage = ruleList[3];
             ruleWithPage.style = "background-color: green;"
             assert_equals(ruleWithPage.style.cssText, "background-color: green;");
         }, "CSSStyleDeclaration cssText attribute should be updated due to [PutForwards]");

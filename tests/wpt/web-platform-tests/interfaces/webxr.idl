@@ -12,9 +12,6 @@ partial interface Navigator {
 };
 
 [SecureContext, Exposed=Window] interface XRDevice : EventTarget {
-  // Attributes
-  readonly attribute boolean external;
-
   // Methods
   Promise<void> supportsSession(optional XRSessionCreationOptions options);
   Promise<XRSession> requestSession(optional XRSessionCreationOptions options);
@@ -97,8 +94,6 @@ enum XREye {
 [SecureContext, Exposed=Window] interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
-
-  XRViewport? getViewport(XRLayer layer);
 };
 
 [SecureContext, Exposed=Window] interface XRViewport {
@@ -146,6 +141,7 @@ interface XRWebGLLayer : XRLayer {
   readonly attribute unsigned long framebufferHeight;
 
   // Methods
+  XRViewport? getViewport(XRView view);
   void requestViewportScaling(double viewportScaleFactor);
 };
 

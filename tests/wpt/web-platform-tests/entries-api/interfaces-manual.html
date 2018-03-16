@@ -14,7 +14,7 @@ entry_test((t, entry, item) => {
   assert_true(entry.isDirectory);
   Promise.all([
     getEntriesAsPromise(entry),
-    fetch('interfaces.idl').then(r => r.text())
+    fetch('/interfaces/entries-api.idl').then(r => r.text())
   ]).then(t.step_func(([entries, idls]) => {
     window.samples = {
       item: item,

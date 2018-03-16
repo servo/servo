@@ -158,7 +158,7 @@ fn parse_number_with_clamping_mode<'i, 't>(
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, Parse, PartialEq)]
-#[derive(PartialOrd, ToCss)]
+#[derive(PartialOrd, ToComputedValue, ToCss)]
 pub enum BorderStyle {
     None = -1,
     Solid = 6,

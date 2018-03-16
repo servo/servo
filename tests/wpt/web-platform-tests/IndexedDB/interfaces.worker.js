@@ -5,7 +5,7 @@ importScripts("/resources/WebIDLParser.js", "/resources/idlharness.js");
 
 async_test(function(t) {
   var request = new XMLHttpRequest();
-  request.open("GET", "interfaces.idl");
+  request.open("GET", "/interfaces/IndexedDB.idl");
   request.send();
   request.onload = t.step_func(function() {
     var idlArray = new IdlArray();

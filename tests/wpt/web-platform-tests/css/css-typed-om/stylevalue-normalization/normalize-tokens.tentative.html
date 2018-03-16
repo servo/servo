@@ -2,8 +2,8 @@
 <meta charset="utf-8">
 <title>Normalization of raw CSS tokens tests</title>
 <link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#normalize-tokens">
-<script src="//resources/testharness.js"></script>
-<script src="//resources/testharnessreport.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script src="../resources/testhelper.js"></script>
 <body>
 <script>
@@ -54,6 +54,15 @@ for (const {value, expectedResult} of gTestCases) {
   test(t => {
     assert_string_normalizes_to(t, 'color', value, new CSSUnparsedValue(expectedResult));
   }, 'Normalizing "' + value + '" on a CSS property returns correct CSSUnparsedValue');
+
+  test(t => {
+    assert_string_normalizes_to(t, 'margin', value, new CSSUnparsedValue(expectedResult));
+    assert_false(true);
+  }, 'Normalizing "' + value + '" on a shorthand returns correct CSSUnparsedValue');
+
+  test(t => {
+    assert_string_normalizes_to(t, 'transition-duration', value, new CSSUnparsedValue(expectedResult));
+  }, 'Normalizing "' + value + '" on a list-valued property returns correct CSSUnparsedValue');
 
   test(t => {
     assert_string_normalizes_to(t, '--X', value, new CSSUnparsedValue(expectedResult));

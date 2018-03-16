@@ -90,7 +90,7 @@ PRINT STATEMENT: */tools/*
 AHEM COPY: fonts/Ahem.ttf
 
 # None of these are actually Ahem
-AHEM COPY: css/fonts/ahem-extra/AHEM_*.TTF
+AHEM COPY: fonts/ahem-extra/AHEM_*.TTF
 
 # https://github.com/w3c/web-platform-tests/issues/7437
 AHEM COPY: css/vendor-imports/mozilla/mozilla-central-reftests/*/Ahem.ttf
@@ -110,9 +110,10 @@ CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt
 # Intentional use of tabs
 INDENT TABS: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
 
-# Test generation files containing print statements
+# Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
 PRINT STATEMENT: encrypted-media/polyfill/make-polyfill-tests.py
+PRINT STATEMENT: webdriver/tests/support/fixtures.py
 
 # semi-legitimate use of console.*
 CONSOLE: console/*
@@ -379,7 +380,7 @@ SUPPORT-WRONG-DIR: css/*/LICENSE-*
 SUPPORT-WRONG-DIR: css/*/COPYING
 SUPPORT-WRONG-DIR: css/*/Makefile
 SUPPORT-WRONG-DIR: css/*/OWNERS
-SUPPORT-WRONG-DIR: css/fonts/*
+SUPPORT-WRONG-DIR: fonts/*
 
 # The selectors-3 testsuite has a weird build system
 SUPPORT-WRONG-DIR: css/selectors/*
@@ -452,7 +453,7 @@ INDENT TABS: css/css-values/*
 INDENT TABS: css/css-variables/*
 INDENT TABS: css/css-writing-modes/*
 INDENT TABS: css/filter-effects/*
-INDENT TABS: css/fonts/*
+INDENT TABS: fonts/*
 INDENT TABS: css/mediaqueries/*
 INDENT TABS: css/selectors/*
 INDENT TABS: css/vendor-imports/*

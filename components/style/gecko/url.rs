@@ -121,7 +121,7 @@ impl MallocSizeOf for CssUrl {
 }
 
 /// A specified url() value for general usage.
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToComputedValue, ToCss)]
 pub struct SpecifiedUrl {
     /// The specified url value.
     pub url: CssUrl,
@@ -130,7 +130,6 @@ pub struct SpecifiedUrl {
     #[css(skip)]
     pub url_value: RefPtr<URLValue>,
 }
-trivial_to_computed_value!(SpecifiedUrl);
 
 impl SpecifiedUrl {
     fn from_css_url(url: CssUrl) -> Self {
@@ -177,7 +176,7 @@ impl MallocSizeOf for SpecifiedUrl {
 /// A specified url() value for image.
 ///
 /// This exists so that we can construct `ImageValue` and reuse it.
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, ToComputedValue, ToCss)]
 pub struct SpecifiedImageUrl {
     /// The specified url value.
     pub url: CssUrl,
@@ -186,7 +185,6 @@ pub struct SpecifiedImageUrl {
     #[css(skip)]
     pub image_value: RefPtr<ImageValue>,
 }
-trivial_to_computed_value!(SpecifiedImageUrl);
 
 impl SpecifiedImageUrl {
     fn from_css_url(url: CssUrl) -> Self {

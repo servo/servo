@@ -7,7 +7,7 @@ importScripts('/resources/testharness.js',
               '/resources/idlharness.js');
 
 promise_test(async t => {
-  const urls = ['cookie-store.idl'];
+  const urls = ['/interfaces/cookie-store.idl'];
   const [cookie_store] = await Promise.all(
     urls.map(url => fetch(url).then(response => response.text())));
 

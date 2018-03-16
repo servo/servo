@@ -20,6 +20,12 @@
 					font-family: "IPAMincho", "IPAGothic", "IPA明朝", "IPAゴシック";
 					width: 10em;
 				}
+				div.wrapper {
+					display: inline-block;
+					border: 1px solid;
+					margin: 10px;
+					padding: 10px;
+				}
 				span.attention {
 					color: red;
 				}
@@ -30,28 +36,30 @@
 		<p>
 			Test passes if each pair of upper and lower text in the square box is identical.
 		</p>
-		<hr />
-		<p class="test">
-			<span>Filler Text Filler Text Filler Text</span>
-		</p>
-		<p class="control">
-			<span>Filler Text Filler<br />Text Filler Text</span>
-		</p>
-		<hr />
-		<p class="test">
-			<span>満たすための文字 Filler Text</span>
-		</p>
-		<p class="control">
-			<span>満たすための文字<br />Filler Text</span>
-		</p>
-		<hr />
-		<p class="test">
-			<span>満たすための文字満たすための文字</span>
-		</p>
-		<p class="control">
-			<span>満たすための文字満た<br />すための文字</span>
-		</p>
-		<hr />
+		<div class="wrapper">
+			<p class="test">
+				<span>Filler Text Filler Text Filler Text</span>
+			</p>
+			<p class="control">
+				<span>Filler Text Filler<br />Text Filler Text</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<p class="test">
+				<span>満たすための文字 Filler Text</span>
+			</p>
+			<p class="control">
+				<span>満たすための文字<br />Filler Text</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<p class="test">
+				<span>満たすための文字満たすための文字</span>
+			</p>
+			<p class="control">
+				<span>満たすための文字満た<br />すための文字</span>
+			</p>
+		</div>
 		<p>
 			<span class="attention">* You will need a Japanese font.</span><br />
 			If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and reload this page.

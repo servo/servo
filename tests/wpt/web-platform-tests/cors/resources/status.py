@@ -24,7 +24,7 @@ def main(request, response):
     if request.method == "OPTIONS" and "preflight" in request.GET:
         try:
             code = int(request.GET.first('preflight'))
-        except KeyError, ValueError:
+        except KeyError:
             pass
 
     status = code, text

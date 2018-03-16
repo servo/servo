@@ -35,6 +35,22 @@ test(t => {
 
 test(t => {
   let styleMap = createDeclaredStyleMap(t, '');
+  assert_throws(new TypeError(), () => {
+    styleMap.set('transition-duration', '1s', new CSSUnparsedValue([]));
+  });
+}, 'Setting a list-valued property with a CSSUnparsedValue and other ' +
+   'values throws TypeError');
+
+test(t => {
+  let styleMap = createDeclaredStyleMap(t, '');
+  assert_throws(new TypeError(), () => {
+    styleMap.set('transition-duration', '1s', 'var(--A)');
+  });
+}, 'Setting a list-valued property with a var ref() and other values ' +
+   'throws TypeError');
+
+test(t => {
+  let styleMap = createDeclaredStyleMap(t, '');
 
   styleMap.set('width', CSS.px(10));
   assert_style_value_array_equals(styleMap.get('width'), CSS.px(10));
