@@ -11,6 +11,7 @@ use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGL2Constants;
+use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -1376,6 +1377,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::Bool(val) => BooleanValue(val),
             WebGLParameter::Float(val) => DoubleValue(val as f64),
             WebGLParameter::FloatArray(_) => panic!("Parameter should not be float array"),
+            WebGLParameter::IntArray(_) => panic!("Parameter should not be int array"),
+            WebGLParameter::BoolArray(_) => panic!("Parameter should not be bool array"),
             WebGLParameter::String(val) => {
                 rooted!(in(cx) let mut rval = UndefinedValue());
                 val.to_jsval(cx, rval.handle_mut());
@@ -2404,6 +2407,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::FloatArray(_) => {
                 panic!("Program paramenter should not be float array")
             }
+            WebGLParameter::IntArray(_) => panic!("Program parameter should not be int array"),
+            WebGLParameter::BoolArray(_) => panic!("Program parameter should not be bool array"),
             WebGLParameter::Invalid => NullValue(),
         }
     }
@@ -2424,6 +2429,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::FloatArray(_) => {
                 panic!("Shader paramenter should not be float array")
             }
+            WebGLParameter::IntArray(_) => panic!("Shader parameter should not be int array"),
+            WebGLParameter::BoolArray(_) => panic!("Shader parameter should not be bool array"),
             WebGLParameter::Invalid => NullValue(),
         }
     }
@@ -2468,6 +2475,65 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    unsafe fn GetUniform(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        location: &WebGLUniformLocation
+    ) -> JSVal {
+        if !program.is_linked() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        }
+
+        let program_id = program.id().get();
+
+        // TODO: Alternatively use ANGLE to obtain uniform type.
+        let uniform_type = if location.program_id().get() == program_id {
+            match program.get_active_uniform(0) {
+                Ok(uniform_info) => (*uniform_info).Type(),
+                Err(e) => {
+                    self.webgl_error(e);
+                    return NullValue();
+                }
+            }
+        } else {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        };
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetUniform(program_id, location.id(), uniform_type, sender));
+
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::String(_) => panic!("Uniform value should not be a string"),
+            WebGLParameter::Int(value) => Int32Value(value),
+            WebGLParameter::Bool(value) => BooleanValue(value),
+            WebGLParameter::Float(value) => DoubleValue(value as f64),
+            WebGLParameter::IntArray(values) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                values.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            WebGLParameter::BoolArray(values) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                values.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            WebGLParameter::FloatArray(values) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                values.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            WebGLParameter::Invalid => {
+                self.webgl_error(InvalidOperation);
+                NullValue()
+            }
+        }
+    }
+
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
         if index == 0 && pname == constants::CURRENT_VERTEX_ATTRIB {
@@ -2494,6 +2560,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::Bool(val) => BooleanValue(val),
             WebGLParameter::String(_) => panic!("Vertex attrib should not be string"),
             WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),
+            WebGLParameter::IntArray(_) => panic!("Vertex attrib should not be int array"),
+            WebGLParameter::BoolArray(_) => panic!("Vertex attrib should not be bool array"),
             WebGLParameter::FloatArray(val) => {
                 rooted!(in(cx) let mut result = UndefinedValue());
                 val.to_jsval(cx, result.handle_mut());

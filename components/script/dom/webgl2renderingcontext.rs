@@ -157,6 +157,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetFramebufferAttachmentParameter(cx, target, attachment, pname)
     }
 
+    #[allow(unsafe_code)]
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    unsafe fn GetUniform(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        location: &WebGLUniformLocation
+    ) -> JSVal {
+        self.base.GetUniform(cx, program, location)
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ActiveTexture(&self, texture: u32) {
         self.base.ActiveTexture(texture)
