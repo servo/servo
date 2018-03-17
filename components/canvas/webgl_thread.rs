@@ -772,6 +772,8 @@ impl WebGLImpl {
                 Self::shader_precision_format(ctx.gl(), shader_type, precision_type, chan),
             WebGLCommand::GetExtensions(chan) =>
                 Self::get_extensions(ctx.gl(), chan),
+            WebGLCommand::GetUniform(program, location, chan) =>
+                Self::get_uniform(ctx.gl(), program, location, chan),
             WebGLCommand::GetUniformLocation(program_id, name, chan) =>
                 Self::uniform_location(ctx.gl(), program_id, name, chan),
             WebGLCommand::GetShaderInfoLog(shader_id, chan) =>
@@ -1209,6 +1211,57 @@ impl WebGLImpl {
         chan.send(location).unwrap();
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn get_uniform(
+        gl: &gl::Gl,
+        program: u32,
+        location: i32,
+        chan: WebGLSender<WebGLResult<WebGLParameter>>
+    ) {
+        let uniform = match location as u32 {
+            gl::FLOAT_VEC2 |
+            gl::FLOAT_VEC3 |
+            gl::FLOAT_VEC4 |
+            gl::FLOAT_MAT2 |
+            gl::FLOAT_MAT3 |
+            gl::FLOAT_MAT4 => {
+                Ok(WebGLParameter::FloatArray(gl.get_uniform_fv(program, location)))
+            },
+            gl::INT_VEC2 |
+            gl::INT_VEC3 |
+            gl::INT_VEC4 => {
+                Ok(WebGLParameter::IntArray(gl.get_uniform_iv(program, location)))
+            },
+            gl::BOOL_VEC2 |
+            gl::BOOL_VEC3 |
+            gl::BOOL_VEC4 => {
+                let result = gl.get_uniform_iv(program, location)
+                    .iter()
+                    .map(|el| *el == 1)
+                    .collect::<Vec<_>>();
+                Ok(WebGLParameter::BoolArray(result))
+            },
+            gl::INT |
+            gl::SAMPLER_2D |
+            gl::SAMPLER_CUBE => {
+                // returns a single int in a vector
+                let result = gl.get_uniform_iv(program, location);
+                Ok(WebGLParameter::Int(result[0]))
+            }
+            gl::BOOL => {
+                // returns a single bool in a vector
+                let result = gl.get_uniform_iv(program, location);
+                Ok(WebGLParameter::Bool(result[0] == 1))
+            }
+            gl::FLOAT => {
+                // returns a single float in a vector
+                let result = gl.get_uniform_fv(program, location);
+                Ok(WebGLParameter::Float(result[0]))
+            }
+            _ => Err(WebGLError::InvalidOperation),
+        };
+        chan.send(uniform).unwrap();
+    }
 
     fn shader_info_log(gl: &gl::Gl, shader_id: WebGLShaderId, chan: WebGLSender<String>) {
         let log = gl.get_shader_info_log(shader_id.get());
