@@ -216,6 +216,7 @@ pub enum WebGLCommand {
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
     GetRenderbufferParameter(u32, u32, WebGLSender<i32>),
+    GetUniform(u32, i32, UniformType, WebGLSender<UniformType>),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
     ReadPixels(i32, i32, i32, i32, u32, u32, WebGLSender<ByteBuf>),
@@ -285,6 +286,16 @@ pub enum WebGLCommand {
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
     TexParameteri(u32, TexParameterInt, i32),
     TexParameterf(u32, TexParameterFloat, f32),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum UniformType {
+    FloatVec(Vec<f32>),
+    IntVec(Vec<i32>),
+    BoolVec(Vec<bool>),
+    Float(f32),
+    Int(i32),
+    Bool(bool),
 }
 
 macro_rules! define_resource_id_struct {
