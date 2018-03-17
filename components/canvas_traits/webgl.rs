@@ -219,6 +219,7 @@ pub enum WebGLCommand {
     GetVertexAttribOffset(u32, u32, WebGLSender<isize>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
+    GetUniform(u32, i32, WebGLSender<WebGLResult<WebGLParameter>>),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
     ReadPixels(i32, i32, i32, i32, u32, u32, WebGLSender<Vec<u8>>),
@@ -374,7 +375,9 @@ pub enum WebGLFramebufferBindingRequest {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGLParameter {
     Int(i32),
+    IntArray(Vec<i32>),
     Bool(bool),
+    BoolArray(Vec<bool>),
     String(String),
     Float(f32),
     FloatArray(Vec<f32>),
@@ -490,6 +493,7 @@ impl fmt::Debug for WebGLCommand {
             GetProgramInfoLog(..) => "GetProgramInfoLog",
             GetVertexAttrib(..) => "GetVertexAttrib",
             GetVertexAttribOffset(..) => "GetVertexAttribOffset",
+            GetUniform(..) => "GetUniform",
             PolygonOffset(..) => "PolygonOffset",
             ReadPixels(..) => "ReadPixels",
             RenderbufferStorage(..) => "RenderbufferStorage",
