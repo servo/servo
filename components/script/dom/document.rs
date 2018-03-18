@@ -1580,7 +1580,7 @@ impl Document {
         let event = BeforeUnloadEvent::new(&self.window,
                                            atom!("beforeunload"),
                                            EventBubbles::Bubbles,
-                                           EventCancelable::Cancellable);
+                                           EventCancelable::Cancelable);
     }
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
