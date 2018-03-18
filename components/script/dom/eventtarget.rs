@@ -187,22 +187,21 @@ impl CompiledEventListener {
 
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
-                            let rv = event.ReturnValue();
-
+                            // Step 5
                             if let Ok(value) = handler.Call_(object,
                                                              event.upcast::<Event>(),
                                                              exception_handle) {
-                                match value {
-                                    Some(value) => {
-                                        if rv.is_empty() {
-                                            event.SetReturnValue(value);
-                                        }
+                                let rv = event.ReturnValue();
+                                if let Some(v) =  value {
+                                    if rv.is_empty() {
+                                        event.SetReturnValue(v);
                                     }
-                                    None => {
-                                        event.upcast::<Event>().PreventDefault();
-                                    }
+                                    event.upcast::<Event>().PreventDefault();
                                 }
                             }
+                        } else {
+                            // Step 5, "Otherwise" clause
+                            let _ = handler.Call_(object, event.upcast::<Event>(), exception_handle);
                         }
                     }
 

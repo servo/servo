@@ -262,6 +262,8 @@ pub enum ConstellationControlMsg {
     Resize(PipelineId, WindowSizeData, WindowSizeType),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
+    /// Notifies the script that the document associated with this pipeline should 'unload'.
+    UnloadDocument(PipelineId),
     /// Notifies the script that a pipeline should be closed.
     ExitPipeline(PipelineId, DiscardBrowsingContext),
     /// Notifies the script that the whole thread should be closed.
@@ -335,6 +337,7 @@ impl fmt::Debug for ConstellationControlMsg {
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
             ResizeInactive(..) => "ResizeInactive",
+            UnloadDocument(..) => "UnloadDocument",
             ExitPipeline(..) => "ExitPipeline",
             ExitScriptThread => "ExitScriptThread",
             SendEvent(..) => "SendEvent",
