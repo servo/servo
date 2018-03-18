@@ -1550,18 +1550,33 @@ impl Window {
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
         if !force_reload && url.as_url()[..Position::AfterQuery] ==
             doc.url().as_url()[..Position::AfterQuery] {
-                // Step 5
+                // Step 6
                 if let Some(fragment) = url.fragment() {
                     doc.check_and_scroll_fragment(fragment);
                     doc.set_url(url.clone());
                     return
                 }
         }
-
+        
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(pipeline_id,
-                LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+        
+        // Step 4
+        let window_proxy = self.window_proxy();
+        if let Some(active) = window_proxy.currently_active() {
+            if pipeline_id == active {
+                if doc.is_prompting_or_unloading() {
+                    return;
+                }
+            }
+        }
+
+        // Step 7
+        if doc.prompt_to_unload(false) {
+            self.main_thread_script_chan().send(
+                MainThreadScriptMsg::Navigate(pipeline_id,
+                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+        };
+
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {

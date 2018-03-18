@@ -482,7 +482,14 @@ fn invoke(window: Option<&Window>,
     event.current_target.set(Some(object));
 
     // Step 5.
-    inner_invoke(window, object, event, &listeners);
+    if inner_invoke(window, object, event, &listeners) {
+        // <https://html.spec.whatwg.org/multipage/#unload-a-document>
+        // Step 9.
+        // Required to establish the 'salvageable' state of document as part of unloading.
+        if event.canceled.get() != EventDefault::Prevented {
+            event.mark_as_handled();
+        }
+    }
 
     // TODO: step 6.
 }
