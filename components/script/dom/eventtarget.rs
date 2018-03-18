@@ -191,7 +191,7 @@ impl CompiledEventListener {
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         println!("BeforeUnloadEventHandler");
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
-                            println!("Found BeforeUnloadEventHandler");
+                            println!("Found BeforeUnloadEvent");
                             let rv = event.ReturnValue();
                             if let Ok(value) = handler.Call_(object,
                                                              event.upcast::<Event>(),
@@ -207,6 +207,9 @@ impl CompiledEventListener {
                                     }
                                 }
                             }
+                        } else {
+                            // Step 5, "Otherwise" clause
+                            let _ = handler.Call_(object, event.upcast::<Event>(), exception_handle);
                         }
                     }
 
