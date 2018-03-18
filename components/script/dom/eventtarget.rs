@@ -152,6 +152,7 @@ impl CompiledEventListener {
                                               object: &T,
                                               event: &Event,
                                               exception_handle: ExceptionHandling) {
+        println!("call_or_handle_event");
         // Step 3
         match *self {
             CompiledEventListener::Listener(ref listener) => {
@@ -160,6 +161,7 @@ impl CompiledEventListener {
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
+                        println!("ErrorEventHandler");
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             let cx = object.global().get_cx();
                             rooted!(in(cx) let error = unsafe { event.Error(cx) });
@@ -187,7 +189,7 @@ impl CompiledEventListener {
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
                             let rv = event.ReturnValue();
-
+                            println!("BeforeUnloadEventHandler");
                             if let Ok(value) = handler.Call_(object,
                                                              event.upcast::<Event>(),
                                                              exception_handle) {
@@ -206,6 +208,7 @@ impl CompiledEventListener {
                     }
 
                     CommonEventHandler::EventHandler(ref handler) => {
+                        println!("EventHandler");
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
                             let cx = object.global().get_cx();
                             rooted!(in(cx) let value = value);
@@ -307,6 +310,7 @@ impl EventTarget {
                              type_: &Atom,
                              specific_phase: Option<ListenerPhase>)
                              -> Vec<CompiledEventListener> {
+        println!("getting listeners for: {:?}", type_);
         self.handlers.borrow_mut().get_mut(type_).map_or(vec![], |listeners| {
             listeners.get_listeners(specific_phase, self, type_)
         })
@@ -535,7 +539,7 @@ impl EventTarget {
         T: CallbackContainer,
     {
         let cx = self.global().get_cx();
-
+        println!("set_beforeunload_event_handler");
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(
                 unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback()) }
@@ -603,6 +607,7 @@ impl EventTarget {
         listener: Option<Rc<EventListener>>,
         options: AddEventListenerOptions,
     ) {
+        println!("add_event_listener for: {:?}", ty);
         let listener = match listener {
             Some(l) => l,
             None => return,
