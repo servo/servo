@@ -102,6 +102,7 @@ impl InlineEventListener {
     /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
     fn get_compiled_handler(&mut self, owner: &EventTarget, ty: &Atom)
                             -> Option<CommonEventHandler> {
+        println!("get_compiled_handler: {:?}", ty);
         match mem::replace(self, InlineEventListener::Null) {
             InlineEventListener::Null => None,
             InlineEventListener::Uncompiled(handler) => {
@@ -156,6 +157,7 @@ impl CompiledEventListener {
         // Step 3
         match *self {
             CompiledEventListener::Listener(ref listener) => {
+                println!("Listener");
                 let _ = listener.HandleEvent_(object, event, exception_handle);
             },
             CompiledEventListener::Handler(ref handler) => {
@@ -401,6 +403,7 @@ impl EventTarget {
                                   handler: InternalRawUncompiledHandler,
                                   ty: &Atom)
                                   -> Option<CommonEventHandler> {
+        println!("get_compiled_event_handler: {:?}", ty);
         // Step 1.1
         let element = self.downcast::<Element>();
         let document = match element {

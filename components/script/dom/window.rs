@@ -1536,7 +1536,6 @@ impl Window {
                     referrer_policy: Option<ReferrerPolicy>) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
-
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
         if !force_reload && url.as_url()[..Position::AfterQuery] ==
             doc.url().as_url()[..Position::AfterQuery] {
@@ -1547,7 +1546,7 @@ impl Window {
                     return
                 }
         }
-
+        println!("load_url: {:?}", url);
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(pipeline_id,
