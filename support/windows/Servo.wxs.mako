@@ -36,8 +36,7 @@
                           Directory="ProgramMenuDir"
                           Name="Servo Tech Demo"
                           WorkingDirectory="INSTALLDIR"
-                          Icon="Servo.ico"
-                          IconIndex="0"
+                          Icon="servo.exe"
                           Advertise="yes"/>
               </File>
               ${include_dependencies()}
@@ -70,7 +69,7 @@
       <ComponentRef Id="ProgramMenuDir"/>
     </Feature>
 
-    <Icon Id="Servo.ico" SourceFile="${windowize(resources_path)}\Servo.ico"/>
+    <Icon Id="servo.exe" SourceFile="${windowize(exe_path)}\servo.exe"/>
   </Product>
 </Wix>
 <%!
