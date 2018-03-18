@@ -10,6 +10,7 @@ use dom::attr::Attr;
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -340,6 +341,8 @@ pub struct Document {
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
+    ignore_opens_during_unload_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
     /// A rAF request is considered spurious if nothing was actually reflowed.
@@ -367,6 +370,10 @@ pub struct Document {
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
     /// https://html.spec.whatwg.org/multipage/#page-showing
     page_showing: Cell<bool>,
+    /// Whether the document is salvageable.
+    salvageable: Cell<bool>,
+    /// Wheter the unload event has already been fired.
+    fired_unload: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1605,6 +1612,97 @@ impl Document {
         ScriptThread::mark_document_with_no_blocked_loads(self);
     }
 
+    // https://html.spec.whatwg.org/multipage/#unloading-documents
+    pub fn prompt_to_unload(&self) -> bool {
+        self.incr_ignore_opens_during_unload_counter();
+        let document = Trusted::new(self);
+        let beforeunload_event = BeforeUnloadEvent::new(&self.window,
+                                           atom!("beforeunload"),
+                                           EventBubbles::Bubbles,
+                                           EventCancelable::Cancelable);
+        let event = beforeunload_event.upcast::<Event>();
+        event.set_trusted(true);
+        let event_status = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+            document.root().upcast(),
+            &event,
+        );
+        // Step 7
+        if event.get_cancel_state() == EventDefault::Handled {
+            self.salvageable.set(false);
+        }
+        let mut can_unload = true;
+        if event_status == EventStatus::Canceled
+            || beforeunload_event.ReturnValue() == DOMString::from_string("".to_string()) {
+            // Step 8
+            // TODO: ask the user to confirm that they wish to unload the document.
+        }
+        self.decr_ignore_opens_during_unload_counter();
+        // Step 9
+        for iframe in self.iter_iframes() {
+            if let Some(document) = iframe.GetContentDocument() {
+                if !document.prompt_to_unload() {
+                    self.salvageable.set(document.salvageable());
+                    can_unload = false;
+                    break;
+                }
+            }
+        }
+        can_unload
+    }
+
+    // https://html.spec.whatwg.org/multipage/#unloading-documents
+    pub fn unload(&self) {
+        self.incr_ignore_opens_during_unload_counter();
+        let document = Trusted::new(self);
+        if self.page_showing.get() {
+            self.page_showing.set(false);
+            let event = PageTransitionEvent::new(
+                &self.window,
+                atom!("pagehide"),
+                false, // bubbles
+                false, // cancelable
+                self.salvageable.get(), // persisted
+            );
+            let event = event.upcast::<Event>();
+            event.set_trusted(true);
+            let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+        }
+        if !self.fired_unload.get() {
+            let event = Event::new(
+                &self.window.upcast(),
+                atom!("unload"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+            );
+            event.set_trusted(true);
+            let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+            self.fired_unload.set(true);
+            let event_handled = event.get_cancel_state() == EventDefault::Handled;
+            self.salvageable.set(!event_handled);
+        }
+        // Step 13
+        for iframe in self.iter_iframes() {
+            if let Some(document) = iframe.GetContentDocument() {
+                document.unload();
+                if !document.salvageable() {
+                    self.salvageable.set(false);
+                }
+            }
+        }
+        self.decr_ignore_opens_during_unload_counter();
+        // unloading document cleanup steps.
+        if !self.salvageable.get() {
+            // TODO: empty the list of timers, vs suspend?
+            self.window.upcast::<GlobalScope>().suspend();
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
         if self.loader.borrow().is_blocked() {
@@ -2279,6 +2377,7 @@ impl Document {
             target_element: MutNullableDom::new(None),
             last_click_info: DomRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
+            ignore_opens_during_unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
@@ -2288,6 +2387,8 @@ impl Document {
             canceller: canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
+            salvageable: Cell::new(true),
+            fired_unload: Cell::new(false)
         }
     }
 
@@ -2467,6 +2568,10 @@ impl Document {
         self.stylesheets.borrow().len()
     }
 
+    pub fn salvageable(&self) -> bool {
+        self.salvageable.get()
+    }
+
     pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         let stylesheets = self.stylesheets.borrow();
 
@@ -2588,6 +2693,20 @@ impl Document {
     pub fn decr_ignore_destructive_writes_counter(&self) {
         self.ignore_destructive_writes_counter.set(
             self.ignore_destructive_writes_counter.get() - 1);
+    }
+
+    pub fn is_unloading(&self) -> bool {
+        self.ignore_opens_during_unload_counter.get() > 0
+    }
+
+    fn incr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() + 1);
+    }
+
+    fn decr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() - 1);
     }
 
     /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't

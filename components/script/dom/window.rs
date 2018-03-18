@@ -1553,10 +1553,14 @@ impl Window {
                 }
         }
 
-        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(pipeline_id,
-                LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+        // Step 7
+        if doc.prompt_to_unload() {
+            let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+            self.main_thread_script_chan().send(
+                MainThreadScriptMsg::Navigate(pipeline_id,
+                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+        };
+
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
@@ -1635,8 +1639,12 @@ impl Window {
     }
 
     pub fn suspend(&self) {
-        // Suspend timer events.
-        self.upcast::<GlobalScope>().suspend();
+        if let Some(document) = self.document.get() {
+            if !document.salvageable() {
+                // Suspend timer events.
+                self.upcast::<GlobalScope>().suspend();
+            }
+        }
 
         // Set the window proxy to be a cross-origin window.
         if self.window_proxy().currently_active() == Some(self.global().pipeline_id()) {
@@ -1651,8 +1659,12 @@ impl Window {
     }
 
     pub fn resume(&self) {
-        // Resume timer events.
-        self.upcast::<GlobalScope>().resume();
+        if let Some(document) = self.document.get() {
+            if document.salvageable() {
+                // Resume timer events.
+                self.upcast::<GlobalScope>().resume();
+            }
+        }
 
         // Set the window proxy to be this object.
         self.window_proxy().set_currently_active(self);

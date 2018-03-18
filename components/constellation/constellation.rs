@@ -1612,10 +1612,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // the parent pipeline. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
+        if let Some(old_pipeline_id) = load_info.old_pipeline_id {
+            self.unload_document(old_pipeline_id);
+        }
         let (load_data, window_size, is_private) = {
             let old_pipeline = load_info.old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
-
             let source_pipeline = match self.pipelines.get(&load_info.info.parent_pipeline_id) {
                 Some(source_pipeline) => source_pipeline,
                 None => return warn!("Script loaded url in closed iframe {}.", load_info.info.parent_pipeline_id),
@@ -1646,7 +1648,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         } else {
             None
         };
-
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(load_info.info.new_pipeline_id,
                           load_info.info.browsing_context_id,
@@ -1796,6 +1797,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 return None;
             }
         };
+        // Running the "unload" steps,
+        self.unload_document(source_id);
         match parent_info {
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
@@ -2818,6 +2821,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         debug!("Closed browsing context children {}.", browsing_context_id);
+    }
+
+    // Send a message to script requesting document associated with this pipeline runs the 'unload' algorithm
+    fn unload_document(&self, pipeline_id: PipelineId) {
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            let msg = ConstellationControlMsg::UnloadDocument(pipeline_id);
+            let _ = pipeline.event_loop.send(msg);
+        }
     }
 
     // Close all pipelines at and beneath a given browsing context
