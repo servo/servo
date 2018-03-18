@@ -7,8 +7,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 'use strict';
-const basicCard = Object.freeze({ supportedMethods: "basic-card" });
-const defaultMethods = Object.freeze([basicCard]);
+const defaultMethods = Object.freeze([
+  { supportedMethods: "basic-card" },
+  { supportedMethods: "https://apple.com/pay" }
+]);
+
 const defaultDetails = Object.freeze({
   total: {
     label: "Total",
@@ -19,39 +22,9 @@ const defaultDetails = Object.freeze({
   },
 });
 
-test(() => {
-  try {
-    new PaymentRequest(defaultMethods, defaultDetails);
-  } catch (err) {
-    done();
-    throw err;
-  }
-}, "Must be possible to construct a payment request");
-
-
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
-  const acceptPromise = request.show(); // Sets state to "interactive"
-  await promise_rejects(t, "InvalidStateError", request.show());
-  await request.abort();
-  await promise_rejects(t, "AbortError", acceptPromise);
-}, `Throws if the promise [[state]] is not "created"`);
-
-promise_test(async t => {
-  const request1 = new PaymentRequest(defaultMethods, defaultDetails);
-  const request2 = new PaymentRequest(defaultMethods, defaultDetails);
-  const acceptPromise1 = request1.show();
-  const acceptPromise2 = request2.show();
-  await promise_rejects(t, "AbortError", acceptPromise2);
-  await request1.abort();
-  await promise_rejects(t, "AbortError", acceptPromise1);
-}, `If the user agent's "payment request is showing" boolean is true, then return a promise rejected with an "AbortError" DOMException.`);
-
-promise_test(async t => {
-  const request = new PaymentRequest(
-    [{ supportedMethods: "this-is-not-supported" }],
-    defaultDetails);
   const acceptPromise = request.show();
-  await promise_rejects(t, "NotSupportedError", acceptPromise);
-}, `If payment method consultation produces no supported method of payment, then return a promise rejected with a "NotSupportedError" DOMException.`);
+  await promise_rejects(t, "SecurityError", acceptPromise);
+}, `Calling show() without being triggered by user interaction throws`);
 </script>

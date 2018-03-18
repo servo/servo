@@ -163,7 +163,7 @@ class Firefox(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
-            binary = self.browser.find_binary()
+            binary = self.browser.find_binary(self.venv.path)
             if binary is None:
                 raise WptrunError("""Firefox binary not found on $PATH.
 

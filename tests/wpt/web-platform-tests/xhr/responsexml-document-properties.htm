@@ -25,11 +25,8 @@
         location:null,
         defaultView:null,
         body:null,
-        images: undefined,
         doctype:null,
-        forms:undefined,
         all:undefined,
-        links: undefined,
         cookie:''
       }
 
@@ -94,13 +91,19 @@
         assert_equals(client.responseXML.cookie, "")
       }, 'cookie (after setting it)')
 
-      test(function() {
-        assert_equals(typeof(client.responseXML.styleSheets), "object")
-      }, 'styleSheets')
+      var objectProps = [
+        "styleSheets",
+        "implementation",
+        "images",
+        "forms",
+        "links",
+      ];
 
-      test(function() {
-        assert_equals(typeof(client.responseXML.implementation), "object")
-      }, 'implementation')
+      for (let prop of objectProps) {
+        test(function() {
+          assert_equals(typeof(client.responseXML[prop]), "object")
+        }, prop + " should be an object")
+      }
     </script>
   </body>
 </html>

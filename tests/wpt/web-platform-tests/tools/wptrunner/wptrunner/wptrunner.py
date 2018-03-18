@@ -173,6 +173,7 @@ def run_tests(config, test_paths, product, **kwargs):
 
         logger.info("Using %i client processes" % kwargs["processes"])
 
+        test_total = 0
         unexpected_total = 0
 
         kwargs["pause_after_test"] = get_pause_after_test(test_loader, **kwargs)
@@ -200,6 +201,7 @@ def run_tests(config, test_paths, product, **kwargs):
                 elif repeat > 1:
                     logger.info("Repetition %i / %i" % (repeat_count, repeat))
 
+                test_count = 0
                 unexpected_count = 0
                 logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info)
                 for test_type in kwargs["test_types"]:
@@ -267,13 +269,20 @@ def run_tests(config, test_paths, product, **kwargs):
                             logger.critical("Main thread got signal")
                             manager_group.stop()
                             raise
+                    test_count += manager_group.test_count()
                     unexpected_count += manager_group.unexpected_count()
 
+                test_total += test_count
                 unexpected_total += unexpected_count
                 logger.info("Got %i unexpected results" % unexpected_count)
                 if repeat_until_unexpected and unexpected_total > 0:
                     break
                 logger.suite_end()
+
+    if test_total == 0:
+        logger.error("No tests ran")
+        return False
+
     return unexpected_total == 0
 
 

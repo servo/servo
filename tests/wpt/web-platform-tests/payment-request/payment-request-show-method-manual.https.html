@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for PaymentRequest.show() method</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#show-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+setup({
+  explicit_done: true,
+  explicit_timeout: true,
+});
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
+const defaultMethods = Object.freeze([basicCard]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  try {
+    new PaymentRequest(defaultMethods, defaultDetails);
+  } catch (err) {
+    done();
+    throw err;
+  }
+}, "Must be possible to construct a payment request");
+
+function manualTest1(button){
+  button.disabled = true;
+  promise_test(async t => {
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    const acceptPromise = request.show(); // Sets state to "interactive"
+    await promise_rejects(t, "InvalidStateError", request.show());
+    await request.abort();
+    await promise_rejects(t, "AbortError", acceptPromise);
+  }, button.textContent.trim());
+}
+
+function manualTest2(button){
+  button.disabled = true;
+  promise_test(async t => {
+    const request1 = new PaymentRequest(defaultMethods, defaultDetails);
+    const request2 = new PaymentRequest(defaultMethods, defaultDetails);
+    const acceptPromise1 = request1.show();
+    const acceptPromise2 = request2.show();
+    await promise_rejects(t, "AbortError", acceptPromise2);
+    await request1.abort();
+    await promise_rejects(t, "AbortError", acceptPromise1);
+  }, button.textContent.trim());
+}
+
+function manualTest3(button){
+  button.disabled = true;
+  promise_test(async t => {
+    const request = new PaymentRequest(
+      [{ supportedMethods: "this-is-not-supported" }],
+      defaultDetails);
+    const acceptPromise = request.show();
+    await promise_rejects(t, "NotSupportedError", acceptPromise);
+  }, button.textContent.trim());
+  done();
+}
+</script>
+
+<h2>Test for PaymentRequest.show() method</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+</p>
+<ol>
+  <li>
+    <button onclick="manualTest1(this)">
+      Throws if the promise [[state]] is not "created"
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest2(this)">
+      If the user agent's "payment request is showing" boolean is true, then return a promise rejected with an "AbortError" DOMException.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest3(this)">
+      If payment method consultation produces no supported method of payment, then return a promise rejected with a "NotSupportedError" DOMException.
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/w3c/web-platform-tests/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/w3c/web-platform-tests/blob/master/payment-request/OWNERS">owners</a>.
+</small>

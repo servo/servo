@@ -1345,4 +1345,31 @@ promise_test(t => {
   });
 }, 'sink abort() should not be called if stream was erroring due to bad strategy before abort() was called');
 
+promise_test(t => {
+  const ws = new WritableStream();
+  return ws.abort().then(() => {
+    const writer = ws.getWriter();
+    return writer.closed.then(t.unreached_func('closed promise should not fulfill'),
+                              e => assert_equals(e, undefined, 'e should be undefined'));
+  });
+}, 'abort with no arguments should set the stored error to undefined');
+
+promise_test(t => {
+  const ws = new WritableStream();
+  return ws.abort(undefined).then(() => {
+    const writer = ws.getWriter();
+    return writer.closed.then(t.unreached_func('closed promise should not fulfill'),
+                              e => assert_equals(e, undefined, 'e should be undefined'));
+  });
+}, 'abort with an undefined argument should set the stored error to undefined');
+
+promise_test(t => {
+  const ws = new WritableStream();
+  return ws.abort('string argument').then(() => {
+    const writer = ws.getWriter();
+    return writer.closed.then(t.unreached_func('closed promise should not fulfill'),
+                              e => assert_equals(e, 'string argument', 'e should be \'string argument\''));
+  });
+}, 'abort with a string argument should set the stored error to that argument');
+
 done();

@@ -151,7 +151,7 @@ After your `hosts` file is configured, the servers will be locally accessible at
 http://web-platform.test:8000/<br>
 https://web-platform.test:8443/ *
 
-\**See [Trusting Root CA](README.md#trusting-root-ca)*
+\**See [Trusting Root CA](https://github.com/w3c/web-platform-tests/blob/master/README.md#trusting-root-ca)*
 
 ## Running tests automatically
 

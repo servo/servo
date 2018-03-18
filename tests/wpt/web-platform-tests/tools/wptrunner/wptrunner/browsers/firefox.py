@@ -124,7 +124,7 @@ def env_options():
     # https://github.com/w3c/web-platform-tests/pull/9480
     return {"host_ip": "127.0.0.1",
             "host": "web-platform.test",
-            "bind_hostname": False,
+            "bind_address": False,
             "certificate_domain": "web-platform.test",
             "supports_debugger": True}
 

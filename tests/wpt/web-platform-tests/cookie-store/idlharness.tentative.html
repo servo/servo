@@ -21,6 +21,9 @@ promise_test(async t => {
   idl_array.add_untested_idls('interface LinkStyle {};');
   idl_array.add_untested_idls(html);
 
+  idl_array.add_untested_idls('interface Event {};');
+  idl_array.add_untested_idls('dictionary EventInit {};');
+  idl_array.add_untested_idls('interface EventTarget {};');
   idl_array.add_untested_idls(
     `[Global=ServiceWorker, Exposed=ServiceWorker]
      interface ServiceWorkerGlobalScope {};`);
@@ -29,6 +32,7 @@ promise_test(async t => {
 
   idl_array.add_objects({
     CookieStore: [self.cookieStore],
+    CookieChangeEvent: [new CookieChangeEvent('change')],
   });
   idl_array.test();
 }, 'Interface test');

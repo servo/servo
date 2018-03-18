@@ -398,12 +398,14 @@ def test_main_with_args():
     orig_argv = sys.argv
     try:
         sys.argv = ['./lint', 'a', 'b', 'c']
-        with _mock_lint('lint', return_value=True) as m:
-            lint_mod.main(**vars(create_parser().parse_args()))
-            m.assert_called_once_with(repo_root,
-                                      [os.path.relpath(os.path.join(os.getcwd(), x), repo_root)
-                                       for x in ['a', 'b', 'c']],
-                                      "normal")
+        with mock.patch(lint_mod.__name__ + ".os.path.isfile") as mock_isfile:
+            mock_isfile.return_value = True
+            with _mock_lint('lint', return_value=True) as m:
+                lint_mod.main(**vars(create_parser().parse_args()))
+                m.assert_called_once_with(repo_root,
+                                          [os.path.relpath(os.path.join(os.getcwd(), x), repo_root)
+                                           for x in ['a', 'b', 'c']],
+                                          "normal")
     finally:
         sys.argv = orig_argv
 

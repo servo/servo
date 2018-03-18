@@ -8,17 +8,24 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <script>
-    test(() => {
-        let request = new PresentationRequest('presentation.html');
-        assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with a relative presentation URL is constructed successfully.');
+  test(() => {
+    let request = new PresentationRequest('presentation.html');
+    assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with a relative presentation URL is constructed successfully.');
 
-        request = new PresentationRequest('https://example.org/');
-        assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with an absolute presentation URL is constructed successfully.');
+    request = new PresentationRequest('https://example.org/');
+    assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with an absolute presentation URL is constructed successfully.');
 
-        request = new PresentationRequest([
-            'presentation.html',
-            'https://example.org/presentation/'
-        ]);
-        assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with an array of presentation URLs is constructed successfully.');
-    });
+    request = new PresentationRequest([
+      'presentation.html',
+      'https://example.org/presentation/'
+    ]);
+    assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with an array of presentation URLs is constructed successfully.');
+
+    request = new PresentationRequest([
+      'unsupported://example.com',
+      'presentation.html',
+      'https://example.org/presentation/'
+    ]);
+    assert_true(request instanceof PresentationRequest, 'An unsupported URL in an array of presentation URLs is ignored successfully.');
+  });
 </script>

@@ -36,7 +36,7 @@ def test_add_domain_cookie(session, url, server_config):
 
     assert cookie["name"] == "hello"
     assert cookie["value"] == "world"
-    assert cookie["domain"] == ".%s" % server_config["domains"][""]
+    assert cookie["domain"] == ".%s" % server_config["domains"][""] or cookie["domain"] == "%s" % server_config["domains"][""]
 
 def test_add_cookie_for_ip(session, url, server_config, configuration):
     session.url = "http://127.0.0.1:%s/common/blank.html" % (server_config["ports"]["http"][0])
@@ -175,4 +175,4 @@ def test_add_session_cookie_with_leading_dot_character_in_domain(session, url, s
 
     assert cookie["name"] == "hello"
     assert cookie["value"] == "world"
-    assert cookie["domain"] == ".%s" % server_config["domains"][""]
+    assert cookie["domain"] == ".%s" % server_config["domains"][""] or cookie["domain"] == "%s" % server_config["domains"][""]

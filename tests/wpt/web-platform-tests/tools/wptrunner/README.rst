@@ -179,7 +179,7 @@ Simple key-value pairs are of the form::
 
   key: value
 
-Note that unlike ini files, only `:` is a valid seperator; `=` will
+Note that unlike ini files, only `:` is a valid separator; `=` will
 not work as expected. Key-value pairs may also have conditional
 values of the form::
 

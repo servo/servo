@@ -11,6 +11,7 @@
   #rowGapVw { row-gap: 2vw; }
   #rowGapPercent { row-gap: 15%; }
   #rowGapCalc { row-gap: calc(10px + 4px); }
+  #rowGapCalcFixedPercent { row-gap: calc(5px + 10%); }
   .rowGapInitial { row-gap: initial; }
   .rowGapInherit { row-gap: inherit; }
 
@@ -31,6 +32,7 @@
   <div id="rowGapVw"></div>
   <div id="rowGapPercent"></div>
   <div id="rowGapCalc"></div>
+  <div id="rowGapCalcFixedPercent"></div>
   <div id="rowGapInitial" class="rowGapInitial"></div>
   <div class="rowGapPx">
     <div id="rowGapInitialPx" class="rowGapInitial"></div>
@@ -81,6 +83,11 @@
         var target = document.getElementById("rowGapCalc");
         assert_equals(getComputedStyle(target).rowGap, "14px");
       }, "row-gap accepts calc()");
+    test(
+      function(){
+        var target = document.getElementById("rowGapCalcFixedPercent");
+        assert_equals(getComputedStyle(target).rowGap, "calc(5px + 10%)");
+      }, "row-gap accepts calc() mixing fixed and percentage values");
     test(
       function(){
         var target = document.getElementById("rowGapInitial");

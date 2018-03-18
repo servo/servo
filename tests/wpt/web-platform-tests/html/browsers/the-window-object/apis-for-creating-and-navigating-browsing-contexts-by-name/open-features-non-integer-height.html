@@ -40,7 +40,7 @@ function runWindowTests (baselineDimensions) {
       var prefixedMessage = new PrefixedMessageTest();
       prefixedMessage.onMessage(t.step_func_done((data, e) => {
         e.source.close();
-        assert_equals(data.width, baselineDimensions.width);
+        assert_equals(data.height, baselineDimensions.height);
       }));
       var win = window.open(prefixedMessage.url(windowURL), '', feature);
     }, `${feature}: absence of feature "height" should be treated same as "height=0"`);

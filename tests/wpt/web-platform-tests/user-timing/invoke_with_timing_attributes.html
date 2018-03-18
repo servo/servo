@@ -24,8 +24,8 @@ for (var i in timingAttributes) {
 
 function emit_test2(attrName) {
     test(function() {
-        assert_throws("SyntaxError", function() { window.performance.measure(attrName); });
-    }, "performance.measure should throw if used with timing attribute " + attrName);
+        window.performance.measure(attrName);
+    }, "performance.measure should not throw if used with timing attribute " + attrName);
 }
 for (var i in timingAttributes) {
   emit_test2(timingAttributes[i]);

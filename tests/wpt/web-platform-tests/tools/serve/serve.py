@@ -387,19 +387,19 @@ class ServerProc(object):
         self.daemon = None
         self.stop = Event()
 
-    def start(self, init_func, host, port, paths, routes, bind_hostname, config,
+    def start(self, init_func, host, port, paths, routes, bind_address, config,
               ssl_config, **kwargs):
         self.proc = Process(target=self.create_daemon,
-                            args=(init_func, host, port, paths, routes, bind_hostname,
+                            args=(init_func, host, port, paths, routes, bind_address,
                                   config, ssl_config),
                             kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 
-    def create_daemon(self, init_func, host, port, paths, routes, bind_hostname,
+    def create_daemon(self, init_func, host, port, paths, routes, bind_address,
                       config, ssl_config, **kwargs):
         try:
-            self.daemon = init_func(host, port, paths, routes, bind_hostname, config,
+            self.daemon = init_func(host, port, paths, routes, bind_address, config,
                                     ssl_config, **kwargs)
         except socket.error:
             print("Socket error on port %s" % port, file=sys.stderr)
@@ -432,12 +432,12 @@ class ServerProc(object):
         return self.proc.is_alive()
 
 
-def check_subdomains(host, paths, bind_hostname, ssl_config, aliases):
+def check_subdomains(host, paths, bind_address, ssl_config, aliases):
     port = get_port()
     subdomains = get_subdomains(host)
 
     wrapper = ServerProc()
-    wrapper.start(start_http_server, host, port, paths, build_routes(aliases), bind_hostname,
+    wrapper.start(start_http_server, host, port, paths, build_routes(aliases), bind_address,
                   None, ssl_config)
 
     connected = False
@@ -490,7 +490,7 @@ def make_hosts_file(config, host):
     return "".join(rv)
 
 
-def start_servers(host, ports, paths, routes, bind_hostname, config, ssl_config,
+def start_servers(host, ports, paths, routes, bind_address, config, ssl_config,
                   **kwargs):
     servers = defaultdict(list)
     for scheme, ports in ports.iteritems():
@@ -505,21 +505,21 @@ def start_servers(host, ports, paths, routes, bind_hostname, config, ssl_config,
                          "wss":start_wss_server}[scheme]
 
             server_proc = ServerProc()
-            server_proc.start(init_func, host, port, paths, routes, bind_hostname,
+            server_proc.start(init_func, host, port, paths, routes, bind_address,
                               config, ssl_config, **kwargs)
             servers[scheme].append((port, server_proc))
 
     return servers
 
 
-def start_http_server(host, port, paths, routes, bind_hostname, config, ssl_config,
+def start_http_server(host, port, paths, routes, bind_address, config, ssl_config,
                       **kwargs):
     return wptserve.WebTestHttpd(host=host,
                                  port=port,
                                  doc_root=paths["doc_root"],
                                  routes=routes,
                                  rewrites=rewrites,
-                                 bind_hostname=bind_hostname,
+                                 bind_address=bind_address,
                                  config=config,
                                  use_ssl=False,
                                  key_file=None,
@@ -527,14 +527,14 @@ def start_http_server(host, port, paths, routes, bind_hostname, config, ssl_conf
                                  latency=kwargs.get("latency"))
 
 
-def start_https_server(host, port, paths, routes, bind_hostname, config, ssl_config,
+def start_https_server(host, port, paths, routes, bind_address, config, ssl_config,
                        **kwargs):
     return wptserve.WebTestHttpd(host=host,
                                  port=port,
                                  doc_root=paths["doc_root"],
                                  routes=routes,
                                  rewrites=rewrites,
-                                 bind_hostname=bind_hostname,
+                                 bind_address=bind_address,
                                  config=config,
                                  use_ssl=True,
                                  key_file=ssl_config["key_path"],
@@ -544,7 +544,7 @@ def start_https_server(host, port, paths, routes, bind_hostname, config, ssl_con
 
 
 class WebSocketDaemon(object):
-    def __init__(self, host, port, doc_root, handlers_root, log_level, bind_hostname,
+    def __init__(self, host, port, doc_root, handlers_root, log_level, bind_address,
                  ssl_config):
         self.host = host
         cmd_args = ["-p", port,
@@ -569,7 +569,7 @@ class WebSocketDaemon(object):
                          "--certificate", ssl_config["cert_path"],
                          "--tls-module", tls_module]
 
-        if (bind_hostname):
+        if (bind_address):
             cmd_args = ["-H", host] + cmd_args
         opts, args = pywebsocket._parse_args_and_config(cmd_args)
         opts.cgi_directories = []
@@ -608,25 +608,25 @@ class WebSocketDaemon(object):
         self.server = None
 
 
-def start_ws_server(host, port, paths, routes, bind_hostname, config, ssl_config,
+def start_ws_server(host, port, paths, routes, bind_address, config, ssl_config,
                     **kwargs):
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
                            paths["ws_doc_root"],
                            "debug",
-                           bind_hostname,
+                           bind_address,
                            ssl_config = None)
 
 
-def start_wss_server(host, port, paths, routes, bind_hostname, config, ssl_config,
+def start_wss_server(host, port, paths, routes, bind_address, config, ssl_config,
                      **kwargs):
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
                            paths["ws_doc_root"],
                            "debug",
-                           bind_hostname,
+                           bind_address,
                            ssl_config)
 
 
@@ -662,9 +662,11 @@ def normalise_config(config, ports):
 
     domains[""] = host
 
-    ports_ = {}
-    for scheme, ports_used in ports.iteritems():
-        ports_[scheme] = ports_used
+    if "bind_hostname" in config:
+        logger.warning("bind_hostname in config is deprecated; use bind_address instead")
+        bind_address = config["bind_hostname"]
+    else:
+        bind_address = config["bind_address"]
 
     # make a (shallow) copy of the config and update that, so that the
     # normalized config can be used in place of the original one.
@@ -672,6 +674,7 @@ def normalise_config(config, ports):
     config_["domains"] = domains
     config_["not_domains"] = not_domains
     config_["ports"] = ports_
+    config_["bind_address"] = bind_address
     return config_
 
 
@@ -692,10 +695,10 @@ def start(config, ssl_environment, routes, **kwargs):
     host = config.get("host_ip") or config["host"]
     ports = get_ports(config, ssl_environment)
     paths = get_paths(config)
-    bind_hostname = config["bind_hostname"]
+    bind_address = config["bind_address"]
     ssl_config = get_ssl_config(config, ssl_environment)
 
-    servers = start_servers(host, ports, paths, routes, bind_hostname, config,
+    servers = start_servers(host, ports, paths, routes, bind_address, config,
                             ssl_config, **kwargs)
 
     return servers
@@ -813,15 +816,15 @@ def run(**kwargs):
         ports = get_ports(config, ssl_env)
         config = normalise_config(config, ports)
         host = config["host"]
-        bind_hostname = config["bind_hostname"]
+        bind_address = config["bind_address"]
 
         if config["check_subdomains"]:
             paths = get_paths(config)
             ssl_config = get_ssl_config(config, ssl_env)
-            check_subdomains(host, paths, bind_hostname, ssl_config, config["aliases"])
+            check_subdomains(host, paths, bind_address, ssl_config, config["aliases"])
 
         stash_address = None
-        if bind_hostname:
+        if bind_address:
             stash_address = (host, get_port())
 
         with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
