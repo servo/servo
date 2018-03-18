@@ -2294,7 +2294,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     unsafe fn GetFramebufferAttachmentParameter(
         &self,
-        _cx: *mut JSContext,
+        cx: *mut JSContext,
         target: u32,
         attachment: u32,
         pname: u32
@@ -2341,6 +2341,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if !target_matches || !attachment_matches || !pname_matches {
             self.webgl_error(InvalidEnum);
             return NullValue();
+        }
+
+        // special case that returns `WebGLRenderbuffer` or `WebGLTexture` dom object
+        match pname {
+            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME => {
+                if self.bound_renderbuffer.get().is_some() {
+                    return object_binding_to_js_or_null!(cx, &self.bound_renderbuffer);
+                } else {
+                    let texture = self.bound_texture(constants::TEXTURE_2D);
+                    return optional_root_object_to_js_or_null!(cx, texture);
+                }
+            }
+            _ => (),
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
