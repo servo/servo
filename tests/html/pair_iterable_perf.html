@@ -12,11 +12,11 @@
   }
 
   function measure_time(func) {
-	var start = performance.now();
-	func();
-	var stop = performance.now();
+    var start = performance.now();
+    func();
+    var stop = performance.now();
 
-	return (stop - start) / 1000.0;
+    return (stop - start) / 1000.0;
   };
 
   const ENTRY_COUNT = 10000;
@@ -29,13 +29,13 @@
       t.add(i.toString(), i);
     }
 
-	var result = collect(t.entries());
+    var result = collect(t.entries());
   };
 
   var avg = 0;
   for (var i = 0; i < RUN_COUNT; i++) {
     var time = measure_time(benchMe);
-	avg += time;
+    avg += time;
   }
   avg /= RUN_COUNT;
 
