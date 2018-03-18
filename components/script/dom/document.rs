@@ -1575,13 +1575,16 @@ impl Document {
     }
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
-    pub fn unload_document(&self) {
+    pub fn prompt_to_unload_document(&self) {
         println!("unloading");
         let event = BeforeUnloadEvent::new(&self.window,
                                            atom!("beforeunload"),
                                            EventBubbles::Bubbles,
                                            EventCancelable::Cancellable);
     }
+    
+    // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
+    pub fn unload_document(&self) {}
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {

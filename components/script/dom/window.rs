@@ -1547,7 +1547,8 @@ impl Window {
                 }
         }
         println!("load_url: {:?}", url);
-        doc.unload_document();
+        // Step 7
+        doc.prompt_to_unload_document();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(pipeline_id,
