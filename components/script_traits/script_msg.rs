@@ -148,6 +148,8 @@ pub enum ScriptMsg {
     TouchEventProcessed(EventResult),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<String>, LogEntry),
+    /// Discard the document.
+    DiscardDocument,
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited,
     /// Send messages from postMessage calls from serviceworker

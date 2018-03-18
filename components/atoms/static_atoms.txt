@@ -48,6 +48,7 @@ none
 number
 onchange
 open
+pagehide
 pageshow
 password
 pause
@@ -77,6 +78,7 @@ time
 timeupdate
 toggle
 transitionend
+unload
 url
 waiting
 webglcontextcreationerror
