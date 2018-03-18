@@ -9,5 +9,17 @@
 "use strict";
 
 run_fp_tests_disabled(GeolocationSensor);
+
+promise_test(async t => {
+  await promise_rejects(t, 'SecurityError', GeolocationSensor.read());
+}, "GeolocationSensor.read(): 'SecurityError' is thrown when disabled by Feature Policy");
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  controller.abort();
+
+  await promise_rejects(t, 'AbortError', GeolocationSensor.read({ signal }));
+}, "GeolocationSensor.read(): 'AbortError' takes priority");
 </script>
 </body>

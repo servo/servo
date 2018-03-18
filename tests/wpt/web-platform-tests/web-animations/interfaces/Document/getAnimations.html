@@ -42,7 +42,7 @@ test(t => {
 }, 'Test the order of document.getAnimations with script generated animations')
 
 test(t => {
-  const effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
+  const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
   const anim = new Animation(effect, document.timeline);
   anim.play();
 

@@ -29,7 +29,7 @@ test(t => {
   const div = createDiv(t);
   const animation = div.animate({ marginLeft: ['100px', '200px'] },
                                 100 * MS_PER_SEC);
-  animation.effect.timing.easing = 'linear';
+  animation.effect.updateTiming({ easing: 'linear' });
   animation.cancel();
   assert_equals(getComputedStyle(div).marginLeft, '0px',
                 'margin-left style is not animated after cancelling');

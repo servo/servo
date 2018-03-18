@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <!-- Feature-Policy: fullscreen 'self' cross_origin https://www.example.com; -->
+  <script>
+  'use strict';
+  var same_origin = 'https://{{domains[]}}:{{ports[https][0]}}';
+  var cross_origin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  var cross_origin1 = 'https://{{domains[www1]}}:{{ports[https][0]}}';
+  var same_origin_src = '/feature-policy/resources/feature-policy-allowedfeatures.html';
+  var cross_origin_src = cross_origin + same_origin_src;
+  var cross_origin_src1 = cross_origin1 + same_origin_src;
+  // Test feature policy with same_origin_src and cross_origin_src.
+  var policies = [
+    {allow: "*", sameOriginTestExpect: true, crossOriginTestExpect: true, crossOrigin1TestExpect: true},
+    {allow: "'self'", sameOriginTestExpect: true, crossOriginTestExpect: false, crossOrigin1TestExpect: false},
+    {allow: "'none'", sameOriginTestExpect: false, crossOriginTestExpect: false, crossOrigin1TestExpect: false},
+    {allow: "'self' " + cross_origin + " https://www.example.com", sameOriginTestExpect: true, crossOriginTestExpect: true, crossOrigin1TestExpect: false}];
+  var pipe_front = '?pipe=sub|header(Feature-Policy,fullscreen ';
+  var pipe_end = ';)';
+  var header_policies = ["*", "'self'", "'none'"];
+
+  // Test that frame.policy inherits from parent's header policy when allow
+  // attribute is not specified.
+  test(function() {
+    test_frame_policy('fullscreen', same_origin_src, true);
+  }, 'Test frame policy on same origin iframe inherit from header policy.');
+  test(function() {
+    test_frame_policy('fullscreen', cross_origin_src, true);
+  }, 'Test frame policy on cross origin iframe inherit from header policy.');
+  test(function() {
+    test_frame_policy('fullscreen', cross_origin_src1, false);
+  }, 'Test frame policy on another cross origin iframe inherit from header policy.');
+
+  // Test frame policy with allow attribute set to be one of the policies above.
+  for (var i = 0; i < policies.length; i++) {
+    test(function() {
+      test_frame_policy(
+        'fullscreen', same_origin_src, policies[i].sameOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';');
+    }, 'Test frame policy on same origin iframe with allow = "' + policies[i].allow + '".');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src, policies[i].crossOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';');
+    }, 'Test frame policy on cross origin iframe with allow = "' + policies[i].allow + '".');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src1, policies[i].crossOrigin1TestExpect,
+        'fullscreen ' + policies[i].allow + ';');
+    }, 'Test frame policy on another cross origin iframe with allow = "' + policies[i].allow + '".');
+  }
+
+  // Test that the header policy of the iframe document does not change the
+  // frame policy.
+  for (var i = 0; i < policies.length; i++) {
+    for (var j = 0; j < header_policies.length; j++) {
+      test(function() {
+        test_frame_policy(
+          'fullscreen',
+          same_origin_src + pipe_front + header_policies[j] + pipe_end,
+          policies[i].sameOriginTestExpect,
+          'fullscreen ' + policies[i].allow + ';');
+      }, 'Test frame policy on same origin iframe with allow = "' + policies[i].allow +
+         '" and header policy = "Feature-Policy: fullscreen ' + header_policies[j] + ';".');
+      test(function() {
+        test_frame_policy(
+          'fullscreen',
+          cross_origin_src + pipe_front + header_policies[j] + pipe_end,
+          policies[i].crossOriginTestExpect,
+          'fullscreen ' + policies[i].allow + ';');
+      }, 'Test frame policy on cross origin iframe with allow = "' + policies[i].allow +
+         '" and header policy = "Feature-Policy: fullscreen ' + header_policies[j] + ';".');
+      test(function() {
+        test_frame_policy(
+          'fullscreen',
+          cross_origin_src1 + pipe_front + header_policies[j] + pipe_end,
+          policies[i].crossOrigin1TestExpect,
+          'fullscreen ' + policies[i].allow + ';');
+      }, 'Test frame policy on another cross origin iframe with allow = "' + policies[i].allow +
+         '" and header policy = "Feature-Policy: fullscreen ' + header_policies[j] + ';".');
+    }
+  }
+
+  // Test that the allow attribute overrides allowfullscreen.
+  for (var i = 0; i < policies.length; i++) {
+    test(function() {
+      test_frame_policy(
+        'fullscreen', same_origin_src, policies[i].sameOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on same origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src, policies[i].crossOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on cross origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src1, policies[i].crossOrigin1TestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on another cross origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+  }
+  </script>
+</body>

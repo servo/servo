@@ -1,0 +1,32 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+// If the response for the HTML file contains "Accept-CH" in the response
+// headers, then the browser should attach the specified client hints in the
+// HTTP request headers. Test this functionality by fetching an
+// XHR from this page. The response headers for this page include
+// "Accept-CH: device-memory, dpr, viewport-width".
+//
+// echo_client_hints_received.py includes "device-memory-received",
+// "dpr-received" and "viewport-width-received" in the response headers
+// depending on the set of client hints it receives in the request headers.
+
+  promise_test(t => {
+  return fetch("https://{{domains[]}}:{{ports[https][0]}}/client-hints/echo_client_hints_received.py", {"mode": "no-cors"}).then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser includes client hints in the headers when
+    // fetching the XHR.
+    assert_true(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_true(r.headers.has("dpr-received"), "dpr-received");
+    assert_true(r.headers.has("viewport-width-received"), "viewport-width-received");
+  });
+}, "Accept-CH header test");
+
+</script>
+
+</body>
+</html>

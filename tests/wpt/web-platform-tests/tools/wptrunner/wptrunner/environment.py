@@ -150,8 +150,8 @@ class TestEnvironment(object):
         if "host" in self.options:
             local_config["host"] = self.options["host"]
 
-        if "bind_hostname" in self.options:
-            local_config["bind_hostname"] = self.options["bind_hostname"]
+        if "bind_address" in self.options:
+            local_config["bind_address"] = self.options["bind_address"]
 
         with open(default_config_path) as f:
             default_config = json.load(f)

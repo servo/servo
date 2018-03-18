@@ -19,7 +19,8 @@ test(t => {
   anim.pause();
 
   anim.currentTime =
-    anim.effect.timing.duration * 2 + anim.effect.timing.duration / 2;
+    anim.effect.getComputedTiming().duration * 2 +
+    anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft, '25px',
     'Animated style at 50s of the third iteration');
 

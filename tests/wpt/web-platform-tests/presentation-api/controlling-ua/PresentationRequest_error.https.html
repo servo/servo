@@ -1,33 +1,36 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Presentation API PresentationRequest for Controlling User Agent (Error)</title>
+<title>Constructing a PresentationRequest (Error)</title>
 <link rel="author" title="Franck William Taffo" href="http://www.fokus.fraunhofer.de">
-<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#constructing-a-presentationrequest">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
-    test(function() {
-        assert_throws(new TypeError(), function() {
-            new PresentationRequest();
-        });
+  test(() => {
+    assert_throws(new TypeError(), () => {
+      new PresentationRequest();
     }, 'Call PresentationRequest() constructor without presentation URL. TypeError Exception expected.');
 
-    test(function() {
-        assert_throws('NotSupportedError', function() {
-            new PresentationRequest([]);
-        });
+    assert_throws('NotSupportedError', () => {
+      new PresentationRequest([]);
     }, 'Call PresentationRequest constructor with an empty sequence. NotSupportedError Exception expected.');
 
-    test(function() {
-        assert_throws('SyntaxError', function() {
-            new PresentationRequest('http://@');
-        });
+    assert_throws('SyntaxError', () => {
+      new PresentationRequest('http://@');
     }, 'Call PresentationRequest constructor with an invalid URL. SyntaxError Exception expected.');
 
-    test(function() {
-        assert_throws('SyntaxError', function() {
-            new PresentationRequest(['presentation.html', 'http://@']);
-        });
+    assert_throws('NotSupportedError', () => {
+        new PresentationRequest('unsupported://example.com');
+    }, 'Call PresentationRequest constructor with an unsupported URL. NotSupportedError expected.');
+
+    assert_throws('SyntaxError', function() {
+      new PresentationRequest(['presentation.html', 'http://@']);
     }, 'Call PresentationRequest constructor with a sequence of URLs, one of them invalid. SyntaxError Exception expected.');
+
+    assert_throws('NotSupportedError', function() {
+      new PresentationRequest(['unsupported://example.com', 'invalid://example.com']);
+    }, 'Call PresentationRequest constructor only with a sequence of unsupported URLs. NotSupportedError Exception expected.');
+  });
 </script>

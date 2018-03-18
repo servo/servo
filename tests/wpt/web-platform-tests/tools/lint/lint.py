@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 from collections import defaultdict
 
@@ -58,9 +59,13 @@ you could add the following line to the lint.whitelist file.
 
 %s: %s"""
 
-def all_filesystem_paths(repo_root):
+def all_filesystem_paths(repo_root, subdir=None):
     path_filter = PathFilter(repo_root, extras=[".git/*"])
-    for dirpath, dirnames, filenames in os.walk(repo_root):
+    if subdir:
+        expanded_path = subdir
+    else:
+        expanded_path = repo_root
+    for dirpath, dirnames, filenames in os.walk(expanded_path):
         for filename in filenames:
             path = os.path.relpath(os.path.join(dirpath, filename), repo_root)
             if path_filter(path):
@@ -132,6 +137,28 @@ def check_ahem_copy(repo_root, path):
     if "ahem" in lpath and lpath.endswith(".ttf"):
         return [("AHEM COPY", "Don't add extra copies of Ahem, use /fonts/Ahem.ttf", path, None)]
     return []
+
+
+def check_git_ignore(repo_root, paths):
+    errors = []
+    with tempfile.TemporaryFile('w+') as f:
+        f.write('\n'.join(paths))
+        f.seek(0)
+        try:
+            matches = subprocess.check_output(
+                ["git", "check-ignore", "--verbose", "--no-index", "--stdin"], stdin=f)
+            for match in matches.strip().split('\n'):
+                match_filter, path = match.split()
+                _, _, filter_string = match_filter.split(':')
+                # If the matching filter reported by check-ignore is a special-case exception,
+                # that's fine. Otherwise, it requires a new special-case exception.
+                if filter_string[0] != '!':
+                    errors += [("IGNORED PATH", "%s matches an ignore filter in .gitignore - "
+                                "please add a .gitignore exception" % path, path, None)]
+        except subprocess.CalledProcessError as e:
+            # Nonzero return code means that no match exists.
+            pass
+    return errors
 
 
 drafts_csswg_re = re.compile(r"https?\:\/\/drafts\.csswg\.org\/([^/?#]+)")
@@ -278,7 +305,9 @@ def filter_whitelist_errors(data, errors):
 
     for i, (error_type, msg, path, line) in enumerate(errors):
         normpath = os.path.normcase(path)
-        if error_type in data:
+        # Allow whitelisting all lint errors except the IGNORED PATH lint,
+        # which explains how to fix it correctly and shouldn't be ignored.
+        if error_type in data and error_type != "IGNORED PATH":
             wl_files = data[error_type]
             for file_match, allowed_lines in iteritems(wl_files):
                 if None in allowed_lines or line in allowed_lines:
@@ -722,14 +751,20 @@ def changed_files(wpt_root):
 
 def lint_paths(kwargs, wpt_root):
     if kwargs.get("paths"):
-        r = os.path.realpath(wpt_root)
-        paths = [os.path.relpath(os.path.realpath(x), r) for x in kwargs["paths"]]
+        paths = []
+        for path in kwargs.get("paths"):
+            if os.path.isdir(path):
+                path_dir = list(all_filesystem_paths(wpt_root, path))
+                paths.extend(path_dir)
+            elif os.path.isfile(path):
+                paths.append(os.path.relpath(os.path.abspath(path), wpt_root))
+
+
     elif kwargs["all"]:
         paths = list(all_filesystem_paths(wpt_root))
     else:
         changed_paths = changed_files(wpt_root)
         force_all = False
-        # If we changed the lint itself ensure that we retest everything
         for path in changed_paths:
             path = path.replace(os.path.sep, "/")
             if path == "lint.whitelist" or path.startswith("tools/lint/"):
@@ -839,6 +874,13 @@ def lint(repo_root, paths, output_format):
 path_lints = [check_path_length, check_worker_collision, check_ahem_copy]
 all_paths_lints = [check_css_globally_unique]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata]
+
+# Don't break users of the lint that don't have git installed.
+try:
+    subprocess.check_output(["git", "--version"])
+    all_paths_lints += [check_git_ignore]
+except subprocess.CalledProcessError:
+    print('No git present; skipping .gitignore lint.')
 
 if __name__ == "__main__":
     args = create_parser().parse_args()

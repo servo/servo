@@ -10,11 +10,11 @@
 <script type="text/plain" id="Animation-IDL">
 enum AnimationPlayState { "idle", "pending", "running", "paused", "finished" };
 
-[Constructor (optional AnimationEffectReadOnly? effect = null,
+[Constructor (optional AnimationEffect? effect = null,
               optional AnimationTimeline? timeline)]
 interface Animation : EventTarget {
              attribute DOMString                id;
-             attribute AnimationEffectReadOnly? effect;
+             attribute AnimationEffect?         effect;
              attribute AnimationTimeline?       timeline;
              attribute double?                  startTime;
              attribute double?                  currentTime;

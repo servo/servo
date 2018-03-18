@@ -1,0 +1,33 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+// When the response for the HTML file contains "Accept-CH" in the response
+// headers, then the browser should not attach the specified client hints in
+// the HTTP request headers if the response was delivered by an insecure HTTP
+// server. Test this functionality by fetching an XHR from this page hosted on
+// an insecure HTTP server. The response headers for this page include
+// "Accept-CH: device-memory, dpr, viewport-width".
+//
+// echo_client_hints_received.py includes "device-memory-received",
+// "dpr-received" and "viewport-width-received" in the response headers
+// depending on the set of client hints it receives in the request headers.
+
+  promise_test(t => {
+  return fetch("/client-hints/echo_client_hints_received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser does not include client hints in the headers
+    // when fetching the XHR from an insecure HTTP server.
+    assert_false(r.headers.has("device-memory-received"));
+    assert_false(r.headers.has("dpr-received"));
+    assert_false(r.headers.has("viewport-width-received"));
+  });
+}, "Accept-CH header test");
+
+</script>
+
+</body>
+</html>

@@ -440,14 +440,22 @@ interface Comment : CharacterData {
 };
 
 
-[Constructor,
- Exposed=Window]
-interface Range {
+[Exposed=Window]
+interface AbstractRange {
   readonly attribute Node startContainer;
   readonly attribute unsigned long startOffset;
   readonly attribute Node endContainer;
   readonly attribute unsigned long endOffset;
   readonly attribute boolean collapsed;
+};
+
+[Exposed=Window]
+interface StaticRange : AbstractRange {
+};
+
+[Constructor,
+ Exposed=Window]
+interface Range : AbstractRange {
   readonly attribute Node commonAncestorContainer;
 
   void setStart(Node node, unsigned long offset);

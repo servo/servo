@@ -36,9 +36,9 @@ promise_test(async t => {
   anim.pause();
   assert_true(anim.pending);
 
-  anim.effect = new KeyframeEffectReadOnly(createDiv(t),
-                                           { marginLeft: [ '0px', '100px' ] },
-                                           100 * MS_PER_SEC);
+  anim.effect = new KeyframeEffect(createDiv(t),
+                                   { marginLeft: [ '0px', '100px' ] },
+                                   100 * MS_PER_SEC);
   assert_true(anim.pending);
   await anim.ready;
 
@@ -52,9 +52,9 @@ promise_test(async t => {
   anim.play();
   assert_true(anim.pending);
 
-  anim.effect = new KeyframeEffectReadOnly(createDiv(t),
-                                           { marginLeft: [ '0px', '100px' ] },
-                                           100 * MS_PER_SEC);
+  anim.effect = new KeyframeEffect(createDiv(t),
+                                   { marginLeft: [ '0px', '100px' ] },
+                                   100 * MS_PER_SEC);
   assert_true(anim.pending);
   await anim.ready;
 

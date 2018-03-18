@@ -108,7 +108,7 @@ class TestRunner(object):
             raise
 
     def wait(self):
-        self.executor.protocol.wait()
+        self.executor.wait()
         self.send_message("wait_finished")
 
     def send_message(self, command, *args):
@@ -304,6 +304,7 @@ class TestRunnerManager(threading.Thread):
         # This is started in the actual new thread
         self.logger = None
 
+        self.test_count = 0
         self.unexpected_count = 0
 
         # This may not really be what we want
@@ -569,6 +570,7 @@ class TestRunnerManager(threading.Thread):
             if self.browser.check_for_crashes():
                 status = "CRASH"
 
+        self.test_count += 1
         is_unexpected = expected != status
         if is_unexpected:
             self.unexpected_count += 1
@@ -788,6 +790,9 @@ class ManagerGroup(object):
         as possible"""
         self.stop_flag.set()
         self.logger.debug("Stop flag set in ManagerGroup")
+
+    def test_count(self):
+        return sum(item.test_count for item in self.pool)
 
     def unexpected_count(self):
         return sum(item.unexpected_count for item in self.pool)

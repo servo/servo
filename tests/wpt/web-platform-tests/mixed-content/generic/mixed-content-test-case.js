@@ -59,6 +59,7 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
   var resourceMap = {
     "a-tag": requestViaAnchor,
     "area-tag": requestViaArea,
+    "beacon-request": requestViaSendBeacon,
     "fetch-request": requestViaFetch,
     "form-tag": requestViaForm,
     "iframe-tag": requestViaIframe,
@@ -81,6 +82,7 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
   var contentType = {
     "a-tag": "text/html",
     "area-tag": "text/html",
+    "beacon-request": "text/plain",
     "fetch-request": "application/json",
     "form-tag": "text/html",
     "iframe-tag": "text/html",

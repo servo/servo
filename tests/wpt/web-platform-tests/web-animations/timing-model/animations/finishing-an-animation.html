@@ -196,7 +196,7 @@ promise_test(async t => {
 }, 'Finishing an animation resolves the finished promise synchronously');
 
 promise_test(async t => {
-  const effect = new KeyframeEffectReadOnly(null, null, 100 * MS_PER_SEC);
+  const effect = new KeyframeEffect(null, null, 100 * MS_PER_SEC);
   const animation = new Animation(effect, document.timeline);
   let resolvedFinished = false;
   animation.finished.then(() => {

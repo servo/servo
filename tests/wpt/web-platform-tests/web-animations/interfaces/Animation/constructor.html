@@ -14,7 +14,7 @@
 const gTarget = document.getElementById('target');
 
 function createEffect() {
-  return new KeyframeEffectReadOnly(gTarget, { opacity: [0, 1] });
+  return new KeyframeEffect(gTarget, { opacity: [0, 1] });
 }
 
 function createNull() {
@@ -82,10 +82,9 @@ for (const args of gTestArguments) {
 }
 
 test(t => {
-  const effect = new KeyframeEffectReadOnly(null,
-                                            { left: ['10px', '20px'] },
-                                            { duration: 10000,
-                                              fill: 'forwards' });
+  const effect = new KeyframeEffect(null,
+                                    { left: ['10px', '20px'] },
+                                    { duration: 10000, fill: 'forwards' });
   const anim = new Animation(effect, document.timeline);
   anim.pause();
   assert_equals(effect.getComputedTiming().progress, 0.0);
@@ -100,7 +99,7 @@ async_test(t => {
 
   iframe.addEventListener('load', t.step_func(() => {
     const div = createDiv(t, iframe.contentDocument);
-    const effect = new KeyframeEffectReadOnly(div, null, 10000);
+    const effect = new KeyframeEffect(div, null, 10000);
     const anim = new Animation(effect);
     assert_equals(anim.timeline, document.timeline);
     iframe.remove();
