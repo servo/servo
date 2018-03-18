@@ -48,7 +48,7 @@ use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
-use js::jsapi::{HandleId, HandleObject, HandleValue, JSContext, JSObject, JSString};
+use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSContext, JSObject, JSString};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetProperty, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject, JS_IsExceptionPending};
 use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars, MutableHandleValue};
@@ -122,6 +122,25 @@ impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceable
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let value = &**self;
         value.to_jsval(cx, rval);
+    }
+}
+
+impl<T> FromJSValConvertible for RootedTraceableBox<Heap<T>>
+    where
+        T: FromJSValConvertible + js::rust::GCMethods + Copy,
+        Heap<T>: JSTraceable + Default
+{
+    type Config = T::Config;
+
+    unsafe fn from_jsval(cx: *mut JSContext,
+                         value: HandleValue,
+                         config: Self::Config)
+                         -> Result<ConversionResult<Self>, ()> {
+        T::from_jsval(cx, value, config).map(|result| match result {
+            ConversionResult::Success(inner) =>
+                ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner))),
+            ConversionResult::Failure(msg) => ConversionResult::Failure(msg),
+        })
     }
 }
 
