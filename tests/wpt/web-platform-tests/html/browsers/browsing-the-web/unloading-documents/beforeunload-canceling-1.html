@@ -9,7 +9,6 @@
 
 window.runTest = (t, { valueToReturn, expectCancelation, setReturnValue, expectedReturnValue }) => {
   window.onbeforeunload = t.step_func(e => {
-    console.log('onbefore')
     if (setReturnValue !== undefined) {
       e.returnValue = setReturnValue;
     }
@@ -18,14 +17,13 @@ window.runTest = (t, { valueToReturn, expectCancelation, setReturnValue, expecte
   });
 
   const listener = t.step_func(e => {
-    console.log('listener')
     top.assert_equals(e.defaultPrevented, expectCancelation, "canceled");
     top.assert_equals(e.returnValue, expectedReturnValue, "returnValue");
     window.onbeforeunload = null;
 
     t.done();
   });
-  console.log('adding beforeunload listener')
+
   window.addEventListener("beforeunload", listener);
 
   window.location.href = "about:blank";
