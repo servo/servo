@@ -22,6 +22,7 @@ use str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use values::CustomIdent;
+use values::specified::Integer;
 
 /// Parse a counter style name reference.
 ///
@@ -450,21 +451,19 @@ pub struct Ranges(pub Vec<Range<CounterBound>>);
 #[derive(Clone, Copy, Debug, ToCss)]
 pub enum CounterBound {
     /// An integer bound.
-    ///
-    /// FIXME(https://github.com/servo/servo/issues/20197)
-    Integer(i32),
+    Integer(Integer),
     /// The infinite bound.
     Infinite,
 }
 
 impl Parse for Ranges {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
             Ok(Ranges(Vec::new()))
         } else {
             input.parse_comma_separated(|input| {
-                let opt_start = parse_bound(input)?;
-                let opt_end = parse_bound(input)?;
+                let opt_start = parse_bound(context, input)?;
+                let opt_end = parse_bound(context, input)?;
                 if let (CounterBound::Integer(start), CounterBound::Integer(end)) = (opt_start, opt_end) {
                     if start > end {
                         return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
@@ -477,18 +476,13 @@ impl Parse for Ranges {
 }
 
 fn parse_bound<'i, 't>(
-    input: &mut Parser<'i, 't>,
+    context: &ParserContext, input: &mut Parser<'i, 't>,
 ) -> Result<CounterBound, ParseError<'i>> {
-    let location = input.current_source_location();
-    match *input.next()? {
-        Token::Number { int_value: Some(v), .. } => {
-            Ok(CounterBound::Integer(v))
-        }
-        Token::Ident(ref ident) if ident.eq_ignore_ascii_case("infinite") => {
-            Ok(CounterBound::Infinite)
-        }
-        ref t => Err(location.new_unexpected_token_error(t.clone())),
+    if let Ok(integer) = input.try(|input| Integer::parse(context, input)) {
+        return Ok(CounterBound::Integer(integer));
     }
+    input.expect_ident_matching("infinite")?;
+    Ok(CounterBound::Infinite)
 }
 
 impl ToCss for Ranges {

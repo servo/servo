@@ -326,7 +326,7 @@ impl ToNsCssValue for counter_style::Ranges {
             nscssvalue.set_pair_list(self.0.into_iter().map(|range| {
                 fn set_bound(bound: CounterBound, nscssvalue: &mut nsCSSValue) {
                     if let CounterBound::Integer(finite) = bound {
-                        nscssvalue.set_integer(finite)
+                        nscssvalue.set_integer(finite.value())
                     } else {
                         nscssvalue.set_enum(structs::NS_STYLE_COUNTER_RANGE_INFINITE as i32)
                     }
