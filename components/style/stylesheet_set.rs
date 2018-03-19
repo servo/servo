@@ -263,7 +263,7 @@ where
         Self {
             entries: vec![],
             data_validity: DataValidity::Valid,
-            dirty: true,
+            dirty: false,
         }
     }
 }
