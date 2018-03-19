@@ -10,7 +10,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
@@ -119,7 +119,6 @@ pub struct Performance {
 
 impl Performance {
     fn new_inherited(global: &GlobalScope,
-                     navigation_start: u64,
                      navigation_start_precise: u64) -> Performance {
         Performance {
             reflector_: Reflector::new(),
@@ -131,10 +130,9 @@ impl Performance {
     }
 
     pub fn new(global: &GlobalScope,
-               navigation_start: u64,
                navigation_start_precise: u64) -> DomRoot<Performance> {
         reflect_dom_object(
-            Box::new(Performance::new_inherited(global, navigation_start, navigation_start_precise)),
+            Box::new(Performance::new_inherited(global, navigation_start_precise)),
             global,
             PerformanceBinding::Wrap
         )
@@ -241,11 +239,7 @@ impl Performance {
     }
 
     fn now(&self) -> f64 {
-        let nav_start = match self.navigation_timing {
-            Some(ref timing) => timing.navigation_start_precise(),
-            None => self.navigation_start_precise,
-        };
-        (time::precise_time_ns() - nav_start).to_ms()
+        (time::precise_time_ns() - self.navigation_start_precise).to_ms()
     }
 }
 
@@ -253,6 +247,11 @@ impl PerformanceMethods for Performance {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.now())
+    }
+
+    // https://www.w3.org/TR/hr-time-2/#dom-performance-timeorigin
+    fn TimeOrigin(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.navigation_start_precise as f64)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries

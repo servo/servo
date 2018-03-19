@@ -10,7 +10,7 @@ typedef double DOMHighResTimeStamp;
 typedef sequence<PerformanceEntry> PerformanceEntryList;
 
 [Exposed=(Window, Worker)]
-interface Performance {
+interface Performance : EventTarget {
   DOMHighResTimeStamp now();
   readonly attribute DOMHighResTimeStamp timeOrigin;
   // [Default] object toJSON();
