@@ -934,6 +934,23 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_Property_IsShorthand(
+    prop_name: *const nsACString,
+    found: *mut bool
+) -> bool {
+    let prop_id = PropertyId::parse(prop_name.as_ref().unwrap().as_str_unchecked());
+    let prop_id = match prop_id {
+        Ok(ref p) if p.enabled_for_all_content() => p,
+        _ => {
+            *found = false;
+            return false;
+        }
+    };
+    *found = true;
+    prop_id.is_shorthand()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool {
     use style::properties::animated_properties;
     animated_properties::nscsspropertyid_is_animatable(property)
