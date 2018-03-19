@@ -413,7 +413,7 @@ impl nsStyleImage {
             nsStyleImageType::eStyleImageType_Element => {
                 use gecko_string_cache::Atom;
                 let atom = Gecko_GetImageElement(self);
-                Some(GenericImage::Element(Atom::from(atom)))
+                Some(GenericImage::Element(Atom::from_raw(atom)))
             },
             _ => panic!("Unexpected image type")
         }
