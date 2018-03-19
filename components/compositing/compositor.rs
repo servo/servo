@@ -1544,7 +1544,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let revision_file_path = capture_path.join("wr.txt");
 
                 if let Err(err) = create_dir_all(&capture_path) {
-                    println!("Unable to create path '{:?}' for capture: {:?}", capture_path, err);
+                    eprintln!("Unable to create path '{:?}' for capture: {:?}", capture_path, err);
                     return
                 }
 
@@ -1554,13 +1554,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     Ok(mut file) => {
                         let revision = include!(concat!(env!("OUT_DIR"), "/webrender_revision.rs"));
                         if let Err(err) = write!(&mut file, "{}", revision) {
-                            println!("Unable to write webrender revision: {:?}", err)
+                            eprintln!("Unable to write webrender revision: {:?}", err)
                         }
                     }
-                    Err(err) => println!("Capture triggered, creating webrender revision info skipped: {:?}", err)
+                    Err(err) => eprintln!("Capture triggered, creating webrender revision info skipped: {:?}", err)
                 }
             },
-            Err(err) => println!("Unable to locate path to save captures: {:?}", err)
+            Err(err) => eprintln!("Unable to locate path to save captures: {:?}", err)
         }
     }
 }
