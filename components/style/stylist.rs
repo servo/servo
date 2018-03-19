@@ -1636,7 +1636,7 @@ impl ExtraStyleData {
         guard: &SharedRwLockReadGuard,
         rule: &Arc<Locked<CounterStyleRule>>,
     ) {
-        let name = rule.read_with(guard).mName.mRawPtr.into();
+        let name = unsafe { Atom::from_raw(rule.read_with(guard).mName.mRawPtr) };
         self.counter_styles.insert(name, rule.clone());
     }
 
