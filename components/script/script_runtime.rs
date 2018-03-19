@@ -12,6 +12,8 @@ use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
 use dom::globalscope::GlobalScope;
+use dom::bindings::conversions::get_dom_class;
+use dom::bindings::conversions::private_from_object;
 use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
@@ -21,10 +23,12 @@ use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_Se
 use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
 use js::panic::wrap_panic;
 use js::rust::Runtime as RustRuntime;
+use malloc_size_of::MallocSizeOfOps;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::trace_thread;
+use serde;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
@@ -312,6 +316,19 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     Runtime(runtime)
 }
 
+#[no_mangle]
+#[allow(unsafe_code)]
+pub unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
+        let dom_class = get_dom_class(obj).unwrap();
+
+        let pass_ptr = private_from_object(obj) as *const c_void;
+        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
+
+        let msf = dom_class.malloc_size_of;
+        let _result = msf(&mut ops, pass_ptr);
+        return _result;
+}
+
 #[allow(unsafe_code)]
 pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
@@ -319,7 +336,7 @@ pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
     unsafe {
         let rt = JS_GetRuntime(cx);
         let mut stats = ::std::mem::zeroed();
-        if CollectServoSizes(rt, &mut stats) {
+        if CollectServoSizes(rt, &mut stats, serde::export::Some(get_size)) {
             let mut report = |mut path_suffix, kind, size| {
                 let mut path = path![path_seg, "js"];
                 path.append(&mut path_suffix);

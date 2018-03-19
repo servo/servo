@@ -152,6 +152,9 @@ use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::proxyhandler;
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
+use js::jsapi::JSObject;
+use dom::bindings::conversions::is_dom_proxy;
+use dom::bindings::utils::is_platform_object;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -199,6 +202,11 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
     ServiceWorkerManager::spawn_manager(sw_senders);
 }
 
+#[no_mangle]
+pub extern "C" fn MemoryReporter(obj: *mut JSObject) -> bool {
+    return is_platform_object(obj) && is_dom_proxy(obj);
+}
+
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
@@ -207,6 +215,8 @@ pub fn init() {
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
+
+        js::glue::InitializeMemoryReporter(serde::export::Some(MemoryReporter));
     }
 
     perform_platform_specific_initialization();
