@@ -1645,6 +1645,12 @@ impl PropertyId {
         }
     }
 
+    /// Returns true if the property is a shorthand or shorthand alias.
+    #[inline]
+    pub fn is_shorthand(&self) -> bool {
+        self.as_shorthand().is_ok()
+    }
+
     /// Given this property id, get it either as a shorthand or as a
     /// `PropertyDeclarationId`.
     pub fn as_shorthand(&self) -> Result<ShorthandId, PropertyDeclarationId> {
