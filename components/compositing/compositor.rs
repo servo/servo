@@ -37,7 +37,6 @@ use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollEventPhase, ScrollLocation};
-use webrender_revision::REVISION;
 use windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
@@ -1556,7 +1555,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                 match File::create(revision_file_path) {
                     Ok(mut file) => {
-                        if let Err(err) = write!(&mut file, "{}", REVISION) {
+                        let revision = include!(concat!(env!("OUT_DIR"), "/webrender_revision.rs"));
+                        if let Err(err) = write!(&mut file, "{}", revision) {
                             println!("Unable to write webrender revision: {:?}", err)
                         }
                     }
