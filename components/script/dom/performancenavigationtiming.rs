@@ -3,12 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
 use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding;
 use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::PerformanceNavigationTimingMethods;
+use dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -33,6 +36,7 @@ impl PerformanceNavigationTiming {
             navigation_start: nav_start,
             navigation_start_precise: nav_start_precise,
             document: Dom::from_ref(document),
+            name: DOMString::from("document"),
         }
     }
 
@@ -49,7 +53,7 @@ impl PerformanceNavigationTiming {
                            PerformanceNavigationTimingBinding::Wrap)
     }
 
-    pub fn set_name(name: DOMString) {
+    pub fn set_name(&mut self, name: DOMString) {
         self.name = name;
     }
 }
@@ -110,37 +114,38 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
 }
 
 // https://w3c.github.io/navigation-timing/#sec-navigation-timing
-impl PerformanceEntry for PerformanceNavigationTiming {
-    pub fn Name(&self) -> DOMString {
-        self.name
+impl PerformanceEntryMethods for PerformanceNavigationTiming {
+    // name is either the string "document" or the address of the current document
+    fn Name(&self) -> DOMString {
+        DOMString::from(self.name.clone())
     }
 
-    pub fn EntryType(&self) -> DOMHighResTimeStamp {
+    fn EntryType(&self) -> DOMString {
         DOMString::from("navigation")
     }
 
     // TODO it says it has to return DOMHighResTimeStamp with time 0
-    pub fn StartTime(&self) -> f64 {
+    fn StartTime(&self) -> DOMHighResTimeStamp {
         Finite::wrap(0.0)
     }
 
     // TODO make sure that this still works with start time of 0
-    pub fn Duration(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.document.get_load_event_end() - self.StartTime())
+    fn Duration(&self) -> DOMHighResTimeStamp {
+        Finite::wrap((self.document.get_load_event_end() - self.navigation_start) as f64)
     }
 }
 
 // https://w3c.github.io/navigation-timing/#PerformanceResourceTiming
-impl PerformanceResourceTiming for PerformanceNavigationTiming {
-    pub fn InitiatorType(&self) -> DOMString {
+/*impl PerformanceResourceTimingMethods for PerformanceNavigationTiming {
+    fn InitiatorType(&self) -> DOMString {
         DOMString::from("navigation")
     }
 
-    pub fn WorkerStart(&self) -> DOMHighResTimeStamp {
+    fn WorkerStart(&self) -> DOMHighResTimeStamp {
         //TODO
         Finite::Wrap(Default::default)
     }
-}
+}*/
 
 
 impl PerformanceNavigationTiming {

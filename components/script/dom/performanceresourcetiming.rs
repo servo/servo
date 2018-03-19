@@ -3,13 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
+use dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{self, PerformanceResourceTimingMethods};
 use dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
@@ -54,8 +53,8 @@ impl PerformanceResourceTiming {
                          -> PerformanceResourceTiming {
         PerformanceResourceTiming {
             reflector_: Reflector::new(),
-            initiator_type: DOMString,
-            next_hop: Option::<DOMString>,
+            initiator_type: initiator_type,
+            next_hop: next_hop,
             worker_start: 0.,
             redirect_start: 0.,
             redirect_end: 0.,
@@ -67,14 +66,16 @@ impl PerformanceResourceTiming {
             secure_connection_start: 0.,
             request_start: 0.,
             response_start: 0.,
+            response_end: 0.,
+            name: name,
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
                name: ServoUrl,
-               initiator_type: Option<DOMString>,
-               next_hop: DOMString,
+               initiator_type: DOMString,
+               next_hop: Option<DOMString>,
                fetch_start: f64)
                -> DomRoot<PerformanceResourceTiming> {
         let timing = PerformanceResourceTiming::new_inherited(name, initiator_type, next_hop, fetch_start);
@@ -83,52 +84,52 @@ impl PerformanceResourceTiming {
                            PerformanceResourceTimingBinding::Wrap)
     }
 
-    // TODO prevent setting start if it's already been set
-    pub fn set_worker_start(&self, start_time: f64) {
+    // TODO prevent setting start if it's already been set?
+    pub fn set_worker_start(&mut self, start_time: f64) {
     	self.worker_start = start_time;
     }
 
-    pub fn set_redirect_start(&self, start_time: f64) {
+    pub fn set_redirect_start(&mut self, start_time: f64) {
     	self.redirect_start = start_time;
     }
 
-    pub fn set_fetch_start(&self, start_time: f64) {
+    pub fn set_fetch_start(&mut self, start_time: f64) {
     	self.fetch_start = start_time;
     }
 
-    pub fn set_domain_lookup_start(&self, start_time: f64) {
+    pub fn set_domain_lookup_start(&mut self, start_time: f64) {
     	self.domain_lookup_start = start_time;
     }
 
-    pub fn set_connect_start(&self, start_time: f64) {
+    pub fn set_connect_start(&mut self, start_time: f64) {
     	self.connect_start = start_time;
     }
 
-    pub fn set_secure_connection_start(&self, start_time: f64) {
+    pub fn set_secure_connection_start(&mut self, start_time: f64) {
     	self.secure_connection_start = start_time;
     }
 
-    pub fn set_request_start(&self, start_time: f64) {
+    pub fn set_request_start(&mut self, start_time: f64) {
     	self.request_start = start_time;
     }
 
-    pub fn set_response_start(&self, start_time: f64) {
+    pub fn set_response_start(&mut self, start_time: f64) {
     	self.response_start = start_time;
     }
 
-    pub fn set_response_end(&self, end_time: f64) {
+    pub fn set_response_end(&mut self, end_time: f64) {
     	self.response_end = end_time;
     }
 
-    pub fn set_redirect_end(&self, end_time: f64) {
+    pub fn set_redirect_end(&mut self, end_time: f64) {
     	self.redirect_end = end_time;
     }
 
-    pub fn set_domain_lookup_end(&self, end_time: f64) {
+    pub fn set_domain_lookup_end(&mut self, end_time: f64) {
     	self.domain_lookup_end = end_time;
     }
 
-    pub fn set_connect_end(&self, end_time: f64) {
+    pub fn set_connect_end(&mut self, end_time: f64) {
     	self.connect_end = end_time;
     }
 }
@@ -137,7 +138,7 @@ impl PerformanceResourceTiming {
 impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype
     fn InitiatorType(&self) -> DOMString {
-        self.initiator_type
+        DOMString::from(self.initiator_type.clone())
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-nexthopprotocol
@@ -146,7 +147,7 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     fn NextHopProtocol(&self) -> DOMString {
         // TODO
         match self.next_hop {
-        	Some(protocol) => protocol,
+        	Some(ref protocol) => DOMString::from(protocol.clone()),
         	None => DOMString::from(""),
         }
     }
@@ -169,7 +170,7 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
     fn FetchStart(&self) -> DOMHighResTimeStamp {
         // TODO
-        Finite::wrap(self.fetch_end)
+        Finite::wrap(self.fetch_start)
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupstart
@@ -226,7 +227,7 @@ impl PerformanceEntryMethods for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
     // This attribute MUST return the resolved URL of the requested resource. This attribute MUST NOT change even if the fetch redirected to a different URL
     fn Name(&self) -> DOMString {
-        DOMString::from(self.name.url.as_url())
+        DOMString::from(self.name.as_str())
     }
 
     // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
@@ -237,12 +238,12 @@ impl PerformanceEntryMethods for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
     fn StartTime(&self) -> Finite<f64> {
     	// TODO time immediately before UA queues resource for fetching
-        Finite::wrap(self.start_time)
+        Finite::wrap(0.)
     }
 
     // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
     fn Duration(&self) -> Finite<f64> {
-    	// TODO responseEnd-startTime
-        self.response_end - self.start_time
+    	// TODO 
+        Finite::wrap(0.)
     }
 }
