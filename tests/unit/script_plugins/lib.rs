@@ -49,6 +49,24 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
+
+    #[must_root] struct Foo(i32);
+    struct Bar<#[must_root] T>(T);  // is not detected
+
+    fn test() {
+        let _ = &Bar(Foo(3));
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn generic_struct_field() {}
+
+    /**
+    ```compile_fail
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
 
     #[must_root] struct Foo(i32);
 
@@ -160,12 +178,59 @@ pub mod unrooted_must_root {
     ```
     */
     pub fn pattern_binding() {}
+    /**
+    ```compile_fail
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
 
-    // TODO how to test against:
-    // match expr.node {
-    //     // Trait casts from #[must_root] types are not allowed
-    //     hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
-    // 'as' is for casting between primitive types
+    #[must_root] struct Foo(i32);
+    struct SomeContainer<T>(T);
 
-    // TODO do we want and how to test against Boxing types that are #[must_root]
+    impl<T> SomeContainer<T> {
+        fn new(val: T) -> SomeContainer<T> {
+            SomeContainer(val)
+        }
+    }
+
+    fn test() {
+        SomeContainer(Foo(3));
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn generic_container() {}
+
+    /**
+    ```compile_fail
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+
+    #[derive(Default)]
+    #[must_root] struct Foo(i32);
+    #[derive(Default)]
+    #[must_root] struct Bar(i32);
+
+    fn create_foo<T: Default>() -> T {
+        Default::default()
+    }
+
+    fn test() -> i32 {
+        //let factory = &create_foo::<Foo>;
+        //factory().0
+        let elem = &create_foo::<Foo>();
+        elem.0
+    }
+
+    fn test2() -> i32 {
+        //let factory = &create_foo::<Foo>;
+        //factory().0
+        let elem = &create_foo::<Bar>();
+        elem.0
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn derive_default() {}
 }
