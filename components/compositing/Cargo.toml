@@ -4,6 +4,7 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
+build = "build.rs"
 
 [lib]
 name = "compositing"
@@ -29,3 +30,6 @@ style_traits = {path = "../style_traits"}
 time = "0.1.17"
 webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+
+[build-dependencies]
+toml = "0.4.5"
