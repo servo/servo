@@ -937,6 +937,34 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     ) -> Option<Vec<DomRoot<WebGLShader>>> {
         self.base.GetAttachedShaders(program)
     }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    fn DrawArraysInstanced(
+        &self,
+        mode: u32,
+        first: i32,
+        count: i32,
+        primcount: i32,
+    ) {
+        self.base.draw_arrays_instanced(mode, first, count, primcount);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    fn DrawElementsInstanced(
+        &self,
+        mode: u32,
+        count: i32,
+        type_: u32,
+        offset: i64,
+        primcount: i32,
+    ) {
+        self.base.draw_elements_instanced(mode, count, type_, offset, primcount);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    fn VertexAttribDivisor(&self, index: u32, divisor: u32) {
+        self.base.vertex_attrib_divisor(index, divisor);
+    }
 }
 
 

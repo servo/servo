@@ -973,6 +973,15 @@ impl WebGLImpl {
             WebGLCommand::UseProgram(program_id) => {
                 ctx.gl().use_program(program_id.map_or(0, |p| p.get()))
             }
+            WebGLCommand::DrawArraysInstanced { mode, first, count, primcount } => {
+                ctx.gl().draw_arrays_instanced(mode, first, count, primcount)
+            }
+            WebGLCommand::DrawElementsInstanced { mode, count, type_, offset, primcount } => {
+                ctx.gl().draw_elements_instanced(mode, count, type_, offset, primcount)
+            }
+            WebGLCommand::VertexAttribDivisor { index, divisor } => {
+                ctx.gl().vertex_attrib_divisor(index, divisor)
+            }
         }
 
         // TODO: update test expectations in order to enable debug assertions

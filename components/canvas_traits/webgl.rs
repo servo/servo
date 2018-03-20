@@ -282,6 +282,9 @@ pub enum WebGLCommand {
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
     TexParameteri(u32, TexParameterInt, i32),
     TexParameterf(u32, TexParameterFloat, f32),
+    DrawArraysInstanced { mode: u32, first: i32, count: i32, primcount: i32 },
+    DrawElementsInstanced { mode: u32, count: i32, type_: u32, offset: u32, primcount: i32 },
+    VertexAttribDivisor { index: u32, divisor: u32 },
 }
 
 macro_rules! define_resource_id_struct {

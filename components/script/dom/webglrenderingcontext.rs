@@ -12,6 +12,7 @@ use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
 use canvas_traits::webgl::{WebVRCommand, webgl_channel};
 use canvas_traits::webgl::WebGLError::*;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -251,7 +252,7 @@ impl WebGLRenderingContext {
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
-                extension_manager: WebGLExtensions::new(webgl_version)
+                extension_manager: WebGLExtensions::new(webgl_version),
             }
         })
     }
@@ -1154,6 +1155,142 @@ impl WebGLRenderingContext {
                 receiver.recv().unwrap()
             }
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
+    pub fn draw_arrays_instanced(
+        &self,
+        mode: u32,
+        first: i32,
+        count: i32,
+        primcount: i32,
+    ) {
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {},
+            _ => {
+                return self.webgl_error(InvalidEnum);
+            }
+        }
+        if first < 0 || count < 0 || primcount < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        let current_program = handle_potential_webgl_error!(
+            self,
+            self.current_program.get().ok_or(InvalidOperation),
+            return
+        );
+
+        let required_len = if count > 0 {
+            handle_potential_webgl_error!(
+                self,
+                first.checked_add(count).map(|len| len as u32).ok_or(InvalidOperation),
+                return
+            )
+        } else {
+            0
+        };
+
+        handle_potential_webgl_error!(
+            self,
+            self.vertex_attribs.validate_for_draw(required_len, primcount as u32, &current_program.active_attribs()),
+            return
+        );
+
+        if !self.validate_framebuffer_complete() {
+            return;
+        }
+
+        self.send_command(
+            WebGLCommand::DrawArraysInstanced { mode, first, count, primcount },
+        );
+        self.mark_as_dirty();
+    }
+
+    // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
+    pub fn draw_elements_instanced(
+        &self,
+        mode: u32,
+        count: i32,
+        type_: u32,
+        offset: i64,
+        primcount: i32,
+    ) {
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {},
+            _ => {
+                return self.webgl_error(InvalidEnum);
+            }
+        }
+        if count < 0 || offset < 0 || primcount < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+        let type_size = match type_ {
+            constants::UNSIGNED_BYTE => 1,
+            constants::UNSIGNED_SHORT => 2,
+            _ => return self.webgl_error(InvalidEnum),
+        };
+        if offset % type_size != 0 {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        let current_program = handle_potential_webgl_error!(
+            self,
+            self.current_program.get().ok_or(InvalidOperation),
+            return
+        );
+
+        if count > 0 && primcount > 0 {
+            if let Some(array_buffer) = self.bound_buffer_element_array.get() {
+                // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
+                let val = offset as u64 + (count as u64 * type_size as u64);
+                if val > array_buffer.capacity() as u64 {
+                    return self.webgl_error(InvalidOperation);
+                }
+            } else {
+                // From the WebGL spec
+                //
+                //      a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER binding point
+                //      or an INVALID_OPERATION error will be generated.
+                //
+                return self.webgl_error(InvalidOperation);
+            }
+        }
+
+        // TODO(nox): Pass the correct number of vertices required.
+        handle_potential_webgl_error!(
+            self,
+            self.vertex_attribs.validate_for_draw(0, primcount as u32, &current_program.active_attribs()),
+            return
+        );
+
+        if !self.validate_framebuffer_complete() {
+            return;
+        }
+
+        self.send_command(WebGLCommand::DrawElementsInstanced {
+            mode,
+            count,
+            type_,
+            offset: offset as u32,
+            primcount,
+        });
+        self.mark_as_dirty();
+    }
+
+    pub fn vertex_attrib_divisor(&self, index: u32, divisor: u32) {
+        if index >= self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
+        self.vertex_attribs.set_divisor(index, divisor);
+        self.send_command(WebGLCommand::VertexAttribDivisor { index, divisor });
     }
 
     // Used by HTMLCanvasElement.toDataURL
@@ -2248,7 +2385,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.validate_for_draw(required_len, &current_program.active_attribs()),
+            self.vertex_attribs.validate_for_draw(required_len, 1, &current_program.active_attribs()),
             return
         );
 
@@ -2318,7 +2455,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // TODO(nox): Pass the correct number of vertices required.
         handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.validate_for_draw(0, &current_program.active_attribs()),
+            self.vertex_attribs.validate_for_draw(0, 1, &current_program.active_attribs()),
             return
         );
 
@@ -2661,6 +2798,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return ObjectValue(result.get());
         }
 
+        if !self.extension_manager.is_get_vertex_attrib_name_enabled(param) {
+            self.webgl_error(WebGLError::InvalidEnum);
+            return NullValue();
+        }
+
         match param {
             constants::VERTEX_ATTRIB_ARRAY_ENABLED => BooleanValue(data.enabled_as_array),
             constants::VERTEX_ATTRIB_ARRAY_SIZE => Int32Value(data.size as i32),
@@ -2675,6 +2817,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     }
                 }
                 jsval.get()
+            }
+            ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE => {
+                Int32Value(data.divisor as i32)
             }
             _ => {
                 self.webgl_error(InvalidEnum);
@@ -3903,6 +4048,7 @@ impl VertexAttribs {
             stride: stride as u8,
             offset: offset as u32,
             buffer: Some(Dom::from_ref(buffer)),
+            divisor: data.divisor,
         };
         Ok(())
     }
@@ -3927,32 +4073,50 @@ impl VertexAttribs {
         self.attribs.borrow_mut()[index as usize].enabled_as_array = value;
     }
 
+    fn set_divisor(&self, index: u32, value: u32) {
+        self.attribs.borrow_mut()[index as usize].divisor = value;
+    }
+
     fn validate_for_draw(
         &self,
         required_len: u32,
+        instance_count: u32,
         active_attribs: &[ActiveAttribInfo],
     ) -> WebGLResult<()> {
+        // TODO(nox): Cache limits per VAO.
         let attribs = self.attribs.borrow();
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
         if attribs.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
             return Err(InvalidOperation);
         }
-        if required_len == 0 {
-            return Ok(());
-        }
-        // TODO(nox): Cache that per VAO.
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.6
+        let mut has_active_attrib = false;
+        let mut has_divisor_0 = false;
         for active_info in active_attribs {
             if active_info.location < 0 {
                 continue;
             }
+            has_active_attrib = true;
             let attrib = &attribs[active_info.location as usize];
+            if attrib.divisor == 0 {
+                has_divisor_0 = true;
+            }
             if !attrib.enabled_as_array {
                 continue;
             }
-            if attrib.max_vertices() < required_len {
-                return Err(InvalidOperation);
+            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.6
+            if required_len > 0 && instance_count > 0 {
+                let max_vertices = attrib.max_vertices();
+                if attrib.divisor == 0 {
+                    if max_vertices < required_len {
+                        return Err(InvalidOperation);
+                    }
+                } else if max_vertices.checked_mul(attrib.divisor).map_or(false, |v| v < instance_count) {
+                    return Err(InvalidOperation);
+                }
             }
+        }
+        if has_active_attrib && !has_divisor_0 {
+            return Err(InvalidOperation);
         }
         Ok(())
     }
@@ -3969,6 +4133,7 @@ pub struct VertexAttribData {
     stride: u8,
     offset: u32,
     buffer: Option<Dom<WebGLBuffer>>,
+    divisor: u32,
 }
 
 impl Default for VertexAttribData {
@@ -3983,6 +4148,7 @@ impl Default for VertexAttribData {
             stride: 0,
             offset: 0,
             buffer: None,
+            divisor: 0,
         }
     }
 }
