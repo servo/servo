@@ -132,7 +132,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
+use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Stylesheet, StylesheetContents, Origin, OriginSet};
 use task_source::TaskSource;
@@ -3675,7 +3675,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, type_: DOMString, replace: DOMString) -> Fallible<DomRoot<Document>> {
+    fn Open(&self, _type: Option<DOMString>, replace: DOMString) -> Fallible<DomRoot<Document>> {
         if !self.is_html_document() {
             // Step 1.
             return Err(Error::InvalidState);
@@ -3708,8 +3708,6 @@ impl DocumentMethods for Document {
 
         // Step 6.
         // TODO: ignore-opens-during-unload counter check.
-
-        // Step 7: first argument already bound to `type_`.
 
         // Step 8.
         // TODO: check session history's state.
@@ -3777,22 +3775,12 @@ impl DocumentMethods for Document {
         // Step 24.
         // TODO: mute iframe load.
 
-        // Step 27.
-        let type_ = if type_.eq_ignore_ascii_case("replace") {
-            "text/html"
-        } else if let Some(position) = type_.find(';') {
-            &type_[0..position]
-        } else {
-            &*type_
-        };
-        let type_ = type_.trim_matches(HTML_SPACE_CHARACTERS);
-
         // Step 25.
         let resource_threads =
             self.window.upcast::<GlobalScope>().resource_threads().clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
-        ServoParser::parse_html_script_input(self, url, type_);
+        ServoParser::parse_html_script_input(self, url, "text/html");
 
         // Step 26.
         self.ready_state.set(DocumentReadyState::Interactive);
@@ -3851,7 +3839,7 @@ impl DocumentMethods for Document {
                     return Ok(());
                 }
                 // Step 5.
-                self.Open("text/html".into(), "".into())?;
+                self.Open(None, "".into())?;
                 self.get_current_parser().unwrap()
             }
         };
