@@ -6,6 +6,7 @@ use ipc_channel::ipc;
 use profile::time;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::time::{ProfilerCategory, ProfilerData, ProfilerMsg};
+use servo_config::opts::OutputOptions;
 use std::thread;
 use std::time::Duration;
 
@@ -42,7 +43,7 @@ fn time_profiler_stats_test() {
 
 #[test]
 fn channel_profiler_test() {
-    let chan = time::Profiler::create(&None, None);
+    let chan = time::Profiler::create(&Some(OutputOptions::Stdout(5.0)), None);
     let (profiled_sender, profiled_receiver) = ProfiledIpc::channel(chan.clone()).unwrap();
     thread::spawn(move || {
         thread::sleep(Duration::from_secs(2));
@@ -56,8 +57,8 @@ fn channel_profiler_test() {
     chan.send(ProfilerMsg::Get((ProfilerCategory::IpcReceiver, None), sender.clone()));
 
     match receiver.recv().unwrap() {
-        // asserts that the time spent in the sleeping thread is more than 1.5 seconds
-        ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e9),
+        // asserts that the time spent in the sleeping thread is more than 1500 milliseconds
+        ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e3),
         ProfilerData::NoRecords => assert!(false),
     };
 

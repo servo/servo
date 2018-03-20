@@ -2258,6 +2258,7 @@ dependencies = [
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "servo_allocator 0.0.1",
+ "servo_config 0.0.1",
 ]
 
 [[package]]
