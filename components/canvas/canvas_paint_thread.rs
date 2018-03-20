@@ -63,6 +63,7 @@ pub struct CanvasPaintThread<'a> {
     old_image_key: Option<webrender_api::ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<webrender_api::ImageKey>,
+	canvas_id: CanvasId,
 }
 
 #[derive(Clone)]
@@ -98,7 +99,8 @@ impl<'a> CanvasPaintState<'a> {
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
            webrender_api_sender: webrender_api::RenderApiSender,
-           antialias: AntialiasMode) -> CanvasPaintThread<'a> {
+           antialias: AntialiasMode,
+	   	   canvas_id: CanvasId) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
@@ -111,6 +113,7 @@ impl<'a> CanvasPaintThread<'a> {
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
+			canvas_id: canvas_id,
         }
     }
 
@@ -118,7 +121,8 @@ impl<'a> CanvasPaintThread<'a> {
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
                  webrender_api_sender: webrender_api::RenderApiSender,
-                 antialias: bool)
+                 antialias: bool,
+			 	 canvas_id: CanvasId)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let antialias = if antialias {
@@ -127,11 +131,12 @@ impl<'a> CanvasPaintThread<'a> {
             AntialiasMode::None
         };
         thread::Builder::new().name("CanvasThread".to_owned()).spawn(move || {
-            let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias);
+            let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias, canvas_id);
             loop {
                 let msg = receiver.recv();
                 match msg.unwrap() {
-                    CanvasMsg::Canvas2d(message) => {
+                    CanvasMsg::Canvas2d(message, canvas_id) => {
+						assert!(canvas_id == painter.canvas_id);
                         match message {
                             Canvas2dMsg::FillText(text, x, y, max_width) => painter.fill_text(text, x, y, max_width),
                             Canvas2dMsg::FillRect(ref rect) => painter.fill_rect(rect),
@@ -197,22 +202,29 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azure_style()),
                         }
                     },
-                    CanvasMsg::Close => break,
-                    CanvasMsg::Recreate(size) => painter.recreate(size),
-                    CanvasMsg::FromScript(message) => {
+                    CanvasMsg::Close(canvas_id) =>{
+						assert!(canvas_id == painter.canvas_id);
+						break;
+					},
+                    CanvasMsg::Recreate(size,canvas_id) =>{
+						assert!(canvas_id == painter.canvas_id);
+						painter.recreate(size);
+					},
+                    CanvasMsg::FromScript(message,canvas_id) => {
+						assert!(canvas_id == painter.canvas_id);
                         match message {
                             FromScriptMsg::SendPixels(chan) => {
                                 painter.send_pixels(chan)
                             }
                         }
-                    }
+                    },
                     CanvasMsg::FromLayout(message) => {
                         match message {
                             FromLayoutMsg::SendData(chan) => {
                                 painter.send_data(chan)
                             }
                         }
-                    }
+                    },
                 }
             }
         }).expect("Thread spawning failed");

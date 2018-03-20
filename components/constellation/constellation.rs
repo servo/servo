@@ -95,6 +95,7 @@ use browsingcontext::{BrowsingContext, SessionHistoryChange, SessionHistoryEntry
 use browsingcontext::{FullyActiveBrowsingContextsIterator, AllBrowsingContextsIterator};
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_thread::WebGLThreads;
+use canvas_traits::canvas::CanvasId;
 use canvas_traits::canvas::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
@@ -329,6 +330,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+	/// An Id for the next canvas to use.
+	canvas_id: CanvasId,
 }
 
 /// State needed to construct a constellation.
@@ -622,6 +626,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }),
                 webgl_threads: state.webgl_threads,
                 webvr_chan: state.webvr_chan,
+				canvas_id: CanvasId(0),
             };
 
             constellation.run();
@@ -2200,11 +2205,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_create_canvas_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
-            response_sender: IpcSender<IpcSender<CanvasMsg>>) {
+            response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>) {
+		self.canvas_id.0 += 1;
+		let canvas_id = self.canvas_id.clone();
         let webrender_api = self.webrender_api_sender.clone();
         let sender = CanvasPaintThread::start(*size, webrender_api,
-                                              opts::get().enable_canvas_antialiasing);
-        if let Err(e) = response_sender.send(sender) {
+                                              opts::get().enable_canvas_antialiasing,canvas_id);
+        if let Err(e) = response_sender.send((sender,canvas_id)) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }
