@@ -1104,12 +1104,8 @@ impl WebGLImpl {
     fn vertex_attrib_offset(gl: &gl::Gl,
                             index: u32,
                             pname: u32,
-                            chan: WebGLSender<WebGLResult<isize>>) {
-        let result = match pname {
-                gl::VERTEX_ATTRIB_ARRAY_POINTER => Ok(gl.get_vertex_attrib_pointer_v(index, pname)),
-                _ => Err(WebGLError::InvalidEnum),
-        };
-
+                            chan: WebGLSender<isize>) {
+        let result = gl.get_vertex_attrib_pointer_v(index, pname);
         chan.send(result).unwrap();
     }
 

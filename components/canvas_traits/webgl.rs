@@ -216,7 +216,7 @@ pub enum WebGLCommand {
     GetAttribLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
     GetUniformLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
     GetVertexAttrib(u32, u32, WebGLSender<WebGLResult<WebGLParameter>>),
-    GetVertexAttribOffset(u32, u32, WebGLSender<WebGLResult<isize>>),
+    GetVertexAttribOffset(u32, u32, WebGLSender<isize>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     PolygonOffset(f32, f32),

@@ -2421,10 +2421,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetVertexAttribOffset(&self, index: u32, pname: u32) -> i64 {
+        if pname != constants::VERTEX_ATTRIB_ARRAY_POINTER {
+            self.webgl_error(InvalidEnum);
+            return 0;
+        }
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetVertexAttribOffset(index, pname, sender));
 
-        handle_potential_webgl_error!(self, receiver.recv().unwrap(), 0) as i64
+        receiver.recv().unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
