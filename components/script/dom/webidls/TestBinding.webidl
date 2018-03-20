@@ -458,6 +458,7 @@ interface TestBinding {
 
   void passMozMap(record<DOMString, long> arg);
   void PassMozMapWithUSVStringKey(record<USVString, long> arg);
+  void PassMozMapWithByteStringKey(record<ByteString, long> arg);
   void passNullableMozMap(record<DOMString, long>? arg);
   void passMozMapOfNullableInts(record<DOMString, long?> arg);
   void passOptionalMozMapOfNullableInts(optional record<DOMString, long?> arg);
@@ -480,6 +481,7 @@ interface TestBinding {
 
   record<DOMString, long> receiveMozMap();
   record<USVString, long> ReceiveMozMapWithUSVStringKey();
+  record<ByteString, long> ReceiveMozMapWithByteStringKey();
   record<DOMString, long>? receiveNullableMozMap();
   record<DOMString, long?> receiveMozMapOfNullableInts();
   record<DOMString, long?>? receiveNullableMozMapOfNullableInts();
