@@ -1180,9 +1180,10 @@ impl Window {
         self.window_size.get().map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio)
     }
 
-    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
+    fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
+        let timer_profile_chan = self.global().time_profiler_chan().clone();
         let (send, recv) =
-            ProfiledIpc::channel::<(DeviceUintSize, DeviceIntPoint)>(self.global().time_profiler_chan().clone()).unwrap();
+            ProfiledIpc::channel::<(DeviceUintSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
         let (size, point) = recv.recv().unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
         let dpr = self.device_pixel_ratio();

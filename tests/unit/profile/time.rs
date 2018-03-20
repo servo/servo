@@ -4,8 +4,8 @@
 
 use ipc_channel::ipc;
 use profile::time;
-use profile_traits::time::{ProfilerCategory, ProfilerData, ProfilerMsg};
 use profile_traits::ipc as ProfiledIpc;
+use profile_traits::time::{ProfilerCategory, ProfilerData, ProfilerMsg};
 use std::thread;
 use std::time::Duration;
 
@@ -56,7 +56,8 @@ fn channel_profiler_test() {
     chan.send(ProfilerMsg::Get((ProfilerCategory::IpcReceiver, None), sender.clone()));
 
     match receiver.recv().unwrap() {
-        ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e9),  // asserts that the time spent in the sleeping thread is more than 1.5 seconds
+        // asserts that the time spent in the sleeping thread is more than 1.5 seconds
+        ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e9),
         ProfilerData::NoRecords => assert!(false),
     };
 

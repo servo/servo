@@ -318,7 +318,7 @@ impl Profiler {
                 self.print_buckets();
             },
             ProfilerMsg::Get(k, sender) => {
-                let vec_option= self.buckets.get(&k);
+                let vec_option = self.buckets.get(&k);
                 match vec_option {
                     Some(vec_entry) => sender.send(ProfilerData::Record(vec_entry.to_vec())).unwrap(),
                     None => sender.send(ProfilerData::NoRecords).unwrap(),

@@ -28,7 +28,7 @@ impl ProfilerChan {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum ProfilerData {
     NoRecords,
     Record(Vec<f64>),
