@@ -22,4 +22,4 @@ dictionary BlobPropertyBag {
   DOMString type = "";
 };
 
-typedef (/*ArrayBuffer or ArrayBufferView or */Blob or DOMString) BlobPart;
+typedef (ArrayBuffer or ArrayBufferView or Blob or DOMString) BlobPart;
