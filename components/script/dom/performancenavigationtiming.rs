@@ -3,27 +3,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
 use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding;
-use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::PerformanceNavigationTimingMethods;
-use dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
+use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{PerformanceNavigationTimingMethods, NavigationType};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
+use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
+ // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
 pub struct PerformanceNavigationTiming {
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
     reflector_: Reflector,
+    // https://w3c.github.io/navigation-timing/#PerformanceResourceTiming
+    resource_timing: Dom<PerformanceResourceTiming>,
     navigation_start: u64,
     navigation_start_precise: u64,
     document: Dom<Document>,
-    name: DOMString,
+    nav_type: NavigationType,
 }
 
 impl PerformanceNavigationTiming {
@@ -32,11 +33,17 @@ impl PerformanceNavigationTiming {
                      document: &Document)
                          -> PerformanceNavigationTiming {
         PerformanceNavigationTiming {
+            resource_timing: Dom::from_ref(&*PerformanceResourceTiming::new(
+                document.window(),
+                document.url(),
+                DOMString::from("navigation"),
+                None,
+                nav_start_precise as f64)),
             reflector_: Reflector::new(),
             navigation_start: nav_start,
             navigation_start_precise: nav_start_precise,
             document: Dom::from_ref(document),
-            name: DOMString::from("document"),
+            nav_type: NavigationType::Navigate
         }
     }
 
@@ -53,8 +60,8 @@ impl PerformanceNavigationTiming {
                            PerformanceNavigationTimingBinding::Wrap)
     }
 
-    pub fn set_name(&mut self, name: DOMString) {
-        self.name = name;
+    pub fn set_type(&mut self, nav_type: NavigationType) {
+        self.nav_type = nav_type
     }
 }
 
@@ -109,44 +116,12 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
     }
 
     // TODO type
+    fn Type(&self) -> NavigationType {
+        self.nav_type.clone()
+    }
 
     // TODO redirectCount
 }
-
-// https://w3c.github.io/navigation-timing/#sec-navigation-timing
-impl PerformanceEntryMethods for PerformanceNavigationTiming {
-    // name is either the string "document" or the address of the current document
-    fn Name(&self) -> DOMString {
-        DOMString::from(self.name.clone())
-    }
-
-    fn EntryType(&self) -> DOMString {
-        DOMString::from("navigation")
-    }
-
-    // TODO it says it has to return DOMHighResTimeStamp with time 0
-    fn StartTime(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(0.0)
-    }
-
-    // TODO make sure that this still works with start time of 0
-    fn Duration(&self) -> DOMHighResTimeStamp {
-        Finite::wrap((self.document.get_load_event_end() - self.navigation_start) as f64)
-    }
-}
-
-// https://w3c.github.io/navigation-timing/#PerformanceResourceTiming
-/*impl PerformanceResourceTimingMethods for PerformanceNavigationTiming {
-    fn InitiatorType(&self) -> DOMString {
-        DOMString::from("navigation")
-    }
-
-    fn WorkerStart(&self) -> DOMHighResTimeStamp {
-        //TODO
-        Finite::Wrap(Default::default)
-    }
-}*/
-
 
 impl PerformanceNavigationTiming {
     pub fn navigation_start_precise(&self) -> u64 {

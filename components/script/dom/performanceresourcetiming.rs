@@ -4,11 +4,13 @@
 
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{self, PerformanceResourceTimingMethods};
-use dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use dom::bindings::root::DomRoot;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
+use dom::performanceentry::PerformanceEntry;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
@@ -23,9 +25,7 @@ use servo_url::ServoUrl;
 #[dom_struct]
 pub struct PerformanceResourceTiming {
     reflector_: Reflector,
-    // returns the resolved URL of the requested resource
-    // does not change even if redirected to a different URl
-    name: ServoUrl,
+	entry: Dom<PerformanceEntry>,
     initiator_type: DOMString,
     next_hop: Option<DOMString>,
     worker_start: f64,
@@ -46,12 +46,20 @@ pub struct PerformanceResourceTiming {
 }
 
 impl PerformanceResourceTiming {
-    fn new_inherited(name: ServoUrl,
+    fn new_inherited(global: &GlobalScope,
+    				 url: ServoUrl,
     				 initiator_type: DOMString,
                      next_hop: Option<DOMString>,
                      fetch_start: f64)
                          -> PerformanceResourceTiming {
+        // TODO Do i know the end time yet?
         PerformanceResourceTiming {
+        	entry: Dom::from_ref(&*PerformanceEntry::new(
+        		global,
+        		DOMString::from(url.into_string()),
+        		DOMString::from("resource"),
+        		fetch_start,
+        		0.)),
             reflector_: Reflector::new(),
             initiator_type: initiator_type,
             next_hop: next_hop,
@@ -67,18 +75,18 @@ impl PerformanceResourceTiming {
             request_start: 0.,
             response_start: 0.,
             response_end: 0.,
-            name: name,
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
-               name: ServoUrl,
+               url: ServoUrl,
                initiator_type: DOMString,
                next_hop: Option<DOMString>,
                fetch_start: f64)
                -> DomRoot<PerformanceResourceTiming> {
-        let timing = PerformanceResourceTiming::new_inherited(name, initiator_type, next_hop, fetch_start);
+        let global_scope = window.upcast::<GlobalScope>();
+        let timing = PerformanceResourceTiming::new_inherited(global_scope, url, initiator_type, next_hop, fetch_start);
         reflect_dom_object(Box::new(timing),
                            window,
                            PerformanceResourceTimingBinding::Wrap)
@@ -221,29 +229,4 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
         Finite::wrap(self.response_end)
     }
 
-}
-
-impl PerformanceEntryMethods for PerformanceResourceTiming {
-    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
-    // This attribute MUST return the resolved URL of the requested resource. This attribute MUST NOT change even if the fetch redirected to a different URL
-    fn Name(&self) -> DOMString {
-        DOMString::from(self.name.as_str())
-    }
-
-    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
-    fn EntryType(&self) -> DOMString {
-        DOMString::from("resource")
-    }
-
-    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
-    fn StartTime(&self) -> Finite<f64> {
-    	// TODO time immediately before UA queues resource for fetching
-        Finite::wrap(0.)
-    }
-
-    // https://w3c.github.io/resource-timing/#sec-performanceresourcetiming
-    fn Duration(&self) -> Finite<f64> {
-    	// TODO 
-        Finite::wrap(0.)
-    }
 }

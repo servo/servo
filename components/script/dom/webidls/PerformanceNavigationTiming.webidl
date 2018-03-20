@@ -7,6 +7,13 @@
  */
 
 
+enum NavigationType {
+    "navigate",
+    "reload",
+    "back_forward",
+    "prerender"
+};
+
 [Exposed=Window]
 interface PerformanceNavigationTiming : PerformanceResourceTiming {
     readonly attribute DOMHighResTimeStamp unloadEventStart;
@@ -17,7 +24,7 @@ interface PerformanceNavigationTiming : PerformanceResourceTiming {
     readonly attribute DOMHighResTimeStamp domComplete;
     readonly attribute DOMHighResTimeStamp loadEventStart;
     readonly attribute DOMHighResTimeStamp loadEventEnd;
-    // readonly attribute NavigationType      type;
+    readonly attribute NavigationType      type;
     // readonly attribute unsigned short      redirectCount;
     // [Default] object toJSON();
     /* Servo-only attribute for measuring when the top-level document (not iframes) is complete. */
