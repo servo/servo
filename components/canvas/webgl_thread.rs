@@ -1112,13 +1112,8 @@ impl WebGLImpl {
     fn buffer_parameter(gl: &gl::Gl,
                         target: u32,
                         param_id: u32,
-                        chan: WebGLSender<WebGLResult<WebGLParameter>>) {
-        let result = match param_id {
-            gl::BUFFER_SIZE |
-            gl::BUFFER_USAGE =>
-                Ok(WebGLParameter::Int(gl.get_buffer_parameter_iv(target, param_id))),
-            _ => Err(WebGLError::InvalidEnum),
-        };
+                        chan: WebGLSender<i32>) {
+        let result = gl.get_buffer_parameter_iv(target, param_id);
 
         chan.send(result).unwrap();
     }

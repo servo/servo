@@ -204,7 +204,7 @@ pub enum WebGLCommand {
     EnableVertexAttribArray(u32),
     FramebufferRenderbuffer(u32, u32, u32, Option<WebGLRenderbufferId>),
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
-    GetBufferParameter(u32, u32, WebGLSender<WebGLResult<WebGLParameter>>),
+    GetBufferParameter(u32, u32, WebGLSender<i32>),
     GetExtensions(WebGLSender<String>),
     GetParameter(u32, WebGLSender<WebGLResult<WebGLParameter>>),
     GetTexParameter(u32, u32, WebGLSender<i32>),

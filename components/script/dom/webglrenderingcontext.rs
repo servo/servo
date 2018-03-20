@@ -1246,17 +1246,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+        let parameter_matches = match parameter {
+            constants::BUFFER_SIZE |
+            constants::BUFFER_USAGE => true,
+            _ => false,
+        };
+
+        if !parameter_matches {
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetBufferParameter(target, parameter, sender));
 
-        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
-            WebGLParameter::Int(val) => Int32Value(val),
-            WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
-            WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
-            WebGLParameter::FloatArray(_) => panic!("Buffer parameter should not be float array"),
-            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
-            WebGLParameter::Invalid => NullValue(),
-        }
+        Int32Value(receiver.recv().unwrap())
     }
 
     #[allow(unsafe_code)]
@@ -2428,7 +2432,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetVertexAttribOffset(index, pname, sender));
 
-        receiver.recv().unwrap()
+        receiver.recv().unwrap() as i64
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
