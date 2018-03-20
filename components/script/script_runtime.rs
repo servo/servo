@@ -319,14 +319,21 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
 #[no_mangle]
 #[allow(unsafe_code)]
 pub unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
-        let dom_class = get_dom_class(obj).unwrap();
+        let dom_class_opt = get_dom_class(obj);
 
-        let pass_ptr = private_from_object(obj) as *const c_void;
-        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
+        match dom_class_opt {
+            Ok(v) => {
+                let pass_ptr = private_from_object(obj) as *const c_void;
+                let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
 
-        let msf = dom_class.malloc_size_of;
-        let _result = msf(&mut ops, pass_ptr);
-        return _result;
+                let msf = v.malloc_size_of;
+                let _result = msf(&mut ops, pass_ptr);
+                return _result;
+            }
+            Err(e) => {
+                return 0;
+            }
+        }
 }
 
 #[allow(unsafe_code)]
