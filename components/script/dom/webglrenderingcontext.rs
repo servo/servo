@@ -1246,17 +1246,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+        let parameter_matches = match parameter {
+            constants::BUFFER_SIZE |
+            constants::BUFFER_USAGE => true,
+            _ => false,
+        };
+
+        if !parameter_matches {
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetBufferParameter(target, parameter, sender));
 
-        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
-            WebGLParameter::Int(val) => Int32Value(val),
-            WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
-            WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
-            WebGLParameter::FloatArray(_) => panic!("Buffer parameter should not be float array"),
-            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
-            WebGLParameter::Invalid => NullValue(),
-        }
+        Int32Value(receiver.recv().unwrap())
     }
 
     #[allow(unsafe_code)]
@@ -1342,31 +1346,39 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     unsafe fn GetTexParameter(&self, _cx: *mut JSContext, target: u32, pname: u32) -> JSVal {
-        let texture = match target {
+        let target_matches = match target {
             constants::TEXTURE_2D |
-            constants::TEXTURE_CUBE_MAP => self.bound_texture(target),
+            constants::TEXTURE_CUBE_MAP => true,
+            _ => false,
+        };
+
+        let pname_matches = match pname {
+            constants::TEXTURE_MAG_FILTER |
+            constants::TEXTURE_MIN_FILTER |
+            constants::TEXTURE_WRAP_S |
+            constants::TEXTURE_WRAP_T => true,
+            _ => false,
+        };
+
+        if !target_matches || !pname_matches {
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        if self.bound_texture(target).is_none() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetTexParameter(target, pname, sender));
+
+        match receiver.recv().unwrap() {
+            value if value != 0 => Int32Value(value),
             _ => {
                 self.webgl_error(InvalidEnum);
-                return NullValue();
+                NullValue()
             }
-        };
-        if texture.is_some() {
-            let (sender, receiver) = webgl_channel().unwrap();
-            self.send_command(WebGLCommand::GetTexParameter(target, pname, sender));
-            match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
-                WebGLParameter::Int(val) => Int32Value(val),
-                WebGLParameter::Bool(_) => panic!("Texture parameter should not be bool"),
-                WebGLParameter::Float(_) => panic!("Texture parameter should not be float"),
-                WebGLParameter::FloatArray(_) => panic!("Texture parameter should not be float array"),
-                WebGLParameter::String(_) => panic!("Texture parameter should not be string"),
-                WebGLParameter::Invalid => {
-                    self.webgl_error(InvalidEnum);
-                    NullValue()
-                }
-            }
-        } else {
-            self.webgl_error(InvalidOperation);
-            NullValue()
         }
     }
 
@@ -2345,24 +2357,31 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderPrecisionFormat(&self,
-                                shader_type: u32,
-                                precision_type: u32)
-                                -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
+    fn GetShaderPrecisionFormat(
+        &self,
+        shader_type: u32,
+        precision_type: u32
+    ) -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
+        match precision_type {
+            constants::LOW_FLOAT |
+            constants::MEDIUM_FLOAT |
+            constants::HIGH_FLOAT |
+            constants::LOW_INT |
+            constants::MEDIUM_INT |
+            constants::HIGH_INT => (),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return None;
+            },
+        }
+
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetShaderPrecisionFormat(shader_type,
                                                                  precision_type,
                                                                  sender));
 
-        match receiver.recv().unwrap() {
-            Ok((range_min, range_max, precision)) => {
-                Some(WebGLShaderPrecisionFormat::new(self.global().as_window(), range_min, range_max, precision))
-            },
-            Err(error) => {
-                self.webgl_error(error);
-                None
-            }
-        }
+        let (range_min, range_max, precision) = receiver.recv().unwrap();
+        Some(WebGLShaderPrecisionFormat::new(self.global().as_window(), range_min, range_max, precision))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2413,10 +2432,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetVertexAttribOffset(&self, index: u32, pname: u32) -> i64 {
+        if pname != constants::VERTEX_ATTRIB_ARRAY_POINTER {
+            self.webgl_error(InvalidEnum);
+            return 0;
+        }
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetVertexAttribOffset(index, pname, sender));
 
-        handle_potential_webgl_error!(self, receiver.recv().unwrap(), 0) as i64
+        receiver.recv().unwrap() as i64
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
