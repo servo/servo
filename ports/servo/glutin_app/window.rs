@@ -601,8 +601,18 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    #[cfg(not(target_os = "windows"))]
     fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+        match opts::get().device_pixels_per_px {
+            Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
+            None => match opts::get().output_file {
+                Some(_) => TypedScale::new(1.0),
+                None => self.platform_hidpi_factor()
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
                 TypedScale::new(window.hidpi_factor())
@@ -614,7 +624,7 @@ impl Window {
     }
 
     #[cfg(target_os = "windows")]
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         TypedScale::new(ppi as f32 / 96.0)

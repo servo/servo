@@ -160,16 +160,6 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         let coordinates = window.get_coordinates();
 
         let (mut webrender, webrender_api_sender) = {
-            let device_pixel_ratio = match opts.device_pixels_per_px {
-                Some(device_pixels_per_px) => device_pixels_per_px,
-                None => match opts.output_file {
-                    Some(_) => 1.0,
-                    // TODO(gw): Duplicates device_pixels_per_screen_px from compositor.
-                    // Tidy up!
-                    None => coordinates.hidpi_factor.get(),
-                }
-            };
-
             let renderer_kind = if opts::get().should_use_osmesa() {
                 RendererKind::OSMesa
             } else {
@@ -190,7 +180,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
 
             webrender::Renderer::new(window.gl(), render_notifier, webrender::RendererOptions {
-                device_pixel_ratio: device_pixel_ratio,
+                device_pixel_ratio: coordinates.hidpi_factor.get(),
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
                 debug_flags: debug_flags,
