@@ -5,7 +5,7 @@
 //! The `MozMap` (open-ended dictionary) type.
 
 use dom::bindings::conversions::jsid_to_string;
-use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::str::{ByteString, DOMString, USVString};
 use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
 use js::jsapi::GetPropertyKeys;
 use js::jsapi::HandleId;
@@ -52,6 +52,22 @@ impl MozMapKey for USVString {
         JS_IdToValue(cx, *id.ptr, jsid_value.handle_mut());
 
         match USVString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
+            ConversionResult::Success(s) => return Some(s),
+            ConversionResult::Failure(_) => return None
+        }
+    }
+}
+
+impl MozMapKey for ByteString {
+    unsafe fn to_utf16_vec(&self) -> Vec<u16> {
+        (*self).iter().map(|&x| x as u16).collect::<Vec<u16>>()
+    }
+
+    unsafe fn from_handle_id(cx: *mut JSContext, id: HandleId) -> Option<ByteString> {
+        rooted!(in(cx) let mut jsid_value = UndefinedValue());
+        JS_IdToValue(cx, *id.ptr, jsid_value.handle_mut());
+
+        match ByteString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
             ConversionResult::Success(s) => return Some(s),
             ConversionResult::Failure(_) => return None
         }
