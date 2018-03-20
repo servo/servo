@@ -3709,7 +3709,7 @@ impl DocumentMethods for Document {
         // Step 6.
         // TODO: ignore-opens-during-unload counter check.
 
-        // Step 8.
+        // Step 7, 8.
         // TODO: check session history's state.
         let replace = replace.eq_ignore_ascii_case("replace");
 
@@ -3738,11 +3738,11 @@ impl DocumentMethods for Document {
         // Step 15.
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Steps 16-18.
+        // Steps 16, 17.
         // Let's not?
         // TODO: https://github.com/whatwg/html/issues/1698
 
-        // Step 19.
+        // Step 18.
         self.implementation.set(None);
         self.images.set(None);
         self.embeds.set(None);
@@ -3758,55 +3758,59 @@ impl DocumentMethods for Document {
         self.target_element.set(None);
         *self.last_click_info.borrow_mut() = None;
 
+        // Step 19.
+        // TODO: Set the active document of document's browsing context to document with window.
+
         // Step 20.
-        self.set_encoding(UTF_8);
+        // TODO: Replace document's singleton objects with new instances of those objects, created in window's Realm.
 
         // Step 21.
-        // TODO: reload override buffer.
+        self.set_encoding(UTF_8);
 
         // Step 22.
+        // TODO: reload override buffer.
+
+        // Step 23.
         // TODO: salvageable flag.
 
         let url = entry_responsible_document.url();
 
-        // Step 23.
+        // Step 24.
         self.set_url(url.clone());
 
-        // Step 24.
+        // Step 25.
         // TODO: mute iframe load.
 
-        // Step 25.
+        // Step 26.
         let resource_threads =
             self.window.upcast::<GlobalScope>().resource_threads().clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
         ServoParser::parse_html_script_input(self, url, "text/html");
 
-        // Step 26.
+        // Step 27.
         self.ready_state.set(DocumentReadyState::Interactive);
 
-        // Step 28 is handled when creating the parser in step 25.
+        // Step 28.
+        // TODO: remove history traversal tasks.
 
         // Step 29.
         // TODO: truncate session history.
 
         // Step 30.
-        // TODO: remove history traversal tasks.
-
-        // Step 31.
         // TODO: remove earlier entries.
 
         if !replace {
-            // Step 32.
+            // Step 31.
             // TODO: add history entry.
         }
 
-        // Step 33.
+        // Step 32.
         // TODO: clear fired unload flag.
 
-        // Step 34 is handled when creating the parser in step 25.
+        // Step 33 is handled when creating the parser in step 26.
 
-        // Step 35.
+        // Step 34.
         Ok(DomRoot::from_ref(self))
     }
 
