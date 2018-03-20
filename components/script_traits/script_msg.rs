@@ -11,7 +11,7 @@ use LayoutControlMsg;
 use LoadData;
 use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
-use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
@@ -79,7 +79,7 @@ pub enum ScriptMsg {
     ChangeRunningAnimationsState(AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateCanvasPaintThread(Size2D<i32>, IpcSender<IpcSender<CanvasMsg>>),
+    CreateCanvasPaintThread(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, CanvasId)>),
     /// Notifies the constellation that this frame has received focus.
     Focus,
     /// Forward an event that was sent to the parent window.
