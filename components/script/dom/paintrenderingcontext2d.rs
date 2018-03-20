@@ -59,7 +59,7 @@ impl PaintRenderingContext2D {
     }
 
     pub fn send_data(&self, sender: IpcSender<CanvasImageData>) {
-        let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender));
+        let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender), self.context.get_canvas_id());
         let _ = self.context.get_ipc_renderer().send(msg);
     }
 
