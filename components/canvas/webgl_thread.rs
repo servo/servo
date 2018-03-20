@@ -1066,21 +1066,8 @@ impl WebGLImpl {
     fn get_tex_parameter(gl: &gl::Gl,
                        target: u32,
                        pname: u32,
-                       chan: WebGLSender<WebGLResult<WebGLParameter>> ) {
-        let result = match pname {
-            gl::TEXTURE_MAG_FILTER |
-            gl::TEXTURE_MIN_FILTER |
-            gl::TEXTURE_WRAP_S |
-            gl::TEXTURE_WRAP_T => {
-                let parameter = gl.get_tex_parameter_iv(target, pname);
-                if parameter == 0 {
-                    Ok(WebGLParameter::Invalid)
-                } else {
-                    Ok(WebGLParameter::Int(parameter))
-                }
-            }
-            _ => Err(WebGLError::InvalidEnum)
-        };
+                       chan: WebGLSender<i32> ) {
+        let result = gl.get_tex_parameter_iv(target, pname);
         chan.send(result).unwrap();
     }
 

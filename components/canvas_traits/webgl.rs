@@ -207,7 +207,7 @@ pub enum WebGLCommand {
     GetBufferParameter(u32, u32, WebGLSender<WebGLResult<WebGLParameter>>),
     GetExtensions(WebGLSender<String>),
     GetParameter(u32, WebGLSender<WebGLResult<WebGLParameter>>),
-    GetTexParameter(u32, u32, WebGLSender<WebGLResult<WebGLParameter>>),
+    GetTexParameter(u32, u32, WebGLSender<i32>),
     GetProgramParameter(WebGLProgramId, u32, WebGLSender<WebGLResult<WebGLParameter>>),
     GetShaderParameter(WebGLShaderId, u32, WebGLSender<WebGLResult<WebGLParameter>>),
     GetShaderPrecisionFormat(u32, u32, WebGLSender<WebGLResult<(i32, i32, i32)>>),
