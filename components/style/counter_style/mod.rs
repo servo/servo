@@ -343,7 +343,7 @@ pub enum System {
 }
 
 impl Parse for System {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         try_match_ident_ignore_ascii_case! { input,
             "cyclic" => Ok(System::Cyclic),
             "numeric" => Ok(System::Numeric),
@@ -351,7 +351,8 @@ impl Parse for System {
             "symbolic" => Ok(System::Symbolic),
             "additive" => Ok(System::Additive),
             "fixed" => {
-                let first_symbol_value = input.try(|i| i.expect_integer()).ok();
+                let first_symbol_value = Integer::parse_non_negative(context, input)
+                    .and_then(|val| Ok(val.value())).ok();
                 Ok(System::Fixed { first_symbol_value: first_symbol_value })
             }
             "extends" => {
@@ -520,12 +521,9 @@ pub struct Pad(pub u32, pub Symbol);
 impl Parse for Pad {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let pad_with = input.try(|input| Symbol::parse(context, input));
-        let min_length = input.expect_integer()?;
-        if min_length < 0 {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
+        let min_length = Integer::parse_non_negative(context, input)?;
         let pad_with = pad_with.or_else(|_| Symbol::parse(context, input))?;
-        Ok(Pad(min_length as u32, pad_with))
+        Ok(Pad(min_length.value() as u32, pad_with))
     }
 }
 
@@ -592,13 +590,10 @@ impl OneOrMoreSeparated for AdditiveTuple {
 impl Parse for AdditiveTuple {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let symbol = input.try(|input| Symbol::parse(context, input));
-        let weight = input.expect_integer()?;
-        if weight < 0 {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
+        let weight = Integer::parse_non_negative(context, input)?;
         let symbol = symbol.or_else(|_| Symbol::parse(context, input))?;
         Ok(AdditiveTuple {
-            weight: weight as u32,
+            weight: weight.value() as u32,
             symbol: symbol,
         })
     }
