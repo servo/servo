@@ -10,6 +10,7 @@ use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -210,6 +211,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
     extension_manager: WebGLExtensions,
+    current_vertex_attrib_divisor_0: Cell<u32>,
 }
 
 impl WebGLRenderingContext {
@@ -258,7 +260,8 @@ impl WebGLRenderingContext {
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
-                extension_manager: WebGLExtensions::new(webgl_version)
+                extension_manager: WebGLExtensions::new(webgl_version),
+                current_vertex_attrib_divisor_0: Default::default(),
             }
         })
     }
@@ -1159,6 +1162,104 @@ impl WebGLRenderingContext {
                 receiver.recv().unwrap()
             }
         }
+    }
+
+    pub fn draw_arrays_instanced(
+        &self,
+        mode: u32,
+        first: i32,
+        count: i32,
+        primcount: i32,
+    ) {
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {},
+            _ => {
+                return self.webgl_error(InvalidEnum);
+            }
+        }
+        if first < 0 || count < 0 || primcount < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+        if self.current_program.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if !self.validate_framebuffer_complete() {
+            return;
+        }
+        self.send_command(
+            WebGLCommand::DrawArraysInstanced { mode, first, count, primcount },
+        );
+        self.mark_as_dirty();
+    }
+
+    pub fn draw_elements_instanced(
+        &self,
+        mode: u32,
+        count: i32,
+        type_: u32,
+        offset: i64,
+        primcount: i32,
+    ) {
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {},
+            _ => {
+                return self.webgl_error(InvalidEnum);
+            }
+        }
+        if count < 0 || offset < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+        let type_size = match type_ {
+            constants::UNSIGNED_BYTE => 1,
+            constants::UNSIGNED_SHORT => 2,
+            _ => return self.webgl_error(InvalidEnum),
+        };
+        if offset % type_size != 0 {
+            return self.webgl_error(InvalidOperation);
+        }
+        if self.current_program.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+        if let Some(array_buffer) = self.bound_buffer_element_array.get() {
+            // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
+            let val = offset as u64 + (count as u64 * type_size as u64);
+            if val > array_buffer.capacity() as u64 {
+                return self.webgl_error(InvalidOperation);
+            }
+        } else {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if !self.validate_framebuffer_complete() {
+            return;
+        }
+        self.send_command(WebGLCommand::DrawElementsInstanced {
+            mode,
+            count,
+            type_,
+            offset: offset as u32,
+            primcount,
+        });
+        self.mark_as_dirty();
+    }
+
+    pub fn vertex_attrib_divisor(&self, index: u32, divisor: u32) {
+        if index > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
+        if index == 0 {
+            self.current_vertex_attrib_divisor_0.set(divisor);
+        }
+
+        self.send_command(WebGLCommand::VertexAttribDivisor { index, divisor });
     }
 }
 
@@ -2378,8 +2479,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
+        rooted!(in(cx) let mut result = UndefinedValue());
+
         if index == 0 && pname == constants::CURRENT_VERTEX_ATTRIB {
-            rooted!(in(cx) let mut result = UndefinedValue());
             let (x, y, z, w) = self.current_vertex_attrib_0.get();
             let attrib = vec![x, y, z, w];
             attrib.to_jsval(cx, result.handle_mut());
@@ -2387,11 +2489,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         if pname == constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING {
-            rooted!(in(cx) let mut jsval = NullValue());
             if let Some(buffer) =  self.bound_attrib_buffers.borrow().get(&index) {
-                buffer.to_jsval(cx, jsval.handle_mut());
+                buffer.to_jsval(cx, result.handle_mut());
             }
-            return jsval.get();
+            return result.get();
+        }
+
+        if !self.extension_manager.is_get_vertex_attrib_name_enabled(pname) {
+            self.webgl_error(WebGLError::InvalidEnum);
+            return NullValue();
+        }
+
+        if index == 0 && pname == ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE {
+            self.current_vertex_attrib_divisor_0.get().to_jsval(cx, result.handle_mut());
+            return result.get();
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
@@ -2403,7 +2514,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::String(_) => panic!("Vertex attrib should not be string"),
             WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),
             WebGLParameter::FloatArray(val) => {
-                rooted!(in(cx) let mut result = UndefinedValue());
                 val.to_jsval(cx, result.handle_mut());
                 result.get()
             }

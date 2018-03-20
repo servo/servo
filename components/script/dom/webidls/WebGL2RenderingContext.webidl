@@ -491,9 +491,9 @@ interface WebGL2RenderingContextBase
   // void vertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset);
 
   /* Writing to the drawing buffer */
-  // void vertexAttribDivisor(GLuint index, GLuint divisor);
-  // void drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instanceCount);
-  // void drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, GLintptr offset, GLsizei instanceCount);
+  void vertexAttribDivisor(GLuint index, GLuint divisor);
+  void drawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instanceCount);
+  void drawElementsInstanced(GLenum mode, GLsizei count, GLenum type, GLintptr offset, GLsizei instanceCount);
   // void drawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, GLintptr offset);
 
   /* Reading back pixels */
