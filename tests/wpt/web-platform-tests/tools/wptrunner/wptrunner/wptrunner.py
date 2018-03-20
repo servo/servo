@@ -288,8 +288,13 @@ def run_tests(config, test_paths, product, **kwargs):
 
 def check_stability(**kwargs):
     import stability
-    return stability.check_stability(logger, **kwargs)
-
+    return stability.check_stability(logger,
+                                     max_time=kwargs['verify_max_time'],
+                                     chaos_mode=kwargs['verify_chaos_mode'],
+                                     repeat_loop=kwargs['verify_repeat_loop'],
+                                     repeat_restart=kwargs['verify_repeat_restart'],
+                                     output_results=kwargs['verify_output_results'],
+                                     **kwargs)
 
 def start(**kwargs):
     if kwargs["list_test_groups"]:

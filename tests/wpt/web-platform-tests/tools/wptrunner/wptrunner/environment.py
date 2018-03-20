@@ -147,8 +147,8 @@ class TestEnvironment(object):
             "ssl": {}
         }
 
-        if "host" in self.options:
-            local_config["host"] = self.options["host"]
+        if "browser_host" in self.options:
+            local_config["browser_host"] = self.options["browser_host"]
 
         if "bind_address" in self.options:
             local_config["bind_address"] = self.options["bind_address"]
@@ -156,7 +156,7 @@ class TestEnvironment(object):
         with open(default_config_path) as f:
             default_config = json.load(f)
 
-        local_config["host_ip"] = self.options.get("host_ip", None)
+        local_config["server_host"] = self.options.get("server_host", None)
         local_config["ssl"]["encrypt_after_connect"] = self.options.get("encrypt_after_connect", False)
 
         config = serve.merge_json(default_config, local_config)
@@ -165,7 +165,7 @@ class TestEnvironment(object):
         if not self.ssl_env.ssl_enabled:
             config["ports"]["https"] = [None]
 
-        host = self.options.get("certificate_domain", config["host"])
+        host = config["browser_host"]
         hosts = [host]
         hosts.extend("%s.%s" % (item[0], host) for item in serve.get_subdomains(host).values())
         key_file, certificate = self.ssl_env.host_cert_path(hosts)
@@ -240,7 +240,7 @@ class TestEnvironment(object):
 
     def test_servers(self):
         failed = []
-        host = self.config.get("host_ip") or self.config.get("host")
+        host = self.config["server_host"]
         for scheme, servers in self.servers.iteritems():
             for port, server in servers:
                 if self.test_server_port:

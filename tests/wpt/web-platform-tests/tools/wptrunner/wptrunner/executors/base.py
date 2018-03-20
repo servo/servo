@@ -172,7 +172,7 @@ class TestExecutor(object):
 
     def server_url(self, protocol):
         return "%s://%s:%s" % (protocol,
-                               self.server_config["host"],
+                               self.server_config["browser_host"],
                                self.server_config["ports"][protocol][0])
 
     def test_url(self, test):

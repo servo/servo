@@ -646,7 +646,12 @@ def get_ports(config, ssl_environment):
 
 
 def normalise_config(config, ports):
-    host = config["host"]
+    if "host" in config:
+        logger.warning("host in config is deprecated; use browser_host instead")
+        host = config["host"]
+    else:
+        host = config["browser_host"]
+
     domains = get_subdomains(host)
     not_domains = get_not_subdomains(host)
 
@@ -675,6 +680,8 @@ def normalise_config(config, ports):
     config_["not_domains"] = not_domains
     config_["ports"] = ports_
     config_["bind_address"] = bind_address
+    if config.get("server_host", None) is None:
+        config_["server_host"] = host
     return config_
 
 
@@ -692,7 +699,7 @@ def get_ssl_config(config, ssl_environment):
 
 
 def start(config, ssl_environment, routes, **kwargs):
-    host = config.get("host_ip") or config["host"]
+    host = config["server_host"]
     ports = get_ports(config, ssl_environment)
     paths = get_paths(config)
     bind_address = config["bind_address"]
@@ -815,7 +822,7 @@ def run(**kwargs):
     with get_ssl_environment(config) as ssl_env:
         ports = get_ports(config, ssl_env)
         config = normalise_config(config, ports)
-        host = config["host"]
+        host = config["browser_host"]
         bind_address = config["bind_address"]
 
         if config["check_subdomains"]:
