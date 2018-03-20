@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Orthogonal element sizing and percentage margins reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+.container {
+  background: cyan;
+  border: solid thick;
+  height: 500px;
+  width: 200px;
+}
+.element {
+  background: magenta;
+  font: 50px/1 Ahem;
+  margin: 20px;
+  height: 460px;
+  writing-mode: vertical-rl;
+}
+</style>
+
+<p>The test passes if it has the same visual effect as reference.</p>
+
+<div class="container">
+  <div class="element">XX X X X XX X X XX X XX</div>
+</div>

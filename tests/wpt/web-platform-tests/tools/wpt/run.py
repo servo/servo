@@ -96,10 +96,11 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 def check_environ(product):
     if product not in ("firefox", "servo"):
-        expected_hosts = {".".join(x)
-                          for x in serve.get_subdomains("web-platform.test").values()}
-        expected_hosts |= {".".join(x)
-                           for x in serve.get_not_subdomains("web-platform.test").values()}
+        config = serve.load_config(os.path.join(wpt_root, "config.default.json"),
+                                   os.path.join(wpt_root, "config.json"))
+        config = serve.normalise_config(config, {})
+        expected_hosts = (set(config["domains"].itervalues()) ^
+                          set(config["not_domains"].itervalues()))
         missing_hosts = set(expected_hosts)
         if platform.uname()[0] != "Windows":
             hosts_path = "/etc/hosts"

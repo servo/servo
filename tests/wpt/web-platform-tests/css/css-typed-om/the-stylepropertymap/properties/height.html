@@ -19,4 +19,27 @@ runPropertyTests('height', [
   { syntax: '<length>', specified: assert_is_equal_with_range_handling },
 ]);
 
+runPropertyTests('min-height', [
+  {
+    syntax: '<percentage>',
+    specified: assert_is_equal_with_range_handling
+  },
+  {
+    syntax: '<length>',
+    specified: assert_is_equal_with_range_handling
+  },
+]);
+
+runPropertyTests('max-height', [
+  { syntax: 'none' },
+  {
+    syntax: '<percentage>',
+    specified: assert_is_equal_with_range_handling
+  },
+  {
+    syntax: '<length>',
+    specified: assert_is_equal_with_range_handling
+  },
+]);
+
 </script>

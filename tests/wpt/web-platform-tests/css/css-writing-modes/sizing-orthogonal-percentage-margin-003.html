@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Orthogonal element sizing and percentage margins</title>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping">
+<link rel="match" href="sizing-orthogonal-percentage-margin-003-ref.html">
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<meta name="assert" content="This test checks that an horizontal element inside a verticalLR container computes properly its percentage margins against the container's inline size (the container's height in this test), and the element is sized accordingly subtracting those margins from the available size.">
+<style>
+.container {
+  background: cyan;
+  border: solid thick;
+  height: 200px;
+  width: 500px;
+  writing-mode: vertical-lr;
+}
+.element {
+  background: magenta;
+  font: 50px/1 Ahem;
+  margin: 10%; /* This should be computed against the container's inline size (200px), so it should be 20px and element's width should be 460px. */
+  writing-mode: horizontal-tb;
+}
+</style>
+
+<p>The test passes if it has the same visual effect as reference.</p>
+
+<div class="container">
+  <div class="element">XX X X X XX X X XX X XX</div>
+</div>
