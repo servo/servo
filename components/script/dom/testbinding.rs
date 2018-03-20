@@ -896,6 +896,7 @@ impl TestBindingMethods for TestBinding {
 
     fn PassMozMap(&self, _: MozMap<DOMString, i32>) {}
     fn PassMozMapWithUSVStringKey(&self, _: MozMap<USVString, i32>) {}
+    fn PassMozMapWithByteStringKey(&self, _: MozMap<ByteString, i32>) {}
     fn PassNullableMozMap(&self, _: Option<MozMap<DOMString, i32>>) {}
     fn PassMozMapOfNullableInts(&self, _: MozMap<DOMString, Option<i32>>) {}
     fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<DOMString, Option<i32>>>) {}
@@ -926,6 +927,9 @@ impl TestBindingMethods for TestBinding {
         MozMap::new()
     }
     fn ReceiveMozMapWithUSVStringKey(&self) -> MozMap<USVString, i32> {
+        MozMap::new()
+    }
+    fn ReceiveMozMapWithByteStringKey(&self) -> MozMap<ByteString, i32> {
         MozMap::new()
     }
     fn ReceiveNullableMozMap(&self) -> Option<MozMap<DOMString, i32>> {

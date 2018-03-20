@@ -6,7 +6,7 @@
 
 use crate::dom::bindings::conversions::jsid_to_string;
 use crate::dom::bindings::error::report_pending_exception;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use indexmap::IndexMap;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::HandleId as RawHandleId;
@@ -57,6 +57,23 @@ impl MozMapKey for USVString {
         JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
 
         match USVString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
+            ConversionResult::Success(s) => return Some(s),
+            ConversionResult::Failure(_) => return None
+        }
+    }
+}
+
+impl MozMapKey for ByteString {
+    fn to_utf16_vec(&self) -> Vec<u16> {
+        self.iter().map(|&x| x as u16).collect::<Vec<u16>>()
+    }
+
+    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<ByteString> {
+        rooted!(in(cx) let mut jsid_value = UndefinedValue());
+        let raw_id: RawHandleId = id.into();
+        JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
+
+        match ByteString::from_jsval(cx, jsid_value.handle(), ()).unwrap() {
             ConversionResult::Success(s) => return Some(s),
             ConversionResult::Failure(_) => return None
         }
