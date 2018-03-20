@@ -1156,21 +1156,8 @@ impl WebGLImpl {
     fn shader_precision_format(gl: &gl::Gl,
                                shader_type: u32,
                                precision_type: u32,
-                               chan: WebGLSender<WebGLResult<(i32, i32, i32)>>) {
-        let result = match precision_type {
-            gl::LOW_FLOAT |
-            gl::MEDIUM_FLOAT |
-            gl::HIGH_FLOAT |
-            gl::LOW_INT |
-            gl::MEDIUM_INT |
-            gl::HIGH_INT => {
-                Ok(gl.get_shader_precision_format(shader_type, precision_type))
-            },
-            _=> {
-                Err(WebGLError::InvalidEnum)
-            }
-        };
-
+                               chan: WebGLSender<(i32, i32, i32)>) {
+        let result = gl.get_shader_precision_format(shader_type, precision_type);
         chan.send(result).unwrap();
     }
 

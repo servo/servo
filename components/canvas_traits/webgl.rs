@@ -210,7 +210,7 @@ pub enum WebGLCommand {
     GetTexParameter(u32, u32, WebGLSender<i32>),
     GetProgramParameter(WebGLProgramId, u32, WebGLSender<WebGLResult<WebGLParameter>>),
     GetShaderParameter(WebGLShaderId, u32, WebGLSender<WebGLResult<WebGLParameter>>),
-    GetShaderPrecisionFormat(u32, u32, WebGLSender<WebGLResult<(i32, i32, i32)>>),
+    GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
     GetActiveAttrib(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
     GetActiveUniform(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
     GetAttribLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),

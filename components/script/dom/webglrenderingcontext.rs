@@ -2357,24 +2357,32 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderPrecisionFormat(&self,
-                                shader_type: u32,
-                                precision_type: u32)
-                                -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
+    fn GetShaderPrecisionFormat(
+        &self,
+        shader_type: u32,
+        precision_type: u32
+    ) -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
+        let precision_type_matches = match precision_type {
+            constants::LOW_FLOAT |
+            constants::MEDIUM_FLOAT |
+            constants::HIGH_FLOAT |
+            constants::LOW_INT |
+            constants::MEDIUM_INT |
+            constants::HIGH_INT => true,
+            _ => false,
+        };
+        if !precision_type_matches {
+            self.webgl_error(InvalidEnum);
+            return None;
+        }
+
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetShaderPrecisionFormat(shader_type,
                                                                  precision_type,
                                                                  sender));
 
-        match receiver.recv().unwrap() {
-            Ok((range_min, range_max, precision)) => {
-                Some(WebGLShaderPrecisionFormat::new(self.global().as_window(), range_min, range_max, precision))
-            },
-            Err(error) => {
-                self.webgl_error(error);
-                None
-            }
-        }
+        let (range_min, range_max, precision) = receiver.recv().unwrap();
+        Some(WebGLShaderPrecisionFormat::new(self.global().as_window(), range_min, range_max, precision))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
