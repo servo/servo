@@ -7,8 +7,9 @@
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
@@ -20,18 +21,20 @@ use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servoparser::{ElementAttribute, create_element_for_token, ParsingAlgorithm};
 use dom::virtualmethods::vtable_for;
-use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName};
+use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName, Sendable};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
 use html5ever::tendril::fmt::UTF8;
-use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
-use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode, TreeSink};
-use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use html5ever::tokenizer::{SendableTokenizer, Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
+use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode};
+use html5ever::tree_builder::{SendableTreeBuilder, TreeSink, TreeBuilder, TreeBuilderOpts};
+use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::vec_deque::VecDeque;
+use std::mem;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use style::context::QuirksMode as ServoQuirksMode;
@@ -39,243 +42,20 @@ use style::context::QuirksMode as ServoQuirksMode;
 type ParseNodeId = usize;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct ParseNode {
-    id: ParseNodeId,
-    qual_name: Option<QualName>,
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-enum NodeOrText {
-    Node(ParseNode),
-    Text(String),
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct Attribute {
-    name: QualName,
-    value: String,
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-enum ParseOperation {
-    GetTemplateContents { target: ParseNodeId, contents: ParseNodeId },
-
-    CreateElement {
-        node: ParseNodeId,
-        name: QualName,
-        attrs: Vec<Attribute>,
-        current_line: u64
-    },
-
-    CreateComment { text: String, node: ParseNodeId },
-    AppendBeforeSibling { sibling: ParseNodeId, node: NodeOrText },
-    AppendBasedOnParentNode { element: ParseNodeId, prev_element: ParseNodeId, node: NodeOrText },
-    Append { parent: ParseNodeId, node: NodeOrText },
-
-    AppendDoctypeToDocument {
-        name: String,
-        public_id: String,
-        system_id: String
-    },
-
-    AddAttrsIfMissing { target: ParseNodeId, attrs: Vec<Attribute> },
-    RemoveFromParent { target: ParseNodeId },
-    MarkScriptAlreadyStarted { node: ParseNodeId },
-    ReparentChildren { parent: ParseNodeId, new_parent: ParseNodeId },
-
-    AssociateWithForm {
-        target: ParseNodeId,
-        form: ParseNodeId,
-        element: ParseNodeId,
-        prev_element: Option<ParseNodeId>
-    },
-
-    CreatePI {
-        node: ParseNodeId,
-        target: String,
-        data: String
-    },
-
-    Pop { node: ParseNodeId },
-
-    SetQuirksMode {
-        #[ignore_malloc_size_of = "Defined in style"]
-        mode: ServoQuirksMode
-    },
-}
-
-#[derive(MallocSizeOf)]
-enum ToTokenizerMsg {
-    // From HtmlTokenizer
-    TokenizerResultDone {
-        #[ignore_malloc_size_of = "Defined in html5ever"]
-        updated_input: VecDeque<SendTendril<UTF8>>
-    },
-    TokenizerResultScript {
-        script: ParseNode,
-        #[ignore_malloc_size_of = "Defined in html5ever"]
-        updated_input: VecDeque<SendTendril<UTF8>>
-    },
-    End, // Sent to Tokenizer to signify HtmlTokenizer's end method has returned
-
-    // From Sink
-    ProcessOperation(ParseOperation),
-}
-
-#[derive(MallocSizeOf)]
-enum ToHtmlTokenizerMsg {
-    Feed {
-        #[ignore_malloc_size_of = "Defined in html5ever"]
-        input: VecDeque<SendTendril<UTF8>>
-    },
-    End,
-    SetPlainTextState,
-}
-
-fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue {
-    let mut buffer_queue = BufferQueue::new();
-    while let Some(st) = buffers.pop_front() {
-        buffer_queue.push_back(StrTendril::from(st));
-    }
-    buffer_queue
-}
-
-// The async HTML Tokenizer consists of two separate types working together: the Tokenizer
-// (defined below), which lives on the main thread, and the HtmlTokenizer, defined in html5ever, which
-// lives on the parser thread.
-// Steps:
-// 1. A call to Tokenizer::new will spin up a new parser thread, creating an HtmlTokenizer instance,
-//    which starts listening for messages from Tokenizer.
-// 2. Upon receiving an input from ServoParser, the Tokenizer forwards it to HtmlTokenizer, where it starts
-//    creating the necessary tree actions based on the input.
-// 3. HtmlTokenizer sends these tree actions to the Tokenizer as soon as it creates them. The Tokenizer
-//    then executes the received actions.
-//
-//    _____________                           _______________
-//   |             |                         |               |
-//   |             |                         |               |
-//   |             |   ToHtmlTokenizerMsg    |               |
-//   |             |------------------------>| HtmlTokenizer |
-//   |             |                         |               |
-//   |  Tokenizer  |     ToTokenizerMsg      |               |
-//   |             |<------------------------|    ________   |
-//   |             |                         |   |        |  |
-//   |             |     ToTokenizerMsg      |   |  Sink  |  |
-//   |             |<------------------------|---|        |  |
-//   |             |                         |   |________|  |
-//   |_____________|                         |_______________|
-//
-#[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
-pub struct Tokenizer {
-    document: Dom<Document>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    receiver: Receiver<ToTokenizerMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
+struct ParseOperationExecutor {
     nodes: HashMap<ParseNodeId, Dom<Node>>,
-    url: ServoUrl,
 }
 
-impl Tokenizer {
-    pub fn new(
-            document: &Document,
-            url: ServoUrl,
-            fragment_context: Option<super::FragmentContext>)
-            -> Self {
-        // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
-        let (to_html_tokenizer_sender, html_tokenizer_receiver) = channel();
-        // Messages from HtmlTokenizer and Sink (parser thread) to Tokenizer (main thread)
-        let (to_tokenizer_sender, tokenizer_receiver) = channel();
-
-        let mut tokenizer = Tokenizer {
-            document: Dom::from_ref(document),
-            receiver: tokenizer_receiver,
-            html_tokenizer_sender: to_html_tokenizer_sender,
+impl ParseOperationExecutor {
+    fn new(document: Option<&Document>) -> ParseOperationExecutor {
+        let mut executor = ParseOperationExecutor {
             nodes: HashMap::new(),
-            url: url
         };
-        tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
-
-        let mut sink = Sink::new(to_tokenizer_sender.clone());
-        let mut ctxt_parse_node = None;
-        let mut form_parse_node = None;
-        let mut fragment_context_is_some = false;
-        if let Some(fc) = fragment_context {
-            let node = sink.new_parse_node();
-            tokenizer.insert_node(node.id, Dom::from_ref(fc.context_elem));
-            ctxt_parse_node = Some(node);
-
-            form_parse_node = fc.form_elem.map(|form_elem| {
-                let node = sink.new_parse_node();
-                tokenizer.insert_node(node.id, Dom::from_ref(form_elem));
-                node
-            });
-            fragment_context_is_some = true;
+        match document {
+            Some(doc) => executor.insert_node(0, Dom::from_ref(doc.upcast())),
+            None => {}
         };
-
-        // Create new thread for HtmlTokenizer. This is where parser actions
-        // will be generated from the input provided. These parser actions are then passed
-        // onto the main thread to be executed.
-        thread::Builder::new().name(String::from("HTML Parser")).spawn(move || {
-            run(sink,
-                fragment_context_is_some,
-                ctxt_parse_node,
-                form_parse_node,
-                to_tokenizer_sender,
-                html_tokenizer_receiver);
-        }).expect("HTML Parser thread spawning failed");
-
-        tokenizer
-    }
-
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
-        let mut send_tendrils = VecDeque::new();
-        while let Some(str) = input.pop_front() {
-            send_tendrils.push_back(SendTendril::from(str));
-        }
-
-        // Send message to parser thread, asking it to start reading from the input.
-        // Parser operation messages will be sent to main thread as they are evaluated.
-        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::Feed { input: send_tendrils }).unwrap();
-
-        loop {
-            match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
-                ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
-                ToTokenizerMsg::TokenizerResultDone { updated_input } => {
-                    let buffer_queue = create_buffer_queue(updated_input);
-                    *input = buffer_queue;
-                    return Ok(());
-                },
-                ToTokenizerMsg::TokenizerResultScript { script, updated_input } => {
-                    let buffer_queue = create_buffer_queue(updated_input);
-                    *input = buffer_queue;
-                    let script = self.get_node(&script.id);
-                    return Err(DomRoot::from_ref(script.downcast().unwrap()));
-                }
-                ToTokenizerMsg::End => unreachable!(),
-            };
-        }
-    }
-
-    pub fn end(&mut self) {
-        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::End).unwrap();
-        loop {
-            match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
-                ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
-                ToTokenizerMsg::End => return,
-                _ => unreachable!(),
-            };
-        }
-    }
-
-    pub fn url(&self) -> &ServoUrl {
-        &self.url
-    }
-
-    pub fn set_plaintext_state(&mut self) {
-        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::SetPlainTextState).unwrap();
+        executor
     }
 
     fn insert_node(&mut self, id: ParseNodeId, node: Dom<Node>) {
@@ -285,7 +65,6 @@ impl Tokenizer {
     fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a Dom<Node> {
         self.nodes.get(id).expect("Node not found!")
     }
-
 
     fn append_before_sibling(&mut self, sibling: ParseNodeId, node: NodeOrText) {
         let node = match node {
@@ -325,6 +104,7 @@ impl Tokenizer {
         x.is_in_same_home_subtree(y)
     }
 
+
     fn process_operation(&mut self, op: ParseOperation) {
         let document = DomRoot::from_ref(&**self.get_node(&0));
         let document = document.downcast::<Document>().expect("Document node should be downcasted!");
@@ -343,7 +123,7 @@ impl Tokenizer {
                 let element = create_element_for_token(
                     name,
                     attrs,
-                    &*self.document,
+                    document,
                     ElementCreator::ParserCreated(current_line),
                     ParsingAlgorithm::Normal
                 );
@@ -416,7 +196,7 @@ impl Tokenizer {
                     control.set_form_owner_from_parser(&form);
                 } else {
                     // TODO remove this code when keygen is implemented.
-                    assert_eq!(node.NodeName(), "KEYGEN", "Unknown form-associatable element");
+                    assert!(node.NodeName() == "KEYGEN", "Unknown form-associatable element");
                 }
             }
             ParseOperation::Pop { node } => {
@@ -436,7 +216,451 @@ impl Tokenizer {
     }
 }
 
-fn run(sink: Sink,
+fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue {
+    let mut buffer_queue = BufferQueue::new();
+    while let Some(st) = buffers.pop_front() {
+        buffer_queue.push_back(StrTendril::from(st));
+    }
+    buffer_queue
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub struct ParseNode {
+    id: ParseNodeId,
+    qual_name: Option<QualName>,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+enum NodeOrText {
+    Node(ParseNode),
+    Text(String),
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct Attribute {
+    name: QualName,
+    value: String,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+enum ParseOperation {
+    GetTemplateContents { target: ParseNodeId, contents: ParseNodeId },
+
+    CreateElement {
+        node: ParseNodeId,
+        name: QualName,
+        attrs: Vec<Attribute>,
+        current_line: u64
+    },
+
+    CreateComment { text: String, node: ParseNodeId },
+    AppendBeforeSibling { sibling: ParseNodeId, node: NodeOrText },
+    AppendBasedOnParentNode { element: ParseNodeId, prev_element: ParseNodeId, node: NodeOrText },
+    Append { parent: ParseNodeId, node: NodeOrText },
+
+    AppendDoctypeToDocument {
+        name: String,
+        public_id: String,
+        system_id: String
+    },
+
+    AddAttrsIfMissing { target: ParseNodeId, attrs: Vec<Attribute> },
+    RemoveFromParent { target: ParseNodeId },
+    MarkScriptAlreadyStarted { node: ParseNodeId },
+    ReparentChildren { parent: ParseNodeId, new_parent: ParseNodeId },
+
+    AssociateWithForm {
+        target: ParseNodeId,
+        form: ParseNodeId,
+        element: ParseNodeId,
+        prev_element: Option<ParseNodeId>
+    },
+
+    CreatePI {
+        node: ParseNodeId,
+        target: String,
+        data: String
+    },
+
+    Pop { node: ParseNodeId },
+
+    SetQuirksMode {
+        #[ignore_malloc_size_of = "Defined in style"]
+        mode: ServoQuirksMode
+    },
+}
+
+#[derive(MallocSizeOf)]
+enum ToTokenizerMsg {
+    // From HtmlTokenizer
+    TokenizerResultDone {
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        updated_input: VecDeque<SendTendril<UTF8>>,
+        speculative_parsing_mode: bool,
+    },
+
+    TokenizerResultScript {
+        script: ParseNode,
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        updated_input: VecDeque<SendTendril<UTF8>>,
+        speculative_parsing_mode: bool,
+    },
+
+    /// Sent to Tokenizer to signify HtmlTokenizer's end method has returned
+    End,
+
+    /// The tokenizer on the main thread receives the h5e's tokenizer's state, which will
+    /// be used to reconstruct the original tokenizer to parse document.write()'s contents.
+    HtmlTokenizerInternalState(
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        SendableTokenizer<SendableTreeBuilder<ParseNode, SendableSink>>,
+    ),
+
+    // From Sink
+    ProcessOperation(ParseOperation),
+    SpeculativeParseOps(VecDeque<ParseOperation>),
+}
+
+#[derive(MallocSizeOf)]
+enum ToHtmlTokenizerMsg {
+    Feed {
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        input: VecDeque<SendTendril<UTF8>>,
+        should_parse_speculatively: bool
+    },
+    End,
+    SetPlainTextState,
+    RestoreInternalState {
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        tok_internal_state: SendableTokenizer<SendableTreeBuilder<ParseNode, SendableSink>>
+    },
+    FlushTreeOps,
+}
+
+#[allow(unsafe_code)]
+unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<ParseNode, Sink>> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.sink.sink.trace(trc);
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub enum TokenizerState {
+    /// Default state, executes parse ops sent to it by the Sink
+    ExecutingParseOps,
+    /// HtmlTokenizer needed to parse content from calls to document.write() (if any) synchronously
+    SpeculativeParsing {
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        tokenizer: HtmlTokenizer<TreeBuilder<ParseNode, Sink>>,
+        document_write_called: bool,
+        /// Is the topmost-level script a pending-parsing-blocking script?
+        waiting_on_script: bool,
+    },
+}
+
+// The async HTML Tokenizer consists of two separate types working together: the Tokenizer
+// (defined below), which lives on the main thread, and the HtmlTokenizer, defined in html5ever, which
+// lives on the parser thread.
+// Steps:
+// 1. A call to Tokenizer::new will spin up a new parser thread, creating an HtmlTokenizer instance,
+//    which starts listening for messages from Tokenizer.
+// 2. Upon receiving an input from ServoParser, the Tokenizer forwards it to HtmlTokenizer, where it starts
+//    creating the necessary tree actions based on the input.
+// 3. HtmlTokenizer sends these tree actions to the Tokenizer as soon as it creates them. The Tokenizer
+//    then executes the received actions.
+//
+//    _____________                           _______________
+//   |             |                         |               |
+//   |             |                         |               |
+//   |             |   ToHtmlTokenizerMsg    |               |
+//   |             |------------------------>| HtmlTokenizer |
+//   |             |                         |               |
+//   |  Tokenizer  |     ToTokenizerMsg      |               |
+//   |             |<------------------------|    ________   |
+//   |             |                         |   |        |  |
+//   |             |     ToTokenizerMsg      |   |  Sink  |  |
+//   |             |<------------------------|---|        |  |
+//   |             |                         |   |________|  |
+//   |_____________|                         |_______________|
+//
+#[derive(JSTraceable, MallocSizeOf)]
+#[must_root]
+pub struct Tokenizer {
+    #[ignore_malloc_size_of = "Defined in std"]
+    receiver: Receiver<ToTokenizerMsg>,
+    #[ignore_malloc_size_of = "Defined in std"]
+    html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
+    url: ServoUrl,
+    state: TokenizerState,
+    executor: ParseOperationExecutor,
+    pending_result: Option<MutNullableDom<HTMLScriptElement>>,
+}
+
+impl Tokenizer {
+    pub fn new(
+            document: &Document,
+            url: ServoUrl,
+            fragment_context: Option<super::FragmentContext>)
+            -> Self {
+        // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
+        let (to_html_tokenizer_sender, html_tokenizer_receiver) = channel();
+        // Messages from HtmlTokenizer and Sink (both in parser thread) to Tokenizer (main thread)
+        let (to_tokenizer_sender, tokenizer_receiver) = channel();
+
+        let mut tokenizer = Tokenizer {
+            receiver: tokenizer_receiver,
+            html_tokenizer_sender: to_html_tokenizer_sender,
+            url: url,
+            state: TokenizerState::ExecutingParseOps,
+            executor: ParseOperationExecutor::new(Some(document)),
+            pending_result: None,
+        };
+
+        let mut sink = Sink::new(to_tokenizer_sender.clone());
+        let mut ctxt_parse_node = None;
+        let mut form_parse_node = None;
+        let mut fragment_context_is_some = false;
+        if let Some(fc) = fragment_context {
+            let node = sink.new_parse_node();
+            tokenizer.executor.insert_node(node.id, Dom::from_ref(fc.context_elem));
+            ctxt_parse_node = Some(node);
+
+            form_parse_node = fc.form_elem.map(|form_elem| {
+                let node = sink.new_parse_node();
+                tokenizer.executor.insert_node(node.id, Dom::from_ref(form_elem));
+                node
+            });
+            fragment_context_is_some = true;
+        };
+        let sendable_sink = sink.get_sendable();
+
+        // Create new thread for HtmlTokenizer. This is where parser actions
+        // will be generated from the input provided. These parser actions are then passed
+        // onto the main thread to be executed.
+        thread::Builder::new().name(String::from("HTML Parser")).spawn(move || {
+            run(sendable_sink,
+                fragment_context_is_some,
+                ctxt_parse_node,
+                form_parse_node,
+                to_tokenizer_sender,
+                html_tokenizer_receiver);
+        }).expect("HTML Parser thread spawning failed");
+
+        tokenizer
+    }
+
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+        match self.state {
+            TokenizerState::SpeculativeParsing {
+                ref mut tokenizer,
+                ref mut document_write_called,
+                ..
+            } => {
+                // Only document.write() calls can call tokenizer's feed function when
+                // it is in speculative parsing state.
+                *document_write_called = true;
+                // Previous speculative parsing result has been invalidated now, so discard it.
+                self.pending_result.take();
+
+                match tokenizer.feed(input) {
+                    TokenizerResult::Done => Ok(()),
+                    TokenizerResult::Script(script) => {
+                        let script_node = match tokenizer.sink.sink.state {
+                            SinkState::ParsingDocWriteContents(ref executor) => executor.get_node(&script.id),
+                            _ => unreachable!(),
+                        };
+                        Err(DomRoot::from_ref(script_node.downcast().unwrap()))
+                    },
+                }
+            },
+            TokenizerState::ExecutingParseOps => {
+                // If a pending result is present (result generated during speculative parsing, while a
+                // pending-parsing-blocking script was being prepared/executed), then we take the result and
+                // return it instead of feeding.
+                match self.pending_result.take() {
+                    Some(result) => {
+                        return match result.get() {
+                            Some(script) => Err(script),
+                            None => Ok(()),
+                        };
+                    },
+                    None => {},
+                };
+
+                let mut send_tendrils = VecDeque::new();
+                while let Some(tendril) = input.pop_front() {
+                    send_tendrils.push_back(SendTendril::from(tendril));
+                }
+
+                // Send message to parser thread, asking it to start reading from the input.
+                // Parser operation messages will be sent to main thread as they are evaluated.
+                self.html_tokenizer_sender.send(
+                    ToHtmlTokenizerMsg::Feed {
+                        input: send_tendrils,
+                        should_parse_speculatively: false
+                    }).unwrap();
+
+                loop {
+                    match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
+                        ToTokenizerMsg::ProcessOperation(parse_op) => self.executor.process_operation(parse_op),
+                        ToTokenizerMsg::TokenizerResultDone { updated_input, speculative_parsing_mode } => {
+                            assert_eq!(speculative_parsing_mode, false);
+
+                            let buffer_queue = create_buffer_queue(updated_input);
+                            *input = buffer_queue;
+                            return Ok(());
+                        },
+                        ToTokenizerMsg::TokenizerResultScript { script, updated_input, speculative_parsing_mode } => {
+                            assert_eq!(speculative_parsing_mode, false);
+
+                            let buffer_queue = create_buffer_queue(updated_input);
+                            *input = buffer_queue;
+                            let script = self.executor.get_node(&script.id);
+                            return Err(DomRoot::from_ref(script.downcast().unwrap()));
+                        },
+                        _ => unreachable!(),
+                    };
+                }
+            }
+        }
+    }
+
+    pub fn end(&mut self) {
+        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::End).unwrap();
+        loop {
+            match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
+                ToTokenizerMsg::ProcessOperation(parse_op) => self.executor.process_operation(parse_op),
+                ToTokenizerMsg::End => return,
+                _ => unreachable!(),
+            };
+        }
+    }
+
+    pub fn url(&self) -> &ServoUrl {
+        &self.url
+    }
+
+    pub fn set_plaintext_state(&mut self) {
+        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::SetPlainTextState).unwrap();
+    }
+
+    pub fn start_speculative_parsing(&mut self, input: &mut BufferQueue) {
+        input.notify_speculative_parsing_has_started();
+        let mut send_tendrils = VecDeque::new();
+        let mut input = input.clone();
+        while let Some(tendril) = input.pop_front() {
+            send_tendrils.push_back(SendTendril::from(tendril));
+        }
+
+        // Send message to parser thread, asking it to start reading from the input.
+        // Parser operation messages will be enqueued. Under the right conditions,
+        // these parser operations will be sent to the main thread to be executed.
+        self.html_tokenizer_sender.send(
+            ToHtmlTokenizerMsg::Feed {
+                input: send_tendrils,
+                should_parse_speculatively: true
+            }).unwrap();
+
+        match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
+            ToTokenizerMsg::HtmlTokenizerInternalState(sendable_tok) => {
+                let mut tokenizer: HtmlTokenizer<TreeBuilder<ParseNode, Sink>> = HtmlTokenizer::get_self_from_sendable(
+                                                                                     sendable_tok
+                                                                                 );
+                // transfer the executor to the Sink, while leaving a dummy executor in place.
+                tokenizer.sink.sink.state = SinkState::ParsingDocWriteContents(
+                    mem::replace(&mut self.executor, ParseOperationExecutor::new(None))
+                );
+                self.state = TokenizerState::SpeculativeParsing {
+                    tokenizer: tokenizer,
+                    document_write_called: false,
+                    waiting_on_script: false,
+                };
+            },
+            _ => unreachable!(),
+        };
+    }
+
+    pub fn end_speculative_parsing(&mut self,
+                                   input: &mut BufferQueue,
+                                   document_has_pending_parsing_blocking_script: bool) {
+        match self.state {
+            TokenizerState::SpeculativeParsing {
+                ref mut waiting_on_script,
+                ..
+            } => {
+                *waiting_on_script = document_has_pending_parsing_blocking_script;
+                if *waiting_on_script {
+                    return;
+                }
+            },
+            TokenizerState::ExecutingParseOps => unreachable!(),
+        };
+
+        let old_state = mem::replace(&mut self.state, TokenizerState::ExecutingParseOps);
+        match old_state {
+            TokenizerState::SpeculativeParsing {
+                mut tokenizer,
+                document_write_called,
+                waiting_on_script,
+            } => {
+                assert_eq!(waiting_on_script, false);
+                let msg = self.receiver.recv().expect("Unexpected channel panic in main thread.");
+                match tokenizer.sink.sink.state {
+                    SinkState::ParsingDocWriteContents(ref mut executor) => {
+                        // self.executor contains the dummy executor we had assigned to it in
+                        // `starts_speculative_parsing`; this line ensures that the tokenizer once again
+                        // repossesses it.
+                        mem::swap(&mut self.executor, executor);
+                    }
+                    _ => unreachable!(),
+                };
+
+                if document_write_called {
+                    tokenizer.sink.sink.state = SinkState::SendingParseOps;
+                    let tok_internal_state = tokenizer.get_sendable();
+                    self.html_tokenizer_sender.send(
+                        ToHtmlTokenizerMsg::RestoreInternalState { tok_internal_state }
+                    ).unwrap();
+                    input.update_with_new_data(None);
+                    assert!(self.pending_result.is_none());
+                } else {
+                    self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::FlushTreeOps).unwrap();
+                    match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
+                        ToTokenizerMsg::SpeculativeParseOps(mut parse_ops) => {
+                            while let Some(parse_op) = parse_ops.pop_front() {
+                                self.executor.process_operation(parse_op);
+                            }
+                        },
+                        _ => unreachable!(),
+                    };
+
+                    let (mut updated_input, result) = match msg {
+                        ToTokenizerMsg::TokenizerResultDone { updated_input, speculative_parsing_mode } => {
+                            assert!(speculative_parsing_mode);
+                            (updated_input, MutNullableDom::new(None))
+                        },
+                        ToTokenizerMsg::TokenizerResultScript { script, updated_input, speculative_parsing_mode } => {
+                            assert!(speculative_parsing_mode);
+                            let script = self.executor.get_node(&script.id);
+                            (updated_input, MutNullableDom::new(Some(script.downcast().unwrap())))
+                        },
+                        _ => unreachable!(),
+                    };
+
+                    let mut new_updated_input = VecDeque::new();
+                    while let Some(st) = updated_input.pop_front() {
+                        new_updated_input.push_back(StrTendril::from(st));
+                    }
+                    input.update_with_new_data(Some(new_updated_input));
+                    self.pending_result = Some(result);
+                }
+            },
+            TokenizerState::ExecutingParseOps => unreachable!(),
+        }
+    }
+}
+
+fn run(sink: SendableSink,
        fragment_context_is_some: bool,
        ctxt_parse_node: Option<ParseNode>,
        form_parse_node: Option<ParseNode>,
@@ -447,6 +671,8 @@ fn run(sink: Sink,
         .. Default::default()
     };
 
+    let mut sink = Sink::get_self_from_sendable(sink);
+    sink.sender = Some(sender.clone());
     let mut html_tokenizer = if fragment_context_is_some {
         let tb = TreeBuilder::new_for_fragment(
             sink,
@@ -466,8 +692,13 @@ fn run(sink: Sink,
 
     loop {
         match receiver.recv().expect("Unexpected channel panic in html parser thread") {
-            ToHtmlTokenizerMsg::Feed { input } => {
+            ToHtmlTokenizerMsg::Feed { input, should_parse_speculatively } => {
                 let mut input = create_buffer_queue(input);
+                if should_parse_speculatively {
+                    let sendable_tokenizer = html_tokenizer.get_sendable();
+                    html_tokenizer.sink.sink.state = SinkState::EnqueuingParseOps(VecDeque::new());
+                    sender.send(ToTokenizerMsg::HtmlTokenizerInternalState(sendable_tokenizer)).unwrap();
+                }
                 let res = html_tokenizer.feed(&mut input);
 
                 // Gather changes to 'input' and place them in 'updated_input',
@@ -478,33 +709,68 @@ fn run(sink: Sink,
                 }
 
                 let res = match res {
-                    TokenizerResult::Done => ToTokenizerMsg::TokenizerResultDone { updated_input },
-                    TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript { script, updated_input }
+                    TokenizerResult::Done => ToTokenizerMsg::TokenizerResultDone {
+                                                 updated_input,
+                                                 speculative_parsing_mode: should_parse_speculatively
+                                             },
+                    TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript {
+                                                           script,
+                                                           updated_input,
+                                                           speculative_parsing_mode: should_parse_speculatively
+                                                       },
                 };
                 sender.send(res).unwrap();
+            },
+            ToHtmlTokenizerMsg::FlushTreeOps => {
+                // In addition to flushing tree ops, this method
+                // implictly changes the Sink's state to `SinkState::SendingParseOps`.
+                html_tokenizer.sink.sink.flush_tree_ops();
+            }
+            ToHtmlTokenizerMsg::RestoreInternalState { tok_internal_state } => {
+                html_tokenizer = HtmlTokenizer::get_self_from_sendable(tok_internal_state);
+                html_tokenizer.sink.sink.sender = Some(sender.clone());
             },
             ToHtmlTokenizerMsg::End => {
                 html_tokenizer.end();
                 sender.send(ToTokenizerMsg::End).unwrap();
                 break;
             },
-            ToHtmlTokenizerMsg::SetPlainTextState => html_tokenizer.set_plaintext_state()
+            ToHtmlTokenizerMsg::SetPlainTextState => html_tokenizer.set_plaintext_state(),
         };
     }
 }
 
-#[derive(Default, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 struct ParseNodeData {
     contents: Option<ParseNode>,
     is_integration_point: bool,
 }
 
+pub struct SendableSink {
+    current_line: u64,
+    parse_node_data: HashMap<ParseNodeId, ParseNodeData>,
+    next_parse_node_id: ParseNodeId,
+    document_node: ParseNode,
+}
+
+#[derive(JSTraceable)]
+enum SinkState {
+    /// Default state of the Sink, sends all parse ops to main thread
+    SendingParseOps,
+    /// State assumed while parsing document.write()'s contents on the main thread
+    ParsingDocWriteContents(ParseOperationExecutor),
+    /// Speculative parsing mode, enqueues parse operations in parser thread
+    EnqueuingParseOps(VecDeque<ParseOperation>),
+}
+
+#[derive(JSTraceable)]
 pub struct Sink {
     current_line: u64,
     parse_node_data: HashMap<ParseNodeId, ParseNodeData>,
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
-    sender: Sender<ToTokenizerMsg>,
+    sender: Option<Sender<ToTokenizerMsg>>,
+    state: SinkState,
 }
 
 impl Sink {
@@ -517,7 +783,8 @@ impl Sink {
                 id: 0,
                 qual_name: None,
             },
-            sender: sender
+            sender: Some(sender),
+            state: SinkState::SendingParseOps,
         };
         let data = ParseNodeData::default();
         sink.insert_parse_node_data(0, data);
@@ -535,8 +802,29 @@ impl Sink {
         }
     }
 
-    fn send_op(&self, op: ParseOperation) {
-        self.sender.send(ToTokenizerMsg::ProcessOperation(op)).unwrap();
+    fn send_msg(&self, msg: ToTokenizerMsg) {
+        match self.sender {
+            Some(ref sender) => sender.send(msg).unwrap(),
+            None => unreachable!(),
+        };
+    }
+
+    fn process_op(&mut self, op: ParseOperation) {
+        match self.state {
+            SinkState::EnqueuingParseOps(ref mut parse_op_queue) => parse_op_queue.push_back(op),
+            SinkState::SendingParseOps => self.send_msg(ToTokenizerMsg::ProcessOperation(op)),
+            SinkState::ParsingDocWriteContents(ref mut executor) => executor.process_operation(op),
+        }
+    }
+
+    fn flush_tree_ops(&mut self) {
+        let old_state = mem::replace(&mut self.state, SinkState::SendingParseOps);
+        match old_state {
+            SinkState::EnqueuingParseOps(parse_op_queue) => {
+                self.send_msg(ToTokenizerMsg::SpeculativeParseOps(parse_op_queue));
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn insert_parse_node_data(&mut self, id: ParseNodeId, data: ParseNodeData) {
@@ -572,7 +860,7 @@ impl TreeSink for Sink {
             let data = self.get_parse_node_data_mut(&target.id);
             data.contents = Some(node.clone());
         }
-        self.send_op(ParseOperation::GetTemplateContents { target: target.id, contents: node.id });
+        self.process_op(ParseOperation::GetTemplateContents { target: target.id, contents: node.id });
         node
     }
 
@@ -601,24 +889,25 @@ impl TreeSink for Sink {
         let attrs = html_attrs.into_iter()
             .map(|attr| Attribute { name: attr.name, value: String::from(attr.value) }).collect();
 
-        self.send_op(ParseOperation::CreateElement {
+        let current_line = self.current_line;
+        self.process_op(ParseOperation::CreateElement {
             node: node.id,
             name,
             attrs,
-            current_line: self.current_line
+            current_line,
         });
         node
     }
 
     fn create_comment(&mut self, text: StrTendril) -> Self::Handle {
         let node = self.new_parse_node();
-        self.send_op(ParseOperation::CreateComment { text: String::from(text), node: node.id });
+        self.process_op(ParseOperation::CreateComment { text: String::from(text), node: node.id });
         node
     }
 
     fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> ParseNode {
         let node = self.new_parse_node();
-        self.send_op(ParseOperation::CreatePI {
+        self.process_op(ParseOperation::CreatePI {
             node: node.id,
             target: String::from(target),
             data: String::from(data)
@@ -633,7 +922,7 @@ impl TreeSink for Sink {
         nodes: (&Self::Handle, Option<&Self::Handle>),
     ) {
         let (element, prev_element) = nodes;
-        self.send_op(ParseOperation::AssociateWithForm {
+        self.process_op(ParseOperation::AssociateWithForm {
             target: target.id,
             form: form.id,
             element: element.id,
@@ -648,7 +937,7 @@ impl TreeSink for Sink {
             HtmlNodeOrText::AppendNode(node) => NodeOrText::Node(node),
             HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
         };
-        self.send_op(ParseOperation::AppendBeforeSibling { sibling: sibling.id, node: new_node });
+        self.process_op(ParseOperation::AppendBeforeSibling { sibling: sibling.id, node: new_node });
     }
 
     fn append_based_on_parent_node(
@@ -661,7 +950,7 @@ impl TreeSink for Sink {
             HtmlNodeOrText::AppendNode(node) => NodeOrText::Node(node),
             HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
         };
-        self.send_op(ParseOperation::AppendBasedOnParentNode {
+        self.process_op(ParseOperation::AppendBasedOnParentNode {
             element: elem.id,
             prev_element: prev_elem.id,
             node: child
@@ -678,7 +967,7 @@ impl TreeSink for Sink {
             QuirksMode::LimitedQuirks => ServoQuirksMode::LimitedQuirks,
             QuirksMode::NoQuirks => ServoQuirksMode::NoQuirks,
         };
-        self.send_op(ParseOperation::SetQuirksMode { mode });
+        self.process_op(ParseOperation::SetQuirksMode { mode });
     }
 
     fn append(&mut self, parent: &Self::Handle, child: HtmlNodeOrText<Self::Handle>) {
@@ -686,12 +975,12 @@ impl TreeSink for Sink {
             HtmlNodeOrText::AppendNode(node) => NodeOrText::Node(node),
             HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
         };
-        self.send_op(ParseOperation::Append { parent: parent.id, node: child });
+        self.process_op(ParseOperation::Append { parent: parent.id, node: child });
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
                                   system_id: StrTendril) {
-        self.send_op(ParseOperation::AppendDoctypeToDocument {
+        self.process_op(ParseOperation::AppendDoctypeToDocument {
             name: String::from(name),
             public_id: String::from(public_id),
             system_id: String::from(system_id)
@@ -701,15 +990,15 @@ impl TreeSink for Sink {
     fn add_attrs_if_missing(&mut self, target: &Self::Handle, html_attrs: Vec<HtmlAttribute>) {
         let attrs = html_attrs.into_iter()
             .map(|attr| Attribute { name: attr.name, value: String::from(attr.value) }).collect();
-        self.send_op(ParseOperation::AddAttrsIfMissing { target: target.id, attrs });
+        self.process_op(ParseOperation::AddAttrsIfMissing { target: target.id, attrs });
     }
 
     fn remove_from_parent(&mut self, target: &Self::Handle) {
-        self.send_op(ParseOperation::RemoveFromParent { target: target.id });
+        self.process_op(ParseOperation::RemoveFromParent { target: target.id });
     }
 
     fn mark_script_already_started(&mut self, node: &Self::Handle) {
-        self.send_op(ParseOperation::MarkScriptAlreadyStarted { node: node.id });
+        self.process_op(ParseOperation::MarkScriptAlreadyStarted { node: node.id });
     }
 
     fn complete_script(&mut self, _: &Self::Handle) -> NextParserState {
@@ -717,7 +1006,7 @@ impl TreeSink for Sink {
     }
 
     fn reparent_children(&mut self, parent: &Self::Handle, new_parent: &Self::Handle) {
-        self.send_op(ParseOperation::ReparentChildren { parent: parent.id, new_parent: new_parent.id });
+        self.process_op(ParseOperation::ReparentChildren { parent: parent.id, new_parent: new_parent.id });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
@@ -732,6 +1021,30 @@ impl TreeSink for Sink {
     }
 
     fn pop(&mut self, node: &Self::Handle) {
-        self.send_op(ParseOperation::Pop { node: node.id });
+        self.process_op(ParseOperation::Pop { node: node.id });
+    }
+}
+
+impl Sendable for Sink {
+    type SendableSelf = SendableSink;
+
+    fn get_sendable(&self) -> Self::SendableSelf {
+        SendableSink {
+            current_line: self.current_line,
+            parse_node_data: self.parse_node_data.clone(),
+            next_parse_node_id: self.next_parse_node_id.get(),
+            document_node: self.document_node.clone(),
+        }
+    }
+
+    fn get_self_from_sendable(sendable_sink: Self::SendableSelf) -> Self {
+        Sink {
+            current_line: sendable_sink.current_line,
+            parse_node_data: sendable_sink.parse_node_data,
+            next_parse_node_id: Cell::new(sendable_sink.next_parse_node_id),
+            document_node: sendable_sink.document_node,
+            sender: None,
+            state: SinkState::SendingParseOps,
+        }
     }
 }
