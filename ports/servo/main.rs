@@ -187,7 +187,6 @@ fn main() {
 
     window.run(|| {
         let win_events = window.get_events();
-        let servo_events = servo.get_events();
 
         // FIXME: this could be handled by Servo. We don't need
         // a repaint_synchronously function exposed.
@@ -196,14 +195,21 @@ fn main() {
             _ => false,
         });
 
-        browser.handle_servo_events(servo_events);
         browser.handle_window_events(win_events);
 
-        if browser.shutdown_requested() {
-            return true;
+        let mut servo_events = servo.get_events();
+        loop {
+            browser.handle_servo_events(servo_events);
+            servo.handle_events(browser.get_events());
+            if browser.shutdown_requested() {
+                return true;
+            }
+            servo_events = servo.get_events();
+            if servo_events.is_empty() {
+                break;
+            }
         }
 
-        servo.handle_events(browser.get_events());
         if need_resize {
             servo.repaint_synchronously();
         }
