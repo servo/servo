@@ -15,7 +15,7 @@ pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
 pub type ServoVisitedStyle = Option<::servo_arc::RawOffsetArc<::properties::ComputedValues>>;
 pub type ServoComputedValueFlags = ::properties::computed_value_flags::ComputedValueFlags;
 pub type ServoRawOffsetArc<T> = ::servo_arc::RawOffsetArc<T>;
-pub type ServoStyleContextStrong = ::gecko_bindings::sugar::ownership::Strong<::properties::ComputedValues>;
+pub type ComputedStyleStrong = ::gecko_bindings::sugar::ownership::Strong<::properties::ComputedValues>;
 
 #[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod root {
@@ -1130,7 +1130,7 @@ pub mod root {
         }
         pub type Conditional_Type<A> = A;
         pub const ArenaObjectID_eArenaObjectID_DummyBeforeFirstObjectID : root :: mozilla :: ArenaObjectID = 171 ;
-        pub const ArenaObjectID_eArenaObjectID_GeckoStyleContext: root::mozilla::ArenaObjectID =
+        pub const ArenaObjectID_eArenaObjectID_GeckoComputedStyle: root::mozilla::ArenaObjectID =
             172;
         pub const ArenaObjectID_eArenaObjectID_nsLineBox: root::mozilla::ArenaObjectID = 173;
         pub const ArenaObjectID_eArenaObjectID_nsRuleNode: root::mozilla::ArenaObjectID = 174;
@@ -13399,57 +13399,57 @@ pub mod root {
             );
         }
         #[repr(C)]
-        pub struct ServoStyleContext {
-            pub _base: root::nsStyleContext,
+        pub struct ComputedStyle {
+            pub _base: root::ComputedStyle,
             pub mPresContext: *mut root::nsPresContext,
             pub mSource: root::ServoComputedData,
             pub mCachedInheritingStyles: root::mozilla::CachedInheritingStyles,
         }
         #[test]
-        fn bindgen_test_layout_ServoStyleContext() {
+        fn bindgen_test_layout_ComputedStyle() {
             assert_eq!(
-                ::std::mem::size_of::<ServoStyleContext>(),
+                ::std::mem::size_of::<ComputedStyle>(),
                 248usize,
-                concat!("Size of: ", stringify!(ServoStyleContext))
+                concat!("Size of: ", stringify!(ComputedStyle))
             );
             assert_eq!(
-                ::std::mem::align_of::<ServoStyleContext>(),
+                ::std::mem::align_of::<ComputedStyle>(),
                 8usize,
-                concat!("Alignment of ", stringify!(ServoStyleContext))
+                concat!("Alignment of ", stringify!(ComputedStyle))
             );
             assert_eq!(
                 unsafe {
-                    &(*(::std::ptr::null::<ServoStyleContext>())).mPresContext as *const _ as usize
+                    &(*(::std::ptr::null::<ComputedStyle>())).mPresContext as *const _ as usize
                 },
                 16usize,
                 concat!(
                     "Offset of field: ",
-                    stringify!(ServoStyleContext),
+                    stringify!(ComputedStyle),
                     "::",
                     stringify!(mPresContext)
                 )
             );
             assert_eq!(
                 unsafe {
-                    &(*(::std::ptr::null::<ServoStyleContext>())).mSource as *const _ as usize
+                    &(*(::std::ptr::null::<ComputedStyle>())).mSource as *const _ as usize
                 },
                 24usize,
                 concat!(
                     "Offset of field: ",
-                    stringify!(ServoStyleContext),
+                    stringify!(ComputedStyle),
                     "::",
                     stringify!(mSource)
                 )
             );
             assert_eq!(
                 unsafe {
-                    &(*(::std::ptr::null::<ServoStyleContext>())).mCachedInheritingStyles
+                    &(*(::std::ptr::null::<ComputedStyle>())).mCachedInheritingStyles
                         as *const _ as usize
                 },
                 240usize,
                 concat!(
                     "Offset of field: ",
-                    stringify!(ServoStyleContext),
+                    stringify!(ComputedStyle),
                     "::",
                     stringify!(mCachedInheritingStyles)
                 )
@@ -17243,7 +17243,7 @@ pub mod root {
     /// has changed whether the frame is a container for fixed-pos or abs-pos
     /// elements, but reframing is otherwise not needed.
     ///
-    /// Note that nsStyleContext::CalcStyleDifference adjusts results
+    /// Note that ComputedStyle::CalcStyleDifference adjusts results
     /// returned by style struct CalcDifference methods to return this hint
     /// only if there was a change to whether the element's overall style
     /// indicates that it establishes a containing block.
@@ -24148,8 +24148,8 @@ pub mod root {
     pub type RawGeckoCSSPropertyIDList = root::nsTArray<root::nsCSSPropertyID>;
     pub type RawGeckoGfxMatrix4x4 = [root::mozilla::gfx::Float; 16usize];
     pub type RawGeckoStyleChildrenIterator = root::mozilla::dom::StyleChildrenIterator;
-    pub type ServoStyleContextBorrowed = *const root::mozilla::ServoStyleContext;
-    pub type ServoStyleContextBorrowedOrNull = *const root::mozilla::ServoStyleContext;
+    pub type ComputedStyleBorrowed = *const root::mozilla::ComputedStyle;
+    pub type ComputedStyleBorrowedOrNull = *const root::mozilla::ComputedStyle;
     pub type ServoComputedDataBorrowed = *const root::ServoComputedData;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
     pub type RawGeckoNodeBorrowedOrNull = *const root::RawGeckoNode;
@@ -40613,7 +40613,7 @@ pub mod root {
             )
         );
     }
-    /// An nsStyleContext represents the computed style data for an element.
+    /// An ComputedStyle represents the computed style data for an element.
     /// The computed style data are stored in a set of structs (see
     /// nsStyleStruct.h) that are cached either on the style context or in
     /// the rule tree (see nsRuleNode.h for a description of this caching and
@@ -40621,7 +40621,7 @@ pub mod root {
     ///
     /// Since the data in |nsIStyleRule|s and |nsRuleNode|s are immutable
     /// (with a few exceptions, like system color changes), the data in an
-    /// nsStyleContext are also immutable (with the additional exception of
+    /// ComputedStyle are also immutable (with the additional exception of
     /// GetUniqueStyleData).  When style data change,
     /// ElementRestyler::Restyle creates a new style context.
     ///
@@ -40632,38 +40632,38 @@ pub mod root {
     /// expectation, but it makes sense in this case)
     #[repr(C)]
     #[derive(Debug)]
-    pub struct nsStyleContext {
+    pub struct ComputedStyle {
         pub mPseudoTag: root::RefPtr<root::nsAtom>,
         pub mBits: u64,
     }
     #[test]
-    fn bindgen_test_layout_nsStyleContext() {
+    fn bindgen_test_layout_ComputedStyle() {
         assert_eq!(
-            ::std::mem::size_of::<nsStyleContext>(),
+            ::std::mem::size_of::<ComputedStyle>(),
             16usize,
-            concat!("Size of: ", stringify!(nsStyleContext))
+            concat!("Size of: ", stringify!(ComputedStyle))
         );
         assert_eq!(
-            ::std::mem::align_of::<nsStyleContext>(),
+            ::std::mem::align_of::<ComputedStyle>(),
             8usize,
-            concat!("Alignment of ", stringify!(nsStyleContext))
+            concat!("Alignment of ", stringify!(ComputedStyle))
         );
         assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsStyleContext>())).mPseudoTag as *const _ as usize },
+            unsafe { &(*(::std::ptr::null::<ComputedStyle>())).mPseudoTag as *const _ as usize },
             0usize,
             concat!(
                 "Offset of field: ",
-                stringify!(nsStyleContext),
+                stringify!(ComputedStyle),
                 "::",
                 stringify!(mPseudoTag)
             )
         );
         assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsStyleContext>())).mBits as *const _ as usize },
+            unsafe { &(*(::std::ptr::null::<ComputedStyle>())).mBits as *const _ as usize },
             8usize,
             concat!(
                 "Offset of field: ",
-                stringify!(nsStyleContext),
+                stringify!(ComputedStyle),
                 "::",
                 stringify!(mBits)
             )
@@ -50526,21 +50526,21 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_ServoStyleContext_close0_instantiation() {
+    fn __bindgen_test_layout_RefPtr_open0_ComputedStyle_close0_instantiation() {
         assert_eq!(
-            ::std::mem::size_of::<root::RefPtr<root::mozilla::ServoStyleContext>>(),
+            ::std::mem::size_of::<root::RefPtr<root::mozilla::ComputedStyle>>(),
             8usize,
             concat!(
                 "Size of template specialization: ",
-                stringify!(root::RefPtr<root::mozilla::ServoStyleContext>)
+                stringify!(root::RefPtr<root::mozilla::ComputedStyle>)
             )
         );
         assert_eq!(
-            ::std::mem::align_of::<root::RefPtr<root::mozilla::ServoStyleContext>>(),
+            ::std::mem::align_of::<root::RefPtr<root::mozilla::ComputedStyle>>(),
             8usize,
             concat!(
                 "Alignment of template specialization: ",
-                stringify!(root::RefPtr<root::mozilla::ServoStyleContext>)
+                stringify!(root::RefPtr<root::mozilla::ComputedStyle>)
             )
         );
     }
