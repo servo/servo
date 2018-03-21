@@ -1,8 +1,9 @@
-// https://wicg.github.io/web-share/
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the Web Share API spec.
+// See https://wicg.github.io/web-share/
 
 partial interface Navigator {
-  [SecureContext]
-  Promise<void> share(optional ShareData data);
+  [SecureContext] Promise<void> share(optional ShareData data);
 };
 
 dictionary ShareData {

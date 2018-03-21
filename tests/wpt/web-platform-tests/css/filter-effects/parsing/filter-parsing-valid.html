@@ -26,9 +26,10 @@ test_valid_value("filter", "contrast(300%)");
 test_valid_value("filter", "drop-shadow(1px 2px)");
 test_valid_value("filter", "drop-shadow(1px 2px 3px)");
 test_valid_value("filter", "drop-shadow(0 0 0)", "drop-shadow(0px 0px 0px)");
-// https://github.com/w3c/fxtf-drafts/issues/231
-test_valid_value("filter", "drop-shadow(1px 2px rgb(4, 5, 6))"); // Blink/WebKit serialize as "drop-shadow(rgb(4, 5, 6) 1px 2px)"
-test_valid_value("filter", "drop-shadow(1px 2px 3px rgba(4, 5, 6, 0.75))"); // Blink/WebKit serialize as "drop-shadow(rgba(4, 5, 6, 0.75) 1px 2px 3px)"
+// https://github.com/w3c/fxtf-drafts/issues/240
+test_valid_value("filter", "drop-shadow(rgb(4, 5, 6) 1px 2px)");
+test_valid_value("filter", "drop-shadow(1px 2px rgb(4, 5, 6))", "drop-shadow(rgb(4, 5, 6) 1px 2px)");
+test_valid_value("filter", "drop-shadow(rgba(4, 5, 6, 0.75) 1px 2px 3px)");
 
 test_valid_value("filter", "grayscale(0)");
 test_valid_value("filter", "grayscale(300%)", "grayscale(100%)");
