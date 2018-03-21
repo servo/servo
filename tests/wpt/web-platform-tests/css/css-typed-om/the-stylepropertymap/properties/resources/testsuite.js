@@ -352,7 +352,7 @@ function runPropertyTests(propertyName, testCases) {
 
     // Retrieve test examples for this test case's syntax. If the syntax
     // looks like a keyword, then create an example on the fly.
-    const syntaxExamples = testCase.syntax.match(/^[a-z\-]+$/) ?
+    const syntaxExamples = testCase.syntax.toLowerCase().match(/^[a-z\-]+$/) ?
       createKeywordExample(testCase.syntax) :
       gTestSyntaxExamples[testCase.syntax];
 
