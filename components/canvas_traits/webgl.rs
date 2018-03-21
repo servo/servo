@@ -272,6 +272,9 @@ pub enum WebGLCommand {
     CreateVertexArray(WebGLSender<Option<WebGLVertexArrayId>>),
     DeleteVertexArray(WebGLVertexArrayId),
     BindVertexArray(Option<WebGLVertexArrayId>),
+    DrawArraysInstanced { mode: u32, first: i32, count: i32, primcount: i32 },
+    DrawElementsInstanced { mode: u32, count: i32, type_: u32, offset: u32, primcount: i32 },
+    VertexAttribDivisor { index: u32, divisor: u32 },
 }
 
 macro_rules! define_resource_id_struct {
@@ -542,7 +545,10 @@ impl fmt::Debug for WebGLCommand {
             GenerateMipmap(..) => "GenerateMipmap",
             CreateVertexArray(..) => "CreateVertexArray",
             DeleteVertexArray(..) => "DeleteVertexArray",
-            BindVertexArray(..) => "BindVertexArray"
+            BindVertexArray(..) => "BindVertexArray",
+            DrawArraysInstanced { .. } => "DrawArraysInstanced",
+            DrawElementsInstanced { .. } => "DrawElementsInstanced",
+            VertexAttribDivisor { .. } => "VertexAttribDivisor",
         };
 
         write!(f, "CanvasWebGLMsg::{}(..)", name)

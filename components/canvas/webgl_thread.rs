@@ -885,6 +885,15 @@ impl WebGLImpl {
                 ctx.gl().delete_vertex_arrays(&[id.get()]),
             WebGLCommand::BindVertexArray(id) =>
                 ctx.gl().bind_vertex_array(id.map_or(0, WebGLVertexArrayId::get)),
+            WebGLCommand::DrawArraysInstanced { mode, first, count, primcount } => {
+                ctx.gl().draw_arrays_instanced(mode, first, count, primcount)
+            }
+            WebGLCommand::DrawElementsInstanced { mode, count, type_, offset, primcount } => {
+                ctx.gl().draw_elements_instanced(mode, count, type_, offset, primcount)
+            }
+            WebGLCommand::VertexAttribDivisor { index, divisor } => {
+                ctx.gl().vertex_attrib_divisor(index, divisor)
+            }
         }
 
         // TODO: update test expectations in order to enable debug assertions
@@ -1087,10 +1096,12 @@ impl WebGLImpl {
                 gl::VERTEX_ATTRIB_ARRAY_ENABLED |
                 gl::VERTEX_ATTRIB_ARRAY_NORMALIZED =>
                     Ok(WebGLParameter::Bool(gl.get_vertex_attrib_iv(index, pname) != 0)),
+                gl::VERTEX_ATTRIB_ARRAY_DIVISOR |
                 gl::VERTEX_ATTRIB_ARRAY_SIZE |
                 gl::VERTEX_ATTRIB_ARRAY_STRIDE |
-                gl::VERTEX_ATTRIB_ARRAY_TYPE =>
-                    Ok(WebGLParameter::Int(gl.get_vertex_attrib_iv(index, pname))),
+                gl::VERTEX_ATTRIB_ARRAY_TYPE => {
+                    Ok(WebGLParameter::Int(gl.get_vertex_attrib_iv(index, pname)))
+                }
                 gl::CURRENT_VERTEX_ATTRIB =>
                     Ok(WebGLParameter::FloatArray(gl.get_vertex_attrib_fv(index, pname))),
                 // gl::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING should return WebGLBuffer

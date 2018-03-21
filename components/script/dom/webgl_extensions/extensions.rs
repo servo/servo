@@ -4,6 +4,7 @@
 
 use canvas_traits::webgl::{WebGLError, WebGLVersion};
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -42,7 +43,14 @@ const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
 const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 1] = [
-    OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES
+    OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES,
+];
+
+// Param names that are implemented for glGetVertexAttrib in a WebGL 1.0 context
+// but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
+// Example: https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
+const DEFAULT_DISABLED_GET_VERTEX_ATTRIB_NAMES_WEBGL1: [GLenum; 1] = [
+    ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE,
 ];
 
 /// WebGL features that are enabled/disabled by WebGL Extensions.
@@ -57,18 +65,21 @@ struct WebGLExtensionFeatures {
     hint_targets: FnvHashSet<GLenum>,
     /// WebGL GetParameter() names enabled by extensions.
     disabled_get_parameter_names: FnvHashSet<GLenum>,
+    /// WebGL GetAttribVertex() names enabled by extensions.
+    disabled_get_vertex_attrib_names: FnvHashSet<GLenum>,
 }
 
 impl WebGLExtensionFeatures {
     fn new(webgl_version: WebGLVersion) -> Self {
-        let (disabled_tex_types, disabled_get_parameter_names) = match webgl_version {
+        let (disabled_tex_types, disabled_get_parameter_names, disabled_get_vertex_attrib_names) = match webgl_version {
             WebGLVersion::WebGL1 => {
-                (DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
-                 DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect())
+                (
+                    DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
+                    DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
+                    DEFAULT_DISABLED_GET_VERTEX_ATTRIB_NAMES_WEBGL1.iter().cloned().collect(),
+                )
             },
-            WebGLVersion::WebGL2 => {
-                (Default::default(), Default::default())
-            }
+            WebGLVersion::WebGL2 => Default::default(),
         };
         Self {
             gl_extensions: Default::default(),
@@ -78,6 +89,7 @@ impl WebGLExtensionFeatures {
             query_parameter_handlers: Default::default(),
             hint_targets: Default::default(),
             disabled_get_parameter_names,
+            disabled_get_vertex_attrib_names,
         }
     }
 }
@@ -232,7 +244,16 @@ impl WebGLExtensions {
         !self.features.borrow().disabled_get_parameter_names.contains(&name)
     }
 
+    pub fn enable_get_vertex_attrib_name(&self, name: GLenum) {
+        self.features.borrow_mut().disabled_get_vertex_attrib_names.remove(&name);
+    }
+
+    pub fn is_get_vertex_attrib_name_enabled(&self, name: GLenum) -> bool {
+        !self.features.borrow().disabled_get_vertex_attrib_names.contains(&name)
+    }
+
     fn register_all_extensions(&self) {
+        self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays>();
         self.register::<ext::oesstandardderivatives::OESStandardDerivatives>();
         self.register::<ext::oestexturefloat::OESTextureFloat>();
         self.register::<ext::oestexturefloatlinear::OESTextureFloatLinear>();
