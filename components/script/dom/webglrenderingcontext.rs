@@ -2137,24 +2137,28 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {
-                if self.current_program.get().is_none() {
-                    return self.webgl_error(InvalidOperation);
-                }
-
-                if first < 0 || count < 0 {
-                    return self.webgl_error(InvalidValue);
-                }
-
-                if !self.validate_framebuffer_complete() {
-                    return;
-                }
-
-                self.send_command(WebGLCommand::DrawArrays(mode, first, count));
-                self.mark_as_dirty();
-            },
-            _ => self.webgl_error(InvalidEnum),
+            constants::TRIANGLES => {},
+            _ => {
+                return self.webgl_error(InvalidEnum);
+            }
         }
+        if first < 0 || count < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+        if self.current_program.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+        if let Some(array_buffer) = self.bound_buffer_array.get() {
+            if count > 0 && (first as u64 + count as u64 > array_buffer.capacity() as u64) {
+                return self.webgl_error(InvalidOperation);
+            }
+        }
+        if !self.validate_framebuffer_complete() {
+            return;
+        }
+
+        self.send_command(WebGLCommand::DrawArrays(mode, first, count));
+        self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
