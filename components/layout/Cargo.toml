@@ -21,7 +21,7 @@ fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.22"
-ipc-channel = "0.9"
+ipc-channel = "0.10"
 libc = "0.2"
 log = "0.3.5"
 malloc_size_of = { path = "../malloc_size_of" }

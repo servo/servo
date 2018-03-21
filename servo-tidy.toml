@@ -29,6 +29,7 @@ rand = [
   "tempfile",
   "uuid",
   "ws",
+  "rand",
 ]
 num = [
   "chrono",
@@ -44,6 +45,7 @@ packages = [
   "quote",
   "unicode-xid",
   "log",
+  "rand"
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

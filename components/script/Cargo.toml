@@ -51,7 +51,7 @@ html5ever = "0.22"
 hyper = "0.10"
 hyper_serde = "0.8"
 image = "0.18"
-ipc-channel = "0.9"
+ipc-channel = "0.10"
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "1"
 libc = "0.2"
@@ -93,7 +93,7 @@ time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = "1.6"
 utf-8 = "0.7"
-uuid = {version = "0.5", features = ["v4"]}
+uuid = {version = "0.6", features = ["v4"]}
 xml5ever = {version = "0.12"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
