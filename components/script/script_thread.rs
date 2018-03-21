@@ -1585,31 +1585,32 @@ impl ScriptThread {
         let mut reports = vec![];
         // Servo uses vanilla jemalloc, which doesn't have a
         // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
+        // let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
 
-        for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url();
+        // for (_, document) in self.documents.borrow().iter() {
+        //     let current_url = document.url();
 
-            for child in document.upcast::<Node>().traverse_preorder() {
-                dom_tree_size += malloc_size_of_including_self(&mut ops, &*child);
-            }
-            dom_tree_size += malloc_size_of_including_self(&mut ops, document.window());
+        //     for child in document.upcast::<Node>().traverse_preorder() {
+        //         dom_tree_size += malloc_size_of_including_self(&mut ops, &*child);
+        //     }
+        //     dom_tree_size += malloc_size_of_including_self(&mut ops, document.window());
 
-            if reports.len() > 0 {
-                path_seg.push_str(", ");
-            }
-            path_seg.push_str(current_url.as_str());
+        //     if reports.len() > 0 {
+        //         path_seg.push_str(", ");
+        //     }
+        //     path_seg.push_str(current_url.as_str());
 
-            reports.push(Report {
-                path: path![format!("url({})", current_url.as_str()), "dom-tree"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: dom_tree_size,
-            });
-        }
+        //     reports.push(Report {
+        //         path: path![format!("url({})", current_url.as_str()), "dom-tree"],
+        //         kind: ReportKind::ExplicitJemallocHeapSize,
+        //         size: dom_tree_size,
+        //     });
+        // }
 
         path_seg.push_str(")");
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
+        
     }
 
     /// Updates iframe element after a change in visibility
