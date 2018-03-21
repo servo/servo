@@ -376,11 +376,13 @@ impl CanvasRenderingContext2D {
             let (sender, receiver) = ipc::channel().unwrap();
             let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageInOther(
                 self.ipc_renderer.clone(),
+				self.canvas_id,
                 image_size,
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
-                sender),canvas_id);
+                sender),
+				context.canvas_id);
 
             let renderer = context.get_ipc_renderer();
             renderer.send(msg).unwrap();

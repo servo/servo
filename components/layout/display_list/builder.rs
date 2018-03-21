@@ -12,7 +12,7 @@
 
 use app_units::{Au, AU_PER_PX};
 use block::BlockFlow;
-use canvas_traits::canvas::{CanvasMsg, CanvasId, FromLayoutMsg};
+use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
 use display_list::ToLayout;
 use display_list::background::{build_border_radius, build_image_border_details};

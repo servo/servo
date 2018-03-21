@@ -158,10 +158,10 @@ impl<'a> CanvasPaintThread<'a> {
                                 painter.draw_image_self(image_size, dest_rect, source_rect, smoothing_enabled)
                             }
                             Canvas2dMsg::DrawImageInOther(
-                                renderer, image_size, dest_rect, source_rect, smoothing, sender
+                                renderer, other_canvas_id, image_size, dest_rect, source_rect, smoothing, sender
                             ) => {
                                 painter.draw_image_in_other(
-                                    renderer, image_size, dest_rect, source_rect, smoothing, sender)
+                                    renderer, other_canvas_id, image_size, dest_rect, source_rect, smoothing, sender)
                             }
                             Canvas2dMsg::MoveTo(ref point) => painter.move_to(point),
                             Canvas2dMsg::LineTo(ref point) => painter.line_to(point),
@@ -404,6 +404,7 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn draw_image_in_other(&self,
                            renderer: IpcSender<CanvasMsg>,
+						   other_canvas_id: CanvasId,
                            image_size: Size2D<f64>,
                            dest_rect: Rect<f64>,
                            source_rect: Rect<f64>,
@@ -414,7 +415,7 @@ impl<'a> CanvasPaintThread<'a> {
         byte_swap(&mut image_data);
 
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
-            image_data, source_rect.size, dest_rect, source_rect, smoothing_enabled));
+            image_data, source_rect.size, dest_rect, source_rect, smoothing_enabled),other_canvas_id);
         renderer.send(msg).unwrap();
         // We acknowledge to the caller here that the data was sent to the
         // other canvas so that if JS immediately afterwards try to get the
