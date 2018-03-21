@@ -52,7 +52,7 @@ num-integer = "0.1.32"
 num-traits = "0.1.32"
 ordered-float = "0.4"
 owning_ref = "0.3.3"
-parking_lot = "0.4"
+parking_lot = "0.5"
 precomputed-hash = "0.1.1"
 rayon = "1"
 selectors = { path = "../selectors" }

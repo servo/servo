@@ -28,7 +28,7 @@ malloc_size_of = { path = "../malloc_size_of" }
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.4"
-parking_lot = "0.4"
+parking_lot = "0.5"
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rayon = "1"

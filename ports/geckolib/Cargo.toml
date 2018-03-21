@@ -22,7 +22,7 @@ libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 malloc_size_of = {path = "../../components/malloc_size_of"}
 nsstring = {path = "../../support/gecko/nsstring"}
-parking_lot = "0.4"
+parking_lot = "0.5"
 selectors = {path = "../../components/selectors"}
 servo_arc = {path = "../../components/servo_arc"}
 smallvec = "0.6"

@@ -67,7 +67,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
 offscreen_gl_context = { version = "0.15", features = ["serde"] }
-parking_lot = "0.4"
+parking_lot = "0.5"
 phf = "0.7.18"
 profile_traits = {path = "../profile_traits"}
 ref_filter_map = "1.0.1"
