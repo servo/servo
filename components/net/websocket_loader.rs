@@ -26,11 +26,12 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use url::Position;
-use websocket::{Message, Receiver as WSReceiver, Sender as WSSender};
+use websocket::Message;
 use websocket::header::{Origin, WebSocketAccept, WebSocketKey, WebSocketProtocol, WebSocketVersion};
-use websocket::message::Type as MessageType;
-use websocket::receiver::Receiver;
-use websocket::sender::Sender;
+use websocket::message::OwnedMessage;
+use websocket::receiver::{Reader as WsReader, Receiver as WsReceiver};
+use websocket::sender::{Sender as WsSender, Writer as WsWriter};
+use websocket::ws::dataframe::DataFrame;
 
 pub fn init(
     req_init: RequestInit,
@@ -60,7 +61,7 @@ pub fn init(
         let ws_sender_incoming = ws_sender.clone();
         thread::spawn(move || {
             for message in receiver.incoming_messages() {
-                let message: Message = match message {
+                let message = match message {
                     Ok(m) => m,
                     Err(e) => {
                         debug!("Error receiving incoming WebSocket message: {:?}", e);
@@ -68,21 +69,25 @@ pub fn init(
                         break;
                     }
                 };
-                let message = match message.opcode {
-                    MessageType::Text => MessageData::Text(String::from_utf8_lossy(&message.payload).into_owned()),
-                    MessageType::Binary => MessageData::Binary(message.payload.into_owned()),
-                    MessageType::Ping => {
-                        let pong = Message::pong(message.payload);
+                let message = match message {
+                    OwnedMessage::Text(_) => {
+                        MessageData::Text(String::from_utf8_lossy(&message.take_payload()).into_owned())
+                    },
+                    OwnedMessage::Binary(_) => MessageData::Binary(message.take_payload()),
+                    OwnedMessage::Ping(_) => {
+                        let pong = Message::pong(message.take_payload());
                         ws_sender_incoming.lock().unwrap().send_message(&pong).unwrap();
                         continue;
                     },
-                    MessageType::Pong => continue,
-                    MessageType::Close => {
+                    OwnedMessage::Pong(_) => continue,
+                    OwnedMessage::Close(ref msg) => {
                         if !initiated_close_incoming.fetch_or(true, Ordering::SeqCst) {
                             ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
                         }
-                        let code = message.cd_status_code;
-                        let reason = String::from_utf8_lossy(&message.payload).into_owned();
+                        let (code, reason) = match *msg {
+                            None => (None, "".into()),
+                            Some(ref data) => (Some(data.status_code), data.reason.clone())
+                        };
                         let _ = resource_event_sender.send(WebSocketNetworkEvent::Close(code, reason));
                         break;
                     },
@@ -148,7 +153,7 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
 fn establish_a_websocket_connection(
     req_init: RequestInit,
     http_state: &HttpState
-) -> Result<(Option<String>, Sender<Stream>, Receiver<Stream>), NetworkError>
+) -> Result<(Option<String>, WsWriter<HttpStream>, WsReader<HttpStream>), NetworkError>
 {
     let protocols = match req_init.mode {
         RequestMode::WebSocket { protocols } => protocols.clone(),
@@ -255,9 +260,19 @@ fn establish_a_websocket_connection(
         None
     };
 
-    let sender = Sender::new(response.writer, true);
-    let receiver = Receiver::new(response.reader, false);
-    Ok((protocol_in_use, sender, receiver))
+    let sender = WsSender::new(true);
+    let writer = WsWriter {
+        stream: response.writer,
+        sender
+    };
+
+    let receiver = WsReceiver::new(false);
+    let reader = WsReader {
+        stream: response.reader,
+        receiver,
+    };
+
+    Ok((protocol_in_use, writer, reader))
 }
 
 struct Response {

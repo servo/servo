@@ -35,7 +35,7 @@ serde = "1.0"
 serde_json = "1.0"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-servo-websocket = "0.20"
+servo-websocket = { version = "0.21", default-features = false, features = ["sync"] }
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"

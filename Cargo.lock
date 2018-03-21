@@ -1869,7 +1869,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-websocket 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-websocket 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
  "threadpool 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2753,16 +2753,15 @@ dependencies = [
 
 [[package]]
 name = "servo-websocket"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "net2 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3943,7 +3942,7 @@ dependencies = [
 "checksum servo-fontconfig-sys 4.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "38b494f03009ee81914b0e7d387ad7c145cafcd69747c2ec89b0e17bb94f303a"
 "checksum servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
 "checksum servo-skia 0.30000013.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3fb707c7dc3d8a053b8c9d48ed9eb7f2a0c0751616dfbe3598f526948408bc33"
-"checksum servo-websocket 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)" = "efde78dfcf2178d5a11e1e2268e0d8df0627dfe2724546db8585d6678e1af150"
+"checksum servo-websocket 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6bac1e2295e72f0525147d993c626761811acf0441dac1cee8707f12dc7f3363"
 "checksum sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cc30b1e1e8c40c121ca33b86c23308a090d19974ef001b4bf6e61fd1a0fb095c"
 "checksum shared_library 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "fb04126b6fcfd2710fb5b6d18f4207b6c535f2850a7e1a43bcd526d44f30a79a"
 "checksum sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c6649e43c1a1e68d29ed56d0dc3b5b6cf3b901da77cf107c4066b9e3da036df5"
