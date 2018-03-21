@@ -181,14 +181,14 @@ pub struct Window {
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
 
     mouse_down_button: Cell<Option<winit::MouseButton>>,
-    mouse_down_point: Cell<TypedPoint2D<i32, DeviceIndependentPixel>>,
+    mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
     event_queue: RefCell<Vec<WindowEvent>>,
 
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
     browser_id: Cell<Option<BrowserId>>,
 
-    mouse_pos: Cell<TypedPoint2D<i32, DeviceIndependentPixel>>,
+    mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
     key_modifiers: Cell<GlutinKeyModifiers>,
     current_url: RefCell<Option<ServoUrl>>,
 
@@ -515,37 +515,34 @@ impl Window {
             }
         }
 
-        let pos = self.mouse_pos.get().to_f32() * self.hidpi_factor();
-        let event = WindowEvent::Scroll(scroll_location, pos.to_i32(), phase);
+        let event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
         self.event_queue.borrow_mut().push(event);
     }
 
     /// Helper function to handle a click
     fn handle_mouse(&self, button: winit::MouseButton,
                     action: winit::ElementState,
-                    coords: TypedPoint2D<i32, DeviceIndependentPixel>) {
+                    coords: TypedPoint2D<i32, DevicePixel>) {
         use script_traits::MouseButton;
 
-        // FIXME(tkuehn): max pixel dist should be based on pixel density
-        let max_pixel_dist = 10f64;
-        let scaled_coords = coords.to_f32() * self.hidpi_factor();
+        let max_pixel_dist = 10.0 * self.hidpi_factor().get();
         let event = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(MouseButton::Left, scaled_coords)
+                MouseWindowEvent::MouseDown(MouseButton::Left, coords.to_f32())
             }
             ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, scaled_coords);
+                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, coords.to_f32());
                 match self.mouse_down_button.get() {
                     None => mouse_up_event,
                     Some(but) if button == but => {
                         let pixel_dist = self.mouse_down_point.get() - coords;
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
-                                           pixel_dist.y * pixel_dist.y) as f64).sqrt();
+                                           pixel_dist.y * pixel_dist.y) as f32).sqrt();
                         if pixel_dist < max_pixel_dist {
                             self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(mouse_up_event));
-                            MouseWindowEvent::Click(MouseButton::Left, scaled_coords)
+                            MouseWindowEvent::Click(MouseButton::Left, coords.to_f32())
                         } else {
                             mouse_up_event
                         }
