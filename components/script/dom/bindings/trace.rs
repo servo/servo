@@ -30,7 +30,7 @@
 //! `JSTraceable` to a datatype.
 
 use app_units::Au;
-use canvas_traits::canvas::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
+use canvas_traits::canvas::{CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use canvas_traits::webgl::{WebGLBufferId, WebGLFramebufferId, WebGLProgramId, WebGLRenderbufferId};
 use canvas_traits::webgl::{WebGLChan, WebGLContextShareMode, WebGLError, WebGLPipeline, WebGLMsgSender};
@@ -59,9 +59,9 @@ use hyper::mime::Mime;
 use hyper::status::StatusCode;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
+use js::jsapi::{GCTraceKindToAscii, Heap, Handle, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
-use js::rust::Runtime;
+use js::rust::{GCMethods, Runtime};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use metrics::{InteractiveMetrics, InteractiveWindow};
@@ -420,6 +420,7 @@ unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
+unsafe_no_jsmanaged_fields!(CanvasId);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -785,6 +786,16 @@ impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
         RootedTraceableBox {
             ptr: traceable,
         }
+    }
+}
+
+impl<T> RootedTraceableBox<Heap<T>>
+    where
+        Heap<T>: JSTraceable + 'static,
+        T: GCMethods + Copy,
+{
+    pub fn handle(&self) -> Handle<T> {
+        unsafe { (*self.ptr).handle() }
     }
 }
 

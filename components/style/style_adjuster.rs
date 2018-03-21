@@ -598,7 +598,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// into the cascade.
     ///
     /// When comparing to Gecko, this is similar to the work done by
-    /// `nsStyleContext::ApplyStyleFixups`, plus some parts of
+    /// `ComputedStyle::ApplyStyleFixups`, plus some parts of
     /// `nsStyleSet::GetContext`.
     pub fn adjust<E>(
         &mut self,

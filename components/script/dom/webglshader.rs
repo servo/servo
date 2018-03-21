@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{WebGLSLVersion, WebGLVersion};
-use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLMsgSender, WebGLParameter, WebGLResult, WebGLShaderId};
+use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLParameter, WebGLResult, WebGLSLVersion};
+use canvas_traits::webgl::{WebGLShaderId, WebGLVersion, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::reflector::reflect_dom_object;
@@ -98,74 +99,83 @@ impl WebGLShader {
         &self,
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
-        ext: &WebGLExtensions
-    ) {
+        ext: &WebGLExtensions,
+    ) -> WebGLResult<()> {
+        if self.is_deleted.get() && !self.is_attached() {
+            return Err(WebGLError::InvalidValue);
+        }
         if self.compilation_status.get() != ShaderCompilationStatus::NotCompiled {
             debug!("Compiling already compiled shader {}", self.id);
         }
 
-        if let Some(ref source) = *self.source.borrow() {
-            let mut params = BuiltInResources::default();
-            params.FragmentPrecisionHigh = 1;
-            params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
-            let validator = match webgl_version {
-                WebGLVersion::WebGL1 => {
-                    let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
-                        Output::Essl
-                    } else {
-                        Output::Glsl
-                    };
-                    ShaderValidator::for_webgl(self.gl_type,
-                                               output_format,
-                                               &params).unwrap()
-                },
-                WebGLVersion::WebGL2 => {
-                    let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
-                        Output::Essl
-                    } else {
-                        match (glsl_version.major, glsl_version.minor) {
-                            (1, 30) => Output::Glsl130,
-                            (1, 40) => Output::Glsl140,
-                            (1, 50) => Output::Glsl150Core,
-                            (3, 30) => Output::Glsl330Core,
-                            (4, 0) => Output::Glsl400Core,
-                            (4, 10) => Output::Glsl410Core,
-                            (4, 20) => Output::Glsl420Core,
-                            (4, 30) => Output::Glsl430Core,
-                            (4, 40) => Output::Glsl440Core,
-                            (4, _) => Output::Glsl450Core,
-                            _ => Output::Glsl140
-                        }
-                    };
-                    ShaderValidator::for_webgl2(self.gl_type,
-                                               output_format,
-                                               &params).unwrap()
-                },
-            };
+        let source = self.source.borrow();
+        let source = match source.as_ref() {
+            Some(source) => source,
+            None => return Ok(()),
+        };
 
-            match validator.compile_and_translate(&[source]) {
-                Ok(translated_source) => {
-                    debug!("Shader translated: {}", translated_source);
-                    // NOTE: At this point we should be pretty sure that the compilation in the paint thread
-                    // will succeed.
-                    // It could be interesting to retrieve the info log from the paint thread though
-                    let msg = WebGLCommand::CompileShader(self.id, translated_source);
-                    self.renderer.send(msg).unwrap();
-                    self.compilation_status.set(ShaderCompilationStatus::Succeeded);
-                },
-                Err(error) => {
-                    self.compilation_status.set(ShaderCompilationStatus::Failed);
-                    debug!("Shader {} compilation failed: {}", self.id, error);
-                },
-            }
+        let mut params = BuiltInResources::default();
+        params.FragmentPrecisionHigh = 1;
+        params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
+        let validator = match webgl_version {
+            WebGLVersion::WebGL1 => {
+                let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
+                    Output::Essl
+                } else {
+                    Output::Glsl
+                };
+                ShaderValidator::for_webgl(self.gl_type,
+                                            output_format,
+                                            &params).unwrap()
+            },
+            WebGLVersion::WebGL2 => {
+                let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
+                    Output::Essl
+                } else {
+                    match (glsl_version.major, glsl_version.minor) {
+                        (1, 30) => Output::Glsl130,
+                        (1, 40) => Output::Glsl140,
+                        (1, 50) => Output::Glsl150Core,
+                        (3, 30) => Output::Glsl330Core,
+                        (4, 0) => Output::Glsl400Core,
+                        (4, 10) => Output::Glsl410Core,
+                        (4, 20) => Output::Glsl420Core,
+                        (4, 30) => Output::Glsl430Core,
+                        (4, 40) => Output::Glsl440Core,
+                        (4, _) => Output::Glsl450Core,
+                        _ => Output::Glsl140
+                    }
+                };
+                ShaderValidator::for_webgl2(self.gl_type,
+                                            output_format,
+                                            &params).unwrap()
+            },
+        };
 
-            *self.info_log.borrow_mut() = Some(validator.info_log());
-            // TODO(emilio): More data (like uniform data) should be collected
-            // here to properly validate uniforms.
-            //
-            // This requires a more complex interface with ANGLE, using C++
-            // bindings and being extremely cautious about destructing things.
+        match validator.compile_and_translate(&[source]) {
+            Ok(translated_source) => {
+                debug!("Shader translated: {}", translated_source);
+                // NOTE: At this point we should be pretty sure that the compilation in the paint thread
+                // will succeed.
+                // It could be interesting to retrieve the info log from the paint thread though
+                let msg = WebGLCommand::CompileShader(self.id, translated_source);
+                self.renderer.send(msg).unwrap();
+                self.compilation_status.set(ShaderCompilationStatus::Succeeded);
+            },
+            Err(error) => {
+                self.compilation_status.set(ShaderCompilationStatus::Failed);
+                debug!("Shader {} compilation failed: {}", self.id, error);
+            },
         }
+
+        *self.info_log.borrow_mut() = Some(validator.info_log());
+
+        // TODO(emilio): More data (like uniform data) should be collected
+        // here to properly validate uniforms.
+        //
+        // This requires a more complex interface with ANGLE, using C++
+        // bindings and being extremely cautious about destructing things.
+        Ok(())
     }
 
     /// Mark this shader as deleted (if it wasn't previously)
@@ -202,6 +212,9 @@ impl WebGLShader {
 
     /// glGetParameter
     pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
+        if self.is_deleted.get() && !self.is_attached() {
+            return Err(WebGLError::InvalidValue);
+        }
         let (sender, receiver) = webgl_channel().unwrap();
         self.renderer.send(WebGLCommand::GetShaderParameter(self.id, param_id, sender)).unwrap();
         receiver.recv().unwrap()

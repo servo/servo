@@ -500,7 +500,7 @@ impl JsTimerTask {
                     code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
-                let arguments = arguments.iter().map(|arg| arg.handle()).collect();
+                let arguments = self.collect_heap_args(arguments);
                 let _ = function.Call_(this, arguments, Report);
             },
         };
@@ -515,5 +515,12 @@ impl JsTimerTask {
             timers.active_timers.borrow().contains_key(&self.handle) {
             timers.initialize_and_schedule(&this.global(), self);
         }
+    }
+
+    // Returning Handles directly from Heap values is inherently unsafe, but here it's
+    // always done via rooted JsTimers, which is safe.
+    #[allow(unsafe_code)]
+    fn collect_heap_args(&self, args: &[Heap<JSVal>]) -> Vec<HandleValue> {
+        args.iter().map(|arg| unsafe { arg.handle() }).collect()
     }
 }

@@ -472,6 +472,9 @@ impl TestBindingMethods for TestBinding {
     fn PassStringSequence(&self, _: Vec<DOMString>) {}
     fn PassInterfaceSequence(&self, _: Vec<DomRoot<Blob>>) {}
 
+    fn PassOverloaded(&self, _: CustomAutoRooterGuard<typedarray::ArrayBuffer>) {}
+    fn PassOverloaded_(&self, _: DOMString) {}
+
     fn PassNullableBoolean(&self, _: Option<bool>) {}
     fn PassNullableByte(&self, _: Option<i8>) {}
     fn PassNullableOctet(&self, _: Option<u8>) {}

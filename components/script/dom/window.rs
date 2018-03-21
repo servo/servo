@@ -50,7 +50,7 @@ use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D};
 use fetch;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
@@ -63,10 +63,11 @@ use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
+use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{TrustedNodeAddress, PendingImageState};
-use script_layout_interface::message::{Msg, Reflow, ReflowGoal, ScriptReflow};
+use script_layout_interface::message::{Msg, Reflow, QueryMsg, ReflowGoal, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse};
@@ -540,7 +541,7 @@ impl WindowMethods for Window {
             stderr.flush().unwrap();
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.send_to_constellation(ScriptMsg::Alert(s.to_string(), sender));
 
         let should_display_alert_dialog = receiver.recv().unwrap();
@@ -1180,7 +1181,9 @@ impl Window {
     }
 
     fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
-        let (send, recv) = ipc::channel::<(DeviceUintSize, DeviceIntPoint)>().unwrap();
+        let timer_profile_chan = self.global().time_profiler_chan().clone();
+        let (send, recv) =
+            ProfiledIpc::channel::<(DeviceUintSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
         let (size, point) = recv.recv().unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
         let dpr = self.device_pixel_ratio();
@@ -1300,7 +1303,8 @@ impl Window {
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_insert(vec![]);
             if nodes.iter().find(|n| &***n as *const _ == &*node as *const _).is_none() {
-                let (responder, responder_listener) = ipc::channel().unwrap();
+                let (responder, responder_listener) =
+                    ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let pipeline = self.upcast::<GlobalScope>().pipeline_id();
                 let image_cache_chan = self.image_cache_chan.clone();
                 ROUTER.add_route(responder_listener.to_opaque(), Box::new(move |message| {
@@ -1381,12 +1385,16 @@ impl Window {
         issued_reflow
     }
 
+    pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
+        self.reflow(ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()), ReflowReason::Query)
+    }
+
     pub fn layout(&self) -> &LayoutRPC {
         &*self.layout_rpc
     }
 
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
-        if !self.reflow(ReflowGoal::ContentBoxQuery(content_box_request), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::ContentBoxQuery(content_box_request)) {
             return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
@@ -1394,7 +1402,7 @@ impl Window {
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        if !self.reflow(ReflowGoal::ContentBoxesQuery(content_boxes_request), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(content_boxes_request)) {
             return vec![];
         }
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
@@ -1402,14 +1410,14 @@ impl Window {
     }
 
     pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
-        if !self.reflow(ReflowGoal::NodeGeometryQuery(node_geometry_request), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node_geometry_request)) {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
     }
 
     pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
-        if !self.reflow(ReflowGoal::NodeScrollGeometryQuery(node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
             return Rect::zero();
         }
         self.layout_rpc.node_scroll_area().client_rect
@@ -1432,10 +1440,7 @@ impl Window {
         y_: f64,
         behavior: ScrollBehavior
     ) {
-        if !self.reflow(
-            ReflowGoal::NodeScrollIdQuery(node.to_trusted_node_address()),
-            ReflowReason::Query
-        ) {
+        if !self.layout_reflow(QueryMsg::NodeScrollIdQuery(node.to_trusted_node_address())) {
             return;
         }
 
@@ -1459,8 +1464,7 @@ impl Window {
                                 element: TrustedNodeAddress,
                                 pseudo: Option<PseudoElement>,
                                 property: PropertyId) -> DOMString {
-        if !self.reflow(ReflowGoal::ResolvedStyleQuery(element, pseudo, property),
-                        ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery(element, pseudo, property)) {
             return DOMString::new();
         }
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
@@ -1469,7 +1473,7 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<DomRoot<Element>>, Rect<Au>) {
-        if !self.reflow(ReflowGoal::OffsetParentQuery(node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node)) {
             return (None, Rect::zero());
         }
 
@@ -1484,7 +1488,7 @@ impl Window {
     }
 
     pub fn style_query(&self, node: TrustedNodeAddress) -> Option<servo_arc::Arc<ComputedValues>> {
-        if !self.reflow(ReflowGoal::StyleQuery(node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::StyleQuery(node)) {
             return None
         }
         self.layout_rpc.style().0
@@ -1495,7 +1499,7 @@ impl Window {
         node: TrustedNodeAddress,
         point_in_node: Point2D<f32>
     ) -> TextIndexResponse {
-        if !self.reflow(ReflowGoal::TextIndexQuery(node, point_in_node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
             return TextIndexResponse(None);
         }
         self.layout_rpc.text_index()
@@ -1877,18 +1881,20 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
     let mut debug_msg = format!("**** pipeline={}", id);
     debug_msg.push_str(match *reflow_goal {
         ReflowGoal::Full => "\tFull",
-        ReflowGoal::ContentBoxQuery(_n) => "\tContentBoxQuery",
-        ReflowGoal::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
-        ReflowGoal::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
-        ReflowGoal::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
-        ReflowGoal::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
-        ReflowGoal::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
-        ReflowGoal::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
-        ReflowGoal::OffsetParentQuery(_n) => "\tOffsetParentQuery",
-        ReflowGoal::StyleQuery(_n) => "\tStyleQuery",
-        ReflowGoal::TextIndexQuery(..) => "\tTextIndexQuery",
         ReflowGoal::TickAnimations => "\tTickAnimations",
-        ReflowGoal::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
+        ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
+            &QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
+            &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+            &QueryMsg::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
+            &QueryMsg::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+            &QueryMsg::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
+            &QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
+            &QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
+            &QueryMsg::OffsetParentQuery(_n) => "\tOffsetParentQuery",
+            &QueryMsg::StyleQuery(_n) => "\tStyleQuery",
+            &QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",
+            &QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
+        },
     });
 
     debug_msg.push_str(match *reason {

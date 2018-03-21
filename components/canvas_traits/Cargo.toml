@@ -19,5 +19,6 @@ malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 nonzero = {path = "../nonzero"}
 offscreen_gl_context = { version = "0.15", features = ["serde"] }
 serde = "1.0"
+serde_bytes = "0.10"
 servo_config = {path = "../config"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

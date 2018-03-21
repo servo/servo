@@ -980,8 +980,6 @@ cfg_if! {
             pub static nsGkAtoms_graphicsSymbol: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4gridE"]
             pub static nsGkAtoms_grid: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms6grippyE"]
-            pub static nsGkAtoms_grippy: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5groupE"]
             pub static nsGkAtoms_group: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8groupboxE"]
@@ -3286,10 +3284,14 @@ cfg_if! {
             pub static nsGkAtoms_saturate: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms10saturationE"]
             pub static nsGkAtoms_saturation: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms3setE"]
+            pub static nsGkAtoms_set: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4seedE"]
             pub static nsGkAtoms_seed: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms15shape_renderingE"]
             pub static nsGkAtoms_shape_rendering: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms16simpleScopeChainE"]
+            pub static nsGkAtoms_simpleScopeChain: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5skewXE"]
             pub static nsGkAtoms_skewX: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5skewYE"]
@@ -3934,8 +3936,6 @@ cfg_if! {
             pub static nsGkAtoms_sep_: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8setdiff_E"]
             pub static nsGkAtoms_setdiff_: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms4set_E"]
-            pub static nsGkAtoms_set_: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6share_E"]
             pub static nsGkAtoms_share_: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6shift_E"]
@@ -6205,8 +6205,6 @@ cfg_if! {
             pub static nsGkAtoms_graphicsSymbol: *mut nsStaticAtom;
             #[link_name = "?grid@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_grid: *mut nsStaticAtom;
-            #[link_name = "?grippy@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_grippy: *mut nsStaticAtom;
             #[link_name = "?group@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_group: *mut nsStaticAtom;
             #[link_name = "?groupbox@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -8511,10 +8509,14 @@ cfg_if! {
             pub static nsGkAtoms_saturate: *mut nsStaticAtom;
             #[link_name = "?saturation@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_saturation: *mut nsStaticAtom;
+            #[link_name = "?set@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_set: *mut nsStaticAtom;
             #[link_name = "?seed@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_seed: *mut nsStaticAtom;
             #[link_name = "?shape_rendering@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_shape_rendering: *mut nsStaticAtom;
+            #[link_name = "?simpleScopeChain@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_simpleScopeChain: *mut nsStaticAtom;
             #[link_name = "?skewX@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_skewX: *mut nsStaticAtom;
             #[link_name = "?skewY@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -9159,8 +9161,6 @@ cfg_if! {
             pub static nsGkAtoms_sep_: *mut nsStaticAtom;
             #[link_name = "?setdiff_@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_setdiff_: *mut nsStaticAtom;
-            #[link_name = "?set_@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_set_: *mut nsStaticAtom;
             #[link_name = "?share_@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_share_: *mut nsStaticAtom;
             #[link_name = "?shift_@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -11430,8 +11430,6 @@ cfg_if! {
             pub static nsGkAtoms_graphicsSymbol: *mut nsStaticAtom;
             #[link_name = "\x01?grid@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_grid: *mut nsStaticAtom;
-            #[link_name = "\x01?grippy@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_grippy: *mut nsStaticAtom;
             #[link_name = "\x01?group@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_group: *mut nsStaticAtom;
             #[link_name = "\x01?groupbox@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -13736,10 +13734,14 @@ cfg_if! {
             pub static nsGkAtoms_saturate: *mut nsStaticAtom;
             #[link_name = "\x01?saturation@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_saturation: *mut nsStaticAtom;
+            #[link_name = "\x01?set@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_set: *mut nsStaticAtom;
             #[link_name = "\x01?seed@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_seed: *mut nsStaticAtom;
             #[link_name = "\x01?shape_rendering@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_shape_rendering: *mut nsStaticAtom;
+            #[link_name = "\x01?simpleScopeChain@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_simpleScopeChain: *mut nsStaticAtom;
             #[link_name = "\x01?skewX@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_skewX: *mut nsStaticAtom;
             #[link_name = "\x01?skewY@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -14384,8 +14386,6 @@ cfg_if! {
             pub static nsGkAtoms_sep_: *mut nsStaticAtom;
             #[link_name = "\x01?setdiff_@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_setdiff_: *mut nsStaticAtom;
-            #[link_name = "\x01?set_@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_set_: *mut nsStaticAtom;
             #[link_name = "\x01?share_@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_share_: *mut nsStaticAtom;
             #[link_name = "\x01?shift_@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -16658,8 +16658,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_graphicsSymbol as *mut _) } }};
 ("grid") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grid as *mut _) } }};
-("grippy") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grippy as *mut _) } }};
 ("group") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_group as *mut _) } }};
 ("groupbox") =>
@@ -18964,10 +18962,14 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_saturate as *mut _) } }};
 ("saturation") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_saturation as *mut _) } }};
+("set") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_set as *mut _) } }};
 ("seed") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seed as *mut _) } }};
 ("shape-rendering") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shape_rendering as *mut _) } }};
+("simpleScopeChain") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_simpleScopeChain as *mut _) } }};
 ("skewX") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_skewX as *mut _) } }};
 ("skewY") =>
@@ -19612,8 +19614,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sep_ as *mut _) } }};
 ("setdiff") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setdiff_ as *mut _) } }};
-("set") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_set_ as *mut _) } }};
 ("share") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_share_ as *mut _) } }};
 ("shift") =>

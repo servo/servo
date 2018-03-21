@@ -53,10 +53,11 @@ use style::gecko_bindings::bindings::{RawServoSelectorListBorrowed, RawServoSele
 use style::gecko_bindings::bindings::{RawServoSourceSizeListBorrowedOrNull, RawServoSourceSizeListOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetBorrowedOrNull, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedDataBorrowed};
-use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ServoStyleContextBorrowed};
+use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ComputedStyleBorrowed};
 use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString, nsCSSPropertyIDSetBorrowedMut};
+use style::gecko_bindings::bindings::ComputedStyleBorrowedOrNull;
 use style::gecko_bindings::bindings::Gecko_AddPropertyToSet;
 use style::gecko_bindings::bindings::Gecko_AppendPropertyValuePair;
 use style::gecko_bindings::bindings::Gecko_ConstructFontFeatureValueSet;
@@ -81,7 +82,6 @@ use style::gecko_bindings::bindings::RawServoAnimationValueTableBorrowed;
 use style::gecko_bindings::bindings::RawServoDeclarationBlockBorrowedOrNull;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleSet;
-use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
 use style::gecko_bindings::bindings::nsCSSValueBorrowedMut;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
@@ -89,7 +89,7 @@ use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
-use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
+use style::gecko_bindings::structs::{RawServoStyleRule, ComputedStyleStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetParsingMode, nsAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
@@ -833,9 +833,9 @@ fn resolve_rules_for_element_with_context<'a>(
 pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(
     raw_style_set: RawServoStyleSetBorrowed,
     element: RawGeckoElementBorrowed,
-    computed_values: ServoStyleContextBorrowed,
+    computed_values: ComputedStyleBorrowed,
     snapshots: *const ServoElementSnapshotTable,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     debug_assert!(!snapshots.is_null());
     let computed_values = unsafe { ArcBorrow::from_ref(computed_values) };
 
@@ -872,14 +872,14 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(
 pub extern "C" fn Servo_StyleSet_GetComputedValuesByAddingAnimation(
     raw_style_set: RawServoStyleSetBorrowed,
     element: RawGeckoElementBorrowed,
-    computed_values: ServoStyleContextBorrowed,
+    computed_values: ComputedStyleBorrowed,
     snapshots: *const ServoElementSnapshotTable,
     animation_value: RawServoAnimationValueBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     debug_assert!(!snapshots.is_null());
     let computed_values = unsafe { ArcBorrow::from_ref(computed_values) };
     let rules = match computed_values.rules {
-        None => return ServoStyleContextStrong::null(),
+        None => return ComputedStyleStrong::null(),
         Some(ref rules) => rules,
     };
 
@@ -900,7 +900,7 @@ pub extern "C" fn Servo_StyleSet_GetComputedValuesByAddingAnimation(
 
     let element = GeckoElement(element);
     if element.borrow_data().is_none() {
-        return ServoStyleContextStrong::null();
+        return ComputedStyleStrong::null();
     }
 
     let shared = create_shared_context(&global_style_data,
@@ -919,7 +919,7 @@ pub extern "C" fn Servo_StyleSet_GetComputedValuesByAddingAnimation(
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(
-    computed_values: ServoStyleContextBorrowed,
+    computed_values: ComputedStyleBorrowed,
     property_id: nsCSSPropertyID,
 ) -> RawServoAnimationValueStrong {
     let property = match LonghandId::from_nscsspropertyid(property_id) {
@@ -1013,7 +1013,7 @@ pub extern "C" fn Servo_Element_HasPrimaryComputedValues(element: RawGeckoElemen
 #[no_mangle]
 pub extern "C" fn Servo_Element_GetPrimaryComputedValues(
     element: RawGeckoElementBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let element = GeckoElement(element);
     let data = element.borrow_data().expect("Getting CVs on unstyled element");
     data.styles.primary().clone().into()
@@ -1033,7 +1033,7 @@ pub extern "C" fn Servo_Element_HasPseudoComputedValues(
 pub extern "C" fn Servo_Element_GetPseudoComputedValues(
     element: RawGeckoElementBorrowed,
     index: usize,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let element = GeckoElement(element);
     let data = element.borrow_data().expect("Getting CVs that aren't present");
     data.styles.pseudos.as_array()[index].as_ref().expect("Getting CVs that aren't present")
@@ -2185,10 +2185,10 @@ pub extern "C" fn Servo_FontFeatureValuesRule_GetValueText(
 
 #[no_mangle]
 pub unsafe extern "C" fn Servo_ComputedValues_GetForAnonymousBox(
-    parent_style_or_null: ServoStyleContextBorrowedOrNull,
+    parent_style_or_null: ComputedStyleBorrowedOrNull,
     pseudo_tag: *mut nsAtom,
     raw_data: RawServoStyleSetBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let guards = StylesheetGuards::same(&guard);
@@ -2243,9 +2243,9 @@ pub extern "C" fn Servo_ResolvePseudoStyle(
     element: RawGeckoElementBorrowed,
     pseudo_type: CSSPseudoElementType,
     is_probe: bool,
-    inherited_style: ServoStyleContextBorrowedOrNull,
+    inherited_style: ComputedStyleBorrowedOrNull,
     raw_data: RawServoStyleSetBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let element = GeckoElement(element);
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
@@ -2317,10 +2317,10 @@ fn debug_atom_array(atoms: &AtomArray) -> String {
 pub extern "C" fn Servo_ComputedValues_ResolveXULTreePseudoStyle(
     element: RawGeckoElementBorrowed,
     pseudo_tag: *mut nsAtom,
-    inherited_style: ServoStyleContextBorrowed,
+    inherited_style: ComputedStyleBorrowed,
     input_word: *const AtomArray,
     raw_data: RawServoStyleSetBorrowed
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let element = GeckoElement(element);
     let data = element.borrow_data()
         .expect("Calling ResolveXULTreePseudoStyle on unstyled element?");
@@ -2362,7 +2362,7 @@ pub extern "C" fn Servo_ComputedValues_ResolveXULTreePseudoStyle(
 #[no_mangle]
 pub extern "C" fn Servo_SetExplicitStyle(
     element: RawGeckoElementBorrowed,
-    style: ServoStyleContextBorrowed,
+    style: ComputedStyleBorrowed,
 ) {
     let element = GeckoElement(element);
     debug!("Servo_SetExplicitStyle: {:?}", element);
@@ -2375,7 +2375,7 @@ pub extern "C" fn Servo_SetExplicitStyle(
 
 #[no_mangle]
 pub extern "C" fn Servo_HasAuthorSpecifiedRules(
-    style: ServoStyleContextBorrowed,
+    style: ComputedStyleBorrowed,
     element: RawGeckoElementBorrowed,
     pseudo_type: CSSPseudoElementType,
     rule_type_mask: u32,
@@ -2498,9 +2498,9 @@ fn get_pseudo_style(
 pub unsafe extern "C" fn Servo_ComputedValues_Inherit(
     raw_data: RawServoStyleSetBorrowed,
     pseudo_tag: *mut nsAtom,
-    parent_style_context: ServoStyleContextBorrowedOrNull,
+    parent_style_context: ComputedStyleBorrowedOrNull,
     target: structs::InheritTarget
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     let for_text = target == structs::InheritTarget::Text;
@@ -2522,7 +2522,7 @@ pub unsafe extern "C" fn Servo_ComputedValues_Inherit(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBorrowed) -> u64 {
+pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ComputedStyleBorrowed) -> u64 {
     use style::properties::computed_value_flags::ComputedValueFlags;
     // FIXME(emilio): We could do this more efficiently I'm quite sure.
     let flags = values.flags;
@@ -2550,7 +2550,7 @@ pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBor
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(
-    values: ServoStyleContextBorrowed,
+    values: ComputedStyleBorrowed,
 ) -> bool {
     let b = values.get_box();
     b.specifies_animations() || b.specifies_transitions()
@@ -2566,7 +2566,7 @@ pub extern "C" fn Servo_ComputedValues_EqualCustomProperties(
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
-    values: ServoStyleContextBorrowed,
+    values: ComputedStyleBorrowed,
     rules: RawGeckoServoStyleRuleListBorrowedMut,
 ) {
     let rule_node = match values.rules {
@@ -2839,7 +2839,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclar
 pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     declarations: RawServoDeclarationBlockBorrowed,
     property_id: nsCSSPropertyID, buffer: *mut nsAString,
-    computed_values: ServoStyleContextBorrowedOrNull,
+    computed_values: ComputedStyleBorrowedOrNull,
     custom_properties: RawServoDeclarationBlockBorrowedOrNull,
 ) {
     let property_id = get_property_id_from_nscsspropertyid!(property_id, ());
@@ -3682,7 +3682,7 @@ pub extern "C" fn Servo_TakeChangeHint(
 pub extern "C" fn Servo_ResolveStyle(
     element: RawGeckoElementBorrowed,
     _raw_data: RawServoStyleSetBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}", element);
     let data =
@@ -3700,7 +3700,7 @@ pub extern "C" fn Servo_ResolveStyleLazily(
     rule_inclusion: StyleRuleInclusion,
     snapshots: *const ServoElementSnapshotTable,
     raw_data: RawServoStyleSetBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     debug_assert!(!snapshots.is_null());
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -3775,13 +3775,13 @@ pub extern "C" fn Servo_ResolveStyleLazily(
 
 #[no_mangle]
 pub extern "C" fn Servo_ReparentStyle(
-    style_to_reparent: ServoStyleContextBorrowed,
-    parent_style: ServoStyleContextBorrowed,
-    parent_style_ignoring_first_line: ServoStyleContextBorrowed,
-    layout_parent_style: ServoStyleContextBorrowed,
+    style_to_reparent: ComputedStyleBorrowed,
+    parent_style: ComputedStyleBorrowed,
+    parent_style_ignoring_first_line: ComputedStyleBorrowed,
+    layout_parent_style: ComputedStyleBorrowed,
     element: RawGeckoElementBorrowedOrNull,
     raw_data: RawServoStyleSetBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
@@ -3891,7 +3891,7 @@ impl<'a> Iterator for PrioritizedPropertyIter<'a> {
 pub extern "C" fn Servo_GetComputedKeyframeValues(
     keyframes: RawGeckoKeyframeListBorrowed,
     element: RawGeckoElementBorrowed,
-    style: ServoStyleContextBorrowed,
+    style: ComputedStyleBorrowed,
     raw_data: RawServoStyleSetBorrowed,
     computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut
 ) {
@@ -4001,7 +4001,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
 pub extern "C" fn Servo_GetAnimationValues(
     declarations: RawServoDeclarationBlockBorrowed,
     element: RawGeckoElementBorrowed,
-    style: ServoStyleContextBorrowed,
+    style: ComputedStyleBorrowed,
     raw_data: RawServoStyleSetBorrowed,
     animation_values: RawGeckoServoAnimationValueListBorrowedMut,
 ) {
@@ -4044,7 +4044,7 @@ pub extern "C" fn Servo_GetAnimationValues(
 pub extern "C" fn Servo_AnimationValue_Compute(
     element: RawGeckoElementBorrowed,
     declarations: RawServoDeclarationBlockBorrowed,
-    style: ServoStyleContextBorrowed,
+    style: ComputedStyleBorrowed,
     raw_data: RawServoStyleSetBorrowed,
 ) -> RawServoAnimationValueStrong {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
@@ -4408,9 +4408,9 @@ pub extern "C" fn Servo_StyleSet_BuildFontFeatureValueSet(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(
     raw_data: RawServoStyleSetBorrowed,
-    parent_style_context: ServoStyleContextBorrowedOrNull,
+    parent_style_context: ComputedStyleBorrowedOrNull,
     declarations: RawServoDeclarationBlockBorrowed,
-) -> ServoStyleContextStrong {
+) -> ComputedStyleStrong {
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -4505,7 +4505,7 @@ pub extern "C" fn Servo_StyleSet_HasDocumentStateDependency(
 
 #[no_mangle]
 pub unsafe extern "C" fn Servo_GetCustomPropertyValue(
-    computed_values: ServoStyleContextBorrowed,
+    computed_values: ComputedStyleBorrowed,
     name: *const nsAString,
     value: *mut nsAString,
 ) -> bool {
@@ -4525,7 +4525,7 @@ pub unsafe extern "C" fn Servo_GetCustomPropertyValue(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetCustomPropertiesCount(computed_values: ServoStyleContextBorrowed) -> u32 {
+pub extern "C" fn Servo_GetCustomPropertiesCount(computed_values: ComputedStyleBorrowed) -> u32 {
     match computed_values.custom_properties() {
         Some(p) => p.len() as u32,
         None => 0,
@@ -4534,7 +4534,7 @@ pub extern "C" fn Servo_GetCustomPropertiesCount(computed_values: ServoStyleCont
 
 #[no_mangle]
 pub extern "C" fn Servo_GetCustomPropertyNameAt(
-    computed_values: ServoStyleContextBorrowed,
+    computed_values: ComputedStyleBorrowed,
     index: u32,
     name: *mut nsAString,
 ) -> bool {

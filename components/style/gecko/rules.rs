@@ -281,7 +281,7 @@ impl ToNsCssValue for counter_style::System {
                 let mut a = nsCSSValue::null();
                 let mut b = nsCSSValue::null();
                 a.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_FIXED as i32);
-                b.set_integer(first_symbol_value.unwrap_or(1));
+                b.set_integer(first_symbol_value.map_or(1, |v| v.value()));
                 nscssvalue.set_pair(&a, &b);
             }
             Extends(other) => {
@@ -345,7 +345,7 @@ impl ToNsCssValue for counter_style::Pad {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         let mut min_length = nsCSSValue::null();
         let mut pad_with = nsCSSValue::null();
-        min_length.set_integer(self.0 as i32);
+        min_length.set_integer(self.0.value());
         pad_with.set_from(self.1);
         nscssvalue.set_pair(&min_length, &pad_with);
     }
@@ -372,7 +372,7 @@ impl ToNsCssValue for counter_style::AdditiveSymbols {
         nscssvalue.set_pair_list(self.0.into_iter().map(|tuple| {
             let mut weight = nsCSSValue::null();
             let mut symbol = nsCSSValue::null();
-            weight.set_integer(tuple.weight as i32);
+            weight.set_integer(tuple.weight.value());
             symbol.set_from(tuple.symbol);
             (weight, symbol)
         }));

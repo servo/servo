@@ -8,7 +8,7 @@
 
 use ServoArc;
 use app_units::Au;
-use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use context::{LayoutContext, with_thread_local_font_context};
 use display_list::ToLayout;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
@@ -345,6 +345,7 @@ pub struct CanvasFragmentInfo {
     pub source: CanvasFragmentSource,
     pub dom_width: Au,
     pub dom_height: Au,
+    pub canvas_id: CanvasId,
 }
 
 impl CanvasFragmentInfo {
@@ -362,6 +363,7 @@ impl CanvasFragmentInfo {
             source: source,
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
+            canvas_id: data.canvas_id,
         }
     }
 }

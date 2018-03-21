@@ -13,6 +13,7 @@ use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
 use num_traits::ToPrimitive;
+use serde_bytes::ByteBuf;
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::Arc;
@@ -63,6 +64,7 @@ pub struct CanvasPaintThread<'a> {
     old_image_key: Option<webrender_api::ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<webrender_api::ImageKey>,
+    canvas_id: CanvasId,
 }
 
 #[derive(Clone)]
@@ -98,7 +100,8 @@ impl<'a> CanvasPaintState<'a> {
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
            webrender_api_sender: webrender_api::RenderApiSender,
-           antialias: AntialiasMode) -> CanvasPaintThread<'a> {
+           antialias: AntialiasMode,
+           canvas_id: CanvasId) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
@@ -111,6 +114,7 @@ impl<'a> CanvasPaintThread<'a> {
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
+            canvas_id: canvas_id,
         }
     }
 
@@ -118,7 +122,8 @@ impl<'a> CanvasPaintThread<'a> {
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
                  webrender_api_sender: webrender_api::RenderApiSender,
-                 antialias: bool)
+                 antialias: bool,
+                 canvas_id: CanvasId)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let antialias = if antialias {
@@ -127,11 +132,12 @@ impl<'a> CanvasPaintThread<'a> {
             AntialiasMode::None
         };
         thread::Builder::new().name("CanvasThread".to_owned()).spawn(move || {
-            let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias);
+            let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias, canvas_id);
             loop {
                 let msg = receiver.recv();
                 match msg.unwrap() {
-                    CanvasMsg::Canvas2d(message) => {
+                    CanvasMsg::Canvas2d(message, canvas_id) => {
+                        assert!(canvas_id == painter.canvas_id);
                         match message {
                             Canvas2dMsg::FillText(text, x, y, max_width) => painter.fill_text(text, x, y, max_width),
                             Canvas2dMsg::FillRect(ref rect) => painter.fill_rect(rect),
@@ -145,18 +151,29 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => {
                                 painter.is_point_in_path(x, y, fill_rule, chan)
                             },
-                            Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect,
-                                                   smoothing_enabled) => {
-                                painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
+                            Canvas2dMsg::DrawImage(
+                                imagedata,
+                                image_size,
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                            ) => {
+                                painter.draw_image(
+                                    imagedata.into(),
+                                    image_size,
+                                    dest_rect,
+                                    source_rect,
+                                    smoothing_enabled,
+                                )
                             }
                             Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled) => {
                                 painter.draw_image_self(image_size, dest_rect, source_rect, smoothing_enabled)
                             }
                             Canvas2dMsg::DrawImageInOther(
-                                renderer, image_size, dest_rect, source_rect, smoothing, sender
+                                renderer, other_canvas_id, image_size, dest_rect, source_rect, smoothing, sender
                             ) => {
                                 painter.draw_image_in_other(
-                                    renderer, image_size, dest_rect, source_rect, smoothing, sender)
+                                    renderer, other_canvas_id, image_size, dest_rect, source_rect, smoothing, sender)
                             }
                             Canvas2dMsg::MoveTo(ref point) => painter.move_to(point),
                             Canvas2dMsg::LineTo(ref point) => painter.line_to(point),
@@ -189,30 +206,49 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
                             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan)
                                 => painter.image_data(dest_rect, canvas_size, chan),
-                            Canvas2dMsg::PutImageData(imagedata, offset, image_data_size, dirty_rect)
-                                => painter.put_image_data(imagedata, offset, image_data_size, dirty_rect),
+                            Canvas2dMsg::PutImageData(
+                                imagedata,
+                                offset,
+                                image_data_size,
+                                dirty_rect,
+                            ) => {
+                                painter.put_image_data(
+                                    imagedata.into(),
+                                    offset,
+                                    image_data_size,
+                                    dirty_rect,
+                                )
+                            }
                             Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
                             Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
                             Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
                             Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azure_style()),
                         }
                     },
-                    CanvasMsg::Close => break,
-                    CanvasMsg::Recreate(size) => painter.recreate(size),
-                    CanvasMsg::FromScript(message) => {
+                    CanvasMsg::Close(canvas_id) =>{
+                        assert!(canvas_id == painter.canvas_id);
+                        break;
+                    },
+                    CanvasMsg::Recreate(size, canvas_id) =>{
+                        assert!(canvas_id == painter.canvas_id);
+                        painter.recreate(size);
+                    },
+                    CanvasMsg::FromScript(message, canvas_id) => {
+                        assert!(canvas_id == painter.canvas_id);
                         match message {
                             FromScriptMsg::SendPixels(chan) => {
                                 painter.send_pixels(chan)
                             }
                         }
-                    }
-                    CanvasMsg::FromLayout(message) => {
+                    },
+                    CanvasMsg::FromLayout(message, canvas_id) => {
+                        assert!(canvas_id == painter.canvas_id);
                         match message {
                             FromLayoutMsg::SendData(chan) => {
                                 painter.send_data(chan)
                             }
                         }
-                    }
+                    },
                 }
             }
         }).expect("Thread spawning failed");
@@ -392,6 +428,7 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn draw_image_in_other(&self,
                            renderer: IpcSender<CanvasMsg>,
+                           other_canvas_id: CanvasId,
                            image_size: Size2D<f64>,
                            dest_rect: Rect<f64>,
                            source_rect: Rect<f64>,
@@ -402,7 +439,14 @@ impl<'a> CanvasPaintThread<'a> {
         byte_swap(&mut image_data);
 
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
-            image_data, source_rect.size, dest_rect, source_rect, smoothing_enabled));
+            image_data.into(),
+            source_rect.size,
+            dest_rect,
+            source_rect,
+            smoothing_enabled,
+            ),
+            other_canvas_id,
+        );
         renderer.send(msg).unwrap();
         // We acknowledge to the caller here that the data was sent to the
         // other canvas so that if JS immediately afterwards try to get the
@@ -578,9 +622,9 @@ impl<'a> CanvasPaintThread<'a> {
         }
     }
 
-    fn send_pixels(&mut self, chan: IpcSender<Option<Vec<u8>>>) {
+    fn send_pixels(&mut self, chan: IpcSender<Option<ByteBuf>>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            chan.send(Some(element.into())).unwrap();
+            chan.send(Some(Vec::from(element).into())).unwrap();
         })
     }
 
@@ -595,6 +639,7 @@ impl<'a> CanvasPaintThread<'a> {
                 format: webrender_api::ImageFormat::BGRA8,
                 offset: 0,
                 is_opaque: false,
+                allow_mipmaps: false,
             };
             let data = webrender_api::ImageData::Raw(Arc::new(element.into()));
 
@@ -631,12 +676,17 @@ impl<'a> CanvasPaintThread<'a> {
         })
     }
 
-    fn image_data(&self, dest_rect: Rect<i32>, canvas_size: Size2D<f64>, chan: IpcSender<Vec<u8>>) {
+    fn image_data(
+        &self,
+        dest_rect: Rect<i32>,
+        canvas_size: Size2D<f64>,
+        chan: IpcSender<ByteBuf>,
+    ) {
         let mut dest_data = self.read_pixels(dest_rect, canvas_size);
 
         // bgra -> rgba
         byte_swap(&mut dest_data);
-        chan.send(dest_data).unwrap();
+        chan.send(dest_data.into()).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

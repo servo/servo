@@ -93,7 +93,7 @@ use fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
@@ -106,9 +106,10 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
+use profile_traits::ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
-use script_layout_interface::message::{Msg, NodesFromPointQueryType, ReflowGoal};
+use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
@@ -1968,8 +1969,7 @@ impl Document {
                             client_point: &Point2D<f32>,
                             reflow_goal: NodesFromPointQueryType)
                             -> Vec<UntrustedNodeAddress> {
-        if !self.window.reflow(ReflowGoal::NodesFromPointQuery(*client_point, reflow_goal),
-                               ReflowReason::Query) {
+        if !self.window.layout_reflow(QueryMsg::NodesFromPointQuery(*client_point, reflow_goal)) {
             return vec!();
         };
 
@@ -3448,7 +3448,7 @@ impl DocumentMethods for Document {
         }
 
         let url = self.url();
-        let (tx, rx) = ipc::channel().unwrap();
+        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let _ = self.window
             .upcast::<GlobalScope>()
             .resource_threads()

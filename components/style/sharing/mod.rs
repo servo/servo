@@ -667,8 +667,7 @@ impl<E: TElement> StyleSharingCache<E> {
         }
 
         // We do not ignore visited state here, because Gecko needs to store
-        // extra bits on visited style contexts, so these contexts cannot be
-        // shared.
+        // extra bits on visited styles, so these contexts cannot be shared.
         if target.element.state() != candidate.state() {
             trace!("Miss: User and Author State");
             return None;

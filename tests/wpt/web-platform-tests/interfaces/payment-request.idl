@@ -1,8 +1,11 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the Payment Request API spec.
+// See https://w3c.github.io/payment-request/
+
 [Constructor(sequence<PaymentMethodData> methodData, PaymentDetailsInit details, optional PaymentOptions options),
-  SecureContext,
-  Exposed=Window]
+SecureContext, Exposed=Window]
 interface PaymentRequest : EventTarget {
-  Promise<PaymentResponse> show();
+  Promise<PaymentResponse> show(optional Promise<PaymentDetailsUpdate> detailsPromise);
   Promise<void> abort();
   Promise<boolean> canMakePayment();
 
@@ -15,40 +18,48 @@ interface PaymentRequest : EventTarget {
 
   attribute EventHandler onshippingoptionchange;
 };
+
 dictionary PaymentMethodData {
   required DOMString supportedMethods;
   object data;
 };
+
 dictionary PaymentCurrencyAmount {
   required DOMString currency;
   required DOMString value;
   // Note: currencySystem is "at risk" of being removed!
   DOMString currencySystem = "urn:iso:std:iso:4217";
 };
+
 dictionary PaymentDetailsBase {
   sequence<PaymentItem> displayItems;
   sequence<PaymentShippingOption> shippingOptions;
   sequence<PaymentDetailsModifier> modifiers;
 };
+
 dictionary PaymentDetailsInit : PaymentDetailsBase {
   DOMString id;
   required PaymentItem total;
 };
+
 dictionary PaymentDetailsUpdate : PaymentDetailsBase {
   DOMString error;
   PaymentItem total;
 };
+
 dictionary PaymentDetailsModifier {
   required DOMString supportedMethods;
   PaymentItem total;
   sequence<PaymentItem> additionalDisplayItems;
   object data;
 };
+
 enum PaymentShippingType {
   "shipping",
   "delivery",
   "pickup"
 };
+
 dictionary PaymentOptions {
   boolean requestPayerName = false;
   boolean requestPayerEmail = false;
@@ -56,19 +67,25 @@ dictionary PaymentOptions {
   boolean requestShipping = false;
   PaymentShippingType shippingType = "shipping";
 };
+
 dictionary PaymentItem {
   required DOMString label;
   required PaymentCurrencyAmount amount;
   boolean pending = false;
+  // Note: type member is "at risk" of being removed!
+  PaymentItemType type;
 };
-[SecureContext,
-  Exposed=Window]
+
+enum PaymentItemType {
+  "tax"
+};
+
+[SecureContext, Exposed=Window]
 interface PaymentAddress {
   [Default] object toJSON();
   readonly attribute DOMString country;
   readonly attribute FrozenArray<DOMString> addressLine;
   readonly attribute DOMString region;
-  readonly attribute DOMString regionCode;
   readonly attribute DOMString city;
   readonly attribute DOMString dependentLocality;
   readonly attribute DOMString postalCode;
@@ -78,19 +95,21 @@ interface PaymentAddress {
   readonly attribute DOMString recipient;
   readonly attribute DOMString phone;
 };
+
 dictionary PaymentShippingOption {
   required DOMString id;
   required DOMString label;
   required PaymentCurrencyAmount amount;
   boolean selected = false;
 };
+
 enum PaymentComplete {
   "fail",
   "success",
   "unknown"
 };
-[SecureContext,
-  Exposed=Window]
+
+[SecureContext, Exposed=Window]
 interface PaymentResponse {
   [Default] object toJSON();
 
@@ -105,11 +124,10 @@ interface PaymentResponse {
 
   Promise<void> complete(optional PaymentComplete result = "unknown");
 };
-[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict),
-  SecureContext,
-  Exposed=Window]
+
+[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict), SecureContext, Exposed=Window]
 interface PaymentRequestUpdateEvent : Event {
   void updateWith(Promise<PaymentDetailsUpdate> detailsPromise);
 };
-dictionary PaymentRequestUpdateEventInit : EventInit {
-};
+
+dictionary PaymentRequestUpdateEventInit : EventInit {};

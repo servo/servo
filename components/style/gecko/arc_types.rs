@@ -116,19 +116,19 @@ pub unsafe extern "C" fn Servo_RuleNode_Release(obj: &RawServoRuleNode) {
     ptr::read(ptr as *const StrongRuleNode);
 }
 
-// ServoStyleContext is not an opaque type on any side of FFI.
+// ComputedStyle is not an opaque type on any side of FFI.
 // This means that doing the HasArcFFI type trick is actually unsound,
-// since it gives us a way to construct an Arc<ServoStyleContext> from
-// an &ServoStyleContext, which in general is not allowed. So we
+// since it gives us a way to construct an Arc<ComputedStyle> from
+// an &ComputedStyle, which in general is not allowed. So we
 // implement the restricted set of arc type functionality we need.
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_StyleContext_AddRef(obj: &ComputedValues) {
+pub unsafe extern "C" fn Servo_ComputedStyle_AddRef(obj: &ComputedValues) {
     mem::forget(ArcBorrow::from_ref(obj).clone_arc());
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_StyleContext_Release(obj: &ComputedValues) {
+pub unsafe extern "C" fn Servo_ComputedStyle_Release(obj: &ComputedValues) {
     ArcBorrow::from_ref(obj).with_arc(|a: &Arc<ComputedValues>| {
         let _: Arc<ComputedValues> = ptr::read(a);
     });

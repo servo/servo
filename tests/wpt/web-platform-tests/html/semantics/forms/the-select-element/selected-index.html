@@ -25,6 +25,11 @@
     <option></option>
     <option selected></option>
   </select>
+
+  <select id=display-none>
+    <option style="display:none"></option>
+    <option></option>
+  </select>
 </form>
 
 <script>
@@ -100,4 +105,19 @@ test(function () {
   form.reset();
   assertSelectedIndex(select, 1);
 }, "set and reset (HTMLOptionsCollection)");
+
+test(function () {
+  var select = document.getElementById('display-none');
+  assertSelectedIndex(select, 0);
+}, "get display:none");
+
+test(function () {
+  var select = document.getElementById('display-none');
+  select.offsetTop; // force rendering
+  assertSelectedIndex(select, 0);
+  select.options[1].selected = true;
+  assertSelectedIndex(select, 1);
+  select.options[1].selected = false;
+  assertSelectedIndex(select, 0);
+}, "reset to display:none");
 </script>

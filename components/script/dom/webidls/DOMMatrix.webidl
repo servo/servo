@@ -17,8 +17,8 @@
 interface DOMMatrix : DOMMatrixReadOnly {
 
     [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
-//  [NewObject] static DOMMatrix fromFloat32Array(Float32Array array32);
-//  [NewObject] static DOMMatrix fromFloat64Array(Float64Array array64);
+    [NewObject, Throws] static DOMMatrix fromFloat32Array(Float32Array array32);
+    [NewObject, Throws] static DOMMatrix fromFloat64Array(Float64Array array64);
 
     // These attributes are simple aliases for certain elements of the 4x4 matrix
     inherit attribute unrestricted double a;

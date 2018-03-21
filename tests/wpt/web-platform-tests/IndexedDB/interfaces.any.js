@@ -9,8 +9,7 @@ promise_test(async t => {
   ].map(url => fetch(url).then(response => response.text())));
 
   const idl_array = new IdlArray();
-  idl_array.add_untested_idls('interface LinkStyle {};');  // Needed by html
-  idl_array.add_untested_idls(html);
+  idl_array.add_untested_idls(html, { only: ['WindowOrWorkerGlobalScope'] });
   idl_array.add_untested_idls(dom);
   idl_array.add_idls(indexeddb);
   idl_array.add_objects({

@@ -8,13 +8,12 @@ cd $WPT_ROOT
 main() {
     cd $WPT_ROOT
     pip install -U tox
-    pip install --requirement tools/wpt/requirements.txt
     ./wpt install firefox browser --destination $HOME
     ./wpt install firefox webdriver --destination $HOME/firefox
     export PATH=$HOME/firefox:$PATH
 
     cd $WPT_ROOT/resources/test
-    tox
+    tox -- --binary=$HOME/browsers/firefox/firefox
 }
 
 main

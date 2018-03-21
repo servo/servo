@@ -12,6 +12,8 @@ use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::Type;
+use js::rust::CustomAutoRooterGuard;
+use js::typedarray::ArrayBufferView;
 use servo_rand::{ServoRng, Rng};
 use std::ptr::NonNull;
 
@@ -43,29 +45,21 @@ impl CryptoMethods for Crypto {
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
     unsafe fn GetRandomValues(&self,
                        _cx: *mut JSContext,
-                       input: *mut JSObject)
+                       mut input: CustomAutoRooterGuard<ArrayBufferView>)
                        -> Fallible<NonNull<JSObject>> {
-        assert!(!input.is_null());
-        typedarray!(in(_cx) let mut array_buffer_view: ArrayBufferView = input);
-        let (array_type, mut data) = match array_buffer_view.as_mut() {
-            Ok(x) => (x.get_array_type(), x.as_mut_slice()),
-            Err(_) => {
-                return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView"
-                                       .to_owned()));
-            }
-        };
+        let array_type = input.get_array_type();
 
         if !is_integer_buffer(array_type) {
             return Err(Error::TypeMismatch);
+        } else {
+            let mut data = input.as_mut_slice();
+            if data.len() > 65536 {
+                return Err(Error::QuotaExceeded);
+            }
+            self.rng.borrow_mut().fill_bytes(&mut data);
         }
 
-        if data.len() > 65536 {
-            return Err(Error::QuotaExceeded);
-        }
-
-        self.rng.borrow_mut().fill_bytes(&mut data);
-
-        Ok(NonNull::new_unchecked(input))
+        Ok(NonNull::new_unchecked(*input.underlying_object()))
     }
 }
 
