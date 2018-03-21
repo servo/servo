@@ -381,8 +381,12 @@ impl CanvasRenderingContext2D {
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
+<<<<<<< HEAD
                 sender),
 				context.canvas_id);
+=======
+                sender),canvas_id);
+>>>>>>> 6a3b01346f545d22a7466c164609d4ce750846cf
 
             let renderer = context.get_ipc_renderer();
             renderer.send(msg).unwrap();
