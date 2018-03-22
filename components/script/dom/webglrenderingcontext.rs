@@ -34,7 +34,7 @@ use dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
 use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglcontextevent::WebGLContextEvent;
-use dom::webglframebuffer::WebGLFramebuffer;
+use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
 use dom::webglprogram::WebGLProgram;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webglshader::WebGLShader;
@@ -2360,21 +2360,27 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         //     If the value of FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is NONE,
         //     then querying any other pname will generate INVALID_ENUM.
         //
-        if pname != constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE &&
-            self.bound_texture(constants::TEXTURE_2D).is_none() &&
-            self.bound_renderbuffer.get().is_none()
-        {
+        // otherwise, return `WebGLRenderbuffer` or `WebGLTexture` dom object
+        if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
+            // if fb is None, an INVALID_OPERATION is returned
+            // at the beggining of the function, so `.unwrap()` will never panic
+            let fb = self.bound_framebuffer.get().unwrap();
+            if let Some(webgl_attachment) = fb.attachment(attachment) {
+                match webgl_attachment {
+                    WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => {
+                        rooted!(in(cx) let mut rval = NullValue());
+                        rb.to_jsval(cx, rval.handle_mut());
+                        return rval.get();
+                    },
+                    WebGLFramebufferAttachmentRoot::Texture(texture) => {
+                        rooted!(in(cx) let mut rval = NullValue());
+                        texture.to_jsval(cx, rval.handle_mut());
+                        return rval.get();
+                    },
+                }
+            }
             self.webgl_error(InvalidEnum);
             return NullValue();
-        }
-
-        // special case that returns `WebGLRenderbuffer` or `WebGLTexture` dom object
-        if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
-            let texture = self.bound_texture(constants::TEXTURE_2D);
-            if texture.is_some() {
-                return optional_root_object_to_js_or_null!(cx, texture);
-            }
-            return object_binding_to_js_or_null!(cx, &self.bound_renderbuffer);
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
