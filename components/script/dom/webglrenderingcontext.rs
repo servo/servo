@@ -15,6 +15,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGL
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
+use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferView;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -49,7 +50,8 @@ use half::f16;
 use js::conversions::ConversionBehavior;
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
-use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
+use js::typedarray::{ArrayBufferView, TypedArray, TypedArrayElement, Float32, Int32};
+use js::rust::CustomAutoRooterGuard;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -1706,9 +1708,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferSubData(&self, cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
+    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferOrArrayBufferView>) {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -1742,23 +1743,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexImage2D(&self, cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
-                            _width: i32, _height: i32, _border: i32, pixels: *mut JSObject) -> Fallible<()> {
-        let _data = fallible_array_buffer_view_to_vec(cx, pixels)?;
+    fn CompressedTexImage2D(&self, _target: u32, _level: i32, _internal_format: u32,
+                            _width: i32, _height: i32, _border: i32,
+                            _data: CustomAutoRooterGuard<ArrayBufferView>) {
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexSubImage2D(&self, cx: *mut JSContext, _target: u32, _level: i32,
-                               _xoffset: i32, _yoffset: i32, _width: i32, _height: i32,
-                               _format: u32, pixels: *mut JSObject) -> Fallible<()> {
-        let _data = fallible_array_buffer_view_to_vec(cx, pixels)?;
+    fn CompressedTexSubImage2D(&self, _target: u32, _level: i32, _xoffset: i32,
+                                     _yoffset: i32, _width: i32, _height: i32, _format: u32,
+                               _data: CustomAutoRooterGuard<ArrayBufferView>) {
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
@@ -2609,10 +2607,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.send_command(WebGLCommand::PolygonOffset(factor, units))
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    unsafe fn ReadPixels(&self, cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
-                  format: u32, pixel_type: u32, pixels: *mut JSObject) -> Fallible<()> {
+    fn ReadPixels(&self, x: i32, y: i32, width: i32, height: i32, format: u32, pixel_type: u32,
+                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) {
         if pixels.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -3238,9 +3235,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
-    unsafe fn TexImage2D(&self,
-                  cx: *mut JSContext,
+    fn TexImage2D(&self,
                   target: u32,
                   level: i32,
                   internal_format: u32,
@@ -3249,7 +3244,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   border: i32,
                   format: u32,
                   data_type: u32,
-                  data_ptr: *mut JSObject) -> Fallible<()> {
+                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
         }
@@ -3410,9 +3405,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
-    unsafe fn TexSubImage2D(&self,
-                     cx: *mut JSContext,
+    fn TexSubImage2D(&self,
                      target: u32,
                      level: i32,
                      xoffset: i32,
@@ -3421,7 +3414,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                      height: i32,
                      format: u32,
                      data_type: u32,
-                     data_ptr: *mut JSObject) -> Fallible<()> {
+                     pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
         let data = if data_ptr.is_null() {
             None
         } else {

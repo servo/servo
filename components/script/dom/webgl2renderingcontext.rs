@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2Rende
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
+use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferView;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::reflector::{reflect_dom_object, Reflector};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
@@ -30,6 +31,8 @@ use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::JSVal;
+use js::rust::CustomAutoRooterGuard;
+use js::typedarray::ArrayBufferView;
 use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::ptr::NonNull;
@@ -235,25 +238,23 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.BufferData_(target, size, usage)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferSubData(&self, cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
-        self.base.BufferSubData(cx, target, offset, data)
+    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferOrArrayBufferView>) {
+        self.base.BufferSubData(target, offset, data)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexImage2D(&self, cx: *mut JSContext, target: u32, level: i32, internal_format: u32,
-                                   width: i32, height: i32, border: i32, pixels: *mut JSObject) -> Fallible<()> {
-        self.base.CompressedTexImage2D(cx, target, level, internal_format, width, height, border, pixels)
+    fn CompressedTexImage2D(&self, target: u32, level: i32, internal_format: u32,
+                            width: i32, height: i32, border: i32,
+                            pixels: CustomAutoRooterGuard<ArrayBufferView>) {
+        self.base.CompressedTexImage2D(target, level, internal_format, width, height, border, pixels)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexSubImage2D(&self, cx: *mut JSContext, target: u32, level: i32,
-                                      xoffset: i32, yoffset: i32, width: i32, height: i32,
-                                      format: u32, pixels: *mut JSObject) -> Fallible<()> {
-        self.base.CompressedTexSubImage2D(cx, target, level, xoffset, yoffset, width, height, format, pixels)
+    fn CompressedTexSubImage2D(&self, target: u32, level: i32, xoffset: i32,
+                               yoffset: i32, width: i32, height: i32, format: u32,
+                               pixels: CustomAutoRooterGuard<ArrayBufferView>) {
+        self.base.CompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, pixels)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -533,11 +534,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.PolygonOffset(factor, units)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    unsafe fn ReadPixels(&self, cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
-                  format: u32, pixel_type: u32, pixels: *mut JSObject) -> Fallible<()> {
-        self.base.ReadPixels(cx, x, y, width, height, format, pixel_type, pixels)
+    fn ReadPixels(&self, x: i32, y: i32, width: i32, height: i32, format: u32, pixel_type: u32,
+                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) {
+        self.base.ReadPixels(x, y, width, height, format, pixel_type, pixels)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -820,19 +820,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
-    unsafe fn TexImage2D(&self,
-                         cx: *mut JSContext,
-                         target: u32,
-                         level: i32,
-                         internal_format: u32,
-                         width: i32,
-                         height: i32,
-                         border: i32,
-                         format: u32,
-                         data_type: u32,
-                         data_ptr: *mut JSObject) -> Fallible<()> {
-        self.base.TexImage2D(cx, target, level, internal_format, width, height, border, format, data_type, data_ptr)
+    fn TexImage2D(&self,
+                  target: u32,
+                  level: i32,
+                  internal_format: u32,
+                  width: i32,
+                  height: i32,
+                  border: i32,
+                  format: u32,
+                  data_type: u32,
+                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
+        self.base.TexImage2D(target, level, internal_format, width, height, border, format, data_type, pixels)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -862,19 +860,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
-    unsafe fn TexSubImage2D(&self,
-                            cx: *mut JSContext,
-                            target: u32,
-                            level: i32,
-                            xoffset: i32,
-                            yoffset: i32,
-                            width: i32,
-                            height: i32,
-                            format: u32,
-                            data_type: u32,
-                            data_ptr: *mut JSObject) -> Fallible<()> {
-        self.base.TexSubImage2D(cx, target, level, xoffset, yoffset, width, height, format, data_type, data_ptr)
+    fn TexSubImage2D(&self,
+                     target: u32,
+                     level: i32,
+                     xoffset: i32,
+                     yoffset: i32,
+                     width: i32,
+                     height: i32,
+                     format: u32,
+                     data_type: u32,
+                     pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
+        self.base.TexSubImage2D(target, level, xoffset, yoffset, width, height, format, data_type, pixels)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
