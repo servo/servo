@@ -96,7 +96,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
             ),
             String::from("network-cache-reporter"),
             report_chan,
-            |report_chan| report_chan); //TODO
+            |report_chan| report_chan);
 
     }).expect("Thread spawning failed");
     (public_setup_chan, private_setup_chan)
