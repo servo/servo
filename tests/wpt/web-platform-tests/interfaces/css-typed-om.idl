@@ -1,31 +1,35 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the CSS Typed OM spec.
+// See https://drafts.css-houdini.org/css-typed-om/
+
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSStyleValue {
     stringifier;
-    [Exposed=Window] static CSSStyleValue parse(DOMString property, DOMString cssText);
-    [Exposed=Window] static sequence<CSSStyleValue> parseAll(DOMString property, DOMString cssText);
+    [Exposed=Window] static CSSStyleValue parse(USVString property, USVString cssText);
+    [Exposed=Window] static sequence<CSSStyleValue> parseAll(USVString property, USVString cssText);
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface StylePropertyMapReadOnly {
-    iterable<DOMString, sequence<CSSStyleValue>>;
-    any get(DOMString property);
+    iterable<USVString, sequence<CSSStyleValue>>;
+    any get(USVString property);
     /* 'any' means (undefined or CSSStyleValue) here,
        see https://github.com/heycam/webidl/issues/60 */
-    sequence<CSSStyleValue> getAll(DOMString property);
-    boolean has(DOMString property);
-    readonly attribute long size;
+    sequence<CSSStyleValue> getAll(USVString property);
+    boolean has(USVString property);
+    readonly attribute unsigned long size;
 };
 
 [Exposed=Window]
 interface StylePropertyMap : StylePropertyMapReadOnly {
-    void set(DOMString property, (CSSStyleValue or DOMString)... values);
-    void append(DOMString property, (CSSStyleValue or DOMString)... values);
-    void delete(DOMString property);
+    void set(USVString property, (CSSStyleValue or USVString)... values);
+    void append(USVString property, (CSSStyleValue or USVString)... values);
+    void delete(USVString property);
     void clear();
 };
 
 partial interface Element {
-    StylePropertyMapReadOnly computedStyleMap();
+    [SameObject] StylePropertyMapReadOnly computedStyleMap();
 };
 
 partial interface CSSStyleRule {
@@ -45,19 +49,19 @@ interface CSSUnparsedValue : CSSStyleValue {
     setter CSSUnparsedSegment (unsigned long index, CSSUnparsedSegment val);
 };
 
-typedef (DOMString or CSSVariableReferenceValue) CSSUnparsedSegment;
+typedef (USVString or CSSVariableReferenceValue) CSSUnparsedSegment;
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(DOMString variable, optional CSSUnparsedValue? fallback = null)]
+ Constructor(USVString variable, optional CSSUnparsedValue? fallback = null)]
 interface CSSVariableReferenceValue {
-    attribute DOMString variable;
+    attribute USVString variable;
     readonly attribute CSSUnparsedValue? fallback;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(DOMString value)]
+ Constructor(USVString value)]
 interface CSSKeywordValue : CSSStyleValue {
-    attribute DOMString value;
+    attribute USVString value;
 };
 
 typedef (double or CSSNumericValue) CSSNumberish;
@@ -94,18 +98,18 @@ interface CSSNumericValue : CSSStyleValue {
 
     boolean equals(CSSNumberish... value);
 
-    CSSUnitValue to(DOMString unit);
-    CSSMathSum toSum(DOMString... units);
+    CSSUnitValue to(USVString unit);
+    CSSMathSum toSum(USVString... units);
     CSSNumericType type();
 
-    [Exposed=Window] static CSSNumericValue parse(DOMString cssText);
+    [Exposed=Window] static CSSNumericValue parse(USVString cssText);
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(double value, DOMString unit)]
+ Constructor(double value, USVString unit)]
 interface CSSUnitValue : CSSNumericValue {
     attribute double value;
-    readonly attribute DOMString unit;
+    readonly attribute USVString unit;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
