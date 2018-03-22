@@ -1269,6 +1269,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match parameter {
             constants::ARRAY_BUFFER_BINDING =>
                 return object_binding_to_js_or_null!(cx, &self.bound_buffer_array),
+            constants::CURRENT_PROGRAM => {
+                return object_binding_to_js_or_null!(cx, &self.current_program);
+            }
             constants::ELEMENT_ARRAY_BUFFER_BINDING =>
                 return object_binding_to_js_or_null!(cx, &self.bound_buffer_element_array),
             constants::FRAMEBUFFER_BINDING =>
