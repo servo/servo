@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates resource timing information for a timing allowed cross-origin redirect chain.</title>
+<link rel="author" title="Intel" href="http://www.intel.com/" />
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+
+<script>
+    setup({explicit_done: true});
+    test_namespace('getEntriesByName');
+    const pageOrigin = document.location.host;
+    const crossOrigin = 'www.' + pageOrigin;
+
+    function onload_test()
+    {
+        const context = new PerformanceContext(performance);
+        const entries = context.getEntriesByName(document.getElementById('frameContext').src, 'resource');
+        test_equals(entries.length, 1, 'There should be one entry.');
+        const entry = entries[0];
+
+        test_greater_than(entry.redirectStart, 0, 'redirectStart > 0 in timing allowed cross-origin redirect.');
+        test_equals(entry.redirectStart, entry.startTime, 'redirectStart == startTime in timing allowed cross-origin redirect.');
+        test_greater_than(entry.redirectEnd, entry.redirectStart, 'redirectEnd > redirectStart in timing allowed cross-origin redirect.');
+        test_greater_or_equals(entry.fetchStart, entry.redirectEnd, 'fetchStart >= redirectEnd in timing allowed cross-origin redirect.');
+        done();
+    }
+</script>
+
+</head>
+<body>
+<iframe id="frameContext" src="" style="width: 250px; height: 250px;"></iframe>
+<script>
+    let destUrl = 'http://' + crossOrigin + '/resource-timing/resources/multi_redirect.py?';
+    destUrl += 'page_origin=' + 'http://' + pageOrigin;
+    destUrl += '&cross_origin=' + 'http://' + crossOrigin;
+    destUrl += '&timing_allow=1';
+    const frameContext = document.getElementById('frameContext');
+    frameContext.onload = onload_test;
+    frameContext.src = destUrl;
+</script>
+</body>
+</html>
