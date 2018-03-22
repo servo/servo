@@ -6,6 +6,7 @@ use ipc_channel::ipc;
 use net::resource_thread::new_core_resource_thread;
 use net::test::parse_hostsfile;
 use net_traits::CoreResourceMsg;
+use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
 use std::net::IpAddr;
 
@@ -16,9 +17,10 @@ fn ip(s: &str) -> IpAddr {
 #[test]
 fn test_exit() {
     let (tx, _rx) = ipc::channel().unwrap();
+    let (mtx, _mrx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     let (resource_thread, _private_resource_thread) = new_core_resource_thread(
-        "".into(), None, ProfilerChan(tx), None);
+        "".into(), None, ProfilerChan(tx), MemProfilerChan(mtx), None);
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();
 }
