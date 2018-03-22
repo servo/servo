@@ -266,10 +266,9 @@ impl LineBreaker {
     }
 
     /// Reinitializes the pending line to blank data.
-    fn reset_line(&mut self) -> Line {
+    fn reset_line(&mut self) {
         self.last_known_line_breaking_opportunity = None;
-        mem::replace(&mut self.pending_line,
-                     Line::new(self.floats.writing_mode, &self.minimum_metrics))
+        self.pending_line = Line::new(self.floats.writing_mode, &self.minimum_metrics);
     }
 
     /// Reflows fragments for the given inline flow.
