@@ -12,10 +12,10 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress, RelativePos};
+use profile_traits::ipc;
 use std::mem;
 use std::ops::Index;
 use std::path::PathBuf;
@@ -200,7 +200,7 @@ impl Blob {
             BlobImpl::File(ref f) => {
                 if set_valid {
                     let origin = get_blob_origin(&global_url);
-                    let (tx, rx) = ipc::channel().unwrap();
+                    let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
                     let msg = FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone());
                     self.send_to_file_manager(msg);
@@ -227,7 +227,7 @@ impl Blob {
             bytes: bytes.to_vec(),
         };
 
-        let (tx, rx) = ipc::channel().unwrap();
+        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let msg = FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, tx, origin.clone());
         self.send_to_file_manager(msg);
 
@@ -251,7 +251,7 @@ impl Blob {
                             rel_pos: &RelativePos, parent_len: u64) -> Uuid {
         let origin = get_blob_origin(&self.global().get_url());
 
-        let (tx, rx) = ipc::channel().unwrap();
+        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let msg = FileManagerThreadMsg::AddSlicedURLEntry(parent_id.clone(),
                                                           rel_pos.clone(),
                                                           tx, origin.clone());
@@ -280,7 +280,7 @@ impl Blob {
         if let BlobImpl::File(ref f) = *self.blob_impl.borrow() {
             let origin = get_blob_origin(&self.global().get_url());
 
-            let (tx, rx) = ipc::channel().unwrap();
+            let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
             let msg = FileManagerThreadMsg::DecRef(f.id.clone(), origin, tx);
             self.send_to_file_manager(msg);
@@ -303,7 +303,7 @@ impl Drop for Blob {
 
 fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
     let resource_threads = global.resource_threads();
-    let (chan, recv) = ipc::channel().map_err(|_|())?;
+    let (chan, recv) = ipc::channel(global.time_profiler_chan().clone()).map_err(|_|())?;
     let origin = get_blob_origin(&global.get_url());
     let check_url_validity = false;
     let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);

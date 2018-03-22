@@ -29,9 +29,17 @@ impl ProfilerChan {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
+pub enum ProfilerData {
+    NoRecords,
+    Record(Vec<f64>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
     Time((ProfilerCategory, Option<TimerMetadata>), (u64, u64), (u64, u64)),
+    /// Message used to get time spend entries for a particular ProfilerBuckets (in nanoseconds)
+    Get((ProfilerCategory, Option<TimerMetadata>), IpcSender<ProfilerData>),
     /// Message used to force print the profiling metrics
     Print,
     /// Tells the profiler to shut down.
@@ -94,6 +102,7 @@ pub enum ProfilerCategory {
     TimeToFirstPaint = 0x80,
     TimeToFirstContentfulPaint = 0x81,
     TimeToInteractive = 0x82,
+    IpcReceiver = 0x83,
     ApplicationHeartbeat = 0x90,
 }
 
