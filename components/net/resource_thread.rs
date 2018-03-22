@@ -24,7 +24,7 @@ use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
-use profile_traits::mem::{Report, ReportsChan, ReportKind, ReporterRequest};
+use profile_traits::mem::{Report, ReportsChan, ReportKind};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
@@ -147,7 +147,6 @@ impl ResourceChannelManager {
              public_receiver: IpcReceiver<CoreResourceMsg>,
              private_receiver: IpcReceiver<CoreResourceMsg>,
              memory_reporter: IpcReceiver<ReportsChan>) {
-
         let (public_http_state, private_http_state) =
             create_http_states(self.config_dir.as_ref().map(Deref::deref));
 
@@ -168,35 +167,43 @@ impl ResourceChannelManager {
                     }
                 } else {
                     let group = if id == private_id {
-                        &private_http_state 
+                        &private_http_state
                     } else {
                         assert_eq!(id, public_id);
-                        &public_http_state 
+                        &public_http_state
                     };
                     if let Ok(msg) = data.to() {
                         if !self.process_msg(msg, group) {
                             return;
                         }
-                    } 
+                    }
                 }
             }
         }
     }
-    
+
     /// False if report failed to be made
     fn process_report(&mut self,
                       msg: ReportsChan,
                       public_http_state: &Arc<HttpState>,
                       private_http_state: &Arc<HttpState>) {
         let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-        let report = Report{
-            path: vec![String::from("Example")],
+        let public_cache = public_http_state.http_cache.read().unwrap();
+        let private_cache = private_http_state.http_cache.read().unwrap();
+
+        let public_report = Report {
+            path: path!["memory-cache", "public"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: public_http_state.http_cache.read().unwrap().size_of(&mut ops) + 
-                private_http_state.http_cache.read().unwrap().size_of(&mut ops)
+            size: public_cache.size_of(&mut ops)
         };
 
-        msg.send(vec!(report));
+        let private_report = Report {
+            path: path!["memory-cache", "private"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: private_cache.size_of(&mut ops)
+        };
+
+        msg.send(vec!(public_report, private_report));
     }
 
     /// Returns false if the thread should exit.

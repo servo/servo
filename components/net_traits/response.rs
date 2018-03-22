@@ -8,8 +8,9 @@ use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)

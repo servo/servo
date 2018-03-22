@@ -47,6 +47,8 @@ extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
 extern crate hashglobe;
+extern crate hyper;
+extern crate hyper_serde;
 #[cfg(feature = "servo")]
 extern crate mozjs as js;
 extern crate selectors;
@@ -55,6 +57,7 @@ extern crate smallbitvec;
 extern crate smallvec;
 #[cfg(feature = "servo")]
 extern crate string_cache;
+extern crate time;
 #[cfg(feature = "url")]
 extern crate url;
 extern crate void;
@@ -569,6 +572,12 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for servo_arc::Arc<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for std::sync::Mutex<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        (*self.lock().unwrap()).size_of(ops)
+    }
+}
+
 impl MallocSizeOf for smallbitvec::SmallBitVec {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if let Some(ptr) = self.heap_ptr() {
@@ -780,5 +789,93 @@ impl MallocSizeOf for xml5ever::QualName {
         self.prefix.size_of(ops) +
         self.ns.size_of(ops) +
         self.local.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for hyper::header::Headers {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut t = 0;
+        for x in self.iter() {
+           t += x.size_of(ops)
+        }
+        t
+    }
+}
+
+impl<'a> MallocSizeOf for hyper::header::HeaderView<'a> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // Close enough?
+        self.name().size_of(ops) + self.value_string().size_of(ops)
+    }
+}
+
+impl MallocSizeOf for hyper::header::ContentType {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // size_of::<hyper::header::ContentType>
+        self.0.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for hyper::mime::Mime {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops) +
+        self.1.size_of(ops) +
+        self.2.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for hyper::mime::Attr {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        self.len()
+    }
+}
+
+impl MallocSizeOf for hyper::mime::Value {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        self.len() // Length of string value in bytes (not the char length of a string)!
+    }
+}
+
+/*
+ *  pub struct Duration {
+ *      secs: i64,
+ *      nanos: i32,
+ *  }
+ */
+impl MallocSizeOf for time::Duration {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) ->  usize {
+        size_of::<time::Duration>()
+    }
+}
+
+impl MallocSizeOf for time::Tm {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        /*
+        self.tm_sec.size_of(ops) +
+        self.tm_min.size_of(ops) +
+        self.tm_hour.size_of(ops) +
+        self.tm_mday.size_of(ops) +
+        self.tm_mon.size_of(ops) +
+        self.tm_year.size_of(ops) +
+        self.tm_wday.size_of(ops) +
+        self.tm_yday.size_of(ops) +
+        self.tm_isdst.size_of(ops) +
+        self.tm_utcoff.size_of(ops) +
+        self.tm_nsec.size_of(ops)
+        */
+
+        size_of::<time::Tm>()
+    }
+}
+
+impl MallocSizeOf for hyper_serde::Serde<hyper::header::ContentType> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        (*self).clone().into_inner().size_of(ops)
+    }
+}
+
+impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        size_of::<T>()
     }
 }
