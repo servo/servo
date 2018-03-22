@@ -1305,6 +1305,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return Int32Value(constants::UNSIGNED_BYTE as i32);
                 }
             }
+            constants::VIEWPORT => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetViewport(sender));
+                let (x, y, width, height) = receiver.recv().unwrap();
+                rooted!(in(cx) let mut rval = UndefinedValue());
+                [x, y, width, height].to_jsval(cx, rval.handle_mut());
+                return rval.get();
+            }
             _ => {
                 if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
                     self.webgl_error(WebGLError::InvalidEnum);
@@ -3236,7 +3244,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue)
         }
 
-        self.send_command(WebGLCommand::Viewport(x, y, width, height))
+        self.send_command(WebGLCommand::SetViewport(x, y, width, height))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
