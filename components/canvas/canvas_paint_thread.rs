@@ -595,6 +595,7 @@ impl<'a> CanvasPaintThread<'a> {
                 format: webrender_api::ImageFormat::BGRA8,
                 offset: 0,
                 is_opaque: false,
+                allow_mipmaps: false,
             };
             let data = webrender_api::ImageData::Raw(Arc::new(element.into()));
 
