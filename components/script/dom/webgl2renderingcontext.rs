@@ -32,7 +32,7 @@ use euclid::Size2D;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::JSVal;
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::ArrayBufferView;
+use js::typedarray::{ArrayBufferView, Float32Array, Int32Array};
 use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::ptr::NonNull;
@@ -597,161 +597,197 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   val: f32) {
-        self.base.Uniform1f(uniform, val)
+        self.base.Uniform1f(location, val)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   val: i32) {
-        self.base.Uniform1i(uniform, val)
+        self.base.Uniform1i(location, val)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform1iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform1iv(cx, uniform, data)
+    fn Uniform1iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Int32Array>) {
+        self.base.Uniform1iv(location, v)
+    }
+
+    fn Uniform1iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
+        self.base.Uniform1iv_(location, v);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform1fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform1fv(cx, uniform, data)
+    fn Uniform1fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.Uniform1fv(location, v);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform1fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        self.base.Uniform1fv_(location, v);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
-        self.base.Uniform2f(uniform, x, y)
+        self.base.Uniform2f(location, x, y)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform2fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform2fv(cx, uniform, data)
+    fn Uniform2fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.Uniform2fv(location, v)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform2fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        self.base.Uniform2fv_(location, v);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: i32, y: i32) {
-        self.base.Uniform2i(uniform, x, y)
+        self.base.Uniform2i(location, x, y)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform2iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform2iv(cx, uniform, data)
+    fn Uniform2iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Int32Array>) {
+        self.base.Uniform2iv(location, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform2iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
+        self.base.Uniform2iv_(location, v);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32) {
-        self.base.Uniform3f(uniform, x, y, z)
+        self.base.Uniform3f(location, x, y, z)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform3fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform3fv(cx, uniform, data)
+    fn Uniform3fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.Uniform3fv(location, v)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform3fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        self.base.Uniform3fv_(location, v);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32) {
-        self.base.Uniform3i(uniform, x, y, z)
+        self.base.Uniform3i(location, x, y, z)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform3iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform3iv(cx, uniform, data)
+    fn Uniform3iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Int32Array>) {
+        self.base.Uniform3iv(location, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform3iv_(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: Vec<i32>) {
+        self.base.Uniform3iv_(location, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32, w: i32) {
-        self.base.Uniform4i(uniform, x, y, z, w)
+        self.base.Uniform4i(location, x, y, z, w)
     }
 
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform4iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform4iv(cx, uniform, data)
+    fn Uniform4iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Int32Array>) {
+        self.base.Uniform4iv(location, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4iv_(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: Vec<i32>) {
+        self.base.Uniform4iv_(location, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
-        self.base.Uniform4f(uniform, x, y, z, w)
+        self.base.Uniform4f(location, x, y, z, w)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn Uniform4fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        self.base.Uniform4fv(cx, uniform, data)
+    fn Uniform4fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.Uniform4fv(location, v)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        self.base.Uniform4fv_(location, v);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn UniformMatrix2fv(&self,
-                        cx: *mut JSContext,
-                        uniform: Option<&WebGLUniformLocation>,
+    fn UniformMatrix2fv(&self,
+                        location: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
-        self.base.UniformMatrix2fv(cx, uniform, transpose, data)
+                        v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.UniformMatrix2fv(location, transpose, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn UniformMatrix3fv(&self,
-                        cx: *mut JSContext,
-                        uniform: Option<&WebGLUniformLocation>,
-                        transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
-        self.base.UniformMatrix3fv(cx, uniform, transpose, data)
+    fn UniformMatrix2fv_(&self, location: Option<&WebGLUniformLocation>, transpose: bool, value: Vec<f32>) {
+        self.base.UniformMatrix2fv_(location, transpose, value);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn UniformMatrix4fv(&self,
-                        cx: *mut JSContext,
-                        uniform: Option<&WebGLUniformLocation>,
+    fn UniformMatrix3fv(&self,
+                        location: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
-        self.base.UniformMatrix4fv(cx, uniform, transpose, data)
+                        v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.UniformMatrix3fv(location, transpose, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix3fv_(&self, location: Option<&WebGLUniformLocation>, transpose: bool, value: Vec<f32>) {
+        self.base.UniformMatrix3fv_(location, transpose, value);
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix4fv(&self,
+                        location: Option<&WebGLUniformLocation>,
+                        transpose: bool,
+                        v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.UniformMatrix4fv(location, transpose, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix4fv_(&self, location: Option<&WebGLUniformLocation>, transpose: bool, value: Vec<f32>) {
+        self.base.UniformMatrix4fv_(location, transpose, value);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -770,9 +806,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn VertexAttrib1fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        self.base.VertexAttrib1fv(cx, indx, data)
+    fn VertexAttrib1fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.VertexAttrib1fv(indx, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib1fv_(&self, indx: u32, v: Vec<f32>) {
+        self.base.VertexAttrib1fv_(indx, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -781,9 +821,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn VertexAttrib2fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        self.base.VertexAttrib2fv(cx, indx, data)
+    fn VertexAttrib2fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.VertexAttrib2fv(indx, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib2fv_(&self, indx: u32, v: Vec<f32>) {
+        self.base.VertexAttrib2fv_(indx, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -792,9 +836,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn VertexAttrib3fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        self.base.VertexAttrib3fv(cx, indx, data)
+    fn VertexAttrib3fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.VertexAttrib3fv(indx, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib3fv_(&self, indx: u32, v: Vec<f32>) {
+        self.base.VertexAttrib3fv_(indx, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -803,9 +851,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
-    unsafe fn VertexAttrib4fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        self.base.VertexAttrib4fv(cx, indx, data)
+    fn VertexAttrib4fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
+        self.base.VertexAttrib4fv(indx, v)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib4fv_(&self, indx: u32, v: Vec<f32>) {
+        self.base.VertexAttrib4fv_(indx, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
