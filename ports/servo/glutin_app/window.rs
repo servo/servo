@@ -6,25 +6,18 @@
 
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
-use compositing::windowing::{WebRenderDebugOption, WindowMethods};
+use compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
-use glutin;
-use glutin::{Api, GlContext, GlRequest};
-use msg::constellation_msg::{self, Key, TopLevelBrowsingContextId as BrowserId};
-use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
-use net_traits::net_error_list::NetError;
-use net_traits::pub_domains::is_reg_domain;
+use glutin::{self, Api, GlContext, GlRequest};
+use msg::constellation_msg::{Key, KeyState};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::{LoadData, TouchEventType};
-use servo::ipc_channel::ipc::IpcSender;
+use script_traits::TouchEventType;
 use servo_config::opts;
-use servo_config::prefs::PREFS;
 use servo_geometry::DeviceIndependentPixel;
-use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -37,7 +30,7 @@ use std::thread;
 use std::time;
 use style_traits::DevicePixel;
 use style_traits::cursor::CursorKind;
-use tinyfiledialogs;
+use super::keyutils::{self, GlutinKeyModifiers};
 #[cfg(target_os = "windows")]
 use user32;
 use webrender_api::{DeviceIntPoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
@@ -49,33 +42,8 @@ use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, Virt
 use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
 
 
-bitflags! {
-    struct GlutinKeyModifiers: u8 {
-        const LEFT_CONTROL = 1;
-        const RIGHT_CONTROL = 2;
-        const LEFT_SHIFT = 4;
-        const RIGHT_SHIFT = 8;
-        const LEFT_ALT = 16;
-        const RIGHT_ALT = 32;
-        const LEFT_SUPER = 64;
-        const RIGHT_SUPER = 128;
-    }
-}
-
-// Some shortcuts use Cmd on Mac and Control on other systems.
-#[cfg(target_os = "macos")]
-const CMD_OR_CONTROL: KeyModifiers = KeyModifiers::SUPER;
-#[cfg(not(target_os = "macos"))]
-const CMD_OR_CONTROL: KeyModifiers = KeyModifiers::CONTROL;
-
-// Some shortcuts use Cmd on Mac and Alt on other systems.
-#[cfg(target_os = "macos")]
-const CMD_OR_ALT: KeyModifiers = KeyModifiers::SUPER;
-#[cfg(not(target_os = "macos"))]
-const CMD_OR_ALT: KeyModifiers = KeyModifiers::ALT;
-
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
-const LINE_HEIGHT: f32 = 38.0;
+pub const LINE_HEIGHT: f32 = 38.0;
 
 const MULTISAMPLES: u16 = 16;
 
@@ -179,25 +147,14 @@ pub struct Window {
     kind: WindowKind,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
-
     mouse_down_button: Cell<Option<winit::MouseButton>>,
     mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
     event_queue: RefCell<Vec<WindowEvent>>,
-
-    /// id of the top level browsing context. It is unique as tabs
-    /// are not supported yet. None until created.
-    browser_id: Cell<Option<BrowserId>>,
-
     mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
     key_modifiers: Cell<GlutinKeyModifiers>,
-    current_url: RefCell<Option<ServoUrl>>,
-
-    last_pressed_key: Cell<Option<constellation_msg::Key>>,
-
+    last_pressed_key: Cell<Option<Key>>,
     animation_state: Cell<AnimationState>,
-
     fullscreen: Cell<bool>,
-
     gl: Rc<gl::Gl>,
     suspended: Cell<bool>,
 }
@@ -216,10 +173,6 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 
 
 impl Window {
-    pub fn set_browser_id(&self, browser_id: BrowserId) {
-        self.browser_id.set(Some(browser_id));
-    }
-
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<Window> {
         let win_size: DeviceUintSize = (window_size.to_f32() * window_creation_scale_factor()).to_u32();
@@ -316,11 +269,8 @@ impl Window {
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
 
-            browser_id: Cell::new(None),
-
             mouse_pos: Cell::new(TypedPoint2D::new(0, 0)),
             key_modifiers: Cell::new(GlutinKeyModifiers::empty()),
-            current_url: RefCell::new(None),
 
             last_pressed_key: Cell::new(None),
             gl: gl.clone(),
@@ -336,6 +286,107 @@ impl Window {
         Rc::new(window)
     }
 
+    pub fn get_events(&self) -> Vec<WindowEvent> {
+        mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
+    }
+
+    pub fn page_height(&self) -> f32 {
+        let dpr = self.hidpi_factor();
+        match self.kind {
+            WindowKind::Window(ref window, _) => {
+                let (_, height) = window.get_inner_size().expect("Failed to get window inner size.");
+                height as f32 * dpr.get()
+            },
+            WindowKind::Headless(ref context) => {
+                context.height as f32 * dpr.get()
+            }
+        }
+    }
+
+    pub fn set_title(&self, title: &str) {
+        if let WindowKind::Window(ref window, _) = self.kind {
+            window.set_title(title);
+        }
+    }
+
+    pub fn set_inner_size(&self, size: DeviceUintSize) {
+        if let WindowKind::Window(ref window, _) = self.kind {
+            let size = size.to_f32() / self.hidpi_factor();
+            window.set_inner_size(size.width as u32, size.height as u32)
+        }
+    }
+
+    pub fn set_position(&self, point: DeviceIntPoint) {
+        if let WindowKind::Window(ref window, _) = self.kind {
+            let point = point.to_f32() / self.hidpi_factor();
+            window.set_position(point.x as i32, point.y as i32)
+        }
+    }
+
+    pub fn set_fullscreen(&self, state: bool) {
+        match self.kind {
+            WindowKind::Window(ref window, ..) => {
+                if self.fullscreen.get() != state {
+                    window.set_fullscreen(None);
+                }
+            },
+            WindowKind::Headless(..) => {}
+        }
+        self.fullscreen.set(state);
+    }
+
+    fn is_animating(&self) -> bool {
+        self.animation_state.get() == AnimationState::Animating && !self.suspended.get()
+    }
+
+    pub fn run<T>(&self, mut servo_callback: T) where T: FnMut() -> bool {
+        match self.kind {
+            WindowKind::Window(_, ref events_loop) => {
+                let mut stop = false;
+                loop {
+                    if self.is_animating() {
+                        // We block on compositing (servo_callback ends up calling swap_buffers)
+                        events_loop.borrow_mut().poll_events(|e| {
+                            self.glutin_event_to_servo_event(e);
+                        });
+                        stop = servo_callback();
+                    } else {
+                        // We block on glutin's event loop (window events)
+                        events_loop.borrow_mut().run_forever(|e| {
+                            self.glutin_event_to_servo_event(e);
+                            if !self.event_queue.borrow().is_empty() {
+                                if !self.suspended.get() {
+                                    stop = servo_callback();
+                                }
+                            }
+                            if stop || self.is_animating() {
+                                winit::ControlFlow::Break
+                            } else {
+                                winit::ControlFlow::Continue
+                            }
+                        });
+                    }
+                    if stop {
+                        break;
+                    }
+                }
+            }
+            WindowKind::Headless(..) => {
+                loop {
+                    // Sleep the main thread to avoid using 100% CPU
+                    // This can be done better, see comments in #18777
+                    if self.event_queue.borrow().is_empty() {
+                        thread::sleep(time::Duration::from_millis(5));
+                    }
+                    let stop = servo_callback();
+                    if stop {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
     fn gl_version() -> GlRequest {
         return GlRequest::Specific(Api::OpenGl, (3, 2));
@@ -346,30 +397,9 @@ impl Window {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
 
-    /// Detect if given char is default ignorable in unicode
-    /// http://www.unicode.org/L2/L2002/02368-default-ignorable.pdf
-    fn is_identifier_ignorable(&self, ch: &char) -> bool {
-        match *ch {
-            '\u{0000}'...'\u{0008}' | '\u{000E}'...'\u{001F}' |
-            '\u{007F}'...'\u{0084}' | '\u{0086}'...'\u{009F}' |
-            '\u{06DD}' | '\u{070F}' |
-            '\u{180B}'...'\u{180D}' | '\u{180E}' |
-            '\u{200C}'...'\u{200F}' |
-            '\u{202A}'...'\u{202E}' | '\u{2060}'...'\u{2063}' |
-            '\u{2064}'...'\u{2069}' | '\u{206A}'...'\u{206F}' |
-            '\u{FE00}'...'\u{FE0F}' | '\u{FEFF}' |
-            '\u{FFF0}'...'\u{FFF8}' | '\u{FFF9}'...'\u{FFFB}' |
-            '\u{1D173}'...'\u{1D17A}' | '\u{E0000}' |
-            '\u{E0001}' |
-            '\u{E0002}'...'\u{E001F}' | '\u{E0020}'...'\u{E007F}' |
-            '\u{E0080}'...'\u{E0FFF}' => true,
-            _ => false
-        }
-    }
-
     fn handle_received_character(&self, ch: char) {
-        let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-        if self.is_identifier_ignorable(&ch) {
+        let modifiers = keyutils::glutin_mods_to_script_mods(self.key_modifiers.get());
+        if keyutils::is_identifier_ignorable(&ch) {
             return
         }
         if let Some(last_pressed_key) = self.last_pressed_key.get() {
@@ -378,7 +408,7 @@ impl Window {
         } else {
             // Only send the character if we can print it (by ignoring characters like backspace)
             if !ch.is_control() {
-                match Window::char_to_script_key(ch) {
+                match keyutils::char_to_script_key(ch) {
                     Some(key) => {
                         let event = WindowEvent::KeyEvent(Some(ch),
                                                           key,
@@ -410,22 +440,22 @@ impl Window {
     fn handle_keyboard_input(&self, element_state: ElementState, virtual_key_code: VirtualKeyCode) {
         self.toggle_keyboard_modifiers(virtual_key_code);
 
-        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
+        if let Ok(key) = keyutils::glutin_key_to_script_key(virtual_key_code) {
             let state = match element_state {
                 ElementState::Pressed => KeyState::Pressed,
                 ElementState::Released => KeyState::Released,
             };
             if element_state == ElementState::Pressed {
-                if is_printable(virtual_key_code) {
+                if keyutils::is_printable(virtual_key_code) {
                     self.last_pressed_key.set(Some(key));
                 }
             }
-            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+            let modifiers = keyutils::glutin_mods_to_script_mods(self.key_modifiers.get());
             self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
         }
     }
 
-    fn handle_window_event(&self, event: winit::Event) {
+    fn glutin_event_to_servo_event(&self, event: winit::Event) {
         match event {
             Event::WindowEvent {
                 event: winit::WindowEvent::ReceivedCharacter(ch),
@@ -462,13 +492,22 @@ impl Window {
                 event: winit::WindowEvent::MouseWheel { delta, phase, .. },
                 ..
             } => {
-                let (dx, dy) = match delta {
+                let (mut dx, mut dy) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
                     MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
                 };
+                // Scroll events snap to the major axis of movement, with vertical
+                // preferred over horizontal.
+                if dy.abs() >= dx.abs() {
+                    dx = 0.0;
+                } else {
+                    dy = 0.0;
+                }
+
                 let scroll_location = ScrollLocation::Delta(TypedVector2D::new(dx, dy));
                 let phase = glutin_phase_to_touch_event_type(phase);
-                self.scroll_window(scroll_location, phase);
+                let event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
+                self.event_queue.borrow_mut().push(event);
             },
             Event::WindowEvent {
                 event: winit::WindowEvent::Touch(touch),
@@ -527,22 +566,6 @@ impl Window {
         self.key_modifiers.set(modifiers);
     }
 
-    /// Helper function to send a scroll event.
-    fn scroll_window(&self, mut scroll_location: ScrollLocation, phase: TouchEventType) {
-        // Scroll events snap to the major axis of movement, with vertical
-        // preferred over horizontal.
-        if let ScrollLocation::Delta(ref mut delta) = scroll_location {
-            if delta.y.abs() >= delta.x.abs() {
-                delta.x = 0.0;
-            } else {
-                delta.y = 0.0;
-            }
-        }
-
-        let event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
-        self.event_queue.borrow_mut().push(event);
-    }
-
     /// Helper function to handle a click
     fn handle_mouse(&self, button: winit::MouseButton,
                     action: winit::ElementState,
@@ -578,308 +601,83 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    pub fn get_events(&self) -> Vec<WindowEvent> {
-        mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+        match opts::get().device_pixels_per_px {
+            Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
+            None => match opts::get().output_file {
+                Some(_) => TypedScale::new(1.0),
+                None => self.platform_hidpi_factor()
+            }
+        }
     }
 
-    fn is_animating(&self) -> bool {
-        self.animation_state.get() == AnimationState::Animating && !self.suspended.get()
-    }
-
-    pub fn run<T>(&self, mut servo_callback: T) where T: FnMut() -> bool {
+    #[cfg(not(target_os = "windows"))]
+    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
-            WindowKind::Window(_, ref events_loop) => {
-                let mut stop = false;
-                loop {
-                    if self.is_animating() {
-                        // We block on compositing (servo_callback ends up calling swap_buffers)
-                        events_loop.borrow_mut().poll_events(|e| {
-                            self.handle_window_event(e);
-                        });
-                        stop = servo_callback();
-                    } else {
-                        // We block on glutin's event loop (window events)
-                        events_loop.borrow_mut().run_forever(|e| {
-                            self.handle_window_event(e);
-                            if !self.event_queue.borrow().is_empty() {
-                                if !self.suspended.get() {
-                                    stop = servo_callback();
-                                }
-                            }
-                            if stop || self.is_animating() {
-                                winit::ControlFlow::Break
-                            } else {
-                                winit::ControlFlow::Continue
-                            }
-                        });
-                    }
-                    if stop {
-                        break;
-                    }
-                }
+            WindowKind::Window(ref window, ..) => {
+                TypedScale::new(window.hidpi_factor())
             }
             WindowKind::Headless(..) => {
-                loop {
-                    // Sleep the main thread to avoid using 100% CPU
-                    // This can be done better, see comments in #18777
-                    if self.event_queue.borrow().is_empty() {
-                        thread::sleep(time::Duration::from_millis(5));
-                    }
-                    let stop = servo_callback();
-                    if stop {
-                        break;
-                    }
-                }
+                TypedScale::new(1.0)
             }
         }
     }
 
-    fn char_to_script_key(c: char) -> Option<constellation_msg::Key> {
-        match c {
-            ' ' => Some(Key::Space),
-            '"' => Some(Key::Apostrophe),
-            '\'' => Some(Key::Apostrophe),
-            '<' => Some(Key::Comma),
-            ',' => Some(Key::Comma),
-            '_' => Some(Key::Minus),
-            '-' => Some(Key::Minus),
-            '>' => Some(Key::Period),
-            '.' => Some(Key::Period),
-            '?' => Some(Key::Slash),
-            '/' => Some(Key::Slash),
-            '~' => Some(Key::GraveAccent),
-            '`' => Some(Key::GraveAccent),
-            ')' => Some(Key::Num0),
-            '0' => Some(Key::Num0),
-            '!' => Some(Key::Num1),
-            '1' => Some(Key::Num1),
-            '@' => Some(Key::Num2),
-            '2' => Some(Key::Num2),
-            '#' => Some(Key::Num3),
-            '3' => Some(Key::Num3),
-            '$' => Some(Key::Num4),
-            '4' => Some(Key::Num4),
-            '%' => Some(Key::Num5),
-            '5' => Some(Key::Num5),
-            '^' => Some(Key::Num6),
-            '6' => Some(Key::Num6),
-            '&' => Some(Key::Num7),
-            '7' => Some(Key::Num7),
-            '*' => Some(Key::Num8),
-            '8' => Some(Key::Num8),
-            '(' => Some(Key::Num9),
-            '9' => Some(Key::Num9),
-            ':' => Some(Key::Semicolon),
-            ';' => Some(Key::Semicolon),
-            '+' => Some(Key::Equal),
-            '=' => Some(Key::Equal),
-            'A' => Some(Key::A),
-            'a' => Some(Key::A),
-            'B' => Some(Key::B),
-            'b' => Some(Key::B),
-            'C' => Some(Key::C),
-            'c' => Some(Key::C),
-            'D' => Some(Key::D),
-            'd' => Some(Key::D),
-            'E' => Some(Key::E),
-            'e' => Some(Key::E),
-            'F' => Some(Key::F),
-            'f' => Some(Key::F),
-            'G' => Some(Key::G),
-            'g' => Some(Key::G),
-            'H' => Some(Key::H),
-            'h' => Some(Key::H),
-            'I' => Some(Key::I),
-            'i' => Some(Key::I),
-            'J' => Some(Key::J),
-            'j' => Some(Key::J),
-            'K' => Some(Key::K),
-            'k' => Some(Key::K),
-            'L' => Some(Key::L),
-            'l' => Some(Key::L),
-            'M' => Some(Key::M),
-            'm' => Some(Key::M),
-            'N' => Some(Key::N),
-            'n' => Some(Key::N),
-            'O' => Some(Key::O),
-            'o' => Some(Key::O),
-            'P' => Some(Key::P),
-            'p' => Some(Key::P),
-            'Q' => Some(Key::Q),
-            'q' => Some(Key::Q),
-            'R' => Some(Key::R),
-            'r' => Some(Key::R),
-            'S' => Some(Key::S),
-            's' => Some(Key::S),
-            'T' => Some(Key::T),
-            't' => Some(Key::T),
-            'U' => Some(Key::U),
-            'u' => Some(Key::U),
-            'V' => Some(Key::V),
-            'v' => Some(Key::V),
-            'W' => Some(Key::W),
-            'w' => Some(Key::W),
-            'X' => Some(Key::X),
-            'x' => Some(Key::X),
-            'Y' => Some(Key::Y),
-            'y' => Some(Key::Y),
-            'Z' => Some(Key::Z),
-            'z' => Some(Key::Z),
-            '{' => Some(Key::LeftBracket),
-            '[' => Some(Key::LeftBracket),
-            '|' => Some(Key::Backslash),
-            '\\' => Some(Key::Backslash),
-            '}' => Some(Key::RightBracket),
-            ']' => Some(Key::RightBracket),
-            _ => None
-        }
+    #[cfg(target_os = "windows")]
+    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
+        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+        TypedScale::new(ppi as f32 / 96.0)
     }
 
-    fn glutin_key_to_script_key(key: winit::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
-        // TODO(negge): add more key mappings
-        match key {
-            VirtualKeyCode::A => Ok(Key::A),
-            VirtualKeyCode::B => Ok(Key::B),
-            VirtualKeyCode::C => Ok(Key::C),
-            VirtualKeyCode::D => Ok(Key::D),
-            VirtualKeyCode::E => Ok(Key::E),
-            VirtualKeyCode::F => Ok(Key::F),
-            VirtualKeyCode::G => Ok(Key::G),
-            VirtualKeyCode::H => Ok(Key::H),
-            VirtualKeyCode::I => Ok(Key::I),
-            VirtualKeyCode::J => Ok(Key::J),
-            VirtualKeyCode::K => Ok(Key::K),
-            VirtualKeyCode::L => Ok(Key::L),
-            VirtualKeyCode::M => Ok(Key::M),
-            VirtualKeyCode::N => Ok(Key::N),
-            VirtualKeyCode::O => Ok(Key::O),
-            VirtualKeyCode::P => Ok(Key::P),
-            VirtualKeyCode::Q => Ok(Key::Q),
-            VirtualKeyCode::R => Ok(Key::R),
-            VirtualKeyCode::S => Ok(Key::S),
-            VirtualKeyCode::T => Ok(Key::T),
-            VirtualKeyCode::U => Ok(Key::U),
-            VirtualKeyCode::V => Ok(Key::V),
-            VirtualKeyCode::W => Ok(Key::W),
-            VirtualKeyCode::X => Ok(Key::X),
-            VirtualKeyCode::Y => Ok(Key::Y),
-            VirtualKeyCode::Z => Ok(Key::Z),
+    /// Has no effect on Android.
+    pub fn set_cursor(&self, cursor: CursorKind) {
+        match self.kind {
+            WindowKind::Window(ref window, ..) => {
+                use winit::MouseCursor;
 
-            VirtualKeyCode::Numpad0 => Ok(Key::Kp0),
-            VirtualKeyCode::Numpad1 => Ok(Key::Kp1),
-            VirtualKeyCode::Numpad2 => Ok(Key::Kp2),
-            VirtualKeyCode::Numpad3 => Ok(Key::Kp3),
-            VirtualKeyCode::Numpad4 => Ok(Key::Kp4),
-            VirtualKeyCode::Numpad5 => Ok(Key::Kp5),
-            VirtualKeyCode::Numpad6 => Ok(Key::Kp6),
-            VirtualKeyCode::Numpad7 => Ok(Key::Kp7),
-            VirtualKeyCode::Numpad8 => Ok(Key::Kp8),
-            VirtualKeyCode::Numpad9 => Ok(Key::Kp9),
-
-            VirtualKeyCode::Key0 => Ok(Key::Num0),
-            VirtualKeyCode::Key1 => Ok(Key::Num1),
-            VirtualKeyCode::Key2 => Ok(Key::Num2),
-            VirtualKeyCode::Key3 => Ok(Key::Num3),
-            VirtualKeyCode::Key4 => Ok(Key::Num4),
-            VirtualKeyCode::Key5 => Ok(Key::Num5),
-            VirtualKeyCode::Key6 => Ok(Key::Num6),
-            VirtualKeyCode::Key7 => Ok(Key::Num7),
-            VirtualKeyCode::Key8 => Ok(Key::Num8),
-            VirtualKeyCode::Key9 => Ok(Key::Num9),
-
-            VirtualKeyCode::Return => Ok(Key::Enter),
-            VirtualKeyCode::Space => Ok(Key::Space),
-            VirtualKeyCode::Escape => Ok(Key::Escape),
-            VirtualKeyCode::Equals => Ok(Key::Equal),
-            VirtualKeyCode::Minus => Ok(Key::Minus),
-            VirtualKeyCode::Back => Ok(Key::Backspace),
-            VirtualKeyCode::PageDown => Ok(Key::PageDown),
-            VirtualKeyCode::PageUp => Ok(Key::PageUp),
-
-            VirtualKeyCode::Insert => Ok(Key::Insert),
-            VirtualKeyCode::Home => Ok(Key::Home),
-            VirtualKeyCode::Delete => Ok(Key::Delete),
-            VirtualKeyCode::End => Ok(Key::End),
-
-            VirtualKeyCode::Left => Ok(Key::Left),
-            VirtualKeyCode::Up => Ok(Key::Up),
-            VirtualKeyCode::Right => Ok(Key::Right),
-            VirtualKeyCode::Down => Ok(Key::Down),
-
-            VirtualKeyCode::LShift => Ok(Key::LeftShift),
-            VirtualKeyCode::LControl => Ok(Key::LeftControl),
-            VirtualKeyCode::LAlt => Ok(Key::LeftAlt),
-            VirtualKeyCode::LWin => Ok(Key::LeftSuper),
-            VirtualKeyCode::RShift => Ok(Key::RightShift),
-            VirtualKeyCode::RControl => Ok(Key::RightControl),
-            VirtualKeyCode::RAlt => Ok(Key::RightAlt),
-            VirtualKeyCode::RWin => Ok(Key::RightSuper),
-
-            VirtualKeyCode::Apostrophe => Ok(Key::Apostrophe),
-            VirtualKeyCode::Backslash => Ok(Key::Backslash),
-            VirtualKeyCode::Comma => Ok(Key::Comma),
-            VirtualKeyCode::Grave => Ok(Key::GraveAccent),
-            VirtualKeyCode::LBracket => Ok(Key::LeftBracket),
-            VirtualKeyCode::Period => Ok(Key::Period),
-            VirtualKeyCode::RBracket => Ok(Key::RightBracket),
-            VirtualKeyCode::Semicolon => Ok(Key::Semicolon),
-            VirtualKeyCode::Slash => Ok(Key::Slash),
-            VirtualKeyCode::Tab => Ok(Key::Tab),
-            VirtualKeyCode::Subtract => Ok(Key::Minus),
-
-            VirtualKeyCode::F1 => Ok(Key::F1),
-            VirtualKeyCode::F2 => Ok(Key::F2),
-            VirtualKeyCode::F3 => Ok(Key::F3),
-            VirtualKeyCode::F4 => Ok(Key::F4),
-            VirtualKeyCode::F5 => Ok(Key::F5),
-            VirtualKeyCode::F6 => Ok(Key::F6),
-            VirtualKeyCode::F7 => Ok(Key::F7),
-            VirtualKeyCode::F8 => Ok(Key::F8),
-            VirtualKeyCode::F9 => Ok(Key::F9),
-            VirtualKeyCode::F10 => Ok(Key::F10),
-            VirtualKeyCode::F11 => Ok(Key::F11),
-            VirtualKeyCode::F12 => Ok(Key::F12),
-
-            VirtualKeyCode::NavigateBackward => Ok(Key::NavigateBackward),
-            VirtualKeyCode::NavigateForward => Ok(Key::NavigateForward),
-            _ => Err(()),
-        }
-    }
-
-    fn glutin_mods_to_script_mods(modifiers: GlutinKeyModifiers) -> constellation_msg::KeyModifiers {
-        let mut result = constellation_msg::KeyModifiers::empty();
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_SHIFT | GlutinKeyModifiers::RIGHT_SHIFT) {
-            result.insert(KeyModifiers::SHIFT);
-        }
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_CONTROL | GlutinKeyModifiers::RIGHT_CONTROL) {
-            result.insert(KeyModifiers::CONTROL);
-        }
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_ALT | GlutinKeyModifiers::RIGHT_ALT) {
-            result.insert(KeyModifiers::ALT);
-        }
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_SUPER | GlutinKeyModifiers::RIGHT_SUPER) {
-            result.insert(KeyModifiers::SUPER);
-        }
-        result
-    }
-
-    #[cfg(not(target_os = "win"))]
-    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers, browser_id: BrowserId) {
-        match (mods, key) {
-            (CMD_OR_CONTROL, Key::LeftBracket) => {
-                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
-                self.event_queue.borrow_mut().push(event);
+                let glutin_cursor = match cursor {
+                    CursorKind::Auto => MouseCursor::Default,
+                    CursorKind::None => MouseCursor::NoneCursor,
+                    CursorKind::Default => MouseCursor::Default,
+                    CursorKind::Pointer => MouseCursor::Hand,
+                    CursorKind::ContextMenu => MouseCursor::ContextMenu,
+                    CursorKind::Help => MouseCursor::Help,
+                    CursorKind::Progress => MouseCursor::Progress,
+                    CursorKind::Wait => MouseCursor::Wait,
+                    CursorKind::Cell => MouseCursor::Cell,
+                    CursorKind::Crosshair => MouseCursor::Crosshair,
+                    CursorKind::Text => MouseCursor::Text,
+                    CursorKind::VerticalText => MouseCursor::VerticalText,
+                    CursorKind::Alias => MouseCursor::Alias,
+                    CursorKind::Copy => MouseCursor::Copy,
+                    CursorKind::Move => MouseCursor::Move,
+                    CursorKind::NoDrop => MouseCursor::NoDrop,
+                    CursorKind::NotAllowed => MouseCursor::NotAllowed,
+                    CursorKind::Grab => MouseCursor::Grab,
+                    CursorKind::Grabbing => MouseCursor::Grabbing,
+                    CursorKind::EResize => MouseCursor::EResize,
+                    CursorKind::NResize => MouseCursor::NResize,
+                    CursorKind::NeResize => MouseCursor::NeResize,
+                    CursorKind::NwResize => MouseCursor::NwResize,
+                    CursorKind::SResize => MouseCursor::SResize,
+                    CursorKind::SeResize => MouseCursor::SeResize,
+                    CursorKind::SwResize => MouseCursor::SwResize,
+                    CursorKind::WResize => MouseCursor::WResize,
+                    CursorKind::EwResize => MouseCursor::EwResize,
+                    CursorKind::NsResize => MouseCursor::NsResize,
+                    CursorKind::NeswResize => MouseCursor::NeswResize,
+                    CursorKind::NwseResize => MouseCursor::NwseResize,
+                    CursorKind::ColResize => MouseCursor::ColResize,
+                    CursorKind::RowResize => MouseCursor::RowResize,
+                    CursorKind::AllScroll => MouseCursor::AllScroll,
+                    CursorKind::ZoomIn => MouseCursor::ZoomIn,
+                    CursorKind::ZoomOut => MouseCursor::ZoomOut,
+                };
+                window.set_cursor(glutin_cursor);
             }
-            (CMD_OR_CONTROL, Key::RightBracket) => {
-                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
-                self.event_queue.borrow_mut().push(event);
-            }
-            _ => {}
+            WindowKind::Headless(..) => {}
         }
-    }
-
-    #[cfg(target_os = "win")]
-    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers, browser_id: BrowserId) {
     }
 }
 
@@ -888,80 +686,44 @@ impl WindowMethods for Window {
         self.gl.clone()
     }
 
-    fn framebuffer_size(&self) -> DeviceUintSize {
-        (self.inner_size.get().to_f32() * self.hidpi_factor()).to_u32()
-    }
-
-    fn window_rect(&self) -> DeviceUintRect {
-        let size = self.framebuffer_size();
-        let origin = TypedPoint2D::zero();
-        DeviceUintRect::new(origin, size)
-    }
-
-    fn client_window(&self, _: BrowserId) -> (DeviceUintSize, DeviceIntPoint) {
-        let (size, point) = match self.kind {
-            WindowKind::Window(ref window, ..) => {
+    fn get_coordinates(&self) -> EmbedderCoordinates {
+        let dpr = self.hidpi_factor();
+        match self.kind {
+            WindowKind::Window(ref window, _) => {
                 // TODO(ajeffrey): can this fail?
                 let (width, height) = window.get_outer_size().expect("Failed to get window outer size.");
-                let size = TypedSize2D::new(width as f32, height as f32);
-                // TODO(ajeffrey): can this fail?
-                let (x, y) = window.get_position().expect("Failed to get window position.");
-                let origin = TypedPoint2D::new(x as f32, y as f32);
-                (size, origin)
-            }
-            WindowKind::Headless(ref context) => {
-                let size = TypedSize2D::new(context.width as f32, context.height as f32);
-                let origin = TypedPoint2D::zero();
-                (size, origin)
-            }
-        };
-        let dpr = self.hidpi_factor();
-        ((size * dpr).to_u32(), (point * dpr).to_i32())
-    }
+                let (x, y) = window.get_position().unwrap_or((0, 0));
+                let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
+                let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
+                let screen = (self.screen_size.to_f32() * dpr).to_u32();
 
-    fn screen_size(&self, _: BrowserId) -> DeviceUintSize {
-        (self.screen_size.to_f32() * self.hidpi_factor()).to_u32()
-    }
+                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
+                let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
 
-    fn screen_avail_size(&self, browser_id: BrowserId) -> DeviceUintSize {
-        // FIXME: Glutin doesn't have API for available size. Fallback to screen size
-        self.screen_size(browser_id)
-    }
+                let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);
 
-    fn set_animation_state(&self, state: AnimationState) {
-        self.animation_state.set(state);
-    }
-
-    fn set_inner_size(&self, _: BrowserId, size: DeviceUintSize) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                let size = size.to_f32() / self.hidpi_factor();
-                window.set_inner_size(size.width as u32, size.height as u32)
-            }
-            WindowKind::Headless(..) => {}
-        }
-    }
-
-    fn set_position(&self, _: BrowserId, point: DeviceIntPoint) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                let point = point.to_f32() / self.hidpi_factor();
-                window.set_position(point.x as i32, point.y as i32)
-            }
-            WindowKind::Headless(..) => {}
-        }
-    }
-
-    fn set_fullscreen_state(&self, _: BrowserId, state: bool) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                if self.fullscreen.get() != state {
-                    window.set_fullscreen(None);
+                EmbedderCoordinates {
+                    viewport: viewport,
+                    framebuffer: inner_size,
+                    window: (win_size, win_origin),
+                    screen: screen,
+                    // FIXME: Glutin doesn't have API for available size. Fallback to screen size
+                    screen_avail: screen,
+                    hidpi_factor: dpr,
                 }
             },
-            WindowKind::Headless(..) => {}
+            WindowKind::Headless(ref context) => {
+                let size = (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_u32();
+                EmbedderCoordinates {
+                    viewport: DeviceUintRect::new(TypedPoint2D::zero(), size),
+                    framebuffer: size,
+                    window: (size, TypedPoint2D::zero()),
+                    screen: size,
+                    screen_avail: size,
+                    hidpi_factor: dpr,
+                }
+            }
         }
-        self.fullscreen.set(state);
     }
 
     fn present(&self) {
@@ -1011,277 +773,16 @@ impl WindowMethods for Window {
         Box::new(GlutinEventLoopWaker::new(&self))
     }
 
-    #[cfg(not(target_os = "windows"))]
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                TypedScale::new(window.hidpi_factor())
-            }
-            WindowKind::Headless(..) => {
-                TypedScale::new(1.0)
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
-        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        TypedScale::new(ppi as f32 / 96.0)
-    }
-
-    fn set_page_title(&self, _: BrowserId, title: Option<String>) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                let fallback_title: String = if let Some(ref current_url) = *self.current_url.borrow() {
-                    current_url.to_string()
-                } else {
-                    String::from("Untitled")
-                };
-
-                let title = match title {
-                    Some(ref title) if title.len() > 0 => &**title,
-                    _ => &fallback_title,
-                };
-                let title = format!("{} - Servo", title);
-                window.set_title(&title);
-            }
-            WindowKind::Headless(..) => {}
-        }
-    }
-
-    fn status(&self, _: BrowserId, _: Option<String>) {
-    }
-
-    fn load_start(&self, _: BrowserId) {
-    }
-
-    fn load_end(&self, _: BrowserId) {
-        if opts::get().no_native_titlebar {
-            match self.kind {
-                WindowKind::Window(ref window, ..) => {
-                    window.show();
-                }
-                WindowKind::Headless(..) => {}
-            }
-        }
-    }
-
-    fn history_changed(&self, _: BrowserId, history: Vec<LoadData>, current: usize) {
-        *self.current_url.borrow_mut() = Some(history[current].url.clone());
-    }
-
-    fn load_error(&self, _: BrowserId, _: NetError, _: String) {
-    }
-
-    fn head_parsed(&self, _: BrowserId) {
-    }
-
-    /// Has no effect on Android.
-    fn set_cursor(&self, cursor: CursorKind) {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                use winit::MouseCursor;
-
-                let glutin_cursor = match cursor {
-                    CursorKind::Auto => MouseCursor::Default,
-                    CursorKind::None => MouseCursor::NoneCursor,
-                    CursorKind::Default => MouseCursor::Default,
-                    CursorKind::Pointer => MouseCursor::Hand,
-                    CursorKind::ContextMenu => MouseCursor::ContextMenu,
-                    CursorKind::Help => MouseCursor::Help,
-                    CursorKind::Progress => MouseCursor::Progress,
-                    CursorKind::Wait => MouseCursor::Wait,
-                    CursorKind::Cell => MouseCursor::Cell,
-                    CursorKind::Crosshair => MouseCursor::Crosshair,
-                    CursorKind::Text => MouseCursor::Text,
-                    CursorKind::VerticalText => MouseCursor::VerticalText,
-                    CursorKind::Alias => MouseCursor::Alias,
-                    CursorKind::Copy => MouseCursor::Copy,
-                    CursorKind::Move => MouseCursor::Move,
-                    CursorKind::NoDrop => MouseCursor::NoDrop,
-                    CursorKind::NotAllowed => MouseCursor::NotAllowed,
-                    CursorKind::Grab => MouseCursor::Grab,
-                    CursorKind::Grabbing => MouseCursor::Grabbing,
-                    CursorKind::EResize => MouseCursor::EResize,
-                    CursorKind::NResize => MouseCursor::NResize,
-                    CursorKind::NeResize => MouseCursor::NeResize,
-                    CursorKind::NwResize => MouseCursor::NwResize,
-                    CursorKind::SResize => MouseCursor::SResize,
-                    CursorKind::SeResize => MouseCursor::SeResize,
-                    CursorKind::SwResize => MouseCursor::SwResize,
-                    CursorKind::WResize => MouseCursor::WResize,
-                    CursorKind::EwResize => MouseCursor::EwResize,
-                    CursorKind::NsResize => MouseCursor::NsResize,
-                    CursorKind::NeswResize => MouseCursor::NeswResize,
-                    CursorKind::NwseResize => MouseCursor::NwseResize,
-                    CursorKind::ColResize => MouseCursor::ColResize,
-                    CursorKind::RowResize => MouseCursor::RowResize,
-                    CursorKind::AllScroll => MouseCursor::AllScroll,
-                    CursorKind::ZoomIn => MouseCursor::ZoomIn,
-                    CursorKind::ZoomOut => MouseCursor::ZoomOut,
-                };
-                window.set_cursor(glutin_cursor);
-            }
-            WindowKind::Headless(..) => {}
-        }
-    }
-
-    fn set_favicon(&self, _: BrowserId, _: ServoUrl) {
+    fn set_animation_state(&self, state: AnimationState) {
+        self.animation_state.set(state);
     }
 
     fn prepare_for_composite(&self, _width: Length<u32, DevicePixel>, _height: Length<u32, DevicePixel>) -> bool {
         true
     }
 
-    /// Helper function to handle keyboard events.
-    fn handle_key(&self, _: Option<BrowserId>, ch: Option<char>, key: Key, mods: constellation_msg::KeyModifiers) {
-        let browser_id = match self.browser_id.get() {
-            Some(id) => id,
-            None => { unreachable!("Can't get keys without a browser"); }
-        };
-        match (mods, ch, key) {
-            (_, Some('+'), _) => {
-                if mods & !KeyModifiers::SHIFT == CMD_OR_CONTROL {
-                    self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
-                } else if mods & !KeyModifiers::SHIFT == CMD_OR_CONTROL | KeyModifiers::ALT {
-                    self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
-                }
-            }
-            (CMD_OR_CONTROL, Some('-'), _) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
-            }
-            (_, Some('-'), _) if mods == CMD_OR_CONTROL | KeyModifiers::ALT => {
-                self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
-            }
-            (CMD_OR_CONTROL, Some('0'), _) => {
-                self.event_queue.borrow_mut().push(WindowEvent::ResetZoom);
-            }
-
-            (KeyModifiers::NONE, None, Key::NavigateForward) => {
-                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
-                self.event_queue.borrow_mut().push(event);
-            }
-            (KeyModifiers::NONE, None, Key::NavigateBackward) => {
-                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
-                self.event_queue.borrow_mut().push(event);
-            }
-
-            (KeyModifiers::NONE, None, Key::Escape) => {
-                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    self.event_queue.borrow_mut().push(WindowEvent::Quit);
-                }
-            }
-
-            (CMD_OR_ALT, None, Key::Right) => {
-                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
-                self.event_queue.borrow_mut().push(event);
-            }
-            (CMD_OR_ALT, None, Key::Left) => {
-                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
-                self.event_queue.borrow_mut().push(event);
-            }
-
-            (KeyModifiers::NONE, None, Key::PageDown) => {
-               let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
-                                   -self.framebuffer_size()
-                                        .to_f32()
-                                        .to_untyped()
-                                        .height + 2.0 * LINE_HEIGHT));
-                self.scroll_window(scroll_location,
-                                   TouchEventType::Move);
-            }
-            (KeyModifiers::NONE, None, Key::PageUp) => {
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
-                                   self.framebuffer_size()
-                                       .to_f32()
-                                       .to_untyped()
-                                       .height - 2.0 * LINE_HEIGHT));
-                self.scroll_window(scroll_location,
-                                   TouchEventType::Move);
-            }
-
-            (KeyModifiers::NONE, None, Key::Home) => {
-                self.scroll_window(ScrollLocation::Start, TouchEventType::Move);
-            }
-
-            (KeyModifiers::NONE, None, Key::End) => {
-                self.scroll_window(ScrollLocation::End, TouchEventType::Move);
-            }
-
-            (KeyModifiers::NONE, None, Key::Up) => {
-                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
-                                   TouchEventType::Move);
-            }
-            (KeyModifiers::NONE, None, Key::Down) => {
-                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
-                                   TouchEventType::Move);
-            }
-            (KeyModifiers::NONE, None, Key::Left) => {
-                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)), TouchEventType::Move);
-            }
-            (KeyModifiers::NONE, None, Key::Right) => {
-                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)), TouchEventType::Move);
-            }
-            (CMD_OR_CONTROL, Some('r'), _) => {
-                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    self.event_queue.borrow_mut().push(WindowEvent::Reload(browser_id));
-                }
-            }
-            (CMD_OR_CONTROL, Some('l'), _) => {
-                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    let url: String = if let Some(ref url) = *self.current_url.borrow() {
-                        url.to_string()
-                    } else {
-                        String::from("")
-                    };
-                    let title = "URL or search query";
-                    if let Some(input) = tinyfiledialogs::input_box(title, title, &url) {
-                        if let Some(url) = sanitize_url(&input) {
-                            self.event_queue.borrow_mut().push(WindowEvent::LoadUrl(browser_id, url));
-                        }
-                    }
-                }
-            }
-            (CMD_OR_CONTROL, Some('q'), _) => {
-                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    self.event_queue.borrow_mut().push(WindowEvent::Quit);
-                }
-            }
-            (_, Some('3'), _) => if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT {
-                self.event_queue.borrow_mut().push(WindowEvent::CaptureWebRender);
-            }
-            (KeyModifiers::CONTROL, None, Key::F10) => {
-                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
-                self.event_queue.borrow_mut().push(event);
-            }
-            (KeyModifiers::CONTROL, None, Key::F11) => {
-                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
-                self.event_queue.borrow_mut().push(event);
-            }
-            (KeyModifiers::CONTROL, None, Key::F12) => {
-                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::Profiler);
-                self.event_queue.borrow_mut().push(event);
-            }
-
-            _ => {
-                self.platform_handle_key(key, mods, browser_id);
-            }
-        }
-    }
-
-    fn allow_navigation(&self, _: BrowserId, _: ServoUrl, response_chan: IpcSender<bool>) {
-        if let Err(e) = response_chan.send(true) {
-            warn!("Failed to send allow_navigation() response: {}", e);
-        };
-    }
-
     fn supports_clipboard(&self) -> bool {
         true
-    }
-
-    fn handle_panic(&self, _: BrowserId, _reason: String, _backtrace: Option<String>) {
-        // Nothing to do here yet. The crash has already been reported on the console.
     }
 }
 
@@ -1292,92 +793,4 @@ fn glutin_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
         TouchPhase::Ended => TouchEventType::Up,
         TouchPhase::Cancelled => TouchEventType::Cancel,
     }
-}
-
-fn is_printable(key_code: VirtualKeyCode) -> bool {
-    use winit::VirtualKeyCode::*;
-    match key_code {
-        Escape |
-        F1 |
-        F2 |
-        F3 |
-        F4 |
-        F5 |
-        F6 |
-        F7 |
-        F8 |
-        F9 |
-        F10 |
-        F11 |
-        F12 |
-        F13 |
-        F14 |
-        F15 |
-        Snapshot |
-        Scroll |
-        Pause |
-        Insert |
-        Home |
-        Delete |
-        End |
-        PageDown |
-        PageUp |
-        Left |
-        Up |
-        Right |
-        Down |
-        Back |
-        LAlt |
-        LControl |
-        LMenu |
-        LShift |
-        LWin |
-        Mail |
-        MediaSelect |
-        MediaStop |
-        Mute |
-        MyComputer |
-        NavigateForward |
-        NavigateBackward |
-        NextTrack |
-        NoConvert |
-        PlayPause |
-        Power |
-        PrevTrack |
-        RAlt |
-        RControl |
-        RMenu |
-        RShift |
-        RWin |
-        Sleep |
-        Stop |
-        VolumeDown |
-        VolumeUp |
-        Wake |
-        WebBack |
-        WebFavorites |
-        WebForward |
-        WebHome |
-        WebRefresh |
-        WebSearch |
-        WebStop => false,
-        _ => true,
-    }
-}
-
-fn sanitize_url(request: &str) -> Option<ServoUrl> {
-    let request = request.trim();
-    ServoUrl::parse(&request).ok()
-        .or_else(|| {
-            if request.contains('/') || is_reg_domain(request) {
-                ServoUrl::parse(&format!("http://{}", request)).ok()
-            } else {
-                None
-            }
-        }).or_else(|| {
-            PREFS.get("shell.searchpage").as_string().and_then(|s: &str| {
-                let url = s.replace("%s", request);
-                ServoUrl::parse(&url).ok()
-            })
-        })
 }

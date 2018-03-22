@@ -9,14 +9,12 @@ use euclid::TypedScale;
 use gleam::gl;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, TopLevelBrowsingContextId, TraversalDirection};
-use net_traits::net_error_list::NetError;
-use script_traits::{LoadData, MouseButton, TouchEventType, TouchId};
+use script_traits::{MouseButton, TouchEventType, TouchId};
 use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use style_traits::DevicePixel;
-use style_traits::cursor::CursorKind;
 use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintSize, DeviceUintRect, ScrollLocation};
 
 #[derive(Clone)]
@@ -121,75 +119,39 @@ pub enum AnimationState {
 }
 
 pub trait WindowMethods {
-    /// Returns the rendering area size in hardware pixels.
-    fn framebuffer_size(&self) -> DeviceUintSize;
-    /// Returns the position and size of the window within the rendering area.
-    fn window_rect(&self) -> DeviceUintRect;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
-
-    /// Return the size of the window with head and borders and position of the window values
-    fn client_window(&self, ctx: TopLevelBrowsingContextId) -> (DeviceUintSize, DeviceIntPoint);
-    /// Return the size of the screen.
-    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> DeviceUintSize;
-    /// Return the available size of the screen.
-    fn screen_avail_size(&self, ctx: TopLevelBrowsingContextId) -> DeviceUintSize;
-    /// Set the size inside of borders and head
-    fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: DeviceUintSize);
-    /// Set the window position
-    fn set_position(&self, ctx: TopLevelBrowsingContextId, point: DeviceIntPoint);
-    /// Set fullscreen state
-    fn set_fullscreen_state(&self, ctx: TopLevelBrowsingContextId, state: bool);
-
-    /// Sets the page title for the current page.
-    fn set_page_title(&self, ctx: TopLevelBrowsingContextId, title: Option<String>);
-    /// Called when the browser chrome should display a status message.
-    fn status(&self, ctx: TopLevelBrowsingContextId, Option<String>);
-    /// Called when the browser has started loading a frame.
-    fn load_start(&self, ctx: TopLevelBrowsingContextId);
-    /// Called when the browser is done loading a frame.
-    fn load_end(&self, ctx: TopLevelBrowsingContextId);
-    /// Called when the browser encounters an error while loading a URL
-    fn load_error(&self, ctx: TopLevelBrowsingContextId, code: NetError, url: String);
-    /// Wether or not to follow a link
-    fn allow_navigation(&self, ctx: TopLevelBrowsingContextId, url: ServoUrl, IpcSender<bool>);
-    /// Called when the <head> tag has finished parsing
-    fn head_parsed(&self, ctx: TopLevelBrowsingContextId);
-    /// Called when the history state has changed.
-    fn history_changed(&self, ctx: TopLevelBrowsingContextId, Vec<LoadData>, usize);
-
-    /// Returns the scale factor of the system (device pixels / device independent pixels).
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel>;
-
-    /// Returns a thread-safe object to wake up the window's event loop.
-    fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
-
     /// Requests that the window system prepare a composite. Typically this will involve making
     /// some type of platform-specific graphics context current. Returns true if the composite may
     /// proceed and false if it should not.
     fn prepare_for_composite(&self, width: DeviceUintLength, height: DeviceUintLength) -> bool;
-
-    /// Sets the cursor to be used in the window.
-    fn set_cursor(&self, cursor: CursorKind);
-
-    /// Process a key event.
-    fn handle_key(&self, ctx: Option<TopLevelBrowsingContextId>, ch: Option<char>, key: Key, mods: KeyModifiers);
-
-    /// Does this window support a clipboard
-    fn supports_clipboard(&self) -> bool;
-
-    /// Add a favicon
-    fn set_favicon(&self, ctx: TopLevelBrowsingContextId, url: ServoUrl);
-
     /// Return the GL function pointer trait.
     fn gl(&self) -> Rc<gl::Gl>;
-
+    /// Returns a thread-safe object to wake up the window's event loop.
+    fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
+    /// Get the coordinates of the native window, the screen and the framebuffer.
+    fn get_coordinates(&self) -> EmbedderCoordinates;
+    /// Does this window support a clipboard
+    fn supports_clipboard(&self) -> bool;
     /// Set whether the application is currently animating.
     /// Typically, when animations are active, the window
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
-    fn set_animation_state(&self, _state: AnimationState) {}
+    fn set_animation_state(&self, _state: AnimationState);
+}
 
-    /// Called when a pipeline panics.
-    fn handle_panic(&self, browser_id: TopLevelBrowsingContextId, reason: String, backtrace: Option<String>);
+#[derive(Clone, Copy, Debug)]
+pub struct EmbedderCoordinates {
+    /// The pixel density of the display.
+    pub hidpi_factor: TypedScale<f32, DeviceIndependentPixel, DevicePixel>,
+    /// Size of the screen.
+    pub screen: DeviceUintSize,
+    /// Size of the available screen space (screen without toolbars and docks).
+    pub screen_avail: DeviceUintSize,
+    /// Size of the native window.
+    pub window: (DeviceUintSize, DeviceIntPoint),
+    /// Size of the GL buffer in the window.
+    pub framebuffer: DeviceUintSize,
+    /// Coordinates of the document within the framebuffer.
+    pub viewport: DeviceUintRect,
 }

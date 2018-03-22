@@ -34,9 +34,9 @@ use style_traits::viewport::ViewportConstraints;
 use time::{now, precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_api::{self, DeviceIntPoint, DevicePoint, DeviceUintRect, DeviceUintSize, HitTestFlags, HitTestResult};
+use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollEventPhase, ScrollLocation};
-use windowing::{self, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
+use windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -110,12 +110,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The scene scale, to allow for zooming and high-resolution painting.
     scale: TypedScale<f32, LayerPixel, DevicePixel>,
 
-    /// The size of the rendering area.
-    frame_size: DeviceUintSize,
-
-    /// The position and size of the window within the rendering area.
-    window_rect: DeviceUintRect,
-
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
 
@@ -125,9 +119,6 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     page_zoom: TypedScale<f32, CSSPixel, DeviceIndependentPixel>,
-
-    /// The device pixel ratio for this window.
-    scale_factor: TypedScale<f32, DeviceIndependentPixel, DevicePixel>,
 
     /// The type of composition to perform
     composite_target: CompositeTarget,
@@ -193,6 +184,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// these frames, it records the paint time for each of them and sends the
     /// metric to the corresponding layout thread.
     pending_paint_metrics: HashMap<PipelineId, Epoch>,
+
+    /// The coordinates of the native window, its view and the screen.
+    embedder_coordinates: EmbedderCoordinates,
 }
 
 #[derive(Clone, Copy)]
@@ -350,9 +344,6 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState)
            -> IOCompositor<Window> {
-        let frame_size = window.framebuffer_size();
-        let window_rect = window.window_rect();
-        let scale_factor = window.hidpi_factor();
         let composite_target = match opts::get().output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window
@@ -360,14 +351,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         IOCompositor {
             gl: window.gl(),
+            embedder_coordinates: window.get_coordinates(),
             window: window,
             port: state.receiver,
             root_pipeline: None,
             pipeline_details: HashMap::new(),
-            frame_size: frame_size,
-            window_rect: window_rect,
             scale: TypedScale::new(1.0),
-            scale_factor: scale_factor,
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
@@ -548,6 +537,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.pending_paint_metrics.insert(pipeline_id, epoch);
             }
 
+            (Msg::GetClientWindow(req), ShutdownState::NotShuttingDown) => {
+                if let Err(e) = req.send(self.embedder_coordinates.window) {
+                    warn!("Sending response to get client window failed ({}).", e);
+                }
+            }
+
+            (Msg::GetScreenSize(req), ShutdownState::NotShuttingDown) => {
+                if let Err(e) = req.send(self.embedder_coordinates.screen) {
+                    warn!("Sending response to get screen size failed ({}).", e);
+                }
+            }
+
+            (Msg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
+                if let Err(e) = req.send(self.embedder_coordinates.screen_avail) {
+                    warn!("Sending response to get screen avail size failed ({}).", e);
+                }
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -634,14 +641,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn send_window_size(&self, size_type: WindowSizeType) {
-        let dppx = self.page_zoom * self.hidpi_factor();
+        let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
 
         self.webrender_api.set_window_parameters(self.webrender_document,
-                                                 self.frame_size,
-                                                 self.window_rect,
-                                                 self.hidpi_factor().get());
+                                                 self.embedder_coordinates.framebuffer,
+                                                 self.embedder_coordinates.viewport,
+                                                 self.embedder_coordinates.hidpi_factor.get());
 
-        let initial_viewport = self.window_rect.size.to_f32() / dppx;
+        let initial_viewport = self.embedder_coordinates.viewport.size.to_f32() / dppx;
 
         let data = WindowSizeData {
             device_pixel_ratio: dppx,
@@ -662,23 +669,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn on_resize_window_event(&mut self) {
         debug!("compositor resize requested");
 
+        let old_coords = self.embedder_coordinates;
+        self.embedder_coordinates = self.window.get_coordinates();
+
         // A size change could also mean a resolution change.
-        let new_scale_factor = self.window.hidpi_factor();
-        if self.scale_factor != new_scale_factor {
-            self.scale_factor = new_scale_factor;
+        if self.embedder_coordinates.hidpi_factor != old_coords.hidpi_factor {
             self.update_zoom_transform();
         }
 
-        let new_window_rect = self.window.window_rect();
-        let new_frame_size = self.window.framebuffer_size();
-
-        if self.window_rect == new_window_rect &&
-           self.frame_size == new_frame_size {
+        if self.embedder_coordinates.viewport == old_coords.viewport &&
+           self.embedder_coordinates.framebuffer == old_coords.framebuffer {
             return;
         }
-
-        self.frame_size = new_frame_size;
-        self.window_rect = new_window_rect;
 
         self.send_window_size(WindowSizeType::Resize);
     }
@@ -1096,7 +1098,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
             None => match opts::get().output_file {
                 Some(_) => TypedScale::new(1.0),
-                None => self.scale_factor
+                None => self.embedder_coordinates.hidpi_factor,
             }
         }
     }
@@ -1256,7 +1258,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn composite_specific_target(&mut self,
                                  target: CompositeTarget)
                                  -> Result<Option<Image>, UnableToComposite> {
-        let (width, height) = (self.frame_size.width_typed(), self.frame_size.height_typed());
+        let width = self.embedder_coordinates.framebuffer.width_typed();
+        let height = self.embedder_coordinates.framebuffer.height_typed();
         if !self.window.prepare_for_composite(width, height) {
             return Err(UnableToComposite::WindowUnprepared)
         }
@@ -1291,7 +1294,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             // Paint the scene.
             // TODO(gw): Take notice of any errors the renderer returns!
-            self.webrender.render(self.frame_size).ok();
+            self.webrender.render(self.embedder_coordinates.framebuffer).ok();
         });
 
         // If there are pending paint metrics, we check if any of the painted epochs is
