@@ -119,8 +119,6 @@ use gecko_bindings::structs::nsStyleContentType;
 unsafe impl Send for nsStyleContentType {}
 unsafe impl Sync for nsStyleContentType {}
 use gecko_bindings::structs::ComputedStyle;
-unsafe impl Send for ComputedStyle {}
-unsafe impl Sync for ComputedStyle {}
 use gecko_bindings::structs::nsStyleCoord;
 unsafe impl Send for nsStyleCoord {}
 unsafe impl Sync for nsStyleCoord {}
@@ -238,7 +236,6 @@ use gecko_bindings::structs::LoaderReusableStyleSheets;
 use gecko_bindings::structs::SheetLoadData;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::ServoComputedData;
-use gecko_bindings::structs::ComputedStyle;
 use gecko_bindings::structs::ComputedStyleStrong;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::UpdateAnimationsTasks;
@@ -3286,6 +3283,9 @@ extern "C" {
         stretch: nsCSSValueBorrowedMut,
         weight: nsCSSValueBorrowedMut,
     ) -> bool;
+}
+extern "C" {
+    pub fn Servo_Property_IsShorthand(name: *const nsACString, found: *mut bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(
