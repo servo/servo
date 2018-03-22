@@ -825,15 +825,13 @@ impl WebGLRenderingContext {
     }
 
     // TODO(emilio): Move this logic to a validator.
-    #[allow(unsafe_code)]
-    unsafe fn validate_tex_image_2d_data(&self,
+    fn validate_tex_image_2d_data(&self,
                                          width: u32,
                                          height: u32,
                                          format: TexFormat,
                                          data_type: TexDataType,
                                          unpacking_alignment: u32,
-                                         data: *mut JSObject,
-                                         cx: *mut JSContext)
+                                         data: &Option<ArrayBufferView>)
                                          -> Result<u32, ()> {
         let element_size = data_type.element_size();
         let components_per_element = data_type.components_per_element();
@@ -846,21 +844,16 @@ impl WebGLRenderingContext {
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
-        typedarray!(in(cx) let typedarray_u8: Uint8Array = data);
-        typedarray!(in(cx) let typedarray_u16: Uint16Array = data);
-        typedarray!(in(cx) let typedarray_f32: Float32Array = data);
-        let received_size = if data.is_null() {
-            element_size
-        } else {
-            if typedarray_u16.is_ok() {
-                2
-            } else if typedarray_u8.is_ok() {
-                1
-            } else if typedarray_f32.is_ok() {
-                4
-            } else {
-                self.webgl_error(InvalidOperation);
-                return Err(());
+        let received_size = match *data {
+            None => element_size,
+            Some(ref buffer) => match buffer.get_array_type() {
+                Type::Uint8 => 1,
+                Type::Uint16 => 2,
+                Type::Float32 => 4,
+                _ => {
+                    self.webgl_error(InvalidOperation);
+                    return Err(());
+                }
             }
         };
 
@@ -1709,38 +1702,35 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    #[allow(unsafe_code)]
     fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferOrArrayBufferView>) {
-        if data.is_null() {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
-        let data_vec = match array_buffer {
-            Ok(mut data) => data.as_slice().to_vec(),
-            Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
+        let data_vec = match data {
+            // Typed array is rooted, so we can safely temporarily retrieve its slice
+            Some(ArrayBufferOrArrayBufferView::ArrayBuffer(mut inner)) => unsafe { inner.as_slice().to_vec() },
+            Some(ArrayBufferOrArrayBufferView::ArrayBufferView(mut inner)) => unsafe { inner.as_slice().to_vec() },
+            // Spec: If data is null then an INVALID_VALUE error is generated.
+            None => return self.webgl_error(InvalidValue),
         };
 
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
+            _ => return self.webgl_error(InvalidEnum),
         };
 
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidOperation)),
+            None => return self.webgl_error(InvalidOperation),
         };
 
         if offset < 0 {
-            return Ok(self.webgl_error(InvalidValue));
+            return self.webgl_error(InvalidValue);
         }
 
         if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
-            return Ok(self.webgl_error(InvalidValue));
+            return self.webgl_error(InvalidValue);
         }
         self.send_command(WebGLCommand::BufferSubData(target, offset as isize, data_vec));
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1750,7 +1740,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1760,8 +1749,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -2608,25 +2595,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
+    #[allow(unsafe_code)]
     fn ReadPixels(&self, x: i32, y: i32, width: i32, height: i32, format: u32, pixel_type: u32,
-                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) {
-        if pixels.is_null() {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        typedarray!(in(cx) let mut pixels_data: ArrayBufferView = pixels);
-        let (array_type, data) = match { pixels_data.as_mut() } {
-            Ok(data) => (data.get_array_type(), data.as_mut_slice()),
-            Err(_) => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
+                  mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) {
+        let (array_type, data) = match *pixels {
+            // Spec: If data is null then an INVALID_VALUE error is generated.
+            None => return self.webgl_error(InvalidValue),
+            // The typed array is rooted and we should have a unique reference to it,
+            // so retrieving its mutable slice is safe here
+            Some(ref mut data) => (data.get_array_type(), unsafe { data.as_mut_slice() }),
         };
 
         if !self.validate_framebuffer_complete() {
-            return Ok(());
+            return;
         }
 
         match array_type {
             Type::Uint8 => (),
-            _ => return Ok(self.webgl_error(InvalidOperation)),
+            _ => return self.webgl_error(InvalidOperation),
         }
 
         // From the WebGL specification, 5.14.12 Reading back pixels
@@ -2647,7 +2633,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // always report RGBA/UNSIGNED_BYTE as our only supported
         // format.
         if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
-            return Ok(self.webgl_error(InvalidOperation));
+            return self.webgl_error(InvalidOperation);
         }
         let cpp = 4;
 
@@ -2657,12 +2643,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         //      INVALID_OPERATION error is generated."
         let stride = match width.checked_mul(cpp) {
             Some(stride) => stride,
-            _ => return Ok(self.webgl_error(InvalidOperation)),
+            _ => return self.webgl_error(InvalidOperation),
         };
 
         match height.checked_mul(stride) {
             Some(size) if size <= data.len() as i32 => {}
-            _ => return Ok(self.webgl_error(InvalidOperation)),
+            _ => return self.webgl_error(InvalidOperation),
         }
 
         //     "For any pixel lying outside the frame buffer, the
@@ -2688,7 +2674,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         if width < 0 || height < 0 {
-            return Ok(self.webgl_error(InvalidValue));
+            return self.webgl_error(InvalidValue);
         }
 
         match self.get_current_framebuffer_size() {
@@ -2700,7 +2686,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     height = fb_height - y;
                 }
             }
-            _ => return Ok(self.webgl_error(InvalidOperation)),
+            _ => return self.webgl_error(InvalidOperation),
         };
 
         let (sender, receiver) = webgl_channel().unwrap();
@@ -2714,8 +2700,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     result[(i * width * cpp + j) as usize];
             }
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -3235,6 +3219,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn TexImage2D(&self,
                   target: u32,
                   level: i32,
@@ -3244,16 +3229,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   border: i32,
                   format: u32,
                   data_type: u32,
-                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
+                  mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
         }
-
-        let data = if data_ptr.is_null() {
-            None
-        } else {
-            Some(fallible_array_buffer_view_to_vec(cx, data_ptr)?)
-        };
 
         let validator = TexImage2DValidator::new(self, target, level,
                                                  internal_format, width, height,
@@ -3278,16 +3257,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
                                                     format, data_type,
-                                                    unpacking_alignment, data_ptr, cx) } {
+                                                    unpacking_alignment, &*pixels) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
 
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
-        let buff = match data {
+        let buff = match *pixels {
             None => vec![0u8; expected_byte_length as usize],
-            Some(data) => data,
+            Some(ref mut data) => {
+                // Since the typed array is rooted, this is safe to perform
+                unsafe { data.as_slice().to_vec() }
+            }
         };
 
         // From the WebGL spec:
@@ -3405,6 +3387,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn TexSubImage2D(&self,
                      target: u32,
                      level: i32,
@@ -3414,13 +3397,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                      height: i32,
                      format: u32,
                      data_type: u32,
-                     pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
-        let data = if data_ptr.is_null() {
-            None
-        } else {
-            Some(fallible_array_buffer_view_to_vec(cx, data_ptr)?)
-        };
-
+                     mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
         let validator = TexImage2DValidator::new(self, target, level,
                                                  format, width, height,
                                                  0, format, data_type);
@@ -3443,16 +3420,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
                                                     format, data_type,
-                                                    unpacking_alignment, data_ptr, cx) } {
+                                                    unpacking_alignment, &*pixels) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
 
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
-        let buff = match data {
+        let buff = match *pixels {
             None => vec![0u8; expected_byte_length as usize],
-            Some(data) => data,
+            Some(ref mut data) => {
+                // Since the typed array is rooted, this is safe to perform
+                unsafe { data.as_slice().to_vec() }
+            }
         };
 
         // From the WebGL spec:
