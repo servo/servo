@@ -28,6 +28,7 @@ typedef (ImageData or
          HTMLImageElement or
          HTMLCanvasElement or
          HTMLVideoElement) TexImageSource;
+typedef (ArrayBuffer or ArrayBufferView) BufferDataSource;
 
 
 dictionary WebGLContextAttributes {
@@ -488,21 +489,15 @@ interface WebGLRenderingContextBase
     void blendFuncSeparate(GLenum srcRGB, GLenum dstRGB,
                            GLenum srcAlpha, GLenum dstAlpha);
 
-    // typedef (ArrayBuffer or ArrayBufferView) BufferDataSource;
-    // FIXME(dmarcos) The function below is the original function in the webIdl:
+    // FIXME(xanewok) from CodegenRust.py:
+    // 'No support for unions as distinguishing arguments yet' for below
+    // original WebIDL function definition
     // void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
-    // The Code generator doesn't handle BufferDataSource so we're using 'object?'
-    // in the meantime, and marking the function as [Throws], so we can handle
-    // the type error from inside.
     [Throws]
     void bufferData(GLenum target, object? data, GLenum usage);
-    // FIXME: Codegen requires that this have [Throws] to match the other one.
     [Throws]
     void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
-
-    //void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
-    [Throws]
-    void bufferSubData(GLenum target, GLintptr offset, object? data);
+    void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
 
     [WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
@@ -512,25 +507,13 @@ interface WebGLRenderingContextBase
     void colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     void compileShader(WebGLShader shader);
 
-    // FIXME(simartin) The Code generator doesn't handle ArrayBufferView so we're
-    // using 'object' in the meantime, and marking the function as Throws to
-    // handle the type error from inside.
-    // void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                           GLsizei width, GLsizei height, GLint border,
-    //                           ArrayBufferView data);
-    [Throws]
     void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
                               GLsizei width, GLsizei height, GLint border,
-                              object data);
-    // void compressedTexSubImage2D(GLenum target, GLint level,
-    //                              GLint xoffset, GLint yoffset,
-    //                              GLsizei width, GLsizei height, GLenum format,
-    //                              ArrayBufferView data);
-    [Throws]
+                              ArrayBufferView data);
     void compressedTexSubImage2D(GLenum target, GLint level,
                                  GLint xoffset, GLint yoffset,
                                  GLsizei width, GLsizei height, GLenum format,
-                                 object data);
+                                 ArrayBufferView data);
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
@@ -623,11 +606,8 @@ interface WebGLRenderingContextBase
     void pixelStorei(GLenum pname, GLint param);
     void polygonOffset(GLfloat factor, GLfloat units);
 
-    //void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-    //                GLenum format, GLenum type, ArrayBufferView? pixels);
-    [Throws]
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-                    GLenum format, GLenum type, object? pixels);
+                    GLenum format, GLenum type, ArrayBufferView? pixels);
 
     void renderbufferStorage(GLenum target, GLenum internalformat,
                              GLsizei width, GLsizei height);
@@ -643,14 +623,11 @@ interface WebGLRenderingContextBase
     void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
     void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 
-    //void texImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                GLsizei width, GLsizei height, GLint border, GLenum format,
-    //                GLenum type, ArrayBufferView? pixels);
-    // FIXME: SM interface arguments
+    // FIXME: Codegen requires that this have [Throws] to match the other one.
     [Throws]
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLsizei width, GLsizei height, GLint border, GLenum format,
-                    GLenum type, object? data);
+                    GLenum type, ArrayBufferView? pixels);
     [Throws]
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLenum format, GLenum type, TexImageSource source); // May throw DOMException
@@ -661,10 +638,11 @@ interface WebGLRenderingContextBase
     void texParameterf(GLenum target, GLenum pname, GLfloat param);
     void texParameteri(GLenum target, GLenum pname, GLint param);
 
+    // FIXME: Codegen requires that this have [Throws] to match the other one.
     [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                       GLsizei width, GLsizei height,
-                      GLenum format, GLenum type, object? data);
+                      GLenum format, GLenum type, ArrayBufferView? pixels);
     [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                        GLenum format, GLenum type, TexImageSource source); // May throw DOMException
