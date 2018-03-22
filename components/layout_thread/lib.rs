@@ -263,7 +263,7 @@ pub struct LayoutThread {
     paint_time_metrics: PaintTimeMetrics,
 
     /// The time a layout query has waited before serviced by layout thread.
-    layout_query_timestamp: u64,
+    layout_query_waiting_time: u64,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -551,7 +551,7 @@ impl LayoutThread {
                 },
             layout_threads: layout_threads,
             paint_time_metrics: paint_time_metrics,
-            layout_query_timestamp: 0u64,
+            layout_query_waiting_time: 0u64,
         }
     }
 
@@ -869,9 +869,7 @@ impl LayoutThread {
         // Drop the root flow explicitly to avoid holding style data, such as
         // rule nodes.  The `Stylist` checks when it is dropped that all rule
         // nodes have been GCed, so we want drop anyone who holds them first.
-        let now = std_time::precise_time_ns();
-        let waiting_time = now - self.layout_query_timestamp;
-        debug!("layout: query has been waited: {}", waiting_time);
+        debug!("layout: query has been waited: {}", self.layout_query_waiting_time);
         self.root_flow.borrow_mut().take();
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
@@ -1080,9 +1078,6 @@ impl LayoutThread {
     fn handle_reflow<'a, 'b>(&mut self,
                              data: &mut ScriptReflowResult,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        // Set layout query timestamp
-        data.reflow_goal.set_timestamp();
-
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
@@ -1097,7 +1092,11 @@ impl LayoutThread {
 
         let element = match document.root_element() {
             None => {
-                self.layout_query_timestamp = data.reflow_goal.timestamp().expect("Not a QueryMsg");
+                let now = std_time::precise_time_ns();
+                if let ReflowGoal::LayoutQuery(_, time) = data.reflow_goal {
+                        self.layout_query_waiting_time = now - time;
+                };
+
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
                 match data.reflow_goal {

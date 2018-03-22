@@ -24,7 +24,6 @@ use style::context::QuirksMode;
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
-use time;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
@@ -170,26 +169,6 @@ impl ReflowGoal {
                 &QueryMsg::OffsetParentQuery(_) |
                 &QueryMsg::StyleQuery(_) => false,
             },
-        }
-    }
-
-    /// Set the timestamp of query message.
-    pub fn set_timestamp(&mut self) {
-       match *self {
-           ReflowGoal::LayoutQuery(_, ref mut timestamp) => {
-               *timestamp = time::precise_time_ns();
-           },
-           _ => (),
-       }
-    }
-
-    /// Get the query timestamp.
-    pub fn timestamp(&self) -> Option<u64> {
-        match *self {
-            ReflowGoal::LayoutQuery(_, ref timestamp) => {
-                Some(*timestamp)
-            },
-            _ => None,
         }
     }
 }

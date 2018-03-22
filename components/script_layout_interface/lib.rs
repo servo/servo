@@ -33,7 +33,6 @@ extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_url;
 extern crate style;
-extern crate time;
 extern crate webrender_api;
 
 pub mod message;
