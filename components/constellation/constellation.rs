@@ -2207,11 +2207,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             size: &Size2D<i32>,
             response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>) {
 		self.canvas_id.0 += 1;
-		let canvas_id = self.canvas_id.clone();
         let webrender_api = self.webrender_api_sender.clone();
         let sender = CanvasPaintThread::start(*size, webrender_api,
-                                              opts::get().enable_canvas_antialiasing,canvas_id);
-        if let Err(e) = response_sender.send((sender,canvas_id)) {
+                                              opts::get().enable_canvas_antialiasing,self.canvas_id.clone());
+        if let Err(e) = response_sender.send((sender,self.canvas_id.clone())) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }

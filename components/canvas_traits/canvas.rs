@@ -15,7 +15,7 @@ pub enum FillRule {
     Evenodd,
 }
 
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
 #[derive(Clone, Deserialize, Serialize)]
