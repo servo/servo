@@ -14,15 +14,16 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf, MallocUnconditionalShallowSizeOf};
 use net_traits::{Metadata, FetchMetadata};
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
+use servo_arc::Arc;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::str;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use time;
@@ -30,7 +31,7 @@ use time::{Duration, Tm};
 
 
 /// The key used to differentiate requests in the cache.
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq )]
 pub struct CacheKey {
     url: ServoUrl
 }
@@ -54,12 +55,6 @@ impl CacheKey {
     }
 }
 
-impl MallocSizeOf for CacheKey {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.url.size_of(ops)
-    }
-}
-
 /// A complete cached resource.
 #[derive(Clone)]
 struct CachedResource {
@@ -79,7 +74,17 @@ struct CachedResource {
 
 impl MallocSizeOf for CachedResource {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.metadata.size_of(ops)
+        self.metadata.size_of(ops) +
+        self.request_headers.unconditional_size_of(ops) +
+        self.body.unconditional_size_of(ops) +
+        self.location_url.size_of(ops) +
+        self.https_state.size_of(ops) +
+        self.raw_status.size_of(ops) +
+        self.url_list.size_of(ops) +
+        self.expires.size_of(ops) +
+        self.last_validated.size_of(ops) +
+        self.aborted.unconditional_size_of(ops) +
+        self.awaiting_body.unconditional_size_of(ops)
     }
 }
 
@@ -100,9 +105,15 @@ struct CachedMetadata {
 
 impl MallocSizeOf for CachedMetadata {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.final_url.size_of(ops)
+        self.final_url.size_of(ops) +
+        self.content_type.size_of(ops) +
+        self.charset.size_of(ops) +
+        self.headers.unconditional_shallow_size_of(ops) +
+        (*self.headers.lock().unwrap()).size_of(ops) +
+        self.status.size_of(ops)
     }
 }
+
 /// Wrapper around a cached response, including information on re-validation needs
 pub struct CachedResponse {
     /// The response constructed from the cached resource

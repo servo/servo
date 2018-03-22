@@ -17,6 +17,7 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate num_traits;
 #[macro_use] extern crate serde;
+extern crate servo_arc;
 extern crate servo_config;
 extern crate servo_url;
 extern crate url;

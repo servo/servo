@@ -26,10 +26,12 @@ extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;
 extern crate openssl;
+#[macro_use]
 extern crate profile_traits;
 #[macro_use] extern crate serde;
 extern crate serde_json;
 extern crate servo_allocator;
+extern crate servo_arc;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;
