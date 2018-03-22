@@ -25,6 +25,12 @@ enum WebGLFramebufferAttachment {
     Texture { texture: Dom<WebGLTexture>, level: i32 },
 }
 
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub enum WebGLFramebufferAttachmentRoot {
+    Renderbuffer(DomRoot<WebGLRenderbuffer>),
+    Texture(DomRoot<WebGLTexture>),
+}
+
 #[dom_struct]
 pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
@@ -211,6 +217,25 @@ impl WebGLFramebuffer {
 
         self.update_status();
         Ok(())
+    }
+
+    pub fn attachment(&self, attachment: u32) -> Option<WebGLFramebufferAttachmentRoot> {
+        let binding = match attachment {
+            constants::COLOR_ATTACHMENT0 => &self.color,
+            constants::DEPTH_ATTACHMENT => &self.depth,
+            constants::STENCIL_ATTACHMENT => &self.stencil,
+            constants::DEPTH_STENCIL_ATTACHMENT => &self.depthstencil,
+            _ => return None,
+        };
+
+        binding.borrow().as_ref().map(|bin| {
+            match bin {
+                &WebGLFramebufferAttachment::Renderbuffer(ref rb) =>
+                    WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(&rb)),
+                &WebGLFramebufferAttachment::Texture { ref texture, .. } =>
+                    WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(&texture)),
+            }
+        })
     }
 
     pub fn texture2d(&self, attachment: u32, textarget: u32, texture: Option<&WebGLTexture>,
