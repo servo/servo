@@ -1375,7 +1375,7 @@ impl Window {
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
-        self.reflow(ReflowGoal::LayoutQuery(query_msg, 0u64), ReflowReason::Query)
+        self.reflow(ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()), ReflowReason::Query)
     }
 
     pub fn layout(&self) -> &LayoutRPC {

@@ -13,6 +13,7 @@ extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
+extern crate histogram;
 #[macro_use]
 extern crate html5ever;
 extern crate ipc_channel;
@@ -61,6 +62,7 @@ use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{Epoch, node_id_from_scroll_id};
+use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
@@ -263,7 +265,7 @@ pub struct LayoutThread {
     paint_time_metrics: PaintTimeMetrics,
 
     /// The time a layout query has waited before serviced by layout thread.
-    layout_query_timestamp: u64,
+    layout_query_waiting_time: Histogram,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -551,7 +553,7 @@ impl LayoutThread {
                 },
             layout_threads: layout_threads,
             paint_time_metrics: paint_time_metrics,
-            layout_query_timestamp: 0u64,
+            layout_query_waiting_time: Histogram::new(),
         }
     }
 
@@ -869,9 +871,16 @@ impl LayoutThread {
         // Drop the root flow explicitly to avoid holding style data, such as
         // rule nodes.  The `Stylist` checks when it is dropped that all rule
         // nodes have been GCed, so we want drop anyone who holds them first.
-        let now = std_time::precise_time_ns();
-        let waiting_time = now - self.layout_query_timestamp;
-        debug!("layout: query has been waited: {}", waiting_time);
+        let waiting_time_min = self.layout_query_waiting_time.minimum().unwrap_or(0);
+        let waiting_time_max = self.layout_query_waiting_time.maximum().unwrap_or(0);
+        let waiting_time_mean = self.layout_query_waiting_time.mean().unwrap_or(0);
+        let waiting_time_stddev = self.layout_query_waiting_time.stddev().unwrap_or(0);
+        debug!("layout: query waiting time: min: {}, max: {}, mean: {}, standard_deviation: {}",
+               waiting_time_min,
+               waiting_time_max,
+               waiting_time_mean,
+               waiting_time_stddev);
+
         self.root_flow.borrow_mut().take();
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
@@ -1080,9 +1089,6 @@ impl LayoutThread {
     fn handle_reflow<'a, 'b>(&mut self,
                              data: &mut ScriptReflowResult,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
-        // Set layout query timestamp
-        data.reflow_goal.set_timestamp();
-
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
@@ -1095,9 +1101,14 @@ impl LayoutThread {
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
+        // Record the time that layout query has been waited.
+        let now = std_time::precise_time_ns();
+        if let ReflowGoal::LayoutQuery(_, timestamp) = data.reflow_goal {
+            self.layout_query_waiting_time.increment(now - timestamp).expect("layout: wrong layout query timestamp");
+        };
+
         let element = match document.root_element() {
             None => {
-                self.layout_query_timestamp = data.reflow_goal.timestamp().expect("Not a QueryMsg");
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
                 match data.reflow_goal {
