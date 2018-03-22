@@ -860,8 +860,12 @@ impl WebGLImpl {
                 ctx.gl().vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset),
             WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset) =>
                 ctx.gl().vertex_attrib_pointer(attrib_id, size, data_type, normalized, stride, offset),
-            WebGLCommand::Viewport(x, y, width, height) =>
-                ctx.gl().viewport(x, y, width, height),
+            WebGLCommand::GetViewport(sender) => {
+                sender.send(ctx.gl().get_viewport()).unwrap();
+            }
+            WebGLCommand::SetViewport(x, y, width, height) => {
+                ctx.gl().viewport(x, y, width, height);
+            }
             WebGLCommand::TexImage2D(target, level, internal, width, height, format, data_type, data) =>
                 ctx.gl().tex_image_2d(target, level, internal, width, height,
                                       /*border*/0, format, data_type, Some(&data)),
@@ -1055,8 +1059,7 @@ impl WebGLImpl {
 
             // Int32Array
             gl::MAX_VIEWPORT_DIMS |
-            gl::SCISSOR_BOX |
-            gl::VIEWPORT => Err(WebGLError::InvalidEnum),
+            gl::SCISSOR_BOX => Err(WebGLError::InvalidEnum),
 
             // Invalid parameters
             _ => Err(WebGLError::InvalidEnum)

@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2Rende
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::reflector::{reflect_dom_object, Reflector};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::str::DOMString;
@@ -329,7 +329,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn CompileShader(&self, shader: Option<&WebGLShader>) {
+    fn CompileShader(&self, shader: &WebGLShader) {
         self.base.CompileShader(shader)
     }
 
@@ -414,39 +414,39 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetActiveUniform(&self, program: Option<&WebGLProgram>, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
+    fn GetActiveUniform(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
         self.base.GetActiveUniform(program, index)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetActiveAttrib(&self, program: Option<&WebGLProgram>, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
+    fn GetActiveAttrib(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
         self.base.GetActiveAttrib(program, index)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetAttribLocation(&self, program: Option<&WebGLProgram>, name: DOMString) -> i32 {
+    fn GetAttribLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
         self.base.GetAttribLocation(program, name)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetProgramInfoLog(&self, program: Option<&WebGLProgram>) -> Option<DOMString> {
+    fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<DOMString> {
         self.base.GetProgramInfoLog(program)
     }
 
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetProgramParameter(&self, cx: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
+    unsafe fn GetProgramParameter(&self, cx: *mut JSContext, program: &WebGLProgram, param_id: u32) -> JSVal {
         self.base.GetProgramParameter(cx, program, param_id)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
+    fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<DOMString> {
         self.base.GetShaderInfoLog(shader)
     }
 
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetShaderParameter(&self, cx: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
+    unsafe fn GetShaderParameter(&self, cx: *mut JSContext, shader: &WebGLShader, param_id: u32) -> JSVal {
         self.base.GetShaderParameter(cx, shader, param_id)
     }
 
@@ -459,9 +459,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetUniformLocation(&self,
-                          program: Option<&WebGLProgram>,
-                          name: DOMString) -> Option<DomRoot<WebGLUniformLocation>> {
+    fn GetUniformLocation(
+        &self,
+        program: &WebGLProgram,
+        name: DOMString,
+    ) -> Option<DomRoot<WebGLUniformLocation>> {
         self.base.GetUniformLocation(program, name)
     }
 
@@ -585,12 +587,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn ShaderSource(&self, shader: Option<&WebGLShader>, source: DOMString) {
+    fn ShaderSource(&self, shader: &WebGLShader, source: DOMString) {
         self.base.ShaderSource(shader, source)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderSource(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
+    fn GetShaderSource(&self, shader: &WebGLShader) -> Option<DOMString> {
         self.base.GetShaderSource(shader)
     }
 
@@ -759,7 +761,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn ValidateProgram(&self, program: Option<&WebGLProgram>) {
+    fn ValidateProgram(&self, program: &WebGLProgram) {
         self.base.ValidateProgram(program)
     }
 
@@ -835,13 +837,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImage2D_(&self,
-                   target: u32,
-                   level: i32,
-                   internal_format: u32,
-                   format: u32,
-                   data_type: u32,
-                   source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) -> Fallible<()> {
+    fn TexImage2D_(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        format: u32,
+        data_type: u32,
+        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+    ) -> ErrorResult {
         self.base.TexImage2D_(target, level, internal_format, format, data_type, source)
     }
 
@@ -875,15 +879,16 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexSubImage2D_(&self,
-                      target: u32,
-                      level: i32,
-                      xoffset: i32,
-                      yoffset: i32,
-                      format: u32,
-                      data_type: u32,
-                      source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>)
-                      -> Fallible<()> {
+    fn TexSubImage2D_(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        format: u32,
+        data_type: u32,
+        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+    ) -> ErrorResult {
         self.base.TexSubImage2D_(target, level, xoffset, yoffset, format, data_type, source)
     }
 
