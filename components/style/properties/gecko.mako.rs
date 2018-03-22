@@ -78,7 +78,7 @@ pub mod style_structs {
 pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedData;
 
 #[repr(C)]
-pub struct ComputedValues(::gecko_bindings::structs::mozilla::ServoStyleContext);
+pub struct ComputedValues(::gecko_bindings::structs::mozilla::ComputedStyle);
 
 impl ComputedValues {
     pub fn new(
@@ -126,7 +126,7 @@ impl ComputedValues {
     pub fn pseudo(&self) -> Option<PseudoElement> {
         use string_cache::Atom;
 
-        let atom = (self.0)._base.mPseudoTag.mRawPtr;
+        let atom = (self.0).mPseudoTag.mRawPtr;
         if atom.is_null() {
             return None;
         }
@@ -136,7 +136,7 @@ impl ComputedValues {
     }
 
     fn get_pseudo_type(&self) -> CSSPseudoElementType {
-        let bits = (self.0)._base.mBits;
+        let bits = (self.0).mBits;
         let our_type = bits >> NS_STYLE_CONTEXT_TYPE_SHIFT;
         unsafe { transmute(our_type as u8) }
     }
@@ -167,7 +167,7 @@ impl ComputedValues {
 impl Drop for ComputedValues {
     fn drop(&mut self) {
         unsafe {
-            bindings::Gecko_ServoStyleContext_Destroy(&mut self.0);
+            bindings::Gecko_ComputedStyle_Destroy(&mut self.0);
         }
     }
 }
@@ -197,7 +197,7 @@ impl Clone for ComputedValuesInner {
 }
 
 type PseudoInfo = (*mut structs::nsAtom, structs::CSSPseudoElementType);
-type ParentStyleContextInfo<'a> = Option< &'a ComputedValues>;
+type ParentComputedStyleInfo<'a> = Option< &'a ComputedValues>;
 
 impl ComputedValuesInner {
     pub fn new(custom_properties: Option<Arc<CustomPropertiesMap>>,
@@ -224,7 +224,7 @@ impl ComputedValuesInner {
     fn to_outer(
         self,
         pres_context: RawGeckoPresContextBorrowed,
-        parent: ParentStyleContextInfo,
+        parent: ParentComputedStyleInfo,
         info: Option<PseudoInfo>
     ) -> Arc<ComputedValues> {
         let (tag, ty) = if let Some(info) = info {
@@ -239,13 +239,13 @@ impl ComputedValuesInner {
     unsafe fn to_outer_helper(
         self,
         pres_context: bindings::RawGeckoPresContextBorrowed,
-        parent: ParentStyleContextInfo,
+        parent: ParentComputedStyleInfo,
         pseudo_ty: structs::CSSPseudoElementType,
         pseudo_tag: *mut structs::nsAtom
     ) -> Arc<ComputedValues> {
         let arc = {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
-            bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _,
+            bindings::Gecko_ComputedStyle_Init(&arc.0 as *const _ as *mut _,
                                                    parent, pres_context,
                                                    &self, pseudo_ty, pseudo_tag);
             // We're simulating a move by having C++ do a memcpy and then forgetting
