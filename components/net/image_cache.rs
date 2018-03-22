@@ -82,6 +82,7 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
         format: webrender_api::ImageFormat::BGRA8,
         offset: 0,
         is_opaque,
+        allow_mipmaps: true,
     };
     let data = webrender_api::ImageData::new(bytes);
     let image_key = webrender_api.generate_image_key();
