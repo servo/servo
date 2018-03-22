@@ -418,11 +418,15 @@ class CGMethodCall(CGThing):
                     template = info.template
                     declType = info.declType
 
+                    argName = "arg%d" % distinguishingIndex
+
                     testCode = instantiateJSToNativeConversionTemplate(
                         template,
                         {"val": distinguishingArg},
                         declType,
-                        "arg%d" % distinguishingIndex)
+                        argName)
+                    if type_needs_auto_root(type):
+                        testCode.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (argName, argName)))
 
                     # Indent by 4, since we need to indent further than our "do" statement
                     caseBody.append(CGIndenter(testCode, 4))

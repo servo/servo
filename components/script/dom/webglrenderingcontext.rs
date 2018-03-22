@@ -47,10 +47,9 @@ use dom_struct::dom_struct;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
-use js::conversions::ConversionBehavior;
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
-use js::typedarray::{ArrayBufferView, TypedArray, TypedArrayElement, Float32, Int32};
+use js::typedarray::{ArrayBufferView, TypedArray, TypedArrayElement, Float32Array, Int32Array};
 use js::rust::CustomAutoRooterGuard;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
@@ -1157,38 +1156,6 @@ impl WebGLRenderingContext {
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
         self.webgl_sender.send_remove().unwrap();
-    }
-}
-
-// FIXME: After [1] lands and the relevant Servo and codegen PR too, we should
-// convert all our raw JSObject pointers to proper types.
-//
-// [1]: https://github.com/servo/rust-mozjs/pull/304
-#[allow(unsafe_code)]
-unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
-                                            sequence_or_abv: *mut JSObject,
-                                            config: <T::Element as FromJSValConvertible>::Config)
-                                            -> Result<Vec<T::Element>, Error>
-    where T: TypedArrayElement,
-          T::Element: FromJSValConvertible + Clone,
-          <T::Element as FromJSValConvertible>::Config: Clone,
-{
-    // TODO(servo/rust-mozjs#330): replace this with a macro that supports generic types.
-    let typed_array: Option<TypedArray<T, *mut JSObject>> =
-          TypedArray::from(sequence_or_abv).ok();
-    if let Some(mut typed_array) = typed_array {
-        return Ok(typed_array.as_slice().to_vec());
-    }
-    assert!(!sequence_or_abv.is_null());
-    rooted!(in(cx) let mut val = UndefinedValue());
-    sequence_or_abv.to_jsval(cx, val.handle_mut());
-
-    match Vec::<T::Element>::from_jsval(cx, val.handle(), config) {
-        Ok(ConversionResult::Success(v)) => Ok(v),
-        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-        // FIXME: What to do here? Generated code only aborts the execution of
-        // the script.
-        Err(err) => panic!("unexpected conversion error: {:?}", err),
     }
 }
 
@@ -2812,279 +2779,302 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   val: f32) {
-        if self.validate_uniform_parameters(uniform, UniformSetterType::Float, &[val]) {
-            self.send_command(WebGLCommand::Uniform1f(uniform.unwrap().id(), val))
+        if self.validate_uniform_parameters(location, UniformSetterType::Float, &[val]) {
+            self.send_command(WebGLCommand::Uniform1f(location.unwrap().id(), val))
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   val: i32) {
-        if self.validate_uniform_parameters(uniform, UniformSetterType::Int, &[val]) {
-            self.send_command(WebGLCommand::Uniform1i(uniform.unwrap().id(), val))
+        if self.validate_uniform_parameters(location, UniformSetterType::Int, &[val]) {
+            self.send_command(WebGLCommand::Uniform1i(location.unwrap().id(), val))
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform1iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
+    fn Uniform1iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Int32Array>) {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform, UniformSetterType::Int, &data_vec) {
-            self.send_command(WebGLCommand::Uniform1iv(uniform.unwrap().id(), data_vec))
+        self.Uniform1iv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform1iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
+        if self.validate_uniform_parameters(location, UniformSetterType::Int, &v) {
+            self.send_command(WebGLCommand::Uniform1iv(location.unwrap().id(), v))
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform1fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn Uniform1fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Float32Array>) {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform, UniformSetterType::Float, &data_vec) {
-            self.send_command(WebGLCommand::Uniform1fv(uniform.unwrap().id(), data_vec));
+        self.Uniform1fv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform1fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        if self.validate_uniform_parameters(location, UniformSetterType::Float, &v) {
+            self.send_command(WebGLCommand::Uniform1fv(location.unwrap().id(), v));
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
-        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec2, &[x, y]) {
-            self.send_command(WebGLCommand::Uniform2f(uniform.unwrap().id(), x, y));
+        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec2, &[x, y]) {
+            self.send_command(WebGLCommand::Uniform2f(location.unwrap().id(), x, y));
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform2fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn Uniform2fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Float32Array>) {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform,
+        self.Uniform2fv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform2fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::FloatVec2,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::Uniform2fv(uniform.unwrap().id(), data_vec));
+                                            &v) {
+            self.send_command(WebGLCommand::Uniform2fv(location.unwrap().id(), v));
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: i32, y: i32) {
-        if self.validate_uniform_parameters(uniform,
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::IntVec2,
                                             &[x, y]) {
-            self.send_command(WebGLCommand::Uniform2i(uniform.unwrap().id(), x, y));
+            self.send_command(WebGLCommand::Uniform2i(location.unwrap().id(), x, y));
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform2iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
+    fn Uniform2iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Int32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform,
+        self.Uniform2iv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform2iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::IntVec2,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::Uniform2iv(uniform.unwrap().id(), data_vec));
+                                            &v) {
+            self.send_command(WebGLCommand::Uniform2iv(location.unwrap().id(), v));
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32) {
-        if self.validate_uniform_parameters(uniform,
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::FloatVec3,
                                             &[x, y, z]) {
-            self.send_command(WebGLCommand::Uniform3f(uniform.unwrap().id(), x, y, z));
+            self.send_command(WebGLCommand::Uniform3f(location.unwrap().id(), x, y, z));
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform3fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn Uniform3fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform,
+        self.Uniform3fv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform3fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::FloatVec3,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::Uniform3fv(uniform.unwrap().id(), data_vec))
+                                            &v) {
+            self.send_command(WebGLCommand::Uniform3fv(location.unwrap().id(), v))
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32) {
-        if self.validate_uniform_parameters(uniform,
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::IntVec3,
                                             &[x, y, z]) {
-            self.send_command(WebGLCommand::Uniform3i(uniform.unwrap().id(), x, y, z))
+            self.send_command(WebGLCommand::Uniform3i(location.unwrap().id(), x, y, z))
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform3iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
+    fn Uniform3iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Int32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform,
+        self.Uniform3iv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform3iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::IntVec3,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::Uniform3iv(uniform.unwrap().id(), data_vec))
+                                            &v) {
+            self.send_command(WebGLCommand::Uniform3iv(location.unwrap().id(), v))
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4i(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32, w: i32) {
-        if self.validate_uniform_parameters(uniform,
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::IntVec4,
                                             &[x, y, z, w]) {
-            self.send_command(WebGLCommand::Uniform4i(uniform.unwrap().id(), x, y, z, w))
+            self.send_command(WebGLCommand::Uniform4i(location.unwrap().id(), x, y, z, w))
         }
     }
 
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform4iv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
+    fn Uniform4iv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Int32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform,
+        self.Uniform4iv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::IntVec4,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::Uniform4iv(uniform.unwrap().id(), data_vec))
+                                            &v) {
+            self.send_command(WebGLCommand::Uniform4iv(location.unwrap().id(), v))
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4f(&self,
-                  uniform: Option<&WebGLUniformLocation>,
+                  location: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
-        if self.validate_uniform_parameters(uniform,
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::FloatVec4,
                                             &[x, y, z, w]) {
-            self.send_command(WebGLCommand::Uniform4f(uniform.unwrap().id(), x, y, z, w))
+            self.send_command(WebGLCommand::Uniform4f(location.unwrap().id(), x, y, z, w))
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn Uniform4fv(&self,
-                  cx: *mut JSContext,
-                  uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn Uniform4fv(&self,
+                  location: Option<&WebGLUniformLocation>,
+                  mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if self.validate_uniform_parameters(uniform,
+        self.Uniform4fv_(location, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::FloatVec4,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::Uniform4fv(uniform.unwrap().id(), data_vec))
+                                            &v) {
+            self.send_command(WebGLCommand::Uniform4fv(location.unwrap().id(), v))
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn UniformMatrix2fv(&self,
-                        cx: *mut JSContext,
-                        uniform: Option<&WebGLUniformLocation>,
+    fn UniformMatrix2fv(&self,
+                        location: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
-        if self.validate_uniform_parameters(uniform,
+                        mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
+
+        self.UniformMatrix2fv_(location, transpose, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix2fv_(&self,
+                         location: Option<&WebGLUniformLocation>,
+                         transpose: bool,
+                         value: Vec<f32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::FloatMat2,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::UniformMatrix2fv(uniform.unwrap().id(), transpose, data_vec));
+                                            &value) {
+            self.send_command(WebGLCommand::UniformMatrix2fv(location.unwrap().id(), transpose, value));
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn UniformMatrix3fv(&self,
-                        cx: *mut JSContext,
-                        uniform: Option<&WebGLUniformLocation>,
+    fn UniformMatrix3fv(&self,
+                        location: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
-        if self.validate_uniform_parameters(uniform,
+                        mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
+
+        self.UniformMatrix3fv_(location, transpose, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix3fv_(&self,
+                         location: Option<&WebGLUniformLocation>,
+                         transpose: bool,
+                         value: Vec<f32>) {
+        if self.validate_uniform_parameters(location,
                                             UniformSetterType::FloatMat3,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::UniformMatrix3fv(uniform.unwrap().id(), transpose, data_vec));
+                                            &value) {
+            self.send_command(WebGLCommand::UniformMatrix3fv(location.unwrap().id(), transpose, value));
         }
-
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn UniformMatrix4fv(&self,
-                        cx: *mut JSContext,
-                        uniform: Option<&WebGLUniformLocation>,
+    fn UniformMatrix4fv(&self,
+                        location: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
-        if self.validate_uniform_parameters(uniform,
-                                            UniformSetterType::FloatMat4,
-                                            &data_vec) {
-            self.send_command(WebGLCommand::UniformMatrix4fv(uniform.unwrap().id(), transpose, data_vec));
-        }
+                        mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
 
-        Ok(())
+        self.UniformMatrix4fv_(location, transpose, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix4fv_(&self,
+                         location: Option<&WebGLUniformLocation>,
+                         transpose: bool,
+                         value: Vec<f32>) {
+        if self.validate_uniform_parameters(location,
+                                            UniformSetterType::FloatMat4,
+                                            &value) {
+            self.send_command(WebGLCommand::UniformMatrix4fv(location.unwrap().id(), transpose, value));
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -3111,14 +3101,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib1fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn VertexAttrib1fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
+
         if data_vec.len() < 1 {
-            return Ok(self.webgl_error(InvalidOperation));
+            return self.webgl_error(InvalidOperation);
         }
-        self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32);
-        Ok(())
+
+        self.VertexAttrib1fv_(indx, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib1fv_(&self, indx: u32, values: Vec<f32>) {
+        self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3128,14 +3123,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib2fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn VertexAttrib2fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
+
         if data_vec.len() < 2 {
-            return Ok(self.webgl_error(InvalidOperation));
+            return self.webgl_error(InvalidOperation);
         }
-        self.vertex_attrib(indx, data_vec[0], data_vec[1], 0f32, 1f32);
-        Ok(())
+
+        self.VertexAttrib2fv_(indx, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib2fv_(&self, indx: u32, values: Vec<f32>) {
+        self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3145,14 +3145,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib3fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn VertexAttrib3fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
+
         if data_vec.len() < 3 {
-            return Ok(self.webgl_error(InvalidOperation));
+            return self.webgl_error(InvalidOperation);
         }
-        self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], 1f32);
-        Ok(())
+
+        self.VertexAttrib3fv_(indx, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib3fv_(&self, indx: u32, values: Vec<f32>) {
+        self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3162,15 +3167,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib4fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
-        assert!(!data.is_null());
-        let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
+    fn VertexAttrib4fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
+        let data_vec = unsafe { v.as_slice().to_vec() };
+
         if data_vec.len() < 4 {
-            return Ok(self.webgl_error(InvalidOperation));
+            return self.webgl_error(InvalidOperation);
         }
 
-        self.vertex_attrib(indx, data_vec[0], data_vec[1], data_vec[2], data_vec[3]);
-        Ok(())
+        self.VertexAttrib4fv_(indx, data_vec);
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn VertexAttrib4fv_(&self, indx: u32, values: Vec<f32>) {
+        self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
