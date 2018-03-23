@@ -611,6 +611,12 @@ impl RequestMethods for Request {
     fn Json(&self) -> Rc<Promise> {
         consume_body(self, BodyType::Json)
     }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
+    fn ArrayBuffer(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::ArrayBuffer)
+    }
 }
 
 impl BodyOperations for Request {
