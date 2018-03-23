@@ -1514,29 +1514,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn AttachShader(&self, program: Option<&WebGLProgram>, shader: Option<&WebGLShader>) {
-        if let Some(program) = program {
-            if let Some(shader) = shader {
-                handle_potential_webgl_error!(self, program.attach_shader(shader));
-            }
-        }
+    fn AttachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
+        handle_potential_webgl_error!(self, program.attach_shader(shader));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn DetachShader(&self, program: Option<&WebGLProgram>, shader: Option<&WebGLShader>) {
-        if let Some(program) = program {
-            if let Some(shader) = shader {
-                handle_potential_webgl_error!(self, program.detach_shader(shader));
-            }
-        }
+    fn DetachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
+        handle_potential_webgl_error!(self, program.detach_shader(shader));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn BindAttribLocation(&self, program: Option<&WebGLProgram>,
-                          index: u32, name: DOMString) {
-        if let Some(program) = program {
-            handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
-        }
+    fn BindAttribLocation(&self, program: &WebGLProgram, index: u32, name: DOMString) {
+        handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -2174,6 +2163,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let type_size = match type_ {
             constants::UNSIGNED_BYTE => 1,
             constants::UNSIGNED_SHORT => 2,
+            constants::UNSIGNED_INT if self.extension_manager.is_element_index_uint_enabled() => 4,
             _ => return self.webgl_error(InvalidEnum),
         };
 
