@@ -177,7 +177,7 @@ IdlArray.prototype.add_idls = function(raw_idls, options)
 };
 
 //@}
-IdlArray.prototype.add_untested_idls = function(raw_idls)
+IdlArray.prototype.add_untested_idls = function(raw_idls, options)
 //@{
 {
     /** Entry point.  See documentation at beginning of file. */
@@ -193,7 +193,7 @@ IdlArray.prototype.add_untested_idls = function(raw_idls)
             }
         }
     }
-    this.internal_add_idls(parsed_idls);
+    this.internal_add_idls(parsed_idls, options);
 };
 
 //@}
@@ -274,13 +274,13 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
         }
 
         parsed_idl.array = this;
-        if (parsed_idl.name in this.members)
-        {
-            throw "Duplicate identifier " + parsed_idl.name;
-        }
         if (should_skip(parsed_idl.name))
         {
             return;
+        }
+        if (parsed_idl.name in this.members)
+        {
+            throw "Duplicate identifier " + parsed_idl.name;
         }
         switch(parsed_idl.type)
         {

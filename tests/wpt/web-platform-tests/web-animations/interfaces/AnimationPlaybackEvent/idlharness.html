@@ -8,39 +8,32 @@
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <div id="log"></div>
-<script type="text/plain" id="AnimationPlaybackEvent-IDL">
-dictionary EventInit {
-  boolean bubbles = false;
-  boolean cancelable = false;
-  boolean composed = false;
-};
-dictionary AnimationPlaybackEventInit : EventInit {
-  double? currentTime = null;
-  double? timelineTime = null;
-};
-
-[Exposed=Window,
- Constructor (DOMString type,
-              optional AnimationPlaybackEventInit eventInitDict
-)]
-interface AnimationPlaybackEvent : Event {
-  readonly attribute double? currentTime;
-  readonly attribute double? timelineTime;
-};
-</script>
 <script>
 'use strict';
 
-const idlArray = new IdlArray();
+promise_test(async () => {
+  const text = await fetch('/interfaces/web-animations.idl').then(response =>
+    response.text(),
+  );
+  const idlArray = new IdlArray();
+  idlArray.add_untested_idls(`dictionary EventInit {
+    boolean bubbles = false;
+    boolean cancelable = false;
+    boolean composed = false;
+  };`);
+  idlArray.add_idls(text, {
+    only: [
+      'AnimationPlaybackEventInit',
+      'AnimationPlaybackEvent',
+    ]
+  });
 
-idlArray.add_untested_idls('interface Event {};');
-idlArray.add_idls(
-  document.getElementById('AnimationPlaybackEvent-IDL').textContent
-);
-idlArray.add_objects({
-  AnimationPlaybackEvent: [ 'new AnimationPlaybackEvent(\'cancel\')' ],
-});
+  idlArray.add_untested_idls('interface Event {};');
+  idlArray.add_objects({
+    AnimationPlaybackEvent: ['new AnimationPlaybackEvent(\'cancel\')'],
+  });
 
-idlArray.test();
-
+  idlArray.test();
+  done();
+}, 'AnimationPlaybackEvent interface.');
 </script>

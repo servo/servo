@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>DedicatedWorker: static import</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(() => {
+  const worker = new Worker('resources/static-import-worker.js',
+                            { type: 'module' });
+  return new Promise(resolve => worker.onmessage = resolve)
+      .then(msg_event => assert_equals(msg_event.data, 'LOADED'));
+}, 'Test static import on DedicatedWorkerGlobalScope.');
+
+promise_test(() => {
+  const worker = new Worker('resources/nested-static-import-worker.js',
+                            { type: 'module' });
+  return new Promise(resolve => worker.onmessage = resolve)
+      .then(msg_event => assert_equals(msg_event.data, 'LOADED'));
+}, 'Test nested static import on DedicatedWorkerGlobalScope.');
+
+</script>

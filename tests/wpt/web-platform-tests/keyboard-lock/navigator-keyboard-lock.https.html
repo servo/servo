@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(() => {
+  const p = navigator.keyboard.lock(['a', 'b']);
+  assert_true(p instanceof Promise);
+  return p;
+}, '[Keyboard Lock] keyboard.lock');
+
+</script>
