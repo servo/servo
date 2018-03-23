@@ -203,8 +203,15 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
 }
 
 #[no_mangle]
-pub extern "C" fn MemoryReporter(obj: *mut JSObject) -> bool {
-    return is_platform_object(obj) && is_dom_proxy(obj);
+#[allow(unsafe_code)]
+pub unsafe extern "C" fn MemoryReporter(obj: *mut JSObject) -> bool {
+    //this function is always returning false
+    if is_platform_object(obj) || is_dom_proxy(obj) {
+        return true;
+    }
+    else{
+        return false;
+    }
 }
 
 #[allow(unsafe_code)]

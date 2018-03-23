@@ -326,8 +326,7 @@ pub unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
                 let pass_ptr = private_from_object(obj) as *const c_void;
                 let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
 
-                let msf = v.malloc_size_of;
-                let _result = msf(&mut ops, pass_ptr);
+                let _result = (v.malloc_size_of)(&mut ops, pass_ptr);
                 return _result;
             }
             Err(e) => {
