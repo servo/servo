@@ -825,12 +825,12 @@ impl WebGLRenderingContext {
 
     // TODO(emilio): Move this logic to a validator.
     fn validate_tex_image_2d_data(&self,
-                                         width: u32,
-                                         height: u32,
-                                         format: TexFormat,
-                                         data_type: TexDataType,
-                                         unpacking_alignment: u32,
-                                         data: &Option<ArrayBufferView>)
+                                  width: u32,
+                                  height: u32,
+                                  format: TexFormat,
+                                  data_type: TexDataType,
+                                  unpacking_alignment: u32,
+                                  data: &Option<ArrayBufferView>)
                                          -> Result<u32, ()> {
         let element_size = data_type.element_size();
         let components_per_element = data_type.components_per_element();
