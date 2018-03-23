@@ -27,7 +27,8 @@ pub enum BodyType {
     Blob,
     FormData,
     Json,
-    Text
+    Text,
+    ArrayBuffer
 }
 
 pub enum FetchedData {
