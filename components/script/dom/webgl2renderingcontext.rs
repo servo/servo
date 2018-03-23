@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
 use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferView;
+use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::reflector::{reflect_dom_object, Reflector};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
@@ -616,6 +616,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.Uniform1iv(location, v)
     }
 
+    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
         self.base.Uniform1iv_(location, v);
     }
