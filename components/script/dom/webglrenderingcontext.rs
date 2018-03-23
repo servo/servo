@@ -3094,15 +3094,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn VertexAttrib1fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
         let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if data_vec.len() < 1 {
-            return self.webgl_error(InvalidOperation);
-        }
-
         self.VertexAttrib1fv_(indx, data_vec);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib1fv_(&self, indx: u32, values: Vec<f32>) {
+        if values.len() < 1 {
+            return self.webgl_error(InvalidOperation);
+        }
+
         self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
     }
 
@@ -3116,15 +3116,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn VertexAttrib2fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
         let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if data_vec.len() < 2 {
-            return self.webgl_error(InvalidOperation);
-        }
-
         self.VertexAttrib2fv_(indx, data_vec);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib2fv_(&self, indx: u32, values: Vec<f32>) {
+        if values.len() < 2 {
+            return self.webgl_error(InvalidOperation);
+        }
+
         self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
     }
 
@@ -3138,15 +3138,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn VertexAttrib3fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
         let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if data_vec.len() < 3 {
-            return self.webgl_error(InvalidOperation);
-        }
-
         self.VertexAttrib3fv_(indx, data_vec);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib3fv_(&self, indx: u32, values: Vec<f32>) {
+        if values.len() < 3 {
+            return self.webgl_error(InvalidOperation);
+        }
+
         self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
     }
 
@@ -3160,15 +3160,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn VertexAttrib4fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
         let data_vec = unsafe { v.as_slice().to_vec() };
 
-        if data_vec.len() < 4 {
-            return self.webgl_error(InvalidOperation);
-        }
-
         self.VertexAttrib4fv_(indx, data_vec);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib4fv_(&self, indx: u32, values: Vec<f32>) {
+        if values.len() < 4 {
+            return self.webgl_error(InvalidOperation);
+        }
+
         self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
     }
 
