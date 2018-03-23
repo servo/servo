@@ -93,7 +93,11 @@ impl WebGLBuffer {
             }
         }
         self.capacity.set(data.len());
-        self.renderer.send(WebGLCommand::BufferData(target, data.to_vec(), usage)).unwrap();
+        self.renderer.send(WebGLCommand::BufferData(
+            target,
+            data.to_vec().into(),
+            usage,
+        )).unwrap();
 
         Ok(())
     }

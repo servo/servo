@@ -453,13 +453,13 @@ impl CanvasRenderingContext2D {
         }
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
-        self.ipc_renderer
-            .send(CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(image_data,
-                                                             image_size,
-                                                             dest_rect,
-                                                             source_rect,
-                                                             smoothing_enabled)))
-            .unwrap();
+        self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
+            image_data.into(),
+            image_size,
+            dest_rect,
+            source_rect,
+            smoothing_enabled,
+        ))).unwrap();
         self.mark_as_dirty();
         Ok(())
     }
@@ -1127,7 +1127,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let sh = cmp::max(1, sh.to_u32().unwrap());
         let sw = cmp::max(1, sw.to_u32().unwrap());
 
-        let (sender, receiver) = ipc::channel::<Vec<u8>>(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
                                   Size2D::new(sw as i32, sh as i32));
         let canvas_size = self.canvas.as_ref().map(|c| c.get_size()).unwrap_or(Size2D::zero());
@@ -1135,7 +1135,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
             .unwrap();
-        let mut data = receiver.recv().unwrap();
+        let mut data = Vec::from(receiver.recv().unwrap());
 
         // Un-premultiply alpha
         for chunk in data.chunks_mut(4) {
@@ -1174,10 +1174,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let dirty_rect = Rect::new(Point2D::new(*dirty_x, *dirty_y),
                                    Size2D::new(*dirty_width, *dirty_height));
-        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data,
-                                                                offset,
-                                                                image_data_size,
-                                                                dirty_rect));
+        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(
+            data.into(),
+            offset,
+            image_data_size,
+            dirty_rect,
+        ));
         self.ipc_renderer.send(msg).unwrap();
         self.mark_as_dirty();
     }

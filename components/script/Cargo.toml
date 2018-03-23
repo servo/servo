@@ -78,6 +78,7 @@ script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
 serde = "1.0"
+serde_bytes = "0.10"
 servo_allocator = {path = "../allocator"}
 servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}

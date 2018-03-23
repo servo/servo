@@ -5,6 +5,7 @@
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
+use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
 use webrender_api;
@@ -33,7 +34,7 @@ pub struct CanvasImageData {
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
-    DrawImage(Vec<u8>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawImage(ByteBuf, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     DrawImageSelf(Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     DrawImageInOther(
         IpcSender<CanvasMsg>, Size2D<f64>, Rect<f64>, Rect<f64>, bool, IpcSender<()>),
@@ -46,11 +47,11 @@ pub enum Canvas2dMsg {
     Fill,
     FillText(String, f64, f64, Option<f64>),
     FillRect(Rect<f32>),
-    GetImageData(Rect<i32>, Size2D<f64>, IpcSender<Vec<u8>>),
+    GetImageData(Rect<i32>, Size2D<f64>, IpcSender<ByteBuf>),
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(Vec<u8>, Vector2D<f64>, Size2D<f64>, Rect<f64>),
+    PutImageData(ByteBuf, Vector2D<f64>, Size2D<f64>, Rect<f64>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,
@@ -79,7 +80,7 @@ pub enum FromLayoutMsg {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FromScriptMsg {
-    SendPixels(IpcSender<Option<Vec<u8>>>),
+    SendPixels(IpcSender<Option<ByteBuf>>),
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
@@ -138,20 +139,24 @@ impl RadialGradientStyle {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct SurfaceStyle {
-    pub surface_data: Vec<u8>,
+    pub surface_data: ByteBuf,
     pub surface_size: Size2D<i32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
 }
 
 impl SurfaceStyle {
-    pub fn new(surface_data: Vec<u8>, surface_size: Size2D<i32>, repeat_x: bool, repeat_y: bool)
-        -> SurfaceStyle {
-        SurfaceStyle {
-            surface_data: surface_data,
-            surface_size: surface_size,
-            repeat_x: repeat_x,
-            repeat_y: repeat_y,
+    pub fn new(
+        surface_data: Vec<u8>,
+        surface_size: Size2D<i32>,
+        repeat_x: bool,
+        repeat_y: bool,
+    ) -> Self {
+        Self {
+            surface_data: surface_data.into(),
+            surface_size,
+            repeat_x,
+            repeat_y,
         }
     }
 }

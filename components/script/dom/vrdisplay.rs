@@ -35,6 +35,7 @@ use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
+use serde_bytes::ByteBuf;
 use std::cell::Cell;
 use std::mem;
 use std::ops::Deref;
@@ -68,7 +69,7 @@ pub struct VRDisplay {
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_malloc_size_of = "closures are hard"]
-    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<Vec<u8>, ()>>>>,
+    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<ByteBuf, ()>>>>,
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
