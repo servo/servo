@@ -140,7 +140,8 @@ mod data_flags {
         pub struct DataFlags: u16 {
             const TERMINATED = 1 << 0; // IsTerminated returns true
             const VOIDED = 1 << 1; // IsVoid returns true
-            const SHARED = 1 << 2; // mData points to a heap-allocated, shared buffer
+            const REFCOUNTED = 1 << 2; // mData points to a heap-allocated, shareable, refcounted
+                                       // buffer
             const OWNED = 1 << 3; // mData points to a heap-allocated, raw buffer
             const INLINE = 1 << 4; // mData points to a writable, inline buffer
             const LITERAL = 1 << 5; // mData points to a string literal; TERMINATED will also be set
@@ -1184,7 +1185,7 @@ pub mod test_helpers {
     #[allow(non_snake_case)]
     pub extern fn Rust_Test_NsStringFlags(f_terminated: *mut u16,
                                           f_voided: *mut u16,
-                                          f_shared: *mut u16,
+                                          f_refcounted: *mut u16,
                                           f_owned: *mut u16,
                                           f_inline: *mut u16,
                                           f_literal: *mut u16,
@@ -1193,7 +1194,7 @@ pub mod test_helpers {
         unsafe {
             *f_terminated = DataFlags::TERMINATED.bits();
             *f_voided = DataFlags::VOIDED.bits();
-            *f_shared = DataFlags::SHARED.bits();
+            *f_refcounted = DataFlags::REFCOUNTED.bits();
             *f_owned = DataFlags::OWNED.bits();
             *f_inline = DataFlags::INLINE.bits();
             *f_literal = DataFlags::LITERAL.bits();
