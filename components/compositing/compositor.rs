@@ -24,7 +24,8 @@ use servo_config::opts;
 use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
 use std::collections::HashMap;
 use std::env;
-use std::fs::File;
+use std::fs::{File, create_dir_all};
+use std::io::Write;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
@@ -1543,9 +1544,26 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Ok(current_dir) => {
                 let capture_id = now().to_timespec().sec.to_string();
                 let capture_path = current_dir.join("capture_webrender").join(capture_id);
+                let revision_file_path = capture_path.join("wr.txt");
+
+                if let Err(err) = create_dir_all(&capture_path) {
+                    eprintln!("Unable to create path '{:?}' for capture: {:?}", capture_path, err);
+                    return
+                }
+
                 self.webrender_api.save_capture(capture_path, webrender_api::CaptureBits::all());
+
+                match File::create(revision_file_path) {
+                    Ok(mut file) => {
+                        let revision = include!(concat!(env!("OUT_DIR"), "/webrender_revision.rs"));
+                        if let Err(err) = write!(&mut file, "{}", revision) {
+                            eprintln!("Unable to write webrender revision: {:?}", err)
+                        }
+                    }
+                    Err(err) => eprintln!("Capture triggered, creating webrender revision info skipped: {:?}", err)
+                }
             },
-            Err(err) => println!("could not locate path to save captures: {:?}", err)
+            Err(err) => eprintln!("Unable to locate path to save captures: {:?}", err)
         }
     }
 }
