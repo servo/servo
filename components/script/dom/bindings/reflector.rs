@@ -46,7 +46,8 @@ impl Reflector {
     /// Get the reflector.
     #[inline]
     pub fn get_jsobject(&self) -> HandleObject {
-        self.object.handle()
+        // We're rooted, so it's safe to hand out a handle to object in Heap
+        unsafe { self.object.handle() }
     }
 
     /// Initialize the reflector. (May be called only once.)
