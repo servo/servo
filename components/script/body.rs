@@ -11,13 +11,18 @@ use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
+use js::jsapi::Heap;
 use js::jsapi::JSContext;
+use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_ParseJSON;
 use js::jsapi::Value as JSValue;
+use js::jsval::{self, JSVal};
 use js::jsval::UndefinedValue;
+use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Ref;
+use std::ptr;
 use std::rc::Rc;
 use std::str;
 use url::form_urlencoded;
@@ -36,12 +41,14 @@ pub enum FetchedData {
     Json(JSValue),
     BlobData(DomRoot<Blob>),
     FormData(DomRoot<FormData>),
+    ArrayBuffer(Heap<JSVal>),
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
 pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyType) -> Rc<Promise> {
     let promise = Promise::new(&object.global());
+
 
     // Step 1
     if object.get_body_used() || object.is_locked() {
@@ -84,6 +91,7 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
                 FetchedData::Json(j) => promise.resolve_native(&j),
                 FetchedData::BlobData(b) => promise.resolve_native(&b),
                 FetchedData::FormData(f) => promise.resolve_native(&f),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a)
             };
         },
         Err(err) => promise.reject_error(err),
@@ -105,6 +113,7 @@ fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
+        BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes)
     }
 }
 
@@ -164,6 +173,26 @@ fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> F
             return Ok(FetchedData::FormData(formdata));
         },
         _ => return Err(Error::Type("Inappropriate MIME-type for Body".to_string())),
+    }
+}
+
+#[allow(unsafe_code)]
+fn run_array_buffer_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+    rooted!(in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+    unsafe {
+        match ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer_ptr.handle_mut()) {
+            Ok(_) => {
+                let mut arraybuffer = Some(FetchedData::ArrayBuffer(Heap::default()));
+                if let Some(FetchedData::ArrayBuffer(ref mut heap)) = arraybuffer {
+                    heap.set(jsval::ObjectValue(array_buffer_ptr.get()));
+                } else {
+                    return Err(Error::JSFailed);
+                }
+
+                arraybuffer.ok_or(Error::JSFailed)
+            }
+            _ => Err(Error::JSFailed)
+        }
     }
 }
 
