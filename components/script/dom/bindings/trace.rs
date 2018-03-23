@@ -59,9 +59,9 @@ use hyper::mime::Mime;
 use hyper::status::StatusCode;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
+use js::jsapi::{GCTraceKindToAscii, Heap, Handle, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
-use js::rust::Runtime;
+use js::rust::{GCMethods, Runtime};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use metrics::{InteractiveMetrics, InteractiveWindow};
@@ -785,6 +785,16 @@ impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
         RootedTraceableBox {
             ptr: traceable,
         }
+    }
+}
+
+impl<T> RootedTraceableBox<Heap<T>>
+    where
+        Heap<T>: JSTraceable + 'static,
+        T: GCMethods + Copy,
+{
+    pub fn handle(&self) -> Handle<T> {
+        unsafe { (*self.ptr).handle() }
     }
 }
 
