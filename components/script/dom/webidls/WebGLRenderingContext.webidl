@@ -475,8 +475,8 @@ interface WebGLRenderingContextBase
     object? getExtension(DOMString name);
 
     void activeTexture(GLenum texture);
-    void attachShader(WebGLProgram? program, WebGLShader? shader);
-    void bindAttribLocation(WebGLProgram? program, GLuint index, DOMString name);
+    void attachShader(WebGLProgram program, WebGLShader shader);
+    void bindAttribLocation(WebGLProgram program, GLuint index, DOMString name);
     void bindBuffer(GLenum target, WebGLBuffer? buffer);
     void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
     void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
@@ -559,7 +559,7 @@ interface WebGLRenderingContextBase
     void depthFunc(GLenum func);
     void depthMask(GLboolean flag);
     void depthRange(GLclampf zNear, GLclampf zFar);
-    void detachShader(WebGLProgram? program, WebGLShader? shader);
+    void detachShader(WebGLProgram program, WebGLShader shader);
     void disable(GLenum cap);
     void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
