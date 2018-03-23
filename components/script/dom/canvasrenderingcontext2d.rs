@@ -568,6 +568,63 @@ impl CanvasRenderingContext2D {
     fn set_origin_unclean(&self) {
         self.origin_clean.set(false)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
+    pub fn get_image_data(
+        &self,
+        sx: Finite<f64>,
+        sy: Finite<f64>,
+        sw: Finite<f64>,
+        sh: Finite<f64>,
+    ) -> Fallible<Vec<u8>> {
+        if !self.origin_is_clean() {
+            return Err(Error::Security)
+        }
+
+        let mut sx = *sx;
+        let mut sy = *sy;
+        let mut sw = *sw;
+        let mut sh = *sh;
+
+        if sw == 0.0 || sh == 0.0 {
+            return Err(Error::IndexSize);
+        }
+
+        if sw < 0.0 {
+            sw = -sw;
+            sx -= sw;
+        }
+        if sh < 0.0 {
+            sh = -sh;
+            sy -= sh;
+        }
+
+        let sh = cmp::max(1, sh.to_u32().unwrap());
+        let sw = cmp::max(1, sw.to_u32().unwrap());
+
+        let profiler = self.global().time_profiler_chan().clone();
+        let (sender, receiver) = ipc::channel::<Vec<u8>>(profiler).unwrap();
+        let dest_rect = Rect::new(
+            Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
+            Size2D::new(sw as i32, sh as i32),
+        );
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+        self.ipc_renderer
+            .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
+            .unwrap();
+        let mut data = receiver.recv().unwrap();
+
+        // Un-premultiply alpha
+        for chunk in data.chunks_mut(4) {
+            let alpha = chunk[3] as usize;
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[0] as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[1] as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
+        }
+
+        Ok(data)
+    }
 }
 
 pub trait LayoutCanvasRenderingContext2DHelpers {
@@ -1096,56 +1153,17 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
-    fn GetImageData(&self,
-                    sx: Finite<f64>,
-                    sy: Finite<f64>,
-                    sw: Finite<f64>,
-                    sh: Finite<f64>)
-                    -> Fallible<DomRoot<ImageData>> {
-        if !self.origin_is_clean() {
-            return Err(Error::Security)
-        }
-
-        let mut sx = *sx;
-        let mut sy = *sy;
-        let mut sw = *sw;
-        let mut sh = *sh;
-
-        if sw == 0.0 || sh == 0.0 {
-            return Err(Error::IndexSize);
-        }
-
-        if sw < 0.0 {
-            sw = -sw;
-            sx -= sw;
-        }
-        if sh < 0.0 {
-            sh = -sh;
-            sy -= sh;
-        }
-
-        let sh = cmp::max(1, sh.to_u32().unwrap());
-        let sw = cmp::max(1, sw.to_u32().unwrap());
-
-        let (sender, receiver) = ipc::channel::<Vec<u8>>(self.global().time_profiler_chan().clone()).unwrap();
-        let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
-                                  Size2D::new(sw as i32, sh as i32));
-        let canvas_size = self.canvas.as_ref().map(|c| c.get_size()).unwrap_or(Size2D::zero());
-        let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
-        self.ipc_renderer
-            .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
-            .unwrap();
-        let mut data = receiver.recv().unwrap();
-
-        // Un-premultiply alpha
-        for chunk in data.chunks_mut(4) {
-            let alpha = chunk[3] as usize;
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[0] as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[1] as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
-        }
-
-        ImageData::new(&self.global(), sw, sh, Some(data))
+    fn GetImageData(
+        &self,
+        sx: Finite<f64>,
+        sy: Finite<f64>,
+        sw: Finite<f64>,
+        sh: Finite<f64>,
+    ) -> Fallible<DomRoot<ImageData>> {
+        let data = self.get_image_data(sx, sy, sw, sh)?;
+        let width = cmp::max(1, sw.to_u32().unwrap());
+        let height = cmp::max(1, sh.to_u32().unwrap());
+        ImageData::new(&self.global(), width, height, Some(data))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

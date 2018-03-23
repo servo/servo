@@ -7,7 +7,6 @@ use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{HTMLCanvasElementMethods, RenderingContext};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
@@ -340,10 +339,12 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         // Step 3.
         let raw_data = match *self.context.borrow() {
             Some(CanvasContext::Context2d(ref context)) => {
-                let image_data = context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
-                                                           Finite::wrap(self.Width() as f64),
-                                                           Finite::wrap(self.Height() as f64))?;
-                image_data.get_data_array()
+                context.get_image_data(
+                    Finite::wrap(0f64),
+                    Finite::wrap(0f64),
+                    Finite::wrap(self.Width() as f64),
+                    Finite::wrap(self.Height() as f64),
+                )?
             }
             None => {
                 // Each pixel is fully-transparent black.
