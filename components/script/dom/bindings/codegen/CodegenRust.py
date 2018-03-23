@@ -422,7 +422,8 @@ class CGMethodCall(CGThing):
                         template,
                         {"val": distinguishingArg},
                         declType,
-                        "arg%d" % distinguishingIndex)
+                        "arg%d" % distinguishingIndex,
+                        needsAutoRoot=type_needs_auto_root(type))
 
                     # Indent by 4, since we need to indent further than our "do" statement
                     caseBody.append(CGIndenter(testCode, 4))
@@ -1211,7 +1212,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
 
 def instantiateJSToNativeConversionTemplate(templateBody, replacements,
-                                            declType, declName):
+                                            declType, declName,
+                                            needsAutoRoot=False):
     """
     Take the templateBody and declType as returned by
     getJSToNativeConversionInfo, a set of replacements as required by the
@@ -1236,6 +1238,8 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
     else:
         result.append(conversion)
 
+    if needsAutoRoot:
+        result.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (declName, declName)))
     # Add an empty CGGeneric to get an extra newline after the argument
     # conversion.
     result.append(CGGeneric(""))
@@ -1318,11 +1322,8 @@ class CGArgumentConverter(CGThing):
             arg = "arg%d" % index
 
             self.converter = instantiateJSToNativeConversionTemplate(
-                template, replacementVariables, declType, arg)
-
-            # The auto rooting is done only after the conversion is performed
-            if type_needs_auto_root(argument.type):
-                self.converter.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (arg, arg)))
+                template, replacementVariables, declType, arg,
+                needsAutoRoot=type_needs_auto_root(argument.type))
 
         else:
             assert argument.optional
