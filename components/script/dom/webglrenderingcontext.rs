@@ -1165,7 +1165,7 @@ unsafe fn fallible_array_buffer_view_to_vec(cx: *mut JSContext, abv: *mut JSObje
     assert!(!abv.is_null());
     typedarray!(in(cx) let array_buffer_view: ArrayBufferView = abv);
     match array_buffer_view {
-        Ok(mut v) => Ok(v.as_slice().to_vec()),
+        Ok(mut v) => Ok(v.to_vec()),
         Err(_) => Err(Error::Type("Not an ArrayBufferView".to_owned())),
     }
 }
@@ -1609,7 +1609,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
         let data_vec = match array_buffer {
-            Ok(mut data) => data.as_slice().to_vec(),
+            Ok(mut data) => data.to_vec(),
             Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
         };
 
@@ -1669,12 +1669,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    #[allow(unsafe_code)]
     fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferOrArrayBufferView>) {
         let data_vec = match data {
             // Typed array is rooted, so we can safely temporarily retrieve its slice
-            Some(ArrayBufferOrArrayBufferView::ArrayBuffer(mut inner)) => unsafe { inner.as_slice().to_vec() },
-            Some(ArrayBufferOrArrayBufferView::ArrayBufferView(mut inner)) => unsafe { inner.as_slice().to_vec() },
+            Some(ArrayBufferOrArrayBufferView::ArrayBuffer(mut inner)) => inner.to_vec(),
+            Some(ArrayBufferOrArrayBufferView::ArrayBufferView(mut inner)) => inner.to_vec(),
             // Spec: If data is null then an INVALID_VALUE error is generated.
             None => return self.webgl_error(InvalidValue),
         };
@@ -2786,13 +2785,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform1iv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Int32Array>) {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform1iv_(location, data_vec);
+        self.Uniform1iv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2803,13 +2799,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform1fv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Float32Array>) {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform1fv_(location, data_vec);
+        self.Uniform1fv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2829,13 +2822,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform2fv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Float32Array>) {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform2fv_(location, data_vec);
+        self.Uniform2fv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2859,13 +2849,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform2iv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Int32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform2iv_(location, data_vec);
+        self.Uniform2iv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2889,13 +2876,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform3fv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform3fv_(location, data_vec);
+        self.Uniform3fv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2919,13 +2903,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform3iv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Int32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform3iv_(location, data_vec);
+        self.Uniform3iv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2950,13 +2931,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform4iv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Int32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform4iv_(location, data_vec);
+        self.Uniform4iv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2980,13 +2958,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn Uniform4fv(&self,
                   location: Option<&WebGLUniformLocation>,
                   mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.Uniform4fv_(location, data_vec);
+        self.Uniform4fv_(location, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2999,14 +2974,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn UniformMatrix2fv(&self,
                         location: Option<&WebGLUniformLocation>,
                         transpose: bool,
                         mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.UniformMatrix2fv_(location, transpose, data_vec);
+        self.UniformMatrix2fv_(location, transpose, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3022,14 +2994,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn UniformMatrix3fv(&self,
                         location: Option<&WebGLUniformLocation>,
                         transpose: bool,
                         mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.UniformMatrix3fv_(location, transpose, data_vec);
+        self.UniformMatrix3fv_(location, transpose, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3045,14 +3014,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn UniformMatrix4fv(&self,
                         location: Option<&WebGLUniformLocation>,
                         transpose: bool,
                         mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.UniformMatrix4fv_(location, transpose, data_vec);
+        self.UniformMatrix4fv_(location, transpose, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3090,11 +3056,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn VertexAttrib1fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.VertexAttrib1fv_(indx, data_vec);
+        self.VertexAttrib1fv_(indx, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3112,11 +3075,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn VertexAttrib2fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.VertexAttrib2fv_(indx, data_vec);
+        self.VertexAttrib2fv_(indx, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3134,11 +3094,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn VertexAttrib3fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.VertexAttrib3fv_(indx, data_vec);
+        self.VertexAttrib3fv_(indx, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3156,11 +3113,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
     fn VertexAttrib4fv(&self, indx: u32, mut v: CustomAutoRooterGuard<Float32Array>)  {
-        let data_vec = unsafe { v.as_slice().to_vec() };
-
-        self.VertexAttrib4fv_(indx, data_vec);
+        self.VertexAttrib4fv_(indx, v.to_vec());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3228,7 +3182,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
     fn TexImage2D(&self,
                   target: u32,
                   level: i32,
@@ -3275,10 +3228,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // initialized to 0 is passed.
         let buff = match *pixels {
             None => vec![0u8; expected_byte_length as usize],
-            Some(ref mut data) => {
-                // Since the typed array is rooted, this is safe to perform
-                unsafe { data.as_slice().to_vec() }
-            }
+            Some(ref mut data) => data.to_vec(),
         };
 
         // From the WebGL spec:
@@ -3396,7 +3346,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
     fn TexSubImage2D(&self,
                      target: u32,
                      level: i32,
@@ -3438,10 +3387,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // initialized to 0 is passed.
         let buff = match *pixels {
             None => vec![0u8; expected_byte_length as usize],
-            Some(ref mut data) => {
-                // Since the typed array is rooted, this is safe to perform
-                unsafe { data.as_slice().to_vec() }
-            }
+            Some(ref mut data) => data.to_vec(),
         };
 
         // From the WebGL spec:
