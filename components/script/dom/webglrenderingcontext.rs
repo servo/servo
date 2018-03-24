@@ -1328,6 +1328,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 [x, y, width, height].to_jsval(cx, rval.handle_mut());
                 return rval.get();
             }
+            constants::ALIASED_POINT_SIZE_RANGE => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::AliasedPointSizeRange(sender));
+                let (width, height) = receiver.recv().unwrap();
+                rooted!(in(cx) let mut rval = UndefinedValue());
+                [width, height].to_jsval(cx, rval.handle_mut());
+                return rval.get();
+            }
             _ => {
                 if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
                     self.webgl_error(WebGLError::InvalidEnum);
