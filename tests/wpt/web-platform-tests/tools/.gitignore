@@ -3,7 +3,6 @@
 .coverage.*
 htmlcov/
 coverage.xml
-.tox/
 .cache/
 .hypothesis/
 *.py[co]
