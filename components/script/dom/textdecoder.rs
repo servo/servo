@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::TextDecoderBinding;
-use dom::bindings::codegen::Bindings::TextDecoderBinding::TextDecoderMethods;
+use dom::bindings::codegen::Bindings::TextDecoderBinding::{TextDecoderMethods, TextDecodeOptions};
+use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
@@ -11,7 +12,6 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use js::jsapi::{JSContext, JSObject};
 use std::borrow::ToOwned;
 
 #[dom_struct]
@@ -36,21 +36,21 @@ impl TextDecoder {
 
     pub fn new(global: &GlobalScope, encoding: &'static Encoding, fatal: bool) -> DomRoot<TextDecoder> {
         reflect_dom_object(Box::new(TextDecoder::new_inherited(encoding, fatal)),
-                           global,
-                           TextDecoderBinding::Wrap)
+        global,
+        TextDecoderBinding::Wrap)
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
     pub fn Constructor(global: &GlobalScope,
                        label: DOMString,
                        options: &TextDecoderBinding::TextDecoderOptions)
-                            -> Fallible<DomRoot<TextDecoder>> {
-        let encoding = match Encoding::for_label_no_replacement(label.as_bytes()) {
-            None => return TextDecoder::make_range_error(),
-            Some(enc) => enc
-        };
-        Ok(TextDecoder::new(global, encoding, options.fatal))
-    }
+        -> Fallible<DomRoot<TextDecoder>> {
+            let encoding = match Encoding::for_label_no_replacement(label.as_bytes()) {
+                None => return TextDecoder::make_range_error(),
+                Some(enc) => enc
+            };
+            Ok(TextDecoder::new(global, encoding, options.fatal))
+        }
 }
 
 
@@ -65,32 +65,31 @@ impl TextDecoderMethods for TextDecoder {
         self.fatal
     }
 
-    #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
-    unsafe fn Decode(&self, _cx: *mut JSContext, input: Option<*mut JSObject>)
-              -> Fallible<USVString> {
-        let input = match input {
-            Some(input) => input,
-            None => return Ok(USVString("".to_owned())),
-        };
+    fn Decode(
+        &self,
+        input: Option<ArrayBufferViewOrArrayBuffer>,
+        _options: &TextDecodeOptions)
+        -> Fallible<USVString> {
+            match input {
+                Some(arr) => {
+                    let vec: Vec<u8> = match arr {
+                        ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut a) => a.to_vec(),
+                        ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut a) => a.to_vec()
+                    };
+                    let s = if self.fatal {
+                        match self.encoding.decode_without_bom_handling_and_without_replacement(&vec) {
+                            Some(s) => s,
+                            None => return Err(Error::Type("Decoding failed".to_owned())),
+                        }
+                    } else {
+                        let (s, _has_errors) = self.encoding.decode_without_bom_handling(&vec);
+                        s
+                    };
+                    Ok(USVString(s.into_owned()))
 
-        typedarray!(in(_cx) let data_res: ArrayBufferView = input);
-        let mut data = match data_res {
-            Ok(data) => data,
-            Err(_)   => {
-                return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
+                }
+                None => Ok(USVString("".to_owned()))
             }
-        };
-
-        let s = if self.fatal {
-            match self.encoding.decode_without_bom_handling_and_without_replacement(data.as_slice()) {
-                Some(s) => s,
-                None => return Err(Error::Type("Decoding failed".to_owned())),
-            }
-        } else {
-            let (s, _has_errors) = self.encoding.decode_without_bom_handling(data.as_slice());
-            s
-        };
-        Ok(USVString(s.into_owned()))
-    }
+        }
 }
