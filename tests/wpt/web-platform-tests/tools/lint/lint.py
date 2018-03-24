@@ -60,7 +60,7 @@ you could add the following line to the lint.whitelist file.
 %s: %s"""
 
 def all_filesystem_paths(repo_root, subdir=None):
-    path_filter = PathFilter(repo_root, extras=[".git/*"])
+    path_filter = PathFilter(repo_root, extras=[".git/"])
     if subdir:
         expanded_path = subdir
     else:
@@ -72,8 +72,7 @@ def all_filesystem_paths(repo_root, subdir=None):
                 yield path
         dirnames[:] = [item for item in dirnames if
                        path_filter(os.path.relpath(os.path.join(dirpath, item) + "/",
-                                                   repo_root))]
-
+                                                   repo_root)+"/")]
 
 def _all_files_equal(paths):
     """

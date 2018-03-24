@@ -377,7 +377,7 @@ class FakeRemoteGATTCharacteristic {
       await this.fake_central_ptr_.setNextWriteCharacteristicResponse(
         gatt_code, ...this.ids_);
 
-    if (!success) throw 'setNextWriteResponse failed';
+    if (!success) throw 'setNextWriteCharacteristicResponse failed';
   }
 
   // Sets the next subscribe to notifications response for characteristic with
@@ -397,9 +397,10 @@ class FakeRemoteGATTCharacteristic {
   // Returns null if no value has yet been written to the characteristic.
   async getLastWrittenValue() {
     let {success, value} =
-      await this.fake_central_ptr_.getLastWrittenValue(...this.ids_);
+      await this.fake_central_ptr_.getLastWrittenCharacteristicValue(
+          ...this.ids_);
 
-    if (!success) throw 'getLastWrittenValue failed';
+    if (!success) throw 'getLastWrittenCharacteristicValue failed';
 
     return value;
   }
@@ -443,6 +444,39 @@ class FakeRemoteGATTDescriptor {
         gatt_code, value, ...this.ids_);
 
     if (!success) throw 'setNextReadDescriptorResponse failed';
+  }
+
+  // Sets the next write response for this descriptor to |code|.
+  // |code| could be a GATT Error Response from
+  // BT 4.2 Vol 3 Part F 3.4.1.1 Error Response or a number outside that range
+  // returned by specific platforms e.g. Android returns 0x101 to signal a GATT
+  // failure.
+  async setNextWriteResponse(gatt_code) {
+    let {success} =
+      await this.fake_central_ptr_.setNextWriteDescriptorResponse(
+        gatt_code, ...this.ids_);
+
+    if (!success) throw 'setNextWriteDescriptorResponse failed';
+  }
+
+  // Gets the last successfully written value to the descriptor.
+  // Returns null if no value has yet been written to the descriptor.
+  async getLastWrittenValue() {
+    let {success, value} =
+      await this.fake_central_ptr_.getLastWrittenDescriptorValue(
+          ...this.ids_);
+
+    if (!success) throw 'getLastWrittenDescriptorValue failed';
+
+    return value;
+  }
+
+  // Removes the fake GATT Descriptor from its fake characteristic.
+  async remove() {
+    let {success} =
+        await this.fake_central_ptr_.removeFakeDescriptor(...this.ids_);
+
+    if (!success) throw 'remove failed';
   }
 }
 

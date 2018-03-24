@@ -99,11 +99,12 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
 
     return generateOffer({ pc, data: true })
     .then(offer =>
       promise_rejects(t, 'InvalidModificationError',
-        pc.setLocalDescription(offer)));
+        pc2.setLocalDescription(offer)));
   }, 'setLocalDescription() with offer not created by own createOffer() should reject with InvalidModificationError');
 
   promise_test(t => {

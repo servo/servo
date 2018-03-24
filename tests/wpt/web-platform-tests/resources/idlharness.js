@@ -177,7 +177,7 @@ IdlArray.prototype.add_idls = function(raw_idls, options)
 };
 
 //@}
-IdlArray.prototype.add_untested_idls = function(raw_idls)
+IdlArray.prototype.add_untested_idls = function(raw_idls, options)
 //@{
 {
     /** Entry point.  See documentation at beginning of file. */
@@ -193,7 +193,7 @@ IdlArray.prototype.add_untested_idls = function(raw_idls)
             }
         }
     }
-    this.internal_add_idls(parsed_idls);
+    this.internal_add_idls(parsed_idls, options);
 };
 
 //@}
@@ -274,13 +274,13 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
         }
 
         parsed_idl.array = this;
-        if (parsed_idl.name in this.members)
-        {
-            throw "Duplicate identifier " + parsed_idl.name;
-        }
         if (should_skip(parsed_idl.name))
         {
             return;
+        }
+        if (parsed_idl.name in this.members)
+        {
+            throw "Duplicate identifier " + parsed_idl.name;
         }
         switch(parsed_idl.type)
         {
@@ -2069,6 +2069,7 @@ IdlInterface.prototype.add_iterable_members = function(member)
 };
 
 IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, member) {
+    var instanceName = memberHolderObject.constructor.name;
     if (member.has_extended_attribute("Default")) {
         var map = this.default_to_json_operation();
         test(function() {
@@ -2082,12 +2083,12 @@ IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, mem
                 this.array.assert_type_is(json[k], type);
                 delete json[k];
             }, this);
-        }.bind(this), "Test default toJSON operation of " + this.name);
+        }.bind(this), "Test default toJSON operation of " + instanceName);
     } else {
         test(function() {
-            assert_true(this.array.is_json_type(member.idlType), JSON.stringify(member.idlType) + " is not an appropriate return value for the toJSON operation of " + this.name);
+            assert_true(this.array.is_json_type(member.idlType), JSON.stringify(member.idlType) + " is not an appropriate return value for the toJSON operation of " + instanceName);
             this.array.assert_type_is(memberHolderObject.toJSON(), member.idlType);
-        }.bind(this), "Test toJSON operation of " + this.name);
+        }.bind(this), "Test toJSON operation of " + instanceName);
     }
 };
 

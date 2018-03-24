@@ -1,0 +1,8 @@
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute Keyboard keyboard;
+};
+
+[SecureContext, Exposed=Window] interface Keyboard {
+  Promise<void> lock(optional sequence<DOMString> keyCodes = []);
+  void unlock();
+};

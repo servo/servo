@@ -10,14 +10,6 @@
 <script src="/resources/idlharness.js"></script>
 <div id="log"></div>
 <script type="text/plain" id="AnimationEffect-IDL">
-enum FillMode { "none", "forwards", "backwards", "both", "auto" };
-enum PlaybackDirection {
-  "normal",
-  "reverse",
-  "alternate",
-  "alternate-reverse"
-};
-
 dictionary EffectTiming {
   double                             delay = 0.0;
   double                             endDelay = 0.0;
@@ -55,46 +47,33 @@ interface AnimationEffect {
   void updateTiming(optional OptionalEffectTiming timing);
 };
 </script>
-<script type="text/plain" id="KeyframeEffect-IDL">
-enum IterationCompositeOperation { "replace", "accumulate" };
-enum CompositeOperation { "replace", "add", "accumulate" };
-
-dictionary KeyframeEffectOptions : EffectTiming {
-  IterationCompositeOperation iterationComposite = "replace";
-  CompositeOperation          composite = "replace";
-};
-
-[Exposed=Window,
- Constructor ((Element or CSSPseudoElement)? target,
-              object? keyframes,
-              optional (unrestricted double or KeyframeEffectOptions) options),
- Constructor (KeyframeEffect source)]
-interface KeyframeEffect : AnimationEffect {
-  attribute (Element or CSSPseudoElement)? target;
-  attribute IterationCompositeOperation    iterationComposite;
-  attribute CompositeOperation             composite;
-
-  sequence<object> getKeyframes ();
-  void setKeyframes (object? keyframes);
-};
-</script>
 <script>
 'use strict';
 
-const idlArray = new IdlArray();
+promise_test(async () => {
+  const idlArray = new IdlArray();
+  idlArray.add_untested_idls(
+    document.getElementById('AnimationEffect-IDL').textContent
+  );
+  const text = await fetch('/interfaces/web-animations.idl').then(response =>
+    response.text(),
+  );
+  idlArray.add_idls(text, {
+    only: [
+      'IterationCompositeOperation',
+      'CompositeOperation',
+      'KeyframeEffectOptions',
+      'KeyframeEffect',
+    ]
+  });
 
-idlArray.add_untested_idls('interface CSSPseudoElement {};');
-idlArray.add_untested_idls('interface Element {};');
-idlArray.add_untested_idls(
-  document.getElementById('AnimationEffect-IDL').textContent
-);
-idlArray.add_idls(
-  document.getElementById('KeyframeEffect-IDL').textContent
-);
-idlArray.add_objects({
-  KeyframeEffect: ['new KeyframeEffect(null, null)'],
-});
+  idlArray.add_untested_idls('interface CSSPseudoElement {};');
+  idlArray.add_untested_idls('interface Element {};');
+  idlArray.add_objects({
+    KeyframeEffect: ['new KeyframeEffect(null, null)'],
+  });
 
-idlArray.test();
-
+  idlArray.test();
+  done();
+}, 'KeyframeEffect interface.');
 </script>
