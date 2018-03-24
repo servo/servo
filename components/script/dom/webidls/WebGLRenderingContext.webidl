@@ -563,7 +563,7 @@ interface WebGLRenderingContextBase
 
     WebGLActiveInfo? getActiveAttrib(WebGLProgram program, GLuint index);
     WebGLActiveInfo? getActiveUniform(WebGLProgram program, GLuint index);
-    //sequence<WebGLShader>? getAttachedShaders(WebGLProgram? program);
+    sequence<WebGLShader>? getAttachedShaders(WebGLProgram program);
 
     [WebGLHandlesContextLoss] GLint getAttribLocation(WebGLProgram program, DOMString name);
 
