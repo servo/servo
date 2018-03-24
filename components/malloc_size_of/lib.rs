@@ -275,7 +275,16 @@ impl<T: MallocSizeOf + Copy> MallocSizeOf for std::cell::Cell<T> {
 
 impl<T: MallocSizeOf> MallocSizeOf for std::cell::RefCell<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.borrow().size_of(ops)
+        let res = self.try_borrow();
+        match res {
+            Ok(v) => {
+                return v.size_of(ops);
+            }
+            Err(e) => {
+                println!("error: {}", e);
+                return 0;
+            }
+        }
     }
 }
 
