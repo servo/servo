@@ -7,9 +7,9 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use gfx::display_list::{BorderDetails, ClipScrollNode};
-use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, DisplayItem};
-use gfx::display_list::{DisplayList, StackingContextType};
+use display_list::items::{BorderDetails, ClipScrollNode};
+use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, DisplayItem};
+use display_list::items::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder};
 
@@ -111,17 +111,15 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 );
             },
             DisplayItem::Image(ref item) => {
-                if let Some(id) = item.webrender_image.key {
-                    if item.stretch_size.width > 0.0 && item.stretch_size.height > 0.0 {
-                        builder.push_image(
-                            &self.prim_info(),
-                            item.stretch_size,
-                            item.tile_spacing,
-                            item.image_rendering,
-                            webrender_api::AlphaType::PremultipliedAlpha,
-                            id,
-                        );
-                    }
+                if item.stretch_size.width > 0.0 && item.stretch_size.height > 0.0 {
+                    builder.push_image(
+                        &self.prim_info(),
+                        item.stretch_size,
+                        item.tile_spacing,
+                        item.image_rendering,
+                        webrender_api::AlphaType::PremultipliedAlpha,
+                        item.id,
+                    );
                 }
             },
             DisplayItem::Border(ref item) => {
@@ -204,14 +202,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 );
             },
             DisplayItem::PushTextShadow(ref item) => {
-                builder.push_shadow(
-                    &self.prim_info(),
-                    webrender_api::Shadow {
-                        blur_radius: item.blur_radius,
-                        offset: item.offset,
-                        color: item.color,
-                    },
-                );
+                builder.push_shadow(&self.prim_info(), item.shadow);
             },
             DisplayItem::PopAllTextShadows(_) => {
                 builder.pop_all_shadows();

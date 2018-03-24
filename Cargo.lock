@@ -1022,8 +1022,6 @@ dependencies = [
  "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
- "malloc_size_of_derive 0.0.1",
- "msg 0.0.1",
  "net_traits 0.0.1",
  "ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "range 0.0.1",
@@ -1032,7 +1030,6 @@ dependencies = [
  "servo_allocator 0.0.1",
  "servo_arc 0.1.1",
  "servo_atoms 0.0.1",
- "servo_geometry 0.0.1",
  "servo_url 0.0.1",
  "simd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1723,12 +1720,11 @@ dependencies = [
 name = "metrics_tests"
 version = "0.0.1"
 dependencies = [
- "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "layout 0.0.1",
  "metrics 0.0.1",
  "msg 0.0.1",
- "net_traits 0.0.1",
  "profile_traits 0.0.1",
  "servo_url 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",

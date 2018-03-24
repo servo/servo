@@ -5,9 +5,9 @@
 //! CSS transitions and animations.
 
 use context::LayoutContext;
+use display_list::items::OpaqueNode;
 use flow::{Flow, GetBaseFlow};
 use fnv::FnvHashMap;
-use gfx::display_list::OpaqueNode;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
