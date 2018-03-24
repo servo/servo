@@ -57,6 +57,7 @@ use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
+use std::cmp;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
 use webrender_api;
@@ -1150,6 +1151,38 @@ impl WebGLRenderingContext {
                 receiver.recv().unwrap()
             }
         }
+    }
+
+    // Used by HTMLCanvasElement.toDataURL
+    //
+    // This emits errors quite liberally, but the spec says that this operation
+    // can fail and that it is UB what happens in that case.
+    //
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
+    pub fn get_image_data(&self, mut width: u32, mut height: u32) -> Option<Vec<u8>> {
+        if !self.validate_framebuffer_complete() {
+            return None;
+        }
+
+        if let Some((fb_width, fb_height)) = self.get_current_framebuffer_size() {
+            width = cmp::min(width, fb_width as u32);
+            height = cmp::min(height, fb_height as u32);
+        } else {
+            self.webgl_error(InvalidOperation);
+            return None;
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::ReadPixels(
+            0,
+            0,
+            width as i32,
+            height as i32,
+            constants::RGBA,
+            constants::UNSIGNED_BYTE,
+            sender,
+        ));
+        Some(receiver.recv().unwrap())
     }
 }
 

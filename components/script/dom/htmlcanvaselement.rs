@@ -345,11 +345,22 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                                                            Finite::wrap(self.Height() as f64))?;
                 image_data.get_data_array()
             }
+            Some(CanvasContext::WebGL(ref context)) => {
+                match context.get_image_data(self.Width(), self.Height()) {
+                    Some(data) => data,
+                    None => return Ok("data:,".into()),
+                }
+            }
+            Some(CanvasContext::WebGL2(ref context)) => {
+                match context.base_context().get_image_data(self.Width(), self.Height()) {
+                    Some(data) => data,
+                    None => return Ok("data:,".into()),
+                }
+            }
             None => {
                 // Each pixel is fully-transparent black.
                 vec![0; (self.Width() * self.Height() * 4) as usize]
             }
-            _ => return Err(Error::NotSupported) // WebGL
         };
 
         // Only handle image/png for now.
