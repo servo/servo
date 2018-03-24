@@ -74,8 +74,8 @@ impl TextDecoderMethods for TextDecoder {
         match input {
             Some(arr) => {
                 let vec: Vec<u8> = match arr {
-                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut a) => a.to_vec(),
-                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut a) => a.to_vec()
+                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref a) => a.to_vec(),
+                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref a) => a.to_vec()
                 };
                 let s = if self.fatal {
                     match self.encoding.decode_without_bom_handling_and_without_replacement(&vec) {

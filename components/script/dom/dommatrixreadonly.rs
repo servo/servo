@@ -345,8 +345,8 @@ impl DOMMatrixReadOnly {
     #[allow(unsafe_code)]
     pub fn FromFloat32Array(
         global: &GlobalScope,
-        mut array: CustomAutoRooterGuard<Float32Array>)
-        -> Fallible<DomRoot<DOMMatrixReadOnly>> {
+        array: CustomAutoRooterGuard<Float32Array>,
+    ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrixReadOnly::Constructor_(global, vec)
     }
@@ -355,12 +355,11 @@ impl DOMMatrixReadOnly {
     #[allow(unsafe_code)]
     pub fn FromFloat64Array(
         global: &GlobalScope,
-        mut array: CustomAutoRooterGuard<Float64Array>)
-        -> Fallible<DomRoot<DOMMatrixReadOnly>> {
+        array: CustomAutoRooterGuard<Float64Array>,
+    ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrixReadOnly::Constructor_(global, vec)
     }
-
 }
 
 
