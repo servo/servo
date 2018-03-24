@@ -167,8 +167,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
         // Step 2 - 3.
         let vec = match value {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut avb) => avb.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut ab) => ab.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(avb) => avb.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(ab) => ab.to_vec(),
         };
 
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
