@@ -38,7 +38,7 @@ pub enum BodyType {
 
 pub enum FetchedData {
     Text(String),
-    Json(JSValue),
+    Json(RootedTraceableBox<Heap<JSValue>>),
     BlobData(DomRoot<Blob>),
     FormData(DomRoot<FormData>),
     ArrayBuffer(RootedTraceableBox<Heap<*mut JSObject>>),
@@ -137,7 +137,8 @@ fn run_json_data_algorithm(cx: *mut JSContext,
             // TODO: See issue #13464. Exception should be thrown instead of cleared.
             return Err(Error::Type("Failed to parse JSON".to_string()));
         }
-        Ok(FetchedData::Json(rval.get()))
+        let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(rval.get()));
+        Ok(FetchedData::Json(rooted_heap))
     }
 }
 
