@@ -45,7 +45,7 @@ domobject_derive = {path = "../domobject_derive"}
 encoding_rs = "0.7"
 euclid = "0.17"
 fnv = "1.0"
-gleam = "0.4"
+gleam = "0.4.29"
 half = "1.0"
 html5ever = "0.22"
 hyper = "0.10"

@@ -892,6 +892,9 @@ impl WebGLImpl {
                 ctx.gl().delete_vertex_arrays(&[id.get()]),
             WebGLCommand::BindVertexArray(id) =>
                 ctx.gl().bind_vertex_array(id.map_or(0, WebGLVertexArrayId::get)),
+            WebGLCommand::AliasedPointSizeRange(sender) => {
+                sender.send(ctx.gl().alias_point_size_range()).unwrap()
+            }
         }
 
         // TODO: update test expectations in order to enable debug assertions
