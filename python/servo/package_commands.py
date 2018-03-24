@@ -391,6 +391,7 @@ class PackageCommands(CommandBase):
                      default=None,
                      help='Install the given target platform')
     def install(self, release=False, dev=False, android=False, target=None):
+        env = self.build_env()
         if target and android:
             print("Please specify either --target or --android.")
             sys.exit(1)
@@ -413,7 +414,7 @@ class PackageCommands(CommandBase):
 
         if android:
             pkg_path = binary_path + ".apk"
-            exec_command = ["adb", "install", "-r", pkg_path]
+            exec_command = [self.android_adb_path(env), "install", "-r", pkg_path]
         elif is_windows():
             pkg_path = path.join(path.dirname(binary_path), 'msi', 'Servo.msi')
             exec_command = ["msiexec", "/i", pkg_path]
@@ -426,7 +427,7 @@ class PackageCommands(CommandBase):
                 return result
 
         print(" ".join(exec_command))
-        return subprocess.call(exec_command, env=self.build_env())
+        return subprocess.call(exec_command, env=env)
 
     @Command('upload-nightly',
              description='Upload Servo nightly to S3',
