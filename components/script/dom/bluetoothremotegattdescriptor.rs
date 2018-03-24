@@ -125,11 +125,11 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         }
 
         // Step 2 - 3.
-        let v = match value {
+        let vec = match value {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut avb) => avb.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut ab) => ab.to_vec(),
         };
-        if v.len() > MAXIMUM_ATTRIBUTE_LENGTH {
+        if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
             p.reject_error(InvalidModification);
             return p;
         }
@@ -145,7 +145,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         // in writeValue function and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
-            BluetoothRequest::WriteValue(self.get_instance_id(), v, sender)).unwrap();
+            BluetoothRequest::WriteValue(self.get_instance_id(), vec, sender)).unwrap();
         return p;
     }
 }

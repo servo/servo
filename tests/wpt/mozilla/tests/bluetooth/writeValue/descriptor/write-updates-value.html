@@ -17,7 +17,7 @@ promise_test(() => {
     .then(descriptor => {
         assert_equals(descriptor.value, null);
         return descriptor.writeValue(Uint8Array.of(1, 2))
-        .then(() => assert_equals(descriptor.value, "\x01\x02"));
+        .then(() => assert_equals(descriptor.value, '\x01\x02'));
     });
 }, 'A regular write request to a writable descriptor should update value.');
 </script>
