@@ -1966,7 +1966,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: &WebGLShader) {
-        shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
+        handle_potential_webgl_error!(
+            self,
+            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
+        )
     }
 
     // TODO(emilio): Probably in the future we should keep track of the
