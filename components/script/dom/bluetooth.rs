@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::Bluetoot
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerBinding::
     BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
-use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
+use dom::bindings::codegen::UnionTypes::{ArrayBufferViewOrArrayBuffer, StringOrUnsignedLong};
 use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -442,12 +442,20 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdatafilterinit-canonicalizing
 fn canonicalize_bluetooth_data_filter_init(bdfi: &BluetoothDataFilterInit) -> Fallible<(Vec<u8>, Vec<u8>)> {
     // Step 1.
-    let data_prefix = bdfi.dataPrefix.clone().unwrap_or(vec![]);
+    let data_prefix = match bdfi.dataPrefix {
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref avb)) => avb.to_vec(),
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref ab)) => ab.to_vec(),
+        None => vec![]
+    };
 
     // Step 2.
     // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
     // Masking dataPrefix with this, leaves dataPrefix untouched.
-    let mask = bdfi.mask.clone().unwrap_or(vec![0xFF; data_prefix.len()]);
+    let mask = match bdfi.mask {
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref avb)) => avb.to_vec(),
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref ab)) => ab.to_vec(),
+        None => vec![0xFF; data_prefix.len()]
+    };
 
     // Step 3.
     if mask.len() != data_prefix.len() {

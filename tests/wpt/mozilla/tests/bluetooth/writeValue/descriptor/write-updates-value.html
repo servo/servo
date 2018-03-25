@@ -16,8 +16,8 @@ promise_test(() => {
     .then(characteristic => characteristic.getDescriptor(number_of_digitals.name))
     .then(descriptor => {
         assert_equals(descriptor.value, null);
-        return descriptor.writeValue(asciiToDecimal('foo'))
-        .then(() => assert_equals(descriptor.value, 'foo'));
+        return descriptor.writeValue(Uint8Array.of(1, 2))
+        .then(() => assert_equals(descriptor.value, '\x01\x02'));
     });
 }, 'A regular write request to a writable descriptor should update value.');
 </script>
