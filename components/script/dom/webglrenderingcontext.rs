@@ -2489,7 +2489,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         let location = if location.program_id().get() == program {
-            location.id()
+            // TODO: Use ANGLE to obtain uniform type.
+            //location.id()
         } else {
             self.webgl_error(InvalidOperation);
             return NullValue();
