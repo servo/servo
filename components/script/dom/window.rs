@@ -1546,13 +1546,13 @@ impl Window {
                     return
                 }
         }
-        println!("load_url: {:?}", url);
         // Step 7
-        doc.prompt_to_unload();
-        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(pipeline_id,
-                LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+        if doc.prompt_to_unload() {
+            let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+            self.main_thread_script_chan().send(
+                MainThreadScriptMsg::Navigate(pipeline_id,
+                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+        };
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {

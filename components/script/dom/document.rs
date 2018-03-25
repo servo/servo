@@ -340,6 +340,8 @@ pub struct Document {
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#ignore-opens-during-unload-counter>
+    ignore_opens_during_unload_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
     /// A rAF request is considered spurious if nothing was actually reflowed.
@@ -1580,27 +1582,70 @@ impl Document {
     }
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
-    pub fn prompt_to_unload(&self) {
+    pub fn prompt_to_unload(&self) -> bool {
+        self.incr_ignore_opens_during_unload_counter();
         let document = Trusted::new(self);
-        let event = BeforeUnloadEvent::new(&self.window,
+        let beforeunload_event = BeforeUnloadEvent::new(&self.window,
                                            atom!("beforeunload"),
                                            EventBubbles::Bubbles,
                                            EventCancelable::Cancelable);
+        let event = beforeunload_event.upcast::<Event>();
+        event.set_trusted(true);
         let event_status = self.window.upcast::<EventTarget>().dispatch_event_with_target(
             document.root().upcast(),
-            &event.upcast::<Event>(),
+            &event,
         );
         // Step 7
-        // TODO: check if any listeners were triggered, and only then sel salvageable to false.
+        // TODO: check if any listeners were triggered, and only then set salvageable to false.
         self.salvageable.set(false);
-        if event_status == EventStatus::Canceled || event.ReturnValue() == DOMString::from_string("".to_string()) {
+        if event_status == EventStatus::Canceled
+            || beforeunload_event.ReturnValue() == DOMString::from_string("".to_string()) {
             // Step 8
             // TODO: ask the user to confirm that they wish to unload the document.
         }
+        self.decr_ignore_opens_during_unload_counter();
+        // Always allow unloading, until Step 8 is implemented.
+        true
     }
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
-    pub fn unload(&self) {}
+    pub fn unload(&self) {
+        self.incr_ignore_opens_during_unload_counter();
+        let document = Trusted::new(self);
+        if self.page_showing.get() {
+            self.page_showing.set(false);
+            let event = PageTransitionEvent::new(
+                &self.window,
+                atom!("pagehide"),
+                false, // bubbles
+                false, // cancelable
+                self.salvageable.get(), // persisted
+            );
+            let event = event.upcast::<Event>();
+            event.set_trusted(true);
+            let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+        }
+        if !self.fired_unload.get() {
+            let event = Event::new(
+                &self.window.upcast(),
+                atom!("unload"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+            );
+            event.set_trusted(true);
+            let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+            // TODO: check if any listeners were triggered
+            self.fired_unload.set(true);
+            self.salvageable.set(false);
+        }
+        self.decr_ignore_opens_during_unload_counter();
+    }
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
@@ -2277,6 +2322,7 @@ impl Document {
             target_element: MutNullableDom::new(None),
             last_click_info: DomRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
+            ignore_opens_during_unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
@@ -2588,6 +2634,16 @@ impl Document {
     pub fn decr_ignore_destructive_writes_counter(&self) {
         self.ignore_destructive_writes_counter.set(
             self.ignore_destructive_writes_counter.get() - 1);
+    }
+    
+    fn incr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() + 1);
+    }
+
+    fn decr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() - 1);
     }
 
     /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't
