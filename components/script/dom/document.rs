@@ -10,6 +10,7 @@ use dom::attr::Attr;
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -366,6 +367,10 @@ pub struct Document {
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
     /// https://html.spec.whatwg.org/multipage/#page-showing
     page_showing: Cell<bool>,
+    /// Whether the document is salvageable.
+    salvageable: Cell<bool>,
+    /// Wheter the unload event has already been fired.
+    fired_unload: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1575,16 +1580,27 @@ impl Document {
     }
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
-    pub fn prompt_to_unload_document(&self) {
-        println!("unloading");
-        let _event = BeforeUnloadEvent::new(&self.window,
+    pub fn prompt_to_unload(&self) {
+        let document = Trusted::new(self);
+        let event = BeforeUnloadEvent::new(&self.window,
                                            atom!("beforeunload"),
                                            EventBubbles::Bubbles,
                                            EventCancelable::Cancelable);
+        let event_status = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+            document.root().upcast(),
+            &event.upcast::<Event>(),
+        );
+        // Step 7
+        // TODO: check if any listeners were triggered, and only then sel salvageable to false.
+        self.salvageable.set(false);
+        if event_status == EventStatus::Canceled || event.ReturnValue() == DOMString::from_string("".to_string()) {
+            // Step 8
+            // TODO: ask the user to confirm that they wish to unload the document.
+        }
     }
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
-    pub fn unload_document(&self) {}
+    pub fn unload(&self) {}
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
@@ -2270,6 +2286,8 @@ impl Document {
             canceller: canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
+            salvageable: Cell::new(true),
+            fired_unload: Cell::new(false)
         }
     }
 
