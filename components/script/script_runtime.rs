@@ -473,3 +473,13 @@ unsafe fn set_gc_zeal_options(rt: *mut JSRuntime) {
 #[allow(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut JSRuntime) {}
+
+pub struct RawJSContext(*mut JSContext);
+
+#[allow(unsafe_code)]
+impl Deref for RawJSContext {
+   type Target = JSContext;
+   fn deref(&self) -> &JSContext {
+        unsafe { &*self.0 }
+   }
+}
