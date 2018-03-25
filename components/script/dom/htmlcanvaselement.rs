@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
+use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
@@ -55,6 +55,7 @@ pub enum CanvasContext {
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: DomRefCell<Option<CanvasContext>>,
+    canvas_id: CanvasId
 }
 
 impl HTMLCanvasElement {
@@ -64,6 +65,7 @@ impl HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             context: DomRefCell::new(None),
+            canvas_id: canvas_id
         }
     }
 

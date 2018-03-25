@@ -218,7 +218,8 @@ impl<'a> CanvasPaintThread<'a> {
                             }
                         }
                     },
-                    CanvasMsg::FromLayout(message) => {
+                    CanvasMsg::FromLayout(message, canvas_id) => {
+						assert!(canvas_id == painter.canvas_id);
                         match message {
                             FromLayoutMsg::SendData(chan) => {
                                 painter.send_data(chan)
