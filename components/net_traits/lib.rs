@@ -370,7 +370,7 @@ pub enum CoreResourceMsg {
     ToFileManager(FileManagerThreadMsg),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
-    Exit(IpcSender<()>),
+    Exit(IpcSender<()>,Option<Page>),
 }
 
 /// Instruct the resource thread to make a new request.
@@ -385,38 +385,12 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
 }
 
 //send vector of HAR log values Bhanu&Patrick
+#[derive(Deserialize, Serialize)]
 pub enum HarLogValues {
     /// HAR filename - Not sure on syntax, but want to enforce only filenames can be used here
-    har_filename(<FileName(String))
+    har_filename(String),
     /// HAR IPC sender - Not sure on syntax, but want to enforce IpcSenders are used here
     ipc_sender(IpcSender<()>)
-}
-
-impl HarLogValues {
-
-    //send values -
-    // get values from the file or ipc sender
-    //send them - I'm assuming I want to send these as a vector.
-    pub fn sendHarVector() -> Vec<()>{
-        //I'm not sure if I have to generate the har file, or if i'm given it.
-        //Also not 100% sure on what 'sending' implies. Do I just return the the vector,
-        // or do i need to use a certain protocol to send it somewhere
-
-        //generate a new har file
-        let mut log = Log::new(
-            //get current browser data
-            //not sure how to do this
-
-            //Some(Browser::new("Firefox".to_string(), "3.6".to_string(), None)),
-
-            //get comment data
-            //not sure what that is or how to do that
-            //Some("Comment".to_string())
-        );
-        //not sure where the entry comes from
-        log.add_entry()
-        //Send it somewhere
-    }
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]

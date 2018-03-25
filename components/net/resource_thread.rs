@@ -20,6 +20,7 @@ use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CustomResponseMediator, FetchChannels};
 use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
 use net_traits::WebSocketNetworkEvent;
+use net_traits::HarLogValues;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -48,16 +49,20 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan,
-                            config_dir: Option<PathBuf>)
+                            config_dir: Option<PathBuf>,
+                            har_output: Option<HarLogValues<T>>,) //add here
                             -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
         devtools_chan,
         profiler_chan,
-        config_dir.clone());
+        config_dir.clone(),
+        har_output);
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone()),
      ResourceThreads::new(private_core, storage))
+
+
 }
 
 
@@ -65,7 +70,8 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
 pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 profiler_chan: ProfilerChan,
-                                config_dir: Option<PathBuf>)
+                                config_dir: Option<PathBuf>,
+                                har_output: Option<HarLogValues<T>>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -77,6 +83,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
         let mut channel_manager = ResourceChannelManager {
             resource_manager: resource_manager,
             config_dir: config_dir,
+            har_output: har_output//here
         };
         channel_manager.start(public_setup_port,
                               private_setup_port);
@@ -84,9 +91,10 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
     (public_setup_chan, private_setup_chan)
 }
 
-struct ResourceChannelManager {
+struct ResourceChannelManager { //add here
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
+    har_output: Option<HarLogValues<T>>
 }
 
 fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpState>) {
@@ -205,6 +213,18 @@ impl ResourceChannelManager {
                         Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                         Err(_) => warn!("Error writing hsts list to disk"),
                     }
+                }
+
+                if let Some(ref har_output) = self.har_output{
+                    match har_filename {
+                        Ok(filename) => Vec::new().write_json_to_file(har_ouput))
+                        Err(_) => warn!("Error writing HAR file"),
+                    }
+                    match ipc_sender {
+                        Ok(ipc_sender) => Vec::new()
+                        Err(_) => warn!("Error sending HAR to IPC Sender"),
+                    }
+
                 }
                 let _ = sender.send(());
                 return false;

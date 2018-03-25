@@ -530,6 +530,7 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
+                        har_output: Option<String>,
                         embedder_proxy: EmbedderProxy,
                         compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
@@ -544,11 +545,12 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
 
-    let (public_resource_threads, private_resource_threads) =
+    let (public_resource_threads, private_resource_threads) = //here
         new_resource_threads(user_agent,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
-                             config_dir);
+                             config_dir,
+                             har_output);
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  webrender_api_sender.create_api());
 

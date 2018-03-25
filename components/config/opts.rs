@@ -228,6 +228,9 @@ pub struct Opts {
 
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
+
+    ///File where to output HAR log data
+    pub har_output Option<String>,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -557,10 +560,11 @@ pub fn default_opts() -> Opts {
         certificate_path: None,
         unminify_js: false,
         print_pwm: false,
+        har_output: false,
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
+pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {//here
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
@@ -858,6 +862,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
         print_pwm: opt_match.opt_present("print-pwm"),
+        har_ouput: opt_match.opt_str("har"),
     };
 
     set_defaults(opts);
