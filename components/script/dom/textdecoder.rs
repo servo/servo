@@ -11,22 +11,34 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use encoding_rs::Encoding;
+use encoding_rs::{Decoder, DecoderResult, Encoding};
 use std::borrow::ToOwned;
+use std::cell::{Cell, RefCell};
 
 #[dom_struct]
 pub struct TextDecoder {
     reflector_: Reflector,
     encoding: &'static Encoding,
     fatal: bool,
+    ignoreBOM: bool,
+    #[ignore_malloc_size_of = "defined in encoding_rs"]
+    decoder: RefCell<Decoder>,
+    in_stream: RefCell<Vec<u8>>,
+    do_not_flush: Cell<bool>,
 }
 
 impl TextDecoder {
-    fn new_inherited(encoding: &'static Encoding, fatal: bool) -> TextDecoder {
+    fn new_inherited(encoding: &'static Encoding, fatal: bool, ignoreBOM: bool) -> TextDecoder {
         TextDecoder {
             reflector_: Reflector::new(),
             encoding: encoding,
             fatal: fatal,
+            ignoreBOM: ignoreBOM,
+            decoder: RefCell::new(
+                if ignoreBOM { encoding.new_decoder() } else { encoding.new_decoder_without_bom_handling() }
+            ),
+            in_stream: RefCell::new(Vec::new()),
+            do_not_flush: Cell::new(false),
         }
     }
 
@@ -34,8 +46,9 @@ impl TextDecoder {
         Err(Error::Range("The given encoding is not supported.".to_owned()))
     }
 
-    pub fn new(global: &GlobalScope, encoding: &'static Encoding, fatal: bool) -> DomRoot<TextDecoder> {
-        reflect_dom_object(Box::new(TextDecoder::new_inherited(encoding, fatal)),
+    pub fn new(global: &GlobalScope, encoding: &'static Encoding, fatal: bool, ignoreBOM: bool)
+            -> DomRoot<TextDecoder> {
+        reflect_dom_object(Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
                            global,
                            TextDecoderBinding::Wrap)
     }
@@ -49,7 +62,7 @@ impl TextDecoder {
             None => return TextDecoder::make_range_error(),
             Some(enc) => enc
         };
-        Ok(TextDecoder::new(global, encoding, options.fatal))
+        Ok(TextDecoder::new(global, encoding, options.fatal, options.ignoreBOM))
     }
 }
 
@@ -65,30 +78,68 @@ impl TextDecoderMethods for TextDecoder {
         self.fatal
     }
 
+    // https://encoding.spec.whatwg.org/#dom-textdecoder-ignorebom
+    fn IgnoreBOM(&self) -> bool {
+        self.ignoreBOM
+    }
+
     // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
     fn Decode(
         &self,
         input: Option<ArrayBufferViewOrArrayBuffer>,
-        _options: &TextDecodeOptions
+        options: &TextDecodeOptions
     ) -> Fallible<USVString> {
-        match input {
-            Some(arr) => {
-                let vec: Vec<u8> = match arr {
-                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref a) => a.to_vec(),
-                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref a) => a.to_vec()
-                };
-                let s = if self.fatal {
-                    match self.encoding.decode_without_bom_handling_and_without_replacement(&vec) {
-                        Some(s) => s,
-                        None => return Err(Error::Type("Decoding failed".to_owned())),
-                    }
-                } else {
-                    let (s, _has_errors) = self.encoding.decode_without_bom_handling(&vec);
-                    s
-                };
-                Ok(USVString(s.into_owned()))
+        // Step 1.
+        if !self.do_not_flush.get() {
+            if self.ignoreBOM {
+                self.decoder.replace(self.encoding.new_decoder_without_bom_handling());
+            } else {
+                self.decoder.replace(self.encoding.new_decoder());
             }
-            None => Ok(USVString("".to_owned()))
+            self.in_stream.replace(Vec::new());
         }
+
+        // Step 2.
+        self.do_not_flush.set(options.stream);
+
+        // Step 3.
+        match input {
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref a)) => {
+                self.in_stream.borrow_mut().extend_from_slice(&a.to_vec());
+            },
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref a)) => {
+                self.in_stream.borrow_mut().extend_from_slice(&a.to_vec());
+            },
+            None => {},
+        };
+
+        let mut decoder = self.decoder.borrow_mut();
+        let (remaining, s) = {
+            let mut in_stream = self.in_stream.borrow_mut();
+
+            let (remaining, s) = if self.fatal {
+                // Step 4.
+                let mut out_stream = String::with_capacity(
+                    decoder.max_utf8_buffer_length_without_replacement(in_stream.len()).unwrap()
+                );
+                // Step 5: Implemented by encoding_rs::Decoder.
+                match decoder.decode_to_string_without_replacement(&in_stream, &mut out_stream, !options.stream) {
+                    (DecoderResult::InputEmpty, read) => {
+                        (in_stream.split_off(read), out_stream)
+                    },
+                    // Step 5.3.3.
+                    _ => return Err(Error::Type("Decoding failed".to_owned())),
+                }
+            } else {
+                // Step 4.
+                let mut out_stream = String::with_capacity(decoder.max_utf8_buffer_length(in_stream.len()).unwrap());
+                // Step 5: Implemented by encoding_rs::Decoder.
+                let (_result, read, _replaced) = decoder.decode_to_string(&in_stream, &mut out_stream, !options.stream);
+                (in_stream.split_off(read), out_stream)
+            };
+            (remaining, s)
+        };
+        self.in_stream.replace(remaining);
+        Ok(USVString(s))
     }
 }
