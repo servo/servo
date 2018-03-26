@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\components",
+    "\\components\\layout\\display_list",
+    "\\components\\script",
+    "\\components\\script\\dom"
+  ],
+  "SelectedNode": "\\components\\script\\dom\\paintrenderingcontext2d.rs",
+  "PreviewInSolutionExplorer": false
+}
