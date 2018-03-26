@@ -63,7 +63,7 @@ pub struct CanvasPaintThread<'a> {
     old_image_key: Option<webrender_api::ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<webrender_api::ImageKey>,
-	canvas_id: CanvasId,
+    canvas_id: CanvasId,
 }
 
 #[derive(Clone)]
@@ -100,7 +100,7 @@ impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
            webrender_api_sender: webrender_api::RenderApiSender,
            antialias: AntialiasMode,
-	   	   canvas_id: CanvasId) -> CanvasPaintThread<'a> {
+              canvas_id: CanvasId) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
@@ -113,7 +113,7 @@ impl<'a> CanvasPaintThread<'a> {
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
-			canvas_id: canvas_id,
+            canvas_id: canvas_id,
         }
     }
 
@@ -122,7 +122,7 @@ impl<'a> CanvasPaintThread<'a> {
     pub fn start(size: Size2D<i32>,
                  webrender_api_sender: webrender_api::RenderApiSender,
                  antialias: bool,
-			 	 canvas_id: CanvasId)
+                  canvas_id: CanvasId)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let antialias = if antialias {
@@ -136,7 +136,7 @@ impl<'a> CanvasPaintThread<'a> {
                 let msg = receiver.recv();
                 match msg.unwrap() {
                     CanvasMsg::Canvas2d(message, canvas_id) => {
-						assert!(canvas_id == painter.canvas_id);
+                        assert!(canvas_id == painter.canvas_id);
                         match message {
                             Canvas2dMsg::FillText(text, x, y, max_width) => painter.fill_text(text, x, y, max_width),
                             Canvas2dMsg::FillRect(ref rect) => painter.fill_rect(rect),
@@ -203,15 +203,15 @@ impl<'a> CanvasPaintThread<'a> {
                         }
                     },
                     CanvasMsg::Close(canvas_id) =>{
-						assert!(canvas_id == painter.canvas_id);
-						break;
-					},
+                        assert!(canvas_id == painter.canvas_id);
+                        break;
+                    },
                     CanvasMsg::Recreate(size,canvas_id) =>{
-						assert!(canvas_id == painter.canvas_id);
-						painter.recreate(size);
-					},
+                        assert!(canvas_id == painter.canvas_id);
+                        painter.recreate(size);
+                    },
                     CanvasMsg::FromScript(message,canvas_id) => {
-						assert!(canvas_id == painter.canvas_id);
+                        assert!(canvas_id == painter.canvas_id);
                         match message {
                             FromScriptMsg::SendPixels(chan) => {
                                 painter.send_pixels(chan)
@@ -219,7 +219,7 @@ impl<'a> CanvasPaintThread<'a> {
                         }
                     },
                     CanvasMsg::FromLayout(message, canvas_id) => {
-						assert!(canvas_id == painter.canvas_id);
+                        assert!(canvas_id == painter.canvas_id);
                         match message {
                             FromLayoutMsg::SendData(chan) => {
                                 painter.send_data(chan)
@@ -405,7 +405,7 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn draw_image_in_other(&self,
                            renderer: IpcSender<CanvasMsg>,
-						   other_canvas_id: CanvasId,
+                           other_canvas_id: CanvasId,
                            image_size: Size2D<f64>,
                            dest_rect: Rect<f64>,
                            source_rect: Rect<f64>,

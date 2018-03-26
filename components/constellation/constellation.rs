@@ -331,8 +331,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
-	/// An Id for the next canvas to use.
-	canvas_id: CanvasId,
+    /// An Id for the next canvas to use.
+    canvas_id: CanvasId,
 }
 
 /// State needed to construct a constellation.
@@ -626,7 +626,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }),
                 webgl_threads: state.webgl_threads,
                 webvr_chan: state.webvr_chan,
-				canvas_id: CanvasId(0),
+                canvas_id: CanvasId(0),
             };
 
             constellation.run();
@@ -2206,7 +2206,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             &mut self,
             size: &Size2D<i32>,
             response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>) {
-		self.canvas_id.0 += 1;
+        self.canvas_id.0 += 1;
         let webrender_api = self.webrender_api_sender.clone();
         let sender = CanvasPaintThread::start(*size, webrender_api,
                                               opts::get().enable_canvas_antialiasing,self.canvas_id.clone());

@@ -77,7 +77,7 @@ pub struct CanvasRenderingContext2D {
     state: DomRefCell<CanvasContextState>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
     origin_clean: Cell<bool>,
-	canvas_id: CanvasId,
+    canvas_id: CanvasId,
 }
 
 #[must_root]
@@ -133,9 +133,8 @@ impl CanvasRenderingContext2D {
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
         script_to_constellation_chan.send(ScriptMsg::CreateCanvasPaintThread(size, sender)).unwrap();
-		let response = receiver.recv().unwrap();
-		let ipc_renderer = response.0;
-		let canvas_id = response.1;
+        let response = receiver.recv().unwrap();
+        let (ipc_renderer,canvas_id) = response;
         debug!("Done.");
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
@@ -147,7 +146,7 @@ impl CanvasRenderingContext2D {
             state: DomRefCell::new(CanvasContextState::new()),
             saved_states: DomRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
-			canvas_id: canvas_id,
+            canvas_id: canvas_id,
         }
     }
 
@@ -378,13 +377,13 @@ impl CanvasRenderingContext2D {
             let (sender, receiver) = ipc::channel().unwrap();
             let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageInOther(
                 self.ipc_renderer.clone(),
-				self.get_canvas_id(),
+                self.get_canvas_id(),
                 image_size,
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
                 sender),
-				context.get_canvas_id());
+                context.get_canvas_id());
 
             let renderer = context.get_ipc_renderer();
             renderer.send(msg).unwrap();
@@ -562,9 +561,9 @@ impl CanvasRenderingContext2D {
         }
     }
 
-	pub fn get_canvas_id(&self) -> CanvasId {
-		self.canvas_id.clone()
-	}
+    pub fn get_canvas_id(&self) -> CanvasId {
+        self.canvas_id.clone()
+    }
     pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.ipc_renderer.clone()
     }
@@ -901,7 +900,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                                                                                  cpy as f32),
                                                                     Point2D::new(x as f32,
                                                                                  y as f32)),
-																				 self.get_canvas_id());
+                                                                                 self.get_canvas_id());
         self.ipc_renderer.send(msg).unwrap();
     }
 
@@ -917,7 +916,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                                                                  Point2D::new(cp2x as f32,
                                                                               cp2y as f32),
                                                                  Point2D::new(x as f32, y as f32)),
-															 	 self.get_canvas_id());
+                                                                  self.get_canvas_id());
         self.ipc_renderer.send(msg).unwrap();
     }
 
@@ -936,7 +935,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                                                        start as f32,
                                                        end as f32,
                                                        ccw),
-													   self.get_canvas_id());
+                                                       self.get_canvas_id());
 
         self.ipc_renderer.send(msg).unwrap();
         Ok(())
@@ -954,7 +953,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::ArcTo(Point2D::new(cp1x as f32, cp1y as f32),
                                                          Point2D::new(cp2x as f32, cp2y as f32),
                                                          r as f32),
-													 	 self.get_canvas_id());
+                                                          self.get_canvas_id());
         self.ipc_renderer.send(msg).unwrap();
         Ok(())
     }
@@ -975,7 +974,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                                                        start as f32,
                                                        end as f32,
                                                        ccw),
-												   	   self.get_canvas_id());
+                                                          self.get_canvas_id());
         self.ipc_renderer.send(msg).unwrap();
         Ok(())
     }
@@ -1191,7 +1190,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                                                                 offset,
                                                                 image_data_size,
                                                                 dirty_rect),
-																self.get_canvas_id());
+                                                                self.get_canvas_id());
         self.ipc_renderer.send(msg).unwrap();
         self.mark_as_dirty();
     }
