@@ -1583,7 +1583,6 @@ impl ScriptThread {
         path_seg.push_str(")");
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
-        
     }
 
     /// Updates iframe element after a change in visibility

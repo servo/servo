@@ -6,14 +6,14 @@
 //! script thread, the dom, and the worker threads.
 
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use dom::bindings::conversions::get_dom_class;
+use dom::bindings::conversions::private_from_object;
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::root::trace_roots;
 use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
 use dom::globalscope::GlobalScope;
-use dom::bindings::conversions::get_dom_class;
-use dom::bindings::conversions::private_from_object;
 use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
@@ -324,15 +324,12 @@ pub unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
         match dom_class_opt {
             Ok(v) => {
                 let pass_ptr = private_from_object(obj) as *const c_void;
-
                 if !(pass_ptr.is_null()) {
                     let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
                     let _result = (v.malloc_size_of)(&mut ops, pass_ptr);
                     return _result;
                 }
-                else{
-                    return 0;
-                }
+                else => return 0;
             }
             Err(_e) => {
                 return 0;

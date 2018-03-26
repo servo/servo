@@ -149,12 +149,12 @@ pub mod layout_exports {
 }
 
 use dom::bindings::codegen::RegisterBindings;
+use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::proxyhandler;
+use dom::bindings::utils::is_platform_object;
+use js::jsapi::JSObject;
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
-use js::jsapi::JSObject;
-use dom::bindings::conversions::is_dom_proxy;
-use dom::bindings::utils::is_platform_object;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -211,7 +211,8 @@ pub unsafe extern "C" fn MemoryReporter(obj: *mut JSObject) -> bool {
     if is_platform_object(obj) || is_dom_proxy(obj) {
         return true;
     }
-    else{
+    else
+    {
         return false;
     }
 }
