@@ -7,11 +7,13 @@ use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
+use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
+use dom::oscillatornode::OscillatorNode;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
@@ -76,4 +78,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
+
+    #[allow(unsafe_code)]
+    fn CreateOscillator(&self) -> DomRoot<OscillatorNode> {
+        let global = self.global();
+        let window = global.as_window();
+        let options = unsafe { OscillatorOptions::empty(window.get_cx()) };
+        OscillatorNode::new(&window, &self, &options)
+    }
 }

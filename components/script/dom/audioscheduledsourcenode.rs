@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioSche
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::num::Finite;
 use dom_struct::dom_struct;
+use servo_media::ServoMedia;
 
 #[dom_struct]
 pub struct AudioScheduledSourceNode {
@@ -30,6 +31,18 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
 
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-start
     fn Start(&self, _when: Finite<f64>) {
+        // XXX This is just here to test servo_media from servo.
+        // ServoMedia needs to expose a way to feed the audio stream and
+        // we need to implement all the AudioContext logic to connect
+        // AudioNodes.
+        match ServoMedia::get().get_audio_stream() {
+            Ok(stream) => {
+                stream.play();
+            },
+            Err(_) => {
+                println!("OH NOES");
+            }
+        };
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-stop

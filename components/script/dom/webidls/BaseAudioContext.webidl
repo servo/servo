@@ -48,7 +48,7 @@ interface BaseAudioContext : EventTarget {
   // ChannelSplitterNode    createChannelSplitter(optional unsigned long numberOfOutputs = 6);
   // ChannelMergerNode      createChannelMerger(optional unsigned long numberOfInputs = 6);
   // DynamicsCompressorNode createDynamicsCompressor();
-  // OscillatorNode         createOscillator();
+  OscillatorNode         createOscillator();
   // PeriodicWave           createPeriodicWave(sequence<float> real,
   //                                           sequence<float> imag,
   //                                           optional PeriodicWaveConstraints constraints);
