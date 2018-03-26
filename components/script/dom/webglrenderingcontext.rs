@@ -1050,12 +1050,15 @@ impl WebGLRenderingContext {
         let internal_format = self.extension_manager.get_effective_tex_internal_format(format, data_type);
 
         // TODO(emilio): convert colorspace if requested
-        let msg = WebGLCommand::TexImage2D(target.as_gl_constant(), level as i32,
-                                           internal_format as i32,
-                                           width as i32, height as i32,
-                                           format,
-                                           data_type,
-                                           pixels);
+        let msg = WebGLCommand::TexImage2D(
+            target.as_gl_constant(),
+            level as i32,
+            internal_format as i32,
+            width as i32, height as i32,
+            format,
+            data_type,
+            pixels.into(),
+        );
 
         self.send_command(msg);
 
@@ -1102,11 +1105,17 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32));
 
         // TODO(emilio): convert colorspace if requested
-        let msg = WebGLCommand::TexSubImage2D(target.as_gl_constant(),
-                                              level as i32, xoffset, yoffset,
-                                              width as i32, height as i32,
-                                              format.as_gl_constant(),
-                                              data_type.as_gl_constant(), pixels);
+        let msg = WebGLCommand::TexSubImage2D(
+            target.as_gl_constant(),
+            level as i32,
+            xoffset,
+            yoffset,
+            width as i32,
+            height as i32,
+            format.as_gl_constant(),
+            data_type.as_gl_constant(),
+            pixels.into(),
+        );
 
         self.send_command(msg);
     }
@@ -1182,7 +1191,7 @@ impl WebGLRenderingContext {
             constants::UNSIGNED_BYTE,
             sender,
         ));
-        Some(receiver.recv().unwrap())
+        Some(receiver.recv().unwrap().into())
     }
 }
 
@@ -1759,7 +1768,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
             return self.webgl_error(InvalidValue);
         }
-        self.send_command(WebGLCommand::BufferSubData(target, offset as isize, data_vec));
+        self.send_command(WebGLCommand::BufferSubData(
+            target,
+            offset as isize,
+            data_vec.into(),
+        ));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8

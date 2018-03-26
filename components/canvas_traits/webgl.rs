@@ -5,6 +5,7 @@
 use euclid::Size2D;
 use nonzero::NonZero;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use serde_bytes::ByteBuf;
 use std::fmt;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
@@ -165,8 +166,8 @@ pub enum WebGLCommand {
     AttachShader(WebGLProgramId, WebGLShaderId),
     DetachShader(WebGLProgramId, WebGLShaderId),
     BindAttribLocation(WebGLProgramId, u32, String),
-    BufferData(u32, Vec<u8>, u32),
-    BufferSubData(u32, isize, Vec<u8>),
+    BufferData(u32, ByteBuf, u32),
+    BufferSubData(u32, isize, ByteBuf),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     ClearDepth(f64),
@@ -222,7 +223,7 @@ pub enum WebGLCommand {
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
-    ReadPixels(i32, i32, i32, i32, u32, u32, WebGLSender<Vec<u8>>),
+    ReadPixels(i32, i32, i32, i32, u32, u32, WebGLSender<ByteBuf>),
     SampleCoverage(f32, bool),
     Scissor(i32, i32, i32, i32),
     StencilFunc(u32, i32, u32),
@@ -262,10 +263,10 @@ pub enum WebGLCommand {
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     GetViewport(WebGLSender<(i32, i32, i32, i32)>),
     SetViewport(i32, i32, i32, i32),
-    TexImage2D(u32, i32, i32, i32, i32, u32, u32, Vec<u8>),
+    TexImage2D(u32, i32, i32, i32, i32, u32, u32, ByteBuf),
     TexParameteri(u32, u32, i32),
     TexParameterf(u32, u32, f32),
-    TexSubImage2D(u32, i32, i32, i32, i32, i32, u32, u32, Vec<u8>),
+    TexSubImage2D(u32, i32, i32, i32, i32, i32, u32, u32, ByteBuf),
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),
     Finish(WebGLSender<()>),
@@ -401,7 +402,7 @@ pub enum WebVRCommand {
     /// Start presenting to a VR device.
     Create(WebVRDeviceId),
     /// Synchronize the pose information to be used in the frame.
-    SyncPoses(WebVRDeviceId, f64, f64, WebGLSender<Result<Vec<u8>, ()>>),
+    SyncPoses(WebVRDeviceId, f64, f64, WebGLSender<Result<ByteBuf, ()>>),
     /// Submit the frame to a VR device using the specified texture coordinates.
     SubmitFrame(WebVRDeviceId, [f32; 4], [f32; 4]),
     /// Stop presenting to a VR device
