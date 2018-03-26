@@ -772,8 +772,8 @@ impl WebGLImpl {
                 Self::shader_precision_format(ctx.gl(), shader_type, precision_type, chan),
             WebGLCommand::GetExtensions(chan) =>
                 Self::get_extensions(ctx.gl(), chan),
-            WebGLCommand::GetUniform(program, location, chan) =>
-                Self::get_uniform(ctx.gl(), program, location, chan),
+            WebGLCommand::GetUniform(program, location, uniform_type, chan) =>
+                Self::get_uniform(ctx.gl(), program, location, uniform_type, chan),
             WebGLCommand::GetUniformLocation(program_id, name, chan) =>
                 Self::uniform_location(ctx.gl(), program_id, name, chan),
             WebGLCommand::GetShaderInfoLog(shader_id, chan) =>
@@ -1216,26 +1216,27 @@ impl WebGLImpl {
         gl: &gl::Gl,
         program: u32,
         location: i32,
+        uniform_type: u32,
         chan: WebGLSender<WebGLResult<WebGLParameter>>
     ) {
-        let uniform = match location as u32 {
+        let uniform = match uniform_type {
             gl::FLOAT_VEC2 |
             gl::FLOAT_VEC3 |
             gl::FLOAT_VEC4 |
             gl::FLOAT_MAT2 |
             gl::FLOAT_MAT3 |
             gl::FLOAT_MAT4 => {
-                Ok(WebGLParameter::FloatArray(gl.get_uniform_fv(program, location)))
+                Ok(WebGLParameter::FloatArray(gl.get_uniform_fv(program, location, uniform_type)))
             },
             gl::INT_VEC2 |
             gl::INT_VEC3 |
             gl::INT_VEC4 => {
-                Ok(WebGLParameter::IntArray(gl.get_uniform_iv(program, location)))
+                Ok(WebGLParameter::IntArray(gl.get_uniform_iv(program, location, uniform_type)))
             },
             gl::BOOL_VEC2 |
             gl::BOOL_VEC3 |
             gl::BOOL_VEC4 => {
-                let result = gl.get_uniform_iv(program, location)
+                let result = gl.get_uniform_iv(program, location, uniform_type)
                     .iter()
                     .map(|el| *el == 1)
                     .collect::<Vec<_>>();
@@ -1245,17 +1246,17 @@ impl WebGLImpl {
             gl::SAMPLER_2D |
             gl::SAMPLER_CUBE => {
                 // returns a single int in a vector
-                let result = gl.get_uniform_iv(program, location);
+                let result = gl.get_uniform_iv(program, location, uniform_type);
                 Ok(WebGLParameter::Int(result[0]))
             }
             gl::BOOL => {
                 // returns a single bool in a vector
-                let result = gl.get_uniform_iv(program, location);
+                let result = gl.get_uniform_iv(program, location, uniform_type);
                 Ok(WebGLParameter::Bool(result[0] == 1))
             }
             gl::FLOAT => {
                 // returns a single float in a vector
-                let result = gl.get_uniform_fv(program, location);
+                let result = gl.get_uniform_fv(program, location, uniform_type);
                 Ok(WebGLParameter::Float(result[0]))
             }
             _ => Err(WebGLError::InvalidOperation),

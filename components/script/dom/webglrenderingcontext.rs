@@ -10,6 +10,7 @@ use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGL2Constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -2481,23 +2482,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         program: &WebGLProgram,
         location: &WebGLUniformLocation
     ) -> JSVal {
-        let program = if program.is_linked() {
-            program.id().get()
-        } else {
+        if !program.is_linked() {
             self.webgl_error(InvalidOperation);
             return NullValue();
-        };
+        }
 
-        let location = if location.program_id().get() == program {
-            // TODO: Use ANGLE to obtain uniform type.
-            //location.id()
+        let program_id = program.id().get();
+
+        // TODO: Alternatively use ANGLE to obtain uniform type.
+        let uniform_type = if location.program_id().get() == program_id {
+            match program.get_active_uniform(0) {
+                Ok(uniform_info) => (*uniform_info).Type(),
+                Err(e) => {
+                    self.webgl_error(e);
+                    return NullValue();
+                }
+            }
         } else {
             self.webgl_error(InvalidOperation);
             return NullValue();
         };
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetUniform(program, location, sender));
+        self.send_command(WebGLCommand::GetUniform(program_id, location.id(), uniform_type, sender));
 
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::String(_) => panic!("Uniform value should not be a string"),

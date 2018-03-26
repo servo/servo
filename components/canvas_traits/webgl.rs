@@ -221,7 +221,7 @@ pub enum WebGLCommand {
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
-    GetUniform(u32, i32, WebGLSender<WebGLResult<WebGLParameter>>),
+    GetUniform(u32, i32, u32, WebGLSender<WebGLResult<WebGLParameter>>),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
     ReadPixels(i32, i32, i32, i32, u32, u32, WebGLSender<ByteBuf>),
