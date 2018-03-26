@@ -329,7 +329,10 @@ pub unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
                     let _result = (v.malloc_size_of)(&mut ops, pass_ptr);
                     return _result;
                 }
-                else => return 0;
+                else
+                {
+                    return 0;
+                }
             }
             Err(_e) => {
                 return 0;
