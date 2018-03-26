@@ -177,8 +177,6 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
                 },
                 ty::TyParam(param_ty) => {
                     let ty_param_def = cx.tcx.generics_of(self.def_id).type_param(&param_ty, cx.tcx);
-                    // will work for `foo::<Foo>(..)`
-                    // but won't get enough information in `bar<T>(){foo::<T>(..);}`?
                     if cx.tcx.has_attr(ty_param_def.def_id, "must_root") {
                         ret = true;
                         false
@@ -210,6 +208,34 @@ impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
                 ur_cx.late_cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Type of binding/expression must be rooted.")
             },
             _ => {},
+        }
+    }
+
+    fn visit_constant(&mut self, constant: &mir::Constant<'tcx>, location: mir::Location) {
+        self.super_constant(constant, location);
+
+        let ur_cx = &self.unrooted_cx;
+        let cx = ur_cx.late_cx;
+        match constant.ty.sty {
+            ty::TyFnDef(callee_def_id, callee_substs) => {
+                let callee_generics = cx.tcx.generics_of(callee_def_id);
+                for ty_param_def in &callee_generics.types {
+                    // If type has `#[must_root]`, then it is ok to
+                    // give it a must-root type, so just skip.
+                    if cx.tcx.has_attr(ty_param_def.def_id, "must_root") {
+                        continue;
+                    }
+
+                    let arg_ty = callee_substs.type_at(ty_param_def.index as usize);
+                    if ur_cx.is_unrooted_ty(arg_ty, false) {
+                        cx.span_lint(UNROOTED_MUST_ROOT, constant.span, "Callee generic type must be rooted.")
+                    }
+                }
+            }
+            ty::TyAdt(_, _) => {
+                cx.span_lint(UNROOTED_MUST_ROOT, constant.span, "xd")
+            }
+            _ => { }
         }
     }
 }

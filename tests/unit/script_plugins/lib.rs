@@ -52,7 +52,7 @@ pub mod unrooted_must_root {
     #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
-    struct Bar<#[must_root] T>(T);  // is not detected
+    struct Bar<#[must_root] T>(T);
 
     fn test() {
         let _ = &Bar(Foo(3));
@@ -62,6 +62,20 @@ pub mod unrooted_must_root {
     ```
     */
     pub fn generic_struct_field() {}
+
+    /**
+    ```compile_fail
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
+
+    fn foo<T>() { }
+    fn bar<#[must_root] U>() { foo::<U>(); }
+
+    fn main() {}
+    ```
+    */
+    pub fn generic_function_calling() {}
 
     /**
     ```compile_fail
@@ -178,10 +192,12 @@ pub mod unrooted_must_root {
     ```
     */
     pub fn pattern_binding() {}
+
     /**
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
     struct SomeContainer<T>(T);
@@ -193,6 +209,8 @@ pub mod unrooted_must_root {
     }
 
     fn test() {
+        // none should work, but both do
+        SomeContainer::new(Foo(3));
         SomeContainer(Foo(3));
     }
 
@@ -205,13 +223,38 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
+
+    #[must_root] struct Foo(i32);
+    #[must_root] struct SomeContainer<#[must_root] T>(T);
+
+    impl<T> SomeContainer<T> { // impl should provide #[must_root]
+        fn new(val: T) -> SomeContainer<T> {
+            SomeContainer(val)
+        }
+    }
+
+    fn test() {
+        SomeContainer(Foo(3));
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn generic_container2() {}
+
+    /* *
+    ```
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
 
     #[derive(Default)]
     #[must_root] struct Foo(i32);
     #[derive(Default)]
     #[must_root] struct Bar(i32);
 
-    fn create_foo<T: Default>() -> T {
+    fn create_foo<#[must_root] T: Default>() -> T {
         Default::default()
     }
 
@@ -232,5 +275,6 @@ pub mod unrooted_must_root {
     fn main() {}
     ```
     */
-    pub fn derive_default() {}
+    //pub fn derive_default() {}
+    // ^ do we want to allow derivation?
 }
