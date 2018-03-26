@@ -19,6 +19,7 @@ euclid = "0.17"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
+histogram = "0.6.8"
 html5ever = "0.22"
 ipc-channel = "0.10"
 layout = {path = "../layout"}
@@ -26,6 +27,7 @@ layout_traits = {path = "../layout_traits"}
 lazy_static = "1"
 libc = "0.2"
 log = "0.3.5"
+time = "0.1.17"
 malloc_size_of = { path = "../malloc_size_of" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}

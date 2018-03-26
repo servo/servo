@@ -1170,6 +1170,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "histogram"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "html5ever"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1443,6 +1448,7 @@ dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
+ "histogram 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layout 0.0.1",
@@ -1471,6 +1477,7 @@ dependencies = [
  "servo_url 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
+ "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
 ]
 
@@ -2563,6 +2570,7 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "style 0.0.1",
+ "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.57.0 (git+https://github.com/servo/webrender)",
 ]
 
@@ -3847,6 +3855,7 @@ dependencies = [
 "checksum harfbuzz-sys 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)" = "52aa65c5649a0a2f1b27ab30093b3cc84681e17ddb552267e21948c5a6fa6b05"
 "checksum heartbeats-simple 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9ad003ce233955e9d95f2c69cde84e68302ba9ba4a673d351c9bff93c738aadc"
 "checksum heartbeats-simple-sys 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e1a408c0011427cc0e0049f7861c70377819aedfc006e8c901b1c70fd98fb1a4"
+"checksum histogram 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1bdcec4094c1ca961b685384ea7af76af5718230b3f34657d1a71fd2dcf4cc9d"
 "checksum html5ever 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e579ac8647178ab915d400d7d22938bda5cd351c6c62e1c294d56884ccfc75fe"
 "checksum httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a6e7a63e511f9edffbab707141fbb8707d1a3098615fb2adbd5769cdfcc9b17d"
 "checksum hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)" = "368cb56b2740ebf4230520e2b90ebb0461e69034d85d1945febd9b3971426db2"
