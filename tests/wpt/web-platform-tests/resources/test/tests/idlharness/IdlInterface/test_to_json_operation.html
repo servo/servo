@@ -12,7 +12,7 @@
 <body>
 <script>
     "use strict";
-    function wrap(obj) {
+    function wrap(member, obj) {
         function F(obj) {
             this._obj = obj;
         }
@@ -20,25 +20,25 @@
         F.prototype.toJSON = function() {
             return this._obj;
         }
-
+        Object.defineProperty(F, 'name', { value: member.name });
         return new F(obj);
     }
 
     var i, obj;
     i = interfaceFrom("interface A { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap({ foo: 123 }), i.members[0]);
+    i.test_to_json_operation(wrap(i, { foo: 123 }), i.members[0]);
 
     // should fail (wrong type)
     i = interfaceFrom("interface B { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap({ foo: "a value" }), i.members[0]);
+    i.test_to_json_operation(wrap(i, { foo: "a value" }), i.members[0]);
 
     // should handle extraneous attributes (e.g. from an extension specification)
     i = interfaceFrom("interface C { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap({ foo: 123, bar: 456 }), i.members[0]);
+    i.test_to_json_operation(wrap(i, { foo: 123, bar: 456 }), i.members[0]);
 
     // should fail (missing property)
     i = interfaceFrom("interface D { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap({ }), i.members[0]);
+    i.test_to_json_operation(wrap(i, { }), i.members[0]);
 
     // should fail (should be writable)
     obj = Object.defineProperties({}, { foo: {
@@ -48,7 +48,7 @@
         value: 123
     }});
     i = interfaceFrom("interface F { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(obj), i.members[0]);
+    i.test_to_json_operation(wrap(i, obj), i.members[0]);
 
     // should fail (should be enumerable)
     obj = Object.defineProperties({}, { foo: {
@@ -58,7 +58,7 @@
         value: 123
     }});
     i = interfaceFrom("interface G { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(obj), i.members[0]);
+    i.test_to_json_operation(wrap(i, obj), i.members[0]);
 
     // should fail (should be configurable)
     obj = Object.defineProperties({}, { foo: {
@@ -68,27 +68,27 @@
         value: 123
     }});
     i = interfaceFrom("interface H { [Default] object toJSON(); attribute long foo; };");
-    i.test_to_json_operation(wrap(obj), i.members[0]);
+    i.test_to_json_operation(wrap(i, obj), i.members[0]);
 
     var idl = new IdlArray();
     idl.add_idls("interface I : J { [Default] object toJSON(); attribute long foo; };");
     idl.add_idls("interface J { [Default] object toJSON(); attribute DOMString foo;};");
     var i = idl.members.I;
-    i.test_to_json_operation(wrap({ foo: 123 }), i.members[0]);
+    i.test_to_json_operation(wrap(i, { foo: 123 }), i.members[0]);
 
     i = interfaceFrom("interface K { [Default] object toJSON(); };");
-    i.test_to_json_operation(wrap({}), i.members[0]);
+    i.test_to_json_operation(wrap(i, {}), i.members[0]);
 
     i = interfaceFrom("interface L { DOMString toJSON(); };");
-    i.test_to_json_operation(wrap("a string"), i.members[0]);
+    i.test_to_json_operation(wrap(i, "a string"), i.members[0]);
 
     // should fail (wrong output type)
     i = interfaceFrom("interface M { DOMString toJSON(); };");
-    i.test_to_json_operation(wrap({}), i.members[0]);
+    i.test_to_json_operation(wrap(i, {}), i.members[0]);
 
     // should fail (not an IDL type)
     i = interfaceFrom("interface N { DOMException toJSON(); };");
-    i.test_to_json_operation(wrap({}), i.members[0]);
+    i.test_to_json_operation(wrap(i, {}), i.members[0]);
 </script>
 <script type="text/json" id="expected">
     {

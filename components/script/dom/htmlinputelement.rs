@@ -14,6 +14,7 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
@@ -38,11 +39,11 @@ use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use ipc_channel::ipc::channel;
 use mime_guess;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
+use profile_traits::ipc;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
@@ -974,7 +975,8 @@ impl HTMLInputElement {
         if self.Multiple() {
             let opt_test_paths = opt_test_paths.map(|paths| paths.iter().map(|p| p.to_string()).collect());
 
-            let (chan, recv) = channel().expect("Error initializing channel");
+            let (chan, recv) =
+                ipc::channel(self.global().time_profiler_chan().clone()).expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
             let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg)).unwrap();
 
@@ -998,7 +1000,8 @@ impl HTMLInputElement {
                 None => None,
             };
 
-            let (chan, recv) = channel().expect("Error initializing channel");
+            let (chan, recv) =
+                ipc::channel(self.global().time_profiler_chan().clone()).expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
             let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg)).unwrap();
 

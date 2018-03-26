@@ -59862,7 +59862,7 @@
    "testharness"
   ],
   "bluetooth/writeValue/characteristic/write-updates-value.html": [
-   "7f7366bc66c31db8716ae84613d876b4b7f62626",
+   "3c67dbbdf28c71dcba42b0422885937f0a737864",
    "testharness"
   ],
   "bluetooth/writeValue/descriptor/blocklisted-descriptor.html": [
@@ -59894,7 +59894,7 @@
    "testharness"
   ],
   "bluetooth/writeValue/descriptor/write-updates-value.html": [
-   "d92db44be1e1f4720337cb38acc7eea3f34abadd",
+   "2c71ee45a923996bd4a80c063e7761d7c28ac18d",
    "testharness"
   ],
   "css/100x100_green.png": [

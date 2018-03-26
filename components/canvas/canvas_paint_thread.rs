@@ -13,6 +13,7 @@ use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
 use num_traits::ToPrimitive;
+use serde_bytes::ByteBuf;
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::Arc;
@@ -150,9 +151,20 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => {
                                 painter.is_point_in_path(x, y, fill_rule, chan)
                             },
-                            Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect,
-                                                   smoothing_enabled) => {
-                                painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
+                            Canvas2dMsg::DrawImage(
+                                imagedata,
+                                image_size,
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                            ) => {
+                                painter.draw_image(
+                                    imagedata.into(),
+                                    image_size,
+                                    dest_rect,
+                                    source_rect,
+                                    smoothing_enabled,
+                                )
                             }
                             Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled) => {
                                 painter.draw_image_self(image_size, dest_rect, source_rect, smoothing_enabled)
@@ -194,8 +206,19 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
                             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan)
                                 => painter.image_data(dest_rect, canvas_size, chan),
-                            Canvas2dMsg::PutImageData(imagedata, offset, image_data_size, dirty_rect)
-                                => painter.put_image_data(imagedata, offset, image_data_size, dirty_rect),
+                            Canvas2dMsg::PutImageData(
+                                imagedata,
+                                offset,
+                                image_data_size,
+                                dirty_rect,
+                            ) => {
+                                painter.put_image_data(
+                                    imagedata.into(),
+                                    offset,
+                                    image_data_size,
+                                    dirty_rect,
+                                )
+                            }
                             Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
                             Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
                             Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
@@ -405,7 +428,6 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn draw_image_in_other(&self,
                            renderer: IpcSender<CanvasMsg>,
-                           other_canvas_id: CanvasId,
                            image_size: Size2D<f64>,
                            dest_rect: Rect<f64>,
                            source_rect: Rect<f64>,
@@ -416,7 +438,13 @@ impl<'a> CanvasPaintThread<'a> {
         byte_swap(&mut image_data);
 
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
-            image_data, source_rect.size, dest_rect, source_rect, smoothing_enabled),other_canvas_id);
+            image_data.into(),
+            source_rect.size,
+            dest_rect,
+            source_rect,
+            smoothing_enabled,
+            other_canvas_id,
+        ));
         renderer.send(msg).unwrap();
         // We acknowledge to the caller here that the data was sent to the
         // other canvas so that if JS immediately afterwards try to get the
@@ -592,9 +620,9 @@ impl<'a> CanvasPaintThread<'a> {
         }
     }
 
-    fn send_pixels(&mut self, chan: IpcSender<Option<Vec<u8>>>) {
+    fn send_pixels(&mut self, chan: IpcSender<Option<ByteBuf>>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            chan.send(Some(element.into())).unwrap();
+            chan.send(Some(Vec::from(element).into())).unwrap();
         })
     }
 
@@ -609,6 +637,7 @@ impl<'a> CanvasPaintThread<'a> {
                 format: webrender_api::ImageFormat::BGRA8,
                 offset: 0,
                 is_opaque: false,
+                allow_mipmaps: false,
             };
             let data = webrender_api::ImageData::Raw(Arc::new(element.into()));
 
@@ -645,12 +674,17 @@ impl<'a> CanvasPaintThread<'a> {
         })
     }
 
-    fn image_data(&self, dest_rect: Rect<i32>, canvas_size: Size2D<f64>, chan: IpcSender<Vec<u8>>) {
+    fn image_data(
+        &self,
+        dest_rect: Rect<i32>,
+        canvas_size: Size2D<f64>,
+        chan: IpcSender<ByteBuf>,
+    ) {
         let mut dest_data = self.read_pixels(dest_rect, canvas_size);
 
         // bgra -> rgba
         byte_swap(&mut dest_data);
-        chan.send(dest_data).unwrap();
+        chan.send(dest_data.into()).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

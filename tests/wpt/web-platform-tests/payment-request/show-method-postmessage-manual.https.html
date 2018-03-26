@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for PaymentRequest.show() method</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#show-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+setup({
+  explicit_done: true,
+  explicit_timeout: true,
+  allow_uncaught_exception: true,
+});
+
+const defaultMethods = Object.freeze([
+  { supportedMethods: "basic-card" },
+  { supportedMethods: "https://apple.com/pay" },
+]);
+
+const defaultDetails = Object.freeze({
+  id: "fail",
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  assert_throws(
+    "SecurityError",
+    () => {
+      const request = new PaymentRequest(defaultMethods, defaultDetails);
+      request.show(); // <--- should throw here
+      request.abort();
+    },
+    "throws a SecurityError if not triggered by user activation"
+  );
+});
+
+async function runUserActivation(button) {
+  button.disabled = true;
+  const { contentWindow: iframeWindow } = document.getElementById("iframe");
+  const expectedId = "pass123";
+  await Promise.resolve(); // next tick
+  const promiseForResponse = new Promise(resolve => {
+    window.onmessage = ({ data: { requestId } }) => resolve(requestId);
+  });
+  const ops = { id: expectedId, request: "show-payment-request" };
+  iframeWindow.postMessage(ops, window.location.origin);
+  promise_test(async () => {
+    const actualId = await promiseForResponse;
+    assert_equals(actualId, expectedId, "ids must match");
+  }, button.textContent.trim());
+  done();
+}
+
+</script>
+<h2>Test PaymentRequest.show() triggered by user activation using postMessage()</h2>
+<p>
+  Tests that user activation works over postMessage().
+</p>
+<p>
+  Click on bottom below. Hit "Pay".
+</p>
+<ol>
+  <li>
+    <button onclick="runUserActivation(this)">
+      show() is triggered by user activation passed through postMessage() and a promise
+    </button>
+  </li>
+</ol>
+<iframe width="100%" id="iframe" src="show-method-postmessage-iframe.html" allowpaymentrequest></iframe>
+<p>
+  <small>
+    If you find a buggy test, please <a href="https://github.com/w3c/web-platform-tests/issues">file a bug</a>
+    and tag one of the <a href="https://github.com/w3c/web-platform-tests/blob/master/payment-request/OWNERS">owners</a>.
+  </small>
+</p>

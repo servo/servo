@@ -299,7 +299,7 @@ counter_style_descriptors! {
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
     "pad" pad / eCSSCounterDesc_Pad: Pad = {
-        Pad(0, Symbol::String("".to_owned()))
+        Pad(Integer::new(0), Symbol::String("".to_owned()))
     }
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-fallback>
@@ -336,14 +336,14 @@ pub enum System {
     /// 'fixed <integer>?'
     Fixed {
         /// '<integer>?'
-        first_symbol_value: Option<i32>
+        first_symbol_value: Option<Integer>
     },
     /// 'extends <counter-style-name>'
     Extends(CustomIdent),
 }
 
 impl Parse for System {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         try_match_ident_ignore_ascii_case! { input,
             "cyclic" => Ok(System::Cyclic),
             "numeric" => Ok(System::Numeric),
@@ -351,7 +351,7 @@ impl Parse for System {
             "symbolic" => Ok(System::Symbolic),
             "additive" => Ok(System::Additive),
             "fixed" => {
-                let first_symbol_value = input.try(|i| i.expect_integer()).ok();
+                let first_symbol_value = input.try(|i| Integer::parse(context, i)).ok();
                 Ok(System::Fixed { first_symbol_value: first_symbol_value })
             }
             "extends" => {
@@ -515,17 +515,14 @@ where
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
 #[derive(Clone, Debug, ToCss)]
-pub struct Pad(pub u32, pub Symbol);
+pub struct Pad(pub Integer, pub Symbol);
 
 impl Parse for Pad {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let pad_with = input.try(|input| Symbol::parse(context, input));
-        let min_length = input.expect_integer()?;
-        if min_length < 0 {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
+        let min_length = Integer::parse_non_negative(context, input)?;
         let pad_with = pad_with.or_else(|_| Symbol::parse(context, input))?;
-        Ok(Pad(min_length as u32, pad_with))
+        Ok(Pad(min_length, pad_with))
     }
 }
 
@@ -580,7 +577,7 @@ impl Parse for AdditiveSymbols {
 #[derive(Clone, Debug, ToCss)]
 pub struct AdditiveTuple {
     /// <integer>
-    pub weight: u32,
+    pub weight: Integer,
     /// <symbol>
     pub symbol: Symbol,
 }
@@ -592,13 +589,10 @@ impl OneOrMoreSeparated for AdditiveTuple {
 impl Parse for AdditiveTuple {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let symbol = input.try(|input| Symbol::parse(context, input));
-        let weight = input.expect_integer()?;
-        if weight < 0 {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
+        let weight = Integer::parse_non_negative(context, input)?;
         let symbol = symbol.or_else(|_| Symbol::parse(context, input))?;
         Ok(AdditiveTuple {
-            weight: weight as u32,
+            weight: weight,
             symbol: symbol,
         })
     }

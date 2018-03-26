@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: auto repeat tracks in indefinite containers with minimum size</title>
+<link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#repeat-syntax">
+<meta name="assert" content="This test checks that we properly compute the number of required auto repeat tracks in indefinite sized containers with minimum sizes.">
+<link rel="stylesheet" href="support/grid.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testing-utils.js"></script>
+<style>
+.grid {
+    display: inline-grid;
+    grid: 20px / 20px;
+    min-width: 20px;
+    min-height: 20px;
+    justify-content: start;
+    align-content: start;
+}
+</style>
+<div id="log"></div>
+
+<div id="autoFillColumns" class="grid"></div>
+<div id="autoFitColumns" class="grid"></div>
+
+<div id="autoFillRows" class="grid"></div>
+<div id="autoFitRows" class="grid"></div>
+
+<script>
+// Exact fit
+TestingUtils.testGridTemplateColumnsRows("autoFillColumns", "repeat(auto-fill, 10px)", "20px", ["repeat(2, 10px)", "10px 10px"], "20px");
+TestingUtils.testGridTemplateColumnsRows("autoFitColumns", "repeat(auto-fit, 10px)", "20px", ["repeat(2, 0px)", "0px 0px"], "20px");
+TestingUtils.testGridTemplateColumnsRows("autoFillRows", "20px", "repeat(auto-fill, 10px)", "20px", ["repeat(2, 10px)", "10px 10px"]);
+TestingUtils.testGridTemplateColumnsRows("autoFitRows", "20px", "repeat(auto-fit, 10px)", "20px", ["repeat(2, 0px)", "0px 0px"]);
+
+// Require an extra track
+TestingUtils.testGridTemplateColumnsRows("autoFillColumns", "repeat(auto-fill, 9px)", "20px", ["repeat(3, 9px)", "9px 9px 9px"], "20px");
+TestingUtils.testGridTemplateColumnsRows("autoFitColumns", "repeat(auto-fit, 9px)", "20px", ["repeat(2, 0px)", "0px 0px"], "20px");
+TestingUtils.testGridTemplateColumnsRows("autoFillRows", "20px", "repeat(auto-fill, 9px)", "20px", ["repeat(3, 9px)", "9px 9px 9px"]);
+TestingUtils.testGridTemplateColumnsRows("autoFitRows", "20px", "repeat(auto-fit, 9px)", "20px", ["repeat(3, 0px)", "0px 0px 0px"]);
+
+// A single repetition is enough to fill in all the available space
+TestingUtils.testGridTemplateColumnsRows("autoFillColumns", "repeat(auto-fill, 30px)", "20px", "30px", "20px");
+TestingUtils.testGridTemplateColumnsRows("autoFitColumns", "repeat(auto-fit, 30px)", "20px", "0px", "20px");
+TestingUtils.testGridTemplateColumnsRows("autoFillRows", "20px", "repeat(auto-fill, 30px)", "20px", "30px");
+TestingUtils.testGridTemplateColumnsRows("autoFitRows", "20px", "repeat(auto-fit, 30px)", "20px", "0px");
+</script>

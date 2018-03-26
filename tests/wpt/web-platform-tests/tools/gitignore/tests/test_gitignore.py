@@ -11,7 +11,8 @@ match_data = [
     ("/*.c", False, ["a.c", ".c"]),
     ("**/b", False, ["a/b", "a/c/b"]),
     ("*b", True, ["ab"]),
-    ("**/b", True, ["a/b"])
+    ("**/b", True, ["a/b"]),
+    ("a/", True, ["a", "a/b", "a/b/c"])
 ]
 
 mismatch_data = [
@@ -23,6 +24,7 @@ mismatch_data = [
     ("**b", True, ["a/b"]),
     ("a[/]b", True, ["a/b"]),
     ("**/b", True, ["a/c/b"]),
+    ("a", True, ["ab"])
 ]
 
 invalid_data = [
@@ -40,20 +42,24 @@ filter_data = [
     ("c/b", True)
 ]
 
+
 def expand_data(compact_data):
     for pattern, path_name, inputs in compact_data:
         for input in inputs:
             yield pattern, input, path_name
+
 
 @pytest.mark.parametrize("pattern, input, path_name", expand_data(match_data))
 def tests_match(pattern, input, path_name):
     regexp = fnmatch_translate(pattern, path_name)
     assert regexp.match(input) is not None
 
+
 @pytest.mark.parametrize("pattern, input, path_name", expand_data(mismatch_data))
 def tests_no_match(pattern, input, path_name):
     regexp = fnmatch_translate(pattern, path_name)
     assert regexp.match(input) is None
+
 
 @pytest.mark.parametrize("pattern", invalid_data)
 def tests_invalid(pattern):
@@ -61,6 +67,7 @@ def tests_invalid(pattern):
         fnmatch_translate(pattern, False)
     with pytest.raises(ValueError):
         fnmatch_translate(pattern, True)
+
 
 @pytest.mark.parametrize("path, expected", filter_data)
 def test_path_filter(path, expected):

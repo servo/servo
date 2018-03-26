@@ -604,7 +604,8 @@ impl CustomElementReaction {
         match *self {
             CustomElementReaction::Upgrade(ref definition) => upgrade_element(definition.clone(), element),
             CustomElementReaction::Callback(ref callback, ref arguments) => {
-                let arguments = arguments.iter().map(|arg| arg.handle()).collect();
+                // We're rooted, so it's safe to hand out a handle to objects in Heap
+                let arguments = arguments.iter().map(|arg| unsafe { arg.handle() }).collect();
                 let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
             }
         }

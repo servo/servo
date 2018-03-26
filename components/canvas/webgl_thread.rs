@@ -8,6 +8,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use serde_bytes::ByteBuf;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -494,6 +495,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
             is_opaque: !alpha,
+            allow_mipmaps: false,
         }
     }
 
@@ -750,6 +752,8 @@ impl WebGLImpl {
                 Self::active_uniform(ctx.gl(), program_id, index, chan),
             WebGLCommand::GetAttribLocation(program_id, name, chan) =>
                 Self::attrib_location(ctx.gl(), program_id, name, chan),
+            WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, chan) =>
+                Self::get_framebuffer_attachment_parameter(ctx.gl(), target, attachment, pname, chan),
             WebGLCommand::GetVertexAttrib(index, pname, chan) =>
                 Self::vertex_attrib(ctx.gl(), index, pname, chan),
             WebGLCommand::GetVertexAttribOffset(index, pname, chan) =>
@@ -858,8 +862,12 @@ impl WebGLImpl {
                 ctx.gl().vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset),
             WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset) =>
                 ctx.gl().vertex_attrib_pointer(attrib_id, size, data_type, normalized, stride, offset),
-            WebGLCommand::Viewport(x, y, width, height) =>
-                ctx.gl().viewport(x, y, width, height),
+            WebGLCommand::GetViewport(sender) => {
+                sender.send(ctx.gl().get_viewport()).unwrap();
+            }
+            WebGLCommand::SetViewport(x, y, width, height) => {
+                ctx.gl().viewport(x, y, width, height);
+            }
             WebGLCommand::TexImage2D(target, level, internal, width, height, format, data_type, data) =>
                 ctx.gl().tex_image_2d(target, level, internal, width, height,
                                       /*border*/0, format, data_type, Some(&data)),
@@ -885,6 +893,9 @@ impl WebGLImpl {
                 ctx.gl().delete_vertex_arrays(&[id.get()]),
             WebGLCommand::BindVertexArray(id) =>
                 ctx.gl().bind_vertex_array(id.map_or(0, WebGLVertexArrayId::get)),
+            WebGLCommand::AliasedPointSizeRange(sender) => {
+                sender.send(ctx.gl().alias_point_size_range()).unwrap()
+            }
         }
 
         // TODO: update test expectations in order to enable debug assertions
@@ -894,10 +905,18 @@ impl WebGLImpl {
         //}
     }
 
-    fn read_pixels(gl: &gl::Gl, x: i32, y: i32, width: i32, height: i32, format: u32, pixel_type: u32,
-                   chan: WebGLSender<Vec<u8>>) {
+    fn read_pixels(
+        gl: &gl::Gl,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        pixel_type: u32,
+        chan: WebGLSender<ByteBuf>,
+    ) {
       let result = gl.read_pixels(x, y, width, height, format, pixel_type);
-      chan.send(result).unwrap()
+      chan.send(result.into()).unwrap()
     }
 
     fn active_attrib(gl: &gl::Gl,
@@ -1053,8 +1072,7 @@ impl WebGLImpl {
 
             // Int32Array
             gl::MAX_VIEWPORT_DIMS |
-            gl::SCISSOR_BOX |
-            gl::VIEWPORT => Err(WebGLError::InvalidEnum),
+            gl::SCISSOR_BOX => Err(WebGLError::InvalidEnum),
 
             // Invalid parameters
             _ => Err(WebGLError::InvalidEnum)
@@ -1163,6 +1181,18 @@ impl WebGLImpl {
 
     fn get_extensions(gl: &gl::Gl, chan: WebGLSender<String>) {
         chan.send(gl.get_string(gl::EXTENSIONS)).unwrap();
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    fn get_framebuffer_attachment_parameter(
+        gl: &gl::Gl,
+        target: u32,
+        attachment: u32,
+        pname: u32,
+        chan: WebGLSender<i32>
+    ) {
+        let parameter = gl.get_framebuffer_attachment_parameter_iv(target, attachment, pname);
+        chan.send(parameter).unwrap();
     }
 
     fn uniform_location(gl: &gl::Gl,

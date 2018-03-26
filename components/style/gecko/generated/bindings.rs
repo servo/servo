@@ -5,8 +5,8 @@ use gecko_bindings::structs::nsStyleTransformMatrix;
 use gecko_bindings::structs::nsTArray;
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
-pub type ServoStyleContextBorrowed<'a> = &'a ::properties::ComputedValues;
-pub type ServoStyleContextBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;
+pub type ComputedStyleBorrowed<'a> = &'a ::properties::ComputedValues;
+pub type ComputedStyleBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;
 pub type ServoComputedDataBorrowed<'a> = &'a ServoComputedData;
 pub type RawServoAnimationValueTableBorrowed<'a> = &'a ();
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
@@ -118,9 +118,7 @@ unsafe impl Sync for nsStyleContentData_CounterFunction {}
 use gecko_bindings::structs::nsStyleContentType;
 unsafe impl Send for nsStyleContentType {}
 unsafe impl Sync for nsStyleContentType {}
-use gecko_bindings::structs::nsStyleContext;
-unsafe impl Send for nsStyleContext {}
-unsafe impl Sync for nsStyleContext {}
+use gecko_bindings::structs::ComputedStyle;
 use gecko_bindings::structs::nsStyleCoord;
 unsafe impl Send for nsStyleCoord {}
 unsafe impl Sync for nsStyleCoord {}
@@ -238,8 +236,7 @@ use gecko_bindings::structs::LoaderReusableStyleSheets;
 use gecko_bindings::structs::SheetLoadData;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::ServoComputedData;
-use gecko_bindings::structs::ServoStyleContext;
-use gecko_bindings::structs::ServoStyleContextStrong;
+use gecko_bindings::structs::ComputedStyleStrong;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::UpdateAnimationsTasks;
 use gecko_bindings::structs::ParsingMode;
@@ -586,9 +583,9 @@ extern "C" {
     pub fn Gecko_DestroyAnonymousContentList(anon_content: *mut nsTArray<*mut nsIContent>);
 }
 extern "C" {
-    pub fn Gecko_ServoStyleContext_Init(
-        context: *mut ServoStyleContext,
-        parent_context: ServoStyleContextBorrowedOrNull,
+    pub fn Gecko_ComputedStyle_Init(
+        context: *mut ComputedStyle,
+        parent_context: ComputedStyleBorrowedOrNull,
         pres_context: RawGeckoPresContextBorrowed,
         values: ServoComputedDataBorrowed,
         pseudo_type: CSSPseudoElementType,
@@ -596,7 +593,7 @@ extern "C" {
     );
 }
 extern "C" {
-    pub fn Gecko_ServoStyleContext_Destroy(context: *mut ServoStyleContext);
+    pub fn Gecko_ComputedStyle_Destroy(context: *mut ComputedStyle);
 }
 extern "C" {
     pub fn Gecko_ConstructStyleChildrenIterator(
@@ -879,8 +876,8 @@ extern "C" {
 extern "C" {
     pub fn Gecko_UpdateAnimations(
         aElementOrPseudo: RawGeckoElementBorrowed,
-        aOldComputedValues: ServoStyleContextBorrowedOrNull,
-        aComputedValues: ServoStyleContextBorrowedOrNull,
+        aOldComputedValues: ComputedStyleBorrowedOrNull,
+        aComputedValues: ComputedStyleBorrowedOrNull,
         aTasks: UpdateAnimationsTasks,
     );
 }
@@ -1173,8 +1170,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CalcStyleDifference(
-        old_style: ServoStyleContextBorrowed,
-        new_style: ServoStyleContextBorrowed,
+        old_style: ComputedStyleBorrowed,
+        new_style: ComputedStyleBorrowed,
         any_style_changed: *mut bool,
         reset_only_changed: *mut bool,
     ) -> u32;
@@ -1989,7 +1986,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_Element_GetPrimaryComputedValues(
         node: RawGeckoElementBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_Element_HasPseudoComputedValues(
@@ -2001,7 +1998,7 @@ extern "C" {
     pub fn Servo_Element_GetPseudoComputedValues(
         node: RawGeckoElementBorrowed,
         index: usize,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed) -> bool;
@@ -2160,9 +2157,9 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSet_ResolveForDeclarations(
         set: RawServoStyleSetBorrowed,
-        parent_style: ServoStyleContextBorrowedOrNull,
+        parent_style: ComputedStyleBorrowedOrNull,
         declarations: RawServoDeclarationBlockBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_SelectorList_Parse(selector_list: *const nsACString) -> *mut RawServoSelectorList;
@@ -2257,10 +2254,10 @@ extern "C" {
     ) -> usize;
 }
 extern "C" {
-    pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);
+    pub fn Servo_ComputedStyle_AddRef(ctx: ComputedStyleBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleContext_Release(ctx: ServoStyleContextBorrowed);
+    pub fn Servo_ComputedStyle_Release(ctx: ComputedStyleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_MightHaveAttributeDependency(
@@ -2637,20 +2634,20 @@ extern "C" {
     pub fn Servo_GetComputedKeyframeValues(
         keyframes: RawGeckoKeyframeListBorrowed,
         element: RawGeckoElementBorrowed,
-        style: ServoStyleContextBorrowed,
+        style: ComputedStyleBorrowed,
         set: RawServoStyleSetBorrowed,
         result: RawGeckoComputedKeyframeValuesListBorrowedMut,
     );
 }
 extern "C" {
     pub fn Servo_ComputedValues_ExtractAnimationValue(
-        computed_values: ServoStyleContextBorrowed,
+        computed_values: ComputedStyleBorrowed,
         property: nsCSSPropertyID,
     ) -> RawServoAnimationValueStrong;
 }
 extern "C" {
     pub fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(
-        computed_values: ServoStyleContextBorrowed,
+        computed_values: ComputedStyleBorrowed,
     ) -> bool;
 }
 extern "C" {
@@ -2682,7 +2679,7 @@ extern "C" {
     pub fn Servo_GetAnimationValues(
         declarations: RawServoDeclarationBlockBorrowed,
         element: RawGeckoElementBorrowed,
-        style: ServoStyleContextBorrowed,
+        style: ComputedStyleBorrowed,
         style_set: RawServoStyleSetBorrowed,
         animation_values: RawGeckoServoAnimationValueListBorrowedMut,
     );
@@ -2770,7 +2767,7 @@ extern "C" {
     pub fn Servo_AnimationValue_Compute(
         element: RawGeckoElementBorrowed,
         declarations: RawServoDeclarationBlockBorrowed,
-        style: ServoStyleContextBorrowed,
+        style: ComputedStyleBorrowed,
         raw_data: RawServoStyleSetBorrowed,
     ) -> RawServoAnimationValueStrong;
 }
@@ -2807,7 +2804,7 @@ extern "C" {
         declarations: RawServoDeclarationBlockBorrowed,
         property: nsCSSPropertyID,
         buffer: *mut nsAString,
-        computed_values: ServoStyleContextBorrowedOrNull,
+        computed_values: ComputedStyleBorrowedOrNull,
         custom_properties: RawServoDeclarationBlockBorrowedOrNull,
     );
 }
@@ -3049,21 +3046,21 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(
-        parent_style_or_null: ServoStyleContextBorrowedOrNull,
+        parent_style_or_null: ComputedStyleBorrowedOrNull,
         pseudo_tag: *mut nsAtom,
         set: RawServoStyleSetBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_ComputedValues_Inherit(
         set: RawServoStyleSetBorrowed,
         pseudo_tag: *mut nsAtom,
-        parent_style: ServoStyleContextBorrowedOrNull,
+        parent_style: ComputedStyleBorrowedOrNull,
         target: InheritTarget,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
-    pub fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBorrowed) -> u64;
+    pub fn Servo_ComputedValues_GetStyleBits(values: ComputedStyleBorrowed) -> u64;
 }
 extern "C" {
     pub fn Servo_ComputedValues_EqualCustomProperties(
@@ -3073,7 +3070,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetStyleRuleList(
-        values: ServoStyleContextBorrowed,
+        values: ComputedStyleBorrowed,
         rules: RawGeckoServoStyleRuleListBorrowedMut,
     );
 }
@@ -3100,35 +3097,35 @@ extern "C" {
     pub fn Servo_ResolveStyle(
         element: RawGeckoElementBorrowed,
         set: RawServoStyleSetBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_ResolvePseudoStyle(
         element: RawGeckoElementBorrowed,
         pseudo_type: CSSPseudoElementType,
         is_probe: bool,
-        inherited_style: ServoStyleContextBorrowedOrNull,
+        inherited_style: ComputedStyleBorrowedOrNull,
         set: RawServoStyleSetBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_ComputedValues_ResolveXULTreePseudoStyle(
         element: RawGeckoElementBorrowed,
         pseudo_tag: *mut nsAtom,
-        inherited_style: ServoStyleContextBorrowed,
+        inherited_style: ComputedStyleBorrowed,
         input_word: *const AtomArray,
         set: RawServoStyleSetBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_SetExplicitStyle(
         element: RawGeckoElementBorrowed,
-        primary_style: ServoStyleContextBorrowed,
+        primary_style: ComputedStyleBorrowed,
     );
 }
 extern "C" {
     pub fn Servo_HasAuthorSpecifiedRules(
-        style: ServoStyleContextBorrowed,
+        style: ComputedStyleBorrowed,
         element: RawGeckoElementBorrowed,
         pseudo_type: CSSPseudoElementType,
         rule_type_mask: u32,
@@ -3142,17 +3139,17 @@ extern "C" {
         rule_inclusion: StyleRuleInclusion,
         snapshots: *const ServoElementSnapshotTable,
         set: RawServoStyleSetBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_ReparentStyle(
-        style_to_reparent: ServoStyleContextBorrowed,
-        parent_style: ServoStyleContextBorrowed,
-        parent_style_ignoring_first_line: ServoStyleContextBorrowed,
-        layout_parent_style: ServoStyleContextBorrowed,
+        style_to_reparent: ComputedStyleBorrowed,
+        parent_style: ComputedStyleBorrowed,
+        parent_style_ignoring_first_line: ComputedStyleBorrowed,
+        layout_parent_style: ComputedStyleBorrowed,
         element: RawGeckoElementBorrowedOrNull,
         set: RawServoStyleSetBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_TraverseSubtree(
@@ -3175,18 +3172,18 @@ extern "C" {
     pub fn Servo_StyleSet_GetBaseComputedValuesForElement(
         set: RawServoStyleSetBorrowed,
         element: RawGeckoElementBorrowed,
-        existing_style: ServoStyleContextBorrowed,
+        existing_style: ComputedStyleBorrowed,
         snapshots: *const ServoElementSnapshotTable,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_StyleSet_GetComputedValuesByAddingAnimation(
         set: RawServoStyleSetBorrowed,
         element: RawGeckoElementBorrowed,
-        existing_style: ServoStyleContextBorrowed,
+        existing_style: ComputedStyleBorrowed,
         snapshots: *const ServoElementSnapshotTable,
         animation: RawServoAnimationValueBorrowed,
-    ) -> ServoStyleContextStrong;
+    ) -> ComputedStyleStrong;
 }
 extern "C" {
     pub fn Servo_SerializeFontValueForCanvas(
@@ -3196,17 +3193,17 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_GetCustomPropertyValue(
-        computed_values: ServoStyleContextBorrowed,
+        computed_values: ComputedStyleBorrowed,
         name: *const nsAString,
         value: *mut nsAString,
     ) -> bool;
 }
 extern "C" {
-    pub fn Servo_GetCustomPropertiesCount(computed_values: ServoStyleContextBorrowed) -> u32;
+    pub fn Servo_GetCustomPropertiesCount(computed_values: ComputedStyleBorrowed) -> u32;
 }
 extern "C" {
     pub fn Servo_GetCustomPropertyNameAt(
-        arg1: ServoStyleContextBorrowed,
+        arg1: ComputedStyleBorrowed,
         index: u32,
         name: *mut nsAString,
     ) -> bool;
@@ -3286,6 +3283,9 @@ extern "C" {
         stretch: nsCSSValueBorrowedMut,
         weight: nsCSSValueBorrowedMut,
     ) -> bool;
+}
+extern "C" {
+    pub fn Servo_Property_IsShorthand(name: *const nsACString, found: *mut bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(

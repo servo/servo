@@ -367,6 +367,19 @@ impl WebGLProgram {
         self.renderer.send(WebGLCommand::GetProgramParameter(self.id, param_id, sender)).unwrap();
         receiver.recv().unwrap()
     }
+
+    pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
+        if self.is_deleted.get() {
+            return Err(WebGLError::InvalidValue);
+        }
+        Ok(match (self.vertex_shader.get(), self.fragment_shader.get()) {
+            (Some(vertex_shader), Some(fragment_shader)) => {
+                vec![vertex_shader, fragment_shader]
+            }
+            (Some(shader), None) | (None, Some(shader)) => vec![shader],
+            (None, None) => vec![]
+        })
+    }
 }
 
 impl Drop for WebGLProgram {

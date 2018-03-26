@@ -31,9 +31,11 @@ use dom::vrpose::VRPose;
 use dom::vrstageparameters::VRStageParameters;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
+use profile_traits::ipc;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
+use serde_bytes::ByteBuf;
 use std::cell::Cell;
 use std::mem;
 use std::ops::Deref;
@@ -67,7 +69,7 @@ pub struct VRDisplay {
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_malloc_size_of = "closures are hard"]
-    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<Vec<u8>, ()>>>>,
+    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<ByteBuf, ()>>>>,
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
@@ -191,7 +193,7 @@ impl VRDisplayMethods for VRDisplay {
         }
 
         // If not presenting we fetch inmediante VRFrameData
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.webvr_thread().send(WebVRMsg::GetFrameData(self.global().pipeline_id(),
                                                         self.DisplayId(),
                                                         self.depth_near.get(),
@@ -216,7 +218,7 @@ impl VRDisplayMethods for VRDisplay {
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-resetpose
     fn ResetPose(&self) {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.webvr_thread().send(WebVRMsg::ResetPose(self.global().pipeline_id(),
                                                      self.DisplayId(),
                                                      sender)).unwrap();
@@ -324,7 +326,7 @@ impl VRDisplayMethods for VRDisplay {
         }
 
         // Request Present
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.webvr_thread().send(WebVRMsg::RequestPresent(self.global().pipeline_id(),
                                                           self.display.borrow().display_id,
                                                           sender))
@@ -357,7 +359,7 @@ impl VRDisplayMethods for VRDisplay {
         }
 
         // Exit present
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.webvr_thread().send(WebVRMsg::ExitPresent(self.global().pipeline_id(),
                                                        self.display.borrow().display_id,
                                                        Some(sender)))

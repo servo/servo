@@ -15,6 +15,7 @@ use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
@@ -31,10 +32,10 @@ use euclid::Size2D;
 use html5ever::{LocalName, Prefix};
 use image::ColorType;
 use image::png::PNGEncoder;
-use ipc_channel::ipc;
 use js::error::throw_type_error;
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
+use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;
 use std::iter::repeat;
@@ -260,11 +261,16 @@ impl HTMLCanvasElement {
 
         let data = match self.context.borrow().as_ref() {
             Some(&CanvasContext::Context2d(ref context)) => {
+<<<<<<< HEAD
                 let (sender, receiver) = ipc::channel().unwrap();
                 let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender),context.get_canvas_id());
+=======
+                let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender));
+>>>>>>> upstream/master
                 context.get_ipc_renderer().send(msg).unwrap();
 
-                receiver.recv().unwrap()?
+                receiver.recv().unwrap()?.into()
             },
             Some(&CanvasContext::WebGL(_)) => {
                 // TODO: add a method in WebGLRenderingContext to get the pixels.
@@ -354,11 +360,22 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                                                            Finite::wrap(self.Height() as f64))?;
                 image_data.get_data_array()
             }
+            Some(CanvasContext::WebGL(ref context)) => {
+                match context.get_image_data(self.Width(), self.Height()) {
+                    Some(data) => data,
+                    None => return Ok("data:,".into()),
+                }
+            }
+            Some(CanvasContext::WebGL2(ref context)) => {
+                match context.base_context().get_image_data(self.Width(), self.Height()) {
+                    Some(data) => data,
+                    None => return Ok("data:,".into()),
+                }
+            }
             None => {
                 // Each pixel is fully-transparent black.
                 vec![0; (self.Width() * self.Height() * 4) as usize]
             }
-            _ => return Err(Error::NotSupported) // WebGL
         };
 
         // Only handle image/png for now.

@@ -25,12 +25,15 @@ promise_test(async t => {
 
   const idl_array = new IdlArray();
 
-
-  idl_array.add_untested_idls('interface LinkStyle {};'); // Dependency of HTML
+  // Dependencies of HTML
+  idl_array.add_untested_idls('interface LinkStyle {};');
+  idl_array.add_untested_idls('interface SVGElement {};');
   idl_array.add_untested_idls(html);
+
   idl_array.add_untested_idls(dom);
   idl_array.add_untested_idls(mediacapture);
   idl_array.add_untested_idls('interface Worklet {};');
+
   idl_array.add_idls(webaudio);
 
   const sample_rate = 44100;

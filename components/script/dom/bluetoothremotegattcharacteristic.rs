@@ -12,6 +12,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
+use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -155,7 +156,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
-    fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
+    fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise> {
         let p = Promise::new(&self.global());
 
         // Step 1.
@@ -165,7 +166,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         }
 
         // Step 2 - 3.
-        if value.len() > MAXIMUM_ATTRIBUTE_LENGTH {
+        let vec = match value {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(avb) => avb.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(ab) => ab.to_vec(),
+        };
+
+        if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
             p.reject_error(InvalidModification);
             return p;
         }
@@ -190,7 +196,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         // in writeValue function and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
-            BluetoothRequest::WriteValue(self.get_instance_id(), value, sender)).unwrap();
+            BluetoothRequest::WriteValue(self.get_instance_id(), vec, sender)).unwrap();
         return p;
     }
 
