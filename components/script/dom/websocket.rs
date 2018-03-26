@@ -106,27 +106,27 @@ pub struct WebSocket {
     buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
     #[ignore_malloc_size_of = "Defined in std"]
-    sender: DomRefCell<Option<IpcSender<WebSocketDomAction>>>,
+    sender: IpcSender<WebSocketDomAction>,
     binary_type: Cell<BinaryType>,
     protocol: DomRefCell<String>, //Subprotocol selected by server
 }
 
 impl WebSocket {
-    fn new_inherited(url: ServoUrl) -> WebSocket {
+    fn new_inherited(url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(),
             url: url,
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
-            sender: DomRefCell::new(None),
+            sender: sender,
             binary_type: Cell::new(BinaryType::Blob),
             protocol: DomRefCell::new("".to_owned()),
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<WebSocket> {
-        reflect_dom_object(Box::new(WebSocket::new_inherited(url)),
+    fn new(global: &GlobalScope, url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> DomRoot<WebSocket> {
+        reflect_dom_object(Box::new(WebSocket::new_inherited(url, sender)),
                            global, WebSocketBinding::Wrap)
     }
 
@@ -174,9 +174,6 @@ impl WebSocket {
             }
         }
 
-        let ws = WebSocket::new(global, url_record.clone());
-        let address = Trusted::new(&*ws);
-
         // Create the interface for communication with the resource thread
         let (dom_action_sender, resource_action_receiver):
                 (IpcSender<WebSocketDomAction>,
@@ -185,6 +182,9 @@ impl WebSocket {
                 (IpcSender<WebSocketNetworkEvent>,
                  ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>) =
             ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
+
+        let ws = WebSocket::new(global, url_record.clone(), dom_action_sender);
+        let address = Trusted::new(&*ws);
 
         // Step 8.
         let request = RequestInit {
@@ -198,8 +198,6 @@ impl WebSocket {
             action_receiver: resource_action_receiver,
         };
         let _ = global.core_resource_thread().send(CoreResourceMsg::Fetch(request, channels));
-
-        *ws.sender.borrow_mut() = Some(dom_action_sender);
 
         let task_source = global.networking_task_source();
         let canceller = global.task_canceller();
@@ -324,9 +322,7 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
-            let mut other_sender = self.sender.borrow_mut();
-            let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
+            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
         }
 
         Ok(())
@@ -342,10 +338,8 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
-            let mut other_sender = self.sender.borrow_mut();
-            let my_sender = other_sender.as_mut().unwrap();
             let bytes = blob.get_bytes().unwrap_or(vec![]);
-            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
+            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
 
         Ok(())
@@ -358,9 +352,7 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len as u64)?;
 
         if send_data {
-            let mut other_sender = self.sender.borrow_mut();
-            let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
+            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
     }
@@ -372,9 +364,7 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len as u64)?;
 
         if send_data {
-            let mut other_sender = self.sender.borrow_mut();
-            let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
+            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
     }
@@ -410,9 +400,7 @@ impl WebSocketMethods for WebSocket {
                 // Kick off _Start the WebSocket Closing Handshake_
                 // https://tools.ietf.org/html/rfc6455#section-7.1.2
                 let reason = reason.map(|reason| reason.0);
-                let mut other_sender = self.sender.borrow_mut();
-                let my_sender = other_sender.as_mut().unwrap();
-                let _ = my_sender.send(WebSocketDomAction::Close(code, reason));
+                let _ = self.sender.send(WebSocketDomAction::Close(code, reason));
             }
         }
         Ok(()) //Return Ok
