@@ -12,7 +12,7 @@
 
 use app_units::{Au, AU_PER_PX};
 use block::BlockFlow;
-use canvas_traits::canvas::{CanvasMsg, CanvasId, FromLayoutMsg};
+use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
 use display_list::ToLayout;
 use display_list::background::{build_border_radius, build_image_border_details};
@@ -1800,7 +1800,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             let ipc_renderer = ipc_renderer.lock().unwrap();
                             let (sender, receiver) = ipc::channel().unwrap();
                             ipc_renderer
-                                .send(CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender)))
+                                .send(CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender), canvas_fragment_info.canvas_id.clone()))
                                 .unwrap();
                             (receiver.recv().unwrap().image_key, PixelFormat::BGRA8)
                         },

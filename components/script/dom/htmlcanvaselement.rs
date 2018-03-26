@@ -55,7 +55,6 @@ pub enum CanvasContext {
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: DomRefCell<Option<CanvasContext>>,
-    canvas_id: CanvasId
 }
 
 impl HTMLCanvasElement {
@@ -65,7 +64,6 @@ impl HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             context: DomRefCell::new(None),
-            canvas_id: canvas_id
         }
     }
 
@@ -133,6 +131,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                 source: source,
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
+                canvas_id: canvas.get_canvas_id(),
             }
         }
     }
@@ -156,6 +155,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
+    
 }
 
 
@@ -280,6 +280,14 @@ impl HTMLCanvasElement {
         };
 
         Some((data, size))
+    }
+    
+    pub fn get_canvas_id(&self) -> CanvasId {
+        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
+            context.get_canvas_id()
+        } else {
+            CanvasId(0)
+        }
     }
 }
 
