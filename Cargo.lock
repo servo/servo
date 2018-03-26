@@ -456,7 +456,6 @@ dependencies = [
  "gfx_traits 0.0.1",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "itertools 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "layout_traits 0.0.1",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "metrics 0.0.1",
