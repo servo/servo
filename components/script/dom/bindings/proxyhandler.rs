@@ -12,21 +12,21 @@ use js::glue::{GetProxyHandler, GetProxyHandlerFamily, SetProxyExtra};
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor, JSPROP_GETTER};
-use js::jsapi::ObjectOpResult;
 use js::jsapi::{JSErrNum, JS_StrictPropertyStub, SetDOMProxyInformation};
-use js::rust::wrappers::JS_NewObjectWithGivenProto;
-use js::jsapi::JS_DefinePropertyById;
 use js::jsapi::GetObjectProto;
 use js::jsapi::GetStaticPrototype;
-use js::jsapi::JS_GetPropertyDescriptorById;
-use js::rust::{Handle, HandleObject, MutableHandle, MutableHandleObject};
 use js::jsapi::Handle as RawHandle;
-use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::HandleId as RawHandleId;
+use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::JS_DefinePropertyById;
+use js::jsapi::JS_GetPropertyDescriptorById;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
+use js::jsapi::ObjectOpResult;
 use js::jsval::ObjectValue;
+use js::rust::{Handle, HandleObject, MutableHandle, MutableHandleObject};
+use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
+use js::rust::wrappers::JS_NewObjectWithGivenProto;
 use std::ptr;
 
 
