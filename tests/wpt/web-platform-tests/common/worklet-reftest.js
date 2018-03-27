@@ -1,12 +1,8 @@
-// To make sure that we take the snapshot at the right time, we do double
-// requestAnimationFrame. In the second frame, we take a screenshot, that makes
-// sure that we already have a full frame.
-function importWorkletAndTerminateTestAfterAsyncPaint(worklet, code) {
-    if (typeof worklet === 'undefined') {
-        takeScreenshot();
-        return;
-    }
-
+// Imports code into a worklet. E.g.
+//
+// importWorklet(CSS.paintWorklet, {url: 'script.js'});
+// importWorklet(CSS.paintWorklet, '/* javascript string */');
+function importWorklet(worklet, code) {
     let url;
     if (typeof code === 'object') {
       url = code.url;
@@ -15,11 +11,23 @@ function importWorkletAndTerminateTestAfterAsyncPaint(worklet, code) {
       url = URL.createObjectURL(blob);
     }
 
-    worklet.addModule(url).then(function() {
+    return worklet.addModule(url);
+}
+
+// To make sure that we take the snapshot at the right time, we do double
+// requestAnimationFrame. In the second frame, we take a screenshot, that makes
+// sure that we already have a full frame.
+async function importWorkletAndTerminateTestAfterAsyncPaint(worklet, code) {
+    if (typeof worklet === 'undefined') {
+        takeScreenshot();
+        return;
+    }
+
+    await importWorklet(worklet, code);
+
+    requestAnimationFrame(function() {
         requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-                takeScreenshot();
-            });
+            takeScreenshot();
         });
     });
 }

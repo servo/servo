@@ -16,9 +16,11 @@ registerLayout('test', class {
       return child.styleMap.get('--child').toString().trim();
     });
 
-    if (!areArraysEqual(expected, actual))
-      return {autoBlockSize: 0};
+    const childFragments = yield children.map((child) => { return child.layoutNextFragment({}); });
 
-    return {autoBlockSize: 100};
+    if (!areArraysEqual(expected, actual))
+      return {autoBlockSize: 0, childFragments};
+
+    return {autoBlockSize: 100, childFragments};
   }
 });
