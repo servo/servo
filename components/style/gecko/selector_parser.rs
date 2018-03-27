@@ -6,7 +6,7 @@
 
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser, ToCss, Token, CowRcStr, SourceLocation};
 use element_state::{DocumentState, ElementState};
-use gecko_bindings::structs::{self, CSSPseudoClassType};
+use gecko_bindings::structs;
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::element::document_state::InvalidationMatchingData;
@@ -256,28 +256,6 @@ impl NonTSPseudoClass {
                   NonTSPseudoClass::MozLWThemeBrightText |
                   NonTSPseudoClass::MozLWThemeDarkText
         )
-    }
-
-    /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
-    pub fn to_gecko_pseudoclasstype(&self) -> Option<CSSPseudoClassType> {
-        macro_rules! gecko_type {
-            (_) => (None);
-            ($gecko_type:ident) =>
-                (Some(::gecko_bindings::structs::CSSPseudoClassType::$gecko_type));
-        }
-        macro_rules! pseudo_class_geckotype {
-            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
-                match *self {
-                    $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
-                    $(NonTSPseudoClass::$s_name(..) => gecko_type!($s_gecko_type),)*
-                    NonTSPseudoClass::MozLocaleDir(_) => gecko_type!(mozLocaleDir),
-                    NonTSPseudoClass::Dir(_) => gecko_type!(dir),
-                    NonTSPseudoClass::MozAny(_) => gecko_type!(any),
-                }
-            }
-        }
-        apply_non_ts_list!(pseudo_class_geckotype)
     }
 
     /// Returns true if the evaluation of the pseudo-class depends on the
