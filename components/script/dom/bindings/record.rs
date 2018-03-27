@@ -119,10 +119,9 @@ impl<K, V, C> FromJSValConvertible for Record<K, V>
         let mut map = HashMap::new();
         for id in &*ids {
             rooted!(in(cx) let id = *id);
-            let mut desc = PropertyDescriptor::default();
-            let mut desc_handle = MutableHandle::<PropertyDescriptor>::from_marked_location(&mut desc);
+            rooted!(in(cx) let mut desc = PropertyDescriptor::default());
 
-            if !JS_GetOwnPropertyDescriptorById(cx, object.handle(), id.handle(), desc_handle) {
+            if !JS_GetOwnPropertyDescriptorById(cx, object.handle(), id.handle(), desc.handle_mut()) {
                 return Err(());
             }
 
