@@ -192,6 +192,26 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
         });
         ret
     }
+
+    fn has_unrooted_generic_substs(&self, did: hir::def_id::DefId, substs: &ty::subst::Substs) -> bool {
+        let cx = self.late_cx;
+
+        let generics = cx.tcx.generics_of(did);
+        for ty_param_def in &generics.types {
+            // If type has `#[must_root]`, then it is ok to
+            // give it a must-root type, so just skip.
+            if cx.tcx.has_attr(ty_param_def.def_id, "must_root") {
+                continue;
+            }
+
+            let arg_ty = substs.type_at(ty_param_def.index as usize);
+            if self.is_unrooted_ty(arg_ty, false) {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
@@ -203,9 +223,22 @@ impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
             },
             mir::LocalKind::Arg => if !self.in_derive_expn && ur_cx.is_unrooted_ty(decl.ty, false) {
                 ur_cx.late_cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Function argument type must be rooted.")
-            }
+            },
             mir::LocalKind::Var => if ur_cx.is_unrooted_ty(decl.ty, self.in_new_function) {
                 ur_cx.late_cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "Type of binding/expression must be rooted.")
+            },
+            _ => {},
+        }
+
+        let cx = ur_cx.late_cx;
+        match decl.ty.sty {
+            ty::TyAdt(adt_def, substs) => {
+                if adt_def.is_box() && self.in_new_function {
+                    // Boxes of unrooted types are allowed in new functions.
+                }
+                else if ur_cx.has_unrooted_generic_substs(adt_def.did, substs) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "ADT generic type must be rooted.")
+                }
             },
             _ => {},
         }
@@ -218,24 +251,11 @@ impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
         let cx = ur_cx.late_cx;
         match constant.ty.sty {
             ty::TyFnDef(callee_def_id, callee_substs) => {
-                let callee_generics = cx.tcx.generics_of(callee_def_id);
-                for ty_param_def in &callee_generics.types {
-                    // If type has `#[must_root]`, then it is ok to
-                    // give it a must-root type, so just skip.
-                    if cx.tcx.has_attr(ty_param_def.def_id, "must_root") {
-                        continue;
-                    }
-
-                    let arg_ty = callee_substs.type_at(ty_param_def.index as usize);
-                    if ur_cx.is_unrooted_ty(arg_ty, false) {
-                        cx.span_lint(UNROOTED_MUST_ROOT, constant.span, "Callee generic type must be rooted.")
-                    }
+                if ur_cx.has_unrooted_generic_substs(callee_def_id, callee_substs) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, constant.span, "Callee generic type must be rooted.")
                 }
-            }
-            ty::TyAdt(_, _) => {
-                cx.span_lint(UNROOTED_MUST_ROOT, constant.span, "xd")
-            }
-            _ => { }
+            },
+            _ => {},
         }
     }
 }

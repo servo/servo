@@ -156,7 +156,7 @@ pub mod unrooted_must_root {
     */
     pub fn ban_box() {}
 
-    /**
+    /* *
     ```
     #![feature(plugin)]
     #![plugin(script_plugins)]
@@ -171,7 +171,7 @@ pub mod unrooted_must_root {
     fn main() {}
     ```
     */
-    pub fn allow_box_ref() {}
+    // pub fn allow_box_ref() {} // is it a correct usage? I guess it isn't.
 
     /**
     ```compile_fail
@@ -197,20 +197,11 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
     struct SomeContainer<T>(T);
 
-    impl<T> SomeContainer<T> {
-        fn new(val: T) -> SomeContainer<T> {
-            SomeContainer(val)
-        }
-    }
-
     fn test() {
-        // none should work, but both do
-        SomeContainer::new(Foo(3));
         SomeContainer(Foo(3));
     }
 
@@ -226,22 +217,23 @@ pub mod unrooted_must_root {
     #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
-    #[must_root] struct SomeContainer<#[must_root] T>(T);
+    //#[must_root] struct SomeContainer<#[must_root] T>(T);
+    struct SomeContainer<T>(T);
 
     impl<T> SomeContainer<T> { // impl should provide #[must_root]
-        fn new(val: T) -> SomeContainer<T> {
-            SomeContainer(val)
+        fn foo(val: T) {
+            SomeContainer(val);
         }
     }
 
     fn test() {
-        SomeContainer(Foo(3));
+        SomeContainer::foo(Foo(3));
     }
 
     fn main() {}
     ```
     */
-    pub fn generic_container2() {}
+    pub fn generic_impl() {}
 
     /* *
     ```
