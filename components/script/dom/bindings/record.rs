@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! The `MozMap` (open-ended dictionary) type.
+//! The `Record` (open-ended dictionary) type.
 
 use crate::dom::bindings::conversions::jsid_to_string;
 use crate::dom::bindings::error::report_pending_exception;
@@ -16,10 +16,12 @@ use js::jsapi::JSITER_HIDDEN;
 use js::jsapi::JSITER_OWNONLY;
 use js::jsapi::JSITER_SYMBOLS;
 use js::jsapi::JSPROP_ENUMERATE;
+use js::jsapi::PropertyDescriptor;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::GetPropertyKeys;
 use js::rust::wrappers::JS_DefineUCProperty2;
+use js::rust::wrappers::JS_GetOwnPropertyDescriptorById;
 use js::rust::wrappers::JS_GetPropertyById;
 use js::rust::wrappers::JS_IdToValue;
 use js::rust::HandleId;
@@ -31,12 +33,12 @@ use std::hash::Hash;
 use std::marker::Sized;
 use std::ops::Deref;
 
-pub trait MozMapKey : Eq + Hash + Sized {
+pub trait RecordKey : Eq + Hash + Sized {
     fn to_utf16_vec(&self) -> Vec<u16>;
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Option<Self>;
 }
 
-impl MozMapKey for DOMString {
+impl RecordKey for DOMString {
     fn to_utf16_vec(&self) -> Vec<u16> {
         self.encode_utf16().collect::<Vec<_>>()
     }
@@ -46,7 +48,7 @@ impl MozMapKey for DOMString {
     }
 }
 
-impl MozMapKey for USVString {
+impl RecordKey for USVString {
     fn to_utf16_vec(&self) -> Vec<u16> {
         self.0.encode_utf16().collect::<Vec<_>>()
     }
@@ -63,7 +65,7 @@ impl MozMapKey for USVString {
     }
 }
 
-impl MozMapKey for ByteString {
+impl RecordKey for ByteString {
     fn to_utf16_vec(&self) -> Vec<u16> {
         self.iter().map(|&x| x as u16).collect::<Vec<u16>>()
     }
@@ -80,22 +82,22 @@ impl MozMapKey for ByteString {
     }
 }
 
-/// The `MozMap` (open-ended dictionary) type.
+/// The `Record` (open-ended dictionary) type.
 #[derive(Clone, JSTraceable)]
-pub struct MozMap<K: MozMapKey, V> {
+pub struct Record<K: RecordKey, V> {
     map: IndexMap<K, V>,
 }
 
-impl<K: MozMapKey, V> MozMap<K, V> {
-    /// Create an empty `MozMap`.
+impl<K: RecordKey, V> Record<K, V> {
+    /// Create an empty `Record`.
     pub fn new() -> Self {
-        MozMap {
+        Record {
             map: IndexMap::new(),
         }
     }
 }
 
-impl<K: MozMapKey, V> Deref for MozMap<K, V> {
+impl<K: RecordKey, V> Deref for Record<K, V> {
     type Target = IndexMap<K, V>;
 
     fn deref(&self) -> &IndexMap<K, V> {
@@ -103,9 +105,9 @@ impl<K: MozMapKey, V> Deref for MozMap<K, V> {
     }
 }
 
-impl<K, V, C> FromJSValConvertible for MozMap<K, V>
+impl<K, V, C> FromJSValConvertible for Record<K, V>
 where
-    K: MozMapKey,
+    K: RecordKey,
     V: FromJSValConvertible<Config = C>,
     C: Clone,
 {
@@ -117,7 +119,7 @@ where
     ) -> Result<ConversionResult<Self>, ()> {
         if !value.is_object() {
             return Ok(ConversionResult::Failure(
-                "MozMap value was not an object".into(),
+                "Record value was not an object".into(),
             ));
         }
 
@@ -134,7 +136,7 @@ where
             // https://github.com/servo/servo/issues/21462
             report_pending_exception(cx, false);
             return Ok(ConversionResult::Failure(
-                "Getting MozMap value property keys failed".into(),
+                "Getting Record value property keys failed".into(),
             ));
         }
 
@@ -161,12 +163,12 @@ where
             }
         }
 
-        Ok(ConversionResult::Success(MozMap { map: map }))
+        Ok(ConversionResult::Success(Record { map: map }))
     }
 }
 
-impl<K, V> ToJSValConvertible for MozMap<K, V>
-    where K: MozMapKey,
+impl<K, V> ToJSValConvertible for Record<K, V>
+    where K: RecordKey,
           V: ToJSValConvertible  {
     #[inline]
     unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {

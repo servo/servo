@@ -1925,7 +1925,7 @@ class CGRecord(CGThing):
             assert False
 
         defn = keyDef + ", " + self.value.define()
-        return "MozMap<" + defn + ">"
+        return "Record<" + defn + ">"
 
 
 class CGImports(CGWrapper):
@@ -2047,7 +2047,7 @@ class CGImports(CGWrapper):
                     extras += [descriptor.path, descriptor.bindingPath]
                     parentName = descriptor.getParentName()
             elif t.isType() and t.isRecord():
-                extras += ['crate::dom::bindings::mozmap::MozMap']
+                extras += ['crate::dom::bindings::record::Record']
             elif isinstance(t, IDLPromiseType):
                 extras += ['crate::dom::promise::Promise']
             else:
@@ -2396,7 +2396,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::conversions::StringificationBehavior',
         'crate::dom::bindings::conversions::root_from_handlevalue',
         'std::ptr::NonNull',
-        'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::record::Record',
         'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::root::DomRoot',
         'crate::dom::bindings::str::ByteString',
@@ -6077,7 +6077,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::proxyhandler::ensure_expando_object',
         'crate::dom::bindings::proxyhandler::fill_property_descriptor',
         'crate::dom::bindings::proxyhandler::get_expando_object',
-        'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::record::Record',
         'std::ptr::NonNull',
         'crate::dom::bindings::num::Finite',
         'crate::dom::bindings::str::ByteString',
