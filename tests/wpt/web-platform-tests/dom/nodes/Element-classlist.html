@@ -31,6 +31,13 @@ function checkModification(e, funcName, args, expectedRes, before, after,
     }
     setClass(e, before);
 
+    var obs;
+    // If we have MutationObservers available,  do some checks to make
+    // sure attribute sets are happening at sane times.
+    if (self.MutationObserver) {
+      obs = new MutationObserver(() => {});
+      obs.observe(e, { attributes: true });
+    }
     if (shouldThrow) {
       assert_throws(expectedException, function() {
         var list = e.classList;
@@ -39,6 +46,21 @@ function checkModification(e, funcName, args, expectedRes, before, after,
     } else {
       var list = e.classList;
       var res = list[funcName].apply(list, args);
+    }
+    if (obs) {
+      var mutationRecords = obs.takeRecords();
+      obs.disconnect();
+      if (shouldThrow) {
+        assert_equals(mutationRecords.length, 0,
+                      "There should have been no mutation");
+      } else if (funcName == "replace") {
+        assert_equals(mutationRecords.length == 1,
+                      expectedRes,
+                      "Should have a mutation exactly when replace() returns true");
+      } else {
+        // For other functions, would need to check when exactly
+        // mutations are supposed to happen.
+      }
     }
     if (!shouldThrow) {
       assert_equals(res, expectedRes, "wrong return value");

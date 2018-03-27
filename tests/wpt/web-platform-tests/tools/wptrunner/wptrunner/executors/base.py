@@ -8,7 +8,7 @@ import urlparse
 from abc import ABCMeta, abstractmethod
 
 from ..testrunner import Stop
-from protocol import Protocol
+from protocol import Protocol, BaseProtocolPart
 
 here = os.path.split(__file__)[0]
 
@@ -411,7 +411,23 @@ class WdspecRun(object):
             self.result_flag.set()
 
 
+class ConnectionlessBaseProtocolPart(BaseProtocolPart):
+    def execute_script(self, script, async=False):
+        pass
+
+    def set_timeout(self, timeout):
+        pass
+
+    def wait(self):
+        pass
+
+    def set_window(self, handle):
+        pass
+
+
 class ConnectionlessProtocol(Protocol):
+    implements = [ConnectionlessBaseProtocolPart]
+
     def connect(self):
         pass
 

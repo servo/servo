@@ -33,6 +33,8 @@ promise_test(function() {
         assert_equals(typeof capabilities.groupId, "string", "groupId must be a string.");
         if (mediainfo.kind == "audioinput") {
           assert_equals(typeof capabilities.echoCancellation, "object", "echoCancellation must be an object.");
+          assert_equals(typeof capabilities.autoGainControl, "object", "autoGainControl must be an object.");
+          assert_equals(typeof capabilities.noiseSuppression, "object", "noiseSuppression must be an object.");
         }
         if (mediainfo.kind == "videoinput") {
           assert_equals(typeof capabilities.facingMode, "object", "facingMode must be an object.");
