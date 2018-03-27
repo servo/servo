@@ -46,6 +46,7 @@ mod network_listener;
 mod pipeline;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 mod sandboxing;
+mod session_history;
 mod timer_scheduler;
 
 pub use constellation::{Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState};

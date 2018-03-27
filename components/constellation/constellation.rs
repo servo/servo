@@ -91,8 +91,7 @@
 
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
-use browsingcontext::{BrowsingContext, SessionHistoryChange};
-use browsingcontext::{FullyActiveBrowsingContextsIterator, AllBrowsingContextsIterator};
+use browsingcontext::{AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator};
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasMsg;
@@ -136,7 +135,9 @@ use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use session_history::{BrowsingContextChangeset, BrowsingContextDiff, SessionHistory, SessionHistoryChange, SessionHistoryDiff};
 use std::borrow::ToOwned;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::marker::PhantomData;
 use std::process;
@@ -273,6 +274,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// share an event loop, since they can use `document.domain`
     /// to become same-origin, at which point they can share DOM objects.
     event_loops: HashMap<TopLevelBrowsingContextId, HashMap<Host, Weak<EventLoop>>>,
+
+    joint_session_histories: HashMap<TopLevelBrowsingContextId, SessionHistory>,
 
     /// The set of all the pipelines in the browser.
     /// (See the `pipeline` module for more details.)
@@ -577,6 +580,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 swmanager_receiver: swmanager_receiver,
                 swmanager_sender: sw_mgr_clone,
                 event_loops: HashMap::new(),
+                joint_session_histories: HashMap::new(),
                 pipelines: HashMap::new(),
                 browsing_contexts: HashMap::new(),
                 pending_changes: vec!(),
@@ -1535,6 +1539,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if self.focus_pipeline_id.is_none() {
             self.focus_pipeline_id = Some(pipeline_id);
         }
+        self.joint_session_histories.insert(top_level_browsing_context_id, SessionHistory::new());
         self.new_pipeline(pipeline_id,
                           browsing_context_id,
                           top_level_browsing_context_id,
@@ -1913,15 +1918,106 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                    direction: TraversalDirection)
     {
-        // TODO: Traverse history
+        let mut browsing_context_changesets: HashMap<BrowsingContextId, BrowsingContextChangeset> = HashMap::new();
+        {
+            let session_history = self.joint_session_histories.entry(top_level_browsing_context_id).or_insert(SessionHistory::new());
+
+            match direction {
+                TraversalDirection::Forward(forward) => {
+                    if session_history.future.len() < forward {
+                        return warn!("Cannot traverse that far into the future.");
+                    }
+
+                    for _ in 0..forward {
+                        let diff = session_history.future.pop().unwrap();
+                        match diff {
+                            SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref diff) => {
+                                // TODO: Replace with `Entry::and_modify` when it becomes stable in 1.26
+                                match browsing_context_changesets.entry(browsing_context_id) {
+                                    Entry::Occupied(mut entry) => {
+                                        entry.get_mut().apply_diff(diff, direction);
+                                    },
+                                    Entry::Vacant(mut entry) => {
+                                        entry.insert(BrowsingContextChangeset::new(diff, direction));
+                                    }
+                                }
+                            }
+                        }
+                        session_history.past.push(diff);
+                    }
+                },
+                TraversalDirection::Back(back) => {
+                    if session_history.past.len() < back {
+                        return warn!("Cannot traverse that far into the past.");
+                    }
+
+                    for _ in 0..back {
+                        let diff = session_history.past.pop().unwrap();
+                        match diff {
+                            SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref diff) => {
+                                // TODO: Replace with `Entry::and_modify` when it becomes stable in 1.26
+                                match browsing_context_changesets.entry(browsing_context_id) {
+                                    Entry::Occupied(mut entry) => {
+                                        entry.get_mut().apply_diff(diff, direction);
+                                    },
+                                    Entry::Vacant(mut entry) => {
+                                        entry.insert(BrowsingContextChangeset::new(diff, direction));
+                                    }
+                                }
+                            }
+                        }
+                        session_history.future.push(diff);
+                    }
+                }
+            }
+        }
+
+        for (browsing_context_id, changeset) in browsing_context_changesets.drain() {
+            self.update_browsing_context(browsing_context_id, changeset);
+        }
+
+        self.notify_history_changed(top_level_browsing_context_id);
+        self.update_frame_tree_if_active(top_level_browsing_context_id);
+    }
+
+    fn update_browsing_context(&mut self, browsing_context_id: BrowsingContextId, changeset: BrowsingContextChangeset) {
+        let old_pipeline_id = match self.browsing_contexts.get_mut(&browsing_context_id) {
+            Some(browsing_context) => {
+                let old_pipeline_id = browsing_context.pipeline_id;
+                browsing_context.update_current_entry(changeset.pipeline_id, changeset.load_data);
+                old_pipeline_id
+            },
+            None => {
+                return warn!("Browsing context {} was closed during traversal", browsing_context_id);
+            }
+        };
+
+        let parent_info = self.pipelines.get(&old_pipeline_id).and_then(|pipeline| pipeline.parent_info);
+
+        self.update_activity(old_pipeline_id);
+        self.update_activity(changeset.pipeline_id);
+
+        if let Some(parent_pipeline_id) = parent_info {
+            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id, browsing_context_id,
+                changeset.pipeline_id, UpdatePipelineIdReason::Traversal);
+            let result = match self.pipelines.get(&parent_pipeline_id) {
+                None => return warn!("Pipeline {} child traversed after closure", parent_pipeline_id),
+                Some(pipeline) => pipeline.event_loop.send(msg),
+            };
+            if let Err(e) = result {
+                self.handle_send_error(parent_pipeline_id, e);
+            }
+        }
     }
 
     fn handle_joint_session_history_length(&self,
                                            top_level_browsing_context_id: TopLevelBrowsingContextId,
                                            sender: IpcSender<u32>)
     {
-        // TODO: Get jsh history
-        let _ = sender.send(1 as u32);
+        let length = self.joint_session_histories.get(&top_level_browsing_context_id)
+            .map(SessionHistory::history_length)
+            .unwrap_or(1);
+        let _ = sender.send(length as u32);
     }
 
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
@@ -2035,8 +2131,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_remove_iframe_msg(&mut self, browsing_context_id: BrowsingContextId) -> Vec<PipelineId> {
-        // TODO: Remove all descendant pipelines of the browsing context
-        vec![]
+        let result = self.all_descendant_browsing_contexts_iter(browsing_context_id)
+            .flat_map(|browsing_context| browsing_context.pipelines.iter().cloned()).collect();
+        self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
+        result
     }
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
@@ -2045,7 +2143,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("No browsing context associated with pipeline {:?}", pipeline_id),
         };
 
-        // TODO: Update children visibility
+        let child_pipeline_ids: Vec<PipelineId> = self.all_descendant_browsing_contexts_iter(browsing_context_id)
+            .flat_map(|browsing_context| browsing_context.pipelines.iter().cloned()).collect();
+
+        for id in child_pipeline_ids {
+            if let Some(pipeline) = self.pipelines.get_mut(&id) {
+                pipeline.change_visibility(visible);
+            }
+        }
     }
 
     fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
@@ -2206,8 +2311,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let (new_context, navigated) = if let Some(browsing_context) = self.browsing_contexts.get_mut(&change.browsing_context_id) {
             debug!("Adding pipeline to existing browsing context.");
             let old_pipeline_id = browsing_context.pipeline_id;
+            let old_load_data = browsing_context.load_data.clone();
             browsing_context.update_current_entry(change.new_pipeline_id, change.load_data.clone());
-            (false, Some(old_pipeline_id))
+            (false, Some((old_pipeline_id, old_load_data)))
         } else {
             debug!("Adding pipeline to new browsing context.");
             (true, None)
@@ -2217,16 +2323,27 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.new_browsing_context(change.browsing_context_id,
                                       change.top_level_browsing_context_id,
                                       change.new_pipeline_id,
-                                      change.load_data);
+                                      change.load_data.clone());
             self.update_activity(change.new_pipeline_id);
             self.notify_history_changed(change.top_level_browsing_context_id);
         };
 
-        if let Some(old_pipeline_id) = navigated {
+        if let Some((old_pipeline_id, old_load_data)) = navigated {
             // Deactivate the old pipeline, and activate the new one.
             self.update_activity(old_pipeline_id);
             self.update_activity(change.new_pipeline_id);
-            // TODO: Clear the joint session future
+            {
+                let session_history = self.joint_session_histories.entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
+                let diff = SessionHistoryDiff::BrowsingContextDiff(change.browsing_context_id, BrowsingContextDiff {
+                    browsing_context_id: change.browsing_context_id,
+                    old_pipeline_id,
+                    old_load_data,
+                    new_pipeline_id: change.new_pipeline_id,
+                    new_load_data: change.load_data,
+                });
+                let future = session_history.push_diff(diff);
+                // TODO: Close future pipelines
+            }
             self.notify_history_changed(change.top_level_browsing_context_id);
         }
 
@@ -2471,7 +2588,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 new_size,
                 size_type
             ));
-            // TODO: Send resize message to all pipelines of a frame
+            let pipelines = browsing_context.pipelines.iter()
+                .filter(|pipeline_id| **pipeline_id != pipeline.id)
+                .filter_map(|pipeline_id| self.pipelines.get(&pipeline_id));
+            for pipeline in pipelines {
+                let _ = pipeline.event_loop.send(ConstellationControlMsg::ResizeInactive(
+                    pipeline.id,
+                    new_size
+                ));
+            }
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
@@ -2539,7 +2664,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .collect();
 
         if let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) {
-            // TODO: get pipelines to close
+            pipelines_to_close.extend(&browsing_context.pipelines)
         }
 
         for pipeline_id in pipelines_to_close {

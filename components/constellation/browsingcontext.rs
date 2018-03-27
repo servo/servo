@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::TypedSize2D;
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use pipeline::Pipeline;
 use script_traits::LoadData;
 use std::collections::HashMap;
@@ -31,6 +31,8 @@ pub struct BrowsingContext {
 
     /// The load data for the current session history entry.
     pub load_data: LoadData,
+
+    pub pipelines: Vec<PipelineId>,
 }
 
 impl BrowsingContext {
@@ -47,7 +49,8 @@ impl BrowsingContext {
             top_level_id: top_level_id,
             size: None,
             pipeline_id: pipeline_id,
-            load_data: load_data
+            load_data: load_data,
+            pipelines: Vec::new(),
         }
     }
 
@@ -60,22 +63,6 @@ impl BrowsingContext {
     pub fn is_top_level(&self) -> bool {
         self.id == self.top_level_id
     }
-}
-
-/// Represents a pending change in a session history, that will be applied
-/// once the new pipeline has loaded and completed initial layout / paint.
-pub struct SessionHistoryChange {
-    /// The browsing context to change.
-    pub browsing_context_id: BrowsingContextId,
-
-    /// The top-level browsing context ancestor.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
-
-    /// The pipeline for the document being loaded.
-    pub new_pipeline_id: PipelineId,
-
-    /// The data for the document being loaded.
-    pub load_data: LoadData,
 }
 
 /// An iterator over browsing contexts, returning the descendant
@@ -138,25 +125,22 @@ pub struct AllBrowsingContextsIterator<'a> {
 impl<'a> Iterator for AllBrowsingContextsIterator<'a> {
     type Item = &'a BrowsingContext;
     fn next(&mut self) -> Option<&'a BrowsingContext> {
-        // TODO: Get all browsing
-        // let pipelines = self.pipelines;
-        // loop {
-        //     let browsing_context_id = self.stack.pop()?;
-        //     let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
-        //         Some(browsing_context) => browsing_context,
-        //         None => {
-        //             warn!("BrowsingContext {:?} iterated after closure.", browsing_context_id);
-        //             continue;
-        //         },
-        //     };
-        //     let child_browsing_context_ids = browsing_context.prev.iter().chain(browsing_context.next.iter())
-        //         .filter_map(|entry| entry.pipeline_id)
-        //         .chain(once(browsing_context.pipeline_id))
-        //         .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
-        //         .flat_map(|pipeline| pipeline.children.iter());
-        //     self.stack.extend(child_browsing_context_ids);
-        //     return Some(browsing_context)
-        // }
+        let pipelines = self.pipelines;
+        loop {
+            let browsing_context_id = self.stack.pop()?;
+            let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
+                Some(browsing_context) => browsing_context,
+                None => {
+                    warn!("BrowsingContext {:?} iterated after closure.", browsing_context_id);
+                    continue;
+                },
+            };
+            let child_browsing_context_ids = browsing_context.pipelines.iter()
+                .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
+                .flat_map(|pipeline| pipeline.children.iter());
+            self.stack.extend(child_browsing_context_ids);
+            return Some(browsing_context)
+        }
         None
     }
 }
