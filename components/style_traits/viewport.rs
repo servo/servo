@@ -7,7 +7,6 @@
 use {CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
 use cssparser::Parser;
 use euclid::TypedSize2D;
-#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt::{self, Write};
 
 define_css_keyword_enum! {
