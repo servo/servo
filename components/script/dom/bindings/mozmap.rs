@@ -6,7 +6,7 @@
 
 use dom::bindings::conversions::jsid_to_string;
 use dom::bindings::str::DOMString;
-use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
+use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::rust::wrappers::GetPropertyKeys;
 use js::rust::HandleValue;
 use js::jsapi::JSContext;
