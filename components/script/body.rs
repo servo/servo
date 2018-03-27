@@ -13,6 +13,7 @@ use dom::formdata::FormData;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use js::jsapi::Heap;
+use js::jsval::JSVal;
 use js::jsapi::JSContext;
 use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
@@ -20,6 +21,7 @@ use js::jsapi::JS_ParseJSON;
 use js::jsapi::Value as JSValue;
 use js::jsval::UndefinedValue;
 use js::typedarray::{ArrayBuffer, CreateWith};
+use js::jsapi::JS_GetPendingException;
 use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Ref;
 use std::ptr;
@@ -42,6 +44,7 @@ pub enum FetchedData {
     BlobData(DomRoot<Blob>),
     FormData(DomRoot<FormData>),
     ArrayBuffer(RootedTraceableBox<Heap<*mut JSObject>>),
+    JSException(RootedTraceableBox<Heap<JSVal>>)
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
@@ -90,7 +93,8 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
                 FetchedData::Json(j) => promise.resolve_native(&j),
                 FetchedData::BlobData(b) => promise.resolve_native(&b),
                 FetchedData::FormData(f) => promise.resolve_native(&f),
-                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a)
+                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a),
+                FetchedData::JSException(e) => promise.reject_native(&e.handle()),
             };
         },
         Err(err) => promise.reject_error(err),
@@ -133,9 +137,10 @@ fn run_json_data_algorithm(cx: *mut JSContext,
                          json_text.as_ptr(),
                          json_text.len() as u32,
                          rval.handle_mut()) {
+            rooted!(in(cx) let mut exception = UndefinedValue());
+            JS_GetPendingException(cx, exception.handle_mut());
             JS_ClearPendingException(cx);
-            // TODO: See issue #13464. Exception should be thrown instead of cleared.
-            return Err(Error::Type("Failed to parse JSON".to_string()));
+            return Ok(FetchedData::JSException(RootedTraceableBox::from_box(Heap::boxed(exception.get()))));
         }
         let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(rval.get()));
         Ok(FetchedData::Json(rooted_heap))
