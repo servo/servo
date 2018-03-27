@@ -112,7 +112,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
 }
 
 fn dict_return(cx: *mut JSContext,
-               result: MutableHandleObject,
+               mut result: MutableHandleObject,
                done: bool,
                value: HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyOrValueResult::empty(cx) };
@@ -127,7 +127,7 @@ fn dict_return(cx: *mut JSContext,
 }
 
 fn key_and_value_return(cx: *mut JSContext,
-                        result: MutableHandleObject,
+                        mut result: MutableHandleObject,
                         key: HandleValue,
                         value: HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };

@@ -86,7 +86,7 @@ impl<T, C> FromJSValConvertible for MozMap<T>
 
 impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
     #[inline]
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         rooted!(in(cx) let js_object = JS_NewPlainObject(cx));
         assert!(!js_object.handle().is_null());
 

@@ -521,7 +521,7 @@ impl JsTimerTask {
     // Returning Handles directly from Heap values is inherently unsafe, but here it's
     // always done via rooted JsTimers, which is safe.
     #[allow(unsafe_code)]
-    fn collect_heap_args(&self, args: &[Heap<JSVal>]) -> Vec<HandleValue> {
+    fn collect_heap_args<'b>(&self, args: &'b[Heap<JSVal>]) -> Vec<HandleValue<'b>> {
         args.iter().map(|arg| unsafe { arg.handle() }).collect()
     }
 }

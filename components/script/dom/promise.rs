@@ -110,7 +110,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn create_js_promise(cx: *mut JSContext, proto: HandleObject, obj: MutableHandleObject) {
+    unsafe fn create_js_promise(cx: *mut JSContext, proto: HandleObject, mut obj: MutableHandleObject) {
         let do_nothing_func = JS_NewFunction(cx, Some(do_nothing_promise_executor), /* nargs = */ 2,
                                              /* flags = */ 0, ptr::null());
         assert!(!do_nothing_func.is_null());

@@ -319,7 +319,7 @@ pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
     unsafe {
         let rt = JS_GetRuntime(cx);
         let mut stats = ::std::mem::zeroed();
-        if CollectServoSizes(rt, &mut stats) {
+        if CollectServoSizes(rt, &mut stats, None) {
             let mut report = |mut path_suffix, kind, size| {
                 let mut path = path![path_seg, "js"];
                 path.append(&mut path_suffix);

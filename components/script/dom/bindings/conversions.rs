@@ -273,7 +273,7 @@ impl FromJSValConvertible for USVString {
 
 // http://heycam.github.io/webidl/#es-ByteString
 impl ToJSValConvertible for ByteString {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         let jsstr = JS_NewStringCopyN(cx,
                                       self.as_ptr() as *const libc::c_char,
                                       self.len() as libc::size_t);
@@ -323,7 +323,7 @@ impl FromJSValConvertible for ByteString {
 
 
 impl ToJSValConvertible for Reflector {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
         rval.set(ObjectValue(obj));
@@ -489,7 +489,7 @@ pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
 pub unsafe fn get_property_jsval(cx: *mut JSContext,
                                  object: HandleObject,
                                  name: &str,
-                                 rval: MutableHandleValue)
+                                 mut rval: MutableHandleValue)
                                  -> Fallible<()>
 {
     rval.set(UndefinedValue());

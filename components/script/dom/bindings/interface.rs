@@ -134,7 +134,7 @@ pub unsafe fn create_global_object(
         class: &'static JSClass,
         private: *const libc::c_void,
         trace: TraceHook,
-        rval: MutableHandleObject) {
+        mut rval: MutableHandleObject) {
     assert!(rval.is_null());
 
     let mut options = CompartmentOptions::default();
@@ -168,7 +168,7 @@ pub unsafe fn create_callback_interface_object(
         global: HandleObject,
         constants: &[Guard<&[ConstantSpec]>],
         name: &[u8],
-        rval: MutableHandleObject) {
+        mut rval: MutableHandleObject) {
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
     define_guarded_constants(cx, rval.handle(), constants);
@@ -268,7 +268,7 @@ pub unsafe fn create_object(
         methods: &[Guard<&'static [JSFunctionSpec]>],
         properties: &[Guard<&'static [JSPropertySpec]>],
         constants: &[Guard<&[ConstantSpec]>],
-        rval: MutableHandleObject) {
+        mut rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     define_guarded_methods(cx, rval.handle(), methods);
     define_guarded_properties(cx, rval.handle(), properties);
@@ -392,6 +392,8 @@ unsafe fn has_instance(
         // Step 1.
         return Ok(false);
     }
+
+    rooted!(in(cx) let value_mirror = value.to_object());
     rooted!(in(cx) let mut value = value.to_object());
 
     let js_class = get_object_class(interface_object.get());
@@ -413,7 +415,7 @@ unsafe fn has_instance(
     assert!(!prototype.is_null());
     // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
-    while JS_GetPrototype(cx, value.handle(), value.handle_mut()) {
+    while JS_GetPrototype(cx, value_mirror.handle(), value.handle_mut()) {
         if value.is_null() {
             // Step 5.2.
             return Ok(false);
@@ -429,7 +431,7 @@ unsafe fn has_instance(
 unsafe fn create_unscopable_object(
         cx: *mut JSContext,
         names: &[&[u8]],
-        rval: MutableHandleObject) {
+        mut rval: MutableHandleObject) {
     assert!(!names.is_empty());
     assert!(rval.is_null());
     rval.set(JS_NewPlainObject(cx));
