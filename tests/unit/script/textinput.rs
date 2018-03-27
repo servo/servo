@@ -619,6 +619,9 @@ fn test_textinput_set_selection_with_direction() {
     assert_eq!(textinput.selection_origin().unwrap().line, 0);
     assert_eq!(textinput.selection_origin().unwrap().index, 0);
 
+    textinput = text_input(Lines::Single, "");
+    textinput.set_selection_range(1, 1, SelectionDirection::Forward);
+    assert_eq!(textinput.edit_point().index, 2);
 }
 
 #[test]
