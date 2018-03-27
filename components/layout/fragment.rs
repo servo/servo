@@ -8,7 +8,7 @@
 
 use ServoArc;
 use app_units::Au;
-use canvas_traits::canvas::{CanvasMsg,CanvasId};
+use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use context::{LayoutContext, with_thread_local_font_context};
 use display_list::ToLayout;
 use euclid::{Point2D, Vector2D, Rect, Size2D};

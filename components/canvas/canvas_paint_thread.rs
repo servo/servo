@@ -101,7 +101,7 @@ impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
            webrender_api_sender: webrender_api::RenderApiSender,
            antialias: AntialiasMode,
-              canvas_id: CanvasId) -> CanvasPaintThread<'a> {
+           canvas_id: CanvasId) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
@@ -123,7 +123,7 @@ impl<'a> CanvasPaintThread<'a> {
     pub fn start(size: Size2D<i32>,
                  webrender_api_sender: webrender_api::RenderApiSender,
                  antialias: bool,
-                  canvas_id: CanvasId)
+                 canvas_id: CanvasId)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let antialias = if antialias {
@@ -229,11 +229,11 @@ impl<'a> CanvasPaintThread<'a> {
                         assert!(canvas_id == painter.canvas_id);
                         break;
                     },
-                    CanvasMsg::Recreate(size,canvas_id) =>{
+                    CanvasMsg::Recreate(size, canvas_id) =>{
                         assert!(canvas_id == painter.canvas_id);
                         painter.recreate(size);
                     },
-                    CanvasMsg::FromScript(message,canvas_id) => {
+                    CanvasMsg::FromScript(message, canvas_id) => {
                         assert!(canvas_id == painter.canvas_id);
                         match message {
                             FromScriptMsg::SendPixels(chan) => {
@@ -428,6 +428,7 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn draw_image_in_other(&self,
                            renderer: IpcSender<CanvasMsg>,
+                           other_canvas_id: CanvasId,
                            image_size: Size2D<f64>,
                            dest_rect: Rect<f64>,
                            source_rect: Rect<f64>,
@@ -443,8 +444,9 @@ impl<'a> CanvasPaintThread<'a> {
             dest_rect,
             source_rect,
             smoothing_enabled,
+            ),
             other_canvas_id,
-        ));
+        );
         renderer.send(msg).unwrap();
         // We acknowledge to the caller here that the data was sent to the
         // other canvas so that if JS immediately afterwards try to get the

@@ -200,8 +200,8 @@ function drawImage() {
   ctx2.imageSmoothingEnabled = smoothingEnabled;
 
   args.unshift(canvas1);
-    try {
-        ctx2.drawImage.apply(ctx2, args);
+  try {
+    ctx2.drawImage.apply(ctx2, args);
   }
   catch(err) {
     var title = div.querySelector('.example-title');
