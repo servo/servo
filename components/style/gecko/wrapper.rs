@@ -32,7 +32,6 @@ use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_ConstructStyleChildrenIterator, Gecko_DestroyStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
-use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
@@ -812,6 +811,21 @@ impl<'le> GeckoElement<'le> {
     fn is_in_anonymous_subtree(&self) -> bool {
         self.is_in_native_anonymous_subtree() ||
         (!self.as_node().is_in_shadow_tree() && self.has_xbl_binding_parent())
+    }
+
+    /// Returns true if this node is the shadow root of an use-element shadow tree.
+    #[inline]
+    fn is_root_of_use_element_shadow_tree(&self) -> bool {
+        if !self.is_root_of_anonymous_subtree() {
+            return false
+        }
+        match self.parent_element() {
+            Some(e) => {
+                e.local_name() == &*local_name!("use") &&
+                    e.namespace() == &*ns!("http://www.w3.org/2000/svg")
+            },
+            None => false,
+        }
     }
 
     fn css_transitions_info(&self) -> FnvHashMap<LonghandId, Arc<AnimationValue>> {
@@ -1981,7 +1995,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
 
         unsafe {
-            Gecko_IsRootElement(self.0)
+            bindings::Gecko_IsRootElement(self.0)
         }
     }
 
@@ -2103,11 +2117,17 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 }
                 true
             }
-            NonTSPseudoClass::MozTableBorderNonzero |
-            NonTSPseudoClass::MozBrowserFrame |
-            NonTSPseudoClass::MozNativeAnonymous |
-            NonTSPseudoClass::MozUseShadowTreeRoot => unsafe {
-                Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
+            NonTSPseudoClass::MozNativeAnonymous => {
+                self.is_in_native_anonymous_subtree()
+            }
+            NonTSPseudoClass::MozUseShadowTreeRoot => {
+                self.is_root_of_use_element_shadow_tree()
+            }
+            NonTSPseudoClass::MozTableBorderNonzero => unsafe {
+                bindings::Gecko_IsTableBorderNonzero(self.0)
+            }
+            NonTSPseudoClass::MozBrowserFrame => unsafe {
+                bindings::Gecko_IsBrowserFrame(self.0)
             },
             NonTSPseudoClass::MozIsHTML => {
                 self.is_html_element_in_html_document()
@@ -2235,20 +2255,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn blocks_ancestor_combinators(&self) -> bool {
-        if !self.is_root_of_anonymous_subtree() {
-            return false
-        }
-
-        match self.parent_element() {
-            Some(e) => {
-                // If this element is the shadow root of an use-element shadow
-                // tree, according to the spec, we should not match rules
-                // cross the shadow DOM boundary.
-                e.local_name() == &*local_name!("use") &&
-                e.namespace() == &*ns!("http://www.w3.org/2000/svg")
-            },
-            None => false,
-        }
+        // If this element is the shadow root of an use-element shadow tree,
+        // according to the spec, we should not match rules cross the shadow
+        // DOM boundary.
+        self.is_root_of_use_element_shadow_tree()
     }
 }
 

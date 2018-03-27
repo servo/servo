@@ -31,7 +31,7 @@ use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product}
 use style::gecko::data::{GeckoStyleSheet, PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_THREAD_POOL};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
-use style::gecko::selector_parser::PseudoElement;
+use style::gecko::selector_parser::{NonTSPseudoClass, PseudoElement};
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings;
@@ -5114,4 +5114,15 @@ pub extern "C" fn Servo_ParseCounterStyleDescriptor(
         descriptor,
         result,
     ).is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_PseudoClass_GetStates(name: *const nsACString) -> u64 {
+    let name = name.as_ref().unwrap().as_str_unchecked();
+    match NonTSPseudoClass::parse_non_functional(name) {
+        None => 0,
+        // Ignore :any-link since it contains both visited and unvisited state.
+        Some(NonTSPseudoClass::AnyLink) => 0,
+        Some(pseudo_class) => pseudo_class.state_flag().bits(),
+    }
 }
