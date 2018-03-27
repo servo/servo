@@ -428,6 +428,7 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn draw_image_in_other(&self,
                            renderer: IpcSender<CanvasMsg>,
+						   other_canvas_id: CanvasId,
                            image_size: Size2D<f64>,
                            dest_rect: Rect<f64>,
                            source_rect: Rect<f64>,
@@ -443,8 +444,9 @@ impl<'a> CanvasPaintThread<'a> {
             dest_rect,
             source_rect,
             smoothing_enabled,
-            other_canvas_id,
-        ));
+			),
+			other_canvas_id,
+		);
         renderer.send(msg).unwrap();
         // We acknowledge to the caller here that the data was sent to the
         // other canvas so that if JS immediately afterwards try to get the

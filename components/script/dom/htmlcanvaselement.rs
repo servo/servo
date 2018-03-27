@@ -261,13 +261,8 @@ impl HTMLCanvasElement {
 
         let data = match self.context.borrow().as_ref() {
             Some(&CanvasContext::Context2d(ref context)) => {
-<<<<<<< HEAD
-                let (sender, receiver) = ipc::channel().unwrap();
-                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender),context.get_canvas_id());
-=======
                 let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender));
->>>>>>> upstream/master
+                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender),context.get_canvas_id());
                 context.get_ipc_renderer().send(msg).unwrap();
 
                 receiver.recv().unwrap()?.into()
