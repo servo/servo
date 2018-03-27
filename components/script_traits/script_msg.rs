@@ -106,6 +106,8 @@ pub enum ScriptMsg {
     TraverseHistory(TraversalDirection),
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(IpcSender<u32>),
+    /// Gets the URL of the current entry of a given browsing context.
+    CurrentEntryUrl(BrowsingContextId, IpcSender<ServoUrl>),
     /// Favicon detected
     NewFavicon(ServoUrl),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.

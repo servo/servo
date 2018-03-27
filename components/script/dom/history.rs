@@ -20,6 +20,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::TraversalDirection;
 use profile_traits::ipc::channel;
 use script_traits::ScriptMsg;
+use servo_url::ServoUrl;
 
 enum PushOrReplace {
     Push,
@@ -68,7 +69,7 @@ impl History {
                              cx: *mut JSContext,
                              data: HandleValue,
                              _title: DOMString,
-                             _url: Option<USVString>,
+                             url: Option<USVString>,
                              _push_or_replace: PushOrReplace) -> ErrorResult {
         // Step 1
         let document = self.window.Document();
@@ -86,8 +87,47 @@ impl History {
         // Step 5
         let serialized_data = StructuredCloneData::write(cx, data)?;
 
-        // TODO: Steps 6-7 Url Handling
-        // https://github.com/servo/servo/issues/19157
+        let new_url: ServoUrl = match url {
+            // Step 6
+            Some(urlstring) => {
+                let document_url = document.url();
+
+                // Step 6.1
+                let new_url = match ServoUrl::parse_with_base(Some(&document_url), &urlstring.0) {
+                    // Step 6.3
+                    Ok(parsed_url) => parsed_url,
+                    // Step 6.2
+                    Err(_) => return Err(Error::Security),
+                };
+
+                // Step 6.4
+                if new_url.scheme() != document_url.scheme() ||
+                   new_url.host() != document_url.host() ||
+                   new_url.port() != document_url.port() ||
+                   new_url.username() != document_url.username() ||
+                   new_url.password() != document_url.password()
+                {
+                    return Err(Error::Security);
+                }
+
+                // Step 6.5
+                if new_url.origin() != document_url.origin() {
+                    return Err(Error::Security);
+                }
+
+                new_url
+            },
+            // Step 7
+            None => {
+                let browsing_context_id = self.window.window_proxy().browsing_context_id();
+                let (sender, recv) =
+                    channel(self.global().time_profiler_chan().clone())
+                    .expect("Failed to create channel to get current URL.");
+                let msg = ScriptMsg::CurrentEntryUrl(browsing_context_id, sender);
+                let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+                recv.recv().unwrap()
+            }
+        };
 
         // TODO: Step 8 Push/Replace session history entry
         // https://github.com/servo/servo/issues/19156
@@ -95,8 +135,8 @@ impl History {
         // TODO: Step 9 Update current entry to represent a GET request
         // https://github.com/servo/servo/issues/19156
 
-        // TODO: Step 10 Set document's URL to new URL
-        // https://github.com/servo/servo/issues/19157
+        // Step 10
+        document.set_url(new_url);
 
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();

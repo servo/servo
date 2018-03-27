@@ -1138,6 +1138,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got joint session history length message from script");
                 self.handle_joint_session_history_length(source_top_ctx_id, sender);
             }
+            // Handle a session history current entry URL request
+            FromScriptMsg::CurrentEntryUrl(browsing_context_id, sender) => {
+                debug!("constellation got session history current entry URL message from script");
+                self.handle_current_entry_url_msg(browsing_context_id, sender);
+            }
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument => {
                 debug!("constellation got activate document message");
@@ -2035,6 +2040,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             length += browsing_context.prev.len();
         }
         let _ = sender.send(length as u32);
+    }
+
+    fn handle_current_entry_url_msg(&self,
+                                    browsing_context_id: BrowsingContextId,
+                                    sender: IpcSender<ServoUrl>)
+    {
+        let url = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(browsing_context) => browsing_context.current().load_data.url,
+            None => {
+                return warn!("Browsing context {} got current entry URL request after closure.", browsing_context_id);
+            }
+        };
+        let _ = sender.send(url);
     }
 
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
