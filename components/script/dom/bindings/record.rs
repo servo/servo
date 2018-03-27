@@ -143,6 +143,15 @@ where
         let mut map = IndexMap::new();
         for id in &*ids {
             rooted!(in(cx) let id = *id);
+            rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+
+            if !JS_GetOwnPropertyDescriptorById(cx, object.handle(), id.handle(), desc.handle_mut()) {
+                return Err(());
+            }
+
+            if (JSPROP_ENUMERATE as u32) & desc.attrs == 0 {
+                continue;
+            }
 
             rooted!(in(cx) let mut property = UndefinedValue());
             if !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut()) {
