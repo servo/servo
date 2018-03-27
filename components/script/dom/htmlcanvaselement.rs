@@ -156,7 +156,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
-    
+
 }
 
 
@@ -262,7 +262,7 @@ impl HTMLCanvasElement {
         let data = match self.context.borrow().as_ref() {
             Some(&CanvasContext::Context2d(ref context)) => {
                 let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender),context.get_canvas_id());
+                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), context.get_canvas_id());
                 context.get_ipc_renderer().send(msg).unwrap();
 
                 receiver.recv().unwrap()?.into()
@@ -282,7 +282,7 @@ impl HTMLCanvasElement {
 
         Some((data, size))
     }
-    
+
     pub fn get_canvas_id(&self) -> CanvasId {
         if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
             context.get_canvas_id()

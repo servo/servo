@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\components",
+    "\\components\\canvas\\webgl_mode",
+    "\\components\\script",
+    "\\components\\script\\dom"
+  ],
+  "SelectedNode": "\\components\\script\\dom\\htmlcanvaselement.rs",
+  "PreviewInSolutionExplorer": false
+}
