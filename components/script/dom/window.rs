@@ -52,9 +52,10 @@ use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSiz
 use fetch;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;

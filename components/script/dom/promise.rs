@@ -19,14 +19,18 @@ use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{AddPromiseReactions, AddRawValueRoot, CallArgs, CallOriginalPromiseReject};
-use js::jsapi::{CallOriginalPromiseResolve, GetFunctionNativeReserved, GetPromiseState};
-use js::jsapi::{HandleObject, HandleValue, Heap, IsPromiseObject, JS_ClearPendingException};
+use js::jsapi::{AddRawValueRoot, CallArgs};
+use js::jsapi::{GetFunctionNativeReserved};
+use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetContext, JS_GetFunctionObject};
-use js::jsapi::{JS_GetObjectRuntime, JS_NewFunction, MutableHandleObject};
-use js::jsapi::{NewFunctionWithReserved, NewPromiseObject, PromiseState, RejectPromise};
-use js::jsapi::{RemoveRawValueRoot, ResolvePromise, SetFunctionNativeReserved};
+use js::jsapi::{JS_GetObjectRuntime, JS_NewFunction};
+use js::jsapi::{NewFunctionWithReserved, PromiseState};
+use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
+use js::rust::wrappers::{ResolvePromise, RejectPromise, GetPromiseState};
+use js::rust::wrappers::{NewPromiseObject, IsPromiseObject, AddPromiseReactions};
+use js::rust::wrappers::{CallOriginalPromiseResolve, CallOriginalPromiseReject};
 use std::ptr;
 use std::rc::Rc;
 
@@ -282,4 +286,3 @@ fn create_native_handler_function(cx: *mut JSContext,
         obj.get()
     }
 }
-

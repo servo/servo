@@ -13,7 +13,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use js::jsapi::JSContext;
 use js::jsapi::JS_ClearPendingException;
-use js::jsapi::JS_ParseJSON;
+use js::rust::wrappers::JS_ParseJSON;
 use js::jsapi::Value as JSValue;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};

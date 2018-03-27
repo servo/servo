@@ -7,7 +7,8 @@
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{HandleObject, JSContext, JSObject, Heap};
+use js::jsapi::{JSContext, JSObject, Heap};
+use js::rust::HandleObject;
 use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the

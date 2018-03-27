@@ -13,20 +13,24 @@ use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_i
 use js::error::throw_type_error;
 use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
 use js::jsapi::{Class, ClassOps, CompartmentOptions};
-use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol, HandleObject, HandleValue};
+use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol};
 use js::jsapi::{JSAutoCompartment, JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
-use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
-use js::jsapi::{JS_DefineProperty4, JS_DefinePropertyById3, JS_FireOnNewGlobalObject};
-use js::jsapi::{JS_GetFunctionObject, JS_GetPrototype};
-use js::jsapi::{JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject};
-use js::jsapi::{JS_NewObject, JS_NewObjectWithUniqueType, JS_NewPlainObject};
-use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot, MutableHandleObject};
-use js::jsapi::{MutableHandleValue, ObjectOps, OnNewGlobalHookOption, SymbolCode};
+use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
+use js::rust::wrappers::{JS_DefineProperty4, JS_DefinePropertyById3, JS_FireOnNewGlobalObject};
+use js::rust::wrappers::{JS_GetPrototype};
+use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
+use js::jsapi::{JS_NewFunction, JS_NewGlobalObject};
+use js::jsapi::{JS_NewObject, JS_NewPlainObject};
+use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot, JS_GetFunctionObject};
+use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
 use js::jsval::{JSVal, PrivateValue};
 use js::rust::{define_methods, define_properties, get_object_class};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
+use js::jsapi::MutableHandleValue as RawMutableHandleValue;
+use js::jsapi::HandleObject as RawHandleObject;
 use libc;
 use std::ptr;
 
@@ -167,7 +171,6 @@ pub unsafe fn create_callback_interface_object(
         rval: MutableHandleObject) {
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
-    assert!(!rval.ptr.is_null());
     define_guarded_constants(cx, rval.handle(), constants);
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, global, name, rval.handle());
@@ -267,7 +270,6 @@ pub unsafe fn create_object(
         constants: &[Guard<&[ConstantSpec]>],
         rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
-    assert!(!rval.ptr.is_null());
     define_guarded_methods(cx, rval.handle(), methods);
     define_guarded_properties(cx, rval.handle(), properties);
     define_guarded_constants(cx, rval.handle(), constants);
@@ -349,7 +351,7 @@ const OBJECT_OPS: ObjectOps = ObjectOps {
 };
 
 unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
-                                        obj: HandleObject,
+                                        obj: RawHandleObject,
                                         _indent: u32)
                                         -> *mut JSString {
     let js_class = get_object_class(obj.get());
@@ -363,10 +365,14 @@ unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
 
 /// Hook for instanceof on interface objects.
 unsafe extern "C" fn has_instance_hook(cx: *mut JSContext,
-        obj: HandleObject,
-        value: MutableHandleValue,
+        obj: RawHandleObject,
+        value: RawMutableHandleValue,
         rval: *mut bool) -> bool {
-    match has_instance(cx, obj, value.handle()) {
+    match has_instance(
+        cx,
+        HandleObject::from_raw(obj),
+        HandleValue::from_raw(value.handle())
+    ) {
         Ok(result) => {
             *rval = result;
             true
@@ -427,12 +433,17 @@ unsafe fn create_unscopable_object(
     assert!(!names.is_empty());
     assert!(rval.is_null());
     rval.set(JS_NewPlainObject(cx));
-    assert!(!rval.ptr.is_null());
     for &name in names {
         assert_eq!(*name.last().unwrap(), b'\0');
         assert!(JS_DefineProperty(
-            cx, rval.handle(), name.as_ptr() as *const libc::c_char, TrueHandleValue,
-            JSPROP_READONLY, None, None));
+            cx,
+            rval.handle(),
+            name.as_ptr() as *const libc::c_char,
+            HandleValue::from_raw(TrueHandleValue),
+            JSPROP_READONLY,
+            None,
+            None
+        ));
     }
 }
 
@@ -443,7 +454,7 @@ unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
     assert!(JS_DefineProperty2(cx,
                                obj,
                                b"name\0".as_ptr() as *const libc::c_char,
-                               name.handle(),
+                               name.handle().into(),
                                JSPROP_READONLY,
                                None, None));
 }

@@ -7,15 +7,15 @@
 use dom::bindings::conversions::jsid_to_string;
 use dom::bindings::str::DOMString;
 use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
-use js::jsapi::GetPropertyKeys;
-use js::jsapi::HandleValue;
+use js::rust::wrappers::GetPropertyKeys;
+use js::rust::HandleValue;
 use js::jsapi::JSContext;
 use js::jsapi::JSITER_OWNONLY;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::JS_DefineUCProperty2;
-use js::jsapi::JS_GetPropertyById;
+use js::rust::wrappers::JS_GetPropertyById;
 use js::jsapi::JS_NewPlainObject;
-use js::jsapi::MutableHandleValue;
+use js::rust::MutableHandleValue;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::IdVector;
@@ -96,10 +96,10 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
             value.to_jsval(cx, js_value.handle_mut());
 
             assert!(JS_DefineUCProperty2(cx,
-                                         js_object.handle(),
+                                         js_object.handle().into(),
                                          key.as_ptr(),
                                          key.len(),
-                                         js_value.handle(),
+                                         js_value.handle().into(),
                                          JSPROP_ENUMERATE,
                                          None,
                                          None));

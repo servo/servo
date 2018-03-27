@@ -48,12 +48,15 @@ use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
-use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSContext, JSObject, JSString};
-use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetProperty, JS_GetReservedSlot};
-use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject, JS_IsExceptionPending};
-use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars, MutableHandleValue};
+use js::jsapi::{Heap, JSContext, JSObject, JSString};
+use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
+use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending};
+use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value};
+use js::rust::HandleId;
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use js::rust::wrappers::{JS_GetProperty, JS_IsArrayObject};
 use libc;
 use num_traits::Float;
 use servo_config::opts;
@@ -149,12 +152,13 @@ impl<T> FromJSValConvertible for RootedTraceableBox<Heap<T>>
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
 pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
-    if RUST_JSID_IS_STRING(id) {
-        return Some(jsstring_to_str(cx, RUST_JSID_TO_STRING(id)));
+    let id_raw = id.into();
+    if RUST_JSID_IS_STRING(id_raw) {
+        return Some(jsstring_to_str(cx, RUST_JSID_TO_STRING(id_raw)));
     }
 
-    if RUST_JSID_IS_INT(id) {
-        return Some(RUST_JSID_TO_INT(id).to_string().into());
+    if RUST_JSID_IS_INT(id_raw) {
+        return Some(RUST_JSID_TO_INT(id_raw).to_string().into());
     }
 
     None
