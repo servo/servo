@@ -1924,7 +1924,7 @@ class CGRecord(CGThing):
             assert False
 
         defn = keyDef + ", " + self.value.define()
-        return "MozMap<" + defn + ">"
+        return "Record<" + defn + ">"
 
 
 class CGImports(CGWrapper):
@@ -2045,7 +2045,7 @@ class CGImports(CGWrapper):
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
             elif t.isType() and t.isRecord():
-                extras += ['dom::bindings::mozmap::MozMap']
+                extras += ['dom::bindings::record::Record']
             elif isinstance(t, IDLPromiseType):
                 extras += ["dom::promise::Promise"]
             else:
@@ -2341,7 +2341,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
         'std::ptr::NonNull',
-        'dom::bindings::mozmap::MozMap',
+        'dom::bindings::record::Record',
         'dom::bindings::root::DomRoot',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
@@ -5887,7 +5887,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::proxyhandler::fill_property_descriptor',
         'dom::bindings::proxyhandler::get_expando_object',
         'dom::bindings::proxyhandler::get_property_descriptor',
-        'dom::bindings::mozmap::MozMap',
+        'dom::bindings::record::Record',
         'std::ptr::NonNull',
         'dom::bindings::num::Finite',
         'dom::bindings::str::ByteString',
