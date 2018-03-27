@@ -39,7 +39,6 @@ num = [
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
-  "lazy_static",
   "winapi",
   "syn",
   "quote",

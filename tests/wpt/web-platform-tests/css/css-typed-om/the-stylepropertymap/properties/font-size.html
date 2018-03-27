@@ -13,53 +13,60 @@
 <script>
 'use strict';
 
-runPropertyTests('font-size', [
-  {
-    syntax: 'xx-small',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'x-small',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'small',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'medium',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'large',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'x-large',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'xx-large',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'larger',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: 'smaller',
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: '<length>',
-    specified: assert_is_equal_with_range_handling,
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-  {
-    syntax: '<percentage>',
-    specified: assert_is_equal_with_range_handling,
-    computed: (_, result) => assert_is_unit('px', result)
-  },
-]);
+for (const property of ['font-size', 'font-min-size', 'font-max-size']) {
+  // font-max-size also supports 'infinity' keyword
+  const infinity = property === 'font-max-size' ?
+    [{ syntax: 'infinity'}] : [];
+
+  runPropertyTests(property, [
+    ...infinity,
+    {
+      syntax: 'xx-small',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'x-small',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'small',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'medium',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'large',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'x-large',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'xx-large',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'larger',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: 'smaller',
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling,
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+    {
+      syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling,
+      computed: (_, result) => assert_is_unit('px', result)
+    },
+  ]);
+}
 
 </script>

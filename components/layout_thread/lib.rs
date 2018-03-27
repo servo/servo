@@ -13,6 +13,7 @@ extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
+extern crate histogram;
 #[macro_use]
 extern crate html5ever;
 extern crate ipc_channel;
@@ -46,6 +47,7 @@ extern crate servo_geometry;
 extern crate servo_url;
 extern crate style;
 extern crate style_traits;
+extern crate time as std_time;
 extern crate webrender_api;
 
 mod dom_wrapper;
@@ -60,6 +62,7 @@ use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{Epoch, node_id_from_scroll_id};
+use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
@@ -94,7 +97,7 @@ use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, NodesFromPointQueryType, Reflow};
-use script_layout_interface::message::{ReflowComplete, ReflowGoal, ScriptReflow};
+use script_layout_interface::message::{ReflowComplete, QueryMsg, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::{LayoutRPC, StyleResponse, OffsetParentResponse};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
@@ -260,6 +263,9 @@ pub struct LayoutThread {
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
+
+    /// The time a layout query has waited before serviced by layout thread.
+    layout_query_waiting_time: Histogram,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -329,6 +335,12 @@ impl Deref for ScriptReflowResult {
     type Target = ScriptReflow;
     fn deref(&self) -> &ScriptReflow {
         &self.script_reflow
+    }
+}
+
+impl DerefMut for ScriptReflowResult {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.script_reflow
     }
 }
 
@@ -541,6 +553,7 @@ impl LayoutThread {
                 },
             layout_threads: layout_threads,
             paint_time_metrics: paint_time_metrics,
+            layout_query_waiting_time: Histogram::new(),
         }
     }
 
@@ -858,6 +871,16 @@ impl LayoutThread {
         // Drop the root flow explicitly to avoid holding style data, such as
         // rule nodes.  The `Stylist` checks when it is dropped that all rule
         // nodes have been GCed, so we want drop anyone who holds them first.
+        let waiting_time_min = self.layout_query_waiting_time.minimum().unwrap_or(0);
+        let waiting_time_max = self.layout_query_waiting_time.maximum().unwrap_or(0);
+        let waiting_time_mean = self.layout_query_waiting_time.mean().unwrap_or(0);
+        let waiting_time_stddev = self.layout_query_waiting_time.stddev().unwrap_or(0);
+        debug!("layout: query waiting time: min: {}, max: {}, mean: {}, standard_deviation: {}",
+               waiting_time_min,
+               waiting_time_max,
+               waiting_time_mean,
+               waiting_time_stddev);
+
         self.root_flow.borrow_mut().take();
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
@@ -1078,43 +1101,51 @@ impl LayoutThread {
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
+        // Record the time that layout query has been waited.
+        let now = std_time::precise_time_ns();
+        if let ReflowGoal::LayoutQuery(_, timestamp) = data.reflow_goal {
+            self.layout_query_waiting_time.increment(now - timestamp).expect("layout: wrong layout query timestamp");
+        };
+
         let element = match document.root_element() {
             None => {
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
                 match data.reflow_goal {
-                    ReflowGoal::ContentBoxQuery(_) => {
-                        rw_data.content_box_response = None;
-                    },
-                    ReflowGoal::ContentBoxesQuery(_) => {
-                        rw_data.content_boxes_response = Vec::new();
-                    },
-                    ReflowGoal::NodesFromPointQuery(..) => {
-                        rw_data.nodes_from_point_response = Vec::new();
-                    },
-                    ReflowGoal::NodeGeometryQuery(_) => {
-                        rw_data.client_rect_response = Rect::zero();
-                    },
-                    ReflowGoal::NodeScrollGeometryQuery(_) => {
-                        rw_data.scroll_area_response = Rect::zero();
-                    },
-                    ReflowGoal::NodeScrollIdQuery(_) => {
-                        rw_data.scroll_id_response = None;
-                    },
-                    ReflowGoal::ResolvedStyleQuery(_, _, _) => {
-                        rw_data.resolved_style_response = String::new();
-                    },
-                    ReflowGoal::OffsetParentQuery(_) => {
-                        rw_data.offset_parent_response = OffsetParentResponse::empty();
-                    },
-                    ReflowGoal::StyleQuery(_) => {
-                        rw_data.style_response = StyleResponse(None);
-                    },
-                    ReflowGoal::TextIndexQuery(..) => {
-                        rw_data.text_index_response = TextIndexResponse(None);
-                    }
-                    ReflowGoal::ElementInnerTextQuery(_) => {
-                        rw_data.element_inner_text_response = String::new();
+                    ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
+                        &QueryMsg::ContentBoxQuery(_) => {
+                            rw_data.content_box_response = None;
+                        },
+                        &QueryMsg::ContentBoxesQuery(_) => {
+                            rw_data.content_boxes_response = Vec::new();
+                        },
+                        &QueryMsg::NodesFromPointQuery(..) => {
+                            rw_data.nodes_from_point_response = Vec::new();
+                        },
+                        &QueryMsg::NodeGeometryQuery(_) => {
+                            rw_data.client_rect_response = Rect::zero();
+                        },
+                        &QueryMsg::NodeScrollGeometryQuery(_) => {
+                            rw_data.scroll_area_response = Rect::zero();
+                        },
+                        &QueryMsg::NodeScrollIdQuery(_) => {
+                            rw_data.scroll_id_response = None;
+                        },
+                        &QueryMsg::ResolvedStyleQuery(_, _, _) => {
+                            rw_data.resolved_style_response = String::new();
+                        },
+                        &QueryMsg::OffsetParentQuery(_) => {
+                            rw_data.offset_parent_response = OffsetParentResponse::empty();
+                        },
+                        &QueryMsg::StyleQuery(_) => {
+                            rw_data.style_response = StyleResponse(None);
+                        },
+                        &QueryMsg::TextIndexQuery(..) => {
+                            rw_data.text_index_response = TextIndexResponse(None);
+                        }
+                        &QueryMsg::ElementInnerTextQuery(_) => {
+                            rw_data.element_inner_text_response = String::new();
+                        },
                     },
                     ReflowGoal::Full | ReflowGoal:: TickAnimations => {}
                 }
@@ -1355,80 +1386,82 @@ impl LayoutThread {
         };
         let root_flow = FlowRef::deref_mut(&mut root_flow);
         match *reflow_goal {
-            ReflowGoal::ContentBoxQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.content_box_response = process_content_box_request(node, root_flow);
-            },
-            ReflowGoal::ContentBoxesQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
-            },
-            ReflowGoal::TextIndexQuery(node, point_in_node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                let opaque_node = node.opaque();
-                let point_in_node = Point2D::new(
-                    Au::from_f32_px(point_in_node.x),
-                    Au::from_f32_px(point_in_node.y)
-                );
-                rw_data.text_index_response = TextIndexResponse(
-                    rw_data.indexable_text.text_index(opaque_node, point_in_node)
-                );
-            },
-            ReflowGoal::NodeGeometryQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.client_rect_response = process_node_geometry_request(node, root_flow);
-            },
-            ReflowGoal::NodeScrollGeometryQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.scroll_area_response = process_node_scroll_area_request(node, root_flow);
-            },
-            ReflowGoal::NodeScrollIdQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.scroll_id_response = Some(process_node_scroll_id_request(self.id, node));
-            },
-            ReflowGoal::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.resolved_style_response =
-                    process_resolved_style_request(context,
-                                                   node,
-                                                   pseudo,
-                                                   property,
-                                                   root_flow);
-            },
-            ReflowGoal::OffsetParentQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
-            },
-            ReflowGoal::StyleQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.style_response = process_style_query(node);
-            },
-            ReflowGoal::NodesFromPointQuery(client_point, ref reflow_goal) => {
-                let mut flags = match reflow_goal {
-                    &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
-                    &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
-                };
+            ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
+                &QueryMsg::ContentBoxQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.content_box_response = process_content_box_request(node, root_flow);
+                },
+                &QueryMsg::ContentBoxesQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
+                },
+                &QueryMsg::TextIndexQuery(node, point_in_node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let opaque_node = node.opaque();
+                    let point_in_node = Point2D::new(
+                        Au::from_f32_px(point_in_node.x),
+                        Au::from_f32_px(point_in_node.y)
+                    );
+                    rw_data.text_index_response = TextIndexResponse(
+                        rw_data.indexable_text.text_index(opaque_node, point_in_node)
+                    );
+                },
+                &QueryMsg::NodeGeometryQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.client_rect_response = process_node_geometry_request(node, root_flow);
+                },
+                &QueryMsg::NodeScrollGeometryQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.scroll_area_response = process_node_scroll_area_request(node, root_flow);
+                },
+                &QueryMsg::NodeScrollIdQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.scroll_id_response = Some(process_node_scroll_id_request(self.id, node));
+                },
+                &QueryMsg::ResolvedStyleQuery(node, ref pseudo, ref property) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.resolved_style_response =
+                        process_resolved_style_request(context,
+                                                       node,
+                                                       pseudo,
+                                                       property,
+                                                       root_flow);
+                },
+                &QueryMsg::OffsetParentQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
+                },
+                &QueryMsg::StyleQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.style_response = process_style_query(node);
+                },
+                &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
+                    let mut flags = match reflow_goal {
+                        &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
+                        &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
+                    };
 
-                // The point we get is not relative to the entire WebRender scene, but to this
-                // particular pipeline, so we need to tell WebRender about that.
-                flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
+                    // The point we get is not relative to the entire WebRender scene, but to this
+                    // particular pipeline, so we need to tell WebRender about that.
+                    flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                let client_point = webrender_api::WorldPoint::from_untyped(&client_point);
-                let results = self.webrender_api.hit_test(
-                    self.webrender_document,
-                    Some(self.id.to_webrender()),
-                    client_point,
-                    flags
-                );
+                    let client_point = webrender_api::WorldPoint::from_untyped(&client_point);
+                    let results = self.webrender_api.hit_test(
+                        self.webrender_document,
+                        Some(self.id.to_webrender()),
+                        client_point,
+                        flags
+                    );
 
-                rw_data.nodes_from_point_response = results.items.iter()
-                   .map(|item| UntrustedNodeAddress(item.tag.0 as *const c_void))
-                   .collect()
-            },
-            ReflowGoal::ElementInnerTextQuery(node) => {
-                let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.element_inner_text_response =
-                    process_element_inner_text_query(node, &rw_data.indexable_text);
+                    rw_data.nodes_from_point_response = results.items.iter()
+                       .map(|item| UntrustedNodeAddress(item.tag.0 as *const c_void))
+                       .collect()
+                },
+                &QueryMsg::ElementInnerTextQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.element_inner_text_response =
+                        process_element_inner_text_query(node, &rw_data.indexable_text);
+                },
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {}
         }

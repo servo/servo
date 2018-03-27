@@ -16,6 +16,7 @@ extern crate malloc_size_of;
 extern crate nonzero;
 extern crate offscreen_gl_context;
 #[macro_use] extern crate serde;
+extern crate serde_bytes;
 extern crate servo_config;
 extern crate webrender_api;
 

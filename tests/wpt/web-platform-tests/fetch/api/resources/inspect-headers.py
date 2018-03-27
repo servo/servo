@@ -16,7 +16,10 @@ def main(request, response):
         headers.append(("Access-Control-Allow-Methods", "GET, POST, HEAD"))
         exposed_headers = ["x-request-" + header for header in checked_headers]
         headers.append(("Access-Control-Expose-Headers", ", ".join(exposed_headers)))
-        headers.append(("Access-Control-Allow-Headers", ", ".join(request.headers)))
+        if "allow_headers" in request.GET:
+            headers.append(("Access-Control-Allow-Headers", request.GET['allow_headers']))
+        else:
+            headers.append(("Access-Control-Allow-Headers", ", ".join(request.headers)))
 
     headers.append(("content-type", "text/plain"))
     return headers, ""

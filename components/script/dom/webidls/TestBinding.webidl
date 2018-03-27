@@ -275,6 +275,9 @@ interface TestBinding {
   void passStringSequence(sequence<DOMString> seq);
   void passInterfaceSequence(sequence<Blob> seq);
 
+  void passOverloaded(ArrayBuffer arg);
+  void passOverloaded(DOMString arg);
+
   void passNullableBoolean(boolean? arg);
   void passNullableByte(byte? arg);
   void passNullableOctet(octet? arg);

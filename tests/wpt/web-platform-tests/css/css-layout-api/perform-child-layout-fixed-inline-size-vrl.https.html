@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-fixedinlinesize">
+<link rel="match" href="layout-child-ref.html">
+<meta name="assert" content="This test checks that fixing the inline size of children works as expected." />
+
+<style>
+.test {
+  writing-mode: vertical-rl;
+  background: red;
+  margin: 10px;
+  height: 100px;
+}
+
+.htb {
+  writing-mode: horizontal-tb;
+  visibility: hidden;
+  width: 3px;
+  height: 2px;
+
+  --fixed-inline-size: 10;
+
+  --inline-size-expected: 10;
+  --block-size-expected: 3;
+}
+
+.vrl {
+  writing-mode: vertical-rl;
+  visibility: hidden;
+  width: 3px;
+  height: 2px;
+
+  --fixed-inline-size: 10;
+
+  --inline-size-expected: 10;
+  --block-size-expected: 3;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="htb"></div>
+  <div class="vrl"></div>
+  <!-- min/max-height should have no effect, fixedInlineSize wins. -->
+  <div class="htb" style="max-height: 5px;"></div>
+  <div class="vrl" style="max-height: 5px;"></div>
+  <div class="htb" style="min-height: 15px;"></div>
+  <div class="vrl" style="min-height: 15px;"></div>
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-fixed-sizes-worklet.js'});
+</script>

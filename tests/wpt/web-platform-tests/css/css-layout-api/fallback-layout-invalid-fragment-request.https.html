@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#invoke-a-layout-callback">
+<link rel="match" href="fallback-ref.html">
+<meta name="assert" content="This test checks that a layout() class performing layout on an invalid fragment request will fallback to block layout." />
+<style>
+.test {
+  background: red;
+  border: solid 2px;
+  width: 100px;
+}
+
+.test > div {
+  height: 100px;
+}
+
+@supports (display: layout(bad-request)) {
+  .test {
+    display: layout(bad-request);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('bad-request', class {
+  static get inputProperties() { return ['--fail']; }
+
+  *intrinsicSizes() {}
+  *layout(children, _, __, styleMap) {
+    if (styleMap.get('--fail').toString() !== 'true') {
+      this.request = children[0].layoutNextFragment({});
+    }
+
+    // Try to perform layout on the child. If its invalid (we skipped the if
+    // statement above) we should fallback to block layout.
+    const childFragments = yield [this.request];
+
+    return {autoBlockSize: 0, childFragments};
+  }
+});
+</script>
+
+<script>
+function raf() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      resolve();
+    });
+  });
+}
+
+(async function() {
+  if (typeof CSS.layoutWorklet === 'undefined') {
+    takeScreenshot();
+    return;
+  }
+
+  await importWorklet(CSS.layoutWorklet, document.getElementById('code').textContent);
+
+  // Ensure that all instances have a child to perform an invalid layout upon.
+  const test = document.getElementsByClassName('test')[0];
+  for (let i = 0; i < 100; i++) {
+    test.innerHTML = '<div><div>';
+    await raf();
+  }
+
+  // The next layout should mean that we will fallback to block.
+  test.innerHTML = '<div></div>';
+  test.style.setProperty('--fail', 'true');
+
+  // Finish up the test.
+  await raf();
+  await raf();
+  takeScreenshot();
+})();
+</script>
+</html>

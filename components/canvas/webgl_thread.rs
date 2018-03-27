@@ -8,6 +8,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use serde_bytes::ByteBuf;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -892,6 +893,9 @@ impl WebGLImpl {
                 ctx.gl().delete_vertex_arrays(&[id.get()]),
             WebGLCommand::BindVertexArray(id) =>
                 ctx.gl().bind_vertex_array(id.map_or(0, WebGLVertexArrayId::get)),
+            WebGLCommand::AliasedPointSizeRange(sender) => {
+                sender.send(ctx.gl().alias_point_size_range()).unwrap()
+            }
         }
 
         // TODO: update test expectations in order to enable debug assertions
@@ -901,10 +905,18 @@ impl WebGLImpl {
         //}
     }
 
-    fn read_pixels(gl: &gl::Gl, x: i32, y: i32, width: i32, height: i32, format: u32, pixel_type: u32,
-                   chan: WebGLSender<Vec<u8>>) {
+    fn read_pixels(
+        gl: &gl::Gl,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        pixel_type: u32,
+        chan: WebGLSender<ByteBuf>,
+    ) {
       let result = gl.read_pixels(x, y, width, height, format, pixel_type);
-      chan.send(result).unwrap()
+      chan.send(result.into()).unwrap()
     }
 
     fn active_attrib(gl: &gl::Gl,

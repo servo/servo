@@ -344,7 +344,7 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                         (*compositor.0).sync_poses();
                         (*compositor.0).synced_frame_data(near, far).to_bytes()
                     };
-                    let _ = sender.send(Ok(pose));
+                    let _ = sender.send(Ok(pose.into()));
                 } else {
                     let _ = sender.send(Err(()));
                 }
