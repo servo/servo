@@ -205,6 +205,8 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 %>
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+//
+// We allow it to apply to placeholders for UA sheets, which set it !important.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          animation_value_type="discrete",
                          extra_gecko_values="-moz-hidden-unscrollable",
@@ -215,6 +217,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          servo_restyle_damage = "reflow")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+//
+// We allow it to apply to placeholders for UA sheets, which set it !important.
 <%helpers:longhand name="overflow-y" animation_value_type="discrete"
                    flags="APPLIES_TO_PLACEHOLDER",
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y"
