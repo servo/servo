@@ -54,7 +54,6 @@ use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::structs::RawServoSourceSizeList;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::RustString;
-use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::CSSPseudoElementType;
 use gecko_bindings::structs::ServoTraversalFlags;
 use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
@@ -628,12 +627,6 @@ extern "C" {
     pub fn Gecko_IsRootElement(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
-    pub fn Gecko_MatchesElement(
-        type_: CSSPseudoClassType,
-        element: RawGeckoElementBorrowed,
-    ) -> bool;
-}
-extern "C" {
     pub fn Gecko_MatchLang(
         element: RawGeckoElementBorrowed,
         override_lang: *mut nsAtom,
@@ -646,6 +639,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetDocumentLWTheme(aDocument: *const nsIDocument) -> nsIDocument_DocumentTheme;
+}
+extern "C" {
+    pub fn Gecko_IsTableBorderNonzero(element: RawGeckoElementBorrowed) -> bool;
+}
+extern "C" {
+    pub fn Gecko_IsBrowserFrame(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
     pub fn Gecko_AtomAttrValue(

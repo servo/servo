@@ -32,7 +32,6 @@ use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_ConstructStyleChildrenIterator, Gecko_DestroyStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
-use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
@@ -1996,7 +1995,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
 
         unsafe {
-            Gecko_IsRootElement(self.0)
+            bindings::Gecko_IsRootElement(self.0)
         }
     }
 
@@ -2124,9 +2123,11 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozUseShadowTreeRoot => {
                 self.is_root_of_use_element_shadow_tree()
             }
-            NonTSPseudoClass::MozTableBorderNonzero |
+            NonTSPseudoClass::MozTableBorderNonzero => unsafe {
+                bindings::Gecko_IsTableBorderNonzero(self.0)
+            }
             NonTSPseudoClass::MozBrowserFrame => unsafe {
-                Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
+                bindings::Gecko_IsBrowserFrame(self.0)
             },
             NonTSPseudoClass::MozIsHTML => {
                 self.is_html_element_in_html_document()
