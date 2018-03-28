@@ -448,11 +448,11 @@ mod bindings {
         }
 
         impl log::Log for BuildLogger {
-            fn enabled(&self, meta: &log::LogMetadata) -> bool {
+            fn enabled(&self, meta: &log::Metadata) -> bool {
                 self.file.is_some() && meta.target().contains(&self.filter)
             }
 
-            fn log(&self, record: &log::LogRecord) {
+            fn log(&self, record: &log::Record) {
                 if !self.enabled(record.metadata()) {
                     return;
                 }
@@ -463,21 +463,27 @@ mod bindings {
                              record.level(),
                              record.target(),
                              record.args(),
-                             record.location().file(),
-                             record.location().line());
+                             record.file().unwrap_or("<unknown>"),
+                             record.line().unwrap_or(0));
+            }
+
+            fn flush(&self) {
+                if let Some(ref file) = self.file {
+                    file.lock().unwrap().flush().unwrap();
+                }
             }
         }
 
         if let Some(path) = env::var_os("STYLO_BUILD_LOG") {
-            log::set_logger(|log_level| {
-                log_level.set(log::LogLevelFilter::Debug);
+            log::set_max_level(log::LevelFilter::Debug);
+            log::set_boxed_logger(
                 Box::new(BuildLogger {
                     file: fs::File::create(path).ok().map(Mutex::new),
                     filter: env::var("STYLO_BUILD_FILTER").ok()
                         .unwrap_or_else(|| "bindgen".to_owned()),
                 })
-            })
-            .expect("Failed to set logger.");
+            ).expect("Failed to set logger.");
+
             true
         } else {
             false
