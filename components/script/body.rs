@@ -138,7 +138,7 @@ fn run_json_data_algorithm(cx: *mut JSContext,
                          json_text.len() as u32,
                          rval.handle_mut()) {
             rooted!(in(cx) let mut exception = UndefinedValue());
-            JS_GetPendingException(cx, exception.handle_mut());
+            assert!(JS_GetPendingException(cx, exception.handle_mut()));
             JS_ClearPendingException(cx);
             return Ok(FetchedData::JSException(RootedTraceableBox::from_box(Heap::boxed(exception.get()))));
         }
