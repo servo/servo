@@ -1190,7 +1190,6 @@ impl<'le> TElement for GeckoElement<'le> {
             let base_declaration: &structs::DeclarationBlock =
                 slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref()?;
 
-            assert_eq!(base_declaration.mType, structs::StyleBackendType_Servo);
             let declaration: &structs::ServoDeclarationBlock =
                 mem::transmute(base_declaration);
 
