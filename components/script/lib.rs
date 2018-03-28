@@ -107,7 +107,6 @@ extern crate xml5ever;
 
 #[macro_use]
 mod task;
-
 mod body;
 pub mod clipboard_provider;
 mod devtools;
@@ -150,7 +149,10 @@ pub mod layout_exports {
 }
 
 use dom::bindings::codegen::RegisterBindings;
+use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::proxyhandler;
+use dom::bindings::utils::is_platform_object;
+use js::jsapi::JSObject;
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
 
@@ -201,6 +203,11 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
 }
 
 #[allow(unsafe_code)]
+unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
+  !obj.is_null() && (is_platform_object(obj) || is_dom_proxy(obj))
+}
+
+#[allow(unsafe_code)]
 pub fn init() {
     unsafe {
         proxyhandler::init();
@@ -208,6 +215,8 @@ pub fn init() {
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
+
+        js::glue::InitializeMemoryReporter(Some(is_dom_object));
     }
 
     perform_platform_specific_initialization();

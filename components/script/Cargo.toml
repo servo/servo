@@ -52,6 +52,7 @@ hyper = "0.10"
 hyper_serde = "0.8"
 image = "0.18"
 ipc-channel = "0.10"
+itertools = "0.7.6"
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "1"
 libc = "0.2"
@@ -62,7 +63,7 @@ metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.2.1"
 mime_guess = "1.8.0"
-mozjs = { version = "0.4", features = ["promises"]}
+mozjs = { version = "0.5.0", features = ["promises"]}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
