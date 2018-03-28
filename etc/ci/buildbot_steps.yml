@@ -114,6 +114,7 @@ linux-dev:
     - ./mach package --dev
     - ./mach build --dev --no-default-features --features default-except-unstable
     - ./mach build-geckolib
+    - ./mach check -p style --features bindgen --manifest-path ports/geckolib/Cargo.toml
     - ./mach test-stylo
     - bash ./etc/ci/lockfile_changed.sh
     - bash ./etc/ci/manifest_changed.sh
