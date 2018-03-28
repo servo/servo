@@ -17,8 +17,8 @@ use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol};
 use js::jsapi::{JSAutoCompartment, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
-use js::jsapi::{JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject};
-use js::jsapi::{JS_NewObject, JS_NewObjectWithUniqueType, JS_NewPlainObject};
+use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
+use js::jsapi::{JS_NewObject, JS_NewPlainObject};
 use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot};
 use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
@@ -29,7 +29,8 @@ use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use js::rust::{define_methods, define_properties, get_object_class};
 use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
 use js::rust::wrappers::{JS_DefineProperty4, JS_DefinePropertyById3};
-use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetFunctionObject, JS_GetPrototype};
+use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetPrototype};
+use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
 use libc;
 use std::ptr;
 
@@ -392,7 +393,7 @@ unsafe fn has_instance(
         return Ok(false);
     }
 
-    rooted!(in(cx) let value_mirror = value.to_object());
+    rooted!(in(cx) let mut value_out = value.to_object());
     rooted!(in(cx) let mut value = value.to_object());
 
     let js_class = get_object_class(interface_object.get());
@@ -414,7 +415,8 @@ unsafe fn has_instance(
     assert!(!prototype.is_null());
     // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
-    while JS_GetPrototype(cx, value_mirror.handle(), value.handle_mut()) {
+    while JS_GetPrototype(cx, value.handle(), value_out.handle_mut()) {
+        value = value_out;
         if value.is_null() {
             // Step 5.2.
             return Ok(false);
@@ -434,6 +436,7 @@ unsafe fn create_unscopable_object(
     assert!(!names.is_empty());
     assert!(rval.is_null());
     rval.set(JS_NewPlainObject(cx));
+    assert!(!rval.is_null());
     for &name in names {
         assert_eq!(*name.last().unwrap(), b'\0');
         assert!(JS_DefineProperty(

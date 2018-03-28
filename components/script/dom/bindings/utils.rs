@@ -153,8 +153,7 @@ pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
         return false;
     }
     *found = has_property;
-    // let no_output = vp.ptr.is_null(); // TODO can we remove?
-    if !has_property /*|| no_output*/ {
+    if !has_property {
         return true;
     }
 

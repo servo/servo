@@ -43,12 +43,9 @@ pub unsafe extern "C" fn shadow_check_callback(cx: *mut JSContext,
     get_expando_object(object, expando.handle_mut());
     if !expando.get().is_null() {
         let mut has_own = false;
-        if !JS_AlreadyHasOwnPropertyById(
-            cx,
-            expando.handle(),
-            Handle::from_raw(id),
-            &mut has_own
-        ) {
+        let raw_id = Handle::from_raw(id);
+
+        if !JS_AlreadyHasOwnPropertyById(cx, expando.handle(), raw_id, &mut has_own) {
             return DOMProxyShadowsResult::ShadowCheckFailed;
         }
 

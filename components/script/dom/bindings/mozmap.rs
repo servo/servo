@@ -10,7 +10,7 @@ use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible
 use js::jsapi::JSContext;
 use js::jsapi::JSITER_OWNONLY;
 use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::JS_DefineUCProperty2;
+use js::rust::wrappers::JS_DefineUCProperty2;
 use js::jsapi::JS_NewPlainObject;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
@@ -96,10 +96,10 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
             value.to_jsval(cx, js_value.handle_mut());
 
             assert!(JS_DefineUCProperty2(cx,
-                                         js_object.handle().into(),
+                                         js_object.handle(),
                                          key.as_ptr(),
                                          key.len(),
-                                         js_value.handle().into(),
+                                         js_value.handle(),
                                          JSPROP_ENUMERATE,
                                          None,
                                          None));
