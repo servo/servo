@@ -50,7 +50,7 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan,
                             config_dir: Option<PathBuf>,
-                            har_output: Option<HarLogValues<String>>,)
+                            har_output: Option<HarLogValues>)
                             -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
@@ -71,7 +71,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 profiler_chan: ProfilerChan,
                                 config_dir: Option<PathBuf>,
-                                har_output: Option<HarLogValues<String>>)
+                                har_output: Option<HarLogValues>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -83,7 +83,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
         let mut channel_manager = ResourceChannelManager {
             resource_manager: resource_manager,
             config_dir: config_dir,
-            har_output: har_output//here
+            har_output: har_output
         };
         channel_manager.start(public_setup_port,
                               private_setup_port);
@@ -94,7 +94,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
 struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
-    har_output: Option<HarLogValues<String>>
+    har_output: Option<HarLogValues>
 }
 
 fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpState>) {
@@ -199,7 +199,7 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
             }
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
-            CoreResourceMsg::Exit(sender) => {
+            CoreResourceMsg::Exit(sender, har_output) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
                         Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
@@ -215,14 +215,11 @@ impl ResourceChannelManager {
                     }
                 }
 
-                if let Some(ref har_output) = self.har_output{
-                    match HarLogValues::har_filename {
-                        Ok(filename) => Vec::new().write_json_to_file(har_output),
-                        Err(_) => warn!("Error writing HAR file"),
-                    }
-                    match HarLogValues::ipc_sender {
-                        Ok(ipc_sender) => Vec::new(),
-                        Err(_) => warn!("Error sending HAR to IPC Sender"),
+                if let Some(har_output) = self.har_output{
+                    match har_output {
+                        HarLogValues::har_filename => write_json_to_file(Vec::new(), har_output, har_filename),
+                        HarLogValues::ipc_sender => har_ouptput.send(Vec::new()),
+                        Err(_) => warn!("Error writing HAR file")
                     }
 
                 }

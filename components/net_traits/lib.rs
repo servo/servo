@@ -384,13 +384,26 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
         CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 }
 
-//send vector of HAR log values Bhanu&Patrick
+// HAR log values
 #[derive(Deserialize, Serialize)]
 pub enum HarLogValues {
-    /// HAR filename - Not sure on syntax, but want to enforce only filenames can be used here
-    har_filename(String),
-    /// HAR IPC sender - Not sure on syntax, but want to enforce IpcSenders are used here
-    ipc_sender(IpcSender<()>)
+    /// HAR filename - enforce only String can be used here
+    har_filename,
+    /// HAR IPC sender - enforce IpcSenders are used here
+    ipc_sender,
+}
+
+impl HarLogValues {
+
+    fn sendHar (&self, file: &HarLogValues) {
+
+        /*match filename  {
+            HarLogValues::ipc_sender (sender) => sender.send(()),
+            _ => Result::Err(IpcError{ }),
+        };*/
+
+        //self.ipc_sender.send(file);
+    }
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
