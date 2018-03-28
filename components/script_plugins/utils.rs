@@ -29,19 +29,18 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
 }
 
 // temporary auxiliary method
-pub fn get_def_path(cx: &LateContext, def_id: DefId) -> String {
+pub fn get_def_path(cx: &LateContext, def_id: DefId) -> Vec<String> {
     let krate = &cx.tcx.crate_name(def_id.krate);
     let other = cx.tcx.def_path(def_id).data;
-    let mut buf = String::new();
+    let mut ret = vec![];
 
-    buf.push_str(&krate.as_str());
+    ret.push(krate.to_string());
 
     for name in &other {
-        buf.push_str("::");
-        buf.push_str(&name.data.to_string());
+        ret.push(name.data.to_string());
     }
 
-    buf
+    ret
 }
 
 pub fn in_derive_expn(span: Span) -> bool {

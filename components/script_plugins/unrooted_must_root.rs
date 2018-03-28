@@ -255,8 +255,9 @@ impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
         match constant.ty.sty {
             ty::TyFnDef(callee_def_id, callee_substs) => {
                 let def_path = get_def_path(cx, callee_def_id);
-                // cx.span_lint(UNROOTED_MUST_ROOT, constant.span, &def_path); // tmp auxiliary call
-                if self.in_new_function && (match_def_path(cx, callee_def_id, &["alloc", "boxed", "{{impl}}", "new"]) || def_path.contains("new_")) {
+                // cx.span_lint(UNROOTED_MUST_ROOT, constant.span, &def_path.join("::")); // tmp auxiliary call
+                if self.in_new_function && (// match_def_path(cx, callee_def_id, &["alloc", "boxed", "{{impl}}", "new"]) ||
+                  def_path.last().unwrap().starts_with("new_") || def_path.last().unwrap() == "new") {
                     // ^ need more checks / currently some dirty / proof of work code
                     // some explanation
                 }

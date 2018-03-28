@@ -46,10 +46,13 @@ pub mod unrooted_must_root {
     fn foo2(_: &()) -> &Foo { unimplemented!() }
     fn new_foo() -> Foo { Foo::new_with(0) }
 
+    fn foox<#[must_root] T>() { }
+    fn barx<#[must_root] U>() { foox::<U>(); }
+
     fn main() {}
     ```
     */
-    pub fn ok() {}
+    pub fn ok() {} // do we want to split it into smaller tests?
 
     /**
     ```compile_fail
@@ -95,6 +98,22 @@ pub mod unrooted_must_root {
     ```
     */
     pub fn generic_function_calling() {}
+
+    /**
+    ```compile_fail
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
+
+    fn foo<#[must_root] T>() { }
+    fn bar<#[must_root] U>() {
+        (|| { foo::<U>(); }) ();
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn ban_clousures() {}
 
     /**
     ```compile_fail
