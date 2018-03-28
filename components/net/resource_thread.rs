@@ -215,11 +215,11 @@ impl ResourceChannelManager {
                     }
                 }
 
-                if let Some(har_output) = self.har_output{
+                if let Some(ref har_output) = self.har_output{
                     match har_output {
-                        HarLogValues::har_filename => write_json_to_file(Vec::new(), har_output, har_filename),
-                        HarLogValues::ipc_sender => har_ouptput.send(Vec::new()),
-                        Err(_) => warn!("Error writing HAR file")
+                        &HarLogValues::har_filename => (),
+                        &HarLogValues::ipc_sender => har_output.sendHar(),
+                        //Err(_) => warn!("Error writing HAR file")
                     }
 
                 }

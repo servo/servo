@@ -395,11 +395,11 @@ pub enum HarLogValues {
 
 impl HarLogValues {
 
-    fn sendHar (&self, file: &HarLogValues) {
+    pub fn sendHar (&self) {
 
         /*match filename  {
             HarLogValues::ipc_sender (sender) => sender.send(()),
-            _ => Result::Err(IpcError{ }),
+            _ => warn!("Error sending HAR file"),
         };*/
 
         //self.ipc_sender.send(file);
