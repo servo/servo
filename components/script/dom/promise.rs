@@ -19,14 +19,17 @@ use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{AddPromiseReactions, AddRawValueRoot, CallArgs, CallOriginalPromiseReject};
-use js::jsapi::{CallOriginalPromiseResolve, GetFunctionNativeReserved, GetPromiseState};
-use js::jsapi::{HandleObject, HandleValue, Heap, IsPromiseObject, JS_ClearPendingException};
+use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};
+use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetContext, JS_GetFunctionObject};
-use js::jsapi::{JS_GetObjectRuntime, JS_NewFunction, MutableHandleObject};
-use js::jsapi::{NewFunctionWithReserved, NewPromiseObject, PromiseState, RejectPromise};
-use js::jsapi::{RemoveRawValueRoot, ResolvePromise, SetFunctionNativeReserved};
+use js::jsapi::{JS_GetObjectRuntime, JS_NewFunction};
+use js::jsapi::{NewFunctionWithReserved, PromiseState};
+use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
+use js::rust::wrappers::{AddPromiseReactions, CallOriginalPromiseResolve, CallOriginalPromiseReject};
+use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
+use js::rust::wrappers::{NewPromiseObject, ResolvePromise, RejectPromise};
 use std::ptr;
 use std::rc::Rc;
 
@@ -106,7 +109,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn create_js_promise(cx: *mut JSContext, proto: HandleObject, obj: MutableHandleObject) {
+    unsafe fn create_js_promise(cx: *mut JSContext, proto: HandleObject, mut obj: MutableHandleObject) {
         let do_nothing_func = JS_NewFunction(cx, Some(do_nothing_promise_executor), /* nargs = */ 2,
                                              /* flags = */ 0, ptr::null());
         assert!(!do_nothing_func.is_null());
@@ -282,4 +285,3 @@ fn create_native_handler_function(cx: *mut JSContext,
         obj.get()
     }
 }
-

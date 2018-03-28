@@ -25,9 +25,9 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleValue, JS_SetInterruptCallback};
-use js::jsapi::{JSAutoCompartment, JSContext, NullHandleValue};
+use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -373,14 +373,14 @@ impl DedicatedWorkerGlobalScope {
                 error_info.filename.as_str().into(),
                 error_info.lineno,
                 error_info.column,
-                unsafe { NullHandleValue },
+                HandleValue::null(),
             );
             let event_status =
                 event.upcast::<Event>().fire(worker.upcast::<EventTarget>());
 
             // Step 2.
             if event_status == EventStatus::NotCanceled {
-                global.report_an_error(error_info, unsafe { NullHandleValue });
+                global.report_an_error(error_info, HandleValue::null());
             }
         }));
         // TODO: Should use the DOM manipulation task source.

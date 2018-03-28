@@ -4,7 +4,8 @@
 
 //! Machinery to conditionally expose things.
 
-use js::jsapi::{HandleObject, JSContext};
+use js::jsapi::JSContext;
+use js::rust::HandleObject;
 use servo_config::prefs::PREFS;
 
 /// A container with a condition.

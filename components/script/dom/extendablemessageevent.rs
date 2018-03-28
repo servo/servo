@@ -16,8 +16,9 @@ use dom::extendableevent::ExtendableEvent;
 use dom::globalscope::GlobalScope;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, Heap, JSContext};
+use js::jsapi::{Heap, JSContext};
 use js::jsval::JSVal;
+use js::rust::HandleValue;
 use servo_atoms::Atom;
 
 #[dom_struct]
