@@ -50,7 +50,7 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan,
                             config_dir: Option<PathBuf>,
-                            har_output: Option<HarLogValues<T>>,) //add here
+                            har_output: Option<HarLogValues<String>>,)
                             -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
@@ -71,7 +71,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 profiler_chan: ProfilerChan,
                                 config_dir: Option<PathBuf>,
-                                har_output: Option<HarLogValues<T>>)
+                                har_output: Option<HarLogValues<String>>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -91,10 +91,10 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
     (public_setup_chan, private_setup_chan)
 }
 
-struct ResourceChannelManager { //add here
+struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
-    har_output: Option<HarLogValues<T>>
+    har_output: Option<HarLogValues<String>>
 }
 
 fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpState>) {
@@ -216,12 +216,12 @@ impl ResourceChannelManager {
                 }
 
                 if let Some(ref har_output) = self.har_output{
-                    match har_filename {
-                        Ok(filename) => Vec::new().write_json_to_file(har_ouput))
+                    match HarLogValues::har_filename {
+                        Ok(filename) => Vec::new().write_json_to_file(har_output),
                         Err(_) => warn!("Error writing HAR file"),
                     }
-                    match ipc_sender {
-                        Ok(ipc_sender) => Vec::new()
+                    match HarLogValues::ipc_sender {
+                        Ok(ipc_sender) => Vec::new(),
                         Err(_) => warn!("Error sending HAR to IPC Sender"),
                     }
 
