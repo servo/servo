@@ -7,6 +7,7 @@ pub mod unrooted_must_root {
     ```
     #![feature(plugin)]
     #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
 
     #[derive(Clone, Debug)]  // derive should not be checked
     #[must_root] struct Foo(i32);
@@ -17,10 +18,28 @@ pub mod unrooted_must_root {
             let ret = Box::new(Foo(0));  // Box should be allowed as a binding type within constructors
             ret
         }
+    }
 
+    trait NewWith {
+        fn new_with(x: i32) -> Self;
+    }
+
+    impl NewWith for Foo {
         fn new_with(x: i32) -> Foo {
             Foo(x)
         }
+    }
+
+    #[must_root] struct SomeContainer<#[must_root] T>(T);
+
+    impl<#[must_root] T: NewWith> SomeContainer<T> {
+        fn new(val: i32) -> SomeContainer<T> {
+            SomeContainer(T::new_with(val))
+        }
+    }
+
+    fn baz() {
+        SomeContainer::<Foo>::new(3);
     }
 
     fn foo1(_: &Foo) {}
@@ -217,10 +236,9 @@ pub mod unrooted_must_root {
     #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
-    //#[must_root] struct SomeContainer<#[must_root] T>(T);
     struct SomeContainer<T>(T);
 
-    impl<T> SomeContainer<T> { // impl should provide #[must_root]
+    impl<T> SomeContainer<T> { // impl should provide #[must_root] T
         fn foo(val: T) {
             SomeContainer(val);
         }

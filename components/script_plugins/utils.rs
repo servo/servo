@@ -28,6 +28,22 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
          .all(|(nm, p)| &*nm.as_interned_str() == *p)
 }
 
+// temporary auxiliary method
+pub fn get_def_path(cx: &LateContext, def_id: DefId) -> String {
+    let krate = &cx.tcx.crate_name(def_id.krate);
+    let other = cx.tcx.def_path(def_id).data;
+    let mut buf = String::new();
+
+    buf.push_str(&krate.as_str());
+
+    for name in &other {
+        buf.push_str("::");
+        buf.push_str(&name.data.to_string());
+    }
+
+    buf
+}
+
 pub fn in_derive_expn(span: Span) -> bool {
     if let Some(i) = span.ctxt().outer().expn_info() {
         if let ExpnFormat::MacroAttribute(n) = i.callee.format {

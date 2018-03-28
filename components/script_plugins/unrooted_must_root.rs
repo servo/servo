@@ -10,7 +10,7 @@ use rustc::mir;
 use rustc::mir::visit::Visitor as MirVisitor;
 use rustc::ty;
 use syntax::{ast, codemap};
-use utils::{match_def_path, in_derive_expn};
+use utils::{match_def_path, in_derive_expn, get_def_path};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects");
@@ -210,7 +210,10 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
             }
         }
 
-        false
+        match generics.parent {
+            Some(p_did) => self.has_unrooted_generic_substs(p_did, substs),
+            None => false,
+        }
     }
 }
 
@@ -251,7 +254,13 @@ impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
         let cx = ur_cx.late_cx;
         match constant.ty.sty {
             ty::TyFnDef(callee_def_id, callee_substs) => {
-                if ur_cx.has_unrooted_generic_substs(callee_def_id, callee_substs) {
+                let def_path = get_def_path(cx, callee_def_id);
+                // cx.span_lint(UNROOTED_MUST_ROOT, constant.span, &def_path); // tmp auxiliary call
+                if self.in_new_function && (match_def_path(cx, callee_def_id, &["alloc", "boxed", "{{impl}}", "new"]) || def_path.contains("new_")) {
+                    // ^ need more checks / currently some dirty / proof of work code
+                    // some explanation
+                }
+                else if ur_cx.has_unrooted_generic_substs(callee_def_id, callee_substs) {
                     cx.span_lint(UNROOTED_MUST_ROOT, constant.span, "Callee generic type must be rooted.")
                 }
             },
