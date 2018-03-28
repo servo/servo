@@ -388,21 +388,21 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
 #[derive(Deserialize, Serialize)]
 pub enum HarLogValues {
     /// HAR filename - enforce only String can be used here
-    har_filename,
+    har_filename(String),
     /// HAR IPC sender - enforce IpcSenders are used here
-    ipc_sender,
+    ipc_sender(IpcSender<()>),
 }
 
 impl HarLogValues {
 
-    pub fn sendHar (&self) {
+    pub fn harOutput (&self) {
 
-        /*match filename  {
-            HarLogValues::ipc_sender (sender) => sender.send(()),
-            _ => warn!("Error sending HAR file"),
-        };*/
+        match self {
+            &HarLogValues::ipc_sender(ref ipc_sender) => (),//ipc_sender.send(),
+            &HarLogValues::har_filename(ref har_filename)=> (),//IDK
 
-        //self.ipc_sender.send(file);
+        };
+
     }
 }
 

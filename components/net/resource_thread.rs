@@ -199,7 +199,10 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
             }
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
-            CoreResourceMsg::Exit(sender, page: Option<Vec<Page>>) => {
+            //when processing the CoreResourseMsg::Exit message, send an empty vector or write an
+            // empty vector as JSON to an appropriate file depending on the member variable that
+            //was added earlier TODO
+            CoreResourceMsg::Exit(sender, Option<Page>) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
                         Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
@@ -210,20 +213,14 @@ impl ResourceChannelManager {
                         Err(_) => warn!("Error writing cookie jar to disk"),
                     }
                     match http_state.hsts_list.read() {
+
                         Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                         Err(_) => warn!("Error writing hsts list to disk"),
                     }
                 }
 
-                if let Some(ref har_output) = self.har_output{
-                    match har_output {
-                        &HarLogValues::har_filename => (), //need help here
-                        // write_json_to_file(Vec::new(), config_dir, "hsts_list.json")
-                        &HarLogValues::ipc_sender => har_output.sendHar(),
-                        //Err(_) => warn!("Error writing HAR file")
-                    }
+                if let Some(ref page) = self.har_output;
 
-                }
                 let _ = sender.send(());
                 return false;
             }
