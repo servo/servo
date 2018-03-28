@@ -6,19 +6,19 @@
 
 use dom::bindings::conversions::jsid_to_string;
 use dom::bindings::str::DOMString;
-use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
-use js::jsapi::GetPropertyKeys;
-use js::jsapi::HandleValue;
+use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::JSContext;
 use js::jsapi::JSITER_OWNONLY;
 use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::JS_DefineUCProperty2;
-use js::jsapi::JS_GetPropertyById;
 use js::jsapi::JS_NewPlainObject;
-use js::jsapi::MutableHandleValue;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
 use js::rust::IdVector;
+use js::rust::MutableHandleValue;
+use js::rust::wrappers::GetPropertyKeys;
+use js::rust::wrappers::JS_DefineUCProperty2;
+use js::rust::wrappers::JS_GetPropertyById;
 use std::collections::HashMap;
 use std::ops::Deref;
 
@@ -86,7 +86,7 @@ impl<T, C> FromJSValConvertible for MozMap<T>
 
 impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
     #[inline]
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         rooted!(in(cx) let js_object = JS_NewPlainObject(cx));
         assert!(!js_object.handle().is_null());
 

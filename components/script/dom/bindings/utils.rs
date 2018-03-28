@@ -20,16 +20,24 @@ use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
 use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSContext};
+use js::jsapi::{Heap, JSAutoCompartment, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
-use js::jsapi::{JS_DeletePropertyById, JS_EnumerateStandardClasses};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetLatin1StringCharsAndLength};
-use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasProperty};
-use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
-use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
-use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
+use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
+use js::jsapi::{JS_GetReservedSlot, JS_IsExceptionPending, JS_IsGlobalObject};
+use js::jsapi::{JS_ResolveStandardClass, ToWindowProxyIfWindow};
+use js::jsapi::{JS_StringHasLatin1Chars, ObjectOpResult};
+use js::jsapi::HandleId as RawHandleId;
+use js::jsapi::HandleObject as RawHandleObject;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
+use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
+use js::rust::wrappers::JS_DeletePropertyById;
+use js::rust::wrappers::JS_ForwardGetPropertyTo;
+use js::rust::wrappers::JS_GetProperty;
+use js::rust::wrappers::JS_GetPrototype;
+use js::rust::wrappers::JS_HasProperty;
+use js::rust::wrappers::JS_HasPropertyById;
+use js::rust::wrappers::JS_SetProperty;
 use libc;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::ffi::CString;
@@ -144,8 +152,7 @@ pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
         return false;
     }
     *found = has_property;
-    let no_output = vp.ptr.is_null();
-    if !has_property || no_output {
+    if !has_property {
         return true;
     }
 
@@ -155,9 +162,10 @@ pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
 /// Get an array index from the given `jsid`. Returns `None` if the given
 /// `jsid` is not an integer.
 pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32> {
+    let raw_id = id.into();
     unsafe {
-        if RUST_JSID_IS_INT(id) {
-            return Some(RUST_JSID_TO_INT(id) as u32);
+        if RUST_JSID_IS_INT(raw_id) {
+            return Some(RUST_JSID_TO_INT(raw_id) as u32);
         }
         None
     }
@@ -320,13 +328,13 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 }
 
 /// Enumerate lazy properties of a global object.
-pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: HandleObject) -> bool {
+pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: RawHandleObject) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
     if !JS_EnumerateStandardClasses(cx, obj) {
         return false;
     }
     for init_fun in InterfaceObjectMap::MAP.values() {
-        init_fun(cx, obj);
+        init_fun(cx, Handle::from_raw(obj));
     }
     true
 }
@@ -334,8 +342,8 @@ pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: HandleObject)
 /// Resolve a lazy global property, for interface objects and named constructors.
 pub unsafe extern "C" fn resolve_global(
         cx: *mut JSContext,
-        obj: HandleObject,
-        id: HandleId,
+        obj: RawHandleObject,
+        id: RawHandleId,
         rval: *mut bool)
         -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
@@ -361,7 +369,7 @@ pub unsafe extern "C" fn resolve_global(
     let bytes = slice::from_raw_parts(ptr, length as usize);
 
     if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
-        init_fun(cx, obj);
+        init_fun(cx, Handle::from_raw(obj));
         *rval = true;
     } else {
         *rval = false;
@@ -370,8 +378,8 @@ pub unsafe extern "C" fn resolve_global(
 }
 
 unsafe extern "C" fn wrap(cx: *mut JSContext,
-                          _existing: HandleObject,
-                          obj: HandleObject)
+                          _existing: RawHandleObject,
+                          obj: RawHandleObject)
                           -> *mut JSObject {
     // FIXME terrible idea. need security wrappers
     // https://github.com/servo/servo/issues/2382
@@ -379,9 +387,9 @@ unsafe extern "C" fn wrap(cx: *mut JSContext,
 }
 
 unsafe extern "C" fn pre_wrap(cx: *mut JSContext,
-                              _existing: HandleObject,
-                              obj: HandleObject,
-                              _object_passed_to_wrap: HandleObject)
+                              _existing: RawHandleObject,
+                              obj: RawHandleObject,
+                              _object_passed_to_wrap: RawHandleObject)
                               -> *mut JSObject {
     let _ac = JSAutoCompartment::new(cx, obj.get());
     let obj = ToWindowProxyIfWindow(obj.get());
@@ -409,7 +417,7 @@ unsafe fn generic_call(cx: *mut JSContext,
                        vp: *mut JSVal,
                        is_lenient: bool,
                        call: unsafe extern fn(*const JSJitInfo, *mut JSContext,
-                                              HandleObject, *mut libc::c_void, u32,
+                                              RawHandleObject, *mut libc::c_void, u32,
                                               *mut JSVal)
                                               -> bool)
                        -> bool {
@@ -447,7 +455,7 @@ unsafe fn generic_call(cx: *mut JSContext,
             }
         }
     };
-    call(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp)
+    call(info, cx, obj.handle().into(), this as *mut libc::c_void, argc, vp)
 }
 
 /// Generic method of IDL interface.
@@ -476,7 +484,7 @@ pub unsafe extern "C" fn generic_lenient_getter(cx: *mut JSContext,
 
 unsafe extern "C" fn call_setter(info: *const JSJitInfo,
                                  cx: *mut JSContext,
-                                 handle: HandleObject,
+                                 handle: RawHandleObject,
                                  this: *mut libc::c_void,
                                  argc: u32,
                                  vp: *mut JSVal)
