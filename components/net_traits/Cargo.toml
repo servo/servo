@@ -29,4 +29,4 @@ servo_url = {path = "../url"}
 url = "1.2"
 uuid = {version = "0.5", features = ["v4", "serde"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-rust_har = { git = "https://github.com/servo/rust-har" }//added
+har = { git = "https://github.com/servo/rust-har", branch = "master" }
