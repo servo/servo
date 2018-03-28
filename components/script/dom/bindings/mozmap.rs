@@ -10,7 +10,6 @@ use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible
 use js::jsapi::JSContext;
 use js::jsapi::JSITER_OWNONLY;
 use js::jsapi::JSPROP_ENUMERATE;
-use js::rust::wrappers::JS_DefineUCProperty2;
 use js::jsapi::JS_NewPlainObject;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
@@ -18,6 +17,7 @@ use js::rust::HandleValue;
 use js::rust::IdVector;
 use js::rust::MutableHandleValue;
 use js::rust::wrappers::GetPropertyKeys;
+use js::rust::wrappers::JS_DefineUCProperty2;
 use js::rust::wrappers::JS_GetPropertyById;
 use std::collections::HashMap;
 use std::ops::Deref;
