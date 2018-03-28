@@ -26,7 +26,7 @@ impl ParseErrorReporter for CSSErrorReporter {
                     url: &ServoUrl,
                     location: SourceLocation,
                     error: ContextualParseError) {
-        if log_enabled!(log::LogLevel::Info) {
+        if log_enabled!(log::Level::Info) {
             info!("Url:\t{}\n{}:{} {}",
                   url.as_str(),
                   location.line,

@@ -56,7 +56,7 @@ itertools = "0.7.6"
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "1"
 libc = "0.2"
-log = "0.3.5"
+log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 metrics = {path = "../metrics"}

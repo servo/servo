@@ -26,7 +26,7 @@ harfbuzz-sys = "0.1"
 ipc-channel = "0.10"
 lazy_static = "1"
 libc = "0.2"
-log = "0.3.5"
+log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 msg = {path = "../msg"}
