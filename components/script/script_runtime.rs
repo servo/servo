@@ -16,7 +16,7 @@ use dom::bindings::utils::DOM_CALLBACKS;
 use dom::globalscope::GlobalScope;
 use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
-use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
+use js::jsapi::{JSContext as RawJSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
@@ -109,7 +109,7 @@ pub trait ScriptPort {
 /// SM callback for promise job resolution. Adds a promise callback to the current
 /// global's microtask queue.
 #[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
+unsafe extern "C" fn enqueue_job(cx: *mut RawJSContext,
                                  job: HandleObject,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
@@ -157,7 +157,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
         SetGCSliceCallback(runtime.rt(), Some(gc_slice_callback));
     }
 
-    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
+    unsafe extern "C" fn empty_wrapper_callback(_: *mut RawJSContext, _: *mut JSObject) -> bool { true }
     SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
     SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
     // Pre barriers aren't working correctly at the moment
@@ -334,7 +334,7 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
 }
 
 #[allow(unsafe_code)]
-pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
+pub fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
 
     unsafe {
@@ -474,12 +474,21 @@ unsafe fn set_gc_zeal_options(rt: *mut JSRuntime) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut JSRuntime) {}
 
-pub struct RawJSContext(*mut JSContext);
+pub struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
-impl Deref for RawJSContext {
-   type Target = JSContext;
-   fn deref(&self) -> &JSContext {
-        unsafe { &*self.0 }
-   }
+#[allow(dead_code)] // FIXME: remove in next commit
+impl JSContext {
+    unsafe fn from_ptr(raw_jsctxt: *mut RawJSContext) -> Self {
+        JSContext(raw_jsctxt)
+    }
 }
+
+#[allow(unsafe_code)]
+impl Deref for JSContext {
+    type Target = RawJSContext;
+    fn deref(&self) -> &RawJSContext {
+        unsafe { &*self.0 }
+    }
+}
+
