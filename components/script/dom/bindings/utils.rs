@@ -33,7 +33,7 @@ use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
 use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
 use js::rust::wrappers::JS_DeletePropertyById;
 use js::rust::wrappers::JS_ForwardGetPropertyTo;
-use js::rust::wrappers::JS_GetProperty
+use js::rust::wrappers::JS_GetProperty;
 use js::rust::wrappers::JS_GetPrototype;
 use js::rust::wrappers::JS_HasProperty;
 use js::rust::wrappers::JS_HasPropertyById;
