@@ -199,7 +199,7 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
             }
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
-            CoreResourceMsg::Exit(sender, har_output) => {
+            CoreResourceMsg::Exit(sender, page: Option<Vec<Page>>) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
                         Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
@@ -217,7 +217,8 @@ impl ResourceChannelManager {
 
                 if let Some(ref har_output) = self.har_output{
                     match har_output {
-                        &HarLogValues::har_filename => (),
+                        &HarLogValues::har_filename => (), //need help here
+                        // write_json_to_file(Vec::new(), config_dir, "hsts_list.json")
                         &HarLogValues::ipc_sender => har_output.sendHar(),
                         //Err(_) => warn!("Error writing HAR file")
                     }
