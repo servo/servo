@@ -11,14 +11,15 @@
  *   </div>
  * </div>
  *
- * If 'inline' is true, the necessary blocks will be marked as inline-block,
- * and the dimensions above are flipped.
+ * If the sticky direction is 'left' or 'right', the necessary blocks will be
+ * marked as inline-block and the dimensions above are flipped.
  *
  * Returns an 'elements' object which has each of the above elements as an
  * accessible property.
  */
-function setupStickyTest(stickyDirection, stickyOffset, inline = false) {
+function setupStickyTest(stickyDirection, stickyOffset) {
   const elements = {};
+  const inline = stickyDirection === 'left' || stickyDirection === 'right';
 
   elements.scroller = document.createElement('div');
   elements.scroller.style.position = 'relative';
@@ -64,6 +65,42 @@ function setupStickyTest(stickyDirection, stickyOffset, inline = false) {
   elements.container.appendChild(elements.sticky);
 
   document.body.appendChild(elements.scroller);
+
+  return elements;
+}
+
+/**
+ * Similar to above, but nests a second sticky (named innerSticky) inside the
+ * sticky element.
+ *
+ * In the 'bottom' and 'right' cases, we also inject some padding before the
+ * innerSticky element, to give it something to push into. This inner padding is
+ * not exposed.
+ */
+function setupNestedStickyTest(stickyDirection, outerStickyOffset,
+    innerStickyOffset) {
+  const elements = setupStickyTest(stickyDirection, outerStickyOffset);
+
+  const inline = stickyDirection === 'left' || stickyDirection === 'right';
+  if (stickyDirection === 'bottom' || stickyDirection === 'right') {
+    const innerPadding = document.createElement('div');
+    innerPadding.style.height = (inline ? '100%' : '50px');
+    innerPadding.style.width = (inline ? '50px' : '100%');
+    if (inline)
+      innerPadding.style.display = 'inline-block';
+    elements.sticky.appendChild(innerPadding);
+  }
+
+  elements.innerSticky = document.createElement('div');
+  elements.innerSticky.style = `${stickyDirection}: ${innerStickyOffset}px;`;
+  elements.innerSticky.style.position = 'sticky';
+  elements.innerSticky.style.height = (inline ? '100%' : '50px');
+  elements.innerSticky.style.width = (inline ? '50px' : '100%');
+  elements.innerSticky.style.backgroundColor = 'blue';
+  if (inline)
+    elements.innerSticky.style.display = 'inline-block';
+
+  elements.sticky.appendChild(elements.innerSticky);
 
   return elements;
 }

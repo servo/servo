@@ -24,7 +24,7 @@ async function registerApp(methodName) {
   }
   await registration.paymentManager.instruments.set(instrumentKey, {
     name: 'Test Payment Method',
-    enabledMethods: [methodName],
+    method: methodName,
   });
   return registration;
 }
@@ -310,7 +310,7 @@ promise_test(async t => {
   const registration = await registerApp(methodName);
   await registration.paymentManager.instruments.set(instrumentKey, {
     name: 'Test Payment Method',
-    enabledMethods: [methodName],
+    method: methodName,
     capabilities: {
       supportedTypes: [cardType],
       supportedNetworks: [cardNetwork],
@@ -360,7 +360,7 @@ promise_test(async t => {
   const registration = await registerApp(methodName);
   await registration.paymentManager.instruments.set(instrumentKey, {
     name: 'Test Payment Method',
-    enabledMethods: [methodName],
+    method: methodName,
     capabilities: {
       supportedTypes: [cardType],
       supportedNetworks: [cardNetwork],
