@@ -171,6 +171,7 @@ pub unsafe fn create_callback_interface_object(
         mut rval: MutableHandleObject) {
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
+    assert!(!rval.is_null());
     define_guarded_constants(cx, rval.handle(), constants);
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, global, name, rval.handle());
@@ -270,6 +271,7 @@ pub unsafe fn create_object(
         constants: &[Guard<&[ConstantSpec]>],
         mut rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
+    assert!(!rval.is_null());
     define_guarded_methods(cx, rval.handle(), methods);
     define_guarded_properties(cx, rval.handle(), properties);
     define_guarded_constants(cx, rval.handle(), constants);
@@ -368,11 +370,9 @@ unsafe extern "C" fn has_instance_hook(cx: *mut JSContext,
         obj: RawHandleObject,
         value: RawMutableHandleValue,
         rval: *mut bool) -> bool {
-    match has_instance(
-        cx,
-        HandleObject::from_raw(obj),
-        HandleValue::from_raw(value.handle())
-    ) {
+    let obj_raw = HandleObject::from_raw(obj);
+    let val_raw = HandleValue::from_raw(value.handle());
+    match has_instance(cx, obj_raw, val_raw) {
         Ok(result) => {
             *rval = result;
             true
