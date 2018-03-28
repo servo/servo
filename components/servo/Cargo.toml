@@ -37,13 +37,13 @@ constellation = {path = "../constellation"}
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
-env_logger = "0.4"
+env_logger = "0.5"
 euclid = "0.17"
 gfx = {path = "../gfx"}
 gleam = "0.4.29"
 ipc-channel = "0.10"
 layout_thread = {path = "../layout_thread"}
-log = "0.3"
+log = "0.4"
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}

@@ -8,7 +8,7 @@ use applicable_declarations::ApplicableDeclarationList;
 use context::{CascadeInputs, ElementCascadeInputs, StyleContext};
 use data::{ElementStyles, EagerPseudoStyles};
 use dom::TElement;
-use log::LogLevel::Trace;
+use log::Level::Trace;
 use matching::MatchMethods;
 use properties::{AnimationRules, ComputedValues};
 use properties::longhands::display::computed_value::T as Display;

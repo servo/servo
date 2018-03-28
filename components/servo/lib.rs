@@ -79,13 +79,13 @@ use constellation::{Constellation, InitialConstellationState, UnprivilegedPipeli
 use constellation::{FromCompositorLogger, FromScriptLogger};
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use constellation::content_process_sandbox_profile;
-use env_logger::Logger as EnvLogger;
+use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Length;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
-use log::{Log, LogMetadata, LogRecord};
+use log::{Log, Metadata, Record};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -404,14 +404,13 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
     pub fn setup_logging(&self) {
         let constellation_chan = self.constellation_chan.clone();
-        log::set_logger(|max_log_level| {
-            let env_logger = EnvLogger::new();
-            let con_logger = FromCompositorLogger::new(constellation_chan);
-            let filter = max(env_logger.filter(), con_logger.filter());
-            let logger = BothLogger(env_logger, con_logger);
-            max_log_level.set(filter);
-            Box::new(logger)
-        }).expect("Failed to set logger.")
+        let env_logger = EnvLoggerBuilder::new().build();
+        let con_logger = FromCompositorLogger::new(constellation_chan);
+        let filter = max(env_logger.filter(), con_logger.filter());
+        log::set_max_level(filter);
+
+        let logger = BothLogger(env_logger, con_logger);
+        log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
     }
 
     pub fn deinit(self) {
@@ -548,25 +547,29 @@ fn create_constellation(user_agent: Cow<'static, str>,
 struct BothLogger<Log1, Log2>(Log1, Log2);
 
 impl<Log1, Log2> Log for BothLogger<Log1, Log2> where Log1: Log, Log2: Log {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
+    fn enabled(&self, metadata: &Metadata) -> bool {
         self.0.enabled(metadata) || self.1.enabled(metadata)
     }
 
-    fn log(&self, record: &LogRecord) {
+    fn log(&self, record: &Record) {
         self.0.log(record);
         self.1.log(record);
+    }
+
+    fn flush(&self) {
+        self.0.flush();
+        self.1.flush();
     }
 }
 
 pub fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
-    log::set_logger(|max_log_level| {
-        let env_logger = EnvLogger::new();
-        let con_logger = FromScriptLogger::new(script_to_constellation_chan);
-        let filter = max(env_logger.filter(), con_logger.filter());
-        let logger = BothLogger(env_logger, con_logger);
-        max_log_level.set(filter);
-        Box::new(logger)
-    }).expect("Failed to set logger.")
+    let env_logger = EnvLoggerBuilder::new().build();
+    let con_logger = FromScriptLogger::new(script_to_constellation_chan);
+    let filter = max(env_logger.filter(), con_logger.filter());
+    log::set_max_level(filter);
+
+    let logger = BothLogger(env_logger, con_logger);
+    log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
 }
 
 /// Content process entry point.

@@ -11,6 +11,6 @@ path = "lib.rs"
 
 [dependencies]
 lazy_static = "1"
-log = "0.3"
+log = "0.4"
 rand = "0.4"
 uuid = "0.6.2"

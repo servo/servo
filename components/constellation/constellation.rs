@@ -111,7 +111,7 @@ use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use itertools::Itertools;
 use layout_traits::LayoutThreadFactory;
-use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
+use log::{Log, Level, LevelFilter, Metadata, Record};
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
@@ -438,17 +438,17 @@ impl FromScriptLogger {
     }
 
     /// The maximum log level the constellation logger is interested in.
-    pub fn filter(&self) -> LogLevelFilter {
-        LogLevelFilter::Warn
+    pub fn filter(&self) -> LevelFilter {
+        LevelFilter::Warn
     }
 }
 
 impl Log for FromScriptLogger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
-        metadata.level() <= LogLevel::Warn
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= Level::Warn
     }
 
-    fn log(&self, record: &LogRecord) {
+    fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
             debug!("Sending log entry {:?}.", entry);
             let thread_name = thread::current().name().map(ToOwned::to_owned);
@@ -457,6 +457,8 @@ impl Log for FromScriptLogger {
             let _ = chan.send(msg);
         }
     }
+
+    fn flush(&self) {}
 }
 
 /// A logger directed at the constellation from the compositor
@@ -475,17 +477,17 @@ impl FromCompositorLogger {
     }
 
     /// The maximum log level the constellation logger is interested in.
-    pub fn filter(&self) -> LogLevelFilter {
-        LogLevelFilter::Warn
+    pub fn filter(&self) -> LevelFilter {
+        LevelFilter::Warn
     }
 }
 
 impl Log for FromCompositorLogger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
-        metadata.level() <= LogLevel::Warn
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= Level::Warn
     }
 
-    fn log(&self, record: &LogRecord) {
+    fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
             debug!("Sending log entry {:?}.", entry);
             let top_level_id = TopLevelBrowsingContextId::installed();
@@ -495,22 +497,24 @@ impl Log for FromCompositorLogger {
             let _ = chan.send(msg);
         }
     }
+
+    fn flush(&self) {}
 }
 
-/// Rust uses `LogRecord` for storing logging, but servo converts that to
+/// Rust uses `Record` for storing logging, but servo converts that to
 /// a `LogEntry`. We do this so that we can record panics as well as log
-/// messages, and because `LogRecord` does not implement serde (de)serialization,
+/// messages, and because `Record` does not implement serde (de)serialization,
 /// so cannot be used over an IPC channel.
-fn log_entry(record: &LogRecord) -> Option<LogEntry> {
+fn log_entry(record: &Record) -> Option<LogEntry> {
     match record.level() {
-        LogLevel::Error if thread::panicking() => Some(LogEntry::Panic(
+        Level::Error if thread::panicking() => Some(LogEntry::Panic(
             format!("{}", record.args()),
             format!("{:?}", Backtrace::new())
         )),
-        LogLevel::Error => Some(LogEntry::Error(
+        Level::Error => Some(LogEntry::Error(
             format!("{}", record.args())
         )),
-        LogLevel::Warn => Some(LogEntry::Warn(
+        Level::Warn => Some(LogEntry::Warn(
             format!("{}", record.args())
         )),
         _ => None,

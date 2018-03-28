@@ -410,7 +410,7 @@ fn obtain_response(connector: &Pool<Connector>,
             }
         }
 
-        if log_enabled!(log::LogLevel::Info) {
+        if log_enabled!(log::Level::Info) {
             info!("{} {}", method, url);
             for header in headers.iter() {
                 info!(" - {}", header);
@@ -1069,7 +1069,7 @@ fn http_network_fetch(request: &Request,
         Err(error) => return Response::network_error(error),
     };
 
-    if log_enabled!(log::LogLevel::Info) {
+    if log_enabled!(log::Level::Info) {
         info!("response for {}", url);
         for header in res.headers.iter() {
             info!(" - {}", header);

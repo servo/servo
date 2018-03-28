@@ -4,7 +4,7 @@
 
 use cssparser::{ParseErrorKind, Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
-use env_logger::LogBuilder;
+use env_logger::Builder;
 use malloc_size_of::MallocSizeOfOps;
 use selectors::NthIndexCache;
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
@@ -180,11 +180,11 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     use style::gecko_bindings::sugar::origin_flags;
 
     // Initialize logging.
-    let mut builder = LogBuilder::new();
+    let mut builder = Builder::new();
     let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
     match env::var("RUST_LOG") {
-      Ok(v) => builder.parse(&v).init().unwrap(),
-      _ => builder.parse(default_level).init().unwrap(),
+      Ok(v) => builder.parse(&v).init(),
+      _ => builder.parse(default_level).init(),
     };
 
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
