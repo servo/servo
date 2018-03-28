@@ -416,7 +416,7 @@ unsafe fn has_instance(
     // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
     while JS_GetPrototype(cx, value.handle(), value_out.handle_mut()) {
-        value = value_out;
+        *value = *value_out;
         if value.is_null() {
             // Step 5.2.
             return Ok(false);
