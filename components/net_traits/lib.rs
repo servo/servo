@@ -370,7 +370,7 @@ pub enum CoreResourceMsg {
     ToFileManager(FileManagerThreadMsg),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
-    Exit(IpcSender<()>,Option<Page>),
+    Exit(IpcSender<()>,Option<String>),
 }
 
 /// Instruct the resource thread to make a new request.
