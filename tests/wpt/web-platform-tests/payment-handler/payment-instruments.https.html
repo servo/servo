@@ -76,7 +76,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
         capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
       },
     );
@@ -103,7 +103,7 @@ function runTests(registration) {
         icons: [
           {src: '/images/green-16x16.png', sizes: '16x16', type: 'image/png'},
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
         capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
       },
     );
@@ -118,7 +118,7 @@ function runTests(registration) {
     );
     assert_equals(result.icons[0].sizes, '16x16');
     assert_equals(result.icons[0].type, 'image/png');
-    assert_array_equals(result.enabledMethods, ['basic-card']);
+    assert_equals(result.method, 'basic-card');
     assert_array_equals(result.capabilities.supportedNetworks, ['mir']);
     assert_array_equals(result.capabilities.supportedTypes, ['prepaid']);
     await registration.paymentManager.instruments.set(
@@ -132,7 +132,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
         capabilities: {supportedNetworks: ['visa'], supportedTypes: ['credit']},
       },
     );
@@ -147,7 +147,7 @@ function runTests(registration) {
     );
     assert_equals(result.icons[0].sizes, '256x256');
     assert_equals(result.icons[0].type, 'image/png');
-    assert_array_equals(result.enabledMethods, ['basic-card']);
+    assert_equals(result.method, 'basic-card');
     assert_array_equals(result.capabilities.supportedNetworks, ['visa']);
     assert_array_equals(result.capabilities.supportedTypes, ['credit']);
   }, 'Resetting an existing instrument updates the instrument');
@@ -165,7 +165,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
         capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
       },
     );
@@ -189,7 +189,7 @@ function runTests(registration) {
             type: 'image/jif',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
       },
     );
     return promise_rejects(t, new TypeError(), setPromise);
@@ -208,7 +208,7 @@ function runTests(registration) {
             type: 'image/pn' + 'g'.repeat(1000),
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
       },
     );
     return promise_rejects(t, new TypeError(), setPromise);
@@ -225,7 +225,7 @@ function runTests(registration) {
           type: 'image/png',
         },
       ],
-      enabledMethods: ['basic-card'],
+      method: 'basic-card',
     });
   }, "Don't crash when registering an instrument with a very long icon size 888...x888...");
 
@@ -242,7 +242,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
       },
     );
     return promise_rejects(t, new TypeError(), setPromise);
@@ -261,7 +261,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
       },
     );
     return promise_rejects(t, new TypeError(), setPromise);
@@ -280,7 +280,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
       },
     );
     return promise_rejects(t, new TypeError(), setPromise);
@@ -300,7 +300,7 @@ function runTests(registration) {
             type: 'image/gif',
           },
         ],
-        enabledMethods: ['basic-card'],
+        method: 'basic-card',
       },
     );
     return promise_rejects(t, new TypeError(), setPromise);
@@ -313,7 +313,7 @@ function runTests(registration) {
       icons: [
         {src: '/images/rgrg-256x256.png', sizes: '256x256', type: 'image/png'},
       ],
-      enabledMethods: [existingKey],
+      method: existingKey,
       capabilities: {aCapabilityName: existingKey},
     });
     const hasExistingInstrument = await registration.paymentManager.instruments.has(
