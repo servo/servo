@@ -13,7 +13,7 @@ Shell scripts should be written against bash, starting with this shebang:
 #!/usr/bin/env bash
 ```
 
-Note that the version of bash available on OS X by default is quite old, so be
+Note that the version of bash available on macOS by default is quite old, so be
 careful when using new features.
 
 Scripts should enable a few options at the top for robustness:

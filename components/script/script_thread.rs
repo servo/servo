@@ -17,6 +17,8 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+extern crate itertools;
+
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use devtools;
@@ -72,8 +74,6 @@ use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
-use malloc_size_of::MallocSizeOfOps;
-use mem::malloc_size_of_including_self;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
@@ -82,7 +82,7 @@ use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
-use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
+use profile_traits::mem::{self, OpaqueSender, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
@@ -1580,34 +1580,11 @@ impl ScriptThread {
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
-        let mut path_seg = String::from("url(");
-        let mut dom_tree_size = 0;
+        let documents = self.documents.borrow();
+        let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
+        let path_seg = format!("url({})", urls);
+
         let mut reports = vec![];
-        // Servo uses vanilla jemalloc, which doesn't have a
-        // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
-
-        for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url();
-
-            for child in document.upcast::<Node>().traverse_preorder() {
-                dom_tree_size += malloc_size_of_including_self(&mut ops, &*child);
-            }
-            dom_tree_size += malloc_size_of_including_self(&mut ops, document.window());
-
-            if reports.len() > 0 {
-                path_seg.push_str(", ");
-            }
-            path_seg.push_str(current_url.as_str());
-
-            reports.push(Report {
-                path: path![format!("url({})", current_url.as_str()), "dom-tree"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: dom_tree_size,
-            });
-        }
-
-        path_seg.push_str(")");
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
