@@ -11593,11 +11593,6 @@
      {}
     ]
    ],
-   "mozilla/resources/content.py": [
-    [
-     {}
-    ]
-   ],
    "mozilla/resources/external.js": [
     [
      {}
@@ -39093,18 +39088,6 @@
    "mozilla/secure.https.html": [
     [
      "/_mozilla/mozilla/secure.https.html",
-     {}
-    ]
-   ],
-   "mozilla/send-arraybuffer.htm": [
-    [
-     "/_mozilla/mozilla/send-arraybuffer.htm",
-     {}
-    ]
-   ],
-   "mozilla/send-blob.htm": [
-    [
-     "/_mozilla/mozilla/send-blob.htm",
      {}
     ]
    ],
@@ -70613,10 +70596,6 @@
    "1a76b81400b1e150f008d11180adcdf786e77b67",
    "support"
   ],
-  "mozilla/resources/content.py": [
-   "5cf25421cc9c0e0f88a159b363f99f37036d019f",
-   "support"
-  ],
   "mozilla/resources/external.js": [
    "78686147f85e4146e7fc58c1f67a613f65b099a2",
    "support"
@@ -70703,14 +70682,6 @@
   ],
   "mozilla/secure.https.html": [
    "fc757effccd93c56ab79b0510a01ae815b7a8714",
-   "testharness"
-  ],
-  "mozilla/send-arraybuffer.htm": [
-   "dc04c6f888458b28bd29a3a43f4dab7f12e72a33",
-   "testharness"
-  ],
-  "mozilla/send-blob.htm": [
-   "5d8d62c0c2c27edbb875183a31a9005c950141cc",
    "testharness"
   ],
   "mozilla/sequence-hole.html": [

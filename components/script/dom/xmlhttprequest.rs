@@ -520,6 +520,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some(DocumentOrBodyInit::FormData(ref formdata)) => Some(formdata.extract()),
             Some(DocumentOrBodyInit::String(ref str)) => Some(str.extract()),
             Some(DocumentOrBodyInit::URLSearchParams(ref urlsp)) => Some(urlsp.extract()),
+            Some(DocumentOrBodyInit::ArrayBuffer(ref typedarray)) => Some((typedarray.to_vec(), None)),
+            Some(DocumentOrBodyInit::ArrayBufferView(ref typedarray)) => Some((typedarray.to_vec(), None)),
             None => None,
         };
 
@@ -1441,6 +1443,8 @@ impl Extractable for BodyInit {
             BodyInit::URLSearchParams(ref usp) => usp.extract(),
             BodyInit::Blob(ref b) => b.extract(),
             BodyInit::FormData(ref formdata) => formdata.extract(),
+            BodyInit::ArrayBuffer(ref typedarray) => ((typedarray.to_vec(), None)),
+            BodyInit::ArrayBufferView(ref typedarray) => ((typedarray.to_vec(), None)),
         }
     }
 }
