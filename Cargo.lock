@@ -1570,6 +1570,7 @@ dependencies = [
  "hyper_serde 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_arc 0.1.0",
  "smallbitvec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",

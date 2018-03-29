@@ -20,6 +20,7 @@ hyper = "0.10"
 hyper_serde = "0.8"
 mozjs = { version = "0.1.8", features = ["promises"], optional = true }
 selectors = { path = "../selectors" }
+serde = "1.0.27"
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
 smallvec = "0.6"

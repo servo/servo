@@ -52,6 +52,7 @@ extern crate hyper_serde;
 #[cfg(feature = "servo")]
 extern crate mozjs as js;
 extern crate selectors;
+extern crate serde;
 extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
@@ -68,6 +69,7 @@ extern crate xml5ever;
 
 use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
+use std::ops::{Deref, DerefMut};
 use std::ops::Range;
 use std::os::raw::c_void;
 use void::Void;
@@ -572,6 +574,12 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for servo_arc::Arc<T> {
     }
 }
 
+/// If a mutex is stored directly as a member of a data type that is being measured,
+/// it is the unique owner of its contents and deserves to be measured.
+///
+/// If a mutex is stored inside of an Arc value as a member of a data type that is being measured,
+/// the Arc will not be automatically measured so there is no risk of overcounting the mutex's
+/// contents.
 impl<T: MallocSizeOf> MallocSizeOf for std::sync::Mutex<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         (*self.lock().unwrap()).size_of(ops)
@@ -796,16 +804,11 @@ impl MallocSizeOf for hyper::header::Headers {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut t = 0;
         for x in self.iter() {
-           t += x.size_of(ops)
+            let name = x.name();
+            let raw = self.get_raw(name);
+            t += raw.size_of(ops)
         }
         t
-    }
-}
-
-impl<'a> MallocSizeOf for hyper::header::HeaderView<'a> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // Close enough?
-        self.name().size_of(ops) + self.value_string().size_of(ops)
     }
 }
 
@@ -825,8 +828,11 @@ impl MallocSizeOf for hyper::mime::Mime {
 }
 
 impl MallocSizeOf for hyper::mime::Attr {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        self.len()
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match *self {
+            hyper::mime::Attr::Ext(ref s) => s.size_of(ops),
+            _ => 0,
+        }
     }
 }
 
@@ -836,46 +842,48 @@ impl MallocSizeOf for hyper::mime::Value {
     }
 }
 
-/*
- *  pub struct Duration {
- *      secs: i64,
- *      nanos: i32,
- *  }
- */
-impl MallocSizeOf for time::Duration {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) ->  usize {
-        size_of::<time::Duration>()
-    }
-}
+malloc_size_of_is_0!(time::Duration);
+malloc_size_of_is_0!(time::Tm);
 
-impl MallocSizeOf for time::Tm {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        /*
-        self.tm_sec.size_of(ops) +
-        self.tm_min.size_of(ops) +
-        self.tm_hour.size_of(ops) +
-        self.tm_mday.size_of(ops) +
-        self.tm_mon.size_of(ops) +
-        self.tm_year.size_of(ops) +
-        self.tm_wday.size_of(ops) +
-        self.tm_yday.size_of(ops) +
-        self.tm_isdst.size_of(ops) +
-        self.tm_utcoff.size_of(ops) +
-        self.tm_nsec.size_of(ops)
-        */
-
-        size_of::<time::Tm>()
-    }
-}
-
-impl MallocSizeOf for hyper_serde::Serde<hyper::header::ContentType> {
+impl<T> MallocSizeOf for hyper_serde::Serde<T> where
+    for <'de> hyper_serde::De<T>: serde::Deserialize<'de>,
+    for <'a> hyper_serde::Ser<'a, T>: serde::Serialize,
+    T: MallocSizeOf {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (*self).clone().into_inner().size_of(ops)
+        self.0.size_of(ops)
     }
 }
 
+// Placeholder for unique case where internals of Sender cannot be measured.
+// malloc size of is 0 macro complains about type supplied!
 impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        size_of::<T>()
+        0
+    }
+}
+
+impl MallocSizeOf for hyper::status::StatusCode {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match *self {
+            hyper::status::StatusCode::Unregistered(u) => u.size_of(ops),
+            _ => 0,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Measurable<T: MallocSizeOf> (pub T);
+
+impl<T: MallocSizeOf> Deref for Measurable<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T: MallocSizeOf> DerefMut for Measurable<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.0
     }
 }

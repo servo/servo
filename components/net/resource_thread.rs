@@ -160,10 +160,8 @@ impl ResourceChannelManager {
                 // If message is memory report, get the size_of of public and private http caches
                 if id == reporter_id {
                     if let Ok(msg) = data.to() {
-                        if id == reporter_id {
-                            self.process_report(msg, &private_http_state, &public_http_state);
-                            continue;
-                        }
+                        self.process_report(msg, &private_http_state, &public_http_state);
+                        continue;
                     }
                 } else {
                     let group = if id == private_id {
@@ -182,7 +180,6 @@ impl ResourceChannelManager {
         }
     }
 
-    /// False if report failed to be made
     fn process_report(&mut self,
                       msg: ReportsChan,
                       public_http_state: &Arc<HttpState>,
