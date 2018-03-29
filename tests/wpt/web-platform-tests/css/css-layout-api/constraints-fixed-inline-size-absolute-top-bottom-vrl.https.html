@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraints-fixedinlinesize">
+<link rel="match" href="constraints-fixed-inline-size-ref.html">
+<meta name="assert" content="This test checks that LayoutConstraints#fixedInlineSize is passed into the layout function correctly." />
+<style>
+body {
+  position: relative;
+  height: 120px;
+}
+
+.test {
+  background: red;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  bottom: 20px;
+  writing-mode: vertical-rl;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test"></div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/constraints-fixed-inline-size.js'});
+</script>

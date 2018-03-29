@@ -378,6 +378,52 @@
     }));
   }, 'replaceTrack(): original track attachment stats present after replacing');
 
+  promise_test(async function() {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    let [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    let sender = caller.addTrack(tracks[0], streams[0]);
+    callee.addTrack(tracks[1], streams[1]);
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+    await onIceConnectionStateCompleted(caller);
+    let receiver = caller.getReceivers()[0];
+
+    // Obtain inbound and outbound RTP stream stats on a full stats report.
+    let fullReport = await caller.getStats();
+    let outboundTrackStats = findStatsByTypeAndId(
+        fullReport, 'track', sender.track.id);
+    let outboundStats = findStatsByTypeAndMember(
+        fullReport, 'outbound-rtp', 'trackId', outboundTrackStats.id);
+    assert_true(outboundStats != null, 'Has stats for outbound RTP stream');
+    let inboundTrackStats = findStatsByTypeAndId(
+        fullReport, 'track', receiver.track.id);
+    let inboundStats = findStatsByTypeAndMember(
+        fullReport, 'inbound-rtp', 'trackId', inboundTrackStats.id);
+    assert_true(inboundStats != null, 'Has stats for inbound RTP stream');
+
+    // Perform stats selection algorithm with sender selector. The result should
+    // contain the outbound-rtp but not the inbound-rtp.
+    let senderReport = await sender.getStats();
+    assert_true(senderReport.has(outboundStats.id));
+    assert_false(senderReport.has(inboundStats.id));
+
+    // Validate the stats graph, ensuring all stats objects are reachable and
+    // valid from the outbound-rtp stats.
+    validateStatsGraph(senderReport, senderReport.get(outboundStats.id));
+    // Ensure that the stats graph contains some expected dictionaries.
+    assert_equals(findStatsOfType(senderReport, 'track').length, 1,
+        'senderReport should contain track stats');
+    assert_equals(findStatsOfType(senderReport, 'transport').length, 1,
+        'senderReport should contain transport stats');
+    assert_equals(findStatsOfType(senderReport, 'candidate-pair').length, 1,
+        'senderReport should contain candidate-pair stats');
+    assert_equals(findStatsOfType(senderReport, 'local-candidate').length, 1,
+        'senderReport should contain local-candidate stats');
+    assert_equals(findStatsOfType(senderReport, 'remote-candidate').length, 1,
+        'senderReport should contain remote-candidate stats');
+  }, 'RTCRtpSender.getStats() contains only outbound-rtp and related stats');
+
   // Helpers.
 
   function findStatsByTypeAndId(report, type, identifier) {
@@ -398,6 +444,55 @@
         return n.value;
     }
     return null;
+  }
+
+  function findStatsOfType(report, type) {
+    let stats = [];
+    for (let it = report.values(), n = it.next(); !n.done; n = it.next()) {
+      if (n.value.type == type)
+        stats.push(n.value);
+    }
+    return stats;
+  }
+
+  // Returns a promise that is resolved when pc.iceConnectionState changes to
+  // 'completed'. This is when transport stats can be expected to have its
+  // selectedCandidatePairId defined.
+  async function onIceConnectionStateCompleted(pc) {
+    let resolver = new Resolver();
+    pc.oniceconnectionstatechange = e => {
+      if (pc.iceConnectionState == 'completed')
+        resolver.resolve();
+    };
+    return resolver.promise;
+  }
+
+  // Explores the stats graph starting from |stat|, validating each stat
+  // (validateRtcStats) and asserting that all stats of the report were visited.
+  function validateStatsGraph(report, stat) {
+    let visitedIds = new Set();
+    validateStatsGraphRecursively(report, stat.id, visitedIds);
+    assert_equals(visitedIds.size, report.size,
+                  'Entire stats graph should have been explored.')
+  }
+
+  function validateStatsGraphRecursively(report, currentId, visitedIds) {
+    if (visitedIds.has(currentId))
+      return;
+    visitedIds.add(currentId);
+    assert_true(report.has(currentId), 'Broken reference.');
+    let stat = report.get(currentId);
+    validateRtcStats(report, stat);
+    for (let member in stat) {
+      if (member.endsWith('Id')) {
+        validateStatsGraphRecursively(report, stat[member], visitedIds);
+      } else if (member.endsWith('Ids')) {
+        let ids = stat[member];
+        for (let i = 0; i < ids.length; ++i) {
+          validateStatsGraphRecursively(report, ids[i], visitedIds);
+        }
+      }
+    }
   }
 
 </script>

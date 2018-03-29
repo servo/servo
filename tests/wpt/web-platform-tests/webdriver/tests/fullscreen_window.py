@@ -16,6 +16,12 @@ def fullscreen(session):
     return session.transport.send("POST", "session/%s/window/fullscreen" % session.session_id)
 
 
+def is_fullscreen(session):
+    # At the time of writing, WebKit does not conform to the Fullscreen API specification.
+    # Remove the prefixed fallback when https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
+    return session.execute_script("return !!(window.fullScreen || document.webkitIsFullScreen)")
+
+
 # 10.7.5 Fullscreen Window
 
 
@@ -134,11 +140,6 @@ def test_handle_prompt_missing_value(session, create_dialog):
     assert_dialog_handled(session, "dismiss #3")
     assert read_global(session, "dismiss3") == None
 
-
-def is_fullscreen(session):
-    # At the time of writing, WebKit does not conform to the Fullscreen API specification.
-    # Remove the prefixed fallback when https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
-    return session.execute_script("return !!(window.fullScreen || document.webkitIsFullScreen)")
 
 def test_fullscreen(session):
     """

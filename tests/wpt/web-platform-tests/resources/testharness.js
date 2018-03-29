@@ -1247,6 +1247,13 @@ policies and contribution forms [3].
     }
     expose(assert_readonly, "assert_readonly");
 
+    /**
+     * Assert an Exception with the expected code is thrown.
+     *
+     * @param {object|number|string} code The expected exception code.
+     * @param {Function} func Function which should throw.
+     * @param {string} description Error description for the case that the error is not thrown.
+     */
     function assert_throws(code, func, description)
     {
         try {
