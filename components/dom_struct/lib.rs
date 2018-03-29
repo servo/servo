@@ -7,7 +7,6 @@
 extern crate proc_macro;
 
 use proc_macro::{TokenStream, quote};
-use std::iter;
 
 #[proc_macro_attribute]
 pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -21,7 +20,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     // Work around https://github.com/rust-lang/rust/issues/46489
-    let attributes = attributes.to_string().parse().unwrap();
+    let attributes: TokenStream = attributes.to_string().parse().unwrap();
 
-    iter::once(attributes).chain(iter::once(input)).collect()
+    attributes.into_iter().chain(input.into_iter()).collect()
 }
