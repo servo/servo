@@ -378,6 +378,12 @@ function runPropertyTests(propertyName, testCases) {
   }
 }
 
+// Same as runPropertyTests but for list-valued properties.
+function runListValuedPropertyTests(propertyName, testCases) {
+  // TODO(https://crbug.com/545318): Run list-valued tests as well.
+  runPropertyTests(propertyName, testCases);
+}
+
 // Check that |propertyName| doesn't "support" examples in |testExamples|.
 // |testExamples| is a list of CSS string values. An "unsupported" value
 // doesn't have a corresponding Typed OM representation. It normalizes as

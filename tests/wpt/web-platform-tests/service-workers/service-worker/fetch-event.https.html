@@ -59,6 +59,30 @@ async_test(function(t) {
   }, 'Service Worker responds to fetch event with string');
 
 async_test(function(t) {
+    var scope = 'resources/simple.html?string';
+    var frame;
+    service_worker_unregister_and_register(t, worker, scope)
+      .then(function(reg) {
+          return wait_for_state(t, reg.installing, 'activated');
+        })
+      .then(function() { return with_iframe(scope) })
+      .then(function(f) {
+        frame = f;
+        return frame.contentWindow.fetch(scope + "#foo")
+      })
+      .then(function(response) { return response.text() })
+      .then(function(text) {
+          assert_equals(
+            text,
+            'Test string',
+            'Service Worker should respond to fetch with a test string');
+          frame.remove();
+          return service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Service Worker responds to fetch event using request fragment with string');
+
+async_test(function(t) {
     var scope = 'resources/simple.html?blob';
     service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {

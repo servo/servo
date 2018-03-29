@@ -181,7 +181,7 @@ function runUpdateDetailsAlgorithm(
     const request = new PaymentRequest(validMethods, failDetails, options);
     const detailsPromise = Promise.resolve(details);
     const acceptPromise = request.show(detailsPromise);
-    assert_equals(request.id, "this cant be changed", "id must never change.");
+    assert_equals(request.id, "this cannot be changed", "id must never change.");
     await promise_rejects(
       t,
       "AbortError",

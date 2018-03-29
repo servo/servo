@@ -29,6 +29,27 @@
     test(function() {
         assert_equals(typeof WebIDL2.parse("interface Foo {};"), "object");
     }, 'WebIDL2 parse method should produce an AST for correct WebIDL');
+    for (let type of ['dictionary', 'interface']) {
+        test(function() {
+            let i = new IdlArray();
+            i.add_untested_idls(`partial ${type} A {};`);
+            i.assert_throws(new IdlHarnessError(`Partial ${type} A with no original ${type}`), i => i.test());
+        }, `assert_throws should handle ${type} IdlHarnessError`);
+        test(function() {
+            let i = new IdlArray();
+            i.add_untested_idls(`partial ${type} A {};`);
+            i.assert_throws(`Partial ${type} A with no original ${type}`, i => i.test());
+        }, `assert_throws should handle ${type} IdlHarnessError from message`);
+        test(function () {
+            try {
+                let i = new IdlArray();
+                i.add_untested_idls(`${type} A {};`);
+                i.assert_throws(`Partial ${type} A with no original ${type}`, i => i.test());
+            } catch (e) {
+                assert_true(e instanceof IdlHarnessError);
+            }
+        }, `assert_throws should throw if no ${type} IdlHarnessError thrown`);
+    }
 </script>
 </body>
 </html>
