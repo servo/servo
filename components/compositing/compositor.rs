@@ -14,7 +14,7 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::{Image, PixelFormat};
-use nonzero::NonZero;
+use nonzero::NonZeroU32;
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
@@ -64,7 +64,7 @@ impl ConvertPipelineIdFromWebRender for webrender_api::PipelineId {
     fn from_webrender(&self) -> PipelineId {
         PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
-            index: PipelineIndex(NonZero::new(self.1).expect("Webrender pipeline zero?")),
+            index: PipelineIndex(NonZeroU32::new(self.1).expect("Webrender pipeline zero?")),
         }
     }
 }
