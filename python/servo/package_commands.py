@@ -200,6 +200,8 @@ class PackageCommands(CommandBase):
                 build_type = "Arm64"
             elif "armv7" in android_target:
                 build_type = "Armv7"
+            elif "i686" in android_target:
+                build_type = "x86"
             else:
                 build_type = "Arm"
 
