@@ -1446,6 +1446,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "length::LengthOrNormal": impl_style_coord,
         "length::NonNegativeLengthOrAuto": impl_style_coord,
         "length::NonNegativeLengthOrPercentageOrNormal": impl_style_coord,
+        "FlexBasis": impl_style_coord,
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
         "LengthOrPercentage": impl_style_coord,
@@ -1748,14 +1749,14 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES + GRID_LINES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} z-index order align-content
-                                  justify-content align-self justify-self align-items
-                                  justify-items grid-auto-rows grid-auto-columns grid-auto-flow
-                                  grid-template-areas grid-template-rows grid-template-columns">
+                  skip_longhands="${skip_position_longhands} z-index order
+                                  align-content justify-content align-self
+                                  justify-self align-items justify-items
+                                  grid-auto-rows grid-auto-columns
+                                  grid-auto-flow grid-template-areas
+                                  grid-template-rows grid-template-columns">
     % for side in SIDES:
-    <% impl_split_style_coord("%s" % side.ident,
-                              "mOffset",
-                              side.index) %>
+    <% impl_split_style_coord(side.ident, "mOffset", side.index) %>
     % endfor
 
     pub fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {

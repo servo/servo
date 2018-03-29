@@ -32,6 +32,12 @@ impl Percentage {
     pub fn abs(&self) -> Self {
         Percentage(self.0.abs())
     }
+
+    /// Clamps this percentage to a non-negative percentage.
+    #[inline]
+    pub fn clamp_to_non_negative(self) -> Self {
+        Percentage(self.0.max(0.))
+    }
 }
 
 impl ToCss for Percentage {

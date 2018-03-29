@@ -4,8 +4,23 @@
 
 //! Computed types for CSS values related to flexbox.
 
-use values::computed::length::LengthOrPercentage;
 use values::generics::flex::FlexBasis as GenericFlexBasis;
 
+/// The `width` value type.
+#[cfg(feature = "servo")]
+pub type Width = ::values::computed::NonNegativeLengthOrPercentageOrAuto;
+
+/// The `width` value type.
+#[cfg(feature = "gecko")]
+pub type Width = ::values::computed::MozLength;
+
 /// A computed value for the `flex-basis` property.
-pub type FlexBasis = GenericFlexBasis<LengthOrPercentage>;
+pub type FlexBasis = GenericFlexBasis<Width>;
+
+impl FlexBasis {
+    /// `auto`
+    #[inline]
+    pub fn auto() -> Self {
+        GenericFlexBasis::Width(Width::auto())
+    }
+}

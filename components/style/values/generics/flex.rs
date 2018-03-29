@@ -4,34 +4,13 @@
 
 //! Generic types for CSS values related to flexbox.
 
-use values::computed::Percentage;
-
 /// A generic value for the `flex-basis` property.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
-pub enum FlexBasis<LengthOrPercentage> {
-    /// `auto`
-    Auto,
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
+#[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+pub enum FlexBasis<Width> {
     /// `content`
     Content,
-    /// `<length-percentage>`
-    Length(LengthOrPercentage),
-}
-
-impl<L> FlexBasis<L> {
-    /// Returns `auto`.
-    #[inline]
-    pub fn auto() -> Self {
-        FlexBasis::Auto
-    }
-}
-
-impl<L> FlexBasis<L>
-where Percentage: Into<L>,
-{
-    /// Returns `0%`.
-    #[inline]
-    pub fn zero_percent() -> Self {
-        FlexBasis::Length(Percentage(0.).into())
-    }
+    /// `<width>`
+    Width(Width),
 }
