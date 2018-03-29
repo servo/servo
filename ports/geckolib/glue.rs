@@ -1043,15 +1043,32 @@ pub extern "C" fn Servo_Element_GetPseudoComputedValues(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed) -> bool {
+pub extern "C" fn Servo_Element_IsDisplayNone(
+    element: RawGeckoElementBorrowed,
+) -> bool {
     let element = GeckoElement(element);
-    let data = element.get_data().expect("Invoking Servo_Element_IsDisplayNone on unstyled element");
+    let data = element.get_data()
+        .expect("Invoking Servo_Element_IsDisplayNone on unstyled element");
 
-    // This function is hot, so we bypass the AtomicRefCell. It would be nice to also assert that
-    // we're not in the servo traversal, but this function is called at various intermediate
-    // checkpoints when managing the traversal on the Gecko side.
+    // This function is hot, so we bypass the AtomicRefCell.
+    //
+    // It would be nice to also assert that we're not in the servo traversal,
+    // but this function is called at various intermediate checkpoints when
+    // managing the traversal on the Gecko side.
     debug_assert!(is_main_thread());
     unsafe { &*data.as_ptr() }.styles.is_display_none()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Element_IsDisplayContents(
+    element: RawGeckoElementBorrowed,
+) -> bool {
+    let element = GeckoElement(element);
+    let data = element.get_data()
+        .expect("Invoking Servo_Element_IsDisplayContents on unstyled element");
+
+    debug_assert!(is_main_thread());
+    unsafe { &*data.as_ptr() }.styles.primary().get_box().clone_display().is_contents()
 }
 
 #[no_mangle]
