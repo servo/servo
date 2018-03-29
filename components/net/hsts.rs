@@ -5,8 +5,7 @@
 use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
 use serde_json;
-use servo_config::resource_files::read_resource_file;
-use servo_url::ServoUrl;
+use servo_url::{ChromeReader, ServoUrl};
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::from_utf8;
@@ -85,10 +84,12 @@ impl HstsList {
         })
     }
 
-    pub fn from_servo_preload() -> HstsList {
-        let file_bytes = read_resource_file("hsts_preload.json")
-                            .expect("Could not find Servo HSTS preload file");
-        HstsList::from_preload(&file_bytes)
+    pub fn from_servo_preload(chrome_reader: Box<ChromeReader>) -> HstsList {
+        let json_url = ServoUrl::parse("chrome://resources/hsts_preload.json").unwrap();
+        let mut reader = chrome_reader.resolve(&json_url).expect("Could not find Servo HSTS preload file");
+        let mut bytes = vec![];
+        reader.read_to_end(&mut bytes).expect("Can't read hsts_preload.json");
+        HstsList::from_preload(&bytes)
             .expect("Servo HSTS preload file is invalid")
     }
 

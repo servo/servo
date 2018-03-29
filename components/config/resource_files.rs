@@ -11,11 +11,11 @@ use std::ffi::CStr;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex};
 
 lazy_static! {
-    static ref CMD_RESOURCE_DIR: Arc<Mutex<Option<String>>> = {
-        Arc::new(Mutex::new(None))
+    static ref CMD_RESOURCE_DIR: Mutex<Option<String>> = {
+        Mutex::new(None)
     };
 }
 

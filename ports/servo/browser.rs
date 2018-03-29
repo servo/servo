@@ -11,11 +11,17 @@ use msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use script_traits::TouchEventType;
 use servo::net_traits::pub_domains::is_reg_domain;
-use servo::servo_url::ServoUrl;
+use servo::servo_url::{ChromeReader, ServoUrl};
 use servo_config::prefs::PREFS;
+use std::borrow::Cow;
+use std::fs::{canonicalize, File};
+use std::io::Read;
 use std::mem;
 use std::rc::Rc;
+use std::str::Utf8Error;
 use tinyfiledialogs;
+use servo_config::resource_files::resources_dir_path;
+use url::percent_encoding::percent_decode;
 use webrender_api::ScrollLocation;
 
 pub struct Browser {
@@ -293,6 +299,48 @@ impl Browser {
         }
     }
 
+}
+
+#[derive(Clone)]
+pub struct FileChromeReader;
+impl ChromeReader for FileChromeReader {
+    fn clone(&self) -> Box<ChromeReader + Send> {
+        Box::new(FileChromeReader)
+    }
+    fn resolve(&self, url: &ServoUrl) -> Result<Box<Read>, String> {
+        if url.scheme() != "chrome" {
+            Err("Not a chrome:// url".to_string())
+        } else if url.host_str() != Some("resources") {
+            Err("Not a chrome://resources/ url".to_string())
+        } else {
+            url.path_segments().map(|segments| {
+                let segments: Vec<Result<Cow<str>, Utf8Error>> = segments.map(|s| {
+                    percent_decode(s.as_bytes()).decode_utf8()
+                }).collect();
+                if segments.iter().any(|s| s.as_ref().map(|s| s.starts_with(".")).unwrap_or(true)) {
+                    Err("Invalid Url".to_string())
+                } else {
+                    let resources = resources_dir_path().unwrap();
+                    let mut path = resources.clone();
+                    for segment in segments {
+                        path.push(&*segment.unwrap());
+                    }
+                    match canonicalize(path) {
+                        Ok(ref path) if path.starts_with(&resources) && path.exists() => {
+                            match File::open(path) {
+                                Err(e) => Err(format!("Error while opening file: {:?}", e)),
+                                Ok(mut file) => {
+                                    let reader: Box<Read> = Box::new(file);
+                                    Ok(reader)
+                                }
+                            }
+                        }
+                        _ => Err("Can't find file".to_string())
+                    }
+                }
+            }).unwrap_or(Err("Invalid Url".to_string()))
+        }
+    }
 }
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {

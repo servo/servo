@@ -14,11 +14,10 @@
 //! we don't need to make the code more complex for it. The `mach` update command makes sure that
 //! those cases are not present.
 
-use servo_config::resource_files::read_resource_file;
-use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_url::{ChromeReader, Host, ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
-use std::iter::FromIterator;
 use std::str::from_utf8;
+use std::sync::RwLock;
 
 #[derive(Clone, Debug)]
 pub struct PubDomainRules {
@@ -28,25 +27,16 @@ pub struct PubDomainRules {
 }
 
 lazy_static! {
-    static ref PUB_DOMAINS: PubDomainRules = load_pub_domains();
+    static ref PUB_DOMAINS: RwLock<PubDomainRules> = RwLock::new(PubDomainRules::new());
 }
 
-impl<'a> FromIterator<&'a str> for PubDomainRules {
-    fn from_iter<T>(iter: T) -> Self
-        where T: IntoIterator<Item = &'a str>,
-    {
-        let mut result = PubDomainRules::new();
-        for item in iter {
-            if item.starts_with("!") {
-                result.exceptions.insert(String::from(&item[1..]));
-            } else if item.starts_with("*.") {
-                result.wildcards.insert(String::from(&item[2..]));
-            } else {
-                result.rules.insert(String::from(item));
-            }
-        }
-        result
-    }
+pub fn init<T>(chrome_reader: &T) where T: ChromeReader {
+    let url = ServoUrl::parse("chrome://resources/public_domains.txt").unwrap();
+    let mut content = chrome_reader.resolve(&url).expect("Could not find public suffix list file");
+    let mut bytes = vec![];
+    content.read_to_end(&mut bytes).expect("Can't read public_domains.txt");
+    let content = from_utf8(&bytes).expect("Could not read public suffix list file");
+    PUB_DOMAINS.write().unwrap().parse(content);
 }
 
 impl PubDomainRules {
@@ -57,12 +47,20 @@ impl PubDomainRules {
             exceptions: HashSet::new(),
         }
     }
-    pub fn parse(content: &str) -> PubDomainRules {
+    pub fn parse(&mut self, content: &str) {
         content.lines()
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .filter(|s| !s.starts_with("//"))
-            .collect()
+            .for_each(|line| {
+                if line.starts_with("!") {
+                    self.exceptions.insert(String::from(&line[1..]));
+                } else if line.starts_with("*.") {
+                    self.wildcards.insert(String::from(&line[2..]));
+                } else {
+                    self.rules.insert(String::from(line));
+                }
+            });
     }
     fn suffix_pair<'a>(&self, domain: &'a str) -> (&'a str, &'a str) {
         let domain = domain.trim_left_matches(".");
@@ -120,26 +118,20 @@ impl PubDomainRules {
     }
 }
 
-fn load_pub_domains() -> PubDomainRules {
-    let content = read_resource_file("public_domains.txt").expect("Could not find public suffix list file");
-    let content = from_utf8(&content).expect("Could not read public suffix list file");
-    PubDomainRules::parse(content)
-}
-
 pub fn pub_suffix(domain: &str) -> &str {
-    PUB_DOMAINS.public_suffix(domain)
+    PUB_DOMAINS.read().unwrap().public_suffix(domain)
 }
 
 pub fn reg_suffix(domain: &str) -> &str {
-    PUB_DOMAINS.registrable_suffix(domain)
+    PUB_DOMAINS.read().unwrap().registrable_suffix(domain)
 }
 
 pub fn is_pub_domain(domain: &str) -> bool {
-    PUB_DOMAINS.is_public_suffix(domain)
+    PUB_DOMAINS.read().unwrap().is_public_suffix(domain)
 }
 
 pub fn is_reg_domain(domain: &str) -> bool {
-    PUB_DOMAINS.is_registrable_suffix(domain)
+    PUB_DOMAINS.read().unwrap().is_registrable_suffix(domain)
 }
 
 /// The registered domain name (aka eTLD+1) for a URL.

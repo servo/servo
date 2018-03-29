@@ -20,6 +20,7 @@ pub mod origin;
 pub use origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
 
 use std::fmt;
+use std::io::Read;
 use std::net::IpAddr;
 use std::ops::{Range, RangeFrom, RangeTo, RangeFull, Index};
 use std::path::Path;
@@ -221,4 +222,10 @@ impl<'de> serde::Deserialize<'de> for ServoUrl {
     {
         url_serde::deserialize(deserializer).map(Self::from_url)
     }
+}
+
+// FIXME: create a dedicated embedder_trait directory
+pub trait ChromeReader: 'static + Send {
+    fn resolve(&self, url: &ServoUrl) -> Result<Box<Read>, String>;
+    fn clone(&self) -> Box<ChromeReader + Send>;
 }

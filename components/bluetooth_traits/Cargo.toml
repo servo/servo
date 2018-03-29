@@ -13,4 +13,4 @@ path = "lib.rs"
 ipc-channel = "0.10"
 regex = "0.2"
 serde = "1.0"
-servo_config = {path = "../config"}
+servo_url = {path = "../url"}

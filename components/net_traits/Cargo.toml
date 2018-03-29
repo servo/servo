@@ -24,7 +24,6 @@ malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 msg = {path = "../msg"}
 num-traits = "0.1.32"
 serde = "1.0"
-servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = "1.2"
 uuid = {version = "0.6", features = ["v4", "serde"]}

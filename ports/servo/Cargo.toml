@@ -48,6 +48,7 @@ servo_geometry = {path = "../../components/geometry"}
 servo_config = {path = "../../components/config"}
 style_traits = {path = "../../components/style_traits"}
 tinyfiledialogs = "3.0"
+url = "1.6"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 winit = "0.11.2"
 

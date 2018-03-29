@@ -94,7 +94,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
-use servo_config::prefs::PREFS;
+use servo_config::prefs::{self, PREFS};
 use servo_config::resource_files::resources_dir_path;
 use std::borrow::Cow;
 use std::cmp::max;
@@ -127,8 +127,14 @@ pub struct Servo<Window: WindowMethods + 'static> {
     embedder_events: Vec<EmbedderMsg>,
 }
 
+pub fn init<R>(chrome_reader: R) where R: url::ChromeReader {
+    prefs::init(&chrome_reader);
+    net_traits::pub_domains::init(&chrome_reader);
+    bluetooth_traits::blocklist::init(&chrome_reader);
+}
+
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
-    pub fn new(window: Rc<Window>) -> Servo<Window> {
+    pub fn new<R>(window: Rc<Window>, chrome_reader: R) -> Servo<Window> where R: url::ChromeReader {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -216,6 +222,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                                                                     &mut webrender,
                                                                     webrender_document,
                                                                     webrender_api_sender,
+                                                                    &chrome_reader,
                                                                     window.gl());
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -455,6 +462,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         webrender: &mut webrender::Renderer,
                         webrender_document: webrender_api::DocumentId,
                         webrender_api_sender: webrender_api::RenderApiSender,
+                        chrome_reader: &url::ChromeReader,
                         window_gl: Rc<gl::Gl>)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
@@ -463,6 +471,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
         new_resource_threads(user_agent,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
+                             chrome_reader.clone(),
                              config_dir);
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  webrender_api_sender.create_api());
