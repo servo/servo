@@ -914,6 +914,16 @@ impl LengthOrPercentageOrAuto {
     pub fn zero_percent() -> Self {
         LengthOrPercentageOrAuto::Percentage(computed::Percentage::zero())
     }
+
+    /// Parses, with quirks.
+    #[inline]
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
+    }
 }
 
 impl Parse for LengthOrPercentageOrAuto {
@@ -923,14 +933,33 @@ impl Parse for LengthOrPercentageOrAuto {
     }
 }
 
-impl LengthOrPercentageOrAuto {
-    /// Parses, with quirks.
+/// A wrapper of LengthOrPercentageOrAuto, whose value must be >= 0.
+pub type NonNegativeLengthOrPercentageOrAuto = NonNegative<LengthOrPercentageOrAuto>;
+
+impl NonNegativeLengthOrPercentageOrAuto {
+    /// 0
     #[inline]
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
+    pub fn zero() -> Self {
+        NonNegative(LengthOrPercentageOrAuto::zero())
+    }
+
+    /// 0%
+    #[inline]
+    pub fn zero_percent() -> Self {
+        NonNegative(LengthOrPercentageOrAuto::zero_percent())
+    }
+
+    /// `auto`
+    #[inline]
+    pub fn auto() -> Self {
+        NonNegative(LengthOrPercentageOrAuto::Auto)
+    }
+}
+
+impl Parse for NonNegativeLengthOrPercentageOrAuto {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(NonNegative(LengthOrPercentageOrAuto::parse_non_negative(context, input)?))
     }
 }
 
@@ -1090,8 +1119,11 @@ impl LengthOrNumber {
 }
 
 /// A value suitable for a `min-width` or `min-height` property.
-/// Unlike `max-width` or `max-height` properties, a MozLength can be
-/// `auto`, and cannot be `none`.
+///
+/// Unlike `max-width` or `max-height` properties, a MozLength can be `auto`,
+/// and cannot be `none`.
+///
+/// Note that it only accepts non-negative values.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum MozLength {

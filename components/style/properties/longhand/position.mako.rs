@@ -174,32 +174,16 @@ ${helpers.predefined_type("order", "Integer", "0",
                           spec="https://drafts.csswg.org/css-flexbox/#order-property",
                           servo_restyle_damage = "reflow")}
 
-% if product == "gecko":
-    // FIXME: Gecko doesn't support content value yet.
-    //
-    // FIXME(emilio): I suspect this property shouldn't allow quirks, and this
-    // was just a mistake, it's kind of justificable to support it given the
-    // spec grammar is just `content | <width>`, but other browsers don't...
-    ${helpers.predefined_type(
-        "flex-basis",
-        "MozLength",
-        "computed::MozLength::auto()",
-        extra_prefixes="webkit",
-        animation_value_type="MozLength",
-        allow_quirks=True,
-        spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
-        servo_restyle_damage = "reflow"
-    )}
-% else:
-    // FIXME: This property should be animatable.
-    ${helpers.predefined_type("flex-basis",
-                              "FlexBasis",
-                              "computed::FlexBasis::auto()",
-                              spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
-                              extra_prefixes="webkit",
-                              animation_value_type="none",
-                              servo_restyle_damage = "reflow")}
-% endif
+${helpers.predefined_type(
+    "flex-basis",
+    "FlexBasis",
+    "computed::FlexBasis::auto()",
+    spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
+    extra_prefixes="webkit",
+    animation_value_type="FlexBasis",
+    servo_restyle_damage = "reflow"
+)}
+
 % for (size, logical) in ALL_SIZES:
     <%
         spec = "https://drafts.csswg.org/css-box/#propdef-%s"

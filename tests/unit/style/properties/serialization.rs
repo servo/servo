@@ -8,7 +8,6 @@ use style::properties::{PropertyDeclaration, Importance};
 use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
 use style::values::{CustomIdent, RGBA};
-use style::values::generics::flex::FlexBasis;
 use style::values::specified::{BorderStyle, BorderSideWidth, Color};
 use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::NoCalcLength;
@@ -557,42 +556,6 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "outline: 4px auto rgb(255, 0, 0);");
         }
-    }
-
-    #[test]
-    fn flex_should_serialize_all_available_properties() {
-        use style::values::specified::{NonNegativeNumber, Percentage};
-
-        let mut properties = Vec::new();
-
-        let grow = NonNegativeNumber::new(2f32);
-        let shrink = NonNegativeNumber::new(3f32);
-        let basis =
-            FlexBasis::Length(Percentage::new(0.5f32).into());
-
-        properties.push(PropertyDeclaration::FlexGrow(grow));
-        properties.push(PropertyDeclaration::FlexShrink(shrink));
-        properties.push(PropertyDeclaration::FlexBasis(basis));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "flex: 2 3 50%;");
-    }
-
-    #[test]
-    fn flex_flow_should_serialize_all_available_properties() {
-        use style::properties::longhands::flex_direction::SpecifiedValue as FlexDirection;
-        use style::properties::longhands::flex_wrap::SpecifiedValue as FlexWrap;
-
-        let mut properties = Vec::new();
-
-        let direction = FlexDirection::Row;
-        let wrap = FlexWrap::Wrap;
-
-        properties.push(PropertyDeclaration::FlexDirection(direction));
-        properties.push(PropertyDeclaration::FlexWrap(wrap));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "flex-flow: row wrap;");
     }
 
     mod background {
