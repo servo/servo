@@ -1910,6 +1910,7 @@ dependencies = [
  "net_traits 0.0.1",
  "openssl 0.9.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
+ "script_traits 0.0.1",
  "serde 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-websocket 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",

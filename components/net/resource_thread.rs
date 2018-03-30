@@ -28,6 +28,7 @@ use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::mem::{Report, ReportsChan, ReportKind};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
+use script_traits::ConstellationMsg;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use servo_allocator;
@@ -41,7 +42,7 @@ use std::io::prelude::*;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{self, Sender};
 use std::thread;
 use storage_thread::StorageThreadFactory;
 use websocket_loader;
@@ -54,8 +55,8 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             time_profiler_chan: ProfilerChan,
                             mem_profiler_chan: MemProfilerChan,
                             config_dir: Option<PathBuf>)
-                            -> (ResourceThreads, ResourceThreads) {
-    let (public_core, private_core) = new_core_resource_thread(
+                            -> (ResourceThreads, ResourceThreads, Sender<Sender<ConstellationMsg>>) {
+    let (public_core, private_core, constellation_sender) = new_core_resource_thread(
         user_agent,
         devtools_chan,
         time_profiler_chan,
@@ -63,7 +64,8 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
         config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone()),
-     ResourceThreads::new(private_core, storage))
+     ResourceThreads::new(private_core, storage),
+     constellation_sender)
 }
 
 
@@ -73,14 +75,16 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 time_profiler_chan: ProfilerChan,
                                 mem_profiler_chan: MemProfilerChan,
                                 config_dir: Option<PathBuf>)
-                                -> (CoreResourceThread, CoreResourceThread) {
+                                -> (CoreResourceThread, CoreResourceThread, Sender<Sender<ConstellationMsg>>) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
     let (report_chan, report_port) = ipc::channel().unwrap();
+    let (constellation_sender, constellation_receiver) = mpsc::channel();
 
     thread::Builder::new().name("ResourceManager".to_owned()).spawn(move || {
+        let constellation_chan = constellation_receiver.recv().unwrap();
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, time_profiler_chan
+            user_agent, devtools_chan, time_profiler_chan, constellation_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -99,7 +103,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
             |report_chan| report_chan);
 
     }).expect("Thread spawning failed");
-    (public_setup_chan, private_setup_chan)
+    (public_setup_chan, private_setup_chan, constellation_sender)
 }
 
 struct ResourceChannelManager {
@@ -374,7 +378,8 @@ pub struct CoreResourceManager {
 impl CoreResourceManager {
     pub fn new(user_agent: Cow<'static, str>,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
-               _profiler_chan: ProfilerChan) -> CoreResourceManager {
+               _profiler_chan: ProfilerChan,
+               constellation_chan: Sender<ConstellationMsg>) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
             devtools_chan: devtools_channel,

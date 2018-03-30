@@ -457,7 +457,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new(embedder_proxy.clone());
 
-    let (public_resource_threads, private_resource_threads) =
+    let (public_resource_threads, private_resource_threads, resource_constellation_sender) =
         new_resource_threads(user_agent,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
@@ -532,6 +532,8 @@ fn create_constellation(user_agent: Cow<'static, str>,
         // Set constellation channel used by WebVR thread to broadcast events
         webvr_constellation_sender.send(constellation_chan.clone()).unwrap();
     }
+
+    resource_constellation_sender.send(constellation_chan.clone()).unwrap();
 
     // channels to communicate with Service Worker Manager
     let sw_senders = SWManagerSenders {
