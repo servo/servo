@@ -13,6 +13,7 @@ path = "lib.rs"
 energy-profiling = ["energymon", "energy-monitor"]
 
 [dependencies]
+bincode = "1"
 energy-monitor = {version = "0.2.0", optional = true}
 energymon = {git = "https://github.com/energymon/energymon-rust.git", optional = true}
 ipc-channel = "0.10"

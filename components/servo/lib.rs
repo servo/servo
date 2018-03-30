@@ -184,7 +184,6 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
                 debug_flags: debug_flags,
-                debug: opts.webrender_debug,
                 recorder: recorder,
                 precache_shaders: opts.precache_shaders,
                 enable_scrollbars: opts.output_file.is_none(),

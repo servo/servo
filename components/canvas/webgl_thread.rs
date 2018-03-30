@@ -494,6 +494,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
             is_opaque: !alpha,
+            allow_mipmaps: false,
         }
     }
 
