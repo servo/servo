@@ -8,7 +8,9 @@ use net::test::parse_hostsfile;
 use net_traits::CoreResourceMsg;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
+use script_traits::ConstellationMsg;
 use std::net::IpAddr;
+use std::sync::mpsc::channel;
 
 fn ip(s: &str) -> IpAddr {
     s.parse().unwrap()
@@ -18,9 +20,12 @@ fn ip(s: &str) -> IpAddr {
 fn test_exit() {
     let (tx, _rx) = ipc::channel().unwrap();
     let (mtx, _mrx) = ipc::channel().unwrap();
+    let (constellation, _) = channel();
     let (sender, receiver) = ipc::channel().unwrap();
-    let (resource_thread, _private_resource_thread) = new_core_resource_thread(
+    let (resource_thread, _private_resource_thread, constellation_sender) = new_core_resource_thread(
         "".into(), None, ProfilerChan(tx), MemProfilerChan(mtx), None);
+    constellation_sender.send(constellation.clone()).unwrap();
+    let _ = constellation.send(ConstellationMsg::Exit);
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();
 }
