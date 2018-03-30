@@ -9,7 +9,14 @@ publish = false
 path = "lib.rs"
 
 [features]
-servo = ["mozjs", "string_cache", "url", "webrender_api", "xml5ever"]
+servo = [
+    "mozjs",
+    "serde_bytes",
+    "string_cache",
+    "url",
+    "webrender_api",
+    "xml5ever",
+]
 
 [dependencies]
 app_units = "0.6"
@@ -18,6 +25,7 @@ euclid = "0.17"
 hashglobe = { path = "../hashglobe" }
 mozjs = { version = "0.4", features = ["promises"], optional = true }
 selectors = { path = "../selectors" }
+serde_bytes = { version = "0.10", optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
 smallvec = "0.6"

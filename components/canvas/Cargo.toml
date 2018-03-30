@@ -21,6 +21,7 @@ ipc-channel = "0.10"
 log = "0.3.5"
 num-traits = "0.1.32"
 offscreen_gl_context = { version = "0.15", features = ["serde", "osmesa"] }
+serde_bytes = "0.10"
 servo_config = {path = "../config"}
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

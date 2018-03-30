@@ -50,6 +50,8 @@ extern crate hashglobe;
 #[cfg(feature = "servo")]
 extern crate mozjs as js;
 extern crate selectors;
+#[cfg(feature = "servo")]
+extern crate serde_bytes;
 extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
@@ -63,6 +65,8 @@ extern crate webrender_api;
 #[cfg(feature = "servo")]
 extern crate xml5ever;
 
+#[cfg(feature = "servo")]
+use serde_bytes::ByteBuf;
 use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
 use std::ops::Range;
@@ -293,6 +297,24 @@ impl<'a, B: ?Sized + ToOwned> MallocSizeOf for std::borrow::Cow<'a, B>
 impl<T: MallocSizeOf> MallocSizeOf for [T] {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut n = 0;
+        for elem in self.iter() {
+            n += elem.size_of(ops);
+        }
+        n
+    }
+}
+
+#[cfg(feature = "servo")]
+impl MallocShallowSizeOf for ByteBuf {
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(self.as_ptr()) }
+    }
+}
+
+#[cfg(feature = "servo")]
+impl MallocSizeOf for ByteBuf {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
         for elem in self.iter() {
             n += elem.size_of(ops);
         }

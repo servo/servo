@@ -81,6 +81,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde;
+extern crate serde_bytes;
 extern crate servo_allocator;
 extern crate servo_arc;
 #[macro_use] extern crate servo_atoms;
