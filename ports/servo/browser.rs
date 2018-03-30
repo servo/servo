@@ -16,6 +16,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::mem;
 use std::rc::Rc;
+use std::thread;
 use tinyfiledialogs;
 
 pub struct Browser {
@@ -290,6 +291,26 @@ impl Browser {
                 EmbedderMsg::Panic(_browser_id, _reason, _backtrace) => {
                 },
                 EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender) => {
+                    let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
+
+                    thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
+                        let mut filter = vec![];
+                        for p in patterns {
+                            let s = "*.".to_string() + &p.0;
+                            filter.push(s)
+                        }
+
+                        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+                        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
+
+                        if multiple_files {
+                            let files = tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt);
+                            let _ = sender.send(files);
+                        } else {
+                            let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
+                            let _ = sender.send(file.map(|x| vec![x]));
+                        }
+                    }).expect("Thread spawning failed");
                 }
             }
         }
