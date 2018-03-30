@@ -15,13 +15,13 @@ pub enum FillRule {
     Evenodd,
 }
 
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    FromLayout(FromLayoutMsg),
+    FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
     Recreate(Size2D<i32>, CanvasId),
     Close(CanvasId),

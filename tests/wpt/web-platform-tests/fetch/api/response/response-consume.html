@@ -31,6 +31,13 @@
       });
     }
 
+    function blobToTypeViaFetch(blob) {
+      var url = URL.createObjectURL(blob);
+      return fetch(url).then(function(response) {
+        return response.headers.get('Content-Type');
+      });
+    }
+
     function responsePromise(body, responseInit) {
       return new Promise(function(resolve, reject) {
         resolve(new Response(body, responseInit));
@@ -75,15 +82,18 @@
       return response.blob().then(function(bodyAsBlob) {
         assert_equals(bodyAsBlob.type, expectedType || "text/plain", "Blob body type should be computed from the response Content-Type");
 
-        var promise = new Promise( function (resolve, reject) {
-          var reader = new FileReader();
-          reader.onload = function(evt) {
-            resolve(reader.result)
-          };
-          reader.onerror = function () {
-            reject("Blob's reader failed");
-          };
-          reader.readAsText(bodyAsBlob);
+        var promise = blobToTypeViaFetch(bodyAsBlob).then(function(type) {
+          assert_equals(type, expectedType || "text/plain", 'Type via blob URL');
+          return new Promise( function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function(evt) {
+              resolve(reader.result)
+            };
+            reader.onerror = function () {
+              reject("Blob's reader failed");
+            };
+            reader.readAsText(bodyAsBlob);
+          });
         });
         return promise.then(function(body) {
           assert_equals(body, expectedBody, "Retrieve and verify response's body");

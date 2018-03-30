@@ -41,7 +41,7 @@ pub mod rpc;
 pub mod wrapper_traits;
 
 use atomic_refcell::AtomicRefCell;
-use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use net_traits::image_cache::PendingImageId;
@@ -133,6 +133,7 @@ pub struct HTMLCanvasData {
     pub source: HTMLCanvasDataSource,
     pub width: u32,
     pub height: u32,
+    pub canvas_id: CanvasId,
 }
 
 pub struct SVGSVGData {

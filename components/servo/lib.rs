@@ -74,8 +74,7 @@ use canvas::webgl_thread::WebGLThreads;
 use compositing::{IOCompositor, ShutdownState, RenderNotifier};
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
-use compositing::windowing::WindowEvent;
-use compositing::windowing::WindowMethods;
+use compositing::windowing::{WindowEvent, WindowMethods};
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
@@ -87,7 +86,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
-use msg::constellation_msg::KeyState;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -109,7 +107,7 @@ use webvr::{WebVRThread, WebVRCompositorHandler};
 pub use gleam::gl;
 pub use servo_config as config;
 pub use servo_url as url;
-pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
+pub use msg::constellation_msg::{KeyState, TopLevelBrowsingContextId as BrowserId};
 
 /// The in-process interface to Servo.
 ///
@@ -125,7 +123,8 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
-    embedder_receiver: EmbedderReceiver
+    embedder_receiver: EmbedderReceiver,
+    embedder_events: Vec<EmbedderMsg>,
 }
 
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
@@ -158,17 +157,9 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         let mut resource_path = resources_dir_path().unwrap();
         resource_path.push("shaders");
 
-        let (mut webrender, webrender_api_sender) = {
-            // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
-            let scale_factor = window.hidpi_factor().get();
-            let device_pixel_ratio = match opts.device_pixels_per_px {
-                Some(device_pixels_per_px) => device_pixels_per_px,
-                None => match opts.output_file {
-                    Some(_) => 1.0,
-                    None => scale_factor,
-                }
-            };
+        let coordinates = window.get_coordinates();
 
+        let (mut webrender, webrender_api_sender) = {
             let renderer_kind = if opts::get().should_use_osmesa() {
                 RendererKind::OSMesa
             } else {
@@ -189,7 +180,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
 
             webrender::Renderer::new(window.gl(), render_notifier, webrender::RendererOptions {
-                device_pixel_ratio: device_pixel_ratio,
+                device_pixel_ratio: coordinates.hidpi_factor.get(),
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
                 debug_flags: debug_flags,
@@ -205,7 +196,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
         let webrender_api = webrender_api_sender.create_api();
         let wr_document_layer = 0; //TODO
-        let webrender_document = webrender_api.add_document(window.framebuffer_size(), wr_document_layer);
+        let webrender_document = webrender_api.add_document(coordinates.framebuffer, wr_document_layer);
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -254,6 +245,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             compositor: compositor,
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
+            embedder_events: Vec::new(),
         }
     }
 
@@ -370,108 +362,26 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (EmbedderMsg::Status(top_level_browsing_context, message), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.status(top_level_browsing_context, message);
-                },
-
-                (EmbedderMsg::ChangePageTitle(top_level_browsing_context, title), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_page_title(top_level_browsing_context, title);
-                },
-
-                (EmbedderMsg::MoveTo(top_level_browsing_context, point),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_position(top_level_browsing_context, point);
-                },
-
-                (EmbedderMsg::ResizeTo(top_level_browsing_context, size),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_inner_size(top_level_browsing_context, size);
-                },
-
-                (EmbedderMsg::GetClientWindow(top_level_browsing_context, send),
-                 ShutdownState::NotShuttingDown) => {
-                    let rect = self.compositor.window.client_window(top_level_browsing_context);
-                    if let Err(e) = send.send(rect) {
-                        warn!("Sending response to get client window failed ({}).", e);
-                    }
-                },
-
-                (EmbedderMsg::GetScreenSize(top_level_browsing_context, send),
-                 ShutdownState::NotShuttingDown) => {
-                    let rect = self.compositor.window.screen_size(top_level_browsing_context);
-                    if let Err(e) = send.send(rect) {
-                        warn!("Sending response to get screen size failed ({}).", e);
-                    }
-                },
-
-                (EmbedderMsg::GetScreenAvailSize(top_level_browsing_context, send),
-                 ShutdownState::NotShuttingDown) => {
-                    let rect = self.compositor.window.screen_avail_size(top_level_browsing_context);
-                    if let Err(e) = send.send(rect) {
-                        warn!("Sending response to get screen available size failed ({}).", e);
-                    }
-                },
-
-                (EmbedderMsg::AllowNavigation(top_level_browsing_context,
-                                              url,
-                                              response_chan),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.allow_navigation(top_level_browsing_context, url, response_chan);
-                },
-
-                (EmbedderMsg::KeyEvent(top_level_browsing_context,
-                                       ch,
-                                       key,
-                                       state,
-                                       modified),
+                (EmbedderMsg::KeyEvent(top_level_browsing_context, ch, key, state, modified),
                  ShutdownState::NotShuttingDown) => {
                     if state == KeyState::Pressed {
-                        self.compositor.window.handle_key(top_level_browsing_context, ch, key, modified);
+                        let msg = EmbedderMsg::KeyEvent(top_level_browsing_context, ch, key, state, modified);
+                        self.embedder_events.push(msg);
                     }
                 },
 
-                (EmbedderMsg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_cursor(cursor)
+                (msg, ShutdownState::NotShuttingDown) => {
+                    self.embedder_events.push(msg);
                 },
-
-                (EmbedderMsg::NewFavicon(top_level_browsing_context, url), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_favicon(top_level_browsing_context, url);
-                },
-
-                (EmbedderMsg::HeadParsed(top_level_browsing_context, ), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.head_parsed(top_level_browsing_context, );
-                },
-
-                (EmbedderMsg::HistoryChanged(top_level_browsing_context, entries, current),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.history_changed(top_level_browsing_context, entries, current);
-                },
-
-                (EmbedderMsg::SetFullscreenState(top_level_browsing_context, state),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_fullscreen_state(top_level_browsing_context, state);
-                },
-
-                (EmbedderMsg::LoadStart(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.load_start(top_level_browsing_context);
-                },
-
-                (EmbedderMsg::LoadComplete(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
-                    // Inform the embedder that the load has finished.
-                    //
-                    // TODO(pcwalton): Specify which frame's load completed.
-                    self.compositor.window.load_end(top_level_browsing_context);
-                },
-                (EmbedderMsg::Panic(top_level_browsing_context, reason, backtrace),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.handle_panic(top_level_browsing_context, reason, backtrace);
-                },
-
             }
         }
     }
 
-    pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
+    pub fn get_events(&mut self) -> Vec<EmbedderMsg> {
+        ::std::mem::replace(&mut self.embedder_events, Vec::new())
+    }
+
+    pub fn handle_events(&mut self, events: Vec<WindowEvent>) {
         if self.compositor.receive_messages() {
             self.receive_messages();
         }
@@ -480,8 +390,9 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         }
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.perform_updates();
+        } else {
+            self.embedder_events.push(EmbedderMsg::Shutdown);
         }
-        self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
     pub fn repaint_synchronously(&mut self) {

@@ -10,12 +10,13 @@ use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGL2Constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
@@ -33,7 +34,7 @@ use dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
 use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglcontextevent::WebGLContextEvent;
-use dom::webglframebuffer::WebGLFramebuffer;
+use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
 use dom::webglprogram::WebGLProgram;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webglshader::WebGLShader;
@@ -470,7 +471,7 @@ impl WebGLRenderingContext {
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
-        if indx > self.limits.max_vertex_attribs {
+        if indx >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
 
@@ -762,14 +763,10 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn get_image_pixels(&self,
-                        source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>)
-                        -> ImagePixelResult {
-        let source = match source {
-            Some(s) => s,
-            None => return Err(()),
-        };
-
+    fn get_image_pixels(
+        &self,
+        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+    ) -> ImagePixelResult {
         // NOTE: Getting the pixels probably can be short-circuited if some
         // parameter is invalid.
         //
@@ -1272,6 +1269,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match parameter {
             constants::ARRAY_BUFFER_BINDING =>
                 return object_binding_to_js_or_null!(cx, &self.bound_buffer_array),
+            constants::CURRENT_PROGRAM => {
+                return object_binding_to_js_or_null!(cx, &self.current_program);
+            }
             constants::ELEMENT_ARRAY_BUFFER_BINDING =>
                 return object_binding_to_js_or_null!(cx, &self.bound_buffer_element_array),
             constants::FRAMEBUFFER_BINDING =>
@@ -1304,6 +1304,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 } else {
                     return Int32Value(constants::UNSIGNED_BYTE as i32);
                 }
+            }
+            constants::VIEWPORT => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetViewport(sender));
+                let (x, y, width, height) = receiver.recv().unwrap();
+                rooted!(in(cx) let mut rval = UndefinedValue());
+                [x, y, width, height].to_jsval(cx, rval.handle_mut());
+                return rval.get();
             }
             _ => {
                 if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
@@ -1554,6 +1562,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
+        if target == WebGL2Constants::READ_FRAMEBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidOperation);
         }
@@ -1960,10 +1972,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn CompileShader(&self, shader: Option<&WebGLShader>) {
-        if let Some(shader) = shader {
-            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
-        }
+    fn CompileShader(&self, shader: &WebGLShader) {
+        shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
     }
 
     // TODO(emilio): Probably in the future we should keep track of the
@@ -2132,24 +2142,28 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {
-                if self.current_program.get().is_none() {
-                    return self.webgl_error(InvalidOperation);
-                }
-
-                if first < 0 || count < 0 {
-                    return self.webgl_error(InvalidValue);
-                }
-
-                if !self.validate_framebuffer_complete() {
-                    return;
-                }
-
-                self.send_command(WebGLCommand::DrawArrays(mode, first, count));
-                self.mark_as_dirty();
-            },
-            _ => self.webgl_error(InvalidEnum),
+            constants::TRIANGLES => {},
+            _ => {
+                return self.webgl_error(InvalidEnum);
+            }
         }
+        if first < 0 || count < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+        if self.current_program.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+        if let Some(array_buffer) = self.bound_buffer_array.get() {
+            if count > 0 && (first as u64 + count as u64 > array_buffer.capacity() as u64) {
+                return self.webgl_error(InvalidOperation);
+            }
+        }
+        if !self.validate_framebuffer_complete() {
+            return;
+        }
+
+        self.send_command(WebGLCommand::DrawArrays(mode, first, count));
+        self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
@@ -2218,7 +2232,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn EnableVertexAttribArray(&self, attrib_id: u32) {
-        if attrib_id > self.limits.max_vertex_attribs {
+        if attrib_id >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
 
@@ -2227,7 +2241,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn DisableVertexAttribArray(&self, attrib_id: u32) {
-        if attrib_id > self.limits.max_vertex_attribs {
+        if attrib_id >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
 
@@ -2235,23 +2249,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetActiveUniform(&self, program: Option<&WebGLProgram>, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
-        let program = match program {
-            Some(program) => program,
-            None => {
-                // Reasons to generate InvalidValue error
-                // From the GLES 2.0 spec
-                //
-                //     "INVALID_VALUE is generated if index is greater than or equal
-                //      to the number of active uniform variables in program"
-                //
-                // A null program has no uniforms so any index is always greater than the active uniforms
-                // WebGl conformance expects error with null programs. Check tests in get-active-test.html
-                self.webgl_error(InvalidValue);
-                return None;
-            }
-        };
-
+    fn GetActiveUniform(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
         match program.get_active_uniform(index) {
             Ok(ret) => Some(ret),
             Err(e) => {
@@ -2262,23 +2260,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetActiveAttrib(&self, program: Option<&WebGLProgram>, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
-        let program = match program {
-            Some(program) => program,
-            None => {
-                // Reasons to generate InvalidValue error
-                // From the GLES 2.0 spec
-                //
-                //     "INVALID_VALUE is generated if index is greater than or equal
-                //      to the number of active attribute variables in program"
-                //
-                // A null program has no attributes so any index is always greater than the active uniforms
-                // WebGl conformance expects error with null programs. Check tests in get-active-test.html
-                self.webgl_error(InvalidValue);
-                return None;
-            }
-        };
-
+    fn GetActiveAttrib(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
         match program.get_active_attrib(index) {
             Ok(ret) => Some(ret),
             Err(e) => {
@@ -2289,70 +2271,140 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetAttribLocation(&self, program: Option<&WebGLProgram>, name: DOMString) -> i32 {
-        if let Some(program) = program {
-            handle_potential_webgl_error!(self, program.get_attrib_location(name), None).unwrap_or(-1)
-        } else {
-            -1
+    fn GetAttribLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
+        handle_potential_webgl_error!(self, program.get_attrib_location(name), None).unwrap_or(-1)
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    unsafe fn GetFramebufferAttachmentParameter(
+        &self,
+        cx: *mut JSContext,
+        target: u32,
+        attachment: u32,
+        pname: u32
+    ) -> JSVal {
+        // Check if currently bound framebuffer is non-zero as per spec.
+        if self.bound_framebuffer.get().is_none() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
         }
+
+        // Note: commented out stuff is for the WebGL2 standard.
+        let target_matches = match target {
+            // constants::READ_FRAMEBUFFER |
+            // constants::DRAW_FRAMEBUFFER => true,
+            constants::FRAMEBUFFER => true,
+            _ => false
+        };
+        let attachment_matches = match attachment {
+            // constants::MAX_COLOR_ATTACHMENTS ... gl::COLOR_ATTACHMENT0 |
+            // constants::BACK |
+            constants::COLOR_ATTACHMENT0 |
+            constants::DEPTH_STENCIL_ATTACHMENT |
+            constants::DEPTH_ATTACHMENT |
+            constants::STENCIL_ATTACHMENT => true,
+            _ => false,
+        };
+        let pname_matches = match pname {
+            // constants::FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING |
+            // constants::FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE |
+            // constants::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_RED_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE |
+            // constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER |
+            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
+            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
+            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE |
+            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL => true,
+            _ => false
+        };
+
+        if !target_matches || !attachment_matches || !pname_matches {
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        // From the GLES2 spec:
+        //
+        //     If the value of FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is NONE,
+        //     then querying any other pname will generate INVALID_ENUM.
+        //
+        // otherwise, return `WebGLRenderbuffer` or `WebGLTexture` dom object
+        if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
+            // if fb is None, an INVALID_OPERATION is returned
+            // at the beggining of the function, so `.unwrap()` will never panic
+            let fb = self.bound_framebuffer.get().unwrap();
+            if let Some(webgl_attachment) = fb.attachment(attachment) {
+                match webgl_attachment {
+                    WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => {
+                        rooted!(in(cx) let mut rval = NullValue());
+                        rb.to_jsval(cx, rval.handle_mut());
+                        return rval.get();
+                    },
+                    WebGLFramebufferAttachmentRoot::Texture(texture) => {
+                        rooted!(in(cx) let mut rval = NullValue());
+                        texture.to_jsval(cx, rval.handle_mut());
+                        return rval.get();
+                    },
+                }
+            }
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, sender));
+
+        Int32Value(receiver.recv().unwrap())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetProgramInfoLog(&self, program: Option<&WebGLProgram>) -> Option<DOMString> {
-        if let Some(program) = program {
-            match program.get_info_log() {
-                Ok(value) => Some(DOMString::from(value)),
-                Err(e) => {
-                    self.webgl_error(e);
-                    None
-                }
+    fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<DOMString> {
+        match program.get_info_log() {
+            Ok(value) => Some(DOMString::from(value)),
+            Err(e) => {
+                self.webgl_error(e);
+                None
             }
-        } else {
-            self.webgl_error(WebGLError::InvalidValue);
-            None
         }
     }
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
-        if let Some(program) = program {
-            match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
-                WebGLParameter::Int(val) => Int32Value(val),
-                WebGLParameter::Bool(val) => BooleanValue(val),
-                WebGLParameter::String(_) => panic!("Program parameter should not be string"),
-                WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
-                WebGLParameter::FloatArray(_) => {
-                    panic!("Program paramenter should not be float array")
-                }
-                WebGLParameter::Invalid => NullValue(),
+    unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: &WebGLProgram, param_id: u32) -> JSVal {
+        match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::String(_) => panic!("Program parameter should not be string"),
+            WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
+            WebGLParameter::FloatArray(_) => {
+                panic!("Program paramenter should not be float array")
             }
-        } else {
-            NullValue()
+            WebGLParameter::Invalid => NullValue(),
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
-        shader.and_then(|s| s.info_log()).map(DOMString::from)
+    fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<DOMString> {
+        shader.info_log().map(DOMString::from)
     }
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
-        if let Some(shader) = shader {
-            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
-                WebGLParameter::Int(val) => Int32Value(val),
-                WebGLParameter::Bool(val) => BooleanValue(val),
-                WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
-                WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
-                WebGLParameter::FloatArray(_) => {
-                    panic!("Shader paramenter should not be float array")
-                }
-                WebGLParameter::Invalid => NullValue(),
+    unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: &WebGLShader, param_id: u32) -> JSVal {
+        match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
+            WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
+            WebGLParameter::FloatArray(_) => {
+                panic!("Shader paramenter should not be float array")
             }
-        } else {
-            NullValue()
+            WebGLParameter::Invalid => NullValue(),
         }
     }
 
@@ -2385,12 +2437,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetUniformLocation(&self,
-                          program: Option<&WebGLProgram>,
-                          name: DOMString) -> Option<DomRoot<WebGLUniformLocation>> {
-        program.and_then(|p| {
-            handle_potential_webgl_error!(self, p.get_uniform_location(name), None)
-                .map(|location| WebGLUniformLocation::new(self.global().as_window(), location, p.id()))
+    fn GetUniformLocation(
+        &self,
+        program: &WebGLProgram,
+        name: DOMString,
+    ) -> Option<DomRoot<WebGLUniformLocation>> {
+        handle_potential_webgl_error!(self, program.get_uniform_location(name), None).map(|location| {
+            WebGLUniformLocation::new(self.global().as_window(), location, program.id())
         })
     }
 
@@ -2767,15 +2820,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn ShaderSource(&self, shader: Option<&WebGLShader>, source: DOMString) {
-        if let Some(shader) = shader {
-            shader.set_source(source)
-        }
+    fn ShaderSource(&self, shader: &WebGLShader, source: DOMString) {
+        shader.set_source(source)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderSource(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
-        shader.and_then(|s| s.source())
+    fn GetShaderSource(&self, shader: &WebGLShader) -> Option<DOMString> {
+        shader.source()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3066,11 +3117,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn ValidateProgram(&self, program: Option<&WebGLProgram>) {
-        if let Some(program) = program {
-            if let Err(e) = program.validate() {
-                self.webgl_error(e);
-            }
+    fn ValidateProgram(&self, program: &WebGLProgram) {
+        if let Err(e) = program.validate() {
+            self.webgl_error(e);
         }
     }
 
@@ -3146,7 +3195,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttribPointer(&self, attrib_id: u32, size: i32, data_type: u32,
                            normalized: bool, stride: i32, offset: i64) {
-        if attrib_id > self.limits.max_vertex_attribs {
+        if attrib_id >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
 
@@ -3195,7 +3244,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue)
         }
 
-        self.send_command(WebGLCommand::Viewport(x, y, width, height))
+        self.send_command(WebGLCommand::SetViewport(x, y, width, height))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -3280,13 +3329,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImage2D_(&self,
-                   target: u32,
-                   level: i32,
-                   internal_format: u32,
-                   format: u32,
-                   data_type: u32,
-                   source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) -> Fallible<()> {
+    fn TexImage2D_(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        format: u32,
+        data_type: u32,
+        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+    ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
         }
@@ -3441,15 +3492,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexSubImage2D_(&self,
-                      target: u32,
-                      level: i32,
-                      xoffset: i32,
-                      yoffset: i32,
-                      format: u32,
-                      data_type: u32,
-                      source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>)
-                      -> Fallible<()> {
+    fn TexSubImage2D_(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        format: u32,
+        data_type: u32,
+        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+    ) -> ErrorResult {
         let (pixels, size, premultiplied) = match self.get_image_pixels(source) {
             Ok((pixels, size, premultiplied)) => (pixels, size, premultiplied),
             Err(_) => return Ok(()),

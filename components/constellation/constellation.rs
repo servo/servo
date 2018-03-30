@@ -331,8 +331,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
-	/// An Id for the next canvas to use.
-	canvas_id: CanvasId,
+    /// An Id for the next canvas to use.
+    canvas_id: CanvasId,
 }
 
 /// State needed to construct a constellation.
@@ -626,7 +626,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }),
                 webgl_threads: state.webgl_threads,
                 webvr_chan: state.webvr_chan,
-				canvas_id: CanvasId(0),
+                canvas_id: CanvasId(0),
             };
 
             constellation.run();
@@ -1234,9 +1234,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got Alert message");
                 self.handle_alert(source_top_ctx_id, message, sender);
             }
-            FromScriptMsg::GetClientWindow(send) => {
-                self.embedder_proxy.send(EmbedderMsg::GetClientWindow(source_top_ctx_id, send));
-            }
 
             FromScriptMsg::MoveTo(point) => {
                 self.embedder_proxy.send(EmbedderMsg::MoveTo(source_top_ctx_id, point));
@@ -1246,12 +1243,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.embedder_proxy.send(EmbedderMsg::ResizeTo(source_top_ctx_id, size));
             }
 
-            FromScriptMsg::GetScreenSize(send) => {
-                self.embedder_proxy.send(EmbedderMsg::GetScreenSize(source_top_ctx_id, send));
+            FromScriptMsg::GetClientWindow(send) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(send));
             }
-
+            FromScriptMsg::GetScreenSize(send) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetScreenSize(send));
+            }
             FromScriptMsg::GetScreenAvailSize(send) => {
-                self.embedder_proxy.send(EmbedderMsg::GetScreenAvailSize(source_top_ctx_id, send));
+                self.compositor_proxy.send(ToCompositorMsg::GetScreenAvailSize(send));
             }
 
             FromScriptMsg::Exit => {
@@ -2206,12 +2205,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             &mut self,
             size: &Size2D<i32>,
             response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>) {
-		self.canvas_id.0 += 1;
-		let canvas_id = self.canvas_id.clone();
+        self.canvas_id.0 += 1;
         let webrender_api = self.webrender_api_sender.clone();
         let sender = CanvasPaintThread::start(*size, webrender_api,
-                                              opts::get().enable_canvas_antialiasing,canvas_id);
-        if let Err(e) = response_sender.send((sender,canvas_id)) {
+                                              opts::get().enable_canvas_antialiasing,self.canvas_id.clone());
+        if let Err(e) = response_sender.send((sender,self.canvas_id.clone())) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }

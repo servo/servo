@@ -162,4 +162,22 @@
     });
   }, 'insertDTMF() should set toneBuffer to provided tones normalized, with old tones overridden');
 
+  promise_test(t => {
+    let dtmfSender;
+    let sender;
+    let pc = new RTCPeerConnection();
+    return getTrackFromUserMedia('audio')
+      .then(([track, mediaStream]) => {
+        sender = pc.addTrack(track, mediaStream);
+        return pc.createOffer();
+      }).then(offer => {
+        pc.setLocalDescription(offer);
+        dtmfSender = sender.dtmf;
+        pc.removeTrack(sender);
+        pc.close();
+        assert_throws('InvalidStateError', () =>
+                      dtmfSender.insertDTMF('123'));
+      });
+  }, 'insertDTMF() after remove and close should reject');
+
 </script>

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
+use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
@@ -131,6 +131,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                 source: source,
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
+                canvas_id: canvas.get_canvas_id(),
             }
         }
     }
@@ -154,6 +155,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
+    
 }
 
 
@@ -259,7 +261,7 @@ impl HTMLCanvasElement {
         let data = match self.context.borrow().as_ref() {
             Some(&CanvasContext::Context2d(ref context)) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender));
+                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender),context.get_canvas_id());
                 context.get_ipc_renderer().send(msg).unwrap();
 
                 receiver.recv().unwrap()?
@@ -278,6 +280,14 @@ impl HTMLCanvasElement {
         };
 
         Some((data, size))
+    }
+    
+    pub fn get_canvas_id(&self) -> CanvasId {
+        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
+            context.get_canvas_id()
+        } else {
+            CanvasId(0)
+        }
     }
 }
 
