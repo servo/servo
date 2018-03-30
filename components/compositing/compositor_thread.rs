@@ -9,6 +9,7 @@ use compositor::CompositingReason;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
+use net_traits::filemanager_thread::FilterPattern;
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
@@ -141,6 +142,8 @@ pub enum EmbedderMsg {
     LoadComplete(TopLevelBrowsingContextId),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(TopLevelBrowsingContextId, String, Option<String>),
+    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
+    GetSelectedFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
     /// Servo has shut down
     Shutdown,
 }
@@ -241,6 +244,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
+            EmbedderMsg::GetSelectedFiles(..) => write!(f, "SelectFileDialog"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }
