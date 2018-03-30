@@ -5,10 +5,12 @@
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
+use servo::ipc_channel::ipc::IpcSender;
 use servo::compositing::compositor_thread::EmbedderMsg;
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
+use servo::net_traits::filemanager_thread::FilterPattern;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
 use servo::servo_config::prefs::PREFS;
@@ -16,6 +18,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::mem;
 use std::rc::Rc;
+use std::thread;
 use tinyfiledialogs;
 
 pub struct Browser {
@@ -290,11 +293,41 @@ impl Browser {
                 EmbedderMsg::Panic(_browser_id, _reason, _backtrace) => {
                 },
                 EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender) => {
+                    platform_get_selected_files(patterns, multiple_files, sender);
                 }
             }
         }
     }
 
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+fn platform_get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool, sender: IpcSender<Option<Vec<String>>>) {
+    let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
+
+    thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
+        let mut filter = vec![];
+        for p in patterns {
+            let s = "*.".to_string() + &p.0;
+            filter.push(s)
+        }
+
+        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
+
+        if multiple_files {
+            let files = tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt);
+            let _ = sender.send(files);
+        } else {
+            let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
+            let _ = sender.send(file.map(|x| vec![x]));
+        }
+    }).expect("Thread spawning failed");
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+fn platform_get_selected_files(_patterns: Vec<FilterPattern>, _multiple_files: bool, sender: IpcSender<Option<Vec<String>>>) {
+    sender.send(None);
 }
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {
