@@ -2208,8 +2208,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.canvas_id.0 += 1;
         let webrender_api = self.webrender_api_sender.clone();
         let sender = CanvasPaintThread::start(*size, webrender_api,
-                                              opts::get().enable_canvas_antialiasing,self.canvas_id.clone());
-        if let Err(e) = response_sender.send((sender,self.canvas_id.clone())) {
+                                              opts::get().enable_canvas_antialiasing, self.canvas_id.clone());
+        if let Err(e) = response_sender.send((sender, self.canvas_id.clone())) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }

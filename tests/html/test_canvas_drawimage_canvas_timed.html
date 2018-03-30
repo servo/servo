@@ -73,7 +73,7 @@ var destCanvas = {
 };
 
     var t0 = performance.now();     //save starting time
-        drawImage(25, 25);            // The source canvas will copied to the 0,0 position of the destination canvas
+    drawImage(25, 25);            // The source canvas will copied to the 25,25 position of the destination canvas
     var t1 = performance.now();     //save ending time
     document.getElementById('Test Result').innerHTML = "DrawImage took " + (t1 - t0) + " milliseconds."; //print to browser
     console.log("DrawImage took " + (t1 - t0) + " milliseconds.");  //print to console
@@ -146,8 +146,8 @@ function drawImage() {
   ctx2.imageSmoothingEnabled = smoothingEnabled;
 
   args.unshift(canvas1);
-    try {
-        ctx2.drawImage.apply(ctx2, args);
+  try {
+    ctx2.drawImage.apply(ctx2, args);
   }
   catch(err) {
     var title = div.querySelector('.example-title');
