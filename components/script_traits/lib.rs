@@ -51,6 +51,7 @@ use libc::c_void;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
+use net_traits::filemanager_thread::FilterPattern;
 use net_traits::image::base::Image;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
@@ -699,6 +700,8 @@ pub enum ConstellationMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
     SetCursor(CursorKind),
+    /// Requesting to open file select dialog
+    OpenFileSelectDialog(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
 }
 
 /// Resources required by workerglobalscopes

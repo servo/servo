@@ -1012,6 +1012,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromCompositorMsg::SetCursor(cursor) => {
                 self.handle_set_cursor_msg(cursor)
             }
+            FromCompositorMsg::OpenFileSelectDialog(patterns, multiple_files, sender) => {
+                return;
+            }
         }
     }
 
