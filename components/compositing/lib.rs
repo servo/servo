@@ -39,7 +39,6 @@ use style_traits::CSSPixel;
 mod compositor;
 pub mod compositor_thread;
 mod touch;
-mod webrender_revision;
 pub mod windowing;
 
 pub struct SendableFrameTree {

@@ -7,30 +7,24 @@
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <div id="log"></div>
-<script type="text/plain" id="AnimationTimeline-IDL">
-interface AnimationTimeline {
-  readonly attribute double? currentTime;
-};
-</script>
-<script type="text/plain" id="DocumentTimeline-IDL">
-dictionary DocumentTimelineOptions {
-  DOMHighResTimeStamp originTime = 0;
-};
-[Constructor (optional DocumentTimelineOptions options)]
-interface DocumentTimeline : AnimationTimeline {
-};
-</script>
 <script>
 'use strict';
 
-const idlArray = new IdlArray();
+promise_test(async () => {
+  const text = await fetch('/interfaces/web-animations.idl').then(response =>
+    response.text(),
+  );
+  const idlArray = new IdlArray();
+  idlArray.add_idls(text, {
+    only: [
+      'AnimationTimeline',
+      'DocumentTimelineOptions',
+      'DocumentTimeline',
+    ]
+  });
+  idlArray.add_objects({ DocumentTimeline: ['document.timeline'] });
 
-idlArray.add_idls(
-  document.getElementById('AnimationTimeline-IDL').textContent);
-idlArray.add_idls(
-  document.getElementById('DocumentTimeline-IDL').textContent);
-idlArray.add_objects( { DocumentTimeline: ['document.timeline'] } );
-
-idlArray.test();
-
+  idlArray.test();
+  done();
+}, 'DocumentTimeline interface.');
 </script>

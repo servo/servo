@@ -24,8 +24,8 @@ def pytest_configure(config):
     config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
     config.server = WPTServer(WPT_ROOT)
     config.server.start()
-    config.add_cleanup(lambda: config.server.stop())
-    config.add_cleanup(lambda: config.driver.quit())
+    config.add_cleanup(config.server.stop)
+    config.add_cleanup(config.driver.quit)
 
 class HTMLItem(pytest.Item, pytest.Collector):
     def __init__(self, filename, parent):

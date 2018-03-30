@@ -10,7 +10,7 @@ use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
-use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsStaticAtom};
+use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsDynamicAtom, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
 use std::{mem, slice, str};
@@ -113,9 +113,19 @@ impl WeakAtom {
     /// Get the atom as a slice of utf-16 chars.
     #[inline]
     pub fn as_slice(&self) -> &[u16] {
-        unsafe {
-            slice::from_raw_parts((*self.as_ptr()).mString, self.len() as usize)
-        }
+        let string = if self.is_static() {
+           let atom_ptr = self.as_ptr() as *const nsStaticAtom;
+           let string_offset = unsafe { (*atom_ptr).mStringOffset };
+           let string_offset = -(string_offset as isize);
+           let u8_ptr = atom_ptr as *const u8;
+           // It is safe to use offset() here because both addresses are within
+           // the same struct, e.g. mozilla::detail::gGkAtoms.
+           unsafe { u8_ptr.offset(string_offset) as *const u16 }
+        } else {
+           let atom_ptr = self.as_ptr() as *const nsDynamicAtom;
+           unsafe { (*(atom_ptr)).mString }
+        };
+        unsafe { slice::from_raw_parts(string, self.len() as usize) }
     }
 
     // NOTE: don't expose this, since it's slow, and easy to be misused.
@@ -166,7 +176,7 @@ impl WeakAtom {
     #[inline]
     pub fn is_static(&self) -> bool {
         unsafe {
-            (*self.as_ptr()).mKind() == nsAtom_AtomKind::StaticAtom as u32
+            (*self.as_ptr()).mKind() == nsAtom_AtomKind::Static as u32
         }
     }
 

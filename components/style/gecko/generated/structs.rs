@@ -17188,26 +17188,25 @@ pub mod root {
     pub struct nsAtom {
         pub _bitfield_1: root::__BindgenBitfieldUnit<[u8; 4usize], u32>,
         pub mHash: u32,
-        pub mString: *const u16,
     }
     #[repr(u8)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsAtom_AtomKind {
-        DynamicAtom = 0,
-        StaticAtom = 1,
-        HTML5Atom = 2,
+        Static = 0,
+        DynamicNormal = 1,
+        DynamicHTML5 = 2,
     }
     pub type nsAtom_HasThreadSafeRefCnt = root::mozilla::TrueType;
     #[test]
     fn bindgen_test_layout_nsAtom() {
         assert_eq!(
             ::std::mem::size_of::<nsAtom>(),
-            16usize,
+            8usize,
             concat!("Size of: ", stringify!(nsAtom))
         );
         assert_eq!(
             ::std::mem::align_of::<nsAtom>(),
-            8usize,
+            4usize,
             concat!("Alignment of ", stringify!(nsAtom))
         );
         assert_eq!(
@@ -17218,16 +17217,6 @@ pub mod root {
                 stringify!(nsAtom),
                 "::",
                 stringify!(mHash)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsAtom>())).mString as *const _ as usize },
-            8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsAtom),
-                "::",
-                stringify!(mString)
             )
         );
     }
@@ -17278,18 +17267,54 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsStaticAtom {
         pub _base: root::nsAtom,
+        pub mStringOffset: u32,
     }
     #[test]
     fn bindgen_test_layout_nsStaticAtom() {
         assert_eq!(
             ::std::mem::size_of::<nsStaticAtom>(),
-            16usize,
+            12usize,
             concat!("Size of: ", stringify!(nsStaticAtom))
         );
         assert_eq!(
             ::std::mem::align_of::<nsStaticAtom>(),
-            8usize,
+            4usize,
             concat!("Alignment of ", stringify!(nsStaticAtom))
+        );
+        assert_eq!(
+            unsafe { &(*(::std::ptr::null::<nsStaticAtom>())).mStringOffset as *const _ as usize },
+            8usize,
+            concat!("Offset of field: ", stringify!(nsStaticAtom), "::", stringify!(mString))
+        );
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsDynamicAtom {
+        pub _base: root::nsAtom,
+        pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
+        pub mString: *const u16,
+    }
+    #[test]
+    fn bindgen_test_layout_nsDynamicAtom() {
+        assert_eq!(
+            ::std::mem::size_of::<nsDynamicAtom>(),
+            24usize,
+            concat!("Size of: ", stringify!(nsDynamicAtom))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsDynamicAtom>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsDynamicAtom))
+        );
+        assert_eq!(
+            unsafe { &(*(::std::ptr::null::<nsDynamicAtom>())).mRefCnt as *const _ as usize },
+            8usize,
+            concat!("Offset of field: ", stringify!(nsDynamicAtom), "::", stringify!(mRefCnt))
+        );
+        assert_eq!(
+            unsafe { &(*(::std::ptr::null::<nsDynamicAtom>())).mString as *const _ as usize },
+            16usize,
+            concat!("Offset of field: ", stringify!(nsDynamicAtom), "::", stringify!(mString))
         );
     }
     pub type nsLoadFlags = u32;

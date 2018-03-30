@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(() => {
+  return navigator.keyboard.lock(['a', 'b'])
+      .then(() => {
+        return navigator.keyboard.lock(['c', 'd']);
+      });
+}, '[Keyboard Lock] keyboard.lock called twice sequentially');
+
+</script>

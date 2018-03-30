@@ -4,6 +4,7 @@
 _venv/
 .cache/
 .pytest_cache/
+.tox/
 
 # Node
 node_modules/

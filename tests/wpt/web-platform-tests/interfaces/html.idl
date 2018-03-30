@@ -97,14 +97,10 @@ interface HTMLElement : Element {
   [CEReactions] attribute DOMString lang;
   [CEReactions] attribute boolean translate;
   [CEReactions] attribute DOMString dir;
-  [SameObject] readonly attribute DOMStringMap dataset;
 
   // user interaction
   [CEReactions] attribute boolean hidden;
   void click();
-  [CEReactions] attribute long tabIndex;
-  void focus(optional FocusOptions options);
-  void blur();
   [CEReactions] attribute DOMString accessKey;
   readonly attribute DOMString accessKeyLabel;
   [CEReactions] attribute boolean draggable;
@@ -123,6 +119,17 @@ HTMLElement includes ElementContentEditable;
 
 // Note: intentionally not [HTMLConstructor]
 interface HTMLUnknownElement : HTMLElement { };
+
+interface mixin HTMLOrSVGElement {
+  [SameObject] readonly attribute DOMStringMap dataset;
+  attribute DOMString nonce;
+
+  [CEReactions] attribute long tabIndex;
+  void focus(optional FocusOptions options);
+  void blur();
+};
+HTMLElement includes HTMLOrSVGElement;
+SVGElement includes HTMLOrSVGElement;
 
 [Exposed=Window,
  OverrideBuiltins]
@@ -164,16 +171,11 @@ interface HTMLLinkElement : HTMLElement {
   [CEReactions] attribute DOMString as; // (default "")
   [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   [CEReactions] attribute DOMString media;
-  [CEReactions] attribute DOMString nonce;
   [CEReactions] attribute DOMString integrity;
   [CEReactions] attribute DOMString hreflang;
   [CEReactions] attribute DOMString type;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
   [CEReactions] attribute DOMString referrerPolicy;
-  [CEReactions] attribute DOMString workerType;
-  [CEReactions] attribute DOMString updateViaCache;
-
-  // also has obsolete members
 };
 HTMLLinkElement includes LinkStyle;
 
@@ -191,8 +193,6 @@ interface HTMLMetaElement : HTMLElement {
  HTMLConstructor]
 interface HTMLStyleElement : HTMLElement {
   [CEReactions] attribute DOMString media;
-  [CEReactions] attribute DOMString nonce;
-  [CEReactions] attribute DOMString type;
 };
 HTMLStyleElement includes LinkStyle;
 
@@ -1108,11 +1108,8 @@ interface HTMLScriptElement : HTMLElement {
   [CEReactions] attribute boolean defer;
   [CEReactions] attribute DOMString? crossOrigin;
   [CEReactions] attribute DOMString text;
-  [CEReactions] attribute DOMString nonce;
   [CEReactions] attribute DOMString integrity;
 
-
-  // also has obsolete members
 };
 
 [Exposed=Window,
@@ -2377,6 +2374,10 @@ partial interface HTMLParamElement {
 
 partial interface HTMLPreElement {
   [CEReactions] attribute long width;
+};
+
+partial interface HTMLStyleElement {
+  [CEReactions] attribute DOMString type;
 };
 
 partial interface HTMLScriptElement {

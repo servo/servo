@@ -274,6 +274,7 @@ pub enum WebGLCommand {
     CreateVertexArray(WebGLSender<Option<WebGLVertexArrayId>>),
     DeleteVertexArray(WebGLVertexArrayId),
     BindVertexArray(Option<WebGLVertexArrayId>),
+    AliasedPointSizeRange(WebGLSender<(f32, f32)>),
 }
 
 macro_rules! define_resource_id_struct {
@@ -546,7 +547,8 @@ impl fmt::Debug for WebGLCommand {
             GenerateMipmap(..) => "GenerateMipmap",
             CreateVertexArray(..) => "CreateVertexArray",
             DeleteVertexArray(..) => "DeleteVertexArray",
-            BindVertexArray(..) => "BindVertexArray"
+            BindVertexArray(..) => "BindVertexArray",
+            AliasedPointSizeRange(..) => "AliasedPointSizeRange",
         };
 
         write!(f, "CanvasWebGLMsg::{}(..)", name)
