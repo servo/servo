@@ -294,6 +294,8 @@ impl Browser {
                 },
                 EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
                     platform_get_selected_devices(devices, sender);
+                },
+                EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender) => {
                 }
                 EmbedderMsg::ShowIME(_browser_id, _kind) => {
                     debug!("ShowIME received");
