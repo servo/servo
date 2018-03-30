@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
+use script_traits::ConstellationMsg;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -17,6 +18,7 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
+use std::sync::mpsc::Sender;
 use std::thread;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs;
@@ -123,12 +125,14 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
+    constellation_chan: Sender<ConstellationMsg>,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new() -> FileManager {
+    pub fn new(constellation_chan: Sender<ConstellationMsg>) -> FileManager {
         FileManager {
+            constellation_chan: constellation_chan,
             store: Arc::new(FileManagerStore::new()),
         }
     }
@@ -159,22 +163,20 @@ impl FileManager {
     }
 
     /// Message handler
-    pub fn handle<UI>(&self,
-                      msg: FileManagerThreadMsg,
-                      ui: &'static UI)
-        where UI: UIProvider + 'static,
-    {
+    pub fn handle(&self, msg: FileManagerThreadMsg) {
         match msg {
             FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
                 let store = self.store.clone();
+                let constellation_chan = self.constellation_chan.clone();
                 thread::Builder::new().name("select file".to_owned()).spawn(move || {
-                    store.select_file(filter, sender, origin, opt_test_path, ui);
+                    store.select_file(filter, sender, origin, opt_test_path, constellation_chan);
                 }).expect("Thread spawning failed");
             }
             FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
                 let store = self.store.clone();
+                let constellation_chan = self.constellation_chan.clone();
                 thread::Builder::new().name("select files".to_owned()).spawn(move || {
-                    store.select_files(filter, sender, origin, opt_test_paths, ui);
+                    store.select_files(filter, sender, origin, opt_test_paths, constellation_chan);
                 }).expect("Thread spawning failed");
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
@@ -279,21 +281,39 @@ impl FileManagerStore {
         }
     }
 
-    fn select_file<UI>(&self,
-                       patterns: Vec<FilterPattern>,
-                       sender: IpcSender<FileManagerResult<SelectedFile>>,
-                       origin: FileOrigin,
-                       opt_test_path: Option<String>,
-                       ui: &UI)
-        where UI: UIProvider,
-    {
+    #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+    fn get_selected_files(&self,
+                            patterns: Vec<FilterPattern>,
+                            multiple_files: bool,
+                            constellation_chan: Sender<ConstellationMsg>) -> Option<Vec<String>> {
+        if opts::get().headless {
+            return None;
+        }
+
+        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let msg = ConstellationMsg::OpenFileSelectDialog(patterns, multiple_files, ipc_sender);
+
+        constellation_chan.send(msg).map(|_| ipc_receiver.recv().unwrap()).unwrap_or_default()
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+    fn get_selected_files(&self) {
+        None
+    }
+
+    fn select_file(&self,
+                    patterns: Vec<FilterPattern>,
+                    sender: IpcSender<FileManagerResult<SelectedFile>>,
+                    origin: FileOrigin,
+                    opt_test_path: Option<String>,
+                    constellation_chan: Sender<ConstellationMsg>) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
         let opt_s = if select_files_pref_enabled() {
             opt_test_path
         } else {
-            ui.open_file_dialog("", patterns)
+            self.get_selected_files(patterns, false, constellation_chan).map(|mut x| x.pop().unwrap())
         };
 
         match opt_s {
@@ -309,21 +329,19 @@ impl FileManagerStore {
         }
     }
 
-    fn select_files<UI>(&self,
-                        patterns: Vec<FilterPattern>,
-                        sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-                        origin: FileOrigin,
-                        opt_test_paths: Option<Vec<String>>,
-                        ui: &UI)
-        where UI: UIProvider,
-    {
+    fn select_files(&self,
+                    patterns: Vec<FilterPattern>,
+                    sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
+                    origin: FileOrigin,
+                    opt_test_paths: Option<Vec<String>>,
+                    constellation_chan: Sender<ConstellationMsg>) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
         let opt_v = if select_files_pref_enabled() {
             opt_test_paths
         } else {
-            ui.open_file_dialog_multi("", patterns)
+            self.get_selected_files(patterns, true, constellation_chan)
         };
 
         match opt_v {
