@@ -250,7 +250,7 @@ impl ResourceChannelManager {
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
-            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
+            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
@@ -367,7 +367,7 @@ impl CoreResourceManager {
             user_agent: user_agent,
             devtools_chan: devtools_channel,
             swmanager_chan: None,
-            filemanager: FileManager::new(),
+            filemanager: FileManager::new(constellation_chan),
         }
     }
 
