@@ -552,12 +552,13 @@ fn test_fetch_with_hsts() {
     let mut ca_content = String::new();
     File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
     let ssl_client = create_ssl_client(&ca_content);
+    let (sender, _) = channel();
 
     let context =  FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(),
+        filemanager: FileManager::new(sender),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
     };
 
