@@ -116,6 +116,7 @@ use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, Pipel
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
+use net_traits::filemanager_thread::FilterPattern;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -1077,7 +1078,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_set_cursor_msg(cursor)
             }
             FromCompositorMsg::OpenFileSelectDialog(patterns, multiple_files, sender) => {
-                return;
+                self.handle_open_file_select_dialog_msg(patterns, multiple_files, sender);
             }
         }
     }
@@ -1794,6 +1795,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_set_cursor_msg(&mut self, cursor: CursorKind) {
         self.embedder_proxy.send(EmbedderMsg::SetCursor(cursor))
+    }
+
+    fn handle_open_file_select_dialog_msg(&mut self,
+                        patterns: Vec<FilterPattern>,
+                        multiple_files: bool,
+                        sender: IpcSender<Option<Vec<String>>>) {
+        let msg = EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender);
+        self.embedder_proxy.send(msg);
     }
 
     fn handle_change_running_animations_state(&mut self,

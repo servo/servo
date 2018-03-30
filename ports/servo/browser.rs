@@ -288,6 +288,8 @@ impl Browser {
                     self.shutdown_requested = true;
                 },
                 EmbedderMsg::Panic(_browser_id, _reason, _backtrace) => {
+                },
+                EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender) => {
                 }
             }
         }
