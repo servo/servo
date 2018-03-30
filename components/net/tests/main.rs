@@ -15,6 +15,7 @@ extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
+extern crate script_traits;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;
@@ -58,11 +59,12 @@ struct FetchResponseCollector {
 fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
     let ca_file = resources_dir_path().unwrap().join("certs");
     let ssl_client = create_ssl_client(&ca_file);
+    let (sender, _) = channel();
     FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
-        filemanager: FileManager::new(),
+        filemanager: FileManager::new(sender),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
     }
 }
