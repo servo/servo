@@ -11,7 +11,7 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use fetch::cors_cache::CorsCache;
 use fetch::methods::{CancellationListener, FetchContext, fetch};
-use filemanager_thread::{FileManager, TFDProvider};
+use filemanager_thread::FileManager;
 use hsts::HstsList;
 use http_cache::HttpCache;
 use http_loader::{HttpState, http_redirect_fetch};
@@ -46,8 +46,6 @@ use std::sync::mpsc::{self, Sender};
 use std::thread;
 use storage_thread::StorageThreadFactory;
 use websocket_loader;
-
-const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(user_agent: Cow<'static, str>,

@@ -21,70 +21,8 @@ use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::Sender;
 use std::thread;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-use tinyfiledialogs;
 use url::Url;
 use uuid::Uuid;
-
-/// The provider of file-dialog UI should implement this trait.
-/// It will be used to initialize a generic FileManager.
-/// For example, we can choose a dummy UI for testing purpose.
-pub trait UIProvider where Self: Sync {
-    fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String>;
-
-    fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>>;
-}
-
-pub struct TFDProvider;
-
-impl UIProvider for TFDProvider {
-    #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-    fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String> {
-        if opts::get().headless {
-            return None;
-        }
-
-        let mut filter = vec![];
-        for p in patterns {
-            let s = "*.".to_string() + &p.0;
-            filter.push(s)
-        }
-
-        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-
-        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
-
-        tinyfiledialogs::open_file_dialog("Pick a file", path, filter_opt)
-    }
-
-    #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-    fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
-        if opts::get().headless {
-            return None;
-        }
-
-        let mut filter = vec![];
-        for p in patterns {
-            let s = "*.".to_string() + &p.0;
-            filter.push(s)
-        }
-
-        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-
-        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
-
-        tinyfiledialogs::open_file_dialog_multi("Pick files", path, filter_opt)
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    fn open_file_dialog(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<String> {
-        None
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    fn open_file_dialog_multi(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
-        None
-    }
-}
 
 /// FileManagerStore's entry
 struct FileStoreEntry {
