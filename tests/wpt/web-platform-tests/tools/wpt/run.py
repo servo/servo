@@ -117,13 +117,13 @@ def check_environ(product):
                 if platform.uname()[0] != "Windows":
                     message = """Missing hosts file configuration. Run
 
-python wpt make-hosts-file >> %s
-
-from a shell with Administrator privileges.""" % hosts_path
+./wpt make-hosts-file | sudo tee -a %s""" % hosts_path
                 else:
                     message = """Missing hosts file configuration. Run
 
-./wpt make-hosts-file | sudo tee -a %s""" % hosts_path
+python wpt make-hosts-file >> %s
+
+from a shell with Administrator privileges.""" % hosts_path
                 raise WptrunError(message)
 
 
