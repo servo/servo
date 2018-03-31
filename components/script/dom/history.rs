@@ -60,15 +60,16 @@ impl History {
         println!("traversing");
         // <https://html.spec.whatwg.org/multipage/history.html#traverse-the-history-by-a-delta> step 5.2
         let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::HistoryTraversalRequiresUnloading(direction, result_sender);
+        let msg = ScriptMsg::HistoryTraversalChangesDocument(direction, result_sender);
         let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
         if let Ok(true) = result_receiver.recv() {
             println!("should unload");
             let document = self.window.Document();
-            if document.prompt_to_unload() {
-                println!("unloadign from history");
-                document.unload();
+            if !document.prompt_to_unload() {
+                return Ok(());
             }
+            println!("unloadign from history");
+            document.unload();
         }
         let msg = ScriptMsg::TraverseHistory(direction);
         let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);

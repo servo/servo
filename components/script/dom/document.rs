@@ -1620,8 +1620,8 @@ impl Document {
             let event = PageTransitionEvent::new(
                 &self.window,
                 atom!("pagehide"),
-                true, // bubbles
-                true, // cancelable
+                false, // bubbles
+                false, // cancelable
                 self.salvageable.get(), // persisted
             );
             println!("dispatching pagehide for : {:?}", self.url());

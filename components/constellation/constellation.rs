@@ -1133,9 +1133,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got traverse history message from script");
                 self.handle_traverse_history_msg(source_top_ctx_id, direction);
             }
-            FromScriptMsg::HistoryTraversalRequiresUnloading(direction, ipc_sender) => {
-                debug!("constellation got history traversal requires unloading from script");
-                self.handle_history_traversal_requires_unloading(source_top_ctx_id, direction, ipc_sender);
+            FromScriptMsg::HistoryTraversalChangesDocument(direction, ipc_sender) => {
+                debug!("constellation got history traversal changes document from script");
+                self.handle_history_traversal_changes_document(source_top_ctx_id, direction, ipc_sender);
             }
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(sender) => {
@@ -2036,7 +2036,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         Some(table)                              
     }
     
-    fn handle_history_traversal_requires_unloading(&mut self,
+    fn handle_history_traversal_changes_document(&mut self,
                                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                                    direction: TraversalDirection,
                                                    ipc_sender: IpcSender<bool>)
@@ -2046,17 +2046,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let mut requires_unloading = true;
                 for (_, entry) in table {
                     let browsing_context_id = entry.browsing_context_id;
-                    match (entry.pipeline_id, self.browsing_contexts.get_mut(&browsing_context_id)) {
-                        (Some(pipeline_id), Some(browsing_context)) => {
-                            let curr_entry = browsing_context.current();
-                            if let Some(replaced_pipeline_id) = curr_entry.pipeline_id {
-                                if replaced_pipeline_id == pipeline_id {
-                                    requires_unloading = false;
-                                    break;
-                                }
+                    if let (Some(pipeline_id), Some(browsing_context))
+                        = (entry.pipeline_id, self.browsing_contexts.get_mut(&browsing_context_id)) {
+                        let curr_entry = browsing_context.current();
+                        if let Some(replaced_pipeline_id) = curr_entry.pipeline_id {
+                            if replaced_pipeline_id == pipeline_id {
+                                requires_unloading = false;
+                                break;
                             }
-                        },
-                        (_, _) => {}
+                        } 
                     }
                 }
                 let _ = ipc_sender.send(requires_unloading);
@@ -2420,7 +2418,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If we replaced a pipeline, close it.
         if let Some(replaced_pipeline_id) = replaced_pipeline_id {
             if replaced_pipeline_id != pipeline_id {
-                self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                self.close_pipeline(replaced_pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
             }
         }
 
