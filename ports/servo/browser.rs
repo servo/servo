@@ -122,14 +122,18 @@ impl Browser {
             }
             (CMD_OR_ALT, None, Key::Right) | (KeyModifiers::NONE, None, Key::NavigateForward) => {
                 if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
-                    self.event_queue.push(event);
+                    if state == KeyState::Pressed {
+                        let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
+                        self.event_queue.push(event);
+                    }
                 }
             }
             (CMD_OR_ALT, None, Key::Left) | (KeyModifiers::NONE, None, Key::NavigateBackward) => {
                 if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
-                    self.event_queue.push(event);
+                    if state == KeyState::Pressed {
+                        let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                        self.event_queue.push(event);
+                    }
                 }
             }
             (KeyModifiers::NONE, None, Key::Escape) => {
