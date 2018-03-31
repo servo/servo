@@ -2,21 +2,17 @@
 006-1
 <script>
 onpagehide = function() {
-  console.log('onpagehide')
   onpagehide = null;
   setTimeout(function() {
                parent.t.done()
              }, 1000);
 }
 onload = function() {
-  console.log('onload')
   if (!parent.loaded) {
     parent.loaded = true;
-    console.log('setting timeout')
     setTimeout(parent.t.step_func(
        function() {
-         console.log('load 2')
-         location.assign("006-2.html?" + Math.random());
+         location = "006-2.html?" + Math.random();
        }
     ), 100);
   }

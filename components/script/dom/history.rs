@@ -66,7 +66,7 @@ impl History {
             println!("should unload");
             let document = self.window.Document();
             if document.prompt_to_unload() {
-                println!("traversing");
+                println!("unloadign from history");
                 document.unload();
             }
         }

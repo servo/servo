@@ -1596,8 +1596,9 @@ impl Document {
             &event,
         );
         // Step 7
-        // TODO: check if any listeners were triggered, and only then set salvageable to false.
-        self.salvageable.set(true);
+        if event.get_cancel_state() == EventDefault::Handled {
+            self.salvageable.set(false);
+        }
         if event_status == EventStatus::Canceled
             || beforeunload_event.ReturnValue() == DOMString::from_string("".to_string()) {
             // Step 8
@@ -1610,9 +1611,10 @@ impl Document {
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
     pub fn unload(&self) {
-        println!("document.unload");
+        println!("document.unload for : {:?}", self.url());
         self.incr_ignore_opens_during_unload_counter();
         let document = Trusted::new(self);
+        let mut event_handled = false;
         if self.page_showing.get() {
             self.page_showing.set(false);
             let event = PageTransitionEvent::new(
@@ -1629,6 +1631,7 @@ impl Document {
                 document.root().upcast(),
                 &event,
             );
+            event_handled = event.get_cancel_state() == EventDefault::Handled;
         }
         if !self.fired_unload.get() {
             let event = Event::new(
@@ -1642,10 +1645,10 @@ impl Document {
                 document.root().upcast(),
                 &event,
             );
-            // TODO: check if any listeners were triggered
             self.fired_unload.set(true);
-            self.salvageable.set(false);
+            event_handled = event.get_cancel_state() == EventDefault::Handled;
         }
+        self.salvageable.set(!event_handled);
         self.decr_ignore_opens_during_unload_counter();
     }
 
@@ -2513,6 +2516,10 @@ impl Document {
     /// Returns the number of document stylesheets.
     pub fn stylesheet_count(&self) -> usize {
         self.stylesheets.borrow().len()
+    }
+    
+    pub fn salvageable(&self) -> bool {
+        self.salvageable.get()
     }
 
     pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {

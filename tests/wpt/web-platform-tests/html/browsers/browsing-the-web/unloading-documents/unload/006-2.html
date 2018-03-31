@@ -1,15 +1,5 @@
 <!doctype html>
 006-2
 <script>
-onpagehide = function() {
-    console.log('onpagehide 006-2')
-}
-onload = function() {
-  console.log('onload 2')
-  console.log(parent)
-  setTimeout(parent.t.step_func(function() {
-    console.log('history.go(-1)')
-    history.go(-1)
-  }), 100)
-}
+onload = function() {setTimeout(parent.t.step_func(function() {history.go(-1)}), 100)}
 </script>

@@ -1632,8 +1632,12 @@ impl Window {
     }
 
     pub fn suspend(&self) {
-        // Suspend timer events.
-        self.upcast::<GlobalScope>().suspend();
+        if let Some(document) = self.document.get() {
+            if !document.salvageable() {
+                // Suspend timer events.
+                self.upcast::<GlobalScope>().suspend();
+            }
+        }
 
         // Set the window proxy to be a cross-origin window.
         if self.window_proxy().currently_active() == Some(self.global().pipeline_id()) {

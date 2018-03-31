@@ -1691,7 +1691,6 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
             document.unload();
-            self.script_sender.send((pipeline_id, ScriptMsg::UnloadComplete)).unwrap();
         }   
     }
 

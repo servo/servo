@@ -1092,9 +1092,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
             }
-            FromScriptMsg::UnloadComplete => {
-                self.handle_unload_complete(source_pipeline_id);
-            }
             FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
                 debug!("constellation got initiate navigate request message");
                 self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
@@ -1475,10 +1472,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
         debug!("Pipeline {:?} exited.", pipeline_id);
         self.pipelines.remove(&pipeline_id);
-    }
-    
-    fn handle_unload_complete(&mut self, pipeline_id: PipelineId) {
-        self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
@@ -1878,8 +1871,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
         match parent_info {
             Some(parent_pipeline_id) => {
+                // Running the "unload" steps,
+                // a required part of "update the session history with the new page".
+                self.unload_document(source_id);
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
+                println!("navigating parent of iframe");
                 let msg = ConstellationControlMsg::Navigate(parent_pipeline_id,
                                                             browsing_context_id,
                                                             load_data,
@@ -1927,6 +1924,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let replace_instant = if replace { Some(timestamp) } else { None };
+                // Running the "unload" steps,
+                // a required part of "update the session history with the new page".
+                self.unload_document(source_id);
                 self.new_pipeline(new_pipeline_id,
                                   browsing_context_id,
                                   top_level_id,
@@ -2420,8 +2420,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If we replaced a pipeline, close it.
         if let Some(replaced_pipeline_id) = replaced_pipeline_id {
             if replaced_pipeline_id != pipeline_id {
-                println!("closing pipeline because it was replaced");
-                self.close_pipeline(replaced_pipeline_id);
+                self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
             }
         }
 
@@ -2556,7 +2555,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(evicted_id) = evicted_id {
-            self.close_pipeline(evicted_id);
+            println!("evicted pipeline");
+            self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
         }
 
         if new_context {
@@ -2569,6 +2569,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(old_pipeline_id) = navigated {
+            println!("de-activate old pipeline {:?}", old_pipeline_id);
             // Deactivate the old pipeline, and activate the new one.
             self.update_activity(old_pipeline_id);
             self.update_activity(change.new_pipeline_id);
@@ -2930,7 +2931,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Close all pipelines at and beneath a given browsing context
     fn close_pipeline(&mut self, pipeline_id: PipelineId, dbc: DiscardBrowsingContext, exit_mode: ExitPipelineMode) {
-        debug!("Closing pipeline {:?}.", pipeline_id);
+        println!("Closing pipeline {:?}.", pipeline_id);
         // Store information about the browsing contexts to be closed. Then close the
         // browsing contexts, before removing ourself from the pipelines hash map. This
         // ordering is vital - so that if close_browsing_context() ends up closing

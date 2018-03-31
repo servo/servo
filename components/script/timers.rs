@@ -240,7 +240,7 @@ impl OneshotTimers {
     }
 
     pub fn resume(&self) {
-        // Suspend is idempotent: do nothing if the timers are already suspended.
+        // Resume is idempotent: do nothing if the timers are already resumed.
         let additional_offset = match self.suspended_since.get() {
             Some(suspended_since) => precise_time_ms() - suspended_since,
             None => return warn!("Resuming an already resumed timer."),
@@ -422,6 +422,7 @@ impl JsTimers {
         let mut active_timers = self.active_timers.borrow_mut();
 
         if let Some(entry) = active_timers.remove(&JsTimerHandle(handle)) {
+            println!("uncheduling callback for: {:?}", global.pipeline_id());
             global.unschedule_callback(entry.oneshot_handle);
         }
     }
