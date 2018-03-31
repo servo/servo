@@ -1,6 +1,6 @@
 env:
   RUST_BACKTRACE: '1'
-  RUSTFLAGS: -Dwarnings
+  RUSTFLAGS: -Dwarnings -W unused-extern-crates
   CARGO_INCREMENTAL: "0"
   SCCACHE_IDLE_TIMEOUT: "1200"
 

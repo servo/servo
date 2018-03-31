@@ -39,7 +39,7 @@ matrix:
         - ./mach clean-cargo-cache --keep 2 --force
       env:
         CCACHE=/usr/bin/ccache
-        RUSTFLAGS=-Dwarnings
+        RUSTFLAGS="-Dwarnings -W unused-extern-crates"
         CARGO_INCREMENTAL=0
       addons:
         apt:
