@@ -6,7 +6,7 @@ use euclid::TypedSize2D;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use pipeline::Pipeline;
 use script_traits::LoadData;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
 
 /// The constellation's view of a browsing context.
@@ -32,7 +32,7 @@ pub struct BrowsingContext {
     /// The load data for the current session history entry.
     pub load_data: LoadData,
 
-    pub pipelines: Vec<PipelineId>,
+    pub pipelines: HashSet<PipelineId>,
 }
 
 impl BrowsingContext {
@@ -44,13 +44,15 @@ impl BrowsingContext {
                load_data: LoadData)
                -> BrowsingContext
     {
+        let mut pipelines = HashSet::new();
+        pipelines.insert(pipeline_id);
         BrowsingContext {
             id: id,
             top_level_id: top_level_id,
             size: None,
             pipeline_id: pipeline_id,
             load_data: load_data,
-            pipelines: Vec::new(),
+            pipelines,
         }
     }
 
