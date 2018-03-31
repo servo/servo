@@ -2312,6 +2312,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             debug!("Adding pipeline to existing browsing context.");
             let old_pipeline_id = browsing_context.pipeline_id;
             let old_load_data = browsing_context.load_data.clone();
+            browsing_context.pipelines.insert(change.new_pipeline_id);
             browsing_context.update_current_entry(change.new_pipeline_id, change.load_data.clone());
             (false, Some((old_pipeline_id, old_load_data)))
         } else {
@@ -2326,7 +2327,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                       change.load_data.clone());
             self.update_activity(change.new_pipeline_id);
             self.notify_history_changed(change.top_level_browsing_context_id);
-        };
+        }
 
         if let Some((old_pipeline_id, old_load_data)) = navigated {
             // Deactivate the old pipeline, and activate the new one.
