@@ -82,9 +82,11 @@ impl Parse for ListStyleImage {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<ListStyleImage, ParseError<'i>> {
-        SpecifiedImageUrl::parse(context, input).map(|css_url| {
-            GenericListStyleImage(ImageUrlOrNone::Url(css_url))
-        })
+        if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse(context, input)) {
+            return Ok(GenericListStyleImage(ImageUrlOrNone::Url(url)));
+        }
+        input.expect_ident_matching("none")?;
+        Ok(GenericListStyleImage(ImageUrlOrNone::None))
     }
 }
 
