@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::beforeunloadevent::BeforeUnloadEvent;
-use dom::pagetransitionevent::PageTransitionEvent;
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
@@ -63,10 +62,6 @@ pub enum CommonEventHandler {
     BeforeUnloadEventHandler(
         #[ignore_malloc_size_of = "Rc"]
         Rc<OnBeforeUnloadEventHandlerNonNull>),
-        
-    PageTransitionEventHandler(
-        #[ignore_malloc_size_of = "Rc"]
-        Rc<EventHandlerNonNull>)
 }
 
 impl CommonEventHandler {
@@ -75,7 +70,6 @@ impl CommonEventHandler {
             CommonEventHandler::EventHandler(ref handler) => &handler.parent,
             CommonEventHandler::ErrorEventHandler(ref handler) => &handler.parent,
             CommonEventHandler::BeforeUnloadEventHandler(ref handler) => &handler.parent,
-            CommonEventHandler::PageTransitionEventHandler(ref handler) => &handler.parent,
         }
     }
 }
@@ -134,7 +128,6 @@ enum EventListenerType {
 impl EventListenerType {
     fn get_compiled_listener(&mut self, owner: &EventTarget, ty: &Atom)
                              -> Option<CompiledEventListener> {
-        println!("get complied listener for: {:?}", ty);
         match self {
             &mut EventListenerType::Inline(ref mut inline) =>
                 inline.get_compiled_handler(owner, ty)
@@ -189,13 +182,6 @@ impl CompiledEventListener {
 
                         let _ = handler.Call_(object, EventOrString::Event(DomRoot::from_ref(event)),
                                               None, None, None, None, exception_handle);
-                    }
-                    
-                    CommonEventHandler::PageTransitionEventHandler(ref handler) => {
-                        println!("calling handler for page transition event");
-                        if let Some(event) = event.downcast::<PageTransitionEvent>() {
-                            let _ = handler.Call_(object, event.upcast::<Event>(), exception_handle);
-                        }
                     }
 
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
@@ -281,7 +267,6 @@ impl EventListeners {
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     fn get_listeners(&mut self, phase: Option<ListenerPhase>, owner: &EventTarget, ty: &Atom)
                      -> Vec<CompiledEventListener> {
-        println!("get listeners for: {:?}", ty);
         self.0.iter_mut().filter_map(|entry| {
             if phase.is_none() || Some(entry.phase) == phase {
                 // Step 1.1-1.8, 2
@@ -321,7 +306,6 @@ impl EventTarget {
                              type_: &Atom,
                              specific_phase: Option<ListenerPhase>)
                              -> Vec<CompiledEventListener> {
-        println!("getting listeners for: {:?}", type_);
         self.handlers.borrow_mut().get_mut(type_).map_or(vec![], |listeners| {
             listeners.get_listeners(specific_phase, self, type_)
         })
@@ -490,25 +474,14 @@ impl EventTarget {
                 unsafe { OnErrorEventHandlerNonNull::new(cx, funobj) },
             ))
         } else {
-            match ty {
-                &atom!("pagehide") => {
-                    println!("found pagehide for: {:?}", ty);
-                    Some(CommonEventHandler::PageTransitionEventHandler(
-                        unsafe { EventHandlerNonNull::new(cx, funobj) },
-                    )) 
-                },
-                &atom!("beforeunload") => {
-                    println!("found beforeunload for: {:?}", ty);
-                    Some(CommonEventHandler::BeforeUnloadEventHandler(
-                        unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, funobj) },
-                    ))
-                },
-                _ => {
-                    println!("found: {:?}", ty);
-                    Some(CommonEventHandler::EventHandler(
-                        unsafe { EventHandlerNonNull::new(cx, funobj) },
-                    ))
-                }
+            if ty == &atom!("beforeunload") {
+                Some(CommonEventHandler::BeforeUnloadEventHandler(
+                    unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, funobj) },
+                ))
+            } else {
+                Some(CommonEventHandler::EventHandler(
+                    unsafe { EventHandlerNonNull::new(cx, funobj) },
+                ))
             }
         }
     }
@@ -561,29 +534,10 @@ impl EventTarget {
         T: CallbackContainer,
     {
         let cx = self.global().get_cx();
-        println!("setting beforeunload event handler for: {:?}", ty);
+
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(
                 unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback()) }
-            ))
-        });
-        self.set_inline_event_listener(Atom::from(ty), event_listener);
-    }
-    
-    #[allow(unsafe_code)]
-    pub fn set_pagetransition_event_handler<T: CallbackContainer>(
-        &self,
-        ty: &str,
-        listener: Option<Rc<T>>,
-    )
-    where
-        T: CallbackContainer,
-    {
-        let cx = self.global().get_cx();
-        println!("setting page transition event handler for: {:?}", ty);
-        let event_listener = listener.map(|listener| {
-            InlineEventListener::Compiled(CommonEventHandler::PageTransitionEventHandler(
-                unsafe { EventHandlerNonNull::new(cx, listener.callback()) }
             ))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -648,7 +602,6 @@ impl EventTarget {
         listener: Option<Rc<EventListener>>,
         options: AddEventListenerOptions,
     ) {
-        println!("adding listener for: {:?}", ty);
         let listener = match listener {
             Some(l) => l,
             None => return,
