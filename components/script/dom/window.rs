@@ -1553,6 +1553,7 @@ impl Window {
                 MainThreadScriptMsg::Navigate(pipeline_id,
                     LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
         };
+        
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {

@@ -95,6 +95,8 @@ pub enum ScriptMsg {
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete,
+    /// The document associated with this pipeline has run the 'unload' algorithm.
+    UnloadComplete,
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(LoadData, bool),
@@ -102,6 +104,8 @@ pub enum ScriptMsg {
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
     PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
+    /// Ask whether the history traversal results in a change of Document.
+    HistoryTraversalRequiresUnloading(TraversalDirection, IpcSender<bool>),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
     /// Gets the length of the joint session history from the constellation.

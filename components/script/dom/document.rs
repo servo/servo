@@ -1597,7 +1597,7 @@ impl Document {
         );
         // Step 7
         // TODO: check if any listeners were triggered, and only then set salvageable to false.
-        self.salvageable.set(false);
+        self.salvageable.set(true);
         if event_status == EventStatus::Canceled
             || beforeunload_event.ReturnValue() == DOMString::from_string("".to_string()) {
             // Step 8
@@ -1610,6 +1610,7 @@ impl Document {
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
     pub fn unload(&self) {
+        println!("document.unload");
         self.incr_ignore_opens_during_unload_counter();
         let document = Trusted::new(self);
         if self.page_showing.get() {
@@ -1617,10 +1618,11 @@ impl Document {
             let event = PageTransitionEvent::new(
                 &self.window,
                 atom!("pagehide"),
-                false, // bubbles
-                false, // cancelable
+                true, // bubbles
+                true, // cancelable
                 self.salvageable.get(), // persisted
             );
+            println!("dispatching pagehide for : {:?}", self.url());
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(

@@ -1092,6 +1092,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
             }
+            FromScriptMsg::UnloadComplete => {
+                self.handle_unload_complete(source_pipeline_id);
+            }
             FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
                 debug!("constellation got initiate navigate request message");
                 self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
@@ -1132,6 +1135,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::TraverseHistory(direction) => {
                 debug!("constellation got traverse history message from script");
                 self.handle_traverse_history_msg(source_top_ctx_id, direction);
+            }
+            FromScriptMsg::HistoryTraversalRequiresUnloading(direction, ipc_sender) => {
+                debug!("constellation got history traversal requires unloading from script");
+                self.handle_history_traversal_requires_unloading(source_top_ctx_id, direction, ipc_sender);
             }
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(sender) => {
@@ -1468,6 +1475,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
         debug!("Pipeline {:?} exited.", pipeline_id);
         self.pipelines.remove(&pipeline_id);
+    }
+    
+    fn handle_unload_complete(&mut self, pipeline_id: PipelineId) {
+        self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
@@ -1991,10 +2002,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
         self.handle_subframe_loaded(pipeline_id);
     }
-
-    fn handle_traverse_history_msg(&mut self,
-                                   top_level_browsing_context_id: TopLevelBrowsingContextId,
-                                   direction: TraversalDirection)
+    
+    fn get_history_entry_table(&self,
+                               top_level_browsing_context_id: TopLevelBrowsingContextId,
+                               direction: TraversalDirection) 
+                               -> Option<HashMap<BrowsingContextId, SessionHistoryEntry>> 
     {
         let mut size = 0;
         let mut table = HashMap::new();
@@ -2006,7 +2018,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     table.insert(entry.browsing_context_id, entry.clone());
                 }
                 if size < delta {
-                    return debug!("Traversing forward too much.");
+                    debug!("Traversing forward too much.");
+                    return None;
                 }
             },
             TraversalDirection::Back(delta) => {
@@ -2015,14 +2028,54 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     table.insert(entry.browsing_context_id, entry.clone());
                 }
                 if size < delta {
-                    return debug!("Traversing back too much.");
+                    debug!("Traversing back too much.");
+                    return None;
                 }
             },
         }
-
-        for (_, entry) in table {
-            self.traverse_to_entry(entry);
+        Some(table)                              
+    }
+    
+    fn handle_history_traversal_requires_unloading(&mut self,
+                                                   top_level_browsing_context_id: TopLevelBrowsingContextId,
+                                                   direction: TraversalDirection,
+                                                   ipc_sender: IpcSender<bool>)
+    {
+        match self.get_history_entry_table(top_level_browsing_context_id, direction) {
+            Some(table) => {
+                let mut requires_unloading = true;
+                for (_, entry) in table {
+                    let browsing_context_id = entry.browsing_context_id;
+                    match (entry.pipeline_id, self.browsing_contexts.get_mut(&browsing_context_id)) {
+                        (Some(pipeline_id), Some(browsing_context)) => {
+                            let curr_entry = browsing_context.current();
+                            if let Some(replaced_pipeline_id) = curr_entry.pipeline_id {
+                                if replaced_pipeline_id == pipeline_id {
+                                    requires_unloading = false;
+                                    break;
+                                }
+                            }
+                        },
+                        (_, _) => {}
+                    }
+                }
+                let _ = ipc_sender.send(requires_unloading);
+            },
+            None => {
+                let _ = ipc_sender.send(false);
+            }
         }
+    }
+
+    fn handle_traverse_history_msg(&mut self,
+                                   top_level_browsing_context_id: TopLevelBrowsingContextId,
+                                   direction: TraversalDirection)
+    {
+        if let Some(table) = self.get_history_entry_table(top_level_browsing_context_id, direction) {
+            for (_, entry) in table {
+                self.traverse_to_entry(entry);
+            }
+        };
     }
 
     fn handle_joint_session_history_length(&self,
@@ -2275,6 +2328,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let pipeline_id = match entry.pipeline_id {
             Some(pipeline_id) => pipeline_id,
             None => {
+                println!("reloading document");
                 // If there is no pipeline, then the document for this
                 // entry has been discarded, so we navigate to the entry
                 // URL instead. When the document has activated, it will
@@ -2321,6 +2375,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             match self.browsing_contexts.get_mut(&browsing_context_id)
         {
             Some(browsing_context) => {
+                println!("getting old and new pipeline info");
                 let old_pipeline_id = browsing_context.pipeline_id;
                 let top_level_id = browsing_context.top_level_id;
                 let mut curr_entry = browsing_context.current();
@@ -2365,7 +2420,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If we replaced a pipeline, close it.
         if let Some(replaced_pipeline_id) = replaced_pipeline_id {
             if replaced_pipeline_id != pipeline_id {
-                self.close_pipeline(replaced_pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                println!("closing pipeline because it was replaced");
+                self.unload_document(replaced_pipeline_id);
             }
         }
 
@@ -2500,7 +2556,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(evicted_id) = evicted_id {
-            self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+            self.unload_document(evicted_id);
         }
 
         if new_context {
@@ -2862,6 +2918,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         debug!("Closed browsing context children {}.", browsing_context_id);
+    }
+    
+    // Send a message to script requesting document associated with this pipeline runs the 'unload' algorithm
+    fn unload_document(&self, pipeline_id: PipelineId) {
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            let msg = ConstellationControlMsg::UnloadDocument(pipeline_id);
+            let _ = pipeline.event_loop.send(msg);
+        }
     }
 
     // Close all pipelines at and beneath a given browsing context

@@ -1156,6 +1156,7 @@ impl ScriptThread {
                     AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
                     Resize(id, ..) => Some(id),
                     ResizeInactive(id, ..) => Some(id),
+                    UnloadDocument(id) => Some(id),
                     ExitPipeline(id, ..) => Some(id),
                     ExitScriptThread => None,
                     SendEvent(id, ..) => Some(id),
@@ -1272,6 +1273,8 @@ impl ScriptThread {
             },
             ConstellationControlMsg::Navigate(parent_pipeline_id, browsing_context_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(browsing_context_id), load_data, replace),
+            ConstellationControlMsg::UnloadDocument(pipeline_id) =>
+                self.handle_unload_document(pipeline_id),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -1682,6 +1685,14 @@ impl ScriptThread {
             None => return warn!("postMessage after pipeline {} closed.", pipeline_id),
             Some(window) => window.post_message(origin, StructuredCloneData::Vector(data)),
         }
+    }
+    
+    fn handle_unload_document(&self, pipeline_id: PipelineId) {
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
+            document.unload();
+            self.script_sender.send((pipeline_id, ScriptMsg::UnloadComplete)).unwrap();
+        }   
     }
 
     fn handle_update_pipeline_id(&self,

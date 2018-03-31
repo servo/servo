@@ -363,6 +363,18 @@ macro_rules! event_handler(
     )
 );
 
+macro_rules! pagetransition_event_handler(
+    ($event_type: ident, $getter: ident, $setter: ident) => (
+        define_event_handler!(
+            ::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
+            $event_type,
+            $getter,
+            $setter,
+            set_pagetransition_event_handler
+        );
+    )
+);
+
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_event_handler!(
@@ -497,8 +509,8 @@ macro_rules! window_event_handlers(
         event_handler!(message, GetOnmessage, SetOnmessage);
         event_handler!(offline, GetOnoffline, SetOnoffline);
         event_handler!(online, GetOnonline, SetOnonline);
-        event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
-        event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
+        pagetransition_event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
+        pagetransition_event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
         event_handler!(popstate, GetOnpopstate, SetOnpopstate);
         event_handler!(rejectionhandled, GetOnrejectionhandled,
                        SetOnrejectionhandled);
