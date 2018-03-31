@@ -7,7 +7,7 @@
 pub mod keyutils;
 pub mod window;
 
-use servo_config::opts;
+use servo::servo_config::opts;
 use std::rc::Rc;
 
 pub fn create_window() -> Rc<window::Window> {

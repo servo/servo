@@ -4,20 +4,23 @@
 
 //! A windowing implementation using glutin.
 
-use compositing::compositor_thread::EventLoopWaker;
-use compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
-use compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
 use glutin::{self, Api, GlContext, GlRequest};
-use msg::constellation_msg::{Key, KeyState};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::TouchEventType;
-use servo_config::opts;
-use servo_geometry::DeviceIndependentPixel;
+use servo::compositing::compositor_thread::EventLoopWaker;
+use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
+use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
+use servo::msg::constellation_msg::{Key, KeyState};
+use servo::script_traits::TouchEventType;
+use servo::servo_config::opts;
+use servo::servo_geometry::DeviceIndependentPixel;
+use servo::style_traits::DevicePixel;
+use servo::style_traits::cursor::CursorKind;
+use servo::webrender_api::{DeviceIntPoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -28,12 +31,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use std::time;
-use style_traits::DevicePixel;
-use style_traits::cursor::CursorKind;
 use super::keyutils::{self, GlutinKeyModifiers};
 #[cfg(target_os = "windows")]
 use user32;
-use webrender_api::{DeviceIntPoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
 #[cfg(target_os = "windows")]
 use winapi;
 use winit;
@@ -513,7 +513,7 @@ impl Window {
                 event: winit::WindowEvent::Touch(touch),
                 ..
             } => {
-                use script_traits::TouchId;
+                use servo::script_traits::TouchId;
 
                 let phase = glutin_phase_to_touch_event_type(touch.phase);
                 let id = TouchId(touch.id as i32);
@@ -570,7 +570,7 @@ impl Window {
     fn handle_mouse(&self, button: winit::MouseButton,
                     action: winit::ElementState,
                     coords: TypedPoint2D<i32, DevicePixel>) {
-        use script_traits::MouseButton;
+        use servo::script_traits::MouseButton;
 
         let max_pixel_dist = 10.0 * self.hidpi_factor().get();
         let event = match action {
