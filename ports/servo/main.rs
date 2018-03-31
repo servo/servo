@@ -21,25 +21,18 @@
 extern crate android_injected_glue;
 extern crate backtrace;
 #[macro_use] extern crate bitflags;
-extern crate compositing;
 extern crate euclid;
 #[cfg(target_os = "windows")] extern crate gdi32;
 extern crate gleam;
 extern crate glutin;
 // The window backed by glutin
 #[macro_use] extern crate log;
-extern crate msg;
 #[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
-extern crate script_traits;
 extern crate servo;
-extern crate servo_config;
-extern crate servo_geometry;
 #[cfg(all(feature = "unstable", not(target_os = "android")))]
 #[macro_use]
 extern crate sig;
-extern crate style_traits;
 extern crate tinyfiledialogs;
-extern crate webrender_api;
 extern crate winit;
 #[cfg(target_os = "windows")] extern crate winapi;
 #[cfg(target_os = "windows")] extern crate user32;
