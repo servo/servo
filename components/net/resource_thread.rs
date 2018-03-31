@@ -27,8 +27,7 @@ use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use servo_config::opts;
-use servo_config::resource_files::resources_dir_path;
-use servo_url::ServoUrl;
+use servo_url::{ChromeReader, ServoUrl};
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
 use std::error::Error;
@@ -48,12 +47,14 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan,
+                            chrome_reader: Box<ChromeReader>,
                             config_dir: Option<PathBuf>)
                             -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
         devtools_chan,
         profiler_chan,
+        chrome_reader,
         config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone()),
@@ -65,6 +66,7 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
 pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 profiler_chan: ProfilerChan,
+                                chrome_reader: Box<ChromeReader>,
                                 config_dir: Option<PathBuf>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
@@ -79,7 +81,8 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
             config_dir: config_dir,
         };
         channel_manager.start(public_setup_port,
-                              private_setup_port);
+                              private_setup_port,
+                              chrome_reader);
     }).expect("Thread spawning failed");
     (public_setup_chan, private_setup_chan)
 }
@@ -89,8 +92,8 @@ struct ResourceChannelManager {
     config_dir: Option<PathBuf>,
 }
 
-fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpState>) {
-    let mut hsts_list = HstsList::from_servo_preload();
+fn create_http_states(config_dir: Option<&Path>, chrome_reader: Box<ChromeReader>) -> (Arc<HttpState>, Arc<HttpState>) {
+    let mut hsts_list = HstsList::from_servo_preload(chrome_reader.clone());
     let mut auth_cache = AuthCache::new();
     let http_cache = HttpCache::new();
     let mut cookie_jar = CookieStorage::new(150);
@@ -100,14 +103,22 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
-    let ca_file = match opts::get().certificate_path {
-        Some(ref path) => PathBuf::from(path),
-        None => resources_dir_path()
-            .expect("Need certificate file to make network requests")
-            .join("certs"),
-    };
+    let mut bytes = vec![];
+    match opts::get().certificate_path {
+        Some(ref path) => {
+            let mut file = File::open(PathBuf::from(path))
+                .expect("Couldn't not find certificate file");
+            file.read_to_end(&mut bytes).expect("Cant read certificate");
+        }
+        None => {
+            let cert_url = ServoUrl::parse("chrome://resources/certs").unwrap();
+            let mut reader = chrome_reader.resolve(&cert_url)
+                .expect("Couldn't not find certificate file");
+            reader.read_to_end(&mut bytes).expect("Cant read certificate");
+        },
+    }
 
-    let ssl_client = create_ssl_client(&ca_file);
+    let ssl_client = create_ssl_client(&bytes);
     let http_state = HttpState {
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
@@ -117,7 +128,7 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         connector: create_http_connector(ssl_client),
     };
 
-    let private_ssl_client = create_ssl_client(&ca_file);
+    let private_ssl_client = create_ssl_client(&bytes);
     let private_http_state = HttpState::new(private_ssl_client);
 
     (Arc::new(http_state), Arc::new(private_http_state))
@@ -127,9 +138,11 @@ impl ResourceChannelManager {
     #[allow(unsafe_code)]
     fn start(&mut self,
              public_receiver: IpcReceiver<CoreResourceMsg>,
-             private_receiver: IpcReceiver<CoreResourceMsg>) {
+             private_receiver: IpcReceiver<CoreResourceMsg>,
+             chrome_reader: Box<ChromeReader>,
+             ) {
         let (public_http_state, private_http_state) =
-            create_http_states(self.config_dir.as_ref().map(Deref::deref));
+            create_http_states(self.config_dir.as_ref().map(Deref::deref), chrome_reader);
 
         let mut rx_set = IpcReceiverSet::new().unwrap();
         let private_id = rx_set.add(private_receiver).unwrap();

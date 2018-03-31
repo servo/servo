@@ -3,20 +3,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use regex::Regex;
-use servo_config::resource_files::read_resource_file;
+use servo_url::{ChromeReader, ServoUrl};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::BufRead;
+use std::io::{BufRead, BufReader, Read};
 use std::string::String;
 
 const BLOCKLIST_FILE: &'static str = "gatt_blocklist.txt";
-const BLOCKLIST_FILE_NOT_FOUND: &'static str = "Could not find gatt_blocklist.txt file";
 const EXCLUDE_READS: &'static str = "exclude-reads";
 const EXCLUDE_WRITES: &'static str = "exclude-writes";
 const VALID_UUID_REGEX: &'static str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
 thread_local!(pub static BLUETOOTH_BLOCKLIST: RefCell<BluetoothBlocklist> =
-              RefCell::new(BluetoothBlocklist(parse_blocklist())));
+              RefCell::new(BluetoothBlocklist(None)));
+
+pub fn init<T>(chrome_reader: &T) where T: ChromeReader {
+    let url = format!("chrome://resources/{}", BLOCKLIST_FILE);
+    let url = ServoUrl::parse(&url).unwrap();
+    let reader = BufReader::new(chrome_reader.resolve(&url).unwrap());
+    BLUETOOTH_BLOCKLIST.with(|blist| {
+        *blist.borrow_mut() = BluetoothBlocklist(parse_blocklist(reader));
+    });
+}
 
 pub fn uuid_is_blocklisted(uuid: &str, exclude_type: Blocklist) -> bool {
     BLUETOOTH_BLOCKLIST.with(|blist| {
@@ -72,10 +80,9 @@ impl BluetoothBlocklist {
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#parsing-the-blocklist
-fn parse_blocklist() -> Option<HashMap<String, Blocklist>> {
+fn parse_blocklist(content: BufReader<Box<Read>>) -> Option<HashMap<String, Blocklist>> {
     // Step 1 missing, currently we parse ./resources/gatt_blocklist.txt.
     let valid_uuid_regex = Regex::new(VALID_UUID_REGEX).unwrap();
-    let content = read_resource_file(BLOCKLIST_FILE).expect(BLOCKLIST_FILE_NOT_FOUND);
     // Step 3
     let mut result = HashMap::new();
     // Step 2 and 4

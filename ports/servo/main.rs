@@ -39,6 +39,7 @@ extern crate servo_geometry;
 extern crate sig;
 extern crate style_traits;
 extern crate tinyfiledialogs;
+extern crate url;
 extern crate webrender_api;
 extern crate winit;
 #[cfg(target_os = "windows")] extern crate winapi;
@@ -105,6 +106,8 @@ fn install_crash_handler() {}
 
 fn main() {
     install_crash_handler();
+
+    servo::init(browser::FileChromeReader);
 
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
@@ -175,7 +178,7 @@ fn main() {
 
     let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
 
-    let mut servo = Servo::new(window.clone());
+    let mut servo = Servo::new(window.clone(), browser::FileChromeReader);
 
     let (sender, receiver) = ipc::channel().unwrap();
     servo.handle_events(vec![WindowEvent::NewBrowser(target_url, sender)]);

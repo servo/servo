@@ -5,8 +5,8 @@
 use basedir::default_config_dir;
 use num_cpus;
 use opts;
-use resource_files::resources_dir_path;
 use rustc_serialize::json::{Json, ToJson};
+use servo_url::{ChromeReader, ServoUrl};
 use std::borrow::ToOwned;
 use std::cmp::max;
 use std::collections::HashMap;
@@ -17,12 +17,31 @@ use std::sync::{Arc, RwLock};
 
 lazy_static! {
     pub static ref PREFS: Preferences = {
-        let defaults = default_prefs();
-        if let Ok(prefs) = read_prefs() {
-            defaults.extend(prefs);
-        }
-        defaults
+        Preferences(RwLock::new(HashMap::new()))
     };
+}
+
+pub fn init<T>(chrome_reader: &T) where T: ChromeReader {
+    PREFS.set("layout.threads", PrefValue::Number(max(num_cpus::get() * 3 / 4, 1) as f64));
+    let url = ServoUrl::parse("chrome://resources/prefs.json").unwrap();
+    let reader = chrome_reader.resolve(&url).unwrap();
+    let prefs = read_prefs_from_reader(reader).expect("Can't read preferences");
+    PREFS.extend(prefs);
+}
+
+pub fn add_user_prefs() {
+    match opts::get().config_dir {
+        Some(ref config_path) => {
+            let mut path = PathBuf::from(config_path);
+            init_user_prefs(&mut path);
+        }
+        None => {
+            let mut path = default_config_dir();
+            if path.join("prefs.json").exists() {
+                init_user_prefs(&mut path);
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -149,16 +168,9 @@ impl ToJson for Pref {
     }
 }
 
-pub fn default_prefs() -> Preferences {
-    let prefs = Preferences(Arc::new(RwLock::new(HashMap::new())));
-    prefs.set("layout.threads", PrefValue::Number(
-        max(num_cpus::get() * 3 / 4, 1) as f64));
-    prefs
-}
-
-pub fn read_prefs_from_file<T>(mut file: T)
+pub fn read_prefs_from_reader<T>(mut reader: T)
     -> Result<HashMap<String, Pref>, ()> where T: Read {
-    let json = Json::from_reader(&mut file).or_else(|e| {
+    let json = Json::from_reader(&mut reader).or_else(|e| {
         println!("Ignoring invalid JSON in preferences: {:?}.", e);
         Err(())
     })?;
@@ -177,25 +189,10 @@ pub fn read_prefs_from_file<T>(mut file: T)
     Ok(prefs)
 }
 
-pub fn add_user_prefs() {
-    match opts::get().config_dir {
-        Some(ref config_path) => {
-            let mut path = PathBuf::from(config_path);
-            init_user_prefs(&mut path);
-        }
-        None => {
-            let mut path = default_config_dir();
-            if path.join("prefs.json").exists() {
-                init_user_prefs(&mut path);
-            }
-        }
-    }
-}
-
 fn init_user_prefs(path: &mut PathBuf) {
     path.push("prefs.json");
     if let Ok(file) = File::open(path) {
-        if let Ok(prefs) = read_prefs_from_file(file) {
+        if let Ok(prefs) = read_prefs_from_reader(file) {
             PREFS.extend(prefs);
         }
     } else {
@@ -204,20 +201,7 @@ fn init_user_prefs(path: &mut PathBuf) {
     }
 }
 
-fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
-    let mut path = resources_dir_path().map_err(|_| ())?;
-    path.push("prefs.json");
-
-    let file = File::open(path).or_else(|e| {
-        writeln!(&mut stderr(), "Error opening preferences: {:?}.", e)
-            .expect("failed printing to stderr");
-        Err(())
-    })?;
-
-    read_prefs_from_file(file)
-}
-
-pub struct Preferences(Arc<RwLock<HashMap<String, Pref>>>);
+pub struct Preferences(RwLock<HashMap<String, Pref>>);
 
 impl Preferences {
     pub fn get(&self, name: &str) -> Arc<PrefValue> {
