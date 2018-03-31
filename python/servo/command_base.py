@@ -267,7 +267,7 @@ class CommandBase(object):
         context.sharedir = self.config["tools"]["cache-dir"]
 
         self.config["tools"].setdefault("use-rustup", True)
-        self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
+        self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", False))
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
