@@ -12,7 +12,7 @@
 
   attribute DOMString name;
 
-  [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
+  [PutForwards=href, Unforgeable] readonly attribute Location location;
   readonly attribute History history;
   [Pref="dom.customelements.enabled"]
   readonly attribute CustomElementRegistry customElements;
