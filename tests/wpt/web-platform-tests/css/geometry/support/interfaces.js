@@ -19,6 +19,8 @@ function doTest(idl) {
     DOMMatrixReadOnly: ["new DOMMatrixReadOnly()", "DOMMatrixReadOnly.fromMatrix({is2D: false})"],
     DOMMatrix: ["new DOMMatrix()", "DOMMatrix.fromMatrix({is2D: false})"],
   });
+  idlArray.prevent_multiple_testing("DOMMatrixReadOnly");
+  idlArray.prevent_multiple_testing("DOMMatrix");
   idlArray.test();
   done();
 }

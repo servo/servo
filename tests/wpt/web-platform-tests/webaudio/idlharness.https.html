@@ -20,7 +20,7 @@ promise_test(async t => {
     // Needed for MediaStream, MediaStreamTrack
     '/interfaces/mediacapture-main.idl',
 
-    '/interfaces/webaudio.idl'
+    '/interfaces/web-audio-api.idl'
   ].map(url => fetch(url).then(response => response.text())));
 
   const idl_array = new IdlArray();

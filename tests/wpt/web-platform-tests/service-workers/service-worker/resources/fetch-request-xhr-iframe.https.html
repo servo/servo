@@ -19,24 +19,6 @@ function get_boundary(headers) {
   return '';
 }
 
-function create_file_system_file(file_name, data) {
-  return new Promise(function(resolve, reject) {
-      webkitRequestFileSystem(TEMPORARY, 1024, function(fs) {
-          fs.root.getFile(
-            file_name, {create: true, exclusive: true},
-            function(fileEntry) {
-              fileEntry.createWriter(function(fileWriter) {
-                  fileWriter.onwriteend = function(e) {
-                    fileEntry.file(function(file) { resolve(file); });
-                  };
-                  var blob = new Blob([data], {type: 'text/plain'});
-                  fileWriter.write(blob);
-                });
-            }, function(e) { reject(e); });
-        }, function(e) { reject(e); });
-    });
-}
-
 function xhr_send(url_base, method, data, with_credentials) {
   return new Promise(function(resolve, reject) {
       var xhr = new XMLHttpRequest();
