@@ -495,8 +495,8 @@ mod shorthand_serialization {
     mod list_style {
         use style::properties::longhands::list_style_position::SpecifiedValue as ListStylePosition;
         use style::properties::longhands::list_style_type::SpecifiedValue as ListStyleType;
-        use style::values::generics::image::ImageUrlOrNone;
         use style::values::generics::list::ListStyleImage;
+        use style::values::generics::url::ImageUrlOrNone;
         use super::*;
 
         #[test]
