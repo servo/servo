@@ -4,7 +4,7 @@
 
 //! `list` computed values.
 
-use values::computed::ComputedUrl;
+use values::computed::ComputedImageUrl;
 use values::generics::list::ListStyleImage as GenericListStyleImage;
 
 pub use values::specified::list::Quotes;
@@ -12,7 +12,7 @@ pub use values::specified::list::Quotes;
 pub use values::specified::list::ListStyleType;
 
 /// Computed `list-style-image` property.
-pub type ListStyleImage = GenericListStyleImage<ComputedUrl>;
+pub type ListStyleImage = GenericListStyleImage<ComputedImageUrl>;
 
 impl Quotes {
     /// Initial value for `quotes`.
