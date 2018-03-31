@@ -75,7 +75,7 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize};
-pub use self::text::{TextAlign, TextEmphasisStyle, TextOverflow, WordSpacing};
+pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
