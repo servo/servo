@@ -145,3 +145,16 @@ pub struct NonNegative<T>(pub T);
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
 #[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
+
+/// Common handling for generic CSS url() values.
+pub mod url {
+    /// An image url or none, used for example in list-style-image
+    #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
+    #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
+    pub enum ImageUrlOrNone<Url> {
+        /// `none`
+        None,
+        /// `An image URL`
+        Url(Url),
+    }
+}

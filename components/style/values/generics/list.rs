@@ -4,7 +4,7 @@
 
 //! Generic types for CSS values in list-style-image
 
-use values::generics::image::ImageUrlOrNone;
+use values::generics::url::ImageUrlOrNone;
 
 /// URL-generic specified or computed `list-style-image` property.
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
