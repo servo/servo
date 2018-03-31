@@ -1121,6 +1121,10 @@ impl<'le> TElement for GeckoElement<'le> {
     where
         F: FnMut(Self),
     {
+        if !self.may_have_anonymous_children() {
+            return;
+        }
+
         let array: *mut structs::nsTArray<*mut nsIContent> =
             unsafe { bindings::Gecko_GetAnonymousContentForElement(self.0) };
 
