@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::compositor_thread::EmbedderMsg;
-use compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
-use msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
-use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
-use script_traits::TouchEventType;
+use servo::compositing::compositor_thread::EmbedderMsg;
+use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
+use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
+use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use servo::net_traits::pub_domains::is_reg_domain;
+use servo::script_traits::TouchEventType;
+use servo::servo_config::prefs::PREFS;
 use servo::servo_url::ServoUrl;
-use servo_config::prefs::PREFS;
+use servo::webrender_api::ScrollLocation;
 use std::mem;
 use std::rc::Rc;
 use tinyfiledialogs;
-use webrender_api::ScrollLocation;
 
 pub struct Browser {
     current_url: Option<ServoUrl>,

@@ -36,19 +36,12 @@ unstable = ["libservo/unstable"]
 [dependencies]
 backtrace = "0.3"
 bitflags = "1.0"
-compositing = {path = "../../components/compositing"}
 euclid = "0.17"
 gleam = "0.4.29"
 glutin = "0.13"
 libservo = {path = "../../components/servo"}
 log = "0.4"
-msg = {path = "../../components/msg"}
-script_traits = {path = "../../components/script_traits"}
-servo_geometry = {path = "../../components/geometry"}
-servo_config = {path = "../../components/config"}
-style_traits = {path = "../../components/style_traits"}
 tinyfiledialogs = "3.0"
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 winit = "0.11.2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
