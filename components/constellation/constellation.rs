@@ -2421,7 +2421,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(replaced_pipeline_id) = replaced_pipeline_id {
             if replaced_pipeline_id != pipeline_id {
                 println!("closing pipeline because it was replaced");
-                self.unload_document(replaced_pipeline_id);
+                self.close_pipeline(replaced_pipeline_id);
             }
         }
 
@@ -2556,7 +2556,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(evicted_id) = evicted_id {
-            self.unload_document(evicted_id);
+            self.close_pipeline(evicted_id);
         }
 
         if new_context {
