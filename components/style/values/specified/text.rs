@@ -666,6 +666,106 @@ impl Parse for TextEmphasisStyle {
     }
 }
 
+/// The allowed horizontal values for the `text-emphasis-position` property.
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum TextEmphasisHorizontalWritingModeValue {
+    /// Draw marks over the text in horizontal writing mode.
+    Over,
+    /// Draw marks under the text in horizontal writing mode.
+    Under,
+}
+
+/// The allowed vertical values for the `text-emphasis-position` property.
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum TextEmphasisVerticalWritingModeValue {
+    /// Draws marks to the right of the text in vertical writing mode.
+    Right,
+    /// Draw marks to the left of the text in vertical writing mode.
+    Left,
+}
+
+/// Specified value of `text-emphasis-position` property.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct TextEmphasisPosition(
+    pub TextEmphasisHorizontalWritingModeValue,
+    pub TextEmphasisVerticalWritingModeValue
+);
+
+impl TextEmphasisPosition {
+    #[inline]
+    /// Returns the initial value of `text-emphasis-position`
+    pub fn over_right() -> Self {
+        TextEmphasisPosition(TextEmphasisHorizontalWritingModeValue::Over,
+                             TextEmphasisVerticalWritingModeValue::Right)
+    }
+
+    #[cfg(feature = "gecko")]
+    /// Converts an enumerated value coming from Gecko to a `TextEmphasisPosition`.
+    pub fn from_gecko_keyword(kw: u32) -> Self {
+        use gecko_bindings::structs;
+
+        let vert = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT != 0 {
+            TextEmphasisVerticalWritingModeValue::Right
+        } else {
+            debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT != 0);
+            TextEmphasisVerticalWritingModeValue::Left
+        };
+        let horiz = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER != 0 {
+            TextEmphasisHorizontalWritingModeValue::Over
+        } else {
+            debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER != 0);
+            TextEmphasisHorizontalWritingModeValue::Under
+        };
+        TextEmphasisPosition(horiz, vert)
+    }
+}
+
+impl Parse for TextEmphasisPosition {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(horizontal) = input.try(|input| TextEmphasisHorizontalWritingModeValue::parse(input)) {
+            let vertical = TextEmphasisVerticalWritingModeValue::parse(input)?;
+            Ok(TextEmphasisPosition(horizontal, vertical))
+        } else {
+            let vertical = TextEmphasisVerticalWritingModeValue::parse(input)?;
+            let horizontal = TextEmphasisHorizontalWritingModeValue::parse(input)?;
+            Ok(TextEmphasisPosition(horizontal, vertical))
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u8> for TextEmphasisPosition {
+    fn from(bits: u8) -> Self {
+        TextEmphasisPosition::from_gecko_keyword(bits as u32)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<TextEmphasisPosition> for u8 {
+    fn from(v: TextEmphasisPosition) -> u8 {
+        use gecko_bindings::structs;
+
+        let mut result = match v.0 {
+            TextEmphasisHorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER,
+            TextEmphasisHorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER,
+        };
+        match v.1 {
+            TextEmphasisVerticalWritingModeValue::Right => {
+                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT;
+            }
+            TextEmphasisVerticalWritingModeValue::Left => {
+                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT;
+            }
+        };
+        result as u8
+    }
+}
+
 /// A specified value for the `-moz-tab-size` property.
 pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
 
