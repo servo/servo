@@ -1,12 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the Web Authentication spec.
+// See https://w3c.github.io/webauthn/
+
 [SecureContext, Exposed=Window]
 interface PublicKeyCredential : Credential {
     [SameObject] readonly attribute ArrayBuffer              rawId;
     [SameObject] readonly attribute AuthenticatorResponse    response;
-    AuthenticationExtensions getClientExtensionResults();
+    AuthenticationExtensionsClientOutputs getClientExtensionResults();
 };
 
 partial dictionary CredentialCreationOptions {
-    MakePublicKeyCredentialOptions      publicKey;
+    PublicKeyCredentialCreationOptions      publicKey;
 };
 
 partial dictionary CredentialRequestOptions {
@@ -31,7 +35,7 @@ interface AuthenticatorAttestationResponse : AuthenticatorResponse {
 interface AuthenticatorAssertionResponse : AuthenticatorResponse {
     [SameObject] readonly attribute ArrayBuffer      authenticatorData;
     [SameObject] readonly attribute ArrayBuffer      signature;
-    [SameObject] readonly attribute ArrayBuffer      userHandle;
+    [SameObject] readonly attribute ArrayBuffer?     userHandle;
 };
 
 dictionary PublicKeyCredentialParameters {
@@ -39,7 +43,7 @@ dictionary PublicKeyCredentialParameters {
     required COSEAlgorithmIdentifier      alg;
 };
 
-dictionary MakePublicKeyCredentialOptions {
+dictionary PublicKeyCredentialCreationOptions {
     required PublicKeyCredentialRpEntity         rp;
     required PublicKeyCredentialUserEntity       user;
 
@@ -50,7 +54,7 @@ dictionary MakePublicKeyCredentialOptions {
     sequence<PublicKeyCredentialDescriptor>      excludeCredentials = [];
     AuthenticatorSelectionCriteria               authenticatorSelection;
     AttestationConveyancePreference              attestation = "none";
-    AuthenticationExtensions                     extensions;
+    AuthenticationExtensionsClientInputs         extensions;
 };
 
 dictionary PublicKeyCredentialEntity {
@@ -90,20 +94,30 @@ dictionary PublicKeyCredentialRequestOptions {
     USVString                            rpId;
     sequence<PublicKeyCredentialDescriptor> allowCredentials = [];
     UserVerificationRequirement          userVerification = "preferred";
-    AuthenticationExtensions             extensions;
+    AuthenticationExtensionsClientInputs extensions;
 };
 
-typedef record<DOMString, any>       AuthenticationExtensions;
+dictionary AuthenticationExtensionsClientInputs {
+};
+
+dictionary AuthenticationExtensionsClientOutputs {
+};
+
+typedef record<DOMString, DOMString> AuthenticationExtensionsAuthenticatorInputs;
 
 dictionary CollectedClientData {
     required DOMString           type;
     required DOMString           challenge;
     required DOMString           origin;
-    required DOMString           hashAlgorithm;
-    DOMString                    tokenBindingId;
-    AuthenticationExtensions     clientExtensions;
-    AuthenticationExtensions     authenticatorExtensions;
+    TokenBinding                 tokenBinding;
 };
+
+dictionary TokenBinding {
+    required TokenBindingStatus status;
+    DOMString id;
+};
+
+enum TokenBindingStatus { "present", "supported", "not-supported" };
 
 enum PublicKeyCredentialType {
     "public-key"
@@ -129,6 +143,85 @@ enum UserVerificationRequirement {
     "discouraged"
 };
 
-typedef sequence<AAGUID>      AuthenticatorSelectionList;
+partial dictionary AuthenticationExtensionsClientInputs {
+  USVString appid;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  boolean appid;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  USVString txAuthSimple;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  USVString txAuthSimple;
+};
+
+dictionary txAuthGenericArg {
+    required USVString contentType;    // MIME-Type of the content, e.g., "image/png"
+    required ArrayBuffer content;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  txAuthGenericArg txAuthGeneric;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  ArrayBuffer txAuthGeneric;
+};
+
+typedef sequence<AAGUID> AuthenticatorSelectionList;
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  AuthenticatorSelectionList authnSel;
+};
 
 typedef BufferSource      AAGUID;
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  boolean authnSel;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  boolean exts;
+};
+
+typedef sequence<USVString> AuthenticationExtensionsSupported;
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  AuthenticationExtensionsSupported exts;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  boolean uvi;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  ArrayBuffer uvi;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  boolean loc;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  Coordinates loc;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  boolean uvm;
+};
+
+typedef sequence<unsigned long> UvmEntry;
+typedef sequence<UvmEntry> UvmEntries;
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  UvmEntries uvm;
+};
+
+dictionary authenticatorBiometricPerfBounds{
+    float FAR;
+    float FRR;
+    };

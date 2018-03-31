@@ -152,6 +152,13 @@ const gTestSyntaxExamples = {
       }
     ],
   },
+  '<url>': {
+    description: 'a URL',
+    examples: [
+      // TODO(https://github.com/w3c/css-houdini-drafts/issues/716):
+      // We can't test this until CSSURLValue is spec'd.
+    ],
+  },
   '<transform>': {
     description: 'a transform',
     examples: [

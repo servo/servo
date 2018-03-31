@@ -424,6 +424,52 @@
         'senderReport should contain remote-candidate stats');
   }, 'RTCRtpSender.getStats() contains only outbound-rtp and related stats');
 
+  promise_test(async function() {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    let [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    let sender = caller.addTrack(tracks[0], streams[0]);
+    callee.addTrack(tracks[1], streams[1]);
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+    await onIceConnectionStateCompleted(caller);
+    let receiver = caller.getReceivers()[0];
+
+    // Obtain inbound and outbound RTP stream stats on a full stats report.
+    let fullReport = await caller.getStats();
+    let outboundTrackStats = findStatsByTypeAndId(
+        fullReport, 'track', sender.track.id);
+    let outboundStats = findStatsByTypeAndMember(
+        fullReport, 'outbound-rtp', 'trackId', outboundTrackStats.id);
+    assert_true(outboundStats != null, 'Has stats for outbound RTP stream');
+    let inboundTrackStats = findStatsByTypeAndId(
+        fullReport, 'track', receiver.track.id);
+    let inboundStats = findStatsByTypeAndMember(
+        fullReport, 'inbound-rtp', 'trackId', inboundTrackStats.id);
+    assert_true(inboundStats != null, 'Has stats for inbound RTP stream');
+
+    // Perform stats selection algorithm with receiver selector. The result
+    // should contain the inbound-rtp but not the outbound-rtp.
+    let receiverReport = await receiver.getStats();
+    assert_true(receiverReport.has(inboundStats.id));
+    assert_false(receiverReport.has(outboundStats.id));
+
+    // Validate the stats graph, ensuring all stats objects are reachable and
+    // valid from the outbound-rtp stats.
+    validateStatsGraph(receiverReport, receiverReport.get(inboundStats.id));
+    // Ensure that the stats graph contains some expected dictionaries.
+    assert_equals(findStatsOfType(receiverReport, 'track').length, 1,
+        'receiverReport should contain track stats');
+    assert_equals(findStatsOfType(receiverReport, 'transport').length, 1,
+        'receiverReport should contain transport stats');
+    assert_equals(findStatsOfType(receiverReport, 'candidate-pair').length, 1,
+        'receiverReport should contain candidate-pair stats');
+    assert_equals(findStatsOfType(receiverReport, 'local-candidate').length, 1,
+        'receiverReport should contain local-candidate stats');
+    assert_equals(findStatsOfType(receiverReport, 'remote-candidate').length, 1,
+        'receiverReport should contain remote-candidate stats');
+  }, 'RTCRtpReceiver.getStats() contains only inbound-rtp and related stats');
+
   // Helpers.
 
   function findStatsByTypeAndId(report, type, identifier) {
