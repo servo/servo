@@ -637,18 +637,21 @@
 
         let justify_content = match justify_content {
             Ok(v) => v,
-            Err(err) => {
-                if !align_content.is_valid_on_both_axes() {
-                    return Err(err);
+            Err(..) => {
+                // https://drafts.csswg.org/css-align-3/#place-content:
+                //
+                //   The second value is assigned to justify-content; if
+                //   omitted, it is copied from the first value, unless that
+                //   value is a <baseline-position> in which case it is
+                //   defaulted to start.
+                //
+                if !align_content.is_baseline_position() {
+                    align_content
+                } else {
+                    ContentDistribution::start()
                 }
-
-                align_content
             }
         };
-
-        if align_content.has_extra_flags() || justify_content.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         Ok(expanded! {
             align_content: AlignContent(align_content),
@@ -682,17 +685,11 @@
 
         let justify = match justify {
             Ok(v) => v,
-            Err(err) => {
-                if !align.is_valid_on_both_axes() {
-                    return Err(err);
-                }
+            Err(..) => {
+                debug_assert!(align.is_valid_on_both_axes());
                 align
             }
         };
-
-        if justify.has_extra_flags() || align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         Ok(expanded! {
             align_self: AlignSelf(align),
@@ -729,14 +726,9 @@
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         let align = AlignItems::parse(context, input)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify = input.try(|input| JustifyItems::parse(context, input))
-                           .unwrap_or(JustifyItems::from(align));
-        if justify.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
+        let justify =
+            input.try(|input| JustifyItems::parse(context, input))
+                 .unwrap_or_else(|_| JustifyItems::from(align));
 
         Ok(expanded! {
             align_items: align,
@@ -746,11 +738,6 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if self.align_items.has_extra_flags() ||
-               self.justify_items.has_extra_flags() {
-                return Ok(());
-            }
-
             self.align_items.to_css(dest)?;
             if self.align_items.0 != self.justify_items.0 {
                 dest.write_str(" ")?;
