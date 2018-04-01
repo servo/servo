@@ -61,7 +61,7 @@ pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength, NonNegativeLengthOrPercentage};
-pub use self::list::{ListStyleImage, Quotes};
+pub use self::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;

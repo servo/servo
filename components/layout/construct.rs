@@ -55,8 +55,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::counters::ContentItem;
-use style::values::generics::list::ListStyleImage;
-use style::values::generics::url::UrlOrNone;
+use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -1278,13 +1277,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
-            ListStyleImage(UrlOrNone::Url(ref url_value)) => {
+            ImageUrlOrNone::Url(ref url_value) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
                     url_value.url().map(|u| u.clone()), node, &self.layout_context
                 ));
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
-            ListStyleImage(UrlOrNone::None) => {
+            ImageUrlOrNone::None => {
                 match ListStyleTypeContent::from_list_style_type(node.style(self.style_context())
                                                                      .get_list()
                                                                      .list_style_type) {

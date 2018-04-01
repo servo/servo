@@ -12,9 +12,6 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
-use values::generics::list::ListStyleImage as GenericListStyleImage;
-use values::generics::url::UrlOrNone;
-use values::specified::url::SpecifiedImageUrl;
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
@@ -71,22 +68,6 @@ impl Parse for ListStyleType {
         }
 
         Ok(ListStyleType::String(input.expect_string()?.as_ref().to_owned()))
-    }
-}
-
-/// Specified `list-style-image` property.
-pub type ListStyleImage = GenericListStyleImage<SpecifiedImageUrl>;
-
-impl Parse for ListStyleImage {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<ListStyleImage, ParseError<'i>> {
-        if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse(context, input)) {
-            return Ok(GenericListStyleImage(UrlOrNone::Url(url)));
-        }
-        input.expect_ident_matching("none")?;
-        Ok(GenericListStyleImage(UrlOrNone::None))
     }
 }
 
