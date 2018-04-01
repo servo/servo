@@ -4,12 +4,15 @@
 
 //! Common handling for the computed value CSS url() values.
 
-use super::{Either, None_};
+use values::generics::url::UrlOrNone as GenericUrlOrNone;
 
 #[cfg(feature = "servo")]
 pub use ::servo::url::{ComputedUrl, ComputedImageUrl};
 #[cfg(feature = "gecko")]
 pub use ::gecko::url::{ComputedUrl, ComputedImageUrl};
 
-/// <url> | <none>
-pub type UrlOrNone = Either<ComputedUrl, None_>;
+/// Computed <url> | <none>
+pub type UrlOrNone = GenericUrlOrNone<ComputedUrl>;
+
+/// Computed image <url> | <none>
+pub type ImageUrlOrNone = GenericUrlOrNone<ComputedImageUrl>;

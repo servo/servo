@@ -4,12 +4,36 @@
 
 //! Generic types for url properties.
 
+use cssparser::Parser;
+use parser::{Parse, ParserContext};
+use style_traits::ParseError;
+
 /// An image url or none, used for example in list-style-image
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
-pub enum ImageUrlOrNone<Url> {
+pub enum UrlOrNone<Url> {
     /// `none`
     None,
     /// `An image URL`
     Url(Url),
+}
+
+impl<Url> UrlOrNone<Url> {
+    /// Initial "none" value for properties such as `list-style-image`
+    pub fn none() -> Self {
+        UrlOrNone::None
+    }
+}
+
+impl<Url> Parse for UrlOrNone<Url> where Url: Parse {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<UrlOrNone<Url>, ParseError<'i>> {
+        if let Ok(url) = input.try(|input| Url::parse(context, input)) {
+            return Ok(UrlOrNone::Url(url));
+        }
+        input.expect_ident_matching("none")?;
+        Ok(UrlOrNone::None)
+    }
 }
