@@ -13,10 +13,10 @@ use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
-#[cfg(feature = "servo")]
-use values::computed::ComputedUrl;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
+#[cfg(feature = "servo")]
+use values::computed::url::ComputedUrl;
 use values::specified::url::SpecifiedUrl;
 
 pub mod color;

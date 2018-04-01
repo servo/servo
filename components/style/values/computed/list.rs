@@ -4,7 +4,7 @@
 
 //! `list` computed values.
 
-use values::computed::ComputedImageUrl;
+use values::computed::url::ComputedImageUrl;
 use values::generics::list::ListStyleImage as GenericListStyleImage;
 
 pub use values::specified::list::Quotes;

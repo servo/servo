@@ -9,7 +9,8 @@
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::{LengthOrPercentage, ComputedUrl, Image};
+use values::computed::{LengthOrPercentage, Image};
+use values::computed::url::ComputedUrl;
 use values::generics::basic_shape::{BasicShape as GenericBasicShape};
 use values::generics::basic_shape::{Circle as GenericCircle, ClippingShape as GenericClippingShape};
 use values::generics::basic_shape::{Ellipse as GenericEllipse, FloatAreaShape as GenericFloatAreaShape};

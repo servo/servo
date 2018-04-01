@@ -81,7 +81,6 @@ pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::MozForceBrokenImageIcon;
-pub use self::url::{ComputedUrl, ComputedImageUrl};
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -114,14 +113,7 @@ pub mod text;
 pub mod time;
 pub mod transform;
 pub mod ui;
-
-/// Common handling for the computed value CSS url() values.
-pub mod url {
-#[cfg(feature = "servo")]
-pub use ::servo::url::{ComputedUrl, ComputedImageUrl};
-#[cfg(feature = "gecko")]
-pub use ::gecko::url::{ComputedUrl, ComputedImageUrl};
-}
+pub mod url;
 
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.
@@ -639,6 +631,3 @@ impl ClipRectOrAuto {
         }
     }
 }
-
-/// <url> | <none>
-pub type UrlOrNone = Either<ComputedUrl, None_>;
