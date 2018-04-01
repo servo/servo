@@ -689,7 +689,8 @@ pub enum TextEmphasisVerticalWritingModeValue {
 /// Specified value of `text-emphasis-style` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct TextEmphasisPosition(
-    pub TextEmphasisHorizontalWritingModeValue, pub TextEmphasisVerticalWritingModeValue
+    pub TextEmphasisHorizontalWritingModeValue,
+    pub TextEmphasisVerticalWritingModeValue
 );
 
 impl TextEmphasisPosition {
@@ -722,8 +723,10 @@ impl TextEmphasisPosition {
 }
 
 impl Parse for TextEmphasisPosition {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(horizontal) = input.try(|input| TextEmphasisHorizontalWritingModeValue::parse(input)) {
             let vertical = TextEmphasisVerticalWritingModeValue::parse(input)?;
             Ok(TextEmphasisPosition(horizontal, vertical))
@@ -762,7 +765,6 @@ impl From<TextEmphasisPosition> for u8 {
         result as u8
     }
 }
-
 
 /// A specified value for the `-moz-tab-size` property.
 pub type MozTabSize = GenericMozTabSize<NonNegativeNumber, NonNegativeLength>;
