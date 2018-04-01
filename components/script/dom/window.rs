@@ -1546,6 +1546,7 @@ impl Window {
                     return
                 }
         }
+
         // Step 7
         if doc.prompt_to_unload() {
             let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
