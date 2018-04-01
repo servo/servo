@@ -68,7 +68,7 @@ impl History {
             if !document.prompt_to_unload() {
                 return Ok(());
             }
-            println!("unloadign from history");
+            println!("unloadign from history for : {:?}", document.url());
             document.unload();
         }
         let msg = ScriptMsg::TraverseHistory(direction);

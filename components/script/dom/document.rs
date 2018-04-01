@@ -1599,14 +1599,24 @@ impl Document {
         if event.get_cancel_state() == EventDefault::Handled {
             self.salvageable.set(false);
         }
+        let mut can_unload = true;
         if event_status == EventStatus::Canceled
             || beforeunload_event.ReturnValue() == DOMString::from_string("".to_string()) {
             // Step 8
             // TODO: ask the user to confirm that they wish to unload the document.
         }
         self.decr_ignore_opens_during_unload_counter();
-        // Always allow unloading, until Step 8 is implemented.
-        true
+        // Step 9
+        for iframe in self.iter_iframes() {
+            if let Some(document) = iframe.GetContentDocument() {
+                if !document.prompt_to_unload() {
+                    self.salvageable.set(document.salvageable());
+                    can_unload = false;
+                    break;
+                }
+            }
+        }
+        can_unload
     }
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
@@ -1649,6 +1659,15 @@ impl Document {
             event_handled = event.get_cancel_state() == EventDefault::Handled;
         }
         self.salvageable.set(!event_handled);
+        // Step 13
+        for iframe in self.iter_iframes() {
+            if let Some(document) = iframe.GetContentDocument() {
+                document.unload();
+                if !document.salvageable() {
+                    self.salvageable.set(false);
+                }
+            }
+        }
         self.decr_ignore_opens_during_unload_counter();
     }
 
@@ -1665,6 +1684,7 @@ impl Document {
         // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
+        println!("document load for : {:?}", self.url());
         let document = Trusted::new(self);
         self.window.dom_manipulation_task_source().queue(
             task!(fire_load_event: move || {
