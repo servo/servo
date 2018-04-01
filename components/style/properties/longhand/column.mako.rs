@@ -29,14 +29,21 @@ ${helpers.predefined_type(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-${helpers.predefined_type("column-gap",
-                          "length::NonNegativeLengthOrNormal",
-                          "Either::Second(Normal)",
-                          extra_prefixes="moz",
-                          servo_pref="layout.columns.enabled",
-                          animation_value_type="NonNegativeLengthOrNormal",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap",
-                          servo_restyle_damage = "reflow")}
+
+<%
+# FIXME(#20498): Servo should support percentages in column-gap.
+col_gap_type = "NonNegativeLengthOrPercentageOrNormal" if product == "gecko" else "NonNegativeLengthOrNormal"
+%>
+${helpers.predefined_type(
+    "column-gap",
+    "length::%s" % col_gap_type,
+    "Either::Second(Normal)",
+    extra_prefixes="moz",
+    servo_pref="layout.columns.enabled",
+    animation_value_type=col_gap_type,
+    spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap",
+    servo_restyle_damage = "reflow",
+)}
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          products="gecko", animation_value_type="discrete",

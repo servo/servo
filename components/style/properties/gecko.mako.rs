@@ -1445,7 +1445,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "length::LengthOrAuto": impl_style_coord,
         "length::LengthOrNormal": impl_style_coord,
         "length::NonNegativeLengthOrAuto": impl_style_coord,
-        "length::NonNegativeLengthOrNormal": impl_style_coord,
+        "length::NonNegativeLengthOrPercentageOrNormal": impl_style_coord,
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
         "LengthOrPercentage": impl_style_coord,
