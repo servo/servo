@@ -6,9 +6,10 @@
 
 use app_units::Au;
 use values::RGBA;
-use values::computed::{ComputedUrl, LengthOrPercentage, NonNegativeLength};
+use values::computed::{LengthOrPercentage, NonNegativeLength};
 use values::computed::{NonNegativeNumber, NonNegativeLengthOrPercentage, Number};
 use values::computed::Opacity;
+use values::computed::url::ComputedUrl;
 use values::generics::svg as generic;
 
 pub use values::specified::SVGPaintOrder;

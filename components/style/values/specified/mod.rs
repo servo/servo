@@ -11,12 +11,11 @@ use context::QuirksMode;
 use cssparser::{Parser, Token, serialize_identifier};
 use num_traits::One;
 use parser::{ParserContext, Parse};
-use self::url::SpecifiedUrl;
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use super::{Auto, CSSFloat, CSSInteger, Either, None_};
+use super::{Auto, CSSFloat, CSSInteger, Either};
 use super::computed::{Context, ToComputedValue};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
@@ -113,14 +112,7 @@ pub mod text;
 pub mod time;
 pub mod transform;
 pub mod ui;
-
-/// Common handling for the specified value CSS url() values.
-pub mod url {
-#[cfg(feature = "servo")]
-pub use ::servo::url::{SpecifiedUrl, SpecifiedImageUrl};
-#[cfg(feature = "gecko")]
-pub use ::gecko::url::{SpecifiedUrl, SpecifiedImageUrl};
-}
+pub mod url;
 
 /// Parse a `<number>` value, with a given clamping mode.
 fn parse_number_with_clamping_mode<'i, 't>(
@@ -517,9 +509,6 @@ impl Parse for PositiveInteger {
         Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne::<Integer>)
     }
 }
-
-#[allow(missing_docs)]
-pub type UrlOrNone = Either<SpecifiedUrl, None_>;
 
 /// The specified value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;

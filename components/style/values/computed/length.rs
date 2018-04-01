@@ -21,7 +21,8 @@ use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength
 use values::specified::length::ViewportPercentageLength;
 
 pub use super::image::Image;
-pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
+pub use values::specified::url::UrlOrNone;
+pub use values::specified::{Angle, BorderStyle, Time};
 
 impl ToComputedValue for specified::NoCalcLength {
     type ComputedValue = CSSPixelLength;
