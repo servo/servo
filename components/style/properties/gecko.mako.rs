@@ -63,11 +63,10 @@ use values::computed::font::{FontSize, SingleFontFamily};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
 use values::generics::column::ColumnCount;
-use values::generics::list::ListStyleImage;
 use values::generics::position::ZIndex;
 use values::generics::text::MozTabSize;
 use values::generics::transform::TransformStyle;
-use values::generics::url::UrlOrNone;
+use values::generics::url::UrlOrNone as ImageUrlOrNone;
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -4064,12 +4063,12 @@ fn static_assert() {
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
         match image {
-            ListStyleImage(UrlOrNone::None) => {
+            ImageUrlOrNone::None => {
                 unsafe {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            ListStyleImage(UrlOrNone::Url(ref url)) => {
+            ImageUrlOrNone::Url(ref url) => {
                 unsafe {
                     Gecko_SetListStyleImageImageValue(&mut self.gecko, url.image_value.get());
                 }
@@ -4092,18 +4091,16 @@ fn static_assert() {
     pub fn clone_list_style_image(&self) -> longhands::list_style_image::computed_value::T {
         use values::specified::url::SpecifiedImageUrl;
 
-        ListStyleImage(
-            match self.gecko.mListStyleImage.mRawPtr.is_null() {
-                true => UrlOrNone::None,
-                false => {
-                        let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
-                    unsafe {
-                        UrlOrNone::Url(SpecifiedImageUrl::from_image_request(gecko_image_request)
-                                      .expect("mListStyleImage could not convert to SpecifiedImageUrl"))
-                    }
+        match self.gecko.mListStyleImage.mRawPtr.is_null() {
+            true => ImageUrlOrNone::None,
+            false => {
+                    let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
+                unsafe {
+                    ImageUrlOrNone::Url(SpecifiedImageUrl::from_image_request(gecko_image_request)
+                                    .expect("mListStyleImage could not convert to SpecifiedImageUrl"))
                 }
             }
-        )
+        }
     }
 
     pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T, device: &Device) {

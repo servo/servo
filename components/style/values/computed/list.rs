@@ -4,15 +4,9 @@
 
 //! `list` computed values.
 
-use values::computed::url::ComputedImageUrl;
-use values::generics::list::ListStyleImage as GenericListStyleImage;
-
 pub use values::specified::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use values::specified::list::ListStyleType;
-
-/// Computed `list-style-image` property.
-pub type ListStyleImage = GenericListStyleImage<ComputedImageUrl>;
 
 impl Quotes {
     /// Initial value for `quotes`.
