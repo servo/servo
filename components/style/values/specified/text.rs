@@ -686,7 +686,7 @@ pub enum TextEmphasisVerticalWritingModeValue {
     Left,
 }
 
-/// Specified value of `text-emphasis-style` property.
+/// Specified value of `text-emphasis-position` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct TextEmphasisPosition(
     pub TextEmphasisHorizontalWritingModeValue,
@@ -695,14 +695,14 @@ pub struct TextEmphasisPosition(
 
 impl TextEmphasisPosition {
     #[inline]
-    /// Returns the initial value of text-emphasis-position
+    /// Returns the initial value of `text-emphasis-position`
     pub fn over_right() -> Self {
         TextEmphasisPosition(TextEmphasisHorizontalWritingModeValue::Over,
                              TextEmphasisVerticalWritingModeValue::Right)
     }
 
     #[cfg(feature = "gecko")]
-    /// Converts an enumerated value coming from Gecko to a `TextEmphasisPosition<L>`.
+    /// Converts an enumerated value coming from Gecko to a `TextEmphasisPosition`.
     pub fn from_gecko_keyword(kw: u32) -> Self {
         use gecko_bindings::structs;
 
