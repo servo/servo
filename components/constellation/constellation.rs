@@ -2036,11 +2036,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         Some(table)                              
     }
     
+    /// <https://html.spec.whatwg.org/multipage/history.html#traverse-the-history-by-a-delta>
     fn handle_history_traversal_changes_document(&mut self,
                                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                                    direction: TraversalDirection,
                                                    ipc_sender: IpcSender<bool>)
     {
+        // Step 5.2, unloading is not required if browsing context's active document
+        // is the same Document as the Document of the specified entry.
+        // Note: comparing current entry pipeline with the pipeline of the new entry.
+        // Should we switch to comparing with the 'currently_active' pipeline of the WindowProxy?
         match self.get_history_entry_table(top_level_browsing_context_id, direction) {
             Some(table) => {
                 let mut requires_unloading = true;
