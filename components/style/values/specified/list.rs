@@ -13,7 +13,7 @@ use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
 use values::generics::list::ListStyleImage as GenericListStyleImage;
-use values::generics::url::ImageUrlOrNone;
+use values::generics::url::UrlOrNone;
 use values::specified::url::SpecifiedImageUrl;
 
 /// Specified and computed `list-style-type` property.
@@ -83,10 +83,10 @@ impl Parse for ListStyleImage {
         input: &mut Parser<'i, 't>,
     ) -> Result<ListStyleImage, ParseError<'i>> {
         if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse(context, input)) {
-            return Ok(GenericListStyleImage(ImageUrlOrNone::Url(url)));
+            return Ok(GenericListStyleImage(UrlOrNone::Url(url)));
         }
         input.expect_ident_matching("none")?;
-        Ok(GenericListStyleImage(ImageUrlOrNone::None))
+        Ok(GenericListStyleImage(UrlOrNone::None))
     }
 }
 

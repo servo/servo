@@ -4,12 +4,15 @@
 
 //! Common handling for the specified value CSS url() values.
 
-use values::{Either, None_};
+use values::generics::url::UrlOrNone as GenericUrlOrNone;
 
 #[cfg(feature = "servo")]
 pub use ::servo::url::{SpecifiedUrl, SpecifiedImageUrl};
 #[cfg(feature = "gecko")]
 pub use ::gecko::url::{SpecifiedUrl, SpecifiedImageUrl};
 
-#[allow(missing_docs)]
-pub type UrlOrNone = Either<SpecifiedUrl, None_>;
+/// Specified <url> | <none>
+pub type UrlOrNone = GenericUrlOrNone<SpecifiedUrl>;
+
+/// Specified image <url> | <none>
+pub type ImageUrlOrNone = GenericUrlOrNone<SpecifiedImageUrl>;

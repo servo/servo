@@ -67,7 +67,7 @@ use values::generics::list::ListStyleImage;
 use values::generics::position::ZIndex;
 use values::generics::text::MozTabSize;
 use values::generics::transform::TransformStyle;
-use values::generics::url::ImageUrlOrNone;
+use values::generics::url::UrlOrNone;
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -4063,12 +4063,12 @@ fn static_assert() {
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
         match image {
-            ListStyleImage(ImageUrlOrNone::None) => {
+            ListStyleImage(UrlOrNone::None) => {
                 unsafe {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            ListStyleImage(ImageUrlOrNone::Url(ref url)) => {
+            ListStyleImage(UrlOrNone::Url(ref url)) => {
                 unsafe {
                     Gecko_SetListStyleImageImageValue(&mut self.gecko, url.image_value.get());
                 }
@@ -4093,11 +4093,11 @@ fn static_assert() {
 
         ListStyleImage(
             match self.gecko.mListStyleImage.mRawPtr.is_null() {
-                true => ImageUrlOrNone::None,
+                true => UrlOrNone::None,
                 false => {
-                    unsafe {
                         let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
-                        ImageUrlOrNone::Url(SpecifiedImageUrl::from_image_request(gecko_image_request)
+                    unsafe {
+                        UrlOrNone::Url(SpecifiedImageUrl::from_image_request(gecko_image_request)
                                       .expect("mListStyleImage could not convert to SpecifiedImageUrl"))
                     }
                 }
