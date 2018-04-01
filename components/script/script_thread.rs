@@ -2425,6 +2425,19 @@ impl ScriptThread {
                 ScriptThread::eval_js_url(window.upcast::<GlobalScope>(), &mut load_data);
             }
         }
+        
+        // Step 3 and 4
+        if let Some(window) = self.documents.borrow().find_window(parent_pipeline_id) {
+            let window_proxy = window.window_proxy();
+            if let Some(active) = window_proxy.currently_active() {
+                if let Some(active_window) = self.documents.borrow().find_window(active) {
+                    let doc = active_window.Document();
+                    if doc.is_unloading() {
+                        return;
+                    }
+                }
+            }
+        }
 
         match browsing_context_id {
             Some(browsing_context_id) => {

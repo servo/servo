@@ -2645,6 +2645,10 @@ impl Document {
             self.ignore_destructive_writes_counter.get() - 1);
     }
     
+    pub fn is_unloading(&self) -> bool {
+        self.ignore_opens_during_unload_counter.get() > 0
+    }
+    
     fn incr_ignore_opens_during_unload_counter(&self) {
         self.ignore_opens_during_unload_counter.set(
             self.ignore_opens_during_unload_counter.get() + 1);
