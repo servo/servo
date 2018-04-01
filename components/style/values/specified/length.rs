@@ -679,9 +679,6 @@ impl NonNegativeLength {
     }
 }
 
-/// Either a NonNegativeLength or the `normal` keyword.
-pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
-
 /// Either a NonNegativeLength or the `auto` keyword.
 pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
 
@@ -1019,6 +1016,12 @@ impl Parse for LengthOrPercentageOrNone {
 
 /// A wrapper of LengthOrPercentage, whose value must be >= 0.
 pub type NonNegativeLengthOrPercentage = NonNegative<LengthOrPercentage>;
+
+/// Either a computed NonNegativeLength or the `normal` keyword.
+pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
+
+/// Either a NonNegativeLengthOrPercentage or the `normal` keyword.
+pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPercentage, Normal>;
 
 impl From<NoCalcLength> for NonNegativeLengthOrPercentage {
     #[inline]

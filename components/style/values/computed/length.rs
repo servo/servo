@@ -897,6 +897,9 @@ pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
 /// Either a computed NonNegativeLength or the `normal` keyword.
 pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
 
+/// Either a computed NonNegativeLengthOrPercentage or the `normal` keyword.
+pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPercentage, Normal>;
+
 /// A type for possible values for min- and max- flavors of width, height,
 /// block-size, and inline-size.
 #[allow(missing_docs)]
