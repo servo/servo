@@ -668,7 +668,7 @@ impl Parse for TextEmphasisStyle {
 
 /// The allowed horizontal values for the `text-emphasis-position` property.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-#[derive(ToComputedValue, ToCss)] // TODO: check both derives
+#[derive(ToComputedValue, ToCss)]
 pub enum TextEmphasisHorizontalWritingModeValue {
     /// Draw marks over the text in horizontal writing mode.
     Over,
@@ -678,7 +678,7 @@ pub enum TextEmphasisHorizontalWritingModeValue {
 
 /// The allowed vertical values for the `text-emphasis-position` property.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-#[derive(ToComputedValue, ToCss)] // TODO: check both derives
+#[derive(ToComputedValue, ToCss)]
 pub enum TextEmphasisVerticalWritingModeValue {
     /// Draws marks to the right of the text in vertical writing mode.
     Right,
