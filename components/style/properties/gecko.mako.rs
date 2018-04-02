@@ -66,7 +66,7 @@ use values::generics::column::ColumnCount;
 use values::generics::position::ZIndex;
 use values::generics::text::MozTabSize;
 use values::generics::transform::TransformStyle;
-use values::generics::url::UrlOrNone as ImageUrlOrNone;
+use values::generics::url::UrlOrNone;
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -938,10 +938,10 @@ def set_gecko_property(ffi_name, expr):
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         match v {
-            Either::First(url) => {
+            UrlOrNone::Url(ref url) => {
                 self.gecko.${gecko_ffi_name}.set_move(url.url_value.clone())
             }
-            Either::Second(_none) => {
+            UrlOrNone::None => {
                 unsafe {
                     self.gecko.${gecko_ffi_name}.clear();
                 }
@@ -962,15 +962,14 @@ def set_gecko_property(ffi_name, expr):
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         use values::specified::url::SpecifiedUrl;
-        use values::None_;
 
         if self.gecko.${gecko_ffi_name}.mRawPtr.is_null() {
-            Either::Second(None_)
+            UrlOrNone::none()
         } else {
             unsafe {
                 let ref gecko_url_value = *self.gecko.${gecko_ffi_name}.mRawPtr;
-                Either::First(SpecifiedUrl::from_url_value_data(&gecko_url_value._base)
-                        .expect("${gecko_ffi_name} could not convert to SpecifiedUrl"))
+                UrlOrNone::Url(SpecifiedUrl::from_url_value_data(&gecko_url_value._base)
+                               .expect("${gecko_ffi_name} could not convert to SpecifiedUrl"))
             }
         }
     }
@@ -4063,12 +4062,12 @@ fn static_assert() {
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
         match image {
-            ImageUrlOrNone::None => {
+            UrlOrNone::None => {
                 unsafe {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            ImageUrlOrNone::Url(ref url) => {
+            UrlOrNone::Url(ref url) => {
                 unsafe {
                     Gecko_SetListStyleImageImageValue(&mut self.gecko, url.image_value.get());
                 }
@@ -4091,15 +4090,14 @@ fn static_assert() {
     pub fn clone_list_style_image(&self) -> longhands::list_style_image::computed_value::T {
         use values::specified::url::SpecifiedImageUrl;
 
-        match self.gecko.mListStyleImage.mRawPtr.is_null() {
-            true => ImageUrlOrNone::None,
-            false => {
-                    let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
-                unsafe {
-                    ImageUrlOrNone::Url(SpecifiedImageUrl::from_image_request(gecko_image_request)
-                                    .expect("mListStyleImage could not convert to SpecifiedImageUrl"))
-                }
-            }
+        if self.gecko.mListStyleImage.mRawPtr.is_null() {
+            return UrlOrNone::None;
+        }
+
+        unsafe {
+            let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
+            UrlOrNone::Url(SpecifiedImageUrl::from_image_request(gecko_image_request)
+                           .expect("mListStyleImage could not convert to SpecifiedImageUrl"))
         }
     }
 
