@@ -562,7 +562,7 @@ pub struct FontFamilyDescriptor {
 }
 
 impl FontFamilyDescriptor {
-    fn new(name: FontFamilyName, scope: FontSearchScope) -> FontFamilyDescriptor {
+    pub fn new(name: FontFamilyName, scope: FontSearchScope) -> FontFamilyDescriptor {
         FontFamilyDescriptor { name, scope }
     }
 

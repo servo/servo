@@ -10,7 +10,7 @@ extern crate style;
 extern crate webrender_api;
 
 use app_units::Au;
-use gfx::font::{fallback_font_families, FontFamilyDescriptor, FontHandleMethods};
+use gfx::font::{fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope};
 use gfx::font_cache_thread::{FontTemplates, FontTemplateInfo};
 use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
@@ -194,4 +194,39 @@ fn test_font_fallback() {
         &*font.borrow().identifier(), "fallback",
         "a fallback font should be used if there is no matching glyph in the group"
     );
+}
+
+#[test]
+fn test_font_template_is_cached() {
+    let source = TestFontSource::new();
+    let count = source.find_font_count.clone();
+    let mut context = FontContext::new(source);
+
+    let mut font_descriptor = FontDescriptor {
+        template_descriptor: FontTemplateDescriptor {
+            weight: FontWeight::normal(),
+            stretch: FontStretch::hundred(),
+            style: FontStyle::Normal,
+        },
+        variant: FontVariantCaps::Normal,
+        pt_size: Au(10),
+    };
+
+    let family_descriptor = FontFamilyDescriptor::new(
+        FontFamilyName::from("CSSTest Basic"),
+        FontSearchScope::Any,
+    );
+
+    let font1 = context.font(&font_descriptor, &family_descriptor).unwrap();
+
+    font_descriptor.pt_size = Au(20);
+    let font2 = context.font(&font_descriptor, &family_descriptor).unwrap();
+
+    assert_ne!(
+        font1.borrow().actual_pt_size,
+        font2.borrow().actual_pt_size,
+        "the same font should not have been returned"
+    );
+
+    assert_eq!(count.get(), 1, "we should only have fetched the template data from the cache thread once");
 }

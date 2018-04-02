@@ -50,6 +50,7 @@ pub struct FontContext<S: FontSource> {
     // so they will never be released. Find out a good time to drop them.
     // See bug https://github.com/servo/servo/issues/3300
     font_cache: HashMap<FontCacheKey, Option<FontRef>>,
+    font_template_cache: HashMap<FontTemplateCacheKey, Option<FontTemplateInfo>>,
 
     font_group_cache:
         HashMap<FontGroupCacheKey, Rc<RefCell<FontGroup>>, BuildHasherDefault<FnvHasher>>,
@@ -64,6 +65,7 @@ impl<S: FontSource> FontContext<S> {
             platform_handle: handle,
             font_source,
             font_cache: HashMap::new(),
+            font_template_cache: HashMap::new(),
             font_group_cache: HashMap::with_hasher(Default::default()),
             epoch: 0,
         }
@@ -76,6 +78,7 @@ impl<S: FontSource> FontContext<S> {
         }
 
         self.font_cache.clear();
+        self.font_template_cache.clear();
         self.font_group_cache.clear();
         self.epoch = current_epoch
     }
@@ -120,15 +123,39 @@ impl<S: FontSource> FontContext<S> {
             );
 
             let font =
-                self.font_source.font_template(
-                    font_descriptor.template_descriptor.clone(),
-                    family_descriptor.clone(),
-                )
-                .and_then(|template_info| self.create_font(template_info, font_descriptor.to_owned()).ok())
-                .map(|font| Rc::new(RefCell::new(font)));
+                self.font_template(&font_descriptor.template_descriptor, family_descriptor)
+                    .and_then(|template_info| self.create_font(template_info, font_descriptor.to_owned()).ok())
+                    .map(|font| Rc::new(RefCell::new(font)));
 
             self.font_cache.insert(cache_key, font.clone());
             font
+        })
+    }
+
+    fn font_template(
+        &mut self,
+        template_descriptor: &FontTemplateDescriptor,
+        family_descriptor: &FontFamilyDescriptor
+    ) -> Option<FontTemplateInfo> {
+        let cache_key = FontTemplateCacheKey {
+            template_descriptor: template_descriptor.clone(),
+            family_descriptor: family_descriptor.clone(),
+        };
+
+        self.font_template_cache.get(&cache_key).map(|v| v.clone()).unwrap_or_else(|| {
+            debug!(
+                "FontContext::font_template cache miss for template_descriptor={:?} family_descriptor={:?}",
+                template_descriptor,
+                family_descriptor
+            );
+
+            let template_info = self.font_source.font_template(
+                template_descriptor.clone(),
+                family_descriptor.clone(),
+            );
+
+            self.font_template_cache.insert(cache_key, template_info.clone());
+            template_info
         })
     }
 
@@ -168,6 +195,12 @@ impl<S: FontSource> MallocSizeOf for FontContext<S> {
 #[derive(Debug, Eq, Hash, PartialEq)]
 struct FontCacheKey {
     font_descriptor: FontDescriptor,
+    family_descriptor: FontFamilyDescriptor,
+}
+
+#[derive(Debug, Eq, Hash, PartialEq)]
+struct FontTemplateCacheKey {
+    template_descriptor: FontTemplateDescriptor,
     family_descriptor: FontFamilyDescriptor,
 }
 
