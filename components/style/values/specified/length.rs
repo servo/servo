@@ -601,17 +601,20 @@ impl Length {
 
     /// Parse a non-negative length
     #[inline]
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Length, ParseError<'i>> {
+    pub fn parse_non_negative<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_non_negative_quirky(context, input, AllowQuirks::No)
     }
 
     /// Parse a non-negative length, allowing quirks.
     #[inline]
-    pub fn parse_non_negative_quirky<'i, 't>(context: &ParserContext,
-                                             input: &mut Parser<'i, 't>,
-                                             allow_quirks: AllowQuirks)
-                                             -> Result<Length, ParseError<'i>> {
+    pub fn parse_non_negative_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 
@@ -630,10 +633,11 @@ impl Parse for Length {
 
 impl Length {
     /// Parses a length, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
     }
 }

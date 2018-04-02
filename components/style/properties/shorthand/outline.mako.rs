@@ -12,8 +12,10 @@
     use values::specified;
     use parser::Parse;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let _unused = context;
         let mut color = None;
         let mut style = None;
@@ -64,8 +66,10 @@
     use values::specified::border::BorderRadius;
     use parser::Parse;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let radii = BorderRadius::parse(context, input)?;
         Ok(expanded! {
             _moz_outline_radius_topleft: radii.top_left,
