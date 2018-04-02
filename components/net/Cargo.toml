@@ -24,6 +24,8 @@ immeta = "0.3.6"
 ipc-channel = "0.10"
 lazy_static = "1"
 log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 matches = "0.1"
 mime = "0.2.1"
 mime_guess = "1.8.0"
@@ -33,6 +35,8 @@ openssl = "0.9"
 profile_traits = {path = "../profile_traits"}
 serde = "1.0"
 serde_json = "1.0"
+servo_allocator = {path = "../allocator"}
+servo_arc = {path = "../servo_arc"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 servo-websocket = { version = "0.21", default-features = false, features = ["sync"] }
