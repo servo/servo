@@ -42,8 +42,10 @@
     % endif
     use self::font_family::SpecifiedValue as FontFamily;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut nb_normals = 0;
         let mut style = None;
         let mut variant_caps = None;
@@ -262,8 +264,10 @@
     #[allow(unused_imports)]
     use values::specified::FontVariantLigatures;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
     % for prop in sub_properties:
         let mut ${prop} = None;
     % endfor

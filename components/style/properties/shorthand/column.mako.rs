@@ -11,9 +11,10 @@
                     extra_prefixes="moz" spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
     use properties::longhands::{column_count, column_width};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut column_count = None;
         let mut column_width = None;
         let mut autos = 0;
@@ -61,8 +62,10 @@
     use properties::longhands::{column_rule_width, column_rule_style};
     use properties::longhands::column_rule_color;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         % for name in "width style color".split():
         let mut column_rule_${name} = None;
         % endfor

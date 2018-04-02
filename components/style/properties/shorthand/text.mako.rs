@@ -16,8 +16,10 @@
         use properties::longhands::text_decoration_line;
     % endif
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         % if product == "gecko":
             let (mut line, mut style, mut color, mut any) = (None, None, None, false);
         % else:

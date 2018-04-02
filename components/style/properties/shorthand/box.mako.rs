@@ -11,8 +11,10 @@
         use properties::longhands::overflow_x::SpecifiedValue;
     % endif
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         % if product == "gecko":
             let moz_kw_found = input.try(|input| {
                 try_match_ident_ignore_ascii_case! { input,
@@ -118,8 +120,10 @@ macro_rules! try_parse_one {
     use properties::longhands::transition_${prop};
     % endfor
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         struct SingleTransition {
             % for prop in "duration timing_function delay".split():
             transition_${prop}: transition_${prop}::SingleSpecifiedValue,
@@ -129,8 +133,10 @@ macro_rules! try_parse_one {
             transition_property: Option<transition_property::SingleSpecifiedValue>,
         }
 
-        fn parse_one_transition<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                        -> Result<SingleTransition,ParseError<'i>> {
+        fn parse_one_transition<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<SingleTransition,ParseError<'i>> {
             % for prop in "property duration timing_function delay".split():
             let mut ${prop} = None;
             % endfor
@@ -260,16 +266,20 @@ macro_rules! try_parse_one {
     use properties::longhands::animation_${prop};
     % endfor
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         struct SingleAnimation {
             % for prop in props:
             animation_${prop}: animation_${prop}::SingleSpecifiedValue,
             % endfor
         }
 
-        fn parse_one_animation<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                       -> Result<SingleAnimation,ParseError<'i>> {
+        fn parse_one_animation<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<SingleAnimation, ParseError<'i>> {
             % for prop in props:
             let mut ${prop} = None;
             % endfor
@@ -364,8 +374,10 @@ macro_rules! try_parse_one {
                     spec="https://drafts.csswg.org/css-scroll-snap/#propdef-scroll-snap-type">
     use properties::longhands::scroll_snap_type_x;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let result = scroll_snap_type_x::parse(context, input)?;
         Ok(expanded! {
             scroll_snap_type_x: result,

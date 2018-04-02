@@ -11,8 +11,10 @@
     use properties::longhands::{list_style_image, list_style_position, list_style_type};
     use values::{Either, None_};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         // `none` is ambiguous until we've finished parsing the shorthands, so we count the number
         // of times we see it.
         let mut nones = 0u8;
