@@ -10,7 +10,7 @@ extern crate style;
 extern crate webrender_api;
 
 use app_units::Au;
-use gfx::font::{FontFamilyDescriptor, FontHandleMethods};
+use gfx::font::{FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontHandleMethods, FontSearchScope};
 use gfx::font_cache_thread::{FontTemplates, FontTemplateInfo};
 use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
@@ -167,4 +167,39 @@ fn test_font_group_find_by_codepoint() {
     let font = group.borrow_mut().find_by_codepoint(&mut context, 'á').unwrap();
     assert_eq!(font.borrow().handle.family_name(), "CSSTest Basic");
     assert_eq!(count.get(), 2, "both fonts should now have been loaded");
+}
+
+#[test]
+fn test_font_template_is_cached() {
+    let source = TestFontSource::new();
+    let count = source.find_font_count.clone();
+    let mut context = FontContext::new(source);
+
+    let mut font_descriptor = FontDescriptor {
+        template_descriptor: FontTemplateDescriptor {
+            weight: FontWeight::normal(),
+            stretch: FontStretch::Normal,
+            italic: false,
+        },
+        variant: FontVariantCaps::Normal,
+        pt_size: Au(10),
+    };
+
+    let family_descriptor = FontFamilyDescriptor::new(
+        FontFamilyName::from("CSSTest Basic"),
+        FontSearchScope::Any,
+    );
+
+    let font1 = context.font(&font_descriptor, &family_descriptor).unwrap();
+
+    font_descriptor.pt_size = Au(20);
+    let font2 = context.font(&font_descriptor, &family_descriptor).unwrap();
+
+    assert_ne!(
+        font1.borrow().actual_pt_size,
+        font2.borrow().actual_pt_size,
+        "the same font should not have been returned"
+    );
+
+    assert_eq!(count.get(), 1, "we should only have fetched the template data from the cache thread once");
 }

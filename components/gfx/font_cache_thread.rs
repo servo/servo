@@ -35,7 +35,7 @@ pub struct FontTemplates {
     templates: Vec<FontTemplate>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FontTemplateInfo {
     pub font_template: Arc<FontTemplateData>,
     pub font_key: webrender_api::FontKey,
