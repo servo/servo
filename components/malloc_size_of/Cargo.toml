@@ -10,9 +10,13 @@ path = "lib.rs"
 
 [features]
 servo = [
+    "hyper",
+    "hyper_serde",
     "mozjs",
+    "serde",
     "serde_bytes",
     "string_cache",
+    "time",
     "url",
     "webrender_api",
     "xml5ever",
@@ -23,17 +27,17 @@ app_units = "0.6"
 cssparser = "0.23.0"
 euclid = "0.17"
 hashglobe = { path = "../hashglobe" }
-hyper = "0.10"
-hyper_serde = "0.8"
+hyper = { version = "0.10", optional = true }
+hyper_serde = { version = "0.8", optional = true }
 mozjs = { version = "0.6", features = ["promises"], optional = true }
 selectors = { path = "../selectors" }
-serde = "1.0.27"
+serde = { version = "1.0.27", optional = true }
 serde_bytes = { version = "0.10", optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
 smallvec = "0.6"
 string_cache = { version = "0.7", optional = true }
-time = "0.1.17"
+time = { version = "0.1.17", optional = true }
 url = { version = "1.2", optional = true }
 webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"], optional = true }
 xml5ever = { version = "0.12", optional = true }

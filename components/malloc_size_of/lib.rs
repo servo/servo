@@ -47,11 +47,14 @@ extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
 extern crate hashglobe;
+#[cfg(feature = "servo")]
 extern crate hyper;
+#[cfg(feature = "servo")]
 extern crate hyper_serde;
 #[cfg(feature = "servo")]
 extern crate mozjs as js;
 extern crate selectors;
+#[cfg(feature = "servo")]
 extern crate serde;
 #[cfg(feature = "servo")]
 extern crate serde_bytes;
@@ -60,6 +63,7 @@ extern crate smallbitvec;
 extern crate smallvec;
 #[cfg(feature = "servo")]
 extern crate string_cache;
+#[cfg(feature = "servo")]
 extern crate time;
 #[cfg(feature = "url")]
 extern crate url;
@@ -820,6 +824,7 @@ impl MallocSizeOf for xml5ever::QualName {
     }
 }
 
+#[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::header::Headers {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.iter().fold(0, |acc, x| {
@@ -830,12 +835,14 @@ impl MallocSizeOf for hyper::header::Headers {
     }
 }
 
+#[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::header::ContentType {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
     }
 }
 
+#[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::mime::Mime {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops) +
@@ -844,6 +851,7 @@ impl MallocSizeOf for hyper::mime::Mime {
     }
 }
 
+#[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::mime::Attr {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match *self {
@@ -853,15 +861,19 @@ impl MallocSizeOf for hyper::mime::Attr {
     }
 }
 
+#[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::mime::Value {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         self.len() // Length of string value in bytes (not the char length of a string)!
     }
 }
 
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(time::Duration);
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(time::Tm);
 
+#[cfg(feature = "servo")]
 impl<T> MallocSizeOf for hyper_serde::Serde<T> where
     for <'de> hyper_serde::De<T>: serde::Deserialize<'de>,
     for <'a> hyper_serde::Ser<'a, T>: serde::Serialize,
@@ -879,6 +891,7 @@ impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
     }
 }
 
+#[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::status::StatusCode {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match *self {
