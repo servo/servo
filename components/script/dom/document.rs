@@ -483,6 +483,36 @@ impl Document {
                 self.dirty_all_nodes();
                 self.window().reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
                 self.window().resume();
+                // html.spec.whatwg.org/multipage/browsing-the-web.html#history-traversal
+                // Step 6
+                if self.ready_state.get() == DocumentReadyState::Complete {
+                    let document = Trusted::new(self);
+                    self.window.dom_manipulation_task_source().queue(
+                        task!(fire_pageshow_event: move || {
+                            let document = document.root();
+                            let window = document.window();
+                            if document.page_showing.get() || !window.is_alive() {
+                                return;
+                            }
+                            document.page_showing.set(true);
+                            let event = PageTransitionEvent::new(
+                                window,
+                                atom!("pageshow"),
+                                false, // bubbles
+                                false, // cancelable
+                                true, // persisted
+                            );
+                            let event = event.upcast::<Event>();
+                            event.set_trusted(true);
+                            // FIXME(nox): Why are errors silenced here?
+                            let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                                document.upcast(),
+                                &event,
+                            );
+                        }),
+                        self.window.upcast(),
+                    ).unwrap();
+                }
             } else {
                 self.window().suspend();
             }
