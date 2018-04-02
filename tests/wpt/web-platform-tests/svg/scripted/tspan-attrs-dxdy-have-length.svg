@@ -1,0 +1,24 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#text-TSpanNotes"/>
+    <h:meta name="assert" content="dx, dy attrs on tspan support length()"/>
+</metadata>
+  <text id="text" font-family="Verdana" font-size="55" fill="blue"
+    y="150"
+    x="120"
+    >His socks are <tspan id="tsp"
+    dx="60 90 -30 120 60 -257"
+    dy="0 12 24 12 0 -12 -24 -12 0"
+    >very</tspan> clean.</text>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    test(function() {
+      var tspan = document.getElementById('tsp');
+      assert_equals(tspan.dx.baseVal.length, 6);
+      assert_equals(tspan.dy.baseVal.length, 9);
+    });
+  ]]></script>
+</svg>

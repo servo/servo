@@ -1,0 +1,33 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#text-TSpanNotes"/>
+    <h:meta name="assert" content="x y dx dy and rotate attributes on text and tspan elements are lists that support length()"/>
+</metadata>
+  <text id="text" font-family="Verdana" font-size="55" fill="blue"
+  y="150 130 160" x="120 160 200 240" rotate="0 0 10, -10, 0">
+    My <tspan id="tspan" x="280 325" y="150 155 160 165 170" rotate="-30,0,30">socks</tspan>
+    are blue.
+  </text>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    test(function() {
+      /* Make sure that we can get at list items with indexed access.
+       */
+      var text = document.getElementById('text');
+      assert_equals(text.x.baseVal[0].value, 120);
+      assert_equals(text.y.baseVal[2].value, 160);
+      assert_equals(text.rotate.baseVal[3].value, -10);
+      assert_equals(text.rotate.baseVal[0].value, 0);
+
+      /* same for tspan */
+      var tspan = document.getElementById('tspan');
+      assert_equals(tspan.x.baseVal[1].value, 325);
+      assert_equals(tspan.y.baseVal[4].value, 170);
+      assert_equals(tspan.rotate.baseVal[0].value, -30);
+    });
+
+  ]]></script>
+</svg>
