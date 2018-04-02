@@ -427,10 +427,10 @@ impl LengthOrPercentage {
     pub fn clamp_to_non_negative(self) -> Self {
         match self {
             LengthOrPercentage::Length(length) => {
-                LengthOrPercentage::Length(Length::new(length.px().max(0.)))
+                LengthOrPercentage::Length(length.clamp_to_non_negative())
             },
             LengthOrPercentage::Percentage(percentage) => {
-                LengthOrPercentage::Percentage(Percentage(percentage.0.max(0.)))
+                LengthOrPercentage::Percentage(percentage.clamp_to_non_negative())
             },
             _ => self
         }
@@ -511,6 +511,31 @@ impl LengthOrPercentageOrAuto {
     }
 }
 
+/// A wrapper of LengthOrPercentageOrAuto, whose value must be >= 0.
+pub type NonNegativeLengthOrPercentageOrAuto = NonNegative<LengthOrPercentageOrAuto>;
+
+impl NonNegativeLengthOrPercentageOrAuto {
+    /// `auto`
+    #[inline]
+    pub fn auto() -> Self {
+        NonNegative(LengthOrPercentageOrAuto::Auto)
+    }
+}
+
+impl ToAnimatedValue for NonNegativeLengthOrPercentageOrAuto {
+    type AnimatedValue = LengthOrPercentageOrAuto;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        NonNegative(animated.clamp_to_non_negative())
+    }
+}
+
 impl LengthOrPercentageOrAuto {
     /// Returns true if the computed value is absolute 0 or 0%.
     ///
@@ -522,6 +547,15 @@ impl LengthOrPercentageOrAuto {
             Length(l) => l.px() == 0.0,
             Percentage(p) => p.0 == 0.0,
             Calc(_) | Auto => false
+        }
+    }
+
+    fn clamp_to_non_negative(self) -> Self {
+        use self::LengthOrPercentageOrAuto::*;
+        match self {
+            Length(l) => Length(l.clamp_to_non_negative()),
+            Percentage(p) => Percentage(p.clamp_to_non_negative()),
+            _ => self,
         }
     }
 }
@@ -735,6 +769,11 @@ impl CSSPixelLength {
     #[inline]
     pub fn px(&self) -> CSSFloat {
         self.0
+    }
+
+    #[inline]
+    fn clamp_to_non_negative(self) -> Self {
+        Self::new(self.px().max(0.))
     }
 
     /// Return the length with app_unit i32 type.

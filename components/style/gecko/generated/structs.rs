@@ -489,6 +489,7 @@ pub mod root {
     pub const NS_STYLE_WIDTH_MIN_CONTENT: u32 = 1;
     pub const NS_STYLE_WIDTH_FIT_CONTENT: u32 = 2;
     pub const NS_STYLE_WIDTH_AVAILABLE: u32 = 3;
+    pub const NS_STYLE_FLEX_BASIS_CONTENT: u32 = 4;
     pub const NS_STYLE_POSITION_STATIC: u32 = 0;
     pub const NS_STYLE_POSITION_RELATIVE: u32 = 1;
     pub const NS_STYLE_POSITION_ABSOLUTE: u32 = 2;

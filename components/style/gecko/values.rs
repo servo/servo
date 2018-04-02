@@ -10,7 +10,7 @@ use Atom;
 use app_units::Au;
 use counter_style::{Symbol, Symbols};
 use cssparser::RGBA;
-use gecko_bindings::structs::{CounterStylePtr, nsStyleCoord};
+use gecko_bindings::structs::{self, CounterStylePtr, nsStyleCoord};
 use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use media_queries::Device;
@@ -21,10 +21,12 @@ use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage, Length
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MozLength, Percentage};
 use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
+use values::computed::FlexBasis as ComputedFlexBasis;
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::generics::{CounterStyleOrNone, NonNegative};
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::box_::Perspective;
+use values::generics::flex::FlexBasis;
 use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
 
@@ -56,6 +58,31 @@ impl<A: GeckoStyleCoordConvertible, B: GeckoStyleCoordConvertible> GeckoStyleCoo
         A::from_gecko_style_coord(coord)
           .map(Either::First)
           .or_else(|| B::from_gecko_style_coord(coord).map(Either::Second))
+    }
+}
+
+impl GeckoStyleCoordConvertible for ComputedFlexBasis {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            FlexBasis::Content => {
+                coord.set_value(
+                    CoordDataValue::Enumerated(structs::NS_STYLE_FLEX_BASIS_CONTENT)
+                )
+            },
+            FlexBasis::Width(ref w) => w.to_gecko_style_coord(coord),
+        }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        if let Some(width) = MozLength::from_gecko_style_coord(coord) {
+            return Some(FlexBasis::Width(width))
+        }
+
+        if let CoordDataValue::Enumerated(structs::NS_STYLE_FLEX_BASIS_CONTENT) = coord.as_value() {
+            return Some(FlexBasis::Content)
+        }
+
+        None
     }
 }
 
