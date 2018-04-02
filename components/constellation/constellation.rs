@@ -1678,6 +1678,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // the parent pipeline. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
+        if let Some(old_pipeline_id) = load_info.old_pipeline_id {
+            self.unload_document(old_pipeline_id);
+        }
         let (load_data, window_size, is_private) = {
             let old_pipeline = load_info.old_pipeline_id
                 .and_then(|old_pipeline_id| {
