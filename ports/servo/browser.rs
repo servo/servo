@@ -18,6 +18,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::mem;
 use std::rc::Rc;
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::thread;
 use tinyfiledialogs;
 
@@ -344,7 +345,9 @@ fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn platform_get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool, sender: IpcSender<Option<Vec<String>>>) {
+fn platform_get_selected_files(patterns: Vec<FilterPattern>,
+                               multiple_files: bool,
+                               sender: IpcSender<Option<Vec<String>>>) {
     let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
 
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
@@ -368,7 +371,9 @@ fn platform_get_selected_files(patterns: Vec<FilterPattern>, multiple_files: boo
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn platform_get_selected_files(_patterns: Vec<FilterPattern>, _multiple_files: bool, sender: IpcSender<Option<Vec<String>>>) {
+fn platform_get_selected_files(_patterns: Vec<FilterPattern>,
+                               _multiple_files: bool,
+                               sender: IpcSender<Option<Vec<String>>>) {
     sender.send(None);
 }
 
