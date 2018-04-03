@@ -17,7 +17,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferView;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
@@ -1674,7 +1674,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
+    unsafe fn BufferData(
+        &self,
+        cx: *mut JSContext,
+        target: u32,
+        data: *mut JSObject,
+        usage: u32,
+    ) -> ErrorResult {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -1709,7 +1715,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> Fallible<()> {
+    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> ErrorResult {
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
@@ -3304,16 +3310,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImage2D(&self,
-                  target: u32,
-                  level: i32,
-                  internal_format: u32,
-                  width: i32,
-                  height: i32,
-                  border: i32,
-                  format: u32,
-                  data_type: u32,
-                  mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
+    fn TexImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+        format: u32,
+        data_type: u32,
+        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
         }
@@ -3437,7 +3445,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                    height: i32,
                    format: u32,
                    data_type: u32,
-                   source: &HTMLIFrameElement) -> Fallible<()> {
+                   source: &HTMLIFrameElement) -> ErrorResult {
         // Currently DOMToTexture only supports TEXTURE_2D, RGBA, UNSIGNED_BYTE and no levels.
         if target != constants::TEXTURE_2D || level != 0 || internal_format != constants::RGBA ||
             format != constants::RGBA || data_type != constants::UNSIGNED_BYTE {
@@ -3468,16 +3476,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexSubImage2D(&self,
-                     target: u32,
-                     level: i32,
-                     xoffset: i32,
-                     yoffset: i32,
-                     width: i32,
-                     height: i32,
-                     format: u32,
-                     data_type: u32,
-                     mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
+    fn TexSubImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        data_type: u32,
+        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) -> ErrorResult {
         let validator = TexImage2DValidator::new(self, target, level,
                                                  format, width, height,
                                                  0, format, data_type);
