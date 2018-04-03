@@ -2045,7 +2045,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     {
         // Step 5.2, unloading is not required if browsing context's active document
         // is the same Document as the Document of the specified entry.
-        // Note: comparing current entry pipeline with the pipeline of the new entry.
+        // Note: comparing the pipeline of the entry, with the current pipeline of the browsing context.
         // Should we switch to comparing with the 'currently_active' pipeline of the WindowProxy?
         match self.get_history_entry_table(top_level_browsing_context_id, direction) {
             Some(table) => {
