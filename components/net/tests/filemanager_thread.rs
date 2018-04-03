@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use create_embedder_proxy;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
@@ -10,12 +11,10 @@ use servo_config::prefs::{PrefValue, PREFS};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::mpsc::channel;
 
 #[test]
 fn test_filemanager() {
-    let (sender, _) = channel();
-    let filemanager = FileManager::new(sender);
+    let filemanager = FileManager::new(create_embedder_proxy());
     PREFS.set("dom.testing.htmlinputelement.select_files.enabled", PrefValue::Boolean(true));
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree

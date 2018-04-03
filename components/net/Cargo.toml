@@ -51,3 +51,4 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 [[test]]
 name = "main"
 path = "tests/main.rs"
+
