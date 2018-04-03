@@ -24,6 +24,7 @@ use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
@@ -49,13 +50,29 @@ impl OneOrMoreSeparated for Source {
 ///
 /// <https://drafts.csswg.org/css-fonts/#src-desc>
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UrlSource {
     /// The specified url.
     pub url: SpecifiedUrl,
     /// The format hints specified with the `format()` function.
-    #[css(skip)]
     pub format_hints: Vec<String>,
+}
+
+impl ToCss for UrlSource {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+        self.url.to_css(dest)?;
+        if !self.format_hints.is_empty() {
+            dest.write_str(" format(")?;
+            {
+                let mut writer = SequenceWriter::new(dest, ", ");
+                for hint in self.format_hints.iter() {
+                    writer.item(hint)?;
+                }
+            }
+            dest.write_char(')')?;
+        }
+        Ok(())
+    }
 }
 
 /// A font-display value for a @font-face rule.
