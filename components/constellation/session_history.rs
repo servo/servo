@@ -29,6 +29,13 @@ impl SessionHistory {
         self.past.push(diff);
         mem::replace(&mut self.future, vec![])
     }
+
+    pub fn replace(&mut self, old_pipeline_id: PipelineId, new_pipeline_id: PipelineId) {
+        for diff in self.past.iter_mut().chain(self.future.iter_mut()) {
+            let SessionHistoryDiff::BrowsingContextDiff(_, ref mut context_diff) = *diff;
+            context_diff.replace(old_pipeline_id, new_pipeline_id);
+        }
+    }
 }
 
 /// Represents a pending change in a session history, that will be applied
@@ -45,6 +52,8 @@ pub struct SessionHistoryChange {
 
     /// The data for the document being loaded.
     pub load_data: LoadData,
+
+    pub replace: Option<PipelineId>,
 }
 
 pub struct BrowsingContextChangeset {
@@ -100,4 +109,15 @@ pub struct BrowsingContextDiff {
     pub new_pipeline_id: PipelineId,
 
     pub new_load_data: LoadData,
+}
+
+impl BrowsingContextDiff {
+    pub fn replace(&mut self, old_pipeline_id: PipelineId, new_pipeline_id: PipelineId) {
+        if self.old_pipeline_id == old_pipeline_id {
+            self.old_pipeline_id = new_pipeline_id;
+        }
+        if self.new_pipeline_id == old_pipeline_id {
+            self.new_pipeline_id = new_pipeline_id;
+        }
+    }
 }

@@ -143,6 +143,5 @@ impl<'a> Iterator for AllBrowsingContextsIterator<'a> {
             self.stack.extend(child_browsing_context_ids);
             return Some(browsing_context)
         }
-        None
     }
 }
