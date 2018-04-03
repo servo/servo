@@ -1686,7 +1686,6 @@ impl Document {
             println!("dispatching unload for : {:?}", self.url());
             self.fired_unload.set(true);
             let event_handled = event.get_cancel_state() == EventDefault::Handled;
-            println!("unload cancel status for : {:?} is {:?}", self.url(), event.get_cancel_state());
             self.salvageable.set(!event_handled);
         }
         // Step 13
@@ -1701,7 +1700,7 @@ impl Document {
         println!("document.salvageable is {:?} for : {:?}", self.salvageable.get(), self.url());
         self.decr_ignore_opens_during_unload_counter();
         // unloading document cleanup steps.
-        self.window.suspend();
+        self.window.upcast::<GlobalScope>().suspend();
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end

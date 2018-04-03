@@ -1872,9 +1872,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 return None;
             }
         };
+        // Running the "unload" steps,
+        // a required part of "update the session history with the new page".
+        self.unload_document(source_id);
         match parent_info {
             Some(parent_pipeline_id) => {
-                // Running the "unload" steps,
                 // a required part of "update the session history with the new page".
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
@@ -1926,9 +1928,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let replace_instant = if replace { Some(timestamp) } else { None };
-                // Running the "unload" steps,
-                // a required part of "update the session history with the new page".
-                self.unload_document(source_id);
                 self.new_pipeline(new_pipeline_id,
                                   browsing_context_id,
                                   top_level_id,
