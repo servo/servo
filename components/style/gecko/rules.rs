@@ -8,9 +8,9 @@ use byteorder::{BigEndian, WriteBytesExt};
 use computed_values::{font_stretch, font_style, font_weight};
 use counter_style::{self, CounterBound};
 use cssparser::UnicodeRange;
-use font_face::{FontFaceRuleData, Source, FontDisplay, FontWeight};
+use font_face::{Source, FontDisplay, FontWeight};
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue};
+use gecko_bindings::structs::{self, nsCSSValue};
 use gecko_bindings::structs::{nsCSSCounterDesc, nsCSSCounterStyleRule};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
@@ -24,10 +24,7 @@ use values::computed::font::FamilyName;
 use values::generics::font::FontTag;
 use values::specified::font::{SpecifiedFontVariationSettings, SpecifiedFontFeatureSettings};
 
-/// A @font-face rule
-pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
-
-impl ToNsCssValue for FamilyName {
+impl<'a> ToNsCssValue for &'a FamilyName {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         nscssvalue.set_string_from_atom(&self.name)
     }
@@ -39,9 +36,9 @@ impl ToNsCssValue for font_weight::T {
     }
 }
 
-impl ToNsCssValue for FontWeight {
+impl<'a> ToNsCssValue for &'a FontWeight {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        match self {
+        match *self {
             FontWeight::Normal =>
                 nscssvalue.set_enum(structs::NS_STYLE_FONT_WEIGHT_NORMAL as i32),
             FontWeight::Bold =>
@@ -59,14 +56,14 @@ impl ToNsCssValue for FontTag {
     }
 }
 
-impl ToNsCssValue for SpecifiedFontFeatureSettings {
+impl<'a> ToNsCssValue for &'a SpecifiedFontFeatureSettings {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         if self.0.is_empty() {
             nscssvalue.set_normal();
             return;
         }
 
-        nscssvalue.set_pair_list(self.0.into_iter().map(|entry| {
+        nscssvalue.set_pair_list(self.0.iter().map(|entry| {
             let mut index = nsCSSValue::null();
             index.set_integer(entry.value.value());
             (entry.tag.into(), index)
@@ -74,14 +71,14 @@ impl ToNsCssValue for SpecifiedFontFeatureSettings {
     }
 }
 
-impl ToNsCssValue for SpecifiedFontVariationSettings {
+impl<'a> ToNsCssValue for &'a SpecifiedFontVariationSettings {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         if self.0.is_empty() {
             nscssvalue.set_normal();
             return;
         }
 
-        nscssvalue.set_pair_list(self.0.into_iter().map(|entry| {
+        nscssvalue.set_pair_list(self.0.iter().map(|entry| {
             let mut value = nsCSSValue::null();
             value.set_number(entry.value.into());
             (entry.tag.into(), value)
@@ -89,9 +86,9 @@ impl ToNsCssValue for SpecifiedFontVariationSettings {
     }
 }
 
-impl ToNsCssValue for font_language_override::SpecifiedValue {
+impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        match self {
+        match *self {
             font_language_override::SpecifiedValue::Normal => nscssvalue.set_normal(),
             font_language_override::SpecifiedValue::Override(ref lang) => nscssvalue.set_string(&*lang),
             // This path is unreachable because the descriptor is only specified by the user.
@@ -109,9 +106,9 @@ macro_rules! map_enum {
         )+
     ) => {
         $(
-            impl ToNsCssValue for $prop::T {
+            impl<'a> ToNsCssValue for &'a $prop::T {
                 fn convert(self, nscssvalue: &mut nsCSSValue) {
-                    nscssvalue.set_enum(match self {
+                    nscssvalue.set_enum(match *self {
                         $( $prop::T::$servo => structs::$gecko as i32, )+
                     })
                 }
@@ -140,7 +137,7 @@ map_enum! {
     }
 }
 
-impl ToNsCssValue for Vec<Source> {
+impl<'a> ToNsCssValue for &'a Vec<Source> {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         let src_len = self.iter().fold(0, |acc, src| {
             acc + match *src {
@@ -154,15 +151,15 @@ impl ToNsCssValue for Vec<Source> {
         macro_rules! next { () => {
             target_srcs.next().expect("Length of target_srcs should be enough")
         } }
-        for src in self.into_iter() {
-            match src {
-                Source::Url(url) => {
+        for src in self.iter() {
+            match *src {
+                Source::Url(ref url) => {
                     next!().set_url(&url.url);
                     for hint in url.format_hints.iter() {
                         next!().set_font_format(&hint);
                     }
                 }
-                Source::Local(family) => {
+                Source::Local(ref family) => {
                     next!().set_local_font(&family.name);
                 }
             }
@@ -171,7 +168,7 @@ impl ToNsCssValue for Vec<Source> {
     }
 }
 
-impl ToNsCssValue for Vec<UnicodeRange> {
+impl<'a> ToNsCssValue for &'a Vec<UnicodeRange> {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         let target_ranges = nscssvalue
             .set_array((self.len() * 2) as i32)
@@ -183,49 +180,15 @@ impl ToNsCssValue for Vec<UnicodeRange> {
     }
 }
 
-impl ToNsCssValue for FontDisplay {
+impl<'a> ToNsCssValue for &'a FontDisplay {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_enum(match self {
+        nscssvalue.set_enum(match *self {
             FontDisplay::Auto => structs::NS_FONT_DISPLAY_AUTO,
             FontDisplay::Block => structs::NS_FONT_DISPLAY_BLOCK,
             FontDisplay::Swap => structs::NS_FONT_DISPLAY_SWAP,
             FontDisplay::Fallback => structs::NS_FONT_DISPLAY_FALLBACK,
             FontDisplay::Optional => structs::NS_FONT_DISPLAY_OPTIONAL,
         } as i32)
-    }
-}
-
-impl FontFaceRule {
-    /// Ask Gecko to deep clone the nsCSSFontFaceRule, and then construct
-    /// a FontFaceRule object from it.
-    pub fn deep_clone_from_gecko(&self) -> FontFaceRule {
-        let result = unsafe {
-            UniqueRefPtr::from_addrefed(
-                bindings::Gecko_CSSFontFaceRule_Clone(self.get()))
-        };
-        result.get()
-    }
-}
-
-impl From<FontFaceRuleData> for FontFaceRule {
-    fn from(data: FontFaceRuleData) -> FontFaceRule {
-        let mut result = unsafe {
-            UniqueRefPtr::from_addrefed(bindings::Gecko_CSSFontFaceRule_Create(
-                data.source_location.line as u32, data.source_location.column as u32
-            ))
-        };
-        data.set_descriptors(&mut result.mDecl.mDescriptors);
-        result.get()
-    }
-}
-
-impl ToCssWithGuard for FontFaceRule {
-    fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
-        let mut css_text = nsString::new();
-        unsafe {
-            bindings::Gecko_CSSFontFaceRule_GetCssText(self.get(), &mut *css_text);
-        }
-        write!(dest, "{}", css_text)
     }
 }
 

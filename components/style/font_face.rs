@@ -13,7 +13,6 @@ use computed_values::{font_stretch, font_style, font_weight};
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{SourceLocation, CowRcStr};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
-#[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, ParserErrorContext, Parse};
 #[cfg(feature = "gecko")]
@@ -24,6 +23,7 @@ use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
@@ -49,13 +49,29 @@ impl OneOrMoreSeparated for Source {
 ///
 /// <https://drafts.csswg.org/css-fonts/#src-desc>
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UrlSource {
     /// The specified url.
     pub url: SpecifiedUrl,
     /// The format hints specified with the `format()` function.
-    #[css(skip)]
     pub format_hints: Vec<String>,
+}
+
+impl ToCss for UrlSource {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+        self.url.to_css(dest)?;
+        if !self.format_hints.is_empty() {
+            dest.write_str(" format(")?;
+            {
+                let mut writer = SequenceWriter::new(dest, ", ");
+                for hint in self.format_hints.iter() {
+                    writer.item(hint)?;
+                }
+            }
+            dest.write_char(')')?;
+        }
+        Ok(())
+    }
 }
 
 /// A font-display value for a @font-face rule.
@@ -254,7 +270,8 @@ macro_rules! font_face_descriptors_common {
         }
 
         impl FontFaceRuleData {
-            fn empty(location: SourceLocation) -> Self {
+            /// Create an empty font-face rule
+            pub fn empty(location: SourceLocation) -> Self {
                 FontFaceRuleData {
                     $(
                         $ident: None,
@@ -263,24 +280,8 @@ macro_rules! font_face_descriptors_common {
                 }
             }
 
-            /// Convert to Gecko types
-            #[cfg(feature = "gecko")]
-            pub fn set_descriptors(self, descriptors: &mut CSSFontFaceDescriptors) {
-                $(
-                    if let Some(value) = self.$ident {
-                        descriptors.$gecko_ident.set_from(value)
-                    }
-                )*
-                // Leave unset descriptors to eCSSUnit_Null,
-                // FontFaceSet::FindOrCreateUserFontEntryFromFontFace does the defaulting
-                // to initial values.
-            }
-        }
-
-        impl ToCssWithGuard for FontFaceRuleData {
-            // Serialization of FontFaceRule is not specced.
-            fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
-                dest.write_str("@font-face {\n")?;
+            /// Serialization of declarations in the FontFaceRule
+            pub fn decl_to_css(&self, dest: &mut CssStringWriter) -> fmt::Result {
                 $(
                     if let Some(ref value) = self.$ident {
                         dest.write_str(concat!("  ", $name, ": "))?;
@@ -288,7 +289,7 @@ macro_rules! font_face_descriptors_common {
                         dest.write_str(";\n")?;
                     }
                 )*
-                dest.write_str("}")
+                Ok(())
             }
         }
 
@@ -314,6 +315,15 @@ macro_rules! font_face_descriptors_common {
                 Ok(())
             }
         }
+    }
+}
+
+impl ToCssWithGuard for FontFaceRuleData {
+    // Serialization of FontFaceRule is not specced.
+    fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
+        dest.write_str("@font-face {\n")?;
+        self.decl_to_css(dest)?;
+        dest.write_str("}")
     }
 }
 

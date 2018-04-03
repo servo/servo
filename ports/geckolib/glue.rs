@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{ParseErrorKind, Parser, ParserInput};
+use cssparser::{ParseErrorKind, Parser, ParserInput, SourceLocation};
 use cssparser::ToCss as ParserToCss;
 use env_logger::Builder;
 use malloc_size_of::MallocSizeOfOps;
@@ -41,6 +41,7 @@ use style::gecko_bindings::bindings::{RawServoAuthorStyles, RawServoAuthorStyles
 use style::gecko_bindings::bindings::{RawServoAuthorStylesBorrowedMut, RawServoAuthorStylesOwned};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
+use style::gecko_bindings::bindings::{RawServoFontFaceRuleBorrowed, RawServoFontFaceRuleStrong};
 use style::gecko_bindings::bindings::{RawServoFontFeatureValuesRule, RawServoFontFeatureValuesRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoImportRule, RawServoImportRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframeBorrowed, RawServoKeyframeStrong};
@@ -91,7 +92,7 @@ use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, Composite
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ComputedStyleStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetParsingMode, nsAtom, nsCSSPropertyID};
-use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSFontFaceRule, nsCSSCounterStyleRule};
+use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::AtomArray;
 use style::gecko_bindings::structs::IterationCompositeOperation;
@@ -102,6 +103,7 @@ use style::gecko_bindings::structs::OriginFlags_User;
 use style::gecko_bindings::structs::OriginFlags_UserAgent;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
+use style::gecko_bindings::structs::RawServoFontFaceRule;
 use style::gecko_bindings::structs::RawServoSelectorList;
 use style::gecko_bindings::structs::RawServoSourceSizeList;
 use style::gecko_bindings::structs::SeenPtrs;
@@ -140,8 +142,8 @@ use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use style::string_cache::{Atom, WeakAtom};
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
-use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MediaRule};
-use style::stylesheets::{NamespaceRule, Origin, OriginSet, PageRule, StyleRule};
+use style::stylesheets::{FontFaceRule, FontFeatureValuesRule, ImportRule, KeyframesRule};
+use style::stylesheets::{MediaRule, NamespaceRule, Origin, OriginSet, PageRule, StyleRule};
 use style::stylesheets::{StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
@@ -1746,6 +1748,12 @@ impl_basic_rule_funcs! { (FontFeatureValues, FontFeatureValuesRule, RawServoFont
     to_css: Servo_FontFeatureValuesRule_GetCssText,
 }
 
+impl_basic_rule_funcs! { (FontFace, FontFaceRule, RawServoFontFaceRule),
+    getter: Servo_CssRules_GetFontFaceRuleAt,
+    debug: Servo_FontFaceRule_Debug,
+    to_css: Servo_FontFaceRule_GetCssText,
+}
+
 macro_rules! impl_getter_for_embedded_rule {
     ($getter:ident: $name:ident -> $ty:ty) => {
         #[no_mangle]
@@ -1763,8 +1771,6 @@ macro_rules! impl_getter_for_embedded_rule {
     }
 }
 
-impl_getter_for_embedded_rule!(Servo_CssRules_GetFontFaceRuleAt:
-                               FontFace -> nsCSSFontFaceRule);
 impl_getter_for_embedded_rule!(Servo_CssRules_GetCounterStyleRuleAt:
                                CounterStyle -> nsCSSCounterStyleRule);
 
@@ -2180,6 +2186,255 @@ pub extern "C" fn Servo_FontFeatureValuesRule_GetValueText(
 ) {
     read_locked_arc(rule, |rule: &FontFeatureValuesRule| {
         rule.value_to_css(&mut CssWriter::new(unsafe { result.as_mut().unwrap() })).unwrap();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_FontFaceRule_CreateEmpty() -> RawServoFontFaceRuleStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    // XXX This is not great. We should split FontFace descriptor data
+    // from the rule, so that we don't need to create the rule like this
+    // and the descriptor data itself can be hold in UniquePtr from the
+    // Gecko side. See bug 1450904.
+    Arc::new(global_style_data.shared_lock.wrap(FontFaceRule::empty(SourceLocation {
+        line: 0,
+        column: 0,
+    }))).into_strong()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_Clone(
+    rule: RawServoFontFaceRuleBorrowed,
+) -> RawServoFontFaceRuleStrong {
+    let clone = read_locked_arc(rule, |rule: &FontFaceRule| rule.clone());
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    Arc::new(global_style_data.shared_lock.wrap(clone)).into_strong()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_GetSourceLocation(
+    rule: RawServoFontFaceRuleBorrowed,
+    line: *mut u32,
+    column: *mut u32,
+) {
+    read_locked_arc(rule, |rule: &FontFaceRule| {
+        let location = rule.source_location;
+        *line.as_mut().unwrap() = location.line as u32;
+        *column.as_mut().unwrap() = location.column as u32;
+    });
+}
+
+macro_rules! apply_font_desc_list {
+    ($apply_macro:ident) => {
+        $apply_macro! {
+            valid: [
+                eCSSFontDesc_Family => family,
+                eCSSFontDesc_Style => style,
+                eCSSFontDesc_Weight => weight,
+                eCSSFontDesc_Stretch => stretch,
+                eCSSFontDesc_Src => sources,
+                eCSSFontDesc_UnicodeRange => unicode_range,
+                eCSSFontDesc_FontFeatureSettings => feature_settings,
+                eCSSFontDesc_FontVariationSettings => variation_settings,
+                eCSSFontDesc_FontLanguageOverride => language_override,
+                eCSSFontDesc_Display => display,
+            ]
+            invalid: [
+                eCSSFontDesc_UNKNOWN,
+                eCSSFontDesc_COUNT,
+            ]
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_Length(
+    rule: RawServoFontFaceRuleBorrowed,
+) -> u32 {
+    read_locked_arc(rule, |rule: &FontFaceRule| {
+        let mut result = 0;
+        macro_rules! count_values {
+            (
+                valid: [$($v_enum_name:ident => $field:ident,)*]
+                invalid: [$($i_enum_name:ident,)*]
+            ) => {
+                $(if rule.$field.is_some() {
+                    result += 1;
+                })*
+            }
+        }
+        apply_font_desc_list!(count_values);
+        result
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_IndexGetter(
+    rule: RawServoFontFaceRuleBorrowed,
+    index: u32,
+) -> nsCSSFontDesc {
+    read_locked_arc(rule, |rule: &FontFaceRule| {
+        let mut count = 0;
+        macro_rules! lookup_index {
+            (
+                valid: [$($v_enum_name:ident => $field:ident,)*]
+                invalid: [$($i_enum_name:ident,)*]
+            ) => {
+                $(if rule.$field.is_some() {
+                    count += 1;
+                    if count - 1 == index {
+                        return nsCSSFontDesc::$v_enum_name;
+                    }
+                })*
+            }
+        }
+        apply_font_desc_list!(lookup_index);
+        return nsCSSFontDesc::eCSSFontDesc_UNKNOWN;
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_GetDeclCssText(
+    rule: RawServoFontFaceRuleBorrowed,
+    result: *mut nsAString,
+) {
+    read_locked_arc(rule, |rule: &FontFaceRule| {
+        rule.decl_to_css(result.as_mut().unwrap()).unwrap();
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_GetDescriptor(
+    rule: RawServoFontFaceRuleBorrowed,
+    desc: nsCSSFontDesc,
+    result: nsCSSValueBorrowedMut,
+) {
+    read_locked_arc(rule, |rule: &FontFaceRule| {
+        macro_rules! to_css_value {
+            (
+                valid: [$($v_enum_name:ident => $field:ident,)*]
+                invalid: [$($i_enum_name:ident,)*]
+            ) => {
+                match desc {
+                    $(
+                        nsCSSFontDesc::$v_enum_name => {
+                            if let Some(ref value) = rule.$field {
+                                result.set_from(value);
+                            }
+                        }
+                    )*
+                    $(
+                        nsCSSFontDesc::$i_enum_name => {
+                            debug_assert!(false, "not a valid font descriptor");
+                        }
+                    )*
+                }
+            }
+        }
+        apply_font_desc_list!(to_css_value)
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_GetDescriptorCssText(
+    rule: RawServoFontFaceRuleBorrowed,
+    desc: nsCSSFontDesc,
+    result: *mut nsAString,
+) {
+    read_locked_arc(rule, |rule: &FontFaceRule| {
+        let mut writer = CssWriter::new(result.as_mut().unwrap());
+        macro_rules! to_css_text {
+            (
+                valid: [$($v_enum_name:ident => $field:ident,)*]
+                invalid: [$($i_enum_name:ident,)*]
+            ) => {
+                match desc {
+                    $(
+                        nsCSSFontDesc::$v_enum_name => {
+                            if let Some(ref value) = rule.$field {
+                                value.to_css(&mut writer).unwrap();
+                            }
+                        }
+                    )*
+                    $(
+                        nsCSSFontDesc::$i_enum_name => {
+                            debug_assert!(false, "not a valid font descriptor");
+                        }
+                    )*
+                }
+            }
+        }
+        apply_font_desc_list!(to_css_text)
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_SetDescriptor(
+    rule: RawServoFontFaceRuleBorrowed,
+    desc: nsCSSFontDesc,
+    value: *const nsACString,
+    data: *mut URLExtraData,
+) -> bool {
+    let value = value.as_ref().unwrap().as_str_unchecked();
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+    let url_data = RefPtr::from_ptr_ref(&data);
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::FontFace),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    write_locked_arc(rule, |rule: &mut FontFaceRule| {
+        macro_rules! to_css_text {
+            (
+                valid: [$($v_enum_name:ident => $field:ident,)*]
+                invalid: [$($i_enum_name:ident,)*]
+            ) => {
+                match desc {
+                    $(
+                        nsCSSFontDesc::$v_enum_name => {
+                            if let Ok(value) = parser.parse_entirely(|i| Parse::parse(&context, i)) {
+                                rule.$field = Some(value);
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                    )*
+                    $(
+                        nsCSSFontDesc::$i_enum_name => {
+                            debug_assert!(false, "not a valid font descriptor");
+                            false
+                        }
+                    )*
+                }
+            }
+        }
+        apply_font_desc_list!(to_css_text)
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_FontFaceRule_ResetDescriptor(
+    rule: RawServoFontFaceRuleBorrowed,
+    desc: nsCSSFontDesc,
+) {
+    write_locked_arc(rule, |rule: &mut FontFaceRule| {
+        macro_rules! reset_desc {
+            (
+                valid: [$($v_enum_name:ident => $field:ident,)*]
+                invalid: [$($i_enum_name:ident,)*]
+            ) => {
+                match desc {
+                    $(nsCSSFontDesc::$v_enum_name => rule.$field = None,)*
+                    $(nsCSSFontDesc::$i_enum_name => debug_assert!(false, "not a valid font descriptor"),)*
+                }
+            }
+        }
+        apply_font_desc_list!(reset_desc)
     })
 }
 
@@ -4330,9 +4585,6 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     debug_assert_eq!(rules.len(), 0);
 
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
-
     let len: u32 = data
         .stylist
         .iter_extra_data_origins()
@@ -4348,7 +4600,7 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(
 
     unsafe { rules.set_len(len) };
     for (src, dest) in font_face_iter.zip(rules.iter_mut()) {
-        dest.mRule = src.0.read_with(&guard).clone().forget();
+        dest.mRule.set_arc_leaky(src.0.clone());
         dest.mSheetType = src.1.into();
     }
 }
@@ -4848,83 +5100,6 @@ pub extern "C" fn Servo_ParseTransformIntoMatrix(
     true
 }
 
-// https://drafts.csswg.org/css-font-loading/#dom-fontface-fontface
-#[no_mangle]
-pub extern "C" fn Servo_ParseFontDescriptor(
-    desc_id: nsCSSFontDesc,
-    value: *const nsAString,
-    data: *mut URLExtraData,
-    result: nsCSSValueBorrowedMut,
-) -> bool {
-    use cssparser::UnicodeRange;
-    use self::nsCSSFontDesc::*;
-    use style::computed_values::{font_stretch, font_style};
-    use style::font_face::{FontDisplay, FontWeight, Source};
-    use style::properties::longhands::font_language_override;
-    use style::values::computed::font::FamilyName;
-    use style::values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
-
-    let string = unsafe { (*value).to_string() };
-    let mut input = ParserInput::new(&string);
-    let mut parser = Parser::new(&mut input);
-    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    let context = ParserContext::new(
-        Origin::Author,
-        url_data,
-        Some(CssRuleType::FontFace),
-        ParsingMode::DEFAULT,
-        QuirksMode::NoQuirks,
-    );
-
-    macro_rules! parse_font_desc {
-        (
-            valid = [ $( $v_enum_name: ident / $t: ty, )* ]
-            invalid = [ $( $i_enum_name: ident, )* ]
-        ) => {
-            match desc_id {
-                $(
-                    $v_enum_name => {
-                        let f = match parser.parse_entirely(|i| <$t as Parse>::parse(&context, i)) {
-                            Ok(f) => f,
-                            Err(..) => return false,
-                        };
-                        result.set_from(f);
-                    },
-                )*
-                $(
-                    $i_enum_name => {
-                        debug_assert!(false, "$i_enum_name is not a valid font descriptor");
-                        return false;
-                    },
-                )*
-            }
-        }
-    }
-
-    // We implement the parser of each arm according to the implementation of @font-face rule.
-    // see component/style/font_face.rs for more detail.
-    parse_font_desc!(
-        valid = [
-            eCSSFontDesc_Family / FamilyName,
-            eCSSFontDesc_Style / font_style::T,
-            eCSSFontDesc_Weight / FontWeight,
-            eCSSFontDesc_Stretch / font_stretch::T,
-            eCSSFontDesc_Src / Vec<Source>,
-            eCSSFontDesc_UnicodeRange / Vec<UnicodeRange>,
-            eCSSFontDesc_FontFeatureSettings / SpecifiedFontFeatureSettings,
-            eCSSFontDesc_FontVariationSettings / SpecifiedFontVariationSettings,
-            eCSSFontDesc_FontLanguageOverride / font_language_override::SpecifiedValue,
-            eCSSFontDesc_Display / FontDisplay,
-        ]
-        invalid = [
-            eCSSFontDesc_UNKNOWN,
-            eCSSFontDesc_COUNT,
-        ]
-    );
-
-    true
-}
-
 #[no_mangle]
 pub extern "C" fn Servo_ParseFontShorthandForMatching(
     value: *const nsAString,
@@ -4962,11 +5137,11 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
         FontFamily::System(_) => return false,
     }
     style.set_from(match font.font_style {
-        font_style::SpecifiedValue::Keyword(kw) => kw,
+        font_style::SpecifiedValue::Keyword(ref kw) => kw,
         font_style::SpecifiedValue::System(_) => return false,
     });
     stretch.set_from(match font.font_stretch {
-        font_stretch::SpecifiedValue::Keyword(kw) => kw,
+        font_stretch::SpecifiedValue::Keyword(ref kw) => kw,
         font_stretch::SpecifiedValue::System(_) => return false,
     });
     match font.font_weight {
