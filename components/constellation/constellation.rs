@@ -1877,7 +1877,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.unload_document(source_id);
         match parent_info {
             Some(parent_pipeline_id) => {
-                // a required part of "update the session history with the new page".
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
                 println!("navigating parent of iframe");
