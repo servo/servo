@@ -39,7 +39,7 @@ canvas {
 }
 
 .description .target {
-  width: 130px;
+  width: 100px;
 }
 
 .example-title {
@@ -53,7 +53,8 @@ canvas {
 
 </style>
 <body>
-  <h1 class="title">DrawImage canvas to canvas</h1>
+    <h1 class="title">Timed DrawImage canvas to canvas</h1>
+    <h4 class="title", id="Test Result">This text is where the timing result will go...</h4>
 </body>
 
 <script type="text/javascript">
@@ -71,66 +72,11 @@ var destCanvas = {
   height: 100
 };
 
-// 2 arguments, the dest origin is 0,0
-// The source canvas will copied to the 0,0 position of the destination canvas
-drawImage(0, 0);
-// 2 arguments, the dest origin is not 0,0
-// The source canvas will copied to the 25, 25 position of the destination canvas
-drawImage(25, 25);
-// 4 arguments, the source origin is not 0,0, the dest size is provided
-// The source canvas will copied to the 50, 50 position of the destination canvas and
-// on an area of 50x50 pixels
-drawImage(50, 50, 50, 50);
-// 4 arguments, the dest origin is not 0,0 and the dest size is provided but
-// does not match the size of the source. The image will be distorted
-// The source canvas will copied to the 50,50 position of the destination canvas
-// and it will be shrunk to a and area of 25x25
-drawImage(50, 50, 25, 25);
-// The source canvas will copied to the 50,50 position of the destination canvas
-// over an area of 50x25 pixels
-// The copied image will be distorted along the x axis
-drawImage(50, 50, 50, 25);
-// 8 arguments, both destination and source origins are 0, 0
-// An area of 25x25 pixels of the source image will be copied to
-// an area of 25x25 pixels of the destination canvas
-drawImage(0, 0, 25, 25, 0, 0, 25, 25);
-// 8 arguments the destination origin is not 0,0
-// An area of 25x25 pixels of the source image will be copied to
-// an area of 25x25 pixels of the destination canvas in the position 25,25
-drawImage(0, 0, 25, 25, 25, 25, 25, 25);
-// The source rectangle overflows the source image
-// The source area is clipped to fit the source image
-// and the destination are is clipped in the same proportion
-drawImage(25, 25, 50, 50, 0, 0, 50, 50);
-// The destination rectangle has negative width and height
-// An exception is raised and nothing is drawn
-drawImage(25, 25, 50, 50, 0, 0, -100, -100);
-// The destination rectangle is larger thant the destination canvas
-// When the destination rectangle is outside the destination image (the scratch bitmap), the pixels
-// that land outside the scratch bitmap are discarded, as if the destination was an infinite canvas
-// whose rendering was clipped to the dimensions of the scratch bitmap.
-drawImage(0, 0, 50, 50, 0, 0, 200, 200);
-// The source rectangle is larger than the source canvas
-// The source area is clipped to fit the source image
-// and the destination are is clipped in the same proportion
-drawImage(0, 0, 100, 100, 0, 0, 50, 50);
-// Negative coorditanes of the source rectangle
-// The source area is clipped to fit the source image
-// and the destination are is clipped in the same proportion
-drawImage(-25, -25, 50, 50, 0, 0, 50, 50);
-
-// Example with non squared origin and source canvases
-imageSource = {
-  width: 100,
-  height: 50
-};
-
-destCanvas = {
-  width: 100,
-  height: 50
-};
-
-    drawImage(0, 0);
+    var t0 = performance.now();     //save starting time
+    drawImage(25, 25);            // The source canvas will copied to the 25,25 position of the destination canvas
+    var t1 = performance.now();     //save ending time
+    document.getElementById('Test Result').innerHTML = "DrawImage took " + (t1 - t0) + " milliseconds."; //print to browser
+    console.log("DrawImage took " + (t1 - t0) + " milliseconds.");  //print to console
 
 function renderExample(title) {
   var container = document.createElement('div');
