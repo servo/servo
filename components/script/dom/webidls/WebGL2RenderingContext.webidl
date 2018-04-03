@@ -573,10 +573,10 @@ interface WebGL2RenderingContextBase
   [WebGLHandlesContextLoss] GLboolean isVertexArray(WebGLVertexArrayObject? vertexArray);
   void bindVertexArray(WebGLVertexArrayObject? array);*/
 };
-WebGL2RenderingContextBase implements WebGLRenderingContextBase;
 
 [Pref="dom.webgl2.enabled"]
 interface WebGL2RenderingContext
 {
 };
+WebGL2RenderingContext implements WebGLRenderingContextBase;
 WebGL2RenderingContext implements WebGL2RenderingContextBase;

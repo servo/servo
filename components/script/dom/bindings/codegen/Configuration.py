@@ -279,8 +279,6 @@ class Descriptor(DescriptorProvider):
                         addIndexedOrNamedOperation('Getter', m)
                     if m.isSetter():
                         addIndexedOrNamedOperation('Setter', m)
-                    if m.isCreator():
-                        addIndexedOrNamedOperation('Creator', m)
                     if m.isDeleter():
                         addIndexedOrNamedOperation('Deleter', m)
 

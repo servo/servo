@@ -28,8 +28,9 @@ typedef (ImageData or
          HTMLImageElement or
          HTMLCanvasElement or
          HTMLVideoElement) TexImageSource;
-typedef (ArrayBuffer or ArrayBufferView) BufferDataSource;
 
+typedef (/*[AllowShared]*/ Float32Array or sequence<GLfloat>) Float32List;
+typedef (/*[AllowShared]*/ Int32Array or sequence<GLint>) Int32List;
 
 dictionary WebGLContextAttributes {
     GLboolean alpha = true;
@@ -470,7 +471,8 @@ interface WebGLRenderingContextBase
     readonly attribute GLsizei drawingBufferHeight;
 
     [WebGLHandlesContextLoss] WebGLContextAttributes? getContextAttributes();
-    //[WebGLHandlesContextLoss] boolean isContextLost();
+    // FIXME: https://github.com/servo/servo/issues/15266
+    // [WebGLHandlesContextLoss] boolean isContextLost();
 
     sequence<DOMString>? getSupportedExtensions();
     object? getExtension(DOMString name);
@@ -489,15 +491,12 @@ interface WebGLRenderingContextBase
     void blendFuncSeparate(GLenum srcRGB, GLenum dstRGB,
                            GLenum srcAlpha, GLenum dstAlpha);
 
-    // FIXME(xanewok) from CodegenRust.py:
-    // 'No support for unions as distinguishing arguments yet' for below
-    // original WebIDL function definition
-    // void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
+    // FIXME(xanewok): https://github.com/servo/servo/issues/20513
     [Throws]
     void bufferData(GLenum target, object? data, GLenum usage);
     [Throws]
     void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
-    void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
+    void bufferSubData(GLenum target, GLintptr offset, /*[AllowShared]*/ BufferSource? data);
 
     [WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
@@ -509,17 +508,15 @@ interface WebGLRenderingContextBase
 
     void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
                               GLsizei width, GLsizei height, GLint border,
-                              ArrayBufferView data);
+                              /*[AllowShared]*/ ArrayBufferView data);
     void compressedTexSubImage2D(GLenum target, GLint level,
                                  GLint xoffset, GLint yoffset,
                                  GLsizei width, GLsizei height, GLenum format,
-                                 ArrayBufferView data);
+                                 /*[AllowShared]*/ ArrayBufferView data);
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
                         GLint x, GLint y, GLsizei width, GLsizei height,
                         GLint border);
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     void copyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                            GLint x, GLint y, GLsizei width, GLsizei height);
 
@@ -576,7 +573,8 @@ interface WebGLRenderingContextBase
                                           GLenum pname);
     any getProgramParameter(WebGLProgram program, GLenum pname);
     DOMString? getProgramInfoLog(WebGLProgram program);
-    //any getRenderbufferParameter(GLenum target, GLenum pname);
+    // FIXME: https://github.com/servo/servo/issues/20514
+    // any getRenderbufferParameter(GLenum target, GLenum pname);
     any getShaderParameter(WebGLShader shader, GLenum pname);
     WebGLShaderPrecisionFormat? getShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype);
     DOMString? getShaderInfoLog(WebGLShader shader);
@@ -585,7 +583,7 @@ interface WebGLRenderingContextBase
 
     any getTexParameter(GLenum target, GLenum pname);
 
-    //any getUniform(WebGLProgram program, WebGLUniformLocation location);
+    // any getUniform(WebGLProgram program, WebGLUniformLocation location);
 
     WebGLUniformLocation? getUniformLocation(WebGLProgram program, DOMString name);
 
@@ -607,7 +605,7 @@ interface WebGLRenderingContextBase
     void polygonOffset(GLfloat factor, GLfloat units);
 
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-                    GLenum format, GLenum type, ArrayBufferView? pixels);
+                    GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
 
     void renderbufferStorage(GLenum target, GLenum internalformat,
                              GLsizei width, GLsizei height);
@@ -623,11 +621,11 @@ interface WebGLRenderingContextBase
     void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
     void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 
-    // FIXME: Codegen requires that this have [Throws] to match the other one.
+    // FIXME: https://github.com/servo/servo/issues/20516
     [Throws]
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLsizei width, GLsizei height, GLint border, GLenum format,
-                    GLenum type, ArrayBufferView? pixels);
+                    GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
     [Throws]
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLenum format, GLenum type, TexImageSource source); // May throw DOMException
@@ -638,78 +636,52 @@ interface WebGLRenderingContextBase
     void texParameterf(GLenum target, GLenum pname, GLfloat param);
     void texParameteri(GLenum target, GLenum pname, GLint param);
 
-    // FIXME: Codegen requires that this have [Throws] to match the other one.
+    // FIXME: https://github.com/servo/servo/issues/20516
     [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                       GLsizei width, GLsizei height,
-                      GLenum format, GLenum type, ArrayBufferView? pixels);
+                      GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
     [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                        GLenum format, GLenum type, TexImageSource source); // May throw DOMException
 
     void uniform1f(WebGLUniformLocation? location, GLfloat x);
-    void uniform1fv(WebGLUniformLocation? location, Float32Array v);
-    void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
+    void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
+    void uniform3f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z);
+    void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 
     void uniform1i(WebGLUniformLocation? location, GLint x);
-    void uniform1iv(WebGLUniformLocation? location, Int32Array v);
-    void uniform1iv(WebGLUniformLocation? location, sequence<long> v);
-
-    void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
-    void uniform2fv(WebGLUniformLocation? location, Float32Array v);
-    void uniform2fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-
     void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
-    void uniform2iv(WebGLUniformLocation? location, Int32Array v);
-    void uniform2iv(WebGLUniformLocation? location, sequence<long> v);
-
-    void uniform3f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z);
-    void uniform3fv(WebGLUniformLocation? location, Float32Array v);
-    void uniform3fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-
     void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
-    void uniform3iv(WebGLUniformLocation? location, Int32Array v);
-    void uniform3iv(WebGLUniformLocation? location, sequence<long> v);
-
-    void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-    void uniform4fv(WebGLUniformLocation? location, Float32Array v);
-    void uniform4fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-
     void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
-    void uniform4iv(WebGLUniformLocation? location, Int32Array v);
-    void uniform4iv(WebGLUniformLocation? location, sequence<long> v);
 
-    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose,
-                          Float32Array value);
-    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose,
-                          sequence<GLfloat> value);
-    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose,
-                          Float32Array value);
-    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose,
-                          sequence<GLfloat> value);
-    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose,
-                          Float32Array value);
-    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose,
-                          sequence<GLfloat> value);
+    void uniform1fv(WebGLUniformLocation? location, Float32List v);
+    void uniform2fv(WebGLUniformLocation? location, Float32List v);
+    void uniform3fv(WebGLUniformLocation? location, Float32List v);
+    void uniform4fv(WebGLUniformLocation? location, Float32List v);
+
+    void uniform1iv(WebGLUniformLocation? location, Int32List v);
+    void uniform2iv(WebGLUniformLocation? location, Int32List v);
+    void uniform3iv(WebGLUniformLocation? location, Int32List v);
+    void uniform4iv(WebGLUniformLocation? location, Int32List v);
+
+    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
+    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
+    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
 
     void useProgram(WebGLProgram? program);
     void validateProgram(WebGLProgram program);
 
     void vertexAttrib1f(GLuint indx, GLfloat x);
-    void vertexAttrib1fv(GLuint indx, Float32Array values);
-    void vertexAttrib1fv(GLuint indx, sequence<GLfloat> values);
-
     void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
-    void vertexAttrib2fv(GLuint indx, Float32Array values);
-    void vertexAttrib2fv(GLuint indx, sequence<GLfloat> values);
-
     void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
-    void vertexAttrib3fv(GLuint indx, Float32Array values);
-    void vertexAttrib3fv(GLuint indx, sequence<GLfloat> values);
-
     void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-    void vertexAttrib4fv(GLuint indx, Float32Array values);
-    void vertexAttrib4fv(GLuint indx, sequence<GLfloat> values);
+
+    void vertexAttrib1fv(GLuint indx, Float32List values);
+    void vertexAttrib2fv(GLuint indx, Float32List values);
+    void vertexAttrib3fv(GLuint indx, Float32List values);
+    void vertexAttrib4fv(GLuint indx, Float32List values);
+
     void vertexAttribPointer(GLuint indx, GLint size, GLenum type,
                              GLboolean normalized, GLsizei stride, GLintptr offset);
 

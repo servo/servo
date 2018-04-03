@@ -14,10 +14,12 @@ use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2Rende
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferView;
+use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
+use dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
+use dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
@@ -50,7 +52,7 @@ use half::f16;
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBufferView, Float32Array, Int32Array};
+use js::typedarray::ArrayBufferView;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -1674,7 +1676,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
+    unsafe fn BufferData(
+        &self,
+        cx: *mut JSContext,
+        target: u32,
+        data: *mut JSObject,
+        usage: u32,
+    ) -> ErrorResult {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -1709,7 +1717,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> Fallible<()> {
+    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> ErrorResult {
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
@@ -1741,11 +1749,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferOrArrayBufferView>) {
+    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferViewOrArrayBuffer>) {
         let data_vec = match data {
             // Typed array is rooted, so we can safely temporarily retrieve its slice
-            Some(ArrayBufferOrArrayBufferView::ArrayBuffer(mut inner)) => inner.to_vec(),
-            Some(ArrayBufferOrArrayBufferView::ArrayBufferView(mut inner)) => inner.to_vec(),
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut inner)) => inner.to_vec(),
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut inner)) => inner.to_vec(),
             // Spec: If data is null then an INVALID_VALUE error is generated.
             None => return self.webgl_error(InvalidValue),
         };
@@ -2867,13 +2875,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Int32Array>,
+        v: Int32ArrayOrLongSequence,
     ) {
-        self.Uniform1iv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
+        let v = match v {
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::LongSequence(v) => v,
+        };
         if self.validate_uniform_parameters(location, UniformSetterType::Int, &v) {
             self.send_command(WebGLCommand::Uniform1iv(location.unwrap().id(), v))
         }
@@ -2883,13 +2890,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Float32Array>,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        self.Uniform1fv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
+        let v = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
         if self.validate_uniform_parameters(location, UniformSetterType::Float, &v) {
             self.send_command(WebGLCommand::Uniform1fv(location.unwrap().id(), v));
         }
@@ -2908,16 +2914,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Float32Array>,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        self.Uniform2fv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatVec2,
-                                            &v) {
+        let v = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec2, &v) {
             self.send_command(WebGLCommand::Uniform2fv(location.unwrap().id(), v));
         }
     }
@@ -2940,16 +2943,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Int32Array>,
+        v: Int32ArrayOrLongSequence,
     ) {
-        self.Uniform2iv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::IntVec2,
-                                            &v) {
+        let v = match v {
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::LongSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::IntVec2, &v) {
             self.send_command(WebGLCommand::Uniform2iv(location.unwrap().id(), v));
         }
     }
@@ -2973,16 +2973,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Float32Array>,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        self.Uniform3fv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatVec3,
-                                            &v) {
+        let v = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec3, &v) {
             self.send_command(WebGLCommand::Uniform3fv(location.unwrap().id(), v))
         }
     }
@@ -3002,16 +2999,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Int32Array>,
+        v: Int32ArrayOrLongSequence,
     ) {
-        self.Uniform3iv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::IntVec3,
-                                            &v) {
+        let v = match v {
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::LongSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::IntVec3, &v) {
             self.send_command(WebGLCommand::Uniform3iv(location.unwrap().id(), v))
         }
     }
@@ -3037,16 +3031,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Int32Array>,
+        v: Int32ArrayOrLongSequence,
     ) {
-        self.Uniform4iv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4iv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<i32>) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::IntVec4,
-                                            &v) {
+        let v = match v {
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::LongSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::IntVec4, &v) {
             self.send_command(WebGLCommand::Uniform4iv(location.unwrap().id(), v))
         }
     }
@@ -3071,16 +3062,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: CustomAutoRooterGuard<Float32Array>,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        self.Uniform4fv_(location, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4fv_(&self, location: Option<&WebGLUniformLocation>, v: Vec<f32>) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatVec4,
-                                            &v) {
+        let v = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec4, &v) {
             self.send_command(WebGLCommand::Uniform4fv(location.unwrap().id(), v))
         }
     }
@@ -3090,20 +3078,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
-        v: CustomAutoRooterGuard<Float32Array>,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        self.UniformMatrix2fv_(location, transpose, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn UniformMatrix2fv_(&self,
-                         location: Option<&WebGLUniformLocation>,
-                         transpose: bool,
-                         value: Vec<f32>) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatMat2,
-                                            &value) {
-            self.send_command(WebGLCommand::UniformMatrix2fv(location.unwrap().id(), transpose, value));
+        let v = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::FloatMat2, &v) {
+            self.send_command(WebGLCommand::UniformMatrix2fv(location.unwrap().id(), transpose, v));
         }
     }
 
@@ -3112,22 +3094,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
-        v: CustomAutoRooterGuard<Float32Array>,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        self.UniformMatrix3fv_(location, transpose, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn UniformMatrix3fv_(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        transpose: bool,
-        value: Vec<f32>,
-    ) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatMat3,
-                                            &value) {
-            self.send_command(WebGLCommand::UniformMatrix3fv(location.unwrap().id(), transpose, value));
+        let v = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::FloatMat3, &v) {
+            self.send_command(WebGLCommand::UniformMatrix3fv(location.unwrap().id(), transpose, v));
         }
     }
 
@@ -3136,22 +3110,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
-        v: CustomAutoRooterGuard<Float32Array>,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        self.UniformMatrix4fv_(location, transpose, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn UniformMatrix4fv_(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        transpose: bool,
-        value: Vec<f32>,
-    ) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatMat4,
-                                            &value) {
-            self.send_command(WebGLCommand::UniformMatrix4fv(location.unwrap().id(), transpose, value));
+        let v = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
+        if self.validate_uniform_parameters(location, UniformSetterType::FloatMat4, &v) {
+            self.send_command(WebGLCommand::UniformMatrix4fv(location.unwrap().id(), transpose, v));
         }
     }
 
@@ -3178,16 +3144,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib1fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
-        self.VertexAttrib1fv_(indx, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib1fv_(&self, indx: u32, values: Vec<f32>) {
+    fn VertexAttrib1fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+        let values = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
         if values.len() < 1 {
             return self.webgl_error(InvalidOperation);
         }
-
         self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
     }
 
@@ -3197,16 +3161,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib2fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
-        self.VertexAttrib2fv_(indx, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib2fv_(&self, indx: u32, values: Vec<f32>) {
+    fn VertexAttrib2fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+        let values = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
         if values.len() < 2 {
             return self.webgl_error(InvalidOperation);
         }
-
         self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
     }
 
@@ -3216,16 +3178,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib3fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
-        self.VertexAttrib3fv_(indx, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib3fv_(&self, indx: u32, values: Vec<f32>) {
+    fn VertexAttrib3fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+        let values = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
         if values.len() < 3 {
             return self.webgl_error(InvalidOperation);
         }
-
         self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
     }
 
@@ -3235,16 +3195,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib4fv(&self, indx: u32, v: CustomAutoRooterGuard<Float32Array>) {
-        self.VertexAttrib4fv_(indx, v.to_vec());
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib4fv_(&self, indx: u32, values: Vec<f32>) {
+    fn VertexAttrib4fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+        let values = match v {
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+        };
         if values.len() < 4 {
             return self.webgl_error(InvalidOperation);
         }
-
         self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
     }
 
@@ -3304,16 +3262,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImage2D(&self,
-                  target: u32,
-                  level: i32,
-                  internal_format: u32,
-                  width: i32,
-                  height: i32,
-                  border: i32,
-                  format: u32,
-                  data_type: u32,
-                  mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
+    fn TexImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+        format: u32,
+        data_type: u32,
+        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
         }
@@ -3437,7 +3397,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                    height: i32,
                    format: u32,
                    data_type: u32,
-                   source: &HTMLIFrameElement) -> Fallible<()> {
+                   source: &HTMLIFrameElement) -> ErrorResult {
         // Currently DOMToTexture only supports TEXTURE_2D, RGBA, UNSIGNED_BYTE and no levels.
         if target != constants::TEXTURE_2D || level != 0 || internal_format != constants::RGBA ||
             format != constants::RGBA || data_type != constants::UNSIGNED_BYTE {
@@ -3468,16 +3428,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexSubImage2D(&self,
-                     target: u32,
-                     level: i32,
-                     xoffset: i32,
-                     yoffset: i32,
-                     width: i32,
-                     height: i32,
-                     format: u32,
-                     data_type: u32,
-                     mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
+    fn TexSubImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        data_type: u32,
+        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) -> ErrorResult {
         let validator = TexImage2DValidator::new(self, target, level,
                                                  format, width, height,
                                                  0, format, data_type);
