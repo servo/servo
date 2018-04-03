@@ -188,7 +188,7 @@ impl PerDocumentStyleDataImpl {
 
     /// Returns whether visited links are enabled.
     fn visited_links_enabled(&self) -> bool {
-        unsafe { structs::StylePrefs_sVisitedLinksEnabled }
+        unsafe { structs::StaticPrefs_sVarCache_layout_css_visited_links_enabled }
     }
 
     /// Returns whether visited styles are enabled.

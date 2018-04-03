@@ -224,13 +224,13 @@ macro_rules! is_descriptor_enabled {
     ("font-display") => {
         unsafe {
             use gecko_bindings::structs::mozilla;
-            mozilla::StylePrefs_sFontDisplayEnabled
+            mozilla::StaticPrefs_sVarCache_layout_css_font_display_enabled
         }
     };
     ("font-variation-settings") => {
         unsafe {
             use gecko_bindings::structs::mozilla;
-            mozilla::StylePrefs_sFontVariationsEnabled
+            mozilla::StaticPrefs_sVarCache_layout_css_font_variations_enabled
         }
     };
     ($name: tt) => { true }

@@ -11974,79 +11974,79 @@ pub mod root {
         }
         #[repr(C)]
         #[derive(Debug, Copy)]
-        pub struct StylePrefs {
+        pub struct StaticPrefs {
             pub _address: u8,
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs19sFontDisplayEnabledE"]
-            pub static mut StylePrefs_sFontDisplayEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs41sVarCache_layout_css_font_display_enabledE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_font_display_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs19sOpentypeSVGEnabledE"]
-            pub static mut StylePrefs_sOpentypeSVGEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs49sVarCache_gfx_font_rendering_opentype_svg_enabledE"]
+            pub static mut StaticPrefs_sVarCache_gfx_font_rendering_opentype_svg_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs29sWebkitPrefixedAliasesEnabledE"]
-            pub static mut StylePrefs_sWebkitPrefixedAliasesEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs36sVarCache_layout_css_prefixes_webkitE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_prefixes_webkit: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs30sWebkitDevicePixelRatioEnabledE"]
-            pub static mut StylePrefs_sWebkitDevicePixelRatioEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs55sVarCache_layout_css_prefixes_device_pixel_ratio_webkitE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_prefixes_device_pixel_ratio_webkit: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs20sMozGradientsEnabledE"]
-            pub static mut StylePrefs_sMozGradientsEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs39sVarCache_layout_css_prefixes_gradientsE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_prefixes_gradients: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs22sControlCharVisibilityE"]
-            pub static mut StylePrefs_sControlCharVisibility: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs47sVarCache_layout_css_control_characters_visibleE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_control_characters_visible: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs28sFramesTimingFunctionEnabledE"]
-            pub static mut StylePrefs_sFramesTimingFunctionEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs42sVarCache_layout_css_frames_timing_enabledE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_frames_timing_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs31sUnprefixedFullscreenApiEnabledE"]
-            pub static mut StylePrefs_sUnprefixedFullscreenApiEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs42sVarCache_full_screen_api_unprefix_enabledE"]
+            pub static mut StaticPrefs_sVarCache_full_screen_api_unprefix_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs20sVisitedLinksEnabledE"]
-            pub static mut StylePrefs_sVisitedLinksEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs42sVarCache_layout_css_visited_links_enabledE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_visited_links_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs28sMozDocumentEnabledInContentE"]
-            pub static mut StylePrefs_sMozDocumentEnabledInContent: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs49sVarCache_layout_css_moz_document_content_enabledE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_moz_document_content_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs32sMozDocumentURLPrefixHackEnabledE"]
-            pub static mut StylePrefs_sMozDocumentURLPrefixHackEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs57sVarCache_layout_css_moz_document_url_prefix_hack_enabledE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_moz_document_url_prefix_hack_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs32sGridTemplateSubgridValueEnabledE"]
-            pub static mut StylePrefs_sGridTemplateSubgridValueEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs56sVarCache_layout_css_grid_template_subgrid_value_enabledE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_grid_template_subgrid_value_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs22sFontVariationsEnabledE"]
-            pub static mut StylePrefs_sFontVariationsEnabled: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs44sVarCache_layout_css_font_variations_enabledE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_font_variations_enabled: bool;
         }
         extern "C" {
-            #[link_name = "\u{1}_ZN7mozilla10StylePrefs22sEmulateMozBoxWithFlexE"]
-            pub static mut StylePrefs_sEmulateMozBoxWithFlex: bool;
+            #[link_name = "\u{1}_ZN7mozilla11StaticPrefs46sVarCache_layout_css_emulate_moz_box_with_flexE"]
+            pub static mut StaticPrefs_sVarCache_layout_css_emulate_moz_box_with_flex: bool;
         }
         #[test]
-        fn bindgen_test_layout_StylePrefs() {
+        fn bindgen_test_layout_StaticPrefs() {
             assert_eq!(
-                ::std::mem::size_of::<StylePrefs>(),
+                ::std::mem::size_of::<StaticPrefs>(),
                 1usize,
-                concat!("Size of: ", stringify!(StylePrefs))
+                concat!("Size of: ", stringify!(StaticPrefs))
             );
             assert_eq!(
-                ::std::mem::align_of::<StylePrefs>(),
+                ::std::mem::align_of::<StaticPrefs>(),
                 1usize,
-                concat!("Alignment of ", stringify!(StylePrefs))
+                concat!("Alignment of ", stringify!(StaticPrefs))
             );
         }
-        impl Clone for StylePrefs {
+        impl Clone for StaticPrefs {
             fn clone(&self) -> Self {
                 *self
             }
