@@ -10,11 +10,10 @@ use servo_config::prefs::{PrefValue, PREFS};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::mpsc::channel;
 
 #[test]
 fn test_filemanager() {
-    let (sender, _) = channel();
+    let (sender, _receiver) = ipc::channel().unwrap();
     let filemanager = FileManager::new(sender);
     PREFS.set("dom.testing.htmlinputelement.select_files.enabled", PrefValue::Boolean(true));
 

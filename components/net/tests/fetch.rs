@@ -22,6 +22,7 @@ use hyper::server::{Request as HyperRequest, Response as HyperResponse, Server};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use hyper_openssl;
+use ipc_channel::ipc;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::connector::create_ssl_client;
 use net::fetch::cors_cache::CorsCache;
@@ -118,7 +119,8 @@ fn test_fetch_blob() {
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
 
-    let context = new_fetch_context(None);
+    let (sender, _receiver) = ipc::channel().unwrap();
+    let context = new_fetch_context(None, Some(sender));
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
@@ -539,9 +541,9 @@ fn test_fetch_with_hsts() {
 
     let ca_file = resources_dir_path().unwrap().join("self_signed_certificate_for_testing.crt");
     let ssl_client = create_ssl_client(&ca_file);
-    let (sender, _) = channel();
+    let (sender, _) = ipc::channel().unwrap();
 
-    let context =  FetchContext {
+    let context = FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,

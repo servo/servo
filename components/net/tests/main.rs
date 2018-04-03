@@ -37,6 +37,7 @@ mod subresource_integrity;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};
+use ipc_channel::ipc::{self, IpcSender};
 use net::connector::create_ssl_client;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
@@ -45,6 +46,7 @@ use net::test::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use script_traits::FileManagerMsg;
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
@@ -56,10 +58,13 @@ struct FetchResponseCollector {
     sender: Sender<Response>,
 }
 
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
+fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>, fc: Option<IpcSender<FileManagerMsg>>) -> FetchContext {
     let ca_file = resources_dir_path().unwrap().join("certs");
     let ssl_client = create_ssl_client(&ca_file);
-    let (sender, _) = channel();
+    let sender = fc.unwrap_or_else(|| {
+        let (sender, _) = ipc::channel().unwrap();
+        sender
+    });
     FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
@@ -80,7 +85,7 @@ impl FetchTaskTarget for FetchResponseCollector {
 }
 
 fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch_with_context(request, &new_fetch_context(dc))
+    fetch_with_context(request, &new_fetch_context(dc, None))
 }
 
 fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
@@ -100,7 +105,7 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
         sender: sender,
     };
 
-    methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None));
+    methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None, None));
 
     receiver.recv().unwrap()
 }
