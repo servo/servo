@@ -404,13 +404,15 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
     pub fn setup_logging(&self) {
         let constellation_chan = self.constellation_chan.clone();
-        let env_logger = EnvLoggerBuilder::new().build();
+        let env = env_logger::Env::default();
+        let env_logger = EnvLoggerBuilder::from_env(env).build();
         let con_logger = FromCompositorLogger::new(constellation_chan);
-        let filter = max(env_logger.filter(), con_logger.filter());
-        log::set_max_level(filter);
 
+        let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
+
         log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
+        log::set_max_level(filter);
     }
 
     pub fn deinit(self) {
@@ -564,13 +566,15 @@ impl<Log1, Log2> Log for BothLogger<Log1, Log2> where Log1: Log, Log2: Log {
 }
 
 pub fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
-    let env_logger = EnvLoggerBuilder::new().build();
     let con_logger = FromScriptLogger::new(script_to_constellation_chan);
-    let filter = max(env_logger.filter(), con_logger.filter());
-    log::set_max_level(filter);
+    let env = env_logger::Env::default();
+    let env_logger = EnvLoggerBuilder::from_env(env).build();
 
+    let filter = max(env_logger.filter(), con_logger.filter());
     let logger = BothLogger(env_logger, con_logger);
+
     log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
+    log::set_max_level(filter);
 }
 
 /// Content process entry point.
