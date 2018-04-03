@@ -7,7 +7,7 @@ use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
-use script_traits::ConstellationMsg;
+use script_traits::FileManagerMsg;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -18,7 +18,6 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
-use std::sync::mpsc::Sender;
 use std::thread;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use url::Url;
@@ -63,12 +62,12 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
-    constellation_chan: Sender<ConstellationMsg>,
+    constellation_chan: IpcSender<FileManagerMsg>,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new(constellation_chan: Sender<ConstellationMsg>) -> FileManager {
+    pub fn new(constellation_chan: IpcSender<FileManagerMsg>) -> FileManager {
         FileManager {
             constellation_chan: constellation_chan,
             store: Arc::new(FileManagerStore::new()),
@@ -222,13 +221,13 @@ impl FileManagerStore {
     fn get_selected_files(&self,
                             patterns: Vec<FilterPattern>,
                             multiple_files: bool,
-                            constellation_chan: Sender<ConstellationMsg>) -> Option<Vec<String>> {
+                            constellation_chan: IpcSender<FileManagerMsg>) -> Option<Vec<String>> {
         if opts::get().headless {
             return None;
         }
 
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = ConstellationMsg::OpenFileSelectDialog(patterns, multiple_files, ipc_sender);
+        let msg = FileManagerMsg::OpenFileSelectDialog(patterns, multiple_files, ipc_sender);
 
         constellation_chan.send(msg).map(|_| ipc_receiver.recv().unwrap()).unwrap_or_default()
     }
@@ -238,7 +237,7 @@ impl FileManagerStore {
                     sender: IpcSender<FileManagerResult<SelectedFile>>,
                     origin: FileOrigin,
                     opt_test_path: Option<String>,
-                    constellation_chan: Sender<ConstellationMsg>) {
+                    constellation_chan: IpcSender<FileManagerMsg>) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
@@ -266,7 +265,7 @@ impl FileManagerStore {
                     sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
                     origin: FileOrigin,
                     opt_test_paths: Option<Vec<String>>,
-                    constellation_chan: Sender<ConstellationMsg>) {
+                    constellation_chan: IpcSender<FileManagerMsg>) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
