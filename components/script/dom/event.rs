@@ -482,7 +482,9 @@ fn invoke(window: Option<&Window>,
     event.current_target.set(Some(object));
 
     // Step 5.
-    inner_invoke(window, object, event, &listeners);
+    if inner_invoke(window, object, event, &listeners) {
+        event.mark_as_handled();
+    }
 
     // TODO: step 6.
 }
