@@ -251,7 +251,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
-            EmbedderMsg::GetSelectedFiles(..) => write!(f, "SelectFileDialog"),
+            EmbedderMsg::GetSelectedFiles(..) => write!(f, "GetSelectedFiles"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
