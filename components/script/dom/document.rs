@@ -1700,7 +1700,9 @@ impl Document {
         println!("document.salvageable is {:?} for : {:?}", self.salvageable.get(), self.url());
         self.decr_ignore_opens_during_unload_counter();
         // unloading document cleanup steps.
-        self.window.upcast::<GlobalScope>().suspend();
+        if !self.salvageable.get() {
+            self.window.upcast::<GlobalScope>().suspend();
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
