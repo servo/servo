@@ -244,7 +244,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
-            EmbedderMsg::GetSelectedFiles(..) => write!(f, "SelectFileDialog"),
+            EmbedderMsg::GetSelectedFiles(..) => write!(f, "GetSelectedFiles"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }
