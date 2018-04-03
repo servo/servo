@@ -9,7 +9,7 @@
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-lists/#propdef-list-style">
     use properties::longhands::{list_style_image, list_style_position, list_style_type};
-    use values::{Either, None_};
+    use values::specified::url::ImageUrlOrNone;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -76,7 +76,7 @@
             (true, 2, None, None) => {
                 Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
+                    list_style_image: ImageUrlOrNone::none(),
                     list_style_type: list_style_type_none(),
                 })
             }
@@ -90,14 +90,14 @@
             (true, 1, Some(list_style_type), None) => {
                 Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
+                    list_style_image: ImageUrlOrNone::none(),
                     list_style_type: list_style_type,
                 })
             }
             (true, 1, None, None) => {
                 Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
+                    list_style_image: ImageUrlOrNone::none(),
                     list_style_type: list_style_type_none(),
                 })
             }

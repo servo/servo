@@ -4,7 +4,7 @@
 
 //! `list` computed values.
 
-pub use values::specified::list::{ListStyleImage, Quotes};
+pub use values::specified::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use values::specified::list::ListStyleType;
 

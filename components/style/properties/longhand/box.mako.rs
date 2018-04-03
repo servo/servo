@@ -613,7 +613,7 @@ ${helpers.single_keyword("-moz-appearance",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
                          animation_value_type="discrete")}
 
-${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
+${helpers.predefined_type("-moz-binding", "url::UrlOrNone", "computed::url::UrlOrNone::none()",
                           products="gecko",
                           animation_value_type="none",
                           gecko_ffi_name="mBinding",

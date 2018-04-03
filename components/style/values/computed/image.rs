@@ -12,11 +12,12 @@ use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 use values::{Either, None_};
-use values::computed::{Angle, ComputedImageUrl, Context};
+use values::computed::{Angle, Context};
 use values::computed::{Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 #[cfg(feature = "gecko")]
 use values::computed::Percentage;
 use values::computed::position::Position;
+use values::computed::url::ComputedImageUrl;
 use values::generics::image::{CompatMode, ColorStop as GenericColorStop, EndingShape as GenericEndingShape};
 use values::generics::image::{Gradient as GenericGradient, GradientItem as GenericGradientItem};
 use values::generics::image::{Image as GenericImage, GradientKind as GenericGradientKind};

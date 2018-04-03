@@ -8,12 +8,10 @@ use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::{Either, None_};
 #[cfg(feature = "gecko")]
 use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
-use values::specified::ImageUrlOrNone;
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
@@ -70,31 +68,6 @@ impl Parse for ListStyleType {
         }
 
         Ok(ListStyleType::String(input.expect_string()?.as_ref().to_owned()))
-    }
-}
-
-/// Specified and computed `list-style-image` property.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub struct ListStyleImage(pub ImageUrlOrNone);
-
-// FIXME(nox): This is wrong, there are different types for specified
-// and computed URLs in Servo.
-trivial_to_computed_value!(ListStyleImage);
-
-impl ListStyleImage {
-    /// Initial specified value for `list-style-image`.
-    #[inline]
-    pub fn none() -> ListStyleImage {
-        ListStyleImage(Either::Second(None_))
-    }
-}
-
-impl Parse for ListStyleImage {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<ListStyleImage, ParseError<'i>> {
-        ImageUrlOrNone::parse(context, input).map(ListStyleImage)
     }
 }
 
