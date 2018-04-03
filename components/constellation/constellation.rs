@@ -1683,9 +1683,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
         let (load_data, window_size, is_private) = {
             let old_pipeline = load_info.old_pipeline_id
-                .and_then(|old_pipeline_id| {
-                    self.pipelines.get(&old_pipeline_id)
-                });
+                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
             let source_pipeline = match self.pipelines.get(&load_info.info.parent_pipeline_id) {
                 Some(source_pipeline) => source_pipeline,
                 None => return warn!("Script loaded url in closed iframe {}.", load_info.info.parent_pipeline_id),
