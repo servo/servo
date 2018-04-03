@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2Rende
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferView;
+use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult};
@@ -1747,11 +1747,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferOrArrayBufferView>) {
+    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferViewOrArrayBuffer>) {
         let data_vec = match data {
             // Typed array is rooted, so we can safely temporarily retrieve its slice
-            Some(ArrayBufferOrArrayBufferView::ArrayBuffer(mut inner)) => inner.to_vec(),
-            Some(ArrayBufferOrArrayBufferView::ArrayBufferView(mut inner)) => inner.to_vec(),
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut inner)) => inner.to_vec(),
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut inner)) => inner.to_vec(),
             // Spec: If data is null then an INVALID_VALUE error is generated.
             None => return self.webgl_error(InvalidValue),
         };

@@ -28,8 +28,6 @@ typedef (ImageData or
          HTMLImageElement or
          HTMLCanvasElement or
          HTMLVideoElement) TexImageSource;
-typedef (ArrayBuffer or ArrayBufferView) BufferDataSource;
-
 
 dictionary WebGLContextAttributes {
     GLboolean alpha = true;
@@ -495,7 +493,7 @@ interface WebGLRenderingContextBase
     void bufferData(GLenum target, object? data, GLenum usage);
     [Throws]
     void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
-    void bufferSubData(GLenum target, GLintptr offset, /*[AllowShared]*/ BufferDataSource? data);
+    void bufferSubData(GLenum target, GLintptr offset, /*[AllowShared]*/ BufferSource? data);
 
     [WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
