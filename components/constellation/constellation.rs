@@ -2265,15 +2265,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // the current entry and the future entries.
         // LoadData of inner frames are ignored and replaced with the LoadData of the parent.
 
-        // If LoadData was ignored, use the LoadData of the previous SessionHistoryEntry, which
-        // is the LoadData of the parent browsing context.
-        let _resolve_load_data = |previous_load_data: &mut LoadData, load_data| {
-            let load_data = match load_data {
-                None => previous_load_data.clone(),
-                Some(load_data) => load_data,
-            };
-            *previous_load_data = load_data.clone();
-            Some(load_data)
+        let session_history = match self.joint_session_histories.get(&top_level_browsing_context_id) {
+            Some(session_history) => session_history,
+            None => return warn!("Session history does not exist for {}", top_level_browsing_context_id),
         };
 
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -2282,8 +2276,32 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("notify_history_changed error after top-level browsing context closed."),
         };
 
-        // TODO: Get LoadData entries
-        let mut entries: Vec<LoadData> = vec![];
+        // If LoadData was ignored, use the LoadData of the previous SessionHistoryEntry, which
+        // is the LoadData of the parent browsing context.
+        let resolve_load_data_future = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
+            let SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref context_diff) = *diff;
+
+            if browsing_context_id == top_level_browsing_context_id {
+                *previous_load_data = context_diff.new_load_data.clone();
+                Some(context_diff.new_load_data.clone())
+            } else {
+                Some(previous_load_data.clone())
+            }
+        };
+
+        let resolve_load_data_past = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
+            let SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref context_diff) = *diff;
+
+            if browsing_context_id == top_level_browsing_context_id {
+                *previous_load_data = context_diff.old_load_data.clone();
+                Some(context_diff.old_load_data.clone())
+            } else {
+                Some(previous_load_data.clone())
+            }
+        };
+
+        let mut entries: Vec<LoadData> = session_history.past.iter().rev()
+            .scan(current_load_data.clone(), &resolve_load_data_past).collect();
 
         entries.reverse();
 
@@ -2291,7 +2309,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         entries.push(current_load_data.clone());
 
-        // TODO: Get LoadData future entries
+        entries.extend(session_history.future.iter().rev()
+            .scan(current_load_data.clone(), &resolve_load_data_future));
 
         let msg = EmbedderMsg::HistoryChanged(top_level_browsing_context_id, entries, current_index);
         self.embedder_proxy.send(msg);
