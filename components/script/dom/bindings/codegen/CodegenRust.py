@@ -4800,7 +4800,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
                                     False, descriptor, operation,
                                     len(arguments))
 
-        if operation.isSetter() or operation.isCreator():
+        if operation.isSetter():
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
             info = getJSToNativeConversionInfo(

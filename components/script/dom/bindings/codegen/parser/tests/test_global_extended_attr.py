@@ -39,24 +39,6 @@ def WebIDLTest(parser, harness):
           [Global]
           interface Foo {
             getter any(DOMString name);
-            creator void(DOMString name, any arg);
-          };
-        """)
-        results = parser.finish()
-    except:
-        threw = True
-
-    harness.ok(threw,
-               "Should have thrown for [Global] used on an interface with a "
-               "named creator")
-
-    parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-          [Global]
-          interface Foo {
-            getter any(DOMString name);
             deleter void(DOMString name);
           };
         """)

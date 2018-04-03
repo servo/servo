@@ -106,21 +106,6 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
           interface Foo {
-            [CEReactions] creator boolean (DOMString name, boolean value);
-          };
-        """)
-        results = parser.finish()
-    except:
-        threw = True
-
-    harness.ok(threw,
-               "Should have thrown for [CEReactions] used on a named creator")
-
-    parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-          interface Foo {
             [CEReactions] legacycaller double compute(double x);
           };
         """)
