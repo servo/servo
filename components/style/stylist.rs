@@ -1612,7 +1612,7 @@ pub struct ExtraStyleData {
 }
 
 // FIXME(emilio): This is kind of a lie, and relies on us not cloning
-// nsCSSFontFaceRules or nsCSSCounterStyleRules OMT (which we don't).
+// nsCSSCounterStyleRules OMT (which we don't).
 #[cfg(feature = "gecko")]
 unsafe impl Sync for ExtraStyleData {}
 #[cfg(feature = "gecko")]

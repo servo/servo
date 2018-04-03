@@ -38,6 +38,7 @@ use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
 use gecko_bindings::structs::RawGeckoFontFaceRuleList;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawServoAnimationValue;
+use gecko_bindings::structs::RawServoFontFaceRule;
 use gecko_bindings::structs::RawGeckoServoAnimationValueList;
 use gecko_bindings::structs::RawServoMediaList;
 use gecko_bindings::structs::RawServoStyleSheetContents;
@@ -77,7 +78,6 @@ use gecko_bindings::structs::gfxFontFeatureValueSet;
 use gecko_bindings::structs::nsCSSCounterDesc;
 use gecko_bindings::structs::nsCSSCounterStyleRule;
 use gecko_bindings::structs::nsCSSFontDesc;
-use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsCSSPropertyIDSet;
@@ -430,6 +430,9 @@ pub type RawServoRuleNodeBorrowed<'a> = &'a RawServoRuleNode;
 pub type RawServoRuleNodeBorrowedOrNull<'a> = Option<&'a RawServoRuleNode>;
 enum RawServoRuleNodeVoid { }
 pub struct RawServoRuleNode(RawServoRuleNodeVoid);
+pub type RawServoFontFaceRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoFontFaceRule>;
+pub type RawServoFontFaceRuleBorrowed<'a> = &'a RawServoFontFaceRule;
+pub type RawServoFontFaceRuleBorrowedOrNull<'a> = Option<&'a RawServoFontFaceRule>;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(
@@ -540,6 +543,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_RuleNode_Release(ptr: RawServoRuleNodeBorrowed);
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_AddRef(ptr: RawServoFontFaceRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_Release(ptr: RawServoFontFaceRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
@@ -1564,21 +1573,6 @@ extern "C" {
     ) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    pub fn Gecko_CSSFontFaceRule_Create(line: u32, column: u32) -> *mut nsCSSFontFaceRule;
-}
-extern "C" {
-    pub fn Gecko_CSSFontFaceRule_Clone(rule: *const nsCSSFontFaceRule) -> *mut nsCSSFontFaceRule;
-}
-extern "C" {
-    pub fn Gecko_CSSFontFaceRule_GetCssText(rule: *const nsCSSFontFaceRule, result: *mut nsAString);
-}
-extern "C" {
-    pub fn Gecko_CSSFontFaceRule_AddRef(aPtr: *mut nsCSSFontFaceRule);
-}
-extern "C" {
-    pub fn Gecko_CSSFontFaceRule_Release(aPtr: *mut nsCSSFontFaceRule);
-}
-extern "C" {
     pub fn Gecko_CSSCounterStyle_Create(name: *mut nsAtom) -> *mut nsCSSCounterStyleRule;
 }
 extern "C" {
@@ -2462,7 +2456,18 @@ extern "C" {
     pub fn Servo_CssRules_GetFontFaceRuleAt(
         rules: ServoCssRulesBorrowed,
         index: u32,
-    ) -> *mut nsCSSFontFaceRule;
+        line: *mut u32,
+        column: *mut u32,
+    ) -> RawServoFontFaceRuleStrong;
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_Debug(rule: RawServoFontFaceRuleBorrowed, result: *mut nsACString);
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_GetCssText(
+        rule: RawServoFontFaceRuleBorrowed,
+        result: *mut nsAString,
+    );
 }
 extern "C" {
     pub fn Servo_CssRules_GetCounterStyleRuleAt(
@@ -2610,6 +2615,64 @@ extern "C" {
     pub fn Servo_FontFeatureValuesRule_GetValueText(
         rule: RawServoFontFeatureValuesRuleBorrowed,
         result: *mut nsAString,
+    );
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_CreateEmpty() -> RawServoFontFaceRuleStrong;
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_Clone(
+        rule: RawServoFontFaceRuleBorrowed,
+    ) -> RawServoFontFaceRuleStrong;
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_GetSourceLocation(
+        rule: RawServoFontFaceRuleBorrowed,
+        line: *mut u32,
+        column: *mut u32,
+    );
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_Length(rule: RawServoFontFaceRuleBorrowed) -> u32;
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_IndexGetter(
+        rule: RawServoFontFaceRuleBorrowed,
+        index: u32,
+    ) -> nsCSSFontDesc;
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_GetDeclCssText(
+        rule: RawServoFontFaceRuleBorrowed,
+        result: *mut nsAString,
+    );
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_GetDescriptor(
+        rule: RawServoFontFaceRuleBorrowed,
+        desc: nsCSSFontDesc,
+        result: nsCSSValueBorrowedMut,
+    );
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_GetDescriptorCssText(
+        rule: RawServoFontFaceRuleBorrowed,
+        desc: nsCSSFontDesc,
+        result: *mut nsAString,
+    );
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_SetDescriptor(
+        rule: RawServoFontFaceRuleBorrowed,
+        desc: nsCSSFontDesc,
+        value: *const nsACString,
+        data: *mut RawGeckoURLExtraData,
+    ) -> bool;
+}
+extern "C" {
+    pub fn Servo_FontFaceRule_ResetDescriptor(
+        rule: RawServoFontFaceRuleBorrowed,
+        desc: nsCSSFontDesc,
     );
 }
 extern "C" {
@@ -3263,14 +3326,6 @@ extern "C" {
         aValue: *const nsACString,
         aURLExtraData: *mut RawGeckoURLExtraData,
         aResult: *mut nsCSSValue,
-    ) -> bool;
-}
-extern "C" {
-    pub fn Servo_ParseFontDescriptor(
-        desc_id: nsCSSFontDesc,
-        value: *const nsAString,
-        data: *mut RawGeckoURLExtraData,
-        arg1: nsCSSValueBorrowedMut,
     ) -> bool;
 }
 extern "C" {
