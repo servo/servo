@@ -790,13 +790,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    /// Get an iterator for the browsing contexts in a tree.
-    fn _all_browsing_contexts_iter(&self, top_level_browsing_context_id: TopLevelBrowsingContextId)
-                                  -> AllBrowsingContextsIterator
-    {
-        self.all_descendant_browsing_contexts_iter(BrowsingContextId::from(top_level_browsing_context_id))
-    }
-
     /// Create a new browsing context and update the internal bookkeeping.
     fn new_browsing_context(&mut self,
                  browsing_context_id: BrowsingContextId,
@@ -1933,8 +1926,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                    direction: TraversalDirection)
     {
-        // TODO: Close pipelines from pending_changes
-        self.pending_changes.clear();
+        let pipelines_to_close = self.pending_changes.drain(..)
+            .map(|change| change.new_pipeline_id).collect::<Vec<_>>();
+        for pipeline_id in pipelines_to_close {
+            self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+        }
 
         let mut browsing_context_changesets = HashMap::<BrowsingContextId, BrowsingContextChangeset>::new();
         {
@@ -2352,11 +2348,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         if let Some((old_pipeline_id, old_load_data)) = navigated {
             // Deactivate the old pipeline, and activate the new one.
-            if let Some(replace_pipeline_id) = change.replace {
+            let pipelines_to_close = if let Some(replace_pipeline_id) = change.replace {
                 debug_assert_eq!(old_pipeline_id, replace_pipeline_id);
                 let session_history = self.joint_session_histories
                     .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
                 session_history.replace(replace_pipeline_id, change.new_pipeline_id);
+                vec![replace_pipeline_id]
             } else {
                 let session_history = self.joint_session_histories
                     .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
@@ -2367,9 +2364,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     new_pipeline_id: change.new_pipeline_id,
                     new_load_data: change.load_data,
                 });
-                let _future = session_history.push_diff(diff);
-                // TODO: Close future pipelines
+
+                session_history.push_diff(diff).into_iter()
+                    .map(|SessionHistoryDiff::BrowsingContextDiff(_, diff)| diff.new_pipeline_id)
+                    .collect::<Vec<_>>()
+            };
+
+            for pipeline_id in pipelines_to_close {
+                self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
             }
+
             self.update_activity(old_pipeline_id);
             self.update_activity(change.new_pipeline_id);
             self.notify_history_changed(change.top_level_browsing_context_id);
@@ -2642,10 +2646,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 ));
             }
         }
-    }
-
-    fn _clear_joint_session_future(&mut self, _top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        // TODO: Clear jsh future
     }
 
     // Close a browsing context (and all children)
