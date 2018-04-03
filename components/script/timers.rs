@@ -234,7 +234,7 @@ impl OneshotTimers {
             return warn!("Suspending an already suspended timer.");
         }
 
-        debug!("Suspending timers.");
+        println!("Suspending timers.");
         self.suspended_since.set(Some(precise_time_ms()));
         self.invalidate_expected_event_id();
     }

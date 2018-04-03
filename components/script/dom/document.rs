@@ -1654,7 +1654,6 @@ impl Document {
         println!("document.unload for : {:?}", self.url());
         self.incr_ignore_opens_during_unload_counter();
         let document = Trusted::new(self);
-        let mut event_handled = false;
         if self.page_showing.get() {
             self.page_showing.set(false);
             let event = PageTransitionEvent::new(
@@ -1671,7 +1670,6 @@ impl Document {
                 document.root().upcast(),
                 &event,
             );
-            event_handled = event.get_cancel_state() == EventDefault::Handled;
         }
         if !self.fired_unload.get() {
             let event = Event::new(
@@ -1685,10 +1683,12 @@ impl Document {
                 document.root().upcast(),
                 &event,
             );
+            println!("dispatching unload for : {:?}", self.url());
             self.fired_unload.set(true);
-            event_handled = event.get_cancel_state() == EventDefault::Handled;
+            let event_handled = event.get_cancel_state() == EventDefault::Handled;
+            println!("unload cancel status for : {:?} is {:?}", self.url(), event.get_cancel_state());
+            self.salvageable.set(!event_handled);
         }
-        self.salvageable.set(!event_handled);
         // Step 13
         for iframe in self.iter_iframes() {
             if let Some(document) = iframe.GetContentDocument() {
@@ -1698,7 +1698,10 @@ impl Document {
                 }
             }
         }
+        println!("document.salvageable is {:?} for : {:?}", self.salvageable.get(), self.url());
         self.decr_ignore_opens_during_unload_counter();
+        // unloading document cleanup steps.
+        self.window.suspend();
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end

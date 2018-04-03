@@ -1876,7 +1876,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(parent_pipeline_id) => {
                 // Running the "unload" steps,
                 // a required part of "update the session history with the new page".
-                self.unload_document(source_id);
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
                 println!("navigating parent of iframe");
