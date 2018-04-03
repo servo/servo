@@ -137,20 +137,6 @@ pub enum AtRuleNonBlockPrelude {
     Namespace(Option<Prefix>, Namespace, SourceLocation),
 }
 
-
-#[cfg(feature = "gecko")]
-fn register_namespace(ns: &Namespace) -> i32 {
-    use gecko_bindings::bindings;
-    let id = unsafe { bindings::Gecko_RegisterNamespace(ns.0.as_ptr()) };
-    debug_assert!(id >= 0);
-    id
-}
-
-#[cfg(feature = "servo")]
-fn register_namespace(_: &Namespace) {
-    // servo doesn't use namespace ids
-}
-
 impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, R> {
     type PreludeNoBlock = AtRuleNonBlockPrelude;
     type PreludeBlock = AtRuleBlockPrelude;
@@ -242,15 +228,13 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 CssRule::Import(import_rule)
             }
             AtRuleNonBlockPrelude::Namespace(prefix, url, location) => {
-                let id = register_namespace(&url);
-
                 let opt_prefix = if let Some(prefix) = prefix {
                     self.namespaces
                         .prefixes
-                        .insert(prefix.clone(), (url.clone(), id));
+                        .insert(prefix.clone(), url.clone());
                     Some(prefix)
                 } else {
-                    self.namespaces.default = Some((url.clone(), id));
+                    self.namespaces.default = Some(url.clone());
                     None
                 };
 

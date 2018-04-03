@@ -10,7 +10,7 @@ use style_traits::ParseError;
 
 fn parse_selector<'i, 't>(input: &mut Parser<'i, 't>) -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
     let mut ns = Namespaces::default();
-    ns.prefixes.insert("svg".into(), (ns!(svg), ()));
+    ns.prefixes.insert("svg".into(), ns!(svg));
     let parser = SelectorParser {
         stylesheet_origin: Origin::UserAgent,
         namespaces: &ns,
