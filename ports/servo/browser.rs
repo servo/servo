@@ -5,9 +5,9 @@
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
-use servo::ipc_channel::ipc::IpcSender;
 use servo::compositing::compositor_thread::EmbedderMsg;
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
+use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use servo::net_traits::filemanager_thread::FilterPattern;
@@ -302,7 +302,9 @@ impl Browser {
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn platform_get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool, sender: IpcSender<Option<Vec<String>>>) {
+fn platform_get_selected_files(patterns: Vec<FilterPattern>,
+                               multiple_files: bool,
+                               sender: IpcSender<Option<Vec<String>>>) {
     let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
 
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
@@ -326,7 +328,9 @@ fn platform_get_selected_files(patterns: Vec<FilterPattern>, multiple_files: boo
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn platform_get_selected_files(_patterns: Vec<FilterPattern>, _multiple_files: bool, sender: IpcSender<Option<Vec<String>>>) {
+fn platform_get_selected_files(_patterns: Vec<FilterPattern>,
+                               _multiple_files: bool,
+                               sender: IpcSender<Option<Vec<String>>>) {
     sender.send(None);
 }
 
