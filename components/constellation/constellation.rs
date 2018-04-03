@@ -2724,6 +2724,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // Close all pipelines at and beneath a given browsing context
     fn close_pipeline(&mut self, pipeline_id: PipelineId, dbc: DiscardBrowsingContext, exit_mode: ExitPipelineMode) {
         debug!("Closing pipeline {:?}.", pipeline_id);
+
+        // Sever connection to browsing context
+        let browsing_context_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.browsing_context_id);
+        if let Some(browsing_context) = browsing_context_id
+            .and_then(|browsing_context_id| self.browsing_contexts.get_mut(&browsing_context_id))
+        {
+            browsing_context.pipelines.remove(&pipeline_id);
+        }
+
         // Store information about the browsing contexts to be closed. Then close the
         // browsing contexts, before removing ourself from the pipelines hash map. This
         // ordering is vital - so that if close_browsing_context() ends up closing
