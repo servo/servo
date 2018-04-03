@@ -84,10 +84,9 @@
         assert_readonly(styleSheet, "parentStyleSheet");
         assert_readonly(styleSheet, "href");
         assert_readonly(styleSheet, "title");
-        assert_readonly(styleSheet, "media");
     }, "StyleSheet_properties",
     { assert: [ "type, disabled, ownerNode, parentStyleSheet, href, title, and media properties exist on StyleSheet",
-                "type, ownerNode, parentStyleSheet, href, title, media properties are read only" ] });
+                "type, ownerNode, parentStyleSheet, href, and title properties are read only" ] });
 
     test(function() {
         assert_equals(styleSheet.type, "text/css");

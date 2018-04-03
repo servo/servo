@@ -145,10 +145,13 @@ test(() => {
 
   customElements.upgrade(template.content);
 
-  assert_true(el1 instanceof Element1, "element 1 must now be upgraded");
-  assert_true(el2 instanceof Element2, "element 2 must now be upgraded");
-  assert_true(el3 instanceof Element3, "element 3 must now be upgraded");
-  assert_true(el4 instanceof Element4, "element 4 must now be upgraded");
-  assert_true(el5 instanceof Element5, "element 5 must now be upgraded");
+  // Template contents owner documents don't have a browsing context, so
+  // https://html.spec.whatwg.org/multipage/custom-elements.html#look-up-a-custom-element-definition does not find any
+  // custom element definition.
+  assert_false(el1 instanceof Element1, "element 1 must still not be upgraded after upgrading the template contents");
+  assert_false(el2 instanceof Element2, "element 2 must still not be upgraded after upgrading the template contents");
+  assert_false(el3 instanceof Element3, "element 3 must still not be upgraded after upgrading the template contents");
+  assert_false(el4 instanceof Element4, "element 4 must still not be upgraded after upgrading the template contents");
+  assert_false(el5 instanceof Element5, "element 5 must still not be upgraded after upgrading the template contents");
 }, "Elements inside a template contents DocumentFragment node");
 </script>

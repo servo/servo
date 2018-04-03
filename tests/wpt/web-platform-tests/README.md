@@ -423,7 +423,7 @@ is [archived][ircarchive].
 
 [contributing]: https://github.com/w3c/web-platform-tests/blob/master/CONTRIBUTING.md
 [ircw3org]: https://www.w3.org/wiki/IRC
-[ircarchive]: http://logs.glob.uno/?c=w3%23testing
+[ircarchive]: https://w3.logbot.info/testing
 [mailarchive]: https://lists.w3.org/Archives/Public/public-test-infra/
 
 Documentation
