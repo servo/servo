@@ -355,7 +355,7 @@ impl<S> OriginComponent<S> {
 #[inline]
 fn allow_frames_timing() -> bool {
     use gecko_bindings::structs::mozilla;
-    unsafe { mozilla::StylePrefs_sFramesTimingFunctionEnabled }
+    unsafe { mozilla::StaticPrefs_sVarCache_layout_css_frames_timing_enabled }
 }
 
 #[cfg(feature = "servo")]

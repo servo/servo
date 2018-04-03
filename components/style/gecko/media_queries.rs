@@ -610,11 +610,11 @@ impl Expression {
                 let result = {
                     let mut feature_name = &**ident;
 
-                    if unsafe { structs::StylePrefs_sWebkitPrefixedAliasesEnabled } &&
+                    if unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_webkit } &&
                        starts_with_ignore_ascii_case(feature_name, "-webkit-") {
                         feature_name = &feature_name[8..];
                         flags |= structs::nsMediaFeature_RequirementFlags_eHasWebkitPrefix;
-                        if unsafe { structs::StylePrefs_sWebkitDevicePixelRatioEnabled } {
+                        if unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_device_pixel_ratio_webkit } {
                             flags |= structs::nsMediaFeature_RequirementFlags_eWebkitDevicePixelRatioPrefEnabled;
                         }
                     }

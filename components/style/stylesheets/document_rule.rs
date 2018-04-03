@@ -220,11 +220,11 @@ impl DocumentCondition {
             return true;
         }
 
-        if unsafe { structs::StylePrefs_sMozDocumentEnabledInContent } {
+        if unsafe { structs::StaticPrefs_sVarCache_layout_css_moz_document_content_enabled } {
             return true;
         }
 
-        if !unsafe { structs::StylePrefs_sMozDocumentURLPrefixHackEnabled } {
+        if !unsafe { structs::StaticPrefs_sVarCache_layout_css_moz_document_url_prefix_hack_enabled } {
             return false;
         }
 

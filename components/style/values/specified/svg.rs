@@ -28,7 +28,7 @@ fn is_context_value_enabled() -> bool {
     // to read whenever we are on the main thread or the main thread is
     // blocked.
     use gecko_bindings::structs::mozilla;
-    unsafe { mozilla::StylePrefs_sOpentypeSVGEnabled }
+    unsafe { mozilla::StaticPrefs_sVarCache_gfx_font_rendering_opentype_svg_enabled }
 }
 #[cfg(not(feature = "gecko"))]
 fn is_context_value_enabled() -> bool {
