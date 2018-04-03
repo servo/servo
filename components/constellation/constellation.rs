@@ -1097,7 +1097,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
             }
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
-                println!("constellation got iframe URL load message {:?} {:?} {:?}",
+                debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.info.parent_pipeline_id,
                        load_info.old_pipeline_id,
                        load_info.info.new_pipeline_id);
@@ -1879,7 +1879,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
-                println!("navigating parent of iframe");
                 let msg = ConstellationControlMsg::Navigate(parent_pipeline_id,
                                                             browsing_context_id,
                                                             load_data,
@@ -2331,7 +2330,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let pipeline_id = match entry.pipeline_id {
             Some(pipeline_id) => pipeline_id,
             None => {
-                println!("reloading document");
                 // If there is no pipeline, then the document for this
                 // entry has been discarded, so we navigate to the entry
                 // URL instead. When the document has activated, it will
@@ -2378,7 +2376,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             match self.browsing_contexts.get_mut(&browsing_context_id)
         {
             Some(browsing_context) => {
-                println!("getting old and new pipeline info");
                 let old_pipeline_id = browsing_context.pipeline_id;
                 let top_level_id = browsing_context.top_level_id;
                 let mut curr_entry = browsing_context.current();
@@ -2423,7 +2420,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If we replaced a pipeline, close it.
         if let Some(replaced_pipeline_id) = replaced_pipeline_id {
             if replaced_pipeline_id != pipeline_id {
-                println!("closing replaced pipeline");
                 self.close_pipeline(replaced_pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
             }
         }
@@ -2559,7 +2555,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(evicted_id) = evicted_id {
-            println!("evicted pipeline");
             self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
         }
 
@@ -2573,7 +2568,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(old_pipeline_id) = navigated {
-            println!("de-activate old pipeline {:?}", old_pipeline_id);
             // Deactivate the old pipeline, and activate the new one.
             self.update_activity(old_pipeline_id);
             self.update_activity(change.new_pipeline_id);
@@ -2935,7 +2929,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Close all pipelines at and beneath a given browsing context
     fn close_pipeline(&mut self, pipeline_id: PipelineId, dbc: DiscardBrowsingContext, exit_mode: ExitPipelineMode) {
-        println!("Closing pipeline {:?}.", pipeline_id);
+        debug!("Closing pipeline {:?}.", pipeline_id);
         // Store information about the browsing contexts to be closed. Then close the
         // browsing contexts, before removing ourself from the pipelines hash map. This
         // ordering is vital - so that if close_browsing_context() ends up closing

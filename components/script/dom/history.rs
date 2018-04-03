@@ -57,18 +57,15 @@ impl History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        println!("traversing");
         // <https://html.spec.whatwg.org/multipage/history.html#traverse-the-history-by-a-delta> step 5.2
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::HistoryTraversalChangesDocument(direction, result_sender);
         let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
         if let Ok(true) = result_receiver.recv() {
-            println!("should unload");
             let document = self.window.Document();
             if !document.prompt_to_unload() {
                 return Ok(());
             }
-            println!("unloadign from history for : {:?}", document.url());
             document.unload();
         }
         let msg = ScriptMsg::TraverseHistory(direction);

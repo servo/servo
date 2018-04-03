@@ -16,7 +16,6 @@ onload = function() {setTimeout(function() {
                                  iframe.contentWindow.location="001-2.html";
                                }, 100);
                     iframe.onload = t.step_func(function() {
-                                                  console.log(events)
                                                   assert_array_equals(events, ["pagehide", "unload"])
                                                   t.done()});
                   };

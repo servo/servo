@@ -234,7 +234,6 @@ impl OneshotTimers {
             return warn!("Suspending an already suspended timer.");
         }
 
-        println!("Suspending timers.");
         self.suspended_since.set(Some(precise_time_ms()));
         self.invalidate_expected_event_id();
     }
@@ -422,7 +421,6 @@ impl JsTimers {
         let mut active_timers = self.active_timers.borrow_mut();
 
         if let Some(entry) = active_timers.remove(&JsTimerHandle(handle)) {
-            println!("uncheduling callback for: {:?}", global.pipeline_id());
             global.unschedule_callback(entry.oneshot_handle);
         }
     }

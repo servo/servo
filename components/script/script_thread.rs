@@ -2448,6 +2448,7 @@ impl ScriptThread {
                 }
             }
             None => {
+                println!("loading url");
                 self.script_sender
                     .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
                     .unwrap();

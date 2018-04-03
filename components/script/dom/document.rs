@@ -1651,7 +1651,6 @@ impl Document {
     
     // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-documents
     pub fn unload(&self) {
-        println!("document.unload for : {:?}", self.url());
         self.incr_ignore_opens_during_unload_counter();
         let document = Trusted::new(self);
         if self.page_showing.get() {
@@ -1663,7 +1662,6 @@ impl Document {
                 false, // cancelable
                 self.salvageable.get(), // persisted
             );
-            println!("dispatching pagehide for : {:?}", self.url());
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
@@ -1683,7 +1681,6 @@ impl Document {
                 document.root().upcast(),
                 &event,
             );
-            println!("dispatching unload for : {:?}", self.url());
             self.fired_unload.set(true);
             let event_handled = event.get_cancel_state() == EventDefault::Handled;
             self.salvageable.set(!event_handled);
@@ -1697,7 +1694,6 @@ impl Document {
                 }
             }
         }
-        println!("document.salvageable is {:?} for : {:?}", self.salvageable.get(), self.url());
         self.decr_ignore_opens_during_unload_counter();
         // unloading document cleanup steps.
         if !self.salvageable.get() {
@@ -1718,7 +1714,6 @@ impl Document {
         // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
-        println!("document load for : {:?}", self.url());
         let document = Trusted::new(self);
         self.window.dom_manipulation_task_source().queue(
             task!(fire_load_event: move || {

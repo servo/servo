@@ -13,7 +13,7 @@ onload = function() {setTimeout(t.step_func(function() {
   var iframe = document.getElementsByTagName("iframe")[0]
   iframe.onload = t.step_func(function() {
     iframe.onload = null;
-    history.go(-1);
+    history.go(-2);
   });
 
   iframe.src = "beforeunload-on-navigation-of-parent-1.html";
