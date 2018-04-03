@@ -1477,6 +1477,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
             load_data: load_data,
+            replace: None,
         });
     }
 
@@ -1553,6 +1554,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             browsing_context_id: browsing_context_id,
             new_pipeline_id: pipeline_id,
             load_data: load_data,
+            replace: None,
         });
     }
 
@@ -1641,6 +1643,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             (load_data, window_size, is_private)
         };
 
+        let replace = if load_info.info.replace {
+            self.browsing_contexts.get(&load_info.info.browsing_context_id)
+                .map(|browsing_context| browsing_context.pipeline_id)
+        } else {
+            None
+        };
+
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(load_info.info.new_pipeline_id,
                           load_info.info.browsing_context_id,
@@ -1655,6 +1664,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             browsing_context_id: load_info.info.browsing_context_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
             load_data: load_data,
+            replace,
         });
     }
 
@@ -1664,7 +1674,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
-            replace,
+            replace: _replace,
             browsing_context_id,
             top_level_browsing_context_id,
             is_private,
@@ -1703,6 +1713,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
             load_data: load_data,
+            replace: None,
         });
     }
 
@@ -1830,13 +1841,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // changes would be overridden by changing the subframe associated with source_id.
 
                 // Create the new pipeline
-                let (top_level_id, window_size) = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(context) => (context.top_level_id, context.size),
+                let (top_level_id, window_size, pipeline_id) = match self.browsing_contexts.get(&browsing_context_id) {
+                    Some(context) => (context.top_level_id, context.size, context.pipeline_id),
                     None => {
                         warn!("Browsing context {} loaded after closure.", browsing_context_id);
                         return None;
                     }
                 };
+
+                let replace = if replace { Some(pipeline_id) } else { None };
+
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 self.new_pipeline(new_pipeline_id,
@@ -1852,6 +1866,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
                     load_data: load_data,
+                    replace,
                 });
                 Some(new_pipeline_id)
             }
@@ -1918,6 +1933,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                    direction: TraversalDirection)
     {
+        // TODO: Close pipelines from pending_changes
+        self.pending_changes.clear();
+
         let mut browsing_context_changesets: HashMap<BrowsingContextId, BrowsingContextChangeset> = HashMap::new();
         {
             let session_history = self.joint_session_histories.entry(top_level_browsing_context_id).or_insert(SessionHistory::new());
@@ -2331,9 +2349,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         if let Some((old_pipeline_id, old_load_data)) = navigated {
             // Deactivate the old pipeline, and activate the new one.
-            self.update_activity(old_pipeline_id);
-            self.update_activity(change.new_pipeline_id);
-            {
+            if let Some(replace_pipeline_id) = change.replace {
+                debug_assert_eq!(old_pipeline_id, replace_pipeline_id);
+                let session_history = self.joint_session_histories.entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
+                session_history.replace(replace_pipeline_id, change.new_pipeline_id);
+            } else {
                 let session_history = self.joint_session_histories.entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
                 let diff = SessionHistoryDiff::BrowsingContextDiff(change.browsing_context_id, BrowsingContextDiff {
                     browsing_context_id: change.browsing_context_id,
@@ -2342,9 +2362,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     new_pipeline_id: change.new_pipeline_id,
                     new_load_data: change.load_data,
                 });
-                let future = session_history.push_diff(diff);
+                let _future = session_history.push_diff(diff);
                 // TODO: Close future pipelines
             }
+            self.update_activity(old_pipeline_id);
+            self.update_activity(change.new_pipeline_id);
             self.notify_history_changed(change.top_level_browsing_context_id);
         }
 
