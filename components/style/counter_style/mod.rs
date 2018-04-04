@@ -10,12 +10,12 @@ use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
 use cssparser::{Parser, Token, CowRcStr, SourceLocation};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
-#[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
-#[cfg(feature = "gecko")] use gecko_bindings::structs::{ nsCSSCounterDesc, nsCSSValue };
 use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
+use std::mem;
+use std::num::Wrapping;
 use std::ops::Range;
 use str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
@@ -55,13 +55,17 @@ pub fn parse_counter_style_name<'i, 't>(
     include!("predefined.rs")
 }
 
+fn is_valid_name_definition(ident: &CustomIdent) -> bool {
+    ident.0 != atom!("decimal") && ident.0 != atom!("disc")
+}
+
 /// Parse the prelude of an @counter-style rule
 pub fn parse_counter_style_name_definition<'i, 't>(
     input: &mut Parser<'i, 't>
 ) -> Result<CustomIdent, ParseError<'i>> {
     parse_counter_style_name(input)
         .and_then(|ident| {
-            if ident.0 == atom!("decimal") || ident.0 == atom!("disc") {
+            if !is_valid_name_definition(&ident) {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             } else {
                 Ok(ident)
@@ -143,14 +147,24 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
+macro_rules! checker {
+    ($self:ident._($value:ident)) => {};
+    ($self:ident.$checker:ident($value:ident)) => {
+        if !$self.$checker(&$value) {
+            return false;
+        }
+    };
+}
+
 macro_rules! counter_style_descriptors {
     (
-        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty, )+
+        $( #[$doc: meta] $name: tt $ident: ident / $setter: ident [$checker: tt]: $ty: ty, )+
     ) => {
         /// An @counter-style rule
         #[derive(Clone, Debug)]
         pub struct CounterStyleRuleData {
             name: CustomIdent,
+            generation: Wrapping<u32>,
             $(
                 #[$doc]
                 $ident: Option<$ty>,
@@ -163,24 +177,11 @@ macro_rules! counter_style_descriptors {
             fn empty(name: CustomIdent, source_location: SourceLocation) -> Self {
                 CounterStyleRuleData {
                     name: name,
+                    generation: Wrapping(0),
                     $(
                         $ident: None,
                     )+
                     source_location,
-                }
-            }
-
-            /// Get the name of the counter style rule.
-            pub fn name(&self) -> &CustomIdent {
-                &self.name
-            }
-
-            /// Get the system of this counter style rule, default to
-            /// `symbolic` if not specified.
-            pub fn resolved_system(&self) -> &System {
-                match self.system {
-                    Some(ref system) => system,
-                    None => &System::Symbolic,
                 }
             }
 
@@ -191,15 +192,15 @@ macro_rules! counter_style_descriptors {
                 }
             )+
 
-            /// Convert to Gecko types
-            #[cfg(feature = "gecko")]
-            pub fn set_descriptors(self, descriptors: &mut CounterStyleDescriptors) {
-                $(
-                    if let Some(value) = self.$ident {
-                        descriptors[nsCSSCounterDesc::$gecko_ident as usize].set_from(value)
-                    }
-                )*
-            }
+            $(
+                #[$doc]
+                pub fn $setter(&mut self, value: $ty) -> bool {
+                    checker!(self.$checker(value));
+                    self.$ident = Some(value);
+                    self.generation += Wrapping(1);
+                    true
+                }
+            )+
         }
 
         impl<'a, 'b, 'i> DeclarationParser<'i> for CounterStyleRuleParser<'a, 'b> {
@@ -240,63 +241,96 @@ macro_rules! counter_style_descriptors {
                 dest.write_str("}")
             }
         }
-
-        /// Parse a descriptor into an `nsCSSValue`.
-        #[cfg(feature = "gecko")]
-        pub fn parse_counter_style_descriptor<'i, 't>(
-            context: &ParserContext,
-            input: &mut Parser<'i, 't>,
-            descriptor: nsCSSCounterDesc,
-            value: &mut nsCSSValue
-        ) -> Result<(), ParseError<'i>> {
-            match descriptor {
-                $(
-                    nsCSSCounterDesc::$gecko_ident => {
-                        let v: $ty =
-                            input.parse_entirely(|i| Parse::parse(context, i))?;
-                        value.set_from(v);
-                    }
-                )*
-                nsCSSCounterDesc::eCSSCounterDesc_COUNT |
-                nsCSSCounterDesc::eCSSCounterDesc_UNKNOWN => {
-                    panic!("invalid counter descriptor");
-                }
-            }
-            Ok(())
-        }
     }
 }
 
 counter_style_descriptors! {
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
-    "system" system / eCSSCounterDesc_System: System,
+    "system" system / set_system [check_system]: System,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-negative>
-    "negative" negative / eCSSCounterDesc_Negative: Negative,
+    "negative" negative / set_negative [_]: Negative,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-prefix>
-    "prefix" prefix / eCSSCounterDesc_Prefix: Symbol,
+    "prefix" prefix / set_prefix [_]: Symbol,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-suffix>
-    "suffix" suffix / eCSSCounterDesc_Suffix: Symbol,
+    "suffix" suffix / set_suffix [_]: Symbol,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
-    "range" range / eCSSCounterDesc_Range: Ranges,
+    "range" range / set_range [_]: Ranges,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
-    "pad" pad / eCSSCounterDesc_Pad: Pad,
+    "pad" pad / set_pad [_]: Pad,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-fallback>
-    "fallback" fallback / eCSSCounterDesc_Fallback: Fallback,
+    "fallback" fallback / set_fallback [_]: Fallback,
 
     /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
-    "symbols" symbols / eCSSCounterDesc_Symbols: Symbols,
+    "symbols" symbols / set_symbols [check_symbols]: Symbols,
 
     /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols>
-    "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: AdditiveSymbols,
+    "additive-symbols" additive_symbols /
+        set_additive_symbols [check_additive_symbols]: AdditiveSymbols,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as>
-    "speak-as" speak_as / eCSSCounterDesc_SpeakAs: SpeakAs,
+    "speak-as" speak_as / set_speak_as [_]: SpeakAs,
+}
+
+// Implements the special checkers for some setters.
+// See <https://drafts.csswg.org/css-counter-styles/#the-csscounterstylerule-interface>
+impl CounterStyleRuleData {
+    /// Check that the system is effectively not changed. Only params
+    /// of system descriptor is changeable.
+    fn check_system(&self, value: &System) -> bool {
+        mem::discriminant(self.resolved_system()) == mem::discriminant(value)
+    }
+
+    fn check_symbols(&self, value: &Symbols) -> bool {
+        match *self.resolved_system() {
+            // These two systems require at least two symbols.
+            System::Numeric | System::Alphabetic => value.0.len() >= 2,
+            // No symbols should be set for extends system.
+            System::Extends(_) => false,
+            _ => true,
+        }
+    }
+
+    fn check_additive_symbols(&self, _value: &AdditiveSymbols) -> bool {
+        match *self.resolved_system() {
+            // No additive symbols should be set for extends system.
+            System::Extends(_) => false,
+            _ => true,
+        }
+    }
+}
+
+impl CounterStyleRuleData {
+    /// Get the name of the counter style rule.
+    pub fn name(&self) -> &CustomIdent {
+        &self.name
+    }
+
+    /// Set the name of the counter style rule. Caller must ensure that
+    /// the name is valid.
+    pub fn set_name(&mut self, name: CustomIdent) {
+        debug_assert!(is_valid_name_definition(&name));
+        self.name = name;
+    }
+
+    /// Get the current generation of the counter style rule.
+    pub fn generation(&self) -> u32 {
+        self.generation.0
+    }
+
+    /// Get the system of this counter style rule, default to
+    /// `symbolic` if not specified.
+    pub fn resolved_system(&self) -> &System {
+        match self.system {
+            Some(ref system) => system,
+            None => &System::Symbolic,
+        }
+    }
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
