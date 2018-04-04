@@ -3240,6 +3240,7 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_rand 0.0.1",
+ "servo_remutex 0.0.1",
  "servo_url 0.0.1",
  "smallvec 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
