@@ -117,8 +117,11 @@ impl Worker {
         self.terminated.get()
     }
 
-    pub fn handle_message(address: TrustedWorkerAddress,
-                          data: StructuredCloneData) {
+    pub fn handle_message(
+        address: TrustedWorkerAddress,
+        origin: String,
+        data: StructuredCloneData
+    ) {
         let worker = address.root();
 
         if worker.is_terminated() {
@@ -130,7 +133,7 @@ impl Worker {
         let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
         rooted!(in(global.get_cx()) let mut message = UndefinedValue());
         assert!(data.read(&global, message.handle_mut()));
-        MessageEvent::dispatch_jsval(target, &global, message.handle(), None, vec![]);
+        MessageEvent::dispatch_jsval(target, &global, message.handle(), Some(&origin), vec![]);
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
@@ -149,7 +152,10 @@ impl WorkerMethods for Worker {
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
         // indicates that a nonexistent communication channel should result in a silent error.
-        let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(address, WorkerScriptMsg::DOMMessage(data)));
+        let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(address, WorkerScriptMsg::DOMMessage {
+            origin: self.global().origin().immutable().ascii_serialization(),
+            data,
+        }));
         Ok(())
     }
 

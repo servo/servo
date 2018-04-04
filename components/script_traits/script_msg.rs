@@ -240,7 +240,12 @@ pub struct ScopeThings {
 
 /// Message that gets passed to service worker scope on postMessage
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct DOMMessage(pub Vec<u8>);
+pub struct DOMMessage {
+    /// The origin of the message
+    pub origin: String,
+    /// The payload of the message
+    pub data: Vec<u8>,
+}
 
 /// Channels to allow service worker manager to communicate with constellation and resource thread
 pub struct SWManagerSenders {
