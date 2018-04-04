@@ -4,8 +4,9 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError, WebGLVersion, WebGLSLVersion};
-use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
+use canvas_traits::webgl::{WebGLCommand, WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLParameter, WebGLResult, WebGLSLVersion, WebGLVersion, WebVRCommand};
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
@@ -1195,6 +1196,14 @@ impl WebGLRenderingContext {
         ));
         Some(receiver.recv().unwrap().into())
     }
+
+    pub fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
+        match target {
+            constants::ARRAY_BUFFER => Ok(self.bound_buffer_array.get()),
+            constants::ELEMENT_ARRAY_BUFFER => Ok(self.bound_buffer_element_array.get()),
+            _ => Err(WebGLError::InvalidEnum),
+        }
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -1256,14 +1265,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         target: u32,
         parameter: u32,
     ) -> JSVal {
-        let buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => {
-                self.webgl_error(InvalidEnum);
-                return NullValue();
-            }
-        };
+        let buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return NullValue());
+
         match parameter {
             constants::BUFFER_SIZE | constants::BUFFER_USAGE => {},
             _ => {
@@ -1693,15 +1696,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
         };
 
-        let bound_buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        };
-
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return Ok(()));
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidValue)),
+            None => return Ok(self.webgl_error(InvalidOperation)),
         };
 
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data_vec, usage));
@@ -1710,12 +1708,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) -> ErrorResult {
-        let bound_buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        };
-
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return Ok(()));
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
             None => return Ok(self.webgl_error(InvalidValue)),
@@ -1742,12 +1735,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return self.webgl_error(InvalidValue),
         };
 
-        let bound_buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => return self.webgl_error(InvalidEnum),
-        };
-
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
             None => return self.webgl_error(InvalidOperation),
