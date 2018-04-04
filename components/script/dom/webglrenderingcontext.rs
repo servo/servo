@@ -1482,17 +1482,25 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::FUNC_SUBTRACT |
             constants::FUNC_REVERSE_SUBTRACT => {
                 self.send_command(WebGLCommand::BlendEquation(mode))
-            },
-            _ => self.webgl_error(InvalidEnum)
+            }
+            _ => self.webgl_error(InvalidEnum),
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
-        if mode_rgb != constants::FUNC_ADD || mode_alpha != constants::FUNC_ADD {
-            return self.webgl_error(InvalidEnum);
+        match mode_rgb {
+            constants::FUNC_ADD |
+            constants::FUNC_SUBTRACT |
+            constants::FUNC_REVERSE_SUBTRACT => {},
+            _ => return self.webgl_error(InvalidEnum),
         }
-
+        match mode_alpha {
+            constants::FUNC_ADD |
+            constants::FUNC_SUBTRACT |
+            constants::FUNC_REVERSE_SUBTRACT => {},
+            _ => return self.webgl_error(InvalidEnum),
+        }
         self.send_command(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha));
     }
 
