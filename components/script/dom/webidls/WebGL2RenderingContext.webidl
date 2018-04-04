@@ -179,6 +179,7 @@ interface WebGL2RenderingContextBase
   const GLenum FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE             = 0x8216;
   const GLenum FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE           = 0x8217;
   const GLenum FRAMEBUFFER_DEFAULT                           = 0x8218;
+  // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
   // const GLenum DEPTH_STENCIL_ATTACHMENT                      = 0x821A;
   // const GLenum DEPTH_STENCIL                                 = 0x84F9;
   const GLenum UNSIGNED_INT_24_8                             = 0x84FA;
@@ -303,9 +304,13 @@ interface WebGL2RenderingContextBase
 
   /* Buffer objects */
   // WebGL1:
-  // void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
-  // void bufferData(GLenum target, [AllowShared] BufferSource? srcData, GLenum usage);
-  // void bufferSubData(GLenum target, GLintptr dstByteOffset, [AllowShared] BufferSource srcData);
+  // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
+  // FIXME(xanewok): https://github.com/servo/servo/issues/20513
+  [Throws]
+  void bufferData(GLenum target, object? data, GLenum usage);
+  [Throws]
+  void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
+  void bufferSubData(GLenum target, GLintptr dstByteOffset, /*[AllowShared]*/ BufferSource srcData);
   // WebGL2:
   // void bufferData(GLenum target, [AllowShared] ArrayBufferView srcData, GLenum usage, GLuint srcOffset,
   //                 optional GLuint length = 0);
@@ -342,17 +347,23 @@ interface WebGL2RenderingContextBase
   //                   GLsizei height, GLsizei depth);
 
   // WebGL1 legacy entrypoints:
-  // void texImage2D(GLenum target, GLint level, GLint internalformat,
-  //                 GLsizei width, GLsizei height, GLint border, GLenum format,
-  //                 GLenum type, [AllowShared] ArrayBufferView? pixels);
-  // void texImage2D(GLenum target, GLint level, GLint internalformat,
-  //                 GLenum format, GLenum type, TexImageSource source); // May throw DOMException
+  // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
+  [Throws]
+  void texImage2D(GLenum target, GLint level, GLenum internalformat,
+                  GLsizei width, GLsizei height, GLint border, GLenum format,
+                  GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
+  [Throws]
+  void texImage2D(GLenum target, GLint level, GLenum internalformat,
+                  GLenum format, GLenum type, TexImageSource source); // May throw DOMException
 
-  // void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-  //                    GLsizei width, GLsizei height,
-  //                    GLenum format, GLenum type, [AllowShared] ArrayBufferView? pixels);
-  // void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-  //                    GLenum format, GLenum type, TexImageSource source); // May throw DOMException
+  // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
+  [Throws]
+  void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                     GLsizei width, GLsizei height,
+                     GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
+  [Throws]
+  void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                     GLenum format, GLenum type, TexImageSource source); // May throw DOMException
 
   // WebGL2 entrypoints:
   // void texImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
@@ -498,8 +509,9 @@ interface WebGL2RenderingContextBase
 
   /* Reading back pixels */
   // WebGL1:
-  // void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
-  //                 [AllowShared] ArrayBufferView? dstData);
+  // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
+  void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
+                  /*[AllowShared]*/ ArrayBufferView? dstData);
   // WebGL2:
   // void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
   //                 GLintptr offset);
