@@ -1925,16 +1925,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn DepthRange(&self, near: f32, far: f32) {
-        // From the WebGL 1.0 spec, 6.12: Viewport Depth Range:
-        //
-        //     "A call to depthRange will generate an
-        //      INVALID_OPERATION error if zNear is greater than
-        //      zFar."
+        let near = near.max(0.).min(1.);
+        let near = far.max(0.).min(1.);
+
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#VIEWPORT_DEPTH_RANGE
         if near > far {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.send_command(WebGLCommand::DepthRange(near as f64, far as f64))
+        self.send_command(WebGLCommand::DepthRange(near, far))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3

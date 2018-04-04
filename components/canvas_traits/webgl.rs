@@ -177,7 +177,7 @@ pub enum WebGLCommand {
     FrontFace(u32),
     DepthFunc(u32),
     DepthMask(bool),
-    DepthRange(f64, f64),
+    DepthRange(f32, f32),
     Enable(u32),
     Disable(u32),
     CompileShader(WebGLShaderId, String),
