@@ -1711,13 +1711,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferViewOrArrayBuffer>) {
+    fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         let data_vec = match data {
             // Typed array is rooted, so we can safely temporarily retrieve its slice
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut inner)) => inner.to_vec(),
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut inner)) => inner.to_vec(),
-            // Spec: If data is null then an INVALID_VALUE error is generated.
-            None => return self.webgl_error(InvalidValue),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut inner) => inner.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut inner) => inner.to_vec(),
         };
 
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
