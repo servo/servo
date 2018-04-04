@@ -678,8 +678,9 @@ impl WebGLImpl {
                 ctx.gl().clear(mask),
             WebGLCommand::ClearColor(r, g, b, a) =>
                 ctx.gl().clear_color(r, g, b, a),
-            WebGLCommand::ClearDepth(depth) =>
-                ctx.gl().clear_depth(depth),
+            WebGLCommand::ClearDepth(depth) => {
+                ctx.gl().clear_depth(depth.max(0.).min(1.) as f64)
+            }
             WebGLCommand::ClearStencil(stencil) =>
                 ctx.gl().clear_stencil(stencil),
             WebGLCommand::ColorMask(r, g, b, a) =>

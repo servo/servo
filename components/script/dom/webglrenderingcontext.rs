@@ -1876,7 +1876,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearDepth(&self, depth: f32) {
-        self.send_command(WebGLCommand::ClearDepth(depth as f64))
+        self.send_command(WebGLCommand::ClearDepth(depth))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3

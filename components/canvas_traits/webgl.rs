@@ -170,7 +170,7 @@ pub enum WebGLCommand {
     BufferSubData(u32, isize, ByteBuf),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
-    ClearDepth(f64),
+    ClearDepth(f32),
     ClearStencil(i32),
     ColorMask(bool, bool, bool, bool),
     CullFace(u32),
