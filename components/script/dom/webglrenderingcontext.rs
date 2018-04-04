@@ -68,21 +68,6 @@ use webrender_api;
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
-macro_rules! handle_potential_webgl_error {
-    ($context:ident, $call:expr, $return_on_error:expr) => {
-        match $call {
-            Ok(ret) => ret,
-            Err(error) => {
-                $context.webgl_error(error);
-                $return_on_error
-            }
-        }
-    };
-    ($context:ident, $call:expr) => {
-        handle_potential_webgl_error!($context, $call, ());
-    };
-}
-
 // From the GLES 2.0.25 spec, page 85:
 //
 //     "If a texture that is currently bound to one of the targets
