@@ -758,8 +758,6 @@ impl WebGLImpl {
                 Self::vertex_attrib(ctx.gl(), index, pname, chan),
             WebGLCommand::GetVertexAttribOffset(index, pname, chan) =>
                 Self::vertex_attrib_offset(ctx.gl(), index, pname, chan),
-            WebGLCommand::GetBufferParameter(target, param_id, chan) =>
-                Self::buffer_parameter(ctx.gl(), target, param_id, chan),
             WebGLCommand::GetParameter(param_id, chan) =>
                 Self::parameter(ctx.gl(), param_id, chan),
             WebGLCommand::GetTexParameter(target, pname, chan) =>
@@ -1124,15 +1122,6 @@ impl WebGLImpl {
                             pname: u32,
                             chan: WebGLSender<isize>) {
         let result = gl.get_vertex_attrib_pointer_v(index, pname);
-        chan.send(result).unwrap();
-    }
-
-    fn buffer_parameter(gl: &gl::Gl,
-                        target: u32,
-                        param_id: u32,
-                        chan: WebGLSender<i32>) {
-        let result = gl.get_buffer_parameter_iv(target, param_id);
-
         chan.send(result).unwrap();
     }
 

@@ -1250,30 +1250,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         target: u32,
         parameter: u32,
     ) -> JSVal {
-        let buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return NullValue());
+        let buffer = handle_potential_webgl_error!(
+            self,
+            self.bound_buffer(target).and_then(|buf| buf.ok_or(InvalidOperation)),
+            return NullValue()
+        );
 
         match parameter {
-            constants::BUFFER_SIZE | constants::BUFFER_USAGE => {},
+            constants::BUFFER_SIZE => Int32Value(buffer.capacity() as i32),
+            constants::BUFFER_USAGE => Int32Value(buffer.usage() as i32),
             _ => {
                 self.webgl_error(InvalidEnum);
-                return NullValue();
+                NullValue()
             }
         }
-        let buffer = match buffer {
-            Some(buffer) => buffer,
-            None => {
-                self.webgl_error(InvalidOperation);
-                return NullValue();
-            }
-        };
-
-        if parameter == constants::BUFFER_SIZE {
-            return Int32Value(buffer.capacity() as i32);
-        }
-
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetBufferParameter(target, parameter, sender));
-        Int32Value(receiver.recv().unwrap())
     }
 
     #[allow(unsafe_code)]

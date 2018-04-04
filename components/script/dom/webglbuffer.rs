@@ -30,6 +30,8 @@ pub struct WebGLBuffer {
     pending_delete: Cell<bool>,
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
+    /// https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetBufferParameteriv.xml
+    usage: Cell<u32>,
 }
 
 impl WebGLBuffer {
@@ -45,6 +47,7 @@ impl WebGLBuffer {
             vao_references: DomRefCell::new(None),
             pending_delete: Cell::new(false),
             renderer: renderer,
+            usage: Cell::new(WebGLRenderingContextConstants::STATIC_DRAW),
         }
     }
 
@@ -105,6 +108,7 @@ impl WebGLBuffer {
         }
         let data = data.into();
         self.capacity.set(data.len());
+        self.usage.set(usage);
         self.renderer.send(WebGLCommand::BufferData(target, data.into(), usage)).unwrap();
 
         Ok(())
@@ -157,6 +161,10 @@ impl WebGLBuffer {
                 self.is_deleted.set(true);
             }
         }
+    }
+
+    pub fn usage(&self) -> u32 {
+        self.usage.get()
     }
 }
 
