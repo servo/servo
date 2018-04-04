@@ -75,7 +75,7 @@ impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
         };
         match common_msg {
             WorkerScriptMsg::Common(script_msg) => Ok(script_msg),
-            WorkerScriptMsg::DOMMessage(_) => panic!("unexpected worker event message!"),
+            WorkerScriptMsg::DOMMessage { .. } => panic!("unexpected worker event message!"),
         }
     }
 }
