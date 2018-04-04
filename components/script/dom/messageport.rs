@@ -35,12 +35,12 @@ thread_local! {
 }
 
 struct PortMessageTask {
+    origin: String,
     data: Vec<u8>,
 }
 
 pub struct MessagePortInternal {
     dom_port: RefCell<Option<Trusted<MessagePort>>>,
-    origin: RefCell<String>,
     port_message_queue: RefCell<PortMessageQueue>,
     enabled: Cell<bool>,
     has_been_shipped: Cell<bool>,
@@ -49,10 +49,9 @@ pub struct MessagePortInternal {
 }
 
 impl MessagePortInternal {
-    fn new(port_message_queue: PortMessageQueue, origin: String) -> MessagePortInternal {
+    fn new(port_message_queue: PortMessageQueue) -> MessagePortInternal {
         MessagePortInternal {
             dom_port: RefCell::new(None),
-            origin: RefCell::new(origin),
             port_message_queue: RefCell::new(port_message_queue),
             enabled: Cell::new(false),
             has_been_shipped: Cell::new(false),
@@ -65,7 +64,7 @@ impl MessagePortInternal {
     // Step 7 substeps
     #[allow(unrooted_must_root)]
     fn process_pending_port_messages(&self) {
-        if let Some(task) = self.pending_port_messages.borrow_mut().pop_front() {
+        if let Some(PortMessageTask { origin, data }) = self.pending_port_messages.borrow_mut().pop_front() {
             // Substep 1
             let final_target_port = self.dom_port.borrow().as_ref().unwrap().root();
 
@@ -74,7 +73,7 @@ impl MessagePortInternal {
 
             // Substep 3-4
             rooted!(in(target_global.get_cx()) let mut message_clone = UndefinedValue());
-            let deserialize_result = StructuredCloneData::Vector(task.data).read(
+            let deserialize_result = StructuredCloneData::Vector(data).read(
                 &target_global,
                 message_clone.handle_mut(),
             );
@@ -92,7 +91,7 @@ impl MessagePortInternal {
                 final_target_port.upcast(),
                 &target_global,
                 message_clone.handle(),
-                Some(&self.origin.borrow()),
+                Some(&origin),
                 new_ports,
             );
         }
@@ -128,27 +127,19 @@ impl HasParent for MessagePort {
 }
 
 impl MessagePort {
-    fn new_inherited(global: &GlobalScope, origin: String) -> MessagePort {
+    fn new_inherited(global: &GlobalScope) -> MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
             message_port_internal: Arc::new(
                 ReentrantMutex::new(
-                    MessagePortInternal::new(global.port_message_queue().clone(), origin)
+                    MessagePortInternal::new(global.port_message_queue().clone())
                 )
             ),
         }
     }
 
-    fn new_transferred(
-        message_port_internal: Arc<ReentrantMutex<MessagePortInternal>>,
-        origin: String,
-    ) -> MessagePort {
-        {
-            let internal = message_port_internal.lock().unwrap();
-            *internal.origin.borrow_mut() = origin;
-        }
-
+    fn new_transferred(message_port_internal: Arc<ReentrantMutex<MessagePortInternal>>) -> MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
@@ -158,8 +149,7 @@ impl MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
-        let origin = owner.origin().immutable().ascii_serialization();
-        let message_port = reflect_dom_object(Box::new(MessagePort::new_inherited(owner, origin)), owner, Wrap);
+        let message_port = reflect_dom_object(Box::new(MessagePort::new_inherited(owner)), owner, Wrap);
         {
             let internal = message_port.message_port_internal.lock().unwrap();
             *internal.dom_port.borrow_mut() = Some(Trusted::new(&*message_port));
@@ -228,12 +218,11 @@ impl Transferable for MessagePort {
         _extra_data: u64,
         return_object: MutableHandleObject
     ) -> bool {
-        let owner = unsafe { GlobalScope::from_context(cx) };
-
         let internal = unsafe { Arc::from_raw(content as *const ReentrantMutex<MessagePortInternal>) };
-        let value = MessagePort::new_transferred(internal, owner.origin().immutable().ascii_serialization());
+        let value = MessagePort::new_transferred(internal);
 
         // Step 2
+        let owner = unsafe { GlobalScope::from_context(cx) };
         let message_port = reflect_dom_object(Box::new(value), &*owner, Wrap);
 
         {
@@ -320,6 +309,7 @@ impl MessagePortMethods for MessagePort {
 
         // Step 7
         let task = PortMessageTask {
+            origin: self.global().origin().immutable().ascii_serialization(),
             data,
         };
 
