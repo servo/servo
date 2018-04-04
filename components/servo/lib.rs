@@ -526,7 +526,9 @@ fn create_constellation(user_agent: Cow<'static, str>,
         webgl_threads,
         webvr_chan,
     };
-    let (constellation_chan, from_swmanager_sender) =
+    let (constellation_chan,
+        from_swmanager_sender,
+        from_bluetoothmanager_sender) =
         Constellation::<script_layout_interface::message::Msg,
                         layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
