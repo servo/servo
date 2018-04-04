@@ -15,7 +15,6 @@ use error_reporting::{ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::ops::Range;
 use str::CssStringWriter;
@@ -94,7 +93,7 @@ pub fn parse_counter_style_body<'i, 't, R>(name: CustomIdent,
             }
         }
     }
-    let error = match *rule.system() {
+    let error = match *rule.resolved_system() {
         ref system @ System::Cyclic |
         ref system @ System::Fixed { .. } |
         ref system @ System::Symbolic |
@@ -142,29 +141,9 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
-macro_rules! accessor {
-    (#[$doc: meta] $name: tt $ident: ident: $ty: ty = !) => {
-        #[$doc]
-        pub fn $ident(&self) -> Option<&$ty> {
-            self.$ident.as_ref()
-        }
-    };
-
-    (#[$doc: meta] $name: tt $ident: ident: $ty: ty = $initial: expr) => {
-        #[$doc]
-        pub fn $ident(&self) -> Cow<$ty> {
-            if let Some(ref value) = self.$ident {
-                Cow::Borrowed(value)
-            } else {
-                Cow::Owned($initial)
-            }
-        }
-    }
-}
-
 macro_rules! counter_style_descriptors {
     (
-        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty = $initial: tt )+
+        $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty, )+
     ) => {
         /// An @counter-style rule
         #[derive(Clone, Debug)]
@@ -191,8 +170,20 @@ macro_rules! counter_style_descriptors {
                 &self.name
             }
 
+            /// Get the system of this counter style rule, default to
+            /// `symbolic` if not specified.
+            pub fn resolved_system(&self) -> &System {
+                match self.system {
+                    Some(ref system) => system,
+                    None => &System::Symbolic,
+                }
+            }
+
             $(
-                accessor!(#[$doc] $name $ident: $ty = $initial);
+                #[$doc]
+                pub fn $ident(&self) -> Option<&$ty> {
+                    self.$ident.as_ref()
+                }
             )+
 
             /// Convert to Gecko types
@@ -273,51 +264,34 @@ macro_rules! counter_style_descriptors {
 
 counter_style_descriptors! {
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
-    "system" system / eCSSCounterDesc_System: System = {
-        System::Symbolic
-    }
+    "system" system / eCSSCounterDesc_System: System,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-negative>
-    "negative" negative / eCSSCounterDesc_Negative: Negative = {
-        Negative(Symbol::String("-".to_owned()), None)
-    }
+    "negative" negative / eCSSCounterDesc_Negative: Negative,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-prefix>
-    "prefix" prefix / eCSSCounterDesc_Prefix: Symbol = {
-        Symbol::String("".to_owned())
-    }
+    "prefix" prefix / eCSSCounterDesc_Prefix: Symbol,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-suffix>
-    "suffix" suffix / eCSSCounterDesc_Suffix: Symbol = {
-        Symbol::String(". ".to_owned())
-    }
+    "suffix" suffix / eCSSCounterDesc_Suffix: Symbol,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
-    "range" range / eCSSCounterDesc_Range: Ranges = {
-        Ranges(Vec::new())  // Empty Vec represents 'auto'
-    }
+    "range" range / eCSSCounterDesc_Range: Ranges,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
-    "pad" pad / eCSSCounterDesc_Pad: Pad = {
-        Pad(Integer::new(0), Symbol::String("".to_owned()))
-    }
+    "pad" pad / eCSSCounterDesc_Pad: Pad,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-fallback>
-    "fallback" fallback / eCSSCounterDesc_Fallback: Fallback = {
-        // FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=1359323 use atom!()
-        Fallback(CustomIdent(Atom::from("decimal")))
-    }
+    "fallback" fallback / eCSSCounterDesc_Fallback: Fallback,
 
     /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
-    "symbols" symbols / eCSSCounterDesc_Symbols: Symbols = !
+    "symbols" symbols / eCSSCounterDesc_Symbols: Symbols,
 
     /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols>
-    "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: AdditiveSymbols = !
+    "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: AdditiveSymbols,
 
     /// <https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as>
-    "speak-as" speak_as / eCSSCounterDesc_SpeakAs: SpeakAs = {
-        SpeakAs::Auto
-    }
+    "speak-as" speak_as / eCSSCounterDesc_SpeakAs: SpeakAs,
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
