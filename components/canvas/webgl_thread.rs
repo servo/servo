@@ -695,8 +695,9 @@ impl WebGLImpl {
                 ctx.gl().depth_func(func),
             WebGLCommand::DepthMask(flag) =>
                 ctx.gl().depth_mask(flag),
-            WebGLCommand::DepthRange(near, far) =>
-                ctx.gl().depth_range(near, far),
+            WebGLCommand::DepthRange(near, far) => {
+                ctx.gl().depth_range(near.max(0.).min(1.) as f64, far.max(0.).min(1.) as f64)
+            }
             WebGLCommand::Disable(cap) =>
                 ctx.gl().disable(cap),
             WebGLCommand::Enable(cap) =>
