@@ -5,10 +5,26 @@ importScripts('worker-testharness.js');
 importScripts('/resources/WebIDLParser.js');
 importScripts('/resources/idlharness.js');
 
-var idlArray = new IdlArray();
-idlArray.add_untested_idls(idls.untested);
-idlArray.add_idls(idls.tested);
-idlArray.add_objects({
+promise_test(async (t) => {
+  var idlArray = new IdlArray();
+  let serviceWorkerIdl = await fetch('/interfaces/ServiceWorker.idl').then(r => r.text());
+
+  idlArray.add_untested_idls(idls.untested);
+  idlArray.add_idls(serviceWorkerIdl, { only: [
+    'ServiceWorkerGlobalScope',
+    'Client',
+    'WindowClient',
+    'Clients',
+    'ServiceWorker',
+    'ServiceWorkerState',
+    'ServiceWorkerUpdateViaCache',
+    'ServiceWorkerRegistration',
+    'EventTarget',
+    'NavigationPreloadManager',
+    'Cache',
+    'CacheStorage',
+  ]});
+  idlArray.add_objects({
     ServiceWorkerGlobalScope: ['self'],
     Clients: ['self.clients'],
     ServiceWorkerRegistration: ['self.registration'],
@@ -17,16 +33,14 @@ idlArray.add_objects({
     // Client: ['self.clientInstance'],
     // WindowClient: ['self.windowClientInstance']
   });
+  return create_temporary_cache(t)
+    .then(function(cache) {
+        self.cacheInstance = cache;
 
-promise_test(function(t) {
-    return create_temporary_cache(t)
-      .then(function(cache) {
-          self.cacheInstance = cache;
-
-          idlArray.add_objects({ Cache: ['self.cacheInstance'] });
-          idlArray.test();
-        });
-  }, 'test setup (cache creation)');
+        idlArray.add_objects({ Cache: ['self.cacheInstance'] });
+        idlArray.test();
+      });
+}, 'test setup (cache creation)');
 
 test(function() {
     var req = new Request('http://{{host}}/',
