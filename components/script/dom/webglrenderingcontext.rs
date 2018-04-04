@@ -1933,6 +1933,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // FIXME: https://github.com/servo/servo/issues/20534
     fn Enable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
             self.send_command(WebGLCommand::Enable(cap));
@@ -1940,6 +1941,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // FIXME: https://github.com/servo/servo/issues/20534
     fn Disable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
             self.send_command(WebGLCommand::Disable(cap));
@@ -2496,8 +2498,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
     }
 
-    // TODO: We could write this without IPC, recording the calls to `enable` and `disable`.
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // FIXME: https://github.com/servo/servo/issues/20534
     fn IsEnabled(&self, cap: u32) -> bool {
         if self.validate_feature_enum(cap) {
             let (sender, receiver) = webgl_channel().unwrap();
