@@ -407,7 +407,7 @@ impl ServiceWorkerGlobalScope {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
-            CommonWorker(WorkerScriptMsg::DOMMessage(data)) => {
+            CommonWorker(WorkerScriptMsg::DOMMessage { data, .. }) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = enter_realm(&*scope);

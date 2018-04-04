@@ -2270,10 +2270,11 @@ impl Window {
         let task = task!(post_serialised_message: move || {
             let this = this.root();
             let source = source.root();
+            let document = this.Document();
 
             // Step 7.1.
-            if let Some(target_origin) = target_origin {
-                if !target_origin.same_origin(this.Document().origin()) {
+            if let Some(ref target_origin) = target_origin {
+                if !target_origin.same_origin(document.origin()) {
                     return;
                 }
             }
@@ -2299,7 +2300,7 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
-                None,
+                Some(&document.origin().immutable().ascii_serialization()),
                 Some(&*source),
                 new_ports,
             );
