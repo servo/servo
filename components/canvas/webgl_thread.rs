@@ -1103,12 +1103,18 @@ impl WebGLImpl {
         } else {
             match pname {
                 gl::VERTEX_ATTRIB_ARRAY_ENABLED |
-                gl::VERTEX_ATTRIB_ARRAY_NORMALIZED =>
-                    Ok(WebGLParameter::Bool(gl.get_vertex_attrib_iv(index, pname) != 0)),
+                gl::VERTEX_ATTRIB_ARRAY_NORMALIZED => {
+                    // returns a single bool
+                    let result = gl.get_vertex_attrib_iv(index, pname);
+                    Ok(WebGLParameter::Bool(result[0] != 0))
+                },
                 gl::VERTEX_ATTRIB_ARRAY_SIZE |
                 gl::VERTEX_ATTRIB_ARRAY_STRIDE |
-                gl::VERTEX_ATTRIB_ARRAY_TYPE =>
-                    Ok(WebGLParameter::Int(gl.get_vertex_attrib_iv(index, pname))),
+                gl::VERTEX_ATTRIB_ARRAY_TYPE => {
+                    // returns a single int
+                    let result = gl.get_vertex_attrib_iv(index, pname);
+                    Ok(WebGLParameter::Int(result[0]))
+                },
                 gl::CURRENT_VERTEX_ATTRIB =>
                     Ok(WebGLParameter::FloatArray(gl.get_vertex_attrib_fv(index, pname))),
                 // gl::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING should return WebGLBuffer
