@@ -90,8 +90,6 @@ cfg_if! {
             pub static nsGkAtoms_action: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6activeE"]
             pub static nsGkAtoms_active: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms19activetitlebarcolorE"]
-            pub static nsGkAtoms_activetitlebarcolor: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms13activateontabE"]
             pub static nsGkAtoms_activateontab: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7actuateE"]
@@ -1088,8 +1086,6 @@ cfg_if! {
             pub static nsGkAtoms_implements: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6importE"]
             pub static nsGkAtoms_import: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms21inactivetitlebarcolorE"]
-            pub static nsGkAtoms_inactivetitlebarcolor: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7includeE"]
             pub static nsGkAtoms_include: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8includesE"]
@@ -5128,10 +5124,22 @@ cfg_if! {
             pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "_ZN19nsCSSPseudoElements14mozColorSwatchE"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
-            #[link_name = "_ZN14nsCSSAnonBoxes7mozTextE"]
-            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes14oofPlaceholderE"]
             pub static nsCSSAnonBoxes_oofPlaceholder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes24horizontalFramesetBorderE"]
+            pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes22verticalFramesetBorderE"]
+            pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes13framesetBlankE"]
+            pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes13tableColGroupE"]
+            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes8tableColE"]
+            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes9pageBreakE"]
+            pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes7mozTextE"]
+            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes23firstLetterContinuationE"]
             pub static nsCSSAnonBoxes_firstLetterContinuation: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes27mozBlockInsideInlineWrapperE"]
@@ -5140,10 +5148,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozMathMLAnonymousBlock: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes20mozXULAnonymousBlockE"]
             pub static nsCSSAnonBoxes_mozXULAnonymousBlock: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes24horizontalFramesetBorderE"]
-            pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes22verticalFramesetBorderE"]
-            pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes12mozLineFrameE"]
             pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes13buttonContentE"]
@@ -5154,8 +5158,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_dropDownList: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes15fieldsetContentE"]
             pub static nsCSSAnonBoxes_fieldsetContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13framesetBlankE"]
-            pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes30mozDisplayComboboxControlFrameE"]
             pub static nsCSSAnonBoxes_mozDisplayComboboxControlFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes17htmlCanvasContentE"]
@@ -5166,10 +5168,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_table: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes9tableCellE"]
             pub static nsCSSAnonBoxes_tableCell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13tableColGroupE"]
-            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes8tableColE"]
-            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes12tableWrapperE"]
             pub static nsCSSAnonBoxes_tableWrapper: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes13tableRowGroupE"]
@@ -5178,8 +5176,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_tableRow: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes6canvasE"]
             pub static nsCSSAnonBoxes_canvas: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes9pageBreakE"]
-            pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes4pageE"]
             pub static nsCSSAnonBoxes_page: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes11pageContentE"]
@@ -5315,8 +5311,6 @@ cfg_if! {
             pub static nsGkAtoms_action: *mut nsStaticAtom;
             #[link_name = "?active@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_active: *mut nsStaticAtom;
-            #[link_name = "?activetitlebarcolor@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_activetitlebarcolor: *mut nsStaticAtom;
             #[link_name = "?activateontab@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_activateontab: *mut nsStaticAtom;
             #[link_name = "?actuate@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -6313,8 +6307,6 @@ cfg_if! {
             pub static nsGkAtoms_implements: *mut nsStaticAtom;
             #[link_name = "?import@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_import: *mut nsStaticAtom;
-            #[link_name = "?inactivetitlebarcolor@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_inactivetitlebarcolor: *mut nsStaticAtom;
             #[link_name = "?include@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_include: *mut nsStaticAtom;
             #[link_name = "?includes@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -10353,10 +10345,22 @@ cfg_if! {
             pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "?mozColorSwatch@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
-            #[link_name = "?mozText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?oofPlaceholder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_oofPlaceholder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?horizontalFramesetBorder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?verticalFramesetBorder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?framesetBlank@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?tableColGroup@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?tableCol@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?pageBreak@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?firstLetterContinuation@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_firstLetterContinuation: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozBlockInsideInlineWrapper@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -10365,10 +10369,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozMathMLAnonymousBlock: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozXULAnonymousBlock@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozXULAnonymousBlock: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?horizontalFramesetBorder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?verticalFramesetBorder@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozLineFrame@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?buttonContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -10379,8 +10379,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_dropDownList: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?fieldsetContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_fieldsetContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?framesetBlank@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozDisplayComboboxControlFrame@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozDisplayComboboxControlFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?htmlCanvasContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -10391,10 +10389,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_table: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?tableCell@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_tableCell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableColGroup@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?tableCol@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?tableWrapper@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_tableWrapper: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?tableRowGroup@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -10403,8 +10397,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_tableRow: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?canvas@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_canvas: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?pageBreak@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?page@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_page: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?pageContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -10540,8 +10532,6 @@ cfg_if! {
             pub static nsGkAtoms_action: *mut nsStaticAtom;
             #[link_name = "\x01?active@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_active: *mut nsStaticAtom;
-            #[link_name = "\x01?activetitlebarcolor@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_activetitlebarcolor: *mut nsStaticAtom;
             #[link_name = "\x01?activateontab@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_activateontab: *mut nsStaticAtom;
             #[link_name = "\x01?actuate@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -11538,8 +11528,6 @@ cfg_if! {
             pub static nsGkAtoms_implements: *mut nsStaticAtom;
             #[link_name = "\x01?import@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_import: *mut nsStaticAtom;
-            #[link_name = "\x01?inactivetitlebarcolor@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_inactivetitlebarcolor: *mut nsStaticAtom;
             #[link_name = "\x01?include@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_include: *mut nsStaticAtom;
             #[link_name = "\x01?includes@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -15578,10 +15566,22 @@ cfg_if! {
             pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "\x01?mozColorSwatch@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
-            #[link_name = "\x01?mozText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?oofPlaceholder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_oofPlaceholder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?horizontalFramesetBorder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?verticalFramesetBorder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?framesetBlank@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?tableColGroup@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?tableCol@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?pageBreak@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?firstLetterContinuation@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_firstLetterContinuation: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozBlockInsideInlineWrapper@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -15590,10 +15590,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozMathMLAnonymousBlock: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozXULAnonymousBlock@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozXULAnonymousBlock: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?horizontalFramesetBorder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_horizontalFramesetBorder: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?verticalFramesetBorder@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_verticalFramesetBorder: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozLineFrame@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?buttonContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -15604,8 +15600,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_dropDownList: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?fieldsetContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_fieldsetContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?framesetBlank@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_framesetBlank: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozDisplayComboboxControlFrame@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozDisplayComboboxControlFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?htmlCanvasContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -15616,10 +15610,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_table: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?tableCell@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_tableCell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableColGroup@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableColGroup: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?tableCol@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_tableCol: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?tableWrapper@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_tableWrapper: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?tableRowGroup@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -15628,8 +15618,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_tableRow: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?canvas@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_canvas: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?pageBreak@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_pageBreak: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?page@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_page: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?pageContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -15768,8 +15756,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_action as *mut _) } }};
 ("active") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_active as *mut _) } }};
-("activetitlebarcolor") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_activetitlebarcolor as *mut _) } }};
 ("activateontab") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_activateontab as *mut _) } }};
 ("actuate") =>
@@ -16766,8 +16752,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_implements as *mut _) } }};
 ("import") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_import as *mut _) } }};
-("inactivetitlebarcolor") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inactivetitlebarcolor as *mut _) } }};
 ("include") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_include as *mut _) } }};
 ("includes") =>
@@ -20806,10 +20790,22 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_placeholder as *mut _) } }};
 (":-moz-color-swatch") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozColorSwatch as *mut _) } }};
-(":-moz-text") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozText as *mut _) } }};
 (":-moz-oof-placeholder") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_oofPlaceholder as *mut _) } }};
+(":-moz-hframeset-border") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_horizontalFramesetBorder as *mut _) } }};
+(":-moz-vframeset-border") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_verticalFramesetBorder as *mut _) } }};
+(":-moz-frameset-blank") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_framesetBlank as *mut _) } }};
+(":-moz-table-column-group") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableColGroup as *mut _) } }};
+(":-moz-table-column") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCol as *mut _) } }};
+(":-moz-pagebreak") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageBreak as *mut _) } }};
+(":-moz-text") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozText as *mut _) } }};
 (":-moz-first-letter-continuation") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_firstLetterContinuation as *mut _) } }};
 (":-moz-block-inside-inline-wrapper") =>
@@ -20818,10 +20814,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozMathMLAnonymousBlock as *mut _) } }};
 (":-moz-xul-anonymous-block") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozXULAnonymousBlock as *mut _) } }};
-(":-moz-hframeset-border") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_horizontalFramesetBorder as *mut _) } }};
-(":-moz-vframeset-border") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_verticalFramesetBorder as *mut _) } }};
 (":-moz-line-frame") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozLineFrame as *mut _) } }};
 (":-moz-button-content") =>
@@ -20832,8 +20824,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_dropDownList as *mut _) } }};
 (":-moz-fieldset-content") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_fieldsetContent as *mut _) } }};
-(":-moz-frameset-blank") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_framesetBlank as *mut _) } }};
 (":-moz-display-comboboxcontrol-frame") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozDisplayComboboxControlFrame as *mut _) } }};
 (":-moz-html-canvas-content") =>
@@ -20844,10 +20834,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_table as *mut _) } }};
 (":-moz-table-cell") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCell as *mut _) } }};
-(":-moz-table-column-group") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableColGroup as *mut _) } }};
-(":-moz-table-column") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCol as *mut _) } }};
 (":-moz-table-wrapper") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableWrapper as *mut _) } }};
 (":-moz-table-row-group") =>
@@ -20856,8 +20842,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableRow as *mut _) } }};
 (":-moz-canvas") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_canvas as *mut _) } }};
-(":-moz-pagebreak") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageBreak as *mut _) } }};
 (":-moz-page") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_page as *mut _) } }};
 (":-moz-pagecontent") =>

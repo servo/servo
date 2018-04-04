@@ -1611,8 +1611,6 @@ pub struct ExtraStyleData {
     pub pages: Vec<Arc<Locked<PageRule>>>,
 }
 
-// FIXME(emilio): This is kind of a lie, and relies on us not cloning
-// nsCSSCounterStyleRules OMT (which we don't).
 #[cfg(feature = "gecko")]
 unsafe impl Sync for ExtraStyleData {}
 #[cfg(feature = "gecko")]
@@ -1636,7 +1634,7 @@ impl ExtraStyleData {
         guard: &SharedRwLockReadGuard,
         rule: &Arc<Locked<CounterStyleRule>>,
     ) {
-        let name = unsafe { Atom::from_raw(rule.read_with(guard).mName.mRawPtr) };
+        let name = rule.read_with(guard).name().0.clone();
         self.counter_styles.insert(name, rule.clone());
     }
 

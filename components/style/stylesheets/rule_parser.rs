@@ -114,7 +114,7 @@ pub enum AtRuleBlockPrelude {
     /// A @font-feature-values rule prelude, with its FamilyName list.
     FontFeatureValues(Vec<FamilyName>, SourceLocation),
     /// A @counter-style rule prelude, with its counter style name.
-    CounterStyle(CustomIdent),
+    CounterStyle(CustomIdent, SourceLocation),
     /// A @media rule prelude, with its media queries.
     Media(Arc<Locked<MediaList>>, SourceLocation),
     /// An @supports rule, with its conditional
@@ -382,7 +382,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                     return Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
                 }
                 let name = parse_counter_style_name_definition(input)?;
-                Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::CounterStyle(name)))
+                Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::CounterStyle(name, location)))
             },
             "viewport" => {
                 if viewport_rule::enabled() {
@@ -455,7 +455,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 Ok(CssRule::FontFeatureValues(Arc::new(self.shared_lock.wrap(
                     FontFeatureValuesRule::parse(&context, self.error_context, input, family_names, location)))))
             }
-            AtRuleBlockPrelude::CounterStyle(name) => {
+            AtRuleBlockPrelude::CounterStyle(name, location) => {
                 let context = ParserContext::new_with_rule_type(
                     self.context,
                     CssRuleType::CounterStyle,
@@ -463,7 +463,14 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 );
 
                 Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
-                   parse_counter_style_body(name, &context, self.error_context, input)?.into()))))
+                   parse_counter_style_body(
+                       name,
+                       &context,
+                       self.error_context,
+                       input,
+                       location
+                    )?.into()
+                ))))
             }
             AtRuleBlockPrelude::Media(media_queries, location) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {

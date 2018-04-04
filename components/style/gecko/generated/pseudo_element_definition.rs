@@ -55,10 +55,22 @@ pub enum PseudoElement {
         Placeholder,
         /// :-moz-color-swatch
         MozColorSwatch,
-        /// :-moz-text
-        MozText,
         /// :-moz-oof-placeholder
         OofPlaceholder,
+        /// :-moz-hframeset-border
+        HorizontalFramesetBorder,
+        /// :-moz-vframeset-border
+        VerticalFramesetBorder,
+        /// :-moz-frameset-blank
+        FramesetBlank,
+        /// :-moz-table-column-group
+        TableColGroup,
+        /// :-moz-table-column
+        TableCol,
+        /// :-moz-pagebreak
+        PageBreak,
+        /// :-moz-text
+        MozText,
         /// :-moz-first-letter-continuation
         FirstLetterContinuation,
         /// :-moz-block-inside-inline-wrapper
@@ -67,10 +79,6 @@ pub enum PseudoElement {
         MozMathMLAnonymousBlock,
         /// :-moz-xul-anonymous-block
         MozXULAnonymousBlock,
-        /// :-moz-hframeset-border
-        HorizontalFramesetBorder,
-        /// :-moz-vframeset-border
-        VerticalFramesetBorder,
         /// :-moz-line-frame
         MozLineFrame,
         /// :-moz-button-content
@@ -81,8 +89,6 @@ pub enum PseudoElement {
         DropDownList,
         /// :-moz-fieldset-content
         FieldsetContent,
-        /// :-moz-frameset-blank
-        FramesetBlank,
         /// :-moz-display-comboboxcontrol-frame
         MozDisplayComboboxControlFrame,
         /// :-moz-html-canvas-content
@@ -93,10 +99,6 @@ pub enum PseudoElement {
         Table,
         /// :-moz-table-cell
         TableCell,
-        /// :-moz-table-column-group
-        TableColGroup,
-        /// :-moz-table-column
-        TableCol,
         /// :-moz-table-wrapper
         TableWrapper,
         /// :-moz-table-row-group
@@ -105,8 +107,6 @@ pub enum PseudoElement {
         TableRow,
         /// :-moz-canvas
         Canvas,
-        /// :-moz-pagebreak
-        PageBreak,
         /// :-moz-page
         Page,
         /// :-moz-pagecontent
@@ -229,32 +229,32 @@ impl PseudoElement {
                 PseudoElement::MozPlaceholder => atom!(":-moz-placeholder"),
                 PseudoElement::Placeholder => atom!(":placeholder"),
                 PseudoElement::MozColorSwatch => atom!(":-moz-color-swatch"),
-                PseudoElement::MozText => atom!(":-moz-text"),
                 PseudoElement::OofPlaceholder => atom!(":-moz-oof-placeholder"),
+                PseudoElement::HorizontalFramesetBorder => atom!(":-moz-hframeset-border"),
+                PseudoElement::VerticalFramesetBorder => atom!(":-moz-vframeset-border"),
+                PseudoElement::FramesetBlank => atom!(":-moz-frameset-blank"),
+                PseudoElement::TableColGroup => atom!(":-moz-table-column-group"),
+                PseudoElement::TableCol => atom!(":-moz-table-column"),
+                PseudoElement::PageBreak => atom!(":-moz-pagebreak"),
+                PseudoElement::MozText => atom!(":-moz-text"),
                 PseudoElement::FirstLetterContinuation => atom!(":-moz-first-letter-continuation"),
                 PseudoElement::MozBlockInsideInlineWrapper => atom!(":-moz-block-inside-inline-wrapper"),
                 PseudoElement::MozMathMLAnonymousBlock => atom!(":-moz-mathml-anonymous-block"),
                 PseudoElement::MozXULAnonymousBlock => atom!(":-moz-xul-anonymous-block"),
-                PseudoElement::HorizontalFramesetBorder => atom!(":-moz-hframeset-border"),
-                PseudoElement::VerticalFramesetBorder => atom!(":-moz-vframeset-border"),
                 PseudoElement::MozLineFrame => atom!(":-moz-line-frame"),
                 PseudoElement::ButtonContent => atom!(":-moz-button-content"),
                 PseudoElement::CellContent => atom!(":-moz-cell-content"),
                 PseudoElement::DropDownList => atom!(":-moz-dropdown-list"),
                 PseudoElement::FieldsetContent => atom!(":-moz-fieldset-content"),
-                PseudoElement::FramesetBlank => atom!(":-moz-frameset-blank"),
                 PseudoElement::MozDisplayComboboxControlFrame => atom!(":-moz-display-comboboxcontrol-frame"),
                 PseudoElement::HtmlCanvasContent => atom!(":-moz-html-canvas-content"),
                 PseudoElement::InlineTable => atom!(":-moz-inline-table"),
                 PseudoElement::Table => atom!(":-moz-table"),
                 PseudoElement::TableCell => atom!(":-moz-table-cell"),
-                PseudoElement::TableColGroup => atom!(":-moz-table-column-group"),
-                PseudoElement::TableCol => atom!(":-moz-table-column"),
                 PseudoElement::TableWrapper => atom!(":-moz-table-wrapper"),
                 PseudoElement::TableRowGroup => atom!(":-moz-table-row-group"),
                 PseudoElement::TableRow => atom!(":-moz-table-row"),
                 PseudoElement::Canvas => atom!(":-moz-canvas"),
-                PseudoElement::PageBreak => atom!(":-moz-pagebreak"),
                 PseudoElement::Page => atom!(":-moz-page"),
                 PseudoElement::PageContent => atom!(":-moz-pagecontent"),
                 PseudoElement::PageSequence => atom!(":-moz-page-sequence"),
@@ -318,32 +318,32 @@ impl PseudoElement {
             PseudoElement::MozPlaceholder => 22,
             PseudoElement::Placeholder => 23,
             PseudoElement::MozColorSwatch => 24,
-            PseudoElement::MozText => 25,
-            PseudoElement::OofPlaceholder => 26,
-            PseudoElement::FirstLetterContinuation => 27,
-            PseudoElement::MozBlockInsideInlineWrapper => 28,
-            PseudoElement::MozMathMLAnonymousBlock => 29,
-            PseudoElement::MozXULAnonymousBlock => 30,
-            PseudoElement::HorizontalFramesetBorder => 31,
-            PseudoElement::VerticalFramesetBorder => 32,
-            PseudoElement::MozLineFrame => 33,
-            PseudoElement::ButtonContent => 34,
-            PseudoElement::CellContent => 35,
-            PseudoElement::DropDownList => 36,
-            PseudoElement::FieldsetContent => 37,
-            PseudoElement::FramesetBlank => 38,
-            PseudoElement::MozDisplayComboboxControlFrame => 39,
-            PseudoElement::HtmlCanvasContent => 40,
-            PseudoElement::InlineTable => 41,
-            PseudoElement::Table => 42,
-            PseudoElement::TableCell => 43,
-            PseudoElement::TableColGroup => 44,
-            PseudoElement::TableCol => 45,
-            PseudoElement::TableWrapper => 46,
-            PseudoElement::TableRowGroup => 47,
-            PseudoElement::TableRow => 48,
-            PseudoElement::Canvas => 49,
-            PseudoElement::PageBreak => 50,
+            PseudoElement::OofPlaceholder => 25,
+            PseudoElement::HorizontalFramesetBorder => 26,
+            PseudoElement::VerticalFramesetBorder => 27,
+            PseudoElement::FramesetBlank => 28,
+            PseudoElement::TableColGroup => 29,
+            PseudoElement::TableCol => 30,
+            PseudoElement::PageBreak => 31,
+            PseudoElement::MozText => 32,
+            PseudoElement::FirstLetterContinuation => 33,
+            PseudoElement::MozBlockInsideInlineWrapper => 34,
+            PseudoElement::MozMathMLAnonymousBlock => 35,
+            PseudoElement::MozXULAnonymousBlock => 36,
+            PseudoElement::MozLineFrame => 37,
+            PseudoElement::ButtonContent => 38,
+            PseudoElement::CellContent => 39,
+            PseudoElement::DropDownList => 40,
+            PseudoElement::FieldsetContent => 41,
+            PseudoElement::MozDisplayComboboxControlFrame => 42,
+            PseudoElement::HtmlCanvasContent => 43,
+            PseudoElement::InlineTable => 44,
+            PseudoElement::Table => 45,
+            PseudoElement::TableCell => 46,
+            PseudoElement::TableWrapper => 47,
+            PseudoElement::TableRowGroup => 48,
+            PseudoElement::TableRow => 49,
+            PseudoElement::Canvas => 50,
             PseudoElement::Page => 51,
             PseudoElement::PageContent => 52,
             PseudoElement::PageSequence => 53,
@@ -472,32 +472,32 @@ impl PseudoElement {
     #[inline]
     pub fn is_anon_box(&self) -> bool {
         match *self {
-                    PseudoElement::MozText => true,
                     PseudoElement::OofPlaceholder => true,
+                    PseudoElement::HorizontalFramesetBorder => true,
+                    PseudoElement::VerticalFramesetBorder => true,
+                    PseudoElement::FramesetBlank => true,
+                    PseudoElement::TableColGroup => true,
+                    PseudoElement::TableCol => true,
+                    PseudoElement::PageBreak => true,
+                    PseudoElement::MozText => true,
                     PseudoElement::FirstLetterContinuation => true,
                     PseudoElement::MozBlockInsideInlineWrapper => true,
                     PseudoElement::MozMathMLAnonymousBlock => true,
                     PseudoElement::MozXULAnonymousBlock => true,
-                    PseudoElement::HorizontalFramesetBorder => true,
-                    PseudoElement::VerticalFramesetBorder => true,
                     PseudoElement::MozLineFrame => true,
                     PseudoElement::ButtonContent => true,
                     PseudoElement::CellContent => true,
                     PseudoElement::DropDownList => true,
                     PseudoElement::FieldsetContent => true,
-                    PseudoElement::FramesetBlank => true,
                     PseudoElement::MozDisplayComboboxControlFrame => true,
                     PseudoElement::HtmlCanvasContent => true,
                     PseudoElement::InlineTable => true,
                     PseudoElement::Table => true,
                     PseudoElement::TableCell => true,
-                    PseudoElement::TableColGroup => true,
-                    PseudoElement::TableCol => true,
                     PseudoElement::TableWrapper => true,
                     PseudoElement::TableRowGroup => true,
                     PseudoElement::TableRow => true,
                     PseudoElement::Canvas => true,
-                    PseudoElement::PageBreak => true,
                     PseudoElement::Page => true,
                     PseudoElement::PageContent => true,
                     PseudoElement::PageSequence => true,
@@ -613,9 +613,21 @@ impl PseudoElement {
                     structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_placeholder,
                 PseudoElement::MozColorSwatch =>
                     structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozColorSwatch,
-                PseudoElement::MozText =>
-                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::OofPlaceholder =>
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
+                PseudoElement::HorizontalFramesetBorder =>
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
+                PseudoElement::VerticalFramesetBorder =>
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
+                PseudoElement::FramesetBlank =>
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
+                PseudoElement::TableColGroup =>
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
+                PseudoElement::TableCol =>
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
+                PseudoElement::PageBreak =>
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
+                PseudoElement::MozText =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::FirstLetterContinuation =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
@@ -624,10 +636,6 @@ impl PseudoElement {
                 PseudoElement::MozMathMLAnonymousBlock =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozXULAnonymousBlock =>
-                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
-                PseudoElement::HorizontalFramesetBorder =>
-                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
-                PseudoElement::VerticalFramesetBorder =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozLineFrame =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
@@ -639,8 +647,6 @@ impl PseudoElement {
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::FieldsetContent =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
-                PseudoElement::FramesetBlank =>
-                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::MozDisplayComboboxControlFrame =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::HtmlCanvasContent =>
@@ -651,10 +657,6 @@ impl PseudoElement {
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableCell =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
-                PseudoElement::TableColGroup =>
-                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
-                PseudoElement::TableCol =>
-                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableWrapper =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::TableRowGroup =>
@@ -662,8 +664,6 @@ impl PseudoElement {
                 PseudoElement::TableRow =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::Canvas =>
-                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
-                PseudoElement::PageBreak =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 PseudoElement::Page =>
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
@@ -844,32 +844,32 @@ impl PseudoElement {
                     PseudoElement::MozPlaceholder => CSSPseudoElementType::mozPlaceholder,
                     PseudoElement::Placeholder => CSSPseudoElementType::placeholder,
                     PseudoElement::MozColorSwatch => CSSPseudoElementType::mozColorSwatch,
-                    PseudoElement::MozText => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::OofPlaceholder => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::HorizontalFramesetBorder => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::VerticalFramesetBorder => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::FramesetBlank => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::TableColGroup => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::TableCol => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::PageBreak => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::MozText => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::FirstLetterContinuation => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::MozBlockInsideInlineWrapper => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::MozMathMLAnonymousBlock => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::MozXULAnonymousBlock => CSSPseudoElementType_InheritingAnonBox,
-                    PseudoElement::HorizontalFramesetBorder => CSSPseudoElementType::NonInheritingAnonBox,
-                    PseudoElement::VerticalFramesetBorder => CSSPseudoElementType::NonInheritingAnonBox,
                     PseudoElement::MozLineFrame => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::ButtonContent => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::CellContent => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::DropDownList => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::FieldsetContent => CSSPseudoElementType_InheritingAnonBox,
-                    PseudoElement::FramesetBlank => CSSPseudoElementType::NonInheritingAnonBox,
                     PseudoElement::MozDisplayComboboxControlFrame => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::HtmlCanvasContent => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::InlineTable => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::Table => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::TableCell => CSSPseudoElementType_InheritingAnonBox,
-                    PseudoElement::TableColGroup => CSSPseudoElementType::NonInheritingAnonBox,
-                    PseudoElement::TableCol => CSSPseudoElementType::NonInheritingAnonBox,
                     PseudoElement::TableWrapper => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::TableRowGroup => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::TableRow => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::Canvas => CSSPseudoElementType_InheritingAnonBox,
-                    PseudoElement::PageBreak => CSSPseudoElementType::NonInheritingAnonBox,
                     PseudoElement::Page => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::PageContent => CSSPseudoElementType_InheritingAnonBox,
                     PseudoElement::PageSequence => CSSPseudoElementType_InheritingAnonBox,
@@ -1006,11 +1006,29 @@ impl PseudoElement {
                 if atom == &atom!(":-moz-color-swatch") {
                     return Some(PseudoElement::MozColorSwatch);
                 }
-                if atom == &atom!(":-moz-text") {
-                    return Some(PseudoElement::MozText);
-                }
                 if atom == &atom!(":-moz-oof-placeholder") {
                     return Some(PseudoElement::OofPlaceholder);
+                }
+                if atom == &atom!(":-moz-hframeset-border") {
+                    return Some(PseudoElement::HorizontalFramesetBorder);
+                }
+                if atom == &atom!(":-moz-vframeset-border") {
+                    return Some(PseudoElement::VerticalFramesetBorder);
+                }
+                if atom == &atom!(":-moz-frameset-blank") {
+                    return Some(PseudoElement::FramesetBlank);
+                }
+                if atom == &atom!(":-moz-table-column-group") {
+                    return Some(PseudoElement::TableColGroup);
+                }
+                if atom == &atom!(":-moz-table-column") {
+                    return Some(PseudoElement::TableCol);
+                }
+                if atom == &atom!(":-moz-pagebreak") {
+                    return Some(PseudoElement::PageBreak);
+                }
+                if atom == &atom!(":-moz-text") {
+                    return Some(PseudoElement::MozText);
                 }
                 if atom == &atom!(":-moz-first-letter-continuation") {
                     return Some(PseudoElement::FirstLetterContinuation);
@@ -1023,12 +1041,6 @@ impl PseudoElement {
                 }
                 if atom == &atom!(":-moz-xul-anonymous-block") {
                     return Some(PseudoElement::MozXULAnonymousBlock);
-                }
-                if atom == &atom!(":-moz-hframeset-border") {
-                    return Some(PseudoElement::HorizontalFramesetBorder);
-                }
-                if atom == &atom!(":-moz-vframeset-border") {
-                    return Some(PseudoElement::VerticalFramesetBorder);
                 }
                 if atom == &atom!(":-moz-line-frame") {
                     return Some(PseudoElement::MozLineFrame);
@@ -1045,9 +1057,6 @@ impl PseudoElement {
                 if atom == &atom!(":-moz-fieldset-content") {
                     return Some(PseudoElement::FieldsetContent);
                 }
-                if atom == &atom!(":-moz-frameset-blank") {
-                    return Some(PseudoElement::FramesetBlank);
-                }
                 if atom == &atom!(":-moz-display-comboboxcontrol-frame") {
                     return Some(PseudoElement::MozDisplayComboboxControlFrame);
                 }
@@ -1063,12 +1072,6 @@ impl PseudoElement {
                 if atom == &atom!(":-moz-table-cell") {
                     return Some(PseudoElement::TableCell);
                 }
-                if atom == &atom!(":-moz-table-column-group") {
-                    return Some(PseudoElement::TableColGroup);
-                }
-                if atom == &atom!(":-moz-table-column") {
-                    return Some(PseudoElement::TableCol);
-                }
                 if atom == &atom!(":-moz-table-wrapper") {
                     return Some(PseudoElement::TableWrapper);
                 }
@@ -1080,9 +1083,6 @@ impl PseudoElement {
                 }
                 if atom == &atom!(":-moz-canvas") {
                     return Some(PseudoElement::Canvas);
-                }
-                if atom == &atom!(":-moz-pagebreak") {
-                    return Some(PseudoElement::PageBreak);
                 }
                 if atom == &atom!(":-moz-page") {
                     return Some(PseudoElement::Page);
@@ -1161,11 +1161,29 @@ impl PseudoElement {
     /// Construct a pseudo-element from an anonymous box `Atom`.
     #[inline]
     pub fn from_anon_box_atom(atom: &Atom) -> Option<Self> {
-                if atom == &atom!(":-moz-text") {
-                    return Some(PseudoElement::MozText);
-                }
                 if atom == &atom!(":-moz-oof-placeholder") {
                     return Some(PseudoElement::OofPlaceholder);
+                }
+                if atom == &atom!(":-moz-hframeset-border") {
+                    return Some(PseudoElement::HorizontalFramesetBorder);
+                }
+                if atom == &atom!(":-moz-vframeset-border") {
+                    return Some(PseudoElement::VerticalFramesetBorder);
+                }
+                if atom == &atom!(":-moz-frameset-blank") {
+                    return Some(PseudoElement::FramesetBlank);
+                }
+                if atom == &atom!(":-moz-table-column-group") {
+                    return Some(PseudoElement::TableColGroup);
+                }
+                if atom == &atom!(":-moz-table-column") {
+                    return Some(PseudoElement::TableCol);
+                }
+                if atom == &atom!(":-moz-pagebreak") {
+                    return Some(PseudoElement::PageBreak);
+                }
+                if atom == &atom!(":-moz-text") {
+                    return Some(PseudoElement::MozText);
                 }
                 if atom == &atom!(":-moz-first-letter-continuation") {
                     return Some(PseudoElement::FirstLetterContinuation);
@@ -1178,12 +1196,6 @@ impl PseudoElement {
                 }
                 if atom == &atom!(":-moz-xul-anonymous-block") {
                     return Some(PseudoElement::MozXULAnonymousBlock);
-                }
-                if atom == &atom!(":-moz-hframeset-border") {
-                    return Some(PseudoElement::HorizontalFramesetBorder);
-                }
-                if atom == &atom!(":-moz-vframeset-border") {
-                    return Some(PseudoElement::VerticalFramesetBorder);
                 }
                 if atom == &atom!(":-moz-line-frame") {
                     return Some(PseudoElement::MozLineFrame);
@@ -1200,9 +1212,6 @@ impl PseudoElement {
                 if atom == &atom!(":-moz-fieldset-content") {
                     return Some(PseudoElement::FieldsetContent);
                 }
-                if atom == &atom!(":-moz-frameset-blank") {
-                    return Some(PseudoElement::FramesetBlank);
-                }
                 if atom == &atom!(":-moz-display-comboboxcontrol-frame") {
                     return Some(PseudoElement::MozDisplayComboboxControlFrame);
                 }
@@ -1218,12 +1227,6 @@ impl PseudoElement {
                 if atom == &atom!(":-moz-table-cell") {
                     return Some(PseudoElement::TableCell);
                 }
-                if atom == &atom!(":-moz-table-column-group") {
-                    return Some(PseudoElement::TableColGroup);
-                }
-                if atom == &atom!(":-moz-table-column") {
-                    return Some(PseudoElement::TableCol);
-                }
                 if atom == &atom!(":-moz-table-wrapper") {
                     return Some(PseudoElement::TableWrapper);
                 }
@@ -1235,9 +1238,6 @@ impl PseudoElement {
                 }
                 if atom == &atom!(":-moz-canvas") {
                     return Some(PseudoElement::Canvas);
-                }
-                if atom == &atom!(":-moz-pagebreak") {
-                    return Some(PseudoElement::PageBreak);
                 }
                 if atom == &atom!(":-moz-page") {
                     return Some(PseudoElement::Page);
@@ -1440,11 +1440,29 @@ impl PseudoElement {
             "-moz-color-swatch" => {
                 return Some(PseudoElement::MozColorSwatch)
             }
-            "-moz-text" => {
-                return Some(PseudoElement::MozText)
-            }
             "-moz-oof-placeholder" => {
                 return Some(PseudoElement::OofPlaceholder)
+            }
+            "-moz-hframeset-border" => {
+                return Some(PseudoElement::HorizontalFramesetBorder)
+            }
+            "-moz-vframeset-border" => {
+                return Some(PseudoElement::VerticalFramesetBorder)
+            }
+            "-moz-frameset-blank" => {
+                return Some(PseudoElement::FramesetBlank)
+            }
+            "-moz-table-column-group" => {
+                return Some(PseudoElement::TableColGroup)
+            }
+            "-moz-table-column" => {
+                return Some(PseudoElement::TableCol)
+            }
+            "-moz-pagebreak" => {
+                return Some(PseudoElement::PageBreak)
+            }
+            "-moz-text" => {
+                return Some(PseudoElement::MozText)
             }
             "-moz-first-letter-continuation" => {
                 return Some(PseudoElement::FirstLetterContinuation)
@@ -1457,12 +1475,6 @@ impl PseudoElement {
             }
             "-moz-xul-anonymous-block" => {
                 return Some(PseudoElement::MozXULAnonymousBlock)
-            }
-            "-moz-hframeset-border" => {
-                return Some(PseudoElement::HorizontalFramesetBorder)
-            }
-            "-moz-vframeset-border" => {
-                return Some(PseudoElement::VerticalFramesetBorder)
             }
             "-moz-line-frame" => {
                 return Some(PseudoElement::MozLineFrame)
@@ -1479,9 +1491,6 @@ impl PseudoElement {
             "-moz-fieldset-content" => {
                 return Some(PseudoElement::FieldsetContent)
             }
-            "-moz-frameset-blank" => {
-                return Some(PseudoElement::FramesetBlank)
-            }
             "-moz-display-comboboxcontrol-frame" => {
                 return Some(PseudoElement::MozDisplayComboboxControlFrame)
             }
@@ -1497,12 +1506,6 @@ impl PseudoElement {
             "-moz-table-cell" => {
                 return Some(PseudoElement::TableCell)
             }
-            "-moz-table-column-group" => {
-                return Some(PseudoElement::TableColGroup)
-            }
-            "-moz-table-column" => {
-                return Some(PseudoElement::TableCol)
-            }
             "-moz-table-wrapper" => {
                 return Some(PseudoElement::TableWrapper)
             }
@@ -1514,9 +1517,6 @@ impl PseudoElement {
             }
             "-moz-canvas" => {
                 return Some(PseudoElement::Canvas)
-            }
-            "-moz-pagebreak" => {
-                return Some(PseudoElement::PageBreak)
             }
             "-moz-page" => {
                 return Some(PseudoElement::Page)
@@ -1664,32 +1664,32 @@ impl ToCss for PseudoElement {
                 PseudoElement::MozPlaceholder => dest.write_str(":-moz-placeholder")?,
                 PseudoElement::Placeholder => dest.write_str(":placeholder")?,
                 PseudoElement::MozColorSwatch => dest.write_str(":-moz-color-swatch")?,
-                PseudoElement::MozText => dest.write_str(":-moz-text")?,
                 PseudoElement::OofPlaceholder => dest.write_str(":-moz-oof-placeholder")?,
+                PseudoElement::HorizontalFramesetBorder => dest.write_str(":-moz-hframeset-border")?,
+                PseudoElement::VerticalFramesetBorder => dest.write_str(":-moz-vframeset-border")?,
+                PseudoElement::FramesetBlank => dest.write_str(":-moz-frameset-blank")?,
+                PseudoElement::TableColGroup => dest.write_str(":-moz-table-column-group")?,
+                PseudoElement::TableCol => dest.write_str(":-moz-table-column")?,
+                PseudoElement::PageBreak => dest.write_str(":-moz-pagebreak")?,
+                PseudoElement::MozText => dest.write_str(":-moz-text")?,
                 PseudoElement::FirstLetterContinuation => dest.write_str(":-moz-first-letter-continuation")?,
                 PseudoElement::MozBlockInsideInlineWrapper => dest.write_str(":-moz-block-inside-inline-wrapper")?,
                 PseudoElement::MozMathMLAnonymousBlock => dest.write_str(":-moz-mathml-anonymous-block")?,
                 PseudoElement::MozXULAnonymousBlock => dest.write_str(":-moz-xul-anonymous-block")?,
-                PseudoElement::HorizontalFramesetBorder => dest.write_str(":-moz-hframeset-border")?,
-                PseudoElement::VerticalFramesetBorder => dest.write_str(":-moz-vframeset-border")?,
                 PseudoElement::MozLineFrame => dest.write_str(":-moz-line-frame")?,
                 PseudoElement::ButtonContent => dest.write_str(":-moz-button-content")?,
                 PseudoElement::CellContent => dest.write_str(":-moz-cell-content")?,
                 PseudoElement::DropDownList => dest.write_str(":-moz-dropdown-list")?,
                 PseudoElement::FieldsetContent => dest.write_str(":-moz-fieldset-content")?,
-                PseudoElement::FramesetBlank => dest.write_str(":-moz-frameset-blank")?,
                 PseudoElement::MozDisplayComboboxControlFrame => dest.write_str(":-moz-display-comboboxcontrol-frame")?,
                 PseudoElement::HtmlCanvasContent => dest.write_str(":-moz-html-canvas-content")?,
                 PseudoElement::InlineTable => dest.write_str(":-moz-inline-table")?,
                 PseudoElement::Table => dest.write_str(":-moz-table")?,
                 PseudoElement::TableCell => dest.write_str(":-moz-table-cell")?,
-                PseudoElement::TableColGroup => dest.write_str(":-moz-table-column-group")?,
-                PseudoElement::TableCol => dest.write_str(":-moz-table-column")?,
                 PseudoElement::TableWrapper => dest.write_str(":-moz-table-wrapper")?,
                 PseudoElement::TableRowGroup => dest.write_str(":-moz-table-row-group")?,
                 PseudoElement::TableRow => dest.write_str(":-moz-table-row")?,
                 PseudoElement::Canvas => dest.write_str(":-moz-canvas")?,
-                PseudoElement::PageBreak => dest.write_str(":-moz-pagebreak")?,
                 PseudoElement::Page => dest.write_str(":-moz-page")?,
                 PseudoElement::PageContent => dest.write_str(":-moz-pagecontent")?,
                 PseudoElement::PageSequence => dest.write_str(":-moz-page-sequence")?,
