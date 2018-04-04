@@ -1477,11 +1477,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquation(&self, mode: u32) {
-        if mode != constants::FUNC_ADD {
-            return self.webgl_error(InvalidEnum);
+        match mode {
+            constants::FUNC_ADD |
+            constants::FUNC_SUBTRACT |
+            constants::FUNC_REVERSE_SUBTRACT => {
+                self.send_command(WebGLCommand::BlendEquation(mode))
+            },
+            _ => self.webgl_error(InvalidEnum)
         }
-
-        self.send_command(WebGLCommand::BlendEquation(mode));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
