@@ -101,6 +101,7 @@ impl MessageEvent {
         target: &EventTarget,
         scope: &GlobalScope,
         message: HandleValue,
+        origin: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
     ) {
         let messageevent = MessageEvent::new(
@@ -109,7 +110,7 @@ impl MessageEvent {
             false,
             false,
             message,
-            DOMString::new(),
+            origin,
             DOMString::new(),
             ports
         );

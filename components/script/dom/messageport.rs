@@ -10,6 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::transferable::Transferable;
@@ -35,6 +36,7 @@ thread_local! {
 }
 
 struct PortMessageTask {
+    origin: String,
     data: Vec<u8>,
 }
 
@@ -63,7 +65,7 @@ impl MessagePortInternal {
     // Step 7 substeps
     #[allow(unrooted_must_root)]
     fn process_pending_port_messages(&self) {
-        if let Some(task) = self.pending_port_messages.borrow_mut().pop_front() {
+        if let Some(PortMessageTask { origin, data }) = self.pending_port_messages.borrow_mut().pop_front() {
             // Substep 1
             let final_target_port = self.dom_port.borrow().as_ref().unwrap().root();
 
@@ -72,7 +74,7 @@ impl MessagePortInternal {
 
             // Substep 3-4
             rooted!(in(target_global.get_cx()) let mut message_clone = UndefinedValue());
-            let deserialize_result = StructuredCloneData::Vector(task.data).read(
+            let deserialize_result = StructuredCloneData::Vector(data).read(
                 &target_global,
                 message_clone.handle_mut()
             );
@@ -90,6 +92,7 @@ impl MessagePortInternal {
                 final_target_port.upcast(),
                 &target_global,
                 message_clone.handle(),
+                DOMString::from(origin),
                 new_ports
             );
         }
@@ -296,6 +299,7 @@ impl MessagePortMethods for MessagePort {
 
         // Step 7
         let task = PortMessageTask {
+            origin: self.global().origin().immutable().ascii_serialization(),
             data,
         };
 

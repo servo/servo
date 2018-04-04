@@ -541,7 +541,8 @@ impl TaskOnce for MessageReceivedTask {
                     }
                 },
             }
-            MessageEvent::dispatch_jsval(ws.upcast(), &global, message.handle(), vec![]);
+            // FIXME: Pass the correct origin to dispatch_jsval
+            MessageEvent::dispatch_jsval(ws.upcast(), &global, message.handle(), DOMString::new(), vec![]);
         }
     }
 }

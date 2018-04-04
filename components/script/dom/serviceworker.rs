@@ -96,7 +96,10 @@ impl ServiceWorkerMethods for ServiceWorker {
         // Step 7
         rooted!(in(cx) let transfer = UndefinedValue());
         let data = StructuredCloneData::write(cx, message, transfer.handle())?;
-        let msg_vec = DOMMessage(data.move_to_arraybuffer());
+        let msg_vec = DOMMessage {
+            origin: self.global().origin().immutable().ascii_serialization(),
+            data: data.move_to_arraybuffer()
+        };
         let _ =
             self.global()
                 .script_to_constellation_chan()

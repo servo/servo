@@ -1969,7 +1969,7 @@ impl Window {
             let this = this.root();
 
             // Step 7.1.
-            if let Some(target_origin) = target_origin {
+            if let Some(ref target_origin) = target_origin {
                 if !target_origin.same_origin(this.Document().origin()) {
                     return;
                 }
@@ -1996,6 +1996,7 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
+                target_origin.map_or(DOMString::new(), |origin| DOMString::from(origin.ascii_serialization())),
                 new_ports
             );
         });

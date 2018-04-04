@@ -307,14 +307,20 @@ impl DedicatedWorkerGlobalScope {
 
     fn handle_script_event(&self, msg: WorkerScriptMsg) {
         match msg {
-            WorkerScriptMsg::DOMMessage(data) => {
+            WorkerScriptMsg::DOMMessage { origin, data } => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = JSAutoCompartment::new(scope.get_cx(),
                                                  scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 assert!(data.read(scope.upcast(), message.handle_mut()));
-                MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle(), vec![]);
+                MessageEvent::dispatch_jsval(
+                    target,
+                    scope.upcast(),
+                    message.handle(),
+                    DOMString::from(origin),
+                    vec![]
+                );
             },
             WorkerScriptMsg::Common(msg) => {
                 self.upcast::<WorkerGlobalScope>().process_event(msg);
@@ -406,9 +412,10 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         rooted!(in(cx) let transfer = UndefinedValue());
         let data = StructuredCloneData::write(cx, message, transfer.handle())?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+        let pipeline_id = self.global().pipeline_id();
+        let origin = self.global().origin().immutable().ascii_serialization();
         let task = Box::new(task!(post_worker_message: move || {
-            Worker::handle_message(worker, data);
+            Worker::handle_message(worker, origin, data);
         }));
         self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
         Ok(())

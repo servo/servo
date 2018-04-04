@@ -59,7 +59,7 @@ impl<T: DomObject> ScriptPort for Receiver<(Trusted<T>, WorkerScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         match self.recv().map(|(_, msg)| msg) {
             Ok(WorkerScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(WorkerScriptMsg::DOMMessage(_)) => panic!("unexpected worker event message!"),
+            Ok(WorkerScriptMsg::DOMMessage { .. }) => panic!("unexpected worker event message!"),
             Err(_) => Err(()),
         }
     }

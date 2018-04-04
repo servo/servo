@@ -124,9 +124,9 @@ impl ServiceWorkerManager {
     }
 
     fn forward_message(&self, msg: DOMMessage, sender: &Sender<ServiceWorkerScriptMsg>) {
-        let DOMMessage(data) = msg;
+        let DOMMessage { origin, data } = msg;
         let data = StructuredCloneData::Vector(data);
-        let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage(data)));
+        let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage { origin, data }));
     }
 
     fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
