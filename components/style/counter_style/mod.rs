@@ -143,14 +143,14 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
 }
 
 macro_rules! accessor {
-    (#[$doc: meta] $name: tt $ident: ident: $ty: ty = !) => {
+    (#[$doc: meta] $ident: ident: $ty: ty = !) => {
         #[$doc]
         pub fn $ident(&self) -> Option<&$ty> {
             self.$ident.as_ref()
         }
     };
 
-    (#[$doc: meta] $name: tt $ident: ident: $ty: ty = $initial: expr) => {
+    (#[$doc: meta] $ident: ident: $ty: ty = $initial: expr) => {
         #[$doc]
         pub fn $ident(&self) -> Cow<$ty> {
             if let Some(ref value) = self.$ident {
@@ -192,7 +192,7 @@ macro_rules! counter_style_descriptors {
             }
 
             $(
-                accessor!(#[$doc] $name $ident: $ty = $initial);
+                accessor!(#[$doc] $ident: $ty = $initial);
             )+
 
             /// Convert to Gecko types
