@@ -295,7 +295,7 @@ impl Window {
         match self.kind {
             WindowKind::Window(ref window, _) => {
                 let (_, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                height as f32 * dpr.get()
+                height as f32
             },
             WindowKind::Headless(ref context) => {
                 context.height as f32 * dpr.get()
@@ -698,7 +698,7 @@ impl WindowMethods for Window {
                 let screen = (self.screen_size.to_f32() * dpr).to_u32();
 
                 let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
+                let inner_size = TypedSize2D::new(width, height);
 
                 let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);
 
