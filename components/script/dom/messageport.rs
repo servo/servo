@@ -19,12 +19,13 @@ use dom::messageevent::MessageEvent;
 use js::jsapi::{JSContext, JSStructuredCloneReader, JSObject, JSTracer, MutableHandleObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
+use servo_remutex::ReentrantMutex;
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::mem;
 use std::os::raw;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use task_source::TaskSource;
 use task_source::port_message::PortMessageQueue;
 
@@ -38,33 +39,33 @@ struct PortMessageTask {
 }
 
 pub struct MessagePortInternal {
-    dom_port: Option<Trusted<MessagePort>>,
-    port_message_queue: PortMessageQueue,
-    enabled: bool,
-    has_been_shipped: bool,
-    entangled_port: Option<Arc<Mutex<MessagePortInternal>>>,
-    pending_port_messages: VecDeque<PortMessageTask>,
+    dom_port: RefCell<Option<Trusted<MessagePort>>>,
+    port_message_queue: RefCell<PortMessageQueue>,
+    enabled: Cell<bool>,
+    has_been_shipped: Cell<bool>,
+    entangled_port: RefCell<Option<Arc<ReentrantMutex<MessagePortInternal>>>>,
+    pending_port_messages: RefCell<VecDeque<PortMessageTask>>,
 }
 
 impl MessagePortInternal {
     fn new(port_message_queue: PortMessageQueue) -> MessagePortInternal {
         MessagePortInternal {
-            dom_port: None,
-            port_message_queue,
-            enabled: false,
-            has_been_shipped: false,
-            entangled_port: None,
-            pending_port_messages: VecDeque::new(),
+            dom_port: RefCell::new(None),
+            port_message_queue: RefCell::new(port_message_queue),
+            enabled: Cell::new(false),
+            has_been_shipped: Cell::new(false),
+            entangled_port: RefCell::new(None),
+            pending_port_messages: RefCell::new(VecDeque::new()),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     // Step 7 substeps
     #[allow(unrooted_must_root)]
-    fn process_pending_port_messages(&mut self) {
-        if let Some(task) = self.pending_port_messages.pop_front() {
+    fn process_pending_port_messages(&self) {
+        if let Some(task) = self.pending_port_messages.borrow_mut().pop_front() {
             // Substep 1
-            let final_target_port = self.dom_port.as_ref().unwrap().root();
+            let final_target_port = self.dom_port.borrow().as_ref().unwrap().root();
 
             // Substep 2
             let target_global = final_target_port.global();
@@ -102,7 +103,7 @@ pub struct MessagePort {
     eventtarget: EventTarget,
     detached: Cell<bool>,
     #[ignore_malloc_size_of = "Defined in std"]
-    message_port_internal: Arc<Mutex<MessagePortInternal>>,
+    message_port_internal: Arc<ReentrantMutex<MessagePortInternal>>,
 }
 
 #[allow(unsafe_code)]
@@ -121,11 +122,11 @@ impl MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
             message_port_internal:
-                Arc::new(Mutex::new(MessagePortInternal::new(global.port_message_queue().clone()))),
+                Arc::new(ReentrantMutex::new(MessagePortInternal::new(global.port_message_queue().clone()))),
         }
     }
 
-    fn new_transferred(message_port_internal: Arc<Mutex<MessagePortInternal>>) -> MessagePort {
+    fn new_transferred(message_port_internal: Arc<ReentrantMutex<MessagePortInternal>>) -> MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
@@ -137,8 +138,8 @@ impl MessagePort {
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
         let message_port = reflect_dom_object(Box::new(MessagePort::new_inherited(owner)), owner, Wrap);
         {
-            let mut internal = message_port.message_port_internal.lock().unwrap();
-            internal.dom_port = Some(Trusted::new(&*message_port));
+            let internal = message_port.message_port_internal.lock().unwrap();
+            *internal.dom_port.borrow_mut() = Some(Trusted::new(&*message_port));
         }
         message_port
     }
@@ -146,18 +147,18 @@ impl MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#entangle>
     pub fn entangle(&self, other: &MessagePort) {
         {
-            let mut internal = self.message_port_internal.lock().unwrap();
-            internal.entangled_port = Some(other.message_port_internal.clone());
+            let internal = self.message_port_internal.lock().unwrap();
+            *internal.entangled_port.borrow_mut() = Some(other.message_port_internal.clone());
         }
-        let mut internal = other.message_port_internal.lock().unwrap();
-        internal.entangled_port = Some(self.message_port_internal.clone());
+        let internal = other.message_port_internal.lock().unwrap();
+        *internal.entangled_port.borrow_mut() = Some(self.message_port_internal.clone());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     // Step 7 substeps
     fn process_pending_port_messages(&self) {
         if self.detached.get() { return; }
-        let mut internal = self.message_port_internal.lock().unwrap();
+        let internal = self.message_port_internal.lock().unwrap();
         internal.process_pending_port_messages();
     }
 }
@@ -172,16 +173,16 @@ impl Transferable for MessagePort {
         extra_data: *mut u64
     ) -> bool {
         {
-            let mut internal = self.message_port_internal.lock().unwrap();
+            let internal = self.message_port_internal.lock().unwrap();
             // Step 1
-            internal.has_been_shipped = true;
+            internal.has_been_shipped.set(true);
 
             // Step 3
-            if let Some(ref other_port) = internal.entangled_port {
-                let mut entangled_internal = other_port.lock().unwrap();
+            if let Some(ref other_port) = *internal.entangled_port.borrow() {
+                let entangled_internal = other_port.lock().unwrap();
                 // Substep 1
-                entangled_internal.has_been_shipped = true;
-            }
+                entangled_internal.has_been_shipped.set(true);
+            }; // This line MUST contain a semicolon, due to the strict drop check rule
         }
 
         unsafe {
@@ -204,7 +205,7 @@ impl Transferable for MessagePort {
         _extra_data: u64,
         return_object: MutableHandleObject
     ) -> bool {
-        let internal = unsafe { Arc::from_raw(content as *const Mutex<MessagePortInternal>) };
+        let internal = unsafe { Arc::from_raw(content as *const ReentrantMutex<MessagePortInternal>) };
         let value = MessagePort::new_transferred(internal);
 
         // Step 2
@@ -212,15 +213,15 @@ impl Transferable for MessagePort {
         let message_port = reflect_dom_object(Box::new(value), &*owner, Wrap);
 
         {
-            let mut internal = message_port.message_port_internal.lock().unwrap();
+            let internal = message_port.message_port_internal.lock().unwrap();
 
             // Step 1
-            internal.has_been_shipped = true;
+            internal.has_been_shipped.set(true);
 
             let dom_port = Trusted::new(&*message_port);
-            internal.enabled = false;
-            internal.dom_port = Some(dom_port);
-            internal.port_message_queue = owner.port_message_queue().clone();
+            internal.enabled.set(false);
+            *internal.dom_port.borrow_mut() = Some(dom_port);
+            *internal.port_message_queue.borrow_mut() = owner.port_message_queue().clone();
         }
         return_object.set(message_port.reflector().rootable().get());
         TRANSFERRED_MESSAGE_PORTS.with(|list| {
@@ -255,7 +256,7 @@ impl MessagePortMethods for MessagePort {
         if self.detached.get() { return Ok(()); }
         let internal = self.message_port_internal.lock().unwrap();
         // Step 1
-        let target_port = &internal.entangled_port;
+        let target_port = internal.entangled_port.borrow();
 
         // Step 3
         let mut doomed = false;
@@ -300,14 +301,14 @@ impl MessagePortMethods for MessagePort {
 
         {
             let target_port = target_port.as_ref().unwrap();
-            let mut target_internal = target_port.lock().unwrap();
-            target_internal.pending_port_messages.push_back(task);
+            let target_internal = target_port.lock().unwrap();
+            target_internal.pending_port_messages.borrow_mut().push_back(task);
 
-            if target_internal.enabled {
+            if target_internal.enabled.get() {
                 let target_port = target_port.clone();
-                let _ = target_internal.port_message_queue.queue(
+                let _ = target_internal.port_message_queue.borrow().queue(
                     task!(process_pending_port_messages: move || {
-                        let mut internal = target_port.lock().unwrap();
+                        let internal = target_port.lock().unwrap();
                         internal.process_pending_port_messages();
                     }),
                     &self.global()
@@ -321,12 +322,13 @@ impl MessagePortMethods for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
     fn Start(&self) {
         let len = {
-            let mut internal = self.message_port_internal.lock().unwrap();
-            if internal.enabled {
+            let internal = self.message_port_internal.lock().unwrap();
+            if internal.enabled.get() {
                 return;
             }
-            internal.enabled = true;
-            internal.pending_port_messages.len()
+            internal.enabled.set(true);
+            let messages = internal.pending_port_messages.borrow();
+            messages.len()
         };
 
         let global = self.global();
@@ -345,13 +347,14 @@ impl MessagePortMethods for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
     fn Close(&self) {
         let maybe_port = {
-            let mut internal = self.message_port_internal.lock().unwrap();
-            internal.entangled_port.take()
+            let internal = self.message_port_internal.lock().unwrap();
+            let mut maybe_port = internal.entangled_port.borrow_mut();
+            maybe_port.take()
         };
 
         if let Some(other) = maybe_port {
-            let mut other_internal = other.lock().unwrap();
-            other_internal.entangled_port = None;
+            let other_internal = other.lock().unwrap();
+            *other_internal.entangled_port.borrow_mut() = None;
         }
     }
 
