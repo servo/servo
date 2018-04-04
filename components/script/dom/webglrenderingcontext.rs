@@ -4,8 +4,9 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError, WebGLVersion, WebGLSLVersion};
-use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
+use canvas_traits::webgl::{WebGLCommand, WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLParameter, WebGLResult, WebGLSLVersion, WebGLVersion, WebVRCommand};
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
@@ -66,21 +67,6 @@ use webrender_api;
 
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
-
-macro_rules! handle_potential_webgl_error {
-    ($context:ident, $call:expr, $return_on_error:expr) => {
-        match $call {
-            Ok(ret) => ret,
-            Err(error) => {
-                $context.webgl_error(error);
-                $return_on_error
-            }
-        }
-    };
-    ($context:ident, $call:expr) => {
-        handle_potential_webgl_error!($context, $call, ());
-    };
-}
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -1195,6 +1181,14 @@ impl WebGLRenderingContext {
         ));
         Some(receiver.recv().unwrap().into())
     }
+
+    pub fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
+        match target {
+            constants::ARRAY_BUFFER => Ok(self.bound_buffer_array.get()),
+            constants::ELEMENT_ARRAY_BUFFER => Ok(self.bound_buffer_element_array.get()),
+            _ => Err(WebGLError::InvalidEnum),
+        }
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -1256,14 +1250,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         target: u32,
         parameter: u32,
     ) -> JSVal {
-        let buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => {
-                self.webgl_error(InvalidEnum);
-                return NullValue();
-            }
-        };
+        let buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return NullValue());
+
         match parameter {
             constants::BUFFER_SIZE | constants::BUFFER_USAGE => {},
             _ => {
@@ -1693,77 +1681,44 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
         };
 
-        let bound_buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        };
-
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return Ok(()));
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidValue)),
+            None => return Ok(self.webgl_error(InvalidOperation)),
         };
 
-        match usage {
-            constants::STREAM_DRAW |
-            constants::STATIC_DRAW |
-            constants::DYNAMIC_DRAW => (),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        }
-
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
-
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data_vec, usage));
         Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) -> ErrorResult {
-        let bound_buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        };
-
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return Ok(()));
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidValue)),
+            None => return Ok(self.webgl_error(InvalidOperation)),
         };
 
         if size < 0 {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        match usage {
-            constants::STREAM_DRAW |
-            constants::STATIC_DRAW |
-            constants::DYNAMIC_DRAW => (),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        }
-
         // FIXME: Allocating a buffer based on user-requested size is
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
-
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
         Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferSubData(&self, target: u32, offset: i64, data: Option<ArrayBufferViewOrArrayBuffer>) {
+    fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         let data_vec = match data {
             // Typed array is rooted, so we can safely temporarily retrieve its slice
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut inner)) => inner.to_vec(),
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut inner)) => inner.to_vec(),
-            // Spec: If data is null then an INVALID_VALUE error is generated.
-            None => return self.webgl_error(InvalidValue),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut inner) => inner.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut inner) => inner.to_vec(),
         };
 
-        let bound_buffer = match target {
-            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
-            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
-            _ => return self.webgl_error(InvalidEnum),
-        };
-
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
             None => return self.webgl_error(InvalidOperation),

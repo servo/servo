@@ -7,6 +7,7 @@ use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLMsgSend
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
@@ -86,18 +87,25 @@ impl WebGLBuffer {
         Ok(())
     }
 
-    pub fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
+    pub fn buffer_data<T>(&self, target: u32, data: T, usage: u32) -> WebGLResult<()>
+    where
+        T: Into<Vec<u8>>,
+    {
+        match usage {
+            WebGLRenderingContextConstants::STREAM_DRAW |
+            WebGLRenderingContextConstants::STATIC_DRAW |
+            WebGLRenderingContextConstants::DYNAMIC_DRAW => (),
+            _ => return Err(WebGLError::InvalidEnum),
+        }
+
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
             }
         }
+        let data = data.into();
         self.capacity.set(data.len());
-        self.renderer.send(WebGLCommand::BufferData(
-            target,
-            data.to_vec().into(),
-            usage,
-        )).unwrap();
+        self.renderer.send(WebGLCommand::BufferData(target, data.into(), usage)).unwrap();
 
         Ok(())
     }
