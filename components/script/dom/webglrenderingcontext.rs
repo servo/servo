@@ -1704,15 +1704,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return Ok(self.webgl_error(InvalidValue)),
         };
 
-        match usage {
-            constants::STREAM_DRAW |
-            constants::STATIC_DRAW |
-            constants::DYNAMIC_DRAW => (),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        }
-
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
-
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data_vec, usage));
         Ok(())
     }
 
@@ -1733,18 +1725,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        match usage {
-            constants::STREAM_DRAW |
-            constants::STATIC_DRAW |
-            constants::DYNAMIC_DRAW => (),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        }
-
         // FIXME: Allocating a buffer based on user-requested size is
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
-
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
         Ok(())
     }
 
