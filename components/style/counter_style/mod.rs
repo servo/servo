@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
-use cssparser::{Parser, Token, CowRcStr};
+use cssparser::{Parser, Token, CowRcStr, SourceLocation};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{ nsCSSCounterDesc, nsCSSValue };
@@ -70,15 +70,17 @@ pub fn parse_counter_style_name_definition<'i, 't>(
 }
 
 /// Parse the body (inside `{}`) of an @counter-style rule
-pub fn parse_counter_style_body<'i, 't, R>(name: CustomIdent,
-                                           context: &ParserContext,
-                                           error_context: &ParserErrorContext<R>,
-                                           input: &mut Parser<'i, 't>)
-                                           -> Result<CounterStyleRuleData, ParseError<'i>>
+pub fn parse_counter_style_body<'i, 't, R>(
+    name: CustomIdent,
+    context: &ParserContext,
+    error_context: &ParserErrorContext<R>,
+    input: &mut Parser<'i, 't>,
+    location: SourceLocation,
+) -> Result<CounterStyleRuleData, ParseError<'i>>
     where R: ParseErrorReporter
 {
     let start = input.current_source_location();
-    let mut rule = CounterStyleRuleData::empty(name);
+    let mut rule = CounterStyleRuleData::empty(name, location);
     {
         let parser = CounterStyleRuleParser {
             context: context,
@@ -153,15 +155,18 @@ macro_rules! counter_style_descriptors {
                 #[$doc]
                 $ident: Option<$ty>,
             )+
+            /// Line and column of the @counter-style rule source code.
+            pub source_location: SourceLocation,
         }
 
         impl CounterStyleRuleData {
-            fn empty(name: CustomIdent) -> Self {
+            fn empty(name: CustomIdent, source_location: SourceLocation) -> Self {
                 CounterStyleRuleData {
                     name: name,
                     $(
                         $ident: None,
                     )+
+                    source_location,
                 }
             }
 
