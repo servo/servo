@@ -840,6 +840,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
+            FromBluetoothManager(BluetoothManagerMsg),
         }
 
         // Get one incoming request.
@@ -859,6 +860,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_layout = &self.layout_receiver;
             let receiver_from_network_listener = &self.network_listener_receiver;
             let receiver_from_swmanager = &self.swmanager_receiver;
+            let receiver_from_bluetoothmanager = &self.bluetoothmanager_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     msg.expect("Unexpected script channel panic in constellation").map(Request::Script),
@@ -871,7 +873,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         msg.expect("Unexpected network listener channel panic in constellation")
                     )),
                 msg = receiver_from_swmanager.recv() =>
-                    msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
+                    msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager),
+                msg = receiver_from_bluetoothmanager.recv() =>
+                    msg.expect("Unexpected bluetooth channel panic in constellation").map(Request::FromBluetoothManager)
             }
         };
 
@@ -895,6 +899,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
+            },
+            Request::FromBluetoothManager(message) => {
+                self.handle_request_from_bluetoothmanager(message);
             }
         }
     }
@@ -922,6 +929,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.swmanager_chan = Some(sw_sender);
             }
         }
+    }
+
+    fn handle_request_from_bluetoothmanager(&mut self, message:BluetoothManagerMsg) {
+        
     }
 
     fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
