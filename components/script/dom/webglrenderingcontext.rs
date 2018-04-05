@@ -3518,7 +3518,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         //
         //    "target must be RENDERBUFFER."
         if target != constants::RENDERBUFFER {
-            return self.webgl_error(InvalidOperation)
+            return self.webgl_error(InvalidEnum);
         }
 
         // From the GLES 2.0.25 spec:
