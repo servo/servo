@@ -102,7 +102,9 @@ const gTestSyntaxExamples = {
       },
       {
         description: "negative milliseconds",
-        input: new CSSUnitValue(-3.14, 'ms')
+        input: new CSSUnitValue(-3.14, 'ms'),
+        // Computed values use canonical units
+        defaultComputed: (_, result) => assert_style_value_equals(result, new CSSUnitValue(-0.00314, 's'))
       },
       {
         description: "positive seconds",
