@@ -7,7 +7,7 @@
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSValue, nsCSSUnit};
-use gecko_bindings::structs::{nsCSSValue_Array, nsCSSValueList, nscolor};
+use gecko_bindings::structs::{nsCSSValue_Array, nsCSSValueList};
 use gecko_string_cache::Atom;
 use std::marker::PhantomData;
 use std::mem;
@@ -33,28 +33,15 @@ impl nsCSSValue {
     /// builds.
     pub fn integer_unchecked(&self) -> i32 {
         debug_assert!(self.mUnit == nsCSSUnit::eCSSUnit_Integer ||
-                      self.mUnit == nsCSSUnit::eCSSUnit_Enumerated ||
-                      self.mUnit == nsCSSUnit::eCSSUnit_EnumColor);
+                      self.mUnit == nsCSSUnit::eCSSUnit_Enumerated);
         unsafe { *self.mValue.mInt.as_ref() }
     }
 
     /// Checks if it is an integer and returns it if so
     pub fn integer(&self) -> Option<i32> {
         if self.mUnit == nsCSSUnit::eCSSUnit_Integer ||
-           self.mUnit == nsCSSUnit::eCSSUnit_Enumerated ||
-           self.mUnit == nsCSSUnit::eCSSUnit_EnumColor {
+           self.mUnit == nsCSSUnit::eCSSUnit_Enumerated {
             Some(unsafe { *self.mValue.mInt.as_ref() })
-        } else {
-            None
-        }
-    }
-
-    /// Checks if it is an RGBA color, returning it if so
-    /// Only use it with colors set by SetColorValue(),
-    /// which always sets RGBA colors
-    pub fn color_value(&self) -> Option<nscolor> {
-        if self.mUnit == nsCSSUnit::eCSSUnit_RGBAColor {
-            Some(unsafe { *self.mValue.mColor.as_ref() })
         } else {
             None
         }

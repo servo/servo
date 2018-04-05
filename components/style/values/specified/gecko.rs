@@ -5,12 +5,14 @@
 //! Specified types for legacy Gecko-only properties.
 
 use cssparser::{Parser, Token};
-use gecko_bindings::structs;
-use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
+use gecko::values::GeckoStyleCoordConvertible;
+use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut};
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseErrorKind};
-use values::CSSFloat;
+use std::fmt;
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
 use values::computed;
+use values::computed::length::CSSPixelLength;
 use values::generics::gecko::ScrollSnapPoint as GenericScrollSnapPoint;
 use values::generics::rect::Rect;
 use values::specified::length::LengthOrPercentage;
@@ -32,10 +34,10 @@ impl Parse for ScrollSnapPoint {
 }
 
 /// A component of an IntersectionObserverRootMargin.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 pub enum PixelOrPercentage {
     /// An absolute length in pixels (px)
-    Px(CSSFloat),
+    Pixel(CSSPixelLength),
     /// A percentage (%)
     Percentage(computed::Percentage),
 }
@@ -50,7 +52,7 @@ impl Parse for PixelOrPercentage {
         let value = match *token {
             Token::Dimension { value, ref unit, .. } => {
                 match_ignore_ascii_case! { unit,
-                    "px" => Ok(PixelOrPercentage::Px(value)),
+                    "px" => Ok(PixelOrPercentage::Pixel(CSSPixelLength::new(value))),
                     _ => Err(()),
                 }
             }
@@ -67,16 +69,21 @@ impl Parse for PixelOrPercentage {
     }
 }
 
-impl ToNsCssValue for PixelOrPercentage {
-    fn convert(self, nscssvalue: &mut structs::nsCSSValue) {
-        match self {
-            PixelOrPercentage::Px(px) => {
-                unsafe { nscssvalue.set_px(px); }
-            }
-            PixelOrPercentage::Percentage(pc) => {
-                unsafe { nscssvalue.set_percentage(pc.0); }
-            }
+impl GeckoStyleCoordConvertible for PixelOrPercentage {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            PixelOrPercentage::Pixel(ref l) => l.to_gecko_style_coord(coord),
+            PixelOrPercentage::Percentage(ref pc) => pc.to_gecko_style_coord(coord),
         }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        CSSPixelLength::from_gecko_style_coord(coord)
+            .map(PixelOrPercentage::Pixel)
+            .or_else(|| {
+                computed::Percentage::from_gecko_style_coord(coord)
+                    .map(PixelOrPercentage::Percentage)
+            })
     }
 }
 
@@ -95,5 +102,22 @@ impl Parse for IntersectionObserverRootMargin {
     ) -> Result<Self, ParseError<'i>> {
         let rect = Rect::parse_with(context, input, PixelOrPercentage::parse)?;
         Ok(IntersectionObserverRootMargin(rect))
+    }
+}
+
+// Strictly speaking this is not ToCss. It's serializing for DOM. But
+// we can just reuse the infrastructure of this.
+//
+// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin>
+impl ToCss for IntersectionObserverRootMargin {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+        // We cannot use the ToCss impl of Rect, because that would
+        // merge items when they are equal. We want to list them all.
+        let mut writer = SequenceWriter::new(dest, " ");
+        let rect = &self.0;
+        writer.item(&rect.0)?;
+        writer.item(&rect.1)?;
+        writer.item(&rect.2)?;
+        writer.item(&rect.3)
     }
 }

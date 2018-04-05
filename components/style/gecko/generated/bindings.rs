@@ -80,7 +80,6 @@ use gecko_bindings::structs::nsCSSFontDesc;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsCSSPropertyIDSet;
-use gecko_bindings::structs::nsCSSRect;
 use gecko_bindings::structs::nsCSSShadowArray;
 use gecko_bindings::structs::nsCSSUnit;
 use gecko_bindings::structs::nsCSSValue;
@@ -192,6 +191,9 @@ unsafe impl Sync for nsStyleSVGPaint {}
 use gecko_bindings::structs::nsStyleSVGReset;
 unsafe impl Send for nsStyleSVGReset {}
 unsafe impl Sync for nsStyleSVGReset {}
+use gecko_bindings::structs::nsStyleSides;
+unsafe impl Send for nsStyleSides {}
+unsafe impl Sync for nsStyleSides {}
 use gecko_bindings::structs::nsStyleTable;
 unsafe impl Send for nsStyleTable {}
 unsafe impl Sync for nsStyleTable {}
@@ -3359,10 +3361,16 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
-    pub fn Servo_ParseIntersectionObserverRootMargin(
+    pub fn Servo_IntersectionObserverRootMargin_Parse(
         value: *const nsAString,
-        result: *mut nsCSSRect,
+        result: *mut nsStyleSides,
     ) -> bool;
+}
+extern "C" {
+    pub fn Servo_IntersectionObserverRootMargin_ToString(
+        rect: *const nsStyleSides,
+        result: *mut nsAString,
+    );
 }
 extern "C" {
     pub fn Servo_ParseTransformIntoMatrix(

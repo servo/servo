@@ -157,8 +157,9 @@ use style::values::{CustomIdent, KeyframesName};
 use style::values::animated::{Animate, Procedure, ToAnimatedZero};
 use style::values::computed::{Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
+use style::values::generics::rect::Rect;
 use style::values::specified;
-use style::values::specified::gecko::IntersectionObserverRootMargin;
+use style::values::specified::gecko::{IntersectionObserverRootMargin, PixelOrPercentage};
 use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::{CssWriter, ParsingMode, StyleParseErrorKind, ToCss};
 use super::error_reporter::ErrorReporter;
@@ -5204,17 +5205,17 @@ pub extern "C" fn Servo_ComputeColor(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParseIntersectionObserverRootMargin(
+pub unsafe extern "C" fn Servo_IntersectionObserverRootMargin_Parse(
     value: *const nsAString,
-    result: *mut structs::nsCSSRect,
+    result: *mut structs::nsStyleSides,
 ) -> bool {
-    let value = unsafe { value.as_ref().unwrap().to_string() };
-    let result = unsafe { result.as_mut().unwrap() };
+    let value = value.as_ref().unwrap().to_string();
+    let result = result.as_mut().unwrap();
 
     let mut input = ParserInput::new(&value);
     let mut parser = Parser::new(&mut input);
 
-    let url_data = unsafe { dummy_url_data() };
+    let url_data = dummy_url_data();
     let context = ParserContext::new(
         Origin::Author,
         url_data,
@@ -5228,15 +5229,23 @@ pub extern "C" fn Servo_ParseIntersectionObserverRootMargin(
     });
     match margin {
         Ok(margin) => {
-            let rect = margin.0;
-            result.mTop.set_from(rect.0);
-            result.mRight.set_from(rect.1);
-            result.mBottom.set_from(rect.2);
-            result.mLeft.set_from(rect.3);
+            margin.0.to_gecko_rect(result);
             true
         }
         Err(..) => false,
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_IntersectionObserverRootMargin_ToString(
+    rect: *const structs::nsStyleSides,
+    result: *mut nsAString,
+) {
+    let rect = Rect::<PixelOrPercentage>::
+        from_gecko_rect(rect.as_ref().unwrap()).unwrap();
+    let root_margin = IntersectionObserverRootMargin(rect);
+    let mut writer = CssWriter::new(result.as_mut().unwrap());
+    root_margin.to_css(&mut writer).unwrap();
 }
 
 #[no_mangle]
