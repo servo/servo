@@ -134,11 +134,9 @@ use servo_config::opts;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use session_history::{BrowsingContextChangeset, BrowsingContextDiff, SessionHistory};
-use session_history::{SessionHistoryChange, SessionHistoryDiff};
+use session_history::{SessionHistory, SessionHistoryChange, SessionHistoryDiff};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
-use std::collections::hash_map::Entry;
 use std::marker::PhantomData;
 use std::process;
 use std::rc::{Rc, Weak};
@@ -794,10 +792,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn new_browsing_context(&mut self,
                  browsing_context_id: BrowsingContextId,
                  top_level_id: TopLevelBrowsingContextId,
-                 pipeline_id: PipelineId,
-                 load_data: LoadData) {
+                 pipeline_id: PipelineId) {
         debug!("Creating new browsing context {}", browsing_context_id);
-        let browsing_context = BrowsingContext::new(browsing_context_id, top_level_id, pipeline_id, load_data);
+        let browsing_context = BrowsingContext::new(browsing_context_id, top_level_id, pipeline_id);
         self.browsing_contexts.insert(browsing_context_id, browsing_context);
 
         // If a child browsing_context, add it to the parent pipeline.
@@ -1469,7 +1466,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
-            load_data: load_data,
             replace: None,
         });
     }
@@ -1546,7 +1542,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: pipeline_id,
-            load_data: load_data,
             replace: None,
         });
     }
@@ -1656,7 +1651,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
             browsing_context_id: load_info.info.browsing_context_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
-            load_data: load_data,
             replace,
         });
     }
@@ -1675,6 +1669,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let url = ServoUrl::parse("about:blank").expect("infallible");
 
+        // TODO: Referrer?
+        let load_data = LoadData::new(url.clone(), Some(parent_pipeline_id), None, None);
+
         let pipeline = {
             let parent_pipeline = match self.pipelines.get(&parent_pipeline_id) {
                 Some(parent_pipeline) => parent_pipeline,
@@ -1691,12 +1688,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           layout_sender,
                           self.compositor_proxy.clone(),
                           is_private || parent_pipeline.is_private,
-                          url.clone(),
-                          parent_pipeline.visible)
+                          url,
+                          parent_pipeline.visible,
+                          load_data)
         };
-
-        // TODO: Referrer?
-        let load_data = LoadData::new(url, Some(parent_pipeline_id), None, None);
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
@@ -1705,7 +1700,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
-            load_data: load_data,
             replace: None,
         });
     }
@@ -1858,7 +1852,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
-                    load_data: load_data,
                     replace,
                 });
                 Some(new_pipeline_id)
@@ -1932,7 +1925,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
         }
 
-        let mut browsing_context_changesets = HashMap::<BrowsingContextId, BrowsingContextChangeset>::new();
+        let mut browsing_context_changes = HashMap::<BrowsingContextId, PipelineId>::new();
         {
             let session_history = self.joint_session_histories
                 .entry(top_level_browsing_context_id).or_insert(SessionHistory::new());
@@ -1944,18 +1937,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
 
                     for _ in 0..forward {
-                        let diff = session_history.future.pop().unwrap();
+                        let diff = session_history.future.pop().expect("Infallible");
                         match diff {
-                            SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref diff) => {
-                                // TODO: Replace with `Entry::and_modify` when it becomes stable in 1.26
-                                match browsing_context_changesets.entry(browsing_context_id) {
-                                    Entry::Occupied(mut entry) => {
-                                        entry.get_mut().apply_diff(diff, direction);
-                                    },
-                                    Entry::Vacant(mut entry) => {
-                                        entry.insert(BrowsingContextChangeset::new(diff, direction));
-                                    }
-                                }
+                            SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, new_pipeline_id, .. } => {
+                                browsing_context_changes.insert(browsing_context_id, new_pipeline_id);
                             }
                         }
                         session_history.past.push(diff);
@@ -1967,18 +1952,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
 
                     for _ in 0..back {
-                        let diff = session_history.past.pop().unwrap();
+                        let diff = session_history.past.pop().expect("Infallible");
                         match diff {
-                            SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref diff) => {
-                                // TODO: Replace with `Entry::and_modify` when it becomes stable in 1.26
-                                match browsing_context_changesets.entry(browsing_context_id) {
-                                    Entry::Occupied(mut entry) => {
-                                        entry.get_mut().apply_diff(diff, direction);
-                                    },
-                                    Entry::Vacant(mut entry) => {
-                                        entry.insert(BrowsingContextChangeset::new(diff, direction));
-                                    }
-                                }
+                            SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, old_pipeline_id, .. } => {
+                                browsing_context_changes.insert(browsing_context_id, old_pipeline_id);
                             }
                         }
                         session_history.future.push(diff);
@@ -1987,19 +1964,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        for (browsing_context_id, changeset) in browsing_context_changesets.drain() {
-            self.update_browsing_context(browsing_context_id, changeset);
+        for (browsing_context_id, pipeline_id) in browsing_context_changes.drain() {
+            self.update_browsing_context(browsing_context_id, pipeline_id);
         }
 
         self.notify_history_changed(top_level_browsing_context_id);
         self.update_frame_tree_if_active(top_level_browsing_context_id);
     }
 
-    fn update_browsing_context(&mut self, browsing_context_id: BrowsingContextId, changeset: BrowsingContextChangeset) {
+    fn update_browsing_context(&mut self, browsing_context_id: BrowsingContextId, new_pipeline_id: PipelineId) {
         let old_pipeline_id = match self.browsing_contexts.get_mut(&browsing_context_id) {
             Some(browsing_context) => {
                 let old_pipeline_id = browsing_context.pipeline_id;
-                browsing_context.update_current_entry(changeset.pipeline_id, changeset.load_data);
+                browsing_context.update_current_entry(new_pipeline_id);
                 old_pipeline_id
             },
             None => {
@@ -2010,11 +1987,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let parent_info = self.pipelines.get(&old_pipeline_id).and_then(|pipeline| pipeline.parent_info);
 
         self.update_activity(old_pipeline_id);
-        self.update_activity(changeset.pipeline_id);
+        self.update_activity(new_pipeline_id);
 
         if let Some(parent_pipeline_id) = parent_info {
             let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id, browsing_context_id,
-                changeset.pipeline_id, UpdatePipelineIdReason::Traversal);
+                new_pipeline_id, UpdatePipelineIdReason::Traversal);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {} child traversed after closure", parent_pipeline_id),
                 Some(pipeline) => pipeline.event_loop.send(msg),
@@ -2217,7 +2194,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             WebDriverCommandMsg::Refresh(top_level_browsing_context_id, reply) => {
                 let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
                 let load_data = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => browsing_context.load_data.clone(),
+                    Some(browsing_context) => match self.pipelines.get(&browsing_context.pipeline_id) {
+                        Some(pipeline) => pipeline.load_data.clone(),
+                        None => return warn!("Pipeline {} refresh after closure.", browsing_context.pipeline_id),
+                    },
                     None => return warn!("Browsing context {} Refresh after closure.", browsing_context_id),
                 };
                 self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, true);
@@ -2271,30 +2251,43 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let current_load_data = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.load_data.clone(),
+        let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(browsing_context) => browsing_context,
             None => return warn!("notify_history_changed error after top-level browsing context closed."),
+        };
+
+        let current_load_data = match self.pipelines.get(&browsing_context.pipeline_id) {
+            Some(pipeline) => pipeline.load_data.clone(),
+            None => return warn!("Pipeline {} refresh after closure.", browsing_context.pipeline_id),
         };
 
         // If LoadData was ignored, use the LoadData of the previous SessionHistoryEntry, which
         // is the LoadData of the parent browsing context.
         let resolve_load_data_future = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
-            let SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref context_diff) = *diff;
+            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, new_pipeline_id, .. } = *diff;
 
             if browsing_context_id == top_level_browsing_context_id {
-                *previous_load_data = context_diff.new_load_data.clone();
-                Some(context_diff.new_load_data.clone())
+                let load_data = match self.pipelines.get(&new_pipeline_id) {
+                    Some(pipeline) => pipeline.load_data.clone(),
+                    None => previous_load_data.clone()
+                };
+                *previous_load_data = load_data.clone();
+                Some(load_data)
             } else {
                 Some(previous_load_data.clone())
             }
         };
 
         let resolve_load_data_past = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
-            let SessionHistoryDiff::BrowsingContextDiff(browsing_context_id, ref context_diff) = *diff;
+            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, old_pipeline_id, .. } = *diff;
 
             if browsing_context_id == top_level_browsing_context_id {
-                *previous_load_data = context_diff.old_load_data.clone();
-                Some(context_diff.old_load_data.clone())
+                let load_data = match self.pipelines.get(&old_pipeline_id) {
+                    Some(pipeline) => pipeline.load_data.clone(),
+                    None => previous_load_data.clone()
+                };
+                *previous_load_data = load_data.clone();
+                Some(load_data)
             } else {
                 Some(previous_load_data.clone())
             }
@@ -2342,29 +2335,28 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.focus_pipeline_id = Some(change.new_pipeline_id);
         }
 
-        let old_entry = if let Some(browsing_context) = self.browsing_contexts.get_mut(&change.browsing_context_id)
+        let old_pipeline_id = if let Some(browsing_context) =
+            self.browsing_contexts.get_mut(&change.browsing_context_id)
         {
             debug!("Adding pipeline to existing browsing context.");
             let old_pipeline_id = browsing_context.pipeline_id;
-            let old_load_data = browsing_context.load_data.clone();
             browsing_context.pipelines.insert(change.new_pipeline_id);
-            browsing_context.update_current_entry(change.new_pipeline_id, change.load_data.clone());
-            Some((old_pipeline_id, old_load_data))
+            browsing_context.update_current_entry(change.new_pipeline_id);
+            Some(old_pipeline_id)
         } else {
             debug!("Adding pipeline to new browsing context.");
             None
         };
 
-        match old_entry {
+        match old_pipeline_id {
             None => {
                 self.new_browsing_context(change.browsing_context_id,
                     change.top_level_browsing_context_id,
-                    change.new_pipeline_id,
-                    change.load_data.clone());
+                    change.new_pipeline_id);
                 self.update_activity(change.new_pipeline_id);
                 self.notify_history_changed(change.top_level_browsing_context_id);
             },
-            Some((old_pipeline_id, old_load_data)) => {
+            Some(old_pipeline_id) => {
                 // Deactivate the old pipeline, and activate the new one.
                 let pipelines_to_close = if let Some(replace_pipeline_id) = change.replace {
                     debug_assert_eq!(old_pipeline_id, replace_pipeline_id);
@@ -2375,16 +2367,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 } else {
                     let session_history = self.joint_session_histories
                         .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
-                    let diff = SessionHistoryDiff::BrowsingContextDiff(change.browsing_context_id, BrowsingContextDiff {
+                    let diff = SessionHistoryDiff::BrowsingContextDiff {
                         browsing_context_id: change.browsing_context_id,
-                        old_pipeline_id,
-                        old_load_data,
                         new_pipeline_id: change.new_pipeline_id,
-                        new_load_data: change.load_data,
-                    });
+                        old_pipeline_id: old_pipeline_id,
+                    };
 
                     session_history.push_diff(diff).into_iter()
-                        .map(|SessionHistoryDiff::BrowsingContextDiff(_, diff)| diff.new_pipeline_id)
+                        .map(|SessionHistoryDiff::BrowsingContextDiff { new_pipeline_id, .. }| new_pipeline_id)
                         .collect::<Vec<_>>()
                 };
 

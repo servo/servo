@@ -89,6 +89,9 @@ pub struct Pipeline {
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
+
+    /// The Load Data used to create this pipeline.
+    pub load_data: LoadData,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -209,7 +212,7 @@ impl Pipeline {
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
-                    load_data: state.load_data,
+                    load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
                     content_process_shutdown_chan: Some(layout_content_process_shutdown_chan.clone()),
@@ -260,7 +263,7 @@ impl Pipeline {
                     window_size: window_size,
                     layout_to_constellation_chan: state.layout_to_constellation_chan,
                     script_chan: script_chan.clone(),
-                    load_data: state.load_data,
+                    load_data: state.load_data.clone(),
                     script_port: script_port,
                     opts: (*opts::get()).clone(),
                     prefs: PREFS.cloned(),
@@ -298,7 +301,8 @@ impl Pipeline {
                          state.compositor_proxy,
                          state.is_private,
                          url,
-                         state.prev_visibility.unwrap_or(true)))
+                         state.prev_visibility.unwrap_or(true),
+                         state.load_data))
     }
 
     /// Creates a new `Pipeline`, after the script and layout threads have been
@@ -312,7 +316,8 @@ impl Pipeline {
                compositor_proxy: CompositorProxy,
                is_private: bool,
                url: ServoUrl,
-               visible: bool)
+               visible: bool,
+               load_data: LoadData)
                -> Pipeline {
         let pipeline = Pipeline {
             id: id,
@@ -327,6 +332,7 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
+            load_data: load_data,
         };
 
         pipeline.notify_visibility();
