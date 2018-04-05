@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TraversalDirection, TopLevelBrowsingContextId};
-use script_traits::LoadData;
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use std::mem;
 
 #[derive(Debug)]
@@ -32,8 +31,7 @@ impl SessionHistory {
 
     pub fn replace(&mut self, old_pipeline_id: PipelineId, new_pipeline_id: PipelineId) {
         for diff in self.past.iter_mut().chain(self.future.iter_mut()) {
-            let SessionHistoryDiff::BrowsingContextDiff(_, ref mut context_diff) = *diff;
-            context_diff.replace(old_pipeline_id, new_pipeline_id);
+            diff.replace(old_pipeline_id, new_pipeline_id);
         }
     }
 }
@@ -50,74 +48,29 @@ pub struct SessionHistoryChange {
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 
-    /// The data for the document being loaded.
-    pub load_data: LoadData,
-
     pub replace: Option<PipelineId>,
-}
-
-pub struct BrowsingContextChangeset {
-    pub pipeline_id: PipelineId,
-    pub load_data: LoadData,
-}
-
-impl BrowsingContextChangeset {
-    pub fn new(diff: &BrowsingContextDiff, direction: TraversalDirection) -> BrowsingContextChangeset {
-        match direction {
-            TraversalDirection::Forward(_) => {
-                BrowsingContextChangeset {
-                    pipeline_id: diff.new_pipeline_id,
-                    load_data: diff.new_load_data.clone(),
-                }
-            },
-            TraversalDirection::Back(_) => {
-                BrowsingContextChangeset {
-                    pipeline_id: diff.old_pipeline_id,
-                    load_data: diff.old_load_data.clone(),
-                }
-            }
-        }
-    }
-
-    pub fn apply_diff(&mut self, diff: &BrowsingContextDiff, direction: TraversalDirection) {
-        match direction {
-            TraversalDirection::Forward(_) => {
-                self.pipeline_id = diff.new_pipeline_id;
-                self.load_data = diff.new_load_data.clone();
-            },
-            TraversalDirection::Back(_) => {
-                self.pipeline_id = diff.old_pipeline_id;
-                self.load_data = diff.old_load_data.clone();
-            }
-        }
-    }
 }
 
 #[derive(Debug)]
 pub enum SessionHistoryDiff {
-    BrowsingContextDiff(BrowsingContextId, BrowsingContextDiff),
+    BrowsingContextDiff {
+        browsing_context_id: BrowsingContextId,
+        old_pipeline_id: PipelineId,
+        new_pipeline_id: PipelineId,
+    },
 }
 
-#[derive(Debug)]
-pub struct BrowsingContextDiff {
-    pub browsing_context_id: BrowsingContextId,
-
-    pub old_pipeline_id: PipelineId,
-
-    pub old_load_data: LoadData,
-
-    pub new_pipeline_id: PipelineId,
-
-    pub new_load_data: LoadData,
-}
-
-impl BrowsingContextDiff {
-    pub fn replace(&mut self, old_pipeline_id: PipelineId, new_pipeline_id: PipelineId) {
-        if self.old_pipeline_id == old_pipeline_id {
-            self.old_pipeline_id = new_pipeline_id;
-        }
-        if self.new_pipeline_id == old_pipeline_id {
-            self.new_pipeline_id = new_pipeline_id;
+impl SessionHistoryDiff {
+    pub fn replace(&mut self, stale_pipeline_id: PipelineId, pipeline_id: PipelineId) {
+        match *self {
+            SessionHistoryDiff::BrowsingContextDiff { ref mut old_pipeline_id, ref mut new_pipeline_id, .. } => {
+                if *old_pipeline_id == stale_pipeline_id {
+                    *old_pipeline_id = pipeline_id;
+                }
+                if *new_pipeline_id == stale_pipeline_id {
+                    *new_pipeline_id = pipeline_id;
+                }
+            }
         }
     }
 }

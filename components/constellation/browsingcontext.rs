@@ -5,7 +5,6 @@
 use euclid::TypedSize2D;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use pipeline::Pipeline;
-use script_traits::LoadData;
 use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
 
@@ -29,9 +28,6 @@ pub struct BrowsingContext {
     /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
-    /// The load data for the current session history entry.
-    pub load_data: LoadData,
-
     pub pipelines: HashSet<PipelineId>,
 }
 
@@ -40,8 +36,7 @@ impl BrowsingContext {
     /// Note this just creates the browsing context, it doesn't add it to the constellation's set of browsing contexts.
     pub fn new(id: BrowsingContextId,
                top_level_id: TopLevelBrowsingContextId,
-               pipeline_id: PipelineId,
-               load_data: LoadData)
+               pipeline_id: PipelineId)
                -> BrowsingContext
     {
         let mut pipelines = HashSet::new();
@@ -51,14 +46,12 @@ impl BrowsingContext {
             top_level_id: top_level_id,
             size: None,
             pipeline_id: pipeline_id,
-            load_data: load_data,
             pipelines,
         }
     }
 
-    pub fn update_current_entry(&mut self, pipeline_id: PipelineId, load_data: LoadData) {
+    pub fn update_current_entry(&mut self, pipeline_id: PipelineId) {
         self.pipeline_id = pipeline_id;
-        self.load_data = load_data;
     }
 
     /// Is this a top-level browsing context?
