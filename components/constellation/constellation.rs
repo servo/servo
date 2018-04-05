@@ -2342,60 +2342,60 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.focus_pipeline_id = Some(change.new_pipeline_id);
         }
 
-        let (new_context, navigated) = if let Some(browsing_context) =
-            self.browsing_contexts.get_mut(&change.browsing_context_id)
+        let old_entry = if let Some(browsing_context) = self.browsing_contexts.get_mut(&change.browsing_context_id)
         {
             debug!("Adding pipeline to existing browsing context.");
             let old_pipeline_id = browsing_context.pipeline_id;
             let old_load_data = browsing_context.load_data.clone();
             browsing_context.pipelines.insert(change.new_pipeline_id);
             browsing_context.update_current_entry(change.new_pipeline_id, change.load_data.clone());
-            (false, Some((old_pipeline_id, old_load_data)))
+            Some((old_pipeline_id, old_load_data))
         } else {
             debug!("Adding pipeline to new browsing context.");
-            (true, None)
+            None
         };
 
-        if new_context {
-            self.new_browsing_context(change.browsing_context_id,
-                                      change.top_level_browsing_context_id,
-                                      change.new_pipeline_id,
-                                      change.load_data.clone());
-            self.update_activity(change.new_pipeline_id);
-            self.notify_history_changed(change.top_level_browsing_context_id);
-        }
+        match old_entry {
+            None => {
+                self.new_browsing_context(change.browsing_context_id,
+                    change.top_level_browsing_context_id,
+                    change.new_pipeline_id,
+                    change.load_data.clone());
+                self.update_activity(change.new_pipeline_id);
+                self.notify_history_changed(change.top_level_browsing_context_id);
+            },
+            Some((old_pipeline_id, old_load_data)) => {
+                // Deactivate the old pipeline, and activate the new one.
+                let pipelines_to_close = if let Some(replace_pipeline_id) = change.replace {
+                    debug_assert_eq!(old_pipeline_id, replace_pipeline_id);
+                    let session_history = self.joint_session_histories
+                        .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
+                    session_history.replace(replace_pipeline_id, change.new_pipeline_id);
+                    vec![replace_pipeline_id]
+                } else {
+                    let session_history = self.joint_session_histories
+                        .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
+                    let diff = SessionHistoryDiff::BrowsingContextDiff(change.browsing_context_id, BrowsingContextDiff {
+                        browsing_context_id: change.browsing_context_id,
+                        old_pipeline_id,
+                        old_load_data,
+                        new_pipeline_id: change.new_pipeline_id,
+                        new_load_data: change.load_data,
+                    });
 
-        if let Some((old_pipeline_id, old_load_data)) = navigated {
-            // Deactivate the old pipeline, and activate the new one.
-            let pipelines_to_close = if let Some(replace_pipeline_id) = change.replace {
-                debug_assert_eq!(old_pipeline_id, replace_pipeline_id);
-                let session_history = self.joint_session_histories
-                    .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
-                session_history.replace(replace_pipeline_id, change.new_pipeline_id);
-                vec![replace_pipeline_id]
-            } else {
-                let session_history = self.joint_session_histories
-                    .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
-                let diff = SessionHistoryDiff::BrowsingContextDiff(change.browsing_context_id, BrowsingContextDiff {
-                    browsing_context_id: change.browsing_context_id,
-                    old_pipeline_id,
-                    old_load_data,
-                    new_pipeline_id: change.new_pipeline_id,
-                    new_load_data: change.load_data,
-                });
+                    session_history.push_diff(diff).into_iter()
+                        .map(|SessionHistoryDiff::BrowsingContextDiff(_, diff)| diff.new_pipeline_id)
+                        .collect::<Vec<_>>()
+                };
 
-                session_history.push_diff(diff).into_iter()
-                    .map(|SessionHistoryDiff::BrowsingContextDiff(_, diff)| diff.new_pipeline_id)
-                    .collect::<Vec<_>>()
-            };
+                for pipeline_id in pipelines_to_close {
+                    self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                }
 
-            for pipeline_id in pipelines_to_close {
-                self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                self.update_activity(old_pipeline_id);
+                self.update_activity(change.new_pipeline_id);
+                self.notify_history_changed(change.top_level_browsing_context_id);
             }
-
-            self.update_activity(old_pipeline_id);
-            self.update_activity(change.new_pipeline_id);
-            self.notify_history_changed(change.top_level_browsing_context_id);
         }
 
         self.update_frame_tree_if_active(change.top_level_browsing_context_id);
