@@ -7,10 +7,14 @@ use script_traits::LoadData;
 use std::{fmt, mem};
 use std::cmp::PartialEq;
 
+/// Represents the joint session history
+/// https://html.spec.whatwg.org/multipage/#joint-session-history
 #[derive(Debug)]
 pub struct SessionHistory {
+    /// Diffs used to traverse to past entries
     pub past: Vec<SessionHistoryDiff>,
 
+    /// Diffs used to traverse to future entries
     pub future: Vec<SessionHistoryDiff>,
 }
 
@@ -50,6 +54,7 @@ pub struct SessionHistoryChange {
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 
+    /// The old pipeline that the new pipeline should replace.
     pub replace: Option<AliveOrDeadPipeline>,
 }
 
@@ -99,16 +104,23 @@ impl PartialEq for AliveOrDeadPipeline {
     }
 }
 
+
+/// Represents a the difference between two adjacent session history entries.
 #[derive(Debug)]
 pub enum SessionHistoryDiff {
+    /// Represents a diff where the active pipeline of an entry changed.
     BrowsingContextDiff {
+        /// The browsing context whose pipeline changed
         browsing_context_id: BrowsingContextId,
+        /// The previous pipeline (used when traversing into the past)
         old_pipeline_id: AliveOrDeadPipeline,
+        /// The next pipeline (used when traversing into the future)
         new_pipeline_id: AliveOrDeadPipeline,
     },
 }
 
 impl SessionHistoryDiff {
+    /// Returns the old pipeline id if that pipeline is still alive, otherwise returns `None`
     pub fn alive_old_pipeline(&self) -> Option<PipelineId> {
         match *self {
             SessionHistoryDiff::BrowsingContextDiff { ref old_pipeline_id, .. } => {
@@ -120,6 +132,7 @@ impl SessionHistoryDiff {
         }
     }
 
+    /// Returns the new pipeline id if that pipeline is still alive, otherwise returns `None`
     pub fn alive_new_pipeline(&self) -> Option<PipelineId> {
         match *self {
             SessionHistoryDiff::BrowsingContextDiff { ref new_pipeline_id, .. } => {
@@ -131,13 +144,14 @@ impl SessionHistoryDiff {
         }
     }
 
-    pub fn replace(&mut self, stale_pipeline_id: &AliveOrDeadPipeline, pipeline_id: &AliveOrDeadPipeline) {
+    /// Replaces all occurances of the replaced pipeline with a new pipeline
+    pub fn replace(&mut self, replaced_pipeline_id: &AliveOrDeadPipeline, pipeline_id: &AliveOrDeadPipeline) {
         match *self {
             SessionHistoryDiff::BrowsingContextDiff { ref mut old_pipeline_id, ref mut new_pipeline_id, .. } => {
-                if *old_pipeline_id == *stale_pipeline_id {
+                if *old_pipeline_id == *replaced_pipeline_id {
                     *old_pipeline_id = pipeline_id.clone();
                 }
-                if *new_pipeline_id == *stale_pipeline_id {
+                if *new_pipeline_id == *replaced_pipeline_id {
                     *new_pipeline_id = pipeline_id.clone();
                 }
             }
