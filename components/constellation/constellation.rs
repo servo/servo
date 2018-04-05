@@ -135,7 +135,7 @@ use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use session_history::{AliveOrDeadPipeline, SessionHistory, SessionHistoryChange, SessionHistoryDiff};
+use session_history::{JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
 use std::marker::PhantomData;
@@ -274,7 +274,7 @@ pub struct Constellation<Message, LTF, STF> {
     /// to become same-origin, at which point they can share DOM objects.
     event_loops: HashMap<TopLevelBrowsingContextId, HashMap<Host, Weak<EventLoop>>>,
 
-    joint_session_histories: HashMap<TopLevelBrowsingContextId, SessionHistory>,
+    joint_session_histories: HashMap<TopLevelBrowsingContextId, JointSessionHistory>,
 
     /// The set of all the pipelines in the browser.
     /// (See the `pipeline` module for more details.)
@@ -1529,7 +1529,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if self.focus_pipeline_id.is_none() {
             self.focus_pipeline_id = Some(pipeline_id);
         }
-        self.joint_session_histories.insert(top_level_browsing_context_id, SessionHistory::new());
+        self.joint_session_histories.insert(top_level_browsing_context_id, JointSessionHistory::new());
         self.new_pipeline(pipeline_id,
                           browsing_context_id,
                           top_level_browsing_context_id,
@@ -1633,7 +1633,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let replace = if load_info.info.replace {
             self.browsing_contexts.get(&load_info.info.browsing_context_id)
-                .map(|browsing_context| AliveOrDeadPipeline::Alive(browsing_context.pipeline_id))
+                .map(|browsing_context| NeedsToReload::No(browsing_context.pipeline_id))
         } else {
             None
         };
@@ -1661,10 +1661,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
-            replace: _replace,
             browsing_context_id,
             top_level_browsing_context_id,
             is_private,
+            ..
         } = load_info;
 
         let url = ServoUrl::parse("about:blank").expect("infallible");
@@ -1836,7 +1836,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
                 };
 
-                let replace = if replace { Some(AliveOrDeadPipeline::Alive(pipeline_id)) } else { None };
+                let replace = if replace { Some(NeedsToReload::No(pipeline_id)) } else { None };
 
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
@@ -1919,45 +1919,39 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                    direction: TraversalDirection)
     {
-        let mut browsing_context_changes = HashMap::<BrowsingContextId, AliveOrDeadPipeline>::new();
+        let mut browsing_context_changes = HashMap::<BrowsingContextId, NeedsToReload>::new();
         {
             let session_history = self.joint_session_histories
-                .entry(top_level_browsing_context_id).or_insert(SessionHistory::new());
+                .entry(top_level_browsing_context_id).or_insert(JointSessionHistory::new());
 
             match direction {
                 TraversalDirection::Forward(forward) => {
-                    if session_history.future.len() < forward {
+                    let future_length = session_history.future.len();
+
+                    if future_length < forward {
                         return warn!("Cannot traverse that far into the future.");
                     }
 
-                    for _ in 0..forward {
-                        let diff = session_history.future.pop().expect("Infallible");
+                    for diff in session_history.future.drain(future_length - forward..).rev() {
                         match diff {
-                            SessionHistoryDiff::BrowsingContextDiff {
-                                browsing_context_id,
-                                ref new_pipeline_id,
-                                ..
-                            } => {
-                                browsing_context_changes.insert(browsing_context_id, new_pipeline_id.clone());
+                            SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_reloader, .. } => {
+                                browsing_context_changes.insert(browsing_context_id, new_reloader.clone());
                             }
                         }
                         session_history.past.push(diff);
                     }
                 },
                 TraversalDirection::Back(back) => {
-                    if session_history.past.len() < back {
+                    let past_length = session_history.past.len();
+
+                    if past_length < back {
                         return warn!("Cannot traverse that far into the past.");
                     }
 
-                    for _ in 0..back {
-                        let diff = session_history.past.pop().expect("Infallible");
+                    for diff in session_history.past.drain(past_length - back..).rev() {
                         match diff {
-                            SessionHistoryDiff::BrowsingContextDiff {
-                                browsing_context_id,
-                                ref old_pipeline_id,
-                                ..
-                            } => {
-                                browsing_context_changes.insert(browsing_context_id, old_pipeline_id.clone());
+                            SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref old_reloader, .. } => {
+                                browsing_context_changes.insert(browsing_context_id, old_reloader.clone());
                             }
                         }
                         session_history.future.push(diff);
@@ -1976,10 +1970,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.update_frame_tree_if_active(top_level_browsing_context_id);
     }
 
-    fn update_browsing_context(&mut self, browsing_context_id: BrowsingContextId, new_pipeline: AliveOrDeadPipeline) {
-        let new_pipeline_id = match new_pipeline {
-            AliveOrDeadPipeline::Alive(pipeline_id) => pipeline_id,
-            AliveOrDeadPipeline::Dead(pipeline_id, load_data) => {
+    fn update_browsing_context(&mut self, browsing_context_id: BrowsingContextId, new_reloader: NeedsToReload) {
+        let new_pipeline_id = match new_reloader {
+            NeedsToReload::No(pipeline_id) => pipeline_id,
+            NeedsToReload::Yes(pipeline_id, load_data) => {
                 debug!("Reloading document {} in browsing context {}.", pipeline_id, browsing_context_id);
 
                 // TODO: Save the sandbox state so it can be restored here.
@@ -2010,7 +2004,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
-                    replace: Some(AliveOrDeadPipeline::Dead(pipeline_id, load_data.clone()))
+                    replace: Some(NeedsToReload::Yes(pipeline_id, load_data.clone()))
                 });
                 return;
             },
@@ -2050,7 +2044,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                            sender: IpcSender<u32>)
     {
         let length = self.joint_session_histories.get(&top_level_browsing_context_id)
-            .map(SessionHistory::history_length)
+            .map(JointSessionHistory::history_length)
             .unwrap_or(1);
         let _ = sender.send(length as u32);
     }
@@ -2307,15 +2301,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If LoadData was ignored, use the LoadData of the previous SessionHistoryEntry, which
         // is the LoadData of the parent browsing context.
         let resolve_load_data_future = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
-            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_pipeline_id, .. } = *diff;
+            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_reloader, .. } = *diff;
 
             if browsing_context_id == top_level_browsing_context_id {
-                let load_data = match *new_pipeline_id {
-                    AliveOrDeadPipeline::Alive(pipeline_id) => match self.pipelines.get(&pipeline_id) {
+                let load_data = match *new_reloader {
+                    NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
                         Some(pipeline) => pipeline.load_data.clone(),
                         None => previous_load_data.clone(),
                     },
-                    AliveOrDeadPipeline::Dead(_, ref load_data) => load_data.clone(),
+                    NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
                 };
                 *previous_load_data = load_data.clone();
                 Some(load_data)
@@ -2325,15 +2319,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         let resolve_load_data_past = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
-            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref old_pipeline_id, .. } = *diff;
+            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref old_reloader, .. } = *diff;
 
             if browsing_context_id == top_level_browsing_context_id {
-                let load_data = match *old_pipeline_id {
-                    AliveOrDeadPipeline::Alive(pipeline_id) => match self.pipelines.get(&pipeline_id) {
+                let load_data = match *old_reloader {
+                    NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
                         Some(pipeline) => pipeline.load_data.clone(),
                         None => previous_load_data.clone(),
                     },
-                    AliveOrDeadPipeline::Dead(_, ref load_data) => load_data.clone(),
+                    NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
                 };
                 *previous_load_data = load_data.clone();
                 Some(load_data)
@@ -2409,27 +2403,27 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             Some(old_pipeline_id) => {
                 // Deactivate the old pipeline, and activate the new one.
-                let pipelines_to_close = if let Some(replace_pipeline_id) = change.replace {
+                let pipelines_to_close = if let Some(replace_reloader) = change.replace {
                     let session_history = self.joint_session_histories
-                        .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
-                    session_history.replace(replace_pipeline_id.clone(),
-                        AliveOrDeadPipeline::Alive(change.new_pipeline_id));
+                        .entry(change.top_level_browsing_context_id).or_insert(JointSessionHistory::new());
+                    session_history.replace(replace_reloader.clone(),
+                        NeedsToReload::No(change.new_pipeline_id));
 
-                    match replace_pipeline_id {
-                        AliveOrDeadPipeline::Alive(pipeline_id) => vec![pipeline_id],
-                        AliveOrDeadPipeline::Dead(..) => vec![],
+                    match replace_reloader {
+                        NeedsToReload::No(pipeline_id) => vec![pipeline_id],
+                        NeedsToReload::Yes(..) => vec![],
                     }
                 } else {
                     let session_history = self.joint_session_histories
-                        .entry(change.top_level_browsing_context_id).or_insert(SessionHistory::new());
+                        .entry(change.top_level_browsing_context_id).or_insert(JointSessionHistory::new());
                     let diff = SessionHistoryDiff::BrowsingContextDiff {
                         browsing_context_id: change.browsing_context_id,
-                        new_pipeline_id: AliveOrDeadPipeline::Alive(change.new_pipeline_id),
-                        old_pipeline_id: AliveOrDeadPipeline::Alive(old_pipeline_id),
+                        new_reloader: NeedsToReload::No(change.new_pipeline_id),
+                        old_reloader: NeedsToReload::No(old_pipeline_id),
                     };
 
                     session_history.push_diff(diff).into_iter()
-                        .map(|SessionHistoryDiff::BrowsingContextDiff { new_pipeline_id, .. }| new_pipeline_id)
+                        .map(|SessionHistoryDiff::BrowsingContextDiff { new_reloader, .. }| new_reloader)
                         .filter_map(|pipeline_id| pipeline_id.alive_pipeline_id())
                         .collect::<Vec<_>>()
                 };
@@ -2454,16 +2448,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn trim_history(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         let pipelines_to_evict = {
             let session_history = self.joint_session_histories.entry(top_level_browsing_context_id)
-                .or_insert(SessionHistory::new());
+                .or_insert(JointSessionHistory::new());
 
             let history_length = PREFS.get("session-history.max-length").as_u64().unwrap_or(20) as usize;
 
+            // The past is stored with older entries at the front.
+            // We reverse the iter so that newer entries are at the front and then
+            // skip _n_ entries and evict the remaining entries.
             let mut pipelines_to_evict = session_history.past.iter().rev()
                 .map(|diff| diff.alive_old_pipeline())
                 .skip(history_length)
                 .filter_map(|maybe_pipeline| maybe_pipeline)
                 .collect::<Vec<_>>();
 
+            // The future is stored with oldest entries front, so we must
+            // reverse the iterator like we do for the `past`.
             pipelines_to_evict.extend(session_history.future.iter().rev()
                 .map(|diff| diff.alive_new_pipeline())
                 .skip(history_length)
@@ -2479,15 +2478,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 None => continue,
             };
 
-            dead_pipelines.push((evicted_id, AliveOrDeadPipeline::Dead(evicted_id, load_data)));
+            dead_pipelines.push((evicted_id, NeedsToReload::Yes(evicted_id, load_data)));
             self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
         }
 
         let session_history = self.joint_session_histories.entry(top_level_browsing_context_id)
-            .or_insert(SessionHistory::new());
+            .or_insert(JointSessionHistory::new());
 
         for (alive_id, dead) in dead_pipelines {
-            session_history.replace(AliveOrDeadPipeline::Alive(alive_id), dead);
+            session_history.replace(NeedsToReload::No(alive_id), dead);
         }
     }
 

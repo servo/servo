@@ -10,17 +10,19 @@ use std::cmp::PartialEq;
 /// Represents the joint session history
 /// https://html.spec.whatwg.org/multipage/#joint-session-history
 #[derive(Debug)]
-pub struct SessionHistory {
-    /// Diffs used to traverse to past entries
+pub struct JointSessionHistory {
+    /// Diffs used to traverse to past entries. Oldest entries are at the back,
+    /// the most recent entries are at the front.
     pub past: Vec<SessionHistoryDiff>,
 
-    /// Diffs used to traverse to future entries
+    /// Diffs used to traverse to future entries. Oldest entries are at the back,
+    /// the most recent entries are at the front.
     pub future: Vec<SessionHistoryDiff>,
 }
 
-impl SessionHistory {
-    pub fn new() -> SessionHistory {
-        SessionHistory {
+impl JointSessionHistory {
+    pub fn new() -> JointSessionHistory {
+        JointSessionHistory {
             past: Vec::new(),
             future: Vec::new(),
         }
@@ -35,9 +37,9 @@ impl SessionHistory {
         mem::replace(&mut self.future, vec![])
     }
 
-    pub fn replace(&mut self, old_pipeline_id: AliveOrDeadPipeline, new_pipeline_id: AliveOrDeadPipeline) {
+    pub fn replace(&mut self, old_reloader: NeedsToReload, new_reloader: NeedsToReload) {
         for diff in self.past.iter_mut().chain(self.future.iter_mut()) {
-            diff.replace(&old_pipeline_id, &new_pipeline_id);
+            diff.replace(&old_reloader, &new_reloader);
         }
     }
 }
@@ -55,48 +57,50 @@ pub struct SessionHistoryChange {
     pub new_pipeline_id: PipelineId,
 
     /// The old pipeline that the new pipeline should replace.
-    pub replace: Option<AliveOrDeadPipeline>,
+    pub replace: Option<NeedsToReload>,
 }
 
 /// Represents a pipeline or discarded pipeline in a history entry.
 #[derive(Clone, Debug)]
-pub enum AliveOrDeadPipeline {
+pub enum NeedsToReload {
     /// Represents a pipeline that has not been discarded
-    Alive(PipelineId),
+    No(PipelineId),
     /// Represents a pipeline that has been discarded and must be reloaded with the given `LoadData`
-    Dead(PipelineId, LoadData),
+    /// if ever traversed to.
+    Yes(PipelineId, LoadData),
 }
 
-impl fmt::Display for AliveOrDeadPipeline {
+impl fmt::Display for NeedsToReload {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            AliveOrDeadPipeline::Alive(pipeline_id) => write!(fmt, "Alive({})", pipeline_id),
-            AliveOrDeadPipeline::Dead(pipeline_id, ..) => write!(fmt, "Dead({})", pipeline_id),
+            NeedsToReload::No(pipeline_id) => write!(fmt, "Alive({})", pipeline_id),
+            NeedsToReload::Yes(pipeline_id, ..) => write!(fmt, "Dead({})", pipeline_id),
         }
     }
 }
 
-impl AliveOrDeadPipeline {
+impl NeedsToReload {
     pub fn alive_pipeline_id(&self) -> Option<PipelineId> {
         match *self {
-            AliveOrDeadPipeline::Alive(pipeline_id) => Some(pipeline_id),
-            AliveOrDeadPipeline::Dead(..) => None,
+            NeedsToReload::No(pipeline_id) => Some(pipeline_id),
+            NeedsToReload::Yes(..) => None,
         }
     }
 }
 
-impl PartialEq for AliveOrDeadPipeline {
-    fn eq(&self, other: &AliveOrDeadPipeline) -> bool {
+// Custom `PartialEq` that only compares the `PipelineId`s of the same variants while ignoring `LoadData`
+impl PartialEq for NeedsToReload {
+    fn eq(&self, other: &NeedsToReload) -> bool {
         match *self {
-            AliveOrDeadPipeline::Alive(pipeline_id) => {
+            NeedsToReload::No(pipeline_id) => {
                 match *other {
-                    AliveOrDeadPipeline::Alive(other_pipeline_id) if pipeline_id == other_pipeline_id => true,
+                    NeedsToReload::No(other_pipeline_id) => pipeline_id == other_pipeline_id,
                     _ => false,
                 }
             },
-            AliveOrDeadPipeline::Dead(pipeline_id, _) => {
+            NeedsToReload::Yes(pipeline_id, _) => {
                 match *other {
-                    AliveOrDeadPipeline::Dead(other_pipeline_id, _) if pipeline_id == other_pipeline_id => true,
+                    NeedsToReload::Yes(other_pipeline_id, _) => pipeline_id == other_pipeline_id,
                     _ => false,
                 }
             }
@@ -113,9 +117,9 @@ pub enum SessionHistoryDiff {
         /// The browsing context whose pipeline changed
         browsing_context_id: BrowsingContextId,
         /// The previous pipeline (used when traversing into the past)
-        old_pipeline_id: AliveOrDeadPipeline,
+        old_reloader: NeedsToReload,
         /// The next pipeline (used when traversing into the future)
-        new_pipeline_id: AliveOrDeadPipeline,
+        new_reloader: NeedsToReload,
     },
 }
 
@@ -123,10 +127,10 @@ impl SessionHistoryDiff {
     /// Returns the old pipeline id if that pipeline is still alive, otherwise returns `None`
     pub fn alive_old_pipeline(&self) -> Option<PipelineId> {
         match *self {
-            SessionHistoryDiff::BrowsingContextDiff { ref old_pipeline_id, .. } => {
-                match *old_pipeline_id {
-                    AliveOrDeadPipeline::Alive(pipeline_id) => Some(pipeline_id),
-                    AliveOrDeadPipeline::Dead(..) => None,
+            SessionHistoryDiff::BrowsingContextDiff { ref old_reloader, .. } => {
+                match *old_reloader {
+                    NeedsToReload::No(pipeline_id) => Some(pipeline_id),
+                    NeedsToReload::Yes(..) => None,
                 }
             }
         }
@@ -135,24 +139,24 @@ impl SessionHistoryDiff {
     /// Returns the new pipeline id if that pipeline is still alive, otherwise returns `None`
     pub fn alive_new_pipeline(&self) -> Option<PipelineId> {
         match *self {
-            SessionHistoryDiff::BrowsingContextDiff { ref new_pipeline_id, .. } => {
-                match *new_pipeline_id {
-                    AliveOrDeadPipeline::Alive(pipeline_id) => Some(pipeline_id),
-                    AliveOrDeadPipeline::Dead(..) => None,
+            SessionHistoryDiff::BrowsingContextDiff { ref new_reloader, .. } => {
+                match *new_reloader {
+                    NeedsToReload::No(pipeline_id) => Some(pipeline_id),
+                    NeedsToReload::Yes(..) => None,
                 }
             }
         }
     }
 
     /// Replaces all occurances of the replaced pipeline with a new pipeline
-    pub fn replace(&mut self, replaced_pipeline_id: &AliveOrDeadPipeline, pipeline_id: &AliveOrDeadPipeline) {
+    pub fn replace(&mut self, replaced_reloader: &NeedsToReload, reloader: &NeedsToReload) {
         match *self {
-            SessionHistoryDiff::BrowsingContextDiff { ref mut old_pipeline_id, ref mut new_pipeline_id, .. } => {
-                if *old_pipeline_id == *replaced_pipeline_id {
-                    *old_pipeline_id = pipeline_id.clone();
+            SessionHistoryDiff::BrowsingContextDiff { ref mut old_reloader, ref mut new_reloader, .. } => {
+                if *old_reloader == *replaced_reloader {
+                    *old_reloader = reloader.clone();
                 }
-                if *new_pipeline_id == *replaced_pipeline_id {
-                    *new_pipeline_id = pipeline_id.clone();
+                if *new_reloader == *replaced_reloader {
+                    *new_reloader = reloader.clone();
                 }
             }
         }
