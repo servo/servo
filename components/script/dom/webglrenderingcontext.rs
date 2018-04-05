@@ -1113,7 +1113,7 @@ impl WebGLRenderingContext {
         match cap {
             constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
             constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
-            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST | constants::STENCIL_TEST => true,
+            constants::SCISSOR_TEST | constants::STENCIL_TEST => true,
             _ => {
                 self.webgl_error(InvalidEnum);
                 false
@@ -1250,30 +1250,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         target: u32,
         parameter: u32,
     ) -> JSVal {
-        let buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return NullValue());
+        let buffer = handle_potential_webgl_error!(
+            self,
+            self.bound_buffer(target).and_then(|buf| buf.ok_or(InvalidOperation)),
+            return NullValue()
+        );
 
         match parameter {
-            constants::BUFFER_SIZE | constants::BUFFER_USAGE => {},
+            constants::BUFFER_SIZE => Int32Value(buffer.capacity() as i32),
+            constants::BUFFER_USAGE => Int32Value(buffer.usage() as i32),
             _ => {
                 self.webgl_error(InvalidEnum);
-                return NullValue();
+                NullValue()
             }
         }
-        let buffer = match buffer {
-            Some(buffer) => buffer,
-            None => {
-                self.webgl_error(InvalidOperation);
-                return NullValue();
-            }
-        };
-
-        if parameter == constants::BUFFER_SIZE {
-            return Int32Value(buffer.capacity() as i32);
-        }
-
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetBufferParameter(target, parameter, sender));
-        Int32Value(receiver.recv().unwrap())
     }
 
     #[allow(unsafe_code)]
@@ -1487,19 +1477,30 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquation(&self, mode: u32) {
-        if mode != constants::FUNC_ADD {
-            return self.webgl_error(InvalidEnum);
+        match mode {
+            constants::FUNC_ADD |
+            constants::FUNC_SUBTRACT |
+            constants::FUNC_REVERSE_SUBTRACT => {
+                self.send_command(WebGLCommand::BlendEquation(mode))
+            }
+            _ => self.webgl_error(InvalidEnum),
         }
-
-        self.send_command(WebGLCommand::BlendEquation(mode));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
-        if mode_rgb != constants::FUNC_ADD || mode_alpha != constants::FUNC_ADD {
-            return self.webgl_error(InvalidEnum);
+        match mode_rgb {
+            constants::FUNC_ADD |
+            constants::FUNC_SUBTRACT |
+            constants::FUNC_REVERSE_SUBTRACT => {},
+            _ => return self.webgl_error(InvalidEnum),
         }
-
+        match mode_alpha {
+            constants::FUNC_ADD |
+            constants::FUNC_SUBTRACT |
+            constants::FUNC_REVERSE_SUBTRACT => {},
+            _ => return self.webgl_error(InvalidEnum),
+        }
         self.send_command(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha));
     }
 
@@ -1875,7 +1876,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearDepth(&self, depth: f32) {
-        self.send_command(WebGLCommand::ClearDepth(depth as f64))
+        self.send_command(WebGLCommand::ClearDepth(depth))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1924,19 +1925,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn DepthRange(&self, near: f32, far: f32) {
-        // From the WebGL 1.0 spec, 6.12: Viewport Depth Range:
-        //
-        //     "A call to depthRange will generate an
-        //      INVALID_OPERATION error if zNear is greater than
-        //      zFar."
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#VIEWPORT_DEPTH_RANGE
         if near > far {
             return self.webgl_error(InvalidOperation);
         }
-
-        self.send_command(WebGLCommand::DepthRange(near as f64, far as f64))
+        self.send_command(WebGLCommand::DepthRange(near, far))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // FIXME: https://github.com/servo/servo/issues/20534
     fn Enable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
             self.send_command(WebGLCommand::Enable(cap));
@@ -1944,6 +1941,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // FIXME: https://github.com/servo/servo/issues/20534
     fn Disable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
             self.send_command(WebGLCommand::Disable(cap));
@@ -2500,8 +2498,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
     }
 
-    // TODO: We could write this without IPC, recording the calls to `enable` and `disable`.
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    // FIXME: https://github.com/servo/servo/issues/20534
     fn IsEnabled(&self, cap: u32) -> bool {
         if self.validate_feature_enum(cap) {
             let (sender, receiver) = webgl_channel().unwrap();

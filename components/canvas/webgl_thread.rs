@@ -678,8 +678,9 @@ impl WebGLImpl {
                 ctx.gl().clear(mask),
             WebGLCommand::ClearColor(r, g, b, a) =>
                 ctx.gl().clear_color(r, g, b, a),
-            WebGLCommand::ClearDepth(depth) =>
-                ctx.gl().clear_depth(depth),
+            WebGLCommand::ClearDepth(depth) => {
+                ctx.gl().clear_depth(depth.max(0.).min(1.) as f64)
+            }
             WebGLCommand::ClearStencil(stencil) =>
                 ctx.gl().clear_stencil(stencil),
             WebGLCommand::ColorMask(r, g, b, a) =>
@@ -694,8 +695,9 @@ impl WebGLImpl {
                 ctx.gl().depth_func(func),
             WebGLCommand::DepthMask(flag) =>
                 ctx.gl().depth_mask(flag),
-            WebGLCommand::DepthRange(near, far) =>
-                ctx.gl().depth_range(near, far),
+            WebGLCommand::DepthRange(near, far) => {
+                ctx.gl().depth_range(near.max(0.).min(1.) as f64, far.max(0.).min(1.) as f64)
+            }
             WebGLCommand::Disable(cap) =>
                 ctx.gl().disable(cap),
             WebGLCommand::Enable(cap) =>
@@ -758,8 +760,6 @@ impl WebGLImpl {
                 Self::vertex_attrib(ctx.gl(), index, pname, chan),
             WebGLCommand::GetVertexAttribOffset(index, pname, chan) =>
                 Self::vertex_attrib_offset(ctx.gl(), index, pname, chan),
-            WebGLCommand::GetBufferParameter(target, param_id, chan) =>
-                Self::buffer_parameter(ctx.gl(), target, param_id, chan),
             WebGLCommand::GetParameter(param_id, chan) =>
                 Self::parameter(ctx.gl(), param_id, chan),
             WebGLCommand::GetTexParameter(target, pname, chan) =>
@@ -1124,15 +1124,6 @@ impl WebGLImpl {
                             pname: u32,
                             chan: WebGLSender<isize>) {
         let result = gl.get_vertex_attrib_pointer_v(index, pname);
-        chan.send(result).unwrap();
-    }
-
-    fn buffer_parameter(gl: &gl::Gl,
-                        target: u32,
-                        param_id: u32,
-                        chan: WebGLSender<i32>) {
-        let result = gl.get_buffer_parameter_iv(target, param_id);
-
         chan.send(result).unwrap();
     }
 
