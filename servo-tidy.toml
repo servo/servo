@@ -44,6 +44,7 @@ packages = [
   "quote",
   "unicode-xid",
   "log",
+  "num-traits",
   "rand"
 ]
 # Files that are ignored for all tidy and lint checks.

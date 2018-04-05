@@ -40,7 +40,7 @@ fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.22", optional = true}
 itertools = "0.7.6"
-itoa = "0.3"
+itoa = "0.4.1"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
