@@ -3493,7 +3493,7 @@ pub mod root {
                 pub mDocument: root::RefPtr<root::nsIDocument>,
                 pub mCallback: root::RefPtr<root::mozilla::dom::IntersectionCallback>,
                 pub mRoot: root::RefPtr<root::mozilla::dom::Element>,
-                pub mRootMargin: root::nsCSSRect,
+                pub mRootMargin: root::nsStyleSides,
                 pub mThresholds: root::nsTArray<f64>,
                 pub mObservationTargets: root::nsTArray<*mut root::mozilla::dom::Element>,
                 pub mQueuedEntries:
@@ -3542,7 +3542,7 @@ pub mod root {
             fn bindgen_test_layout_DOMIntersectionObserver() {
                 assert_eq!(
                     ::std::mem::size_of::<DOMIntersectionObserver>(),
-                    168usize,
+                    144usize,
                     concat!("Size of: ", stringify!(DOMIntersectionObserver))
                 );
                 assert_eq!(
@@ -5935,153 +5935,6 @@ pub mod root {
                     concat!(
                         "Offset of field: ",
                         stringify!(GridTemplateAreasValue),
-                        "::",
-                        stringify!(mRefCnt)
-                    )
-                );
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct RGBAColorData {
-                pub mR: f32,
-                pub mG: f32,
-                pub mB: f32,
-                pub mA: f32,
-            }
-            #[test]
-            fn bindgen_test_layout_RGBAColorData() {
-                assert_eq!(
-                    ::std::mem::size_of::<RGBAColorData>(),
-                    16usize,
-                    concat!("Size of: ", stringify!(RGBAColorData))
-                );
-                assert_eq!(
-                    ::std::mem::align_of::<RGBAColorData>(),
-                    4usize,
-                    concat!("Alignment of ", stringify!(RGBAColorData))
-                );
-                assert_eq!(
-                    unsafe { &(*(::std::ptr::null::<RGBAColorData>())).mR as *const _ as usize },
-                    0usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(RGBAColorData),
-                        "::",
-                        stringify!(mR)
-                    )
-                );
-                assert_eq!(
-                    unsafe { &(*(::std::ptr::null::<RGBAColorData>())).mG as *const _ as usize },
-                    4usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(RGBAColorData),
-                        "::",
-                        stringify!(mG)
-                    )
-                );
-                assert_eq!(
-                    unsafe { &(*(::std::ptr::null::<RGBAColorData>())).mB as *const _ as usize },
-                    8usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(RGBAColorData),
-                        "::",
-                        stringify!(mB)
-                    )
-                );
-                assert_eq!(
-                    unsafe { &(*(::std::ptr::null::<RGBAColorData>())).mA as *const _ as usize },
-                    12usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(RGBAColorData),
-                        "::",
-                        stringify!(mA)
-                    )
-                );
-            }
-            impl Clone for RGBAColorData {
-                fn clone(&self) -> Self {
-                    *self
-                }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct ComplexColorData {
-                pub mColor: root::mozilla::css::RGBAColorData,
-                pub mForegroundRatio: f32,
-            }
-            #[test]
-            fn bindgen_test_layout_ComplexColorData() {
-                assert_eq!(
-                    ::std::mem::size_of::<ComplexColorData>(),
-                    20usize,
-                    concat!("Size of: ", stringify!(ComplexColorData))
-                );
-                assert_eq!(
-                    ::std::mem::align_of::<ComplexColorData>(),
-                    4usize,
-                    concat!("Alignment of ", stringify!(ComplexColorData))
-                );
-                assert_eq!(
-                    unsafe {
-                        &(*(::std::ptr::null::<ComplexColorData>())).mColor as *const _ as usize
-                    },
-                    0usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(ComplexColorData),
-                        "::",
-                        stringify!(mColor)
-                    )
-                );
-                assert_eq!(
-                    unsafe {
-                        &(*(::std::ptr::null::<ComplexColorData>())).mForegroundRatio as *const _
-                            as usize
-                    },
-                    16usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(ComplexColorData),
-                        "::",
-                        stringify!(mForegroundRatio)
-                    )
-                );
-            }
-            impl Clone for ComplexColorData {
-                fn clone(&self) -> Self {
-                    *self
-                }
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct ComplexColorValue {
-                pub _base: root::mozilla::css::ComplexColorData,
-                pub mRefCnt: root::nsAutoRefCnt,
-            }
-            pub type ComplexColorValue_HasThreadSafeRefCnt = root::mozilla::FalseType;
-            #[test]
-            fn bindgen_test_layout_ComplexColorValue() {
-                assert_eq!(
-                    ::std::mem::size_of::<ComplexColorValue>(),
-                    32usize,
-                    concat!("Size of: ", stringify!(ComplexColorValue))
-                );
-                assert_eq!(
-                    ::std::mem::align_of::<ComplexColorValue>(),
-                    8usize,
-                    concat!("Alignment of ", stringify!(ComplexColorValue))
-                );
-                assert_eq!(
-                    unsafe {
-                        &(*(::std::ptr::null::<ComplexColorValue>())).mRefCnt as *const _ as usize
-                    },
-                    24usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(ComplexColorValue),
                         "::",
                         stringify!(mRefCnt)
                     )
@@ -20386,12 +20239,8 @@ pub mod root {
         eCSSUnit_Calc_Divided = 35,
         eCSSUnit_URL = 40,
         eCSSUnit_Image = 41,
-        eCSSUnit_Gradient = 42,
-        eCSSUnit_TokenStream = 43,
         eCSSUnit_GridTemplateAreas = 44,
         eCSSUnit_Pair = 50,
-        eCSSUnit_Triplet = 51,
-        eCSSUnit_Rect = 52,
         eCSSUnit_List = 53,
         eCSSUnit_ListDep = 54,
         eCSSUnit_SharedList = 55,
@@ -20401,18 +20250,6 @@ pub mod root {
         eCSSUnit_AtomIdent = 60,
         eCSSUnit_Integer = 70,
         eCSSUnit_Enumerated = 71,
-        eCSSUnit_EnumColor = 80,
-        eCSSUnit_RGBColor = 81,
-        eCSSUnit_RGBAColor = 82,
-        eCSSUnit_HexColor = 83,
-        eCSSUnit_ShortHexColor = 84,
-        eCSSUnit_HexColorAlpha = 85,
-        eCSSUnit_ShortHexColorAlpha = 86,
-        eCSSUnit_PercentageRGBColor = 87,
-        eCSSUnit_PercentageRGBAColor = 88,
-        eCSSUnit_HSLColor = 89,
-        eCSSUnit_HSLAColor = 90,
-        eCSSUnit_ComplexColor = 91,
         eCSSUnit_Percent = 100,
         eCSSUnit_Number = 101,
         eCSSUnit_ViewportWidth = 700,
@@ -20452,26 +20289,19 @@ pub mod root {
         pub mInt: root::__BindgenUnionField<i32>,
         pub mFloat: root::__BindgenUnionField<f32>,
         pub mString: root::__BindgenUnionField<*mut root::nsStringBuffer>,
-        pub mColor: root::__BindgenUnionField<root::nscolor>,
         pub mAtom: root::__BindgenUnionField<*mut root::nsAtom>,
         pub mArray: root::__BindgenUnionField<*mut root::nsCSSValue_Array>,
         pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
         pub mImage: root::__BindgenUnionField<*mut root::mozilla::css::ImageValue>,
         pub mGridTemplateAreas:
             root::__BindgenUnionField<*mut root::mozilla::css::GridTemplateAreasValue>,
-        pub mGradient: root::__BindgenUnionField<*mut root::nsCSSValueGradient>,
-        pub mTokenStream: root::__BindgenUnionField<*mut root::nsCSSValueTokenStream>,
         pub mPair: root::__BindgenUnionField<*mut root::nsCSSValuePair_heap>,
-        pub mRect: root::__BindgenUnionField<*mut root::nsCSSRect_heap>,
-        pub mTriplet: root::__BindgenUnionField<*mut root::nsCSSValueTriplet_heap>,
         pub mList: root::__BindgenUnionField<*mut root::nsCSSValueList_heap>,
         pub mListDependent: root::__BindgenUnionField<*mut root::nsCSSValueList>,
         pub mSharedList: root::__BindgenUnionField<*mut root::nsCSSValueSharedList>,
         pub mPairList: root::__BindgenUnionField<*mut root::nsCSSValuePairList_heap>,
         pub mPairListDependent: root::__BindgenUnionField<*mut root::nsCSSValuePairList>,
-        pub mFloatColor: root::__BindgenUnionField<*mut root::nsCSSValueFloatColor>,
         pub mFontFamilyList: root::__BindgenUnionField<*mut root::mozilla::SharedFontList>,
-        pub mComplexColor: root::__BindgenUnionField<*mut root::mozilla::css::ComplexColorValue>,
         pub bindgen_union_field: u64,
     }
     #[test]
@@ -20520,18 +20350,6 @@ pub mod root {
                 stringify!(nsCSSValue__bindgen_ty_1),
                 "::",
                 stringify!(mString)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mColor as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValue__bindgen_ty_1),
-                "::",
-                stringify!(mColor)
             )
         );
         assert_eq!(
@@ -20597,31 +20415,6 @@ pub mod root {
         );
         assert_eq!(
             unsafe {
-                &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mGradient as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValue__bindgen_ty_1),
-                "::",
-                stringify!(mGradient)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mTokenStream as *const _
-                    as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValue__bindgen_ty_1),
-                "::",
-                stringify!(mTokenStream)
-            )
-        );
-        assert_eq!(
-            unsafe {
                 &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mPair as *const _ as usize
             },
             0usize,
@@ -20630,30 +20423,6 @@ pub mod root {
                 stringify!(nsCSSValue__bindgen_ty_1),
                 "::",
                 stringify!(mPair)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mRect as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValue__bindgen_ty_1),
-                "::",
-                stringify!(mRect)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mTriplet as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValue__bindgen_ty_1),
-                "::",
-                stringify!(mTriplet)
             )
         );
         assert_eq!(
@@ -20721,19 +20490,6 @@ pub mod root {
         );
         assert_eq!(
             unsafe {
-                &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mFloatColor as *const _
-                    as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValue__bindgen_ty_1),
-                "::",
-                stringify!(mFloatColor)
-            )
-        );
-        assert_eq!(
-            unsafe {
                 &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mFontFamilyList as *const _
                     as usize
             },
@@ -20743,19 +20499,6 @@ pub mod root {
                 stringify!(nsCSSValue__bindgen_ty_1),
                 "::",
                 stringify!(mFontFamilyList)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValue__bindgen_ty_1>())).mComplexColor as *const _
-                    as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValue__bindgen_ty_1),
-                "::",
-                stringify!(mComplexColor)
             )
         );
     }
@@ -20961,102 +20704,6 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug)]
-    pub struct nsCSSRect {
-        pub mTop: root::nsCSSValue,
-        pub mRight: root::nsCSSValue,
-        pub mBottom: root::nsCSSValue,
-        pub mLeft: root::nsCSSValue,
-    }
-    pub type nsCSSRect_side_type = *mut root::nsCSSValue;
-    extern "C" {
-        #[link_name = "\u{1}_ZN9nsCSSRect5sidesE"]
-        pub static mut nsCSSRect_sides: [root::nsCSSRect_side_type; 4usize];
-    }
-    #[test]
-    fn bindgen_test_layout_nsCSSRect() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSRect>(),
-            64usize,
-            concat!("Size of: ", stringify!(nsCSSRect))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSRect>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSRect))
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSRect>())).mTop as *const _ as usize },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSRect),
-                "::",
-                stringify!(mTop)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSRect>())).mRight as *const _ as usize },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSRect),
-                "::",
-                stringify!(mRight)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSRect>())).mBottom as *const _ as usize },
-            32usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSRect),
-                "::",
-                stringify!(mBottom)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSRect>())).mLeft as *const _ as usize },
-            48usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSRect),
-                "::",
-                stringify!(mLeft)
-            )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCSSRect_heap {
-        pub _base: root::nsCSSRect,
-        pub mRefCnt: root::nsAutoRefCnt,
-    }
-    pub type nsCSSRect_heap_HasThreadSafeRefCnt = root::mozilla::FalseType;
-    #[test]
-    fn bindgen_test_layout_nsCSSRect_heap() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSRect_heap>(),
-            72usize,
-            concat!("Size of: ", stringify!(nsCSSRect_heap))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSRect_heap>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSRect_heap))
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSRect_heap>())).mRefCnt as *const _ as usize },
-            64usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSRect_heap),
-                "::",
-                stringify!(mRefCnt)
-            )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
     pub struct nsCSSValuePair {
         pub mXValue: root::nsCSSValue,
         pub mYValue: root::nsCSSValue,
@@ -21119,88 +20766,6 @@ pub mod root {
             concat!(
                 "Offset of field: ",
                 stringify!(nsCSSValuePair_heap),
-                "::",
-                stringify!(mRefCnt)
-            )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCSSValueTriplet {
-        pub mXValue: root::nsCSSValue,
-        pub mYValue: root::nsCSSValue,
-        pub mZValue: root::nsCSSValue,
-    }
-    #[test]
-    fn bindgen_test_layout_nsCSSValueTriplet() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSValueTriplet>(),
-            48usize,
-            concat!("Size of: ", stringify!(nsCSSValueTriplet))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSValueTriplet>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSValueTriplet))
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueTriplet>())).mXValue as *const _ as usize },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTriplet),
-                "::",
-                stringify!(mXValue)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueTriplet>())).mYValue as *const _ as usize },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTriplet),
-                "::",
-                stringify!(mYValue)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueTriplet>())).mZValue as *const _ as usize },
-            32usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTriplet),
-                "::",
-                stringify!(mZValue)
-            )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCSSValueTriplet_heap {
-        pub _base: root::nsCSSValueTriplet,
-        pub mRefCnt: root::nsAutoRefCnt,
-    }
-    pub type nsCSSValueTriplet_heap_HasThreadSafeRefCnt = root::mozilla::FalseType;
-    #[test]
-    fn bindgen_test_layout_nsCSSValueTriplet_heap() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSValueTriplet_heap>(),
-            56usize,
-            concat!("Size of: ", stringify!(nsCSSValueTriplet_heap))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSValueTriplet_heap>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSValueTriplet_heap))
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTriplet_heap>())).mRefCnt as *const _ as usize
-            },
-            48usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTriplet_heap),
                 "::",
                 stringify!(mRefCnt)
             )
@@ -21285,434 +20850,6 @@ pub mod root {
                 stringify!(nsCSSValuePairList_heap),
                 "::",
                 stringify!(mRefCnt)
-            )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCSSValueGradientStop {
-        pub mLocation: root::nsCSSValue,
-        pub mColor: root::nsCSSValue,
-        pub mIsInterpolationHint: bool,
-    }
-    #[test]
-    fn bindgen_test_layout_nsCSSValueGradientStop() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSValueGradientStop>(),
-            40usize,
-            concat!("Size of: ", stringify!(nsCSSValueGradientStop))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSValueGradientStop>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSValueGradientStop))
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradientStop>())).mLocation as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradientStop),
-                "::",
-                stringify!(mLocation)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradientStop>())).mColor as *const _ as usize
-            },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradientStop),
-                "::",
-                stringify!(mColor)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradientStop>())).mIsInterpolationHint as *const _
-                    as usize
-            },
-            32usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradientStop),
-                "::",
-                stringify!(mIsInterpolationHint)
-            )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCSSValueGradient {
-        pub mIsRadial: bool,
-        pub mIsRepeating: bool,
-        pub mIsLegacySyntax: bool,
-        pub mIsMozLegacySyntax: bool,
-        pub mIsExplicitSize: bool,
-        pub mBgPos: root::nsCSSValuePair,
-        pub mAngle: root::nsCSSValue,
-        pub mRadialValues: [root::nsCSSValue; 2usize],
-        pub mStops: root::nsTArray<root::nsCSSValueGradientStop>,
-        pub mRefCnt: root::nsAutoRefCnt,
-    }
-    pub type nsCSSValueGradient_HasThreadSafeRefCnt = root::mozilla::FalseType;
-    #[test]
-    fn bindgen_test_layout_nsCSSValueGradient() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSValueGradient>(),
-            104usize,
-            concat!("Size of: ", stringify!(nsCSSValueGradient))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSValueGradient>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSValueGradient))
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradient>())).mIsRadial as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mIsRadial)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradient>())).mIsRepeating as *const _ as usize
-            },
-            1usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mIsRepeating)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradient>())).mIsLegacySyntax as *const _ as usize
-            },
-            2usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mIsLegacySyntax)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradient>())).mIsMozLegacySyntax as *const _
-                    as usize
-            },
-            3usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mIsMozLegacySyntax)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradient>())).mIsExplicitSize as *const _ as usize
-            },
-            4usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mIsExplicitSize)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueGradient>())).mBgPos as *const _ as usize },
-            8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mBgPos)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueGradient>())).mAngle as *const _ as usize },
-            40usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mAngle)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueGradient>())).mRadialValues as *const _ as usize
-            },
-            56usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mRadialValues)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueGradient>())).mStops as *const _ as usize },
-            88usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mStops)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueGradient>())).mRefCnt as *const _ as usize },
-            96usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueGradient),
-                "::",
-                stringify!(mRefCnt)
-            )
-        );
-    }
-    #[repr(C)]
-    pub struct nsCSSValueTokenStream {
-        pub mRefCnt: root::nsAutoRefCnt,
-        pub mPropertyID: root::nsCSSPropertyID,
-        pub mShorthandPropertyID: root::nsCSSPropertyID,
-        pub mTokenStream: ::nsstring::nsStringRepr,
-        pub mBaseURI: root::nsCOMPtr,
-        pub mSheetURI: root::nsCOMPtr,
-        pub mSheetPrincipal: root::nsCOMPtr,
-        pub mLineNumber: u32,
-        pub mLineOffset: u32,
-        pub mLevel: root::mozilla::SheetType,
-    }
-    pub type nsCSSValueTokenStream_HasThreadSafeRefCnt = root::mozilla::FalseType;
-    #[test]
-    fn bindgen_test_layout_nsCSSValueTokenStream() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSValueTokenStream>(),
-            72usize,
-            concat!("Size of: ", stringify!(nsCSSValueTokenStream))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSValueTokenStream>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSValueTokenStream))
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mRefCnt as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mRefCnt)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mPropertyID as *const _ as usize
-            },
-            8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mPropertyID)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mShorthandPropertyID as *const _
-                    as usize
-            },
-            12usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mShorthandPropertyID)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mTokenStream as *const _ as usize
-            },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mTokenStream)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mBaseURI as *const _ as usize
-            },
-            32usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mBaseURI)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mSheetURI as *const _ as usize
-            },
-            40usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mSheetURI)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mSheetPrincipal as *const _
-                    as usize
-            },
-            48usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mSheetPrincipal)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mLineNumber as *const _ as usize
-            },
-            56usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mLineNumber)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mLineOffset as *const _ as usize
-            },
-            60usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mLineOffset)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueTokenStream>())).mLevel as *const _ as usize
-            },
-            64usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueTokenStream),
-                "::",
-                stringify!(mLevel)
-            )
-        );
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCSSValueFloatColor {
-        pub mRefCnt: root::nsAutoRefCnt,
-        pub mComponent1: f32,
-        pub mComponent2: f32,
-        pub mComponent3: f32,
-        pub mAlpha: f32,
-    }
-    pub type nsCSSValueFloatColor_HasThreadSafeRefCnt = root::mozilla::FalseType;
-    #[test]
-    fn bindgen_test_layout_nsCSSValueFloatColor() {
-        assert_eq!(
-            ::std::mem::size_of::<nsCSSValueFloatColor>(),
-            24usize,
-            concat!("Size of: ", stringify!(nsCSSValueFloatColor))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsCSSValueFloatColor>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsCSSValueFloatColor))
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueFloatColor>())).mRefCnt as *const _ as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueFloatColor),
-                "::",
-                stringify!(mRefCnt)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueFloatColor>())).mComponent1 as *const _ as usize
-            },
-            8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueFloatColor),
-                "::",
-                stringify!(mComponent1)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueFloatColor>())).mComponent2 as *const _ as usize
-            },
-            12usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueFloatColor),
-                "::",
-                stringify!(mComponent2)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsCSSValueFloatColor>())).mComponent3 as *const _ as usize
-            },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueFloatColor),
-                "::",
-                stringify!(mComponent3)
-            )
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsCSSValueFloatColor>())).mAlpha as *const _ as usize },
-            20usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsCSSValueFloatColor),
-                "::",
-                stringify!(mAlpha)
             )
         );
     }
@@ -30444,7 +29581,6 @@ pub mod root {
         pub mMayHaveSelectionChangeEventListener: bool,
         pub mMayHaveMouseEnterLeaveEventListener: bool,
         pub mMayHavePointerEnterLeaveEventListener: bool,
-        pub mInnerObjectsFreed: bool,
         pub mAudioCaptured: bool,
         pub mOuterWindow: root::nsCOMPtr,
         pub mFocusedNode: root::nsCOMPtr,
@@ -30467,7 +29603,7 @@ pub mod root {
     fn bindgen_test_layout_nsPIDOMWindowInner() {
         assert_eq!(
             ::std::mem::size_of::<nsPIDOMWindowInner>(),
-            168usize,
+            160usize,
             concat!("Size of: ", stringify!(nsPIDOMWindowInner))
         );
         assert_eq!(
@@ -30688,22 +29824,9 @@ pub mod root {
         );
         assert_eq!(
             unsafe {
-                &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mInnerObjectsFreed as *const _
-                    as usize
-            },
-            87usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsPIDOMWindowInner),
-                "::",
-                stringify!(mInnerObjectsFreed)
-            )
-        );
-        assert_eq!(
-            unsafe {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mAudioCaptured as *const _ as usize
             },
-            88usize,
+            87usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30715,7 +29838,7 @@ pub mod root {
             unsafe {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mOuterWindow as *const _ as usize
             },
-            96usize,
+            88usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30727,7 +29850,7 @@ pub mod root {
             unsafe {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mFocusedNode as *const _ as usize
             },
-            104usize,
+            96usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30739,7 +29862,7 @@ pub mod root {
             unsafe {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mAudioContexts as *const _ as usize
             },
-            112usize,
+            104usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30751,7 +29874,7 @@ pub mod root {
             unsafe {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mTabGroup as *const _ as usize
             },
-            120usize,
+            112usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30763,7 +29886,7 @@ pub mod root {
             unsafe {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mWindowID as *const _ as usize
             },
-            128usize,
+            120usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30776,7 +29899,7 @@ pub mod root {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mHasNotifiedGlobalCreated as *const _
                     as usize
             },
-            136usize,
+            128usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30789,7 +29912,7 @@ pub mod root {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mMarkedCCGeneration as *const _
                     as usize
             },
-            140usize,
+            132usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30801,7 +29924,7 @@ pub mod root {
             unsafe {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mTopInnerWindow as *const _ as usize
             },
-            144usize,
+            136usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30814,7 +29937,7 @@ pub mod root {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mHasTriedToCacheTopInnerWindow
                     as *const _ as usize
             },
-            152usize,
+            144usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30827,7 +29950,7 @@ pub mod root {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mNumOfIndexedDBDatabases as *const _
                     as usize
             },
-            156usize,
+            148usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -30840,7 +29963,7 @@ pub mod root {
                 &(*(::std::ptr::null::<nsPIDOMWindowInner>())).mNumOfOpenWebSockets as *const _
                     as usize
             },
-            160usize,
+            152usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsPIDOMWindowInner),
@@ -34404,6 +33527,7 @@ pub mod root {
         pub mAttrStyleSheet: root::RefPtr<root::nsHTMLStyleSheet>,
         pub mStyleAttrStyleSheet: root::RefPtr<root::nsHTMLCSSStyleSheet>,
         pub mImageTracker: root::RefPtr<root::mozilla::dom::ImageTracker>,
+        pub mComposedShadowRoots: root::nsIDocument_ShadowRootSet,
         pub mActivityObservers: u64,
         pub mStyledLinks: [u64; 4usize],
         pub mLinksToUpdate: root::nsIDocument_LinksToUpdateList,
@@ -34730,6 +33854,7 @@ pub mod root {
     }
     pub type nsIDocument_FrameRequestCallbackList =
         root::nsTArray<root::RefPtr<root::mozilla::dom::FrameRequestCallback>>;
+    pub type nsIDocument_ShadowRootSet = [u64; 4usize];
     pub const nsIDocument_DeprecatedOperations_eEnablePrivilege:
         root::nsIDocument_DeprecatedOperations = 0;
     pub const nsIDocument_DeprecatedOperations_eDOMExceptionCode:
@@ -34864,7 +33989,7 @@ pub mod root {
     fn bindgen_test_layout_nsIDocument() {
         assert_eq!(
             ::std::mem::size_of::<nsIDocument>(),
-            1712usize,
+            1744usize,
             concat!("Size of: ", stringify!(nsIDocument))
         );
         assert_eq!(
@@ -40949,82 +40074,6 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0_nsCSSValueGradientStop_close0_instantiation() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsTArray<root::nsCSSValueGradientStop>>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsTArray<root::nsCSSValueGradientStop>)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsTArray<root::nsCSSValueGradientStop>>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsTArray<root::nsCSSValueGradientStop>)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_2() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_3() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_1() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
     fn __bindgen_test_layout_UniquePtr_open0_JSErrorNotes_Note_DeletePolicy_open1_JSErrorNotes_Note_close1_close0_instantiation(
 ) {
         assert_eq!(
@@ -43050,7 +42099,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_4() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_2() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43088,6 +42137,44 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_3() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_4() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_5() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
@@ -43107,45 +42194,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_6() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_7() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_2() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_1() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43389,7 +42438,7 @@ pub mod root {
         assert_eq ! ( :: std :: mem :: align_of :: < root :: nsPtrHashKey < root :: mozilla :: dom :: NodeInfo_NodeInfoInner > > ( ) , 8usize , concat ! ( "Alignment of template specialization: " , stringify ! ( root :: nsPtrHashKey < root :: mozilla :: dom :: NodeInfo_NodeInfoInner > ) ) );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_3() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_2() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43408,7 +42457,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_4() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_3() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43564,7 +42613,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_5() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_4() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43916,7 +42965,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_8() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_6() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -44011,7 +43060,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_6() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_5() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -44211,7 +43260,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_9() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_7() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -44230,7 +43279,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_10() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_8() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -44478,7 +43527,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_11() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_9() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -44497,7 +43546,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_12() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_10() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -45339,7 +44388,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_13() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_11() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -45664,6 +44713,25 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_nsPtrHashKey_open0_ShadowRoot_close0_instantiation() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsPtrHashKey<root::mozilla::dom::ShadowRoot>>(),
+            16usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsPtrHashKey<root::mozilla::dom::ShadowRoot>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsPtrHashKey<root::mozilla::dom::ShadowRoot>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsPtrHashKey<root::mozilla::dom::ShadowRoot>)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_UniquePtr_open0_nsIDocument_SelectorCache_DefaultDelete_open1_nsIDocument_SelectorCache_close1_close0_instantiation(
 ) {
         assert_eq!(
@@ -45699,6 +44767,44 @@ pub mod root {
             concat!(
                 "Alignment of template specialization: ",
                 stringify!(root::mozilla::DefaultDelete)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_12() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_13() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
             )
         );
     }
@@ -45742,44 +44848,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_16() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_17() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_18() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -46560,7 +45628,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_7() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_6() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -48545,7 +47613,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_19() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_17() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
