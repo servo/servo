@@ -3,13 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::TypedSize2D;
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use pipeline::Pipeline;
-use script_traits::LoadData;
-use std::collections::HashMap;
-use std::iter::once;
-use std::mem::replace;
-use std::time::Instant;
+use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
 
 /// The constellation's view of a browsing context.
@@ -29,20 +25,10 @@ pub struct BrowsingContext {
     /// The size of the frame.
     pub size: Option<TypedSize2D<f32, CSSPixel>>,
 
-    /// The timestamp for the current session history entry.
-    pub instant: Instant,
-
     /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
-    /// The load data for the current session history entry.
-    pub load_data: LoadData,
-
-    /// The past session history, ordered chronologically.
-    pub prev: Vec<SessionHistoryEntry>,
-
-    /// The future session history, ordered reverse chronologically.
-    pub next: Vec<SessionHistoryEntry>,
+    pub pipelines: HashSet<PipelineId>,
 }
 
 impl BrowsingContext {
@@ -50,101 +36,28 @@ impl BrowsingContext {
     /// Note this just creates the browsing context, it doesn't add it to the constellation's set of browsing contexts.
     pub fn new(id: BrowsingContextId,
                top_level_id: TopLevelBrowsingContextId,
-               pipeline_id: PipelineId,
-               load_data: LoadData)
+               pipeline_id: PipelineId)
                -> BrowsingContext
     {
+        let mut pipelines = HashSet::new();
+        pipelines.insert(pipeline_id);
         BrowsingContext {
             id: id,
             top_level_id: top_level_id,
             size: None,
             pipeline_id: pipeline_id,
-            instant: Instant::now(),
-            load_data: load_data,
-            prev: vec!(),
-            next: vec!(),
+            pipelines,
         }
     }
 
-    /// Get the current session history entry.
-    pub fn current(&self) -> SessionHistoryEntry {
-        SessionHistoryEntry {
-            instant: self.instant,
-            browsing_context_id: self.id,
-            pipeline_id: Some(self.pipeline_id),
-            load_data: self.load_data.clone(),
-        }
-    }
-
-    /// Set the current session history entry, and push the current frame entry into the past.
-    pub fn load(&mut self, pipeline_id: PipelineId, load_data: LoadData) {
-        let current = self.current();
-        self.prev.push(current);
-        self.instant = Instant::now();
+    pub fn update_current_entry(&mut self, pipeline_id: PipelineId) {
         self.pipeline_id = pipeline_id;
-        self.load_data = load_data;
-    }
-
-    /// Set the future to be empty.
-    pub fn remove_forward_entries(&mut self) -> Vec<SessionHistoryEntry> {
-        replace(&mut self.next, vec!())
-    }
-
-    /// Update the current entry of the BrowsingContext from an entry that has been traversed to.
-    pub fn update_current(&mut self, pipeline_id: PipelineId, entry: SessionHistoryEntry) {
-        self.pipeline_id = pipeline_id;
-        self.instant = entry.instant;
-        self.load_data = entry.load_data;
     }
 
     /// Is this a top-level browsing context?
     pub fn is_top_level(&self) -> bool {
         self.id == self.top_level_id
     }
-}
-
-/// An entry in a browsing context's session history.
-/// Each entry stores the pipeline id for a document in the session history.
-///
-/// When we operate on the joint session history, entries are sorted chronologically,
-/// so we timestamp the entries by when the entry was added to the session history.
-///
-/// <https://html.spec.whatwg.org/multipage/#session-history-entry>
-#[derive(Clone)]
-pub struct SessionHistoryEntry {
-    /// The timestamp for when the session history entry was created
-    pub instant: Instant,
-
-    /// The pipeline for the document in the session history,
-    /// None if the entry has been discarded
-    pub pipeline_id: Option<PipelineId>,
-
-    /// The load data for this entry, used to reload the pipeline if it has been discarded
-    pub load_data: LoadData,
-
-    /// The frame that this session history entry is part of
-    pub browsing_context_id: BrowsingContextId,
-}
-
-/// Represents a pending change in a session history, that will be applied
-/// once the new pipeline has loaded and completed initial layout / paint.
-pub struct SessionHistoryChange {
-    /// The browsing context to change.
-    pub browsing_context_id: BrowsingContextId,
-
-    /// The top-level browsing context ancestor.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
-
-    /// The pipeline for the document being loaded.
-    pub new_pipeline_id: PipelineId,
-
-    /// The data for the document being loaded.
-    pub load_data: LoadData,
-
-    /// Is the new document replacing the current document (e.g. a reload)
-    /// or pushing it into the session history (e.g. a navigation)?
-    /// If it is replacing an existing entry, we store its timestamp.
-    pub replace_instant: Option<Instant>,
 }
 
 /// An iterator over browsing contexts, returning the descendant
@@ -217,9 +130,7 @@ impl<'a> Iterator for AllBrowsingContextsIterator<'a> {
                     continue;
                 },
             };
-            let child_browsing_context_ids = browsing_context.prev.iter().chain(browsing_context.next.iter())
-                .filter_map(|entry| entry.pipeline_id)
-                .chain(once(browsing_context.pipeline_id))
+            let child_browsing_context_ids = browsing_context.pipelines.iter()
                 .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
                 .flat_map(|pipeline| pipeline.children.iter());
             self.stack.extend(child_browsing_context_ids);

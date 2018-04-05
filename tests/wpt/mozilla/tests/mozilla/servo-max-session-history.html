@@ -20,7 +20,7 @@
   // The number of pages to go back by.
   // This should be more than the default session-history.max-length pref,
   // to ensure that going back reloads the page.
-  var go_back_by = Math.min(page_number, 20);
+  var go_back_by = Math.min(page_number, 21);
 
   if (history.length < go_forward_by) {
     // Keep loading new pages until we have loaded enough of them.

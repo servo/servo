@@ -23,7 +23,6 @@ gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 hyper = "0.10"
 ipc-channel = "0.10"
-itertools = "0.7"
 layout_traits = {path = "../layout_traits"}
 log = "0.4"
 metrics = {path = "../metrics"}
