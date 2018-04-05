@@ -1919,12 +1919,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                    direction: TraversalDirection)
     {
-        let pipelines_to_close = self.pending_changes.drain(..)
-            .map(|change| change.new_pipeline_id).collect::<Vec<_>>();
-        for pipeline_id in pipelines_to_close {
-            self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
-        }
-
         let mut browsing_context_changes = HashMap::<BrowsingContextId, AliveOrDeadPipeline>::new();
         {
             let session_history = self.joint_session_histories
@@ -2470,7 +2464,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 .filter_map(|maybe_pipeline| maybe_pipeline)
                 .collect::<Vec<_>>();
 
-            pipelines_to_evict.extend(session_history.future.iter()
+            pipelines_to_evict.extend(session_history.future.iter().rev()
                 .map(|diff| diff.alive_new_pipeline())
                 .skip(history_length)
                 .filter_map(|maybe_pipeline| maybe_pipeline));
