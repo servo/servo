@@ -139,6 +139,12 @@ impl ContentDistribution {
         Self::new(AlignFlags::NORMAL)
     }
 
+    /// `start`
+    #[inline]
+    pub fn start() -> Self {
+        Self::new(AlignFlags::START)
+    }
+
     /// The initial value 'normal'
     #[inline]
     pub fn new(primary: AlignFlags) -> Self {
@@ -155,31 +161,18 @@ impl ContentDistribution {
         self.primary.bits() as u16
     }
 
-    /// Returns whether this value is valid for both axis directions.
-    pub fn is_valid_on_both_axes(&self) -> bool {
-        match self.primary.value() {
-            // <baseline-position> is only allowed on the block axis.
-            AlignFlags::BASELINE |
-            AlignFlags::LAST_BASELINE => false,
-
-            // left | right are only allowed on the inline axis.
-            AlignFlags::LEFT |
-            AlignFlags::RIGHT => false,
-
-            _ => true,
-        }
+    /// Returns whether this value is a <baseline-position>.
+    pub fn is_baseline_position(&self) -> bool {
+        matches!(
+            self.primary.value(),
+            AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
+        )
     }
 
     /// The primary alignment
     #[inline]
     pub fn primary(self) -> AlignFlags {
         self.primary
-    }
-
-    /// Whether this value has extra flags.
-    #[inline]
-    pub fn has_extra_flags(self) -> bool {
-        self.primary().intersects(AlignFlags::FLAG_BITS)
     }
 
     /// Parse a value for align-content / justify-content.
@@ -309,12 +302,6 @@ impl SelfAlignment {
         }
     }
 
-    /// Whether this value has extra flags.
-    #[inline]
-    pub fn has_extra_flags(self) -> bool {
-        self.0.intersects(AlignFlags::FLAG_BITS)
-    }
-
     /// Parse a self-alignment value on one of the axis.
     pub fn parse<'i, 't>(
         input: &mut Parser<'i, 't>,
@@ -402,12 +389,6 @@ impl AlignItems {
     pub fn normal() -> Self {
         AlignItems(AlignFlags::NORMAL)
     }
-
-    /// Whether this value has extra flags.
-    #[inline]
-    pub fn has_extra_flags(self) -> bool {
-        self.0.intersects(AlignFlags::FLAG_BITS)
-    }
 }
 
 
@@ -448,12 +429,6 @@ impl JustifyItems {
     #[inline]
     pub fn normal() -> Self {
         JustifyItems(AlignFlags::NORMAL)
-    }
-
-    /// Whether this value has extra flags.
-    #[inline]
-    pub fn has_extra_flags(self) -> bool {
-        self.0.intersects(AlignFlags::FLAG_BITS)
     }
 }
 

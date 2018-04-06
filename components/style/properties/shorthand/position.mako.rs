@@ -52,15 +52,19 @@
     use values::specified::NonNegativeNumber;
     use properties::longhands::flex_basis::SpecifiedValue as FlexBasis;
 
-    fn parse_flexibility<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                 -> Result<(NonNegativeNumber, Option<NonNegativeNumber>),ParseError<'i>> {
+    fn parse_flexibility<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(NonNegativeNumber, Option<NonNegativeNumber>),ParseError<'i>> {
         let grow = NonNegativeNumber::parse(context, input)?;
         let shrink = input.try(|i| NonNegativeNumber::parse(context, i)).ok();
         Ok((grow, shrink))
     }
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut grow = None;
         let mut shrink = None;
         let mut basis = None;
@@ -144,8 +148,10 @@
     // NOTE: Since both the shorthands have the same code, we should (re-)use code from one to implement
     // the other. This might not be a big deal for now, but we should consider looking into this in the future
     // to limit the amount of code generated.
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let start = input.try(|i| GridLine::parse(context, i))?;
         let end = if input.try(|i| i.expect_delim('/')).is_ok() {
             GridLine::parse(context, input)?
@@ -182,8 +188,10 @@
     use parser::Parse;
 
     // The code is the same as `grid-{row,column}` except that this can have four values at most.
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         fn line_with_ident_from(other: &GridLine) -> GridLine {
             let mut this = GridLine::auto();
             if other.line_num.is_none() && !other.is_span {
@@ -253,10 +261,10 @@
     use values::specified::position::{TemplateAreas, TemplateAreasArc};
 
     /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
-    pub fn parse_grid_template<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                       -> Result<(GridTemplateComponent,
-                                                  GridTemplateComponent,
-                                                  Either<TemplateAreasArc, None_>), ParseError<'i>> {
+    pub fn parse_grid_template<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(GridTemplateComponent, GridTemplateComponent, Either<TemplateAreasArc, None_>), ParseError<'i>> {
         // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
         // shorthand should know after these keywords there is nothing to parse. Otherwise it
         // gets confused and rejects the sub properties that contains `none` or `subgrid`.
@@ -354,8 +362,10 @@
     }
 
     #[inline]
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let (rows, columns, areas) = parse_grid_template(context, input)?;
         Ok(expanded! {
             grid_template_rows: rows,
@@ -481,8 +491,10 @@
     use values::specified::{GenericGridTemplateComponent, TrackSize};
     use values::specified::position::{AutoFlow, GridAutoFlow};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut temp_rows = GridTemplateComponent::None;
         let mut temp_cols = GridTemplateComponent::None;
         let mut temp_areas = Either::Second(None_);
@@ -490,8 +502,10 @@
         let mut auto_cols = TrackSize::default();
         let mut flow = grid_auto_flow::get_initial_value();
 
-        fn parse_auto_flow<'i, 't>(input: &mut Parser<'i, 't>, is_row: bool)
-                                   -> Result<GridAutoFlow, ParseError<'i>> {
+        fn parse_auto_flow<'i, 't>(
+            input: &mut Parser<'i, 't>,
+            is_row: bool,
+        ) -> Result<GridAutoFlow, ParseError<'i>> {
             let mut auto_flow = None;
             let mut dense = false;
             for _ in 0..2 {
@@ -637,18 +651,21 @@
 
         let justify_content = match justify_content {
             Ok(v) => v,
-            Err(err) => {
-                if !align_content.is_valid_on_both_axes() {
-                    return Err(err);
+            Err(..) => {
+                // https://drafts.csswg.org/css-align-3/#place-content:
+                //
+                //   The second value is assigned to justify-content; if
+                //   omitted, it is copied from the first value, unless that
+                //   value is a <baseline-position> in which case it is
+                //   defaulted to start.
+                //
+                if !align_content.is_baseline_position() {
+                    align_content
+                } else {
+                    ContentDistribution::start()
                 }
-
-                align_content
             }
         };
-
-        if align_content.has_extra_flags() || justify_content.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         Ok(expanded! {
             align_content: AlignContent(align_content),
@@ -682,17 +699,11 @@
 
         let justify = match justify {
             Ok(v) => v,
-            Err(err) => {
-                if !align.is_valid_on_both_axes() {
-                    return Err(err);
-                }
+            Err(..) => {
+                debug_assert!(align.is_valid_on_both_axes());
                 align
             }
         };
-
-        if justify.has_extra_flags() || align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         Ok(expanded! {
             align_self: AlignSelf(align),
@@ -729,14 +740,9 @@
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         let align = AlignItems::parse(context, input)?;
-        if align.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let justify = input.try(|input| JustifyItems::parse(context, input))
-                           .unwrap_or(JustifyItems::from(align));
-        if justify.has_extra_flags() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
+        let justify =
+            input.try(|input| JustifyItems::parse(context, input))
+                 .unwrap_or_else(|_| JustifyItems::from(align));
 
         Ok(expanded! {
             align_items: align,
@@ -746,11 +752,6 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if self.align_items.has_extra_flags() ||
-               self.justify_items.has_extra_flags() {
-                return Ok(());
-            }
-
             self.align_items.to_css(dest)?;
             if self.align_items.0 != self.justify_items.0 {
                 dest.write_str(" ")?;
