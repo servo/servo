@@ -10,8 +10,6 @@ extern crate ipc_channel;
 extern crate script_traits;
 extern crate servo_config;
 extern crate servo_rand;
-#[cfg(target_os = "linux")]
-extern crate tinyfiledialogs;
 extern crate uuid;
 
 pub mod test;
@@ -25,7 +23,6 @@ use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacte
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use script_traits::BluetoothManagerMsg;
-#[cfg(target_os = "linux")]
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::Rng;
@@ -41,12 +38,6 @@ const MAXIMUM_TRANSACTION_TIME: u8 = 30;
 const CONNECTION_TIMEOUT_MS: u64 = 1000;
 // The discovery session needs some time to find any nearby devices
 const DISCOVERY_TIMEOUT_MS: u64 = 1500;
-#[cfg(target_os = "linux")]
-const DIALOG_TITLE: &'static str = "Choose a device";
-#[cfg(target_os = "linux")]
-const DIALOG_COLUMN_ID: &'static str = "Id";
-#[cfg(target_os = "linux")]
-const DIALOG_COLUMN_NAME: &'static str = "Name";
 
 bitflags! {
     struct Flags: u32 {
@@ -368,10 +359,9 @@ impl BluetoothManager {
         None
     }
 
-    #[cfg(target_os = "linux")]
     fn select_device(&mut self, devices: Vec<BluetoothDevice>, adapter: &BluetoothAdapter) -> Option<String> {
         if is_mock_adapter(adapter) || opts::get().headless {
-            for device in devices {
+            for device in &devices {
                 if let Ok(address) = device.get_address() {
                     return Some(address);
                 }
@@ -384,28 +374,11 @@ impl BluetoothManager {
             dialog_rows.extend_from_slice(&[device.get_address().unwrap_or("".to_string()),
                                             device.get_name().unwrap_or("".to_string())]);
         }
-        let dialog_rows: Vec<&str> = dialog_rows.iter()
-                                                .map(|s| s.as_ref())
-                                                .collect();
-        let dialog_rows: &[&str] = dialog_rows.as_slice();
 
-        if let Some(device) = tinyfiledialogs::list_dialog(DIALOG_TITLE,
-                                                           &[DIALOG_COLUMN_ID, DIALOG_COLUMN_NAME],
-                                                           Some(dialog_rows)) {
-            // The device string format will be "Address|Name". We need the first part of it.
-            return device.split("|").next().map(|s| s.to_string());
-        }
-        None
-    }
+        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let msg = BluetoothManagerMsg::OpenDeviceSelectDialog(dialog_rows, ipc_sender);
 
-    #[cfg(not(target_os = "linux"))]
-    fn select_device(&mut self, devices: Vec<BluetoothDevice>, _adapter: &BluetoothAdapter) -> Option<String> {
-        for device in devices {
-            if let Ok(address) = device.get_address() {
-                return Some(address);
-            }
-        }
-        None
+        self.constellation_chan.send(msg).map(|_| ipc_receiver.recv().unwrap()).unwrap_or_default()
     }
 
     fn generate_device_id(&mut self) -> String {

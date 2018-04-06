@@ -184,7 +184,6 @@ dependencies = [
  "script_traits 0.0.1",
  "servo_config 0.0.1",
  "servo_rand 0.0.1",
- "tinyfiledialogs 3.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
