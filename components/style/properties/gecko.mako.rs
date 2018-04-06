@@ -55,6 +55,7 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarat
 use rule_tree::StrongRuleNode;
 use selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
+use std::marker::PhantomData;
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{self, CustomIdent, Either, KeyframesName, None_};
@@ -5429,6 +5430,7 @@ clip-path
         use values::computed::counters::{Content, ContentItem};
         use values::generics::CounterStyleOrNone;
         use gecko_bindings::structs::nsStyleContentData;
+        use gecko_bindings::structs::nsStyleContentAttr;
         use gecko_bindings::structs::nsStyleContentType;
         use gecko_bindings::structs::nsStyleContentType::*;
         use gecko_bindings::bindings::Gecko_ClearAndResizeStyleContents;
@@ -5505,14 +5507,19 @@ clip-path
                             self.gecko.mContents[i].mType = eStyleContentType_Attr;
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
-                                *self.gecko.mContents[i].mContent.mString.as_mut() = match attr.namespace {
-                                    Some((_, ns)) => {
-                                        as_utf16_and_forget(&format!("{}|{}", ns, attr.attribute))
+                                let maybe_ns = attr.namespace.clone();
+                                let attr_struct = Box::new(nsStyleContentAttr {
+                                    mName: structs::RefPtr {
+                                        mRawPtr: attr.attribute.clone().into_addrefed(),
+                                        _phantom_0: PhantomData,
                                     },
-                                    None => {
-                                        as_utf16_and_forget(&attr.attribute)
-                                    }
-                                };
+                                    mNamespaceURL: structs::RefPtr {
+                                        mRawPtr: maybe_ns.map_or(ptr::null_mut(), |x| (x.1).0.into_addrefed()),
+                                        _phantom_0: PhantomData,
+                                    },
+                                });
+                                *self.gecko.mContents[i].mContent.mAttr.as_mut() =
+                                    Box::into_raw(attr_struct);
                             }
                         }
                         ContentItem::OpenQuote
@@ -5569,7 +5576,7 @@ clip-path
     }
 
     pub fn clone_content(&self) -> longhands::content::computed_value::T {
-        use Atom;
+        use {Atom, Namespace};
         use gecko::conversions::string_from_chars_pointer;
         use gecko_bindings::structs::nsStyleContentType::*;
         use values::computed::counters::{Content, ContentItem};
@@ -5600,19 +5607,17 @@ clip-path
                         ContentItem::String(string.into_boxed_str())
                     },
                     eStyleContentType_Attr => {
-                        let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
-                        let string = unsafe { string_from_chars_pointer(*gecko_chars) };
-                        let (namespace, attribute) =
-                            match string.find('|') {
-                                None => (None, string),
-                                Some(index) => {
-                                    let (_, val) = string.split_at(index);
-                                    // FIXME: We should give NamespaceId as well to make Attr
-                                    // struct. However, there is no field for it in Gecko.
-                                    debug_assert!(false, "Attr with namespace does not support yet");
-                                    (None, val.to_string())
-                                }
+                        let (namespace, attribute) = unsafe {
+                            let s = &**gecko_content.mContent.mAttr.as_ref();
+                            let ns = if s.mNamespaceURL.mRawPtr.is_null() {
+                                None
+                            } else {
+                                // FIXME(bholley): We don't have any way to get the prefix here. :-(
+                                let prefix = atom!("");
+                                Some((prefix, Namespace(Atom::from_raw(s.mNamespaceURL.mRawPtr))))
                             };
+                            (ns, Atom::from_raw(s.mName.mRawPtr))
+                        };
                         ContentItem::Attr(Attr { namespace, attribute })
                     },
                     eStyleContentType_Counter | eStyleContentType_Counters => {

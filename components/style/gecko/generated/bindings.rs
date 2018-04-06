@@ -1597,9 +1597,6 @@ extern "C" {
     pub fn Gecko_AddPropertyToSet(arg1: nsCSSPropertyIDSetBorrowedMut, arg2: nsCSSPropertyID);
 }
 extern "C" {
-    pub fn Gecko_RegisterNamespace(ns: *mut nsAtom) -> i32;
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(
         ptr: *mut nsStyleFont,
         pres_context: RawGeckoPresContextBorrowed,

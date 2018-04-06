@@ -23,7 +23,6 @@ use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::rule_parser::{State, TopLevelRuleParser};
 use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator};
-use values::specified::NamespaceId;
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {
@@ -41,8 +40,8 @@ pub struct UserAgentStylesheets {
 #[derive(Clone, Debug, Default, MallocSizeOf)]
 #[allow(missing_docs)]
 pub struct Namespaces {
-    pub default: Option<(Namespace, NamespaceId)>,
-    pub prefixes: FnvHashMap<Prefix, (Namespace, NamespaceId)>,
+    pub default: Option<Namespace>,
+    pub prefixes: FnvHashMap<Prefix, Namespace>,
 }
 
 /// The contents of a given stylesheet. This effectively maps to a

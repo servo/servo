@@ -73,7 +73,7 @@ fn test_parse_stylesheet() {
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
                                           None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0);
     let mut namespaces = Namespaces::default();
-    namespaces.default = Some((ns!(html), ()));
+    namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
         contents: StylesheetContents {
             origin: Origin::UserAgent,

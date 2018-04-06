@@ -26311,6 +26311,47 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug)]
+    pub struct nsStyleContentAttr {
+        pub mName: root::RefPtr<root::nsAtom>,
+        pub mNamespaceURL: root::RefPtr<root::nsAtom>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsStyleContentAttr() {
+        assert_eq!(
+            ::std::mem::size_of::<nsStyleContentAttr>(),
+            16usize,
+            concat!("Size of: ", stringify!(nsStyleContentAttr))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsStyleContentAttr>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsStyleContentAttr))
+        );
+        assert_eq!(
+            unsafe { &(*(::std::ptr::null::<nsStyleContentAttr>())).mName as *const _ as usize },
+            0usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsStyleContentAttr),
+                "::",
+                stringify!(mName)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsStyleContentAttr>())).mNamespaceURL as *const _ as usize
+            },
+            8usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsStyleContentAttr),
+                "::",
+                stringify!(mNamespaceURL)
+            )
+        );
+    }
+    #[repr(C)]
+    #[derive(Debug)]
     pub struct nsStyleContentData {
         pub mType: root::nsStyleContentType,
         pub mContent: root::nsStyleContentData__bindgen_ty_1,
@@ -26395,6 +26436,7 @@ pub mod root {
     #[derive(Debug, Copy)]
     pub struct nsStyleContentData__bindgen_ty_1 {
         pub mString: root::__BindgenUnionField<*mut u16>,
+        pub mAttr: root::__BindgenUnionField<*mut root::nsStyleContentAttr>,
         pub mImage: root::__BindgenUnionField<*mut root::nsStyleImageRequest>,
         pub mCounters: root::__BindgenUnionField<*mut root::nsStyleContentData_CounterFunction>,
         pub bindgen_union_field: u64,
@@ -26425,6 +26467,19 @@ pub mod root {
                 stringify!(nsStyleContentData__bindgen_ty_1),
                 "::",
                 stringify!(mString)
+            )
+        );
+        assert_eq!(
+            unsafe {
+                &(*(::std::ptr::null::<nsStyleContentData__bindgen_ty_1>())).mAttr as *const _
+                    as usize
+            },
+            0usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsStyleContentData__bindgen_ty_1),
+                "::",
+                stringify!(mAttr)
             )
         );
         assert_eq!(
@@ -41719,6 +41774,44 @@ pub mod root {
         );
     }
     #[test]
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_4() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::nsAtom>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::nsAtom>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::nsAtom>)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_5() {
+        assert_eq!(
+            ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::RefPtr<root::nsAtom>)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::RefPtr<root::nsAtom>>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::RefPtr<root::nsAtom>)
+            )
+        );
+    }
+    #[test]
     fn __bindgen_test_layout_nsTArray_open0_nsStyleContentData_close0_instantiation() {
         assert_eq!(
             ::std::mem::size_of::<root::nsTArray<root::nsStyleContentData>>(),
@@ -41928,7 +42021,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_4() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_6() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -43679,7 +43772,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_5() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_7() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -44126,7 +44219,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_6() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_8() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -44255,7 +44348,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_7() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_9() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -46639,7 +46732,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_8() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_10() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -46658,7 +46751,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_9() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_11() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -46905,7 +46998,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_10() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_12() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -46943,7 +47036,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_11() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_13() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -47518,7 +47611,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_12() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_14() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -48017,7 +48110,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_13() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_15() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
@@ -48093,7 +48186,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_14() {
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_16() {
         assert_eq!(
             ::std::mem::size_of::<root::RefPtr<root::nsAtom>>(),
             8usize,
