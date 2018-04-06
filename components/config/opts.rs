@@ -564,7 +564,7 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {//here
+pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
@@ -625,6 +625,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {//here
     opts.optopt("", "profiler-db-pass", "Profiler database password", "");
     opts.optopt("", "profiler-db-name", "Profiler database name", "");
     opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
+    opts.optflag("", "har-path", "Path to HAR file");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,

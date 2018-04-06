@@ -6,6 +6,7 @@
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;
+extern crate har;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
@@ -25,6 +26,7 @@ extern crate webrender_api;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
+use har::Log;
 use hyper::Error as HyperError;
 use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::http::RawStatus;
@@ -38,6 +40,7 @@ use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
 use storage_thread::StorageThreadMsg;
+
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -370,7 +373,7 @@ pub enum CoreResourceMsg {
     ToFileManager(FileManagerThreadMsg),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
-    Exit(IpcSender<()>,Option<String>),
+    Exit(IpcSender<()>),
 }
 
 /// Instruct the resource thread to make a new request.
@@ -385,7 +388,7 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
 }
 
 // HAR log values
-#[derive(Deserialize, Serialize)]
+
 pub enum HarLogValues {
     /// HAR filename - enforce only String can be used here
     har_filename(String),
@@ -394,16 +397,12 @@ pub enum HarLogValues {
 }
 
 impl HarLogValues {
-
-    pub fn harOutput (&self) {
-
-        match self {
-            &HarLogValues::ipc_sender(ref ipc_sender) => (),//ipc_sender.send(),
-            &HarLogValues::har_filename(ref har_filename)=> (),//IDK
-
-        };
-
+    pub fn get_empty_log() -> Vec<Log>{
+        let v: Vec<Log> = Vec::new();
+        return v;
     }
+
+    pub fn sendVec(vector: Vec<Log>) {}
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]

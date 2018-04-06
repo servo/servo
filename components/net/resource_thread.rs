@@ -19,8 +19,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CustomResponseMediator, FetchChannels};
 use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
-use net_traits::WebSocketNetworkEvent;
 use net_traits::HarLogValues;
+use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -202,7 +202,7 @@ impl ResourceChannelManager {
             //when processing the CoreResourseMsg::Exit message, send an empty vector or write an
             // empty vector as JSON to an appropriate file depending on the member variable that
             //was added earlier TODO
-            CoreResourceMsg::Exit(sender, Option<Page>) => {
+            CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
                         Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
@@ -213,13 +213,19 @@ impl ResourceChannelManager {
                         Err(_) => warn!("Error writing cookie jar to disk"),
                     }
                     match http_state.hsts_list.read() {
-
                         Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                         Err(_) => warn!("Error writing hsts list to disk"),
                     }
-                }
 
-                if let Some(ref page) = self.har_output;
+                    match self.har_output { //need help here
+                        Some(har_type) =>
+                            match har_type {
+                                har_filename => write_json_to_file(&HarLogValues::get_empty_log(),
+                                 config_dir , "servo_har.json"),
+                                ipc_sender => har_type.sendVec(&HarLogValues::get_empty_log()),
+                            },
+                    }
+                }
 
                 let _ = sender.send(());
                 return false;

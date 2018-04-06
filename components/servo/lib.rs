@@ -22,8 +22,6 @@ extern crate env_logger;
 extern crate gaol;
 extern crate gleam;
 #[macro_use]
-extern crate log;
-
 pub extern crate bluetooth;
 pub extern crate bluetooth_traits;
 pub extern crate canvas;
@@ -37,6 +35,7 @@ pub extern crate euclid;
 pub extern crate gfx;
 pub extern crate ipc_channel;
 pub extern crate layout_thread;
+pub extern crate log;
 pub extern crate msg;
 pub extern crate net;
 pub extern crate net_traits;
@@ -530,7 +529,7 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
-                        har_output: Option<String>,
+                        har_output: opts.har,
                         embedder_proxy: EmbedderProxy,
                         compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
