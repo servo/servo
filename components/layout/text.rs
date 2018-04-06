@@ -215,61 +215,63 @@ impl TextRunScanner {
 
                 let (mut start_position, mut end_position) = (0, 0);
                 for (byte_index, character) in text.char_indices() {
-                    let font = font_group.borrow_mut().find_by_codepoint(&mut font_context, character);
+                    if !character.is_control() {
+                        let font = font_group.borrow_mut().find_by_codepoint(&mut font_context, character);
 
-                    let bidi_level = match bidi_levels {
-                        Some(levels) => levels[*paragraph_bytes_processed],
-                        None => bidi::Level::ltr(),
-                    };
+                        let bidi_level = match bidi_levels {
+                            Some(levels) => levels[*paragraph_bytes_processed],
+                            None => bidi::Level::ltr(),
+                        };
 
-                    // Break the run if the new character has a different explicit script than the
-                    // previous characters.
-                    //
-                    // TODO: Special handling of paired punctuation characters.
-                    // http://www.unicode.org/reports/tr24/#Common
-                    let script = get_script(character);
-                    let compatible_script = is_compatible(script, run_info.script);
-                    if compatible_script && !is_specific(run_info.script) && is_specific(script) {
-                        run_info.script = script;
-                    }
-
-                    let selected = match selection {
-                        Some(range) => range.contains(ByteIndex(byte_index as isize)),
-                        None => false
-                    };
-
-                    // Now, if necessary, flush the mapping we were building up.
-                    let flush_run = !run_info.has_font(&font) ||
-                                    run_info.bidi_level != bidi_level ||
-                                    !compatible_script;
-                    let new_mapping_needed = flush_run || mapping.selected != selected;
-
-                    if new_mapping_needed {
-                        // We ignore empty mappings at the very start of a fragment.
-                        // The run info values are uninitialized at this point so
-                        // flushing an empty mapping is pointless.
-                        if end_position > 0 {
-                            mapping.flush(&mut mappings,
-                                          &mut run_info,
-                                          &**text,
-                                          compression,
-                                          text_transform,
-                                          &mut last_whitespace,
-                                          &mut start_position,
-                                          end_position);
+                        // Break the run if the new character has a different explicit script than the
+                        // previous characters.
+                        //
+                        // TODO: Special handling of paired punctuation characters.
+                        // http://www.unicode.org/reports/tr24/#Common
+                        let script = get_script(character);
+                        let compatible_script = is_compatible(script, run_info.script);
+                        if compatible_script && !is_specific(run_info.script) && is_specific(script) {
+                            run_info.script = script;
                         }
-                        if run_info.text.len() > 0 {
-                            if flush_run {
-                                run_info.flush(&mut run_info_list, &mut insertion_point);
-                                run_info = RunInfo::new();
+
+                        let selected = match selection {
+                            Some(range) => range.contains(ByteIndex(byte_index as isize)),
+                            None => false
+                        };
+
+                        // Now, if necessary, flush the mapping we were building up.
+                        let flush_run = !run_info.has_font(&font) ||
+                                        run_info.bidi_level != bidi_level ||
+                                        !compatible_script;
+                        let new_mapping_needed = flush_run || mapping.selected != selected;
+
+                        if new_mapping_needed {
+                            // We ignore empty mappings at the very start of a fragment.
+                            // The run info values are uninitialized at this point so
+                            // flushing an empty mapping is pointless.
+                            if end_position > 0 {
+                                mapping.flush(&mut mappings,
+                                              &mut run_info,
+                                              &**text,
+                                              compression,
+                                              text_transform,
+                                              &mut last_whitespace,
+                                              &mut start_position,
+                                              end_position);
                             }
-                            mapping = RunMapping::new(&run_info_list[..],
-                                                      fragment_index);
+                            if run_info.text.len() > 0 {
+                                if flush_run {
+                                    run_info.flush(&mut run_info_list, &mut insertion_point);
+                                    run_info = RunInfo::new();
+                                }
+                                mapping = RunMapping::new(&run_info_list[..],
+                                                          fragment_index);
+                            }
+                            run_info.font = font;
+                            run_info.bidi_level = bidi_level;
+                            run_info.script = script;
+                            mapping.selected = selected;
                         }
-                        run_info.font = font;
-                        run_info.bidi_level = bidi_level;
-                        run_info.script = script;
-                        mapping.selected = selected;
                     }
 
                     // Consume this character.
