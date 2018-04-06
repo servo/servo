@@ -7,7 +7,7 @@ const expected = new DOMException(
     'NetworkError');
 let device;
 
-bluetooth_test(() => getHealthThermometerDevice({
+bluetooth_test(() => getConnectedHealthThermometerDevice({
       filters: [{services: ['health_thermometer']}],
       optionalServices: ['generic_access']
     })

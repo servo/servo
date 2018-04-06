@@ -22,8 +22,6 @@ bluetooth_test(() => getDiscoveredHealthThermometerDevice({
     .then(() =>
         fake_peripheral.setNextGATTConnectionResponse({code: HCI_SUCCESS}))
     .then(() => device.gatt.connect())
-    .then(() =>
-        fake_peripheral.setNextGATTDiscoveryResponse({code: HCI_SUCCESS}))
     .then(() => Promise.all([
       assert_promise_rejects_with_message(
         device.gatt.getPrimaryService('human_interface_device'),

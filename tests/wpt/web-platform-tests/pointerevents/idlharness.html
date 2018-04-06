@@ -91,14 +91,21 @@ partial interface Navigator {
 };
 </pre>
 <script>
-  var idl_array = new IdlArray();
-  idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
-  idl_array.add_idls(document.getElementById("idl").textContent);
+  promise_test(async function() {
+    const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+    const uievents = await fetch('/interfaces/uievents.idl').then(r => r.text());
 
-  // Note that I don't bother including Document here because there are still
-  // a bunch of differences between browsers around Document vs HTMLDocument.
-  idl_array.add_objects({
+    var idl_array = new IdlArray();
+    idl_array.add_untested_idls(dom, { only: ['EventInit'] });
+    idl_array.add_untested_idls(uievents, { only: ['UIEventInit', 'MouseEventInit', 'EventModifierInit'] });
+    idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
+    idl_array.add_idls(document.getElementById("idl").textContent);
+
+    // Note that I don't bother including Document here because there are still
+    // a bunch of differences between browsers around Document vs HTMLDocument.
+    idl_array.add_objects({
     Window: ["window"],
     Navigator: ["navigator"]});
-  idl_array.test();
+    idl_array.test();
+  }, 'pointerevents interfaces');
 </script>

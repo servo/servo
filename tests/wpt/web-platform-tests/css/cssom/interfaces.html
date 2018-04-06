@@ -31,7 +31,7 @@ Use a non-empty style attribute to get a non-empty CSSStyleDeclaration.
 "use strict";
 var style_element, svg_element, xmlss_pi;
 
-function doTest([html, dom, cssom]) {
+function doTest([html, dom, uievents, cssom]) {
   style_element = document.getElementById('styleElement');
   svg_element = document.getElementById('svgElement');
   xmlss_pi = document.getElementById('xmlssPiIframe').contentDocument.firstChild;
@@ -39,6 +39,7 @@ function doTest([html, dom, cssom]) {
   var idlArray = new IdlArray();
   var svg = "interface SVGElement : Element {};";
   idlArray.add_untested_idls(html + dom + svg);
+  idlArray.add_untested_idls(uievents, { only: ['UIEvent', 'UIEventInit', 'MouseEvent', 'MouseEventInit', 'EventModifierInit']});
   idlArray.add_idls(cssom);
 
   idlArray.add_objects({
@@ -81,6 +82,7 @@ promise_test(function() {
   // Have to wait for onload
   return Promise.all([fetchData("/interfaces/html.idl"),
                       fetchData("/interfaces/dom.idl"),
+                      fetchData("/interfaces/uievents.idl"),
                       fetchData("/interfaces/cssom.idl"),
                       waitForLoad()])
                 .then(doTest);

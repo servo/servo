@@ -15,7 +15,7 @@ href="https://drafts.csswg.org/css-timing/#cubic-bezier-timing-functions">
 
 function assert_style_left_at(animation, time, easingFunction) {
   animation.currentTime = time;
-  var portion = time / animation.effect.timing.duration;
+  var portion = time / animation.effect.getTiming()['duration'];
   assert_approx_equals(pxToNum(getComputedStyle(animation.effect.target).left),
                        easingFunction(portion) * 100,
                        0.01,
