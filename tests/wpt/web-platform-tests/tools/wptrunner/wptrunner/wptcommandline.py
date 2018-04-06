@@ -334,13 +334,15 @@ def set_from_config(kwargs):
             kwargs["test_paths"]["/"] = {}
         kwargs["test_paths"]["/"]["metadata_path"] = kwargs["metadata_root"]
 
-    if kwargs["manifest_path"]:
+    if kwargs.get("manifest_path"):
         if "/" not in kwargs["test_paths"]:
             kwargs["test_paths"]["/"] = {}
         kwargs["test_paths"]["/"]["manifest_path"] = kwargs["manifest_path"]
 
     kwargs["suite_name"] = kwargs["config"].get("web-platform-tests", {}).get("name", "web-platform-tests")
 
+
+    check_paths(kwargs)
 
 def get_test_paths(config):
     # Set up test_paths
@@ -399,8 +401,6 @@ def check_paths(kwargs):
 
 def check_args(kwargs):
     set_from_config(kwargs)
-
-    check_paths(kwargs)
 
     if kwargs["product"] is None:
         kwargs["product"] = "firefox"
@@ -492,8 +492,6 @@ def check_args(kwargs):
 
 def check_args_update(kwargs):
     set_from_config(kwargs)
-
-    check_paths(kwargs)
 
     if kwargs["product"] is None:
         kwargs["product"] = "firefox"

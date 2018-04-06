@@ -1,1 +1,1 @@
-testServerTiming(document.currentScript.src, [])
+testServerTiming(document.currentScript, [])

@@ -9,29 +9,45 @@
 <script>
 'use strict';
 
-var idlArray = new IdlArray();
-idlArray.add_untested_idls(idls.untested);
-idlArray.add_idls(idls.tested);
-idlArray.add_objects({
+promise_test(async (t) => {
+  var idlArray = new IdlArray();
+  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+  const serviceWorkerIdl = await fetch('/interfaces/ServiceWorker.idl').then(r => r.text());
+
+  idlArray.add_untested_idls(idls.untested);
+  idlArray.add_untested_idls(dom, { only: ['EventTarget'] });
+  idlArray.add_idls(serviceWorkerIdl, { only: [
+    'ServiceWorkerGlobalScope',
+    'Client',
+    'WindowClient',
+    'Clients',
+    'ServiceWorker',
+    'ServiceWorkerState',
+    'ServiceWorkerUpdateViaCache',
+    'ServiceWorkerRegistration',
+    'EventTarget',
+    'NavigationPreloadManager',
+    'Cache',
+    'CacheStorage',
+  ]});
+  idlArray.add_objects({
     ServiceWorkerContainer: ['navigator.serviceWorker']
   });
+  var scope = 'resources/scope/interfaces-and-attributes';
 
-promise_test(function(t) {
-    var scope = 'resources/scope/interfaces-and-attributes';
+  return service_worker_unregister_and_register(
+      t, 'resources/empty-worker.js', scope)
+    .then(function(registration) {
+        t.add_cleanup(function() {
+            registration.unregister();
+          });
 
-    return service_worker_unregister_and_register(
-        t, 'resources/empty-worker.js', scope)
-      .then(function(registration) {
-          t.add_cleanup(function() {
-              registration.unregister();
-            });
-
-          window.registrationInstance = registration;
-          idlArray.add_objects({
-              ServiceWorkerRegistration: ['window.registrationInstance'],
-              ServiceWorker: ['window.registrationInstance.installing']
-            });
-          idlArray.test();
-        });
-  }, 'test setup (worker registration)');
+        window.registrationInstance = registration;
+        idlArray.add_objects({
+            ServiceWorkerRegistration: ['window.registrationInstance'],
+            ServiceWorker: ['window.registrationInstance.installing']
+          });
+        idlArray.test();
+      });
+}, 'test setup (worker registration)');
 </script>

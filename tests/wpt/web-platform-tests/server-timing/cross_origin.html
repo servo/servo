@@ -4,13 +4,16 @@
     <script src="/resources/testharness.js"></script>
     <script src='/resources/testharnessreport.js'></script>
     <script src="/common/performance-timeline-utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
     <script>
       setup({explicit_done: true})
 
-      const {location: {href}} = document
-      const urls = {}
-      urls['same-origin'] = `${href.substring(0, href.lastIndexOf('/'))}/resources/blue.png`
-      urls['cross-origin'] = urls['same-origin'].replace('://', '://www.')
+      const hostInfo = get_host_info()
+      const resourceUrl = 'server-timing/resources/blue.png'
+      const urls = {
+        'same-origin': `${hostInfo.HTTP_ORIGIN}/${resourceUrl}`,
+        'cross-origin': `${hostInfo.HTTP_REMOTE_ORIGIN}/${resourceUrl}`
+      }
       Object.keys(urls).forEach(function(key) {
         const img = document.createElement('img')
         img.src = urls[key]

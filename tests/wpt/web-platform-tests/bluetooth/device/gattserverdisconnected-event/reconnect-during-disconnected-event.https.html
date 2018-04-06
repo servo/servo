@@ -10,7 +10,7 @@ let test_desc = 'A device that reconnects during the gattserverdisconnected ' +
     'event should still receive gattserverdisconnected events after ' +
     're-connection.';
 let device, fake_peripheral;
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
   .then(_ => ({device, fake_peripheral} = _))
   // 1. Disconnect.
   .then(() => new Promise(resolve => {

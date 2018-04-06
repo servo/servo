@@ -17,7 +17,8 @@
     <div id="foo5" style="margin-right: 10px; margin-left: 10px; margin-top: 10px; margin-bottom: 10px!important;">foo</div>
     <div id="foo6" style="margin-right: 10px !important; margin-left: 10px !important; margin-top: 10px !important; margin-bottom: 10px!important;">foo</div>
 
-    <div id="foo7" style="background:var(--a);">foo</a>
+    <div id="foo7" style="background:var(--a);">foo</div>
+    <div id="test"></div>
 
     <script>
         test(function() {
@@ -50,6 +51,13 @@
           assert_equals(elem7.style.background, 'var(--a)');
           assert_equals(elem7.style.backgroundPosition, '');
         }, "Shorthand serialization with variable and variable from other shorthand.");
+
+        test(function() {
+            var testElem = document.getElementById("test");
+            testElem.style.margin = "20px 20px 20px 20px";
+            assert_equals(testElem.style.margin, "20px");
+            assert_equals(testElem.style.cssText, "margin: 20px;")
+        }, "Shorthand serialization after setting");
     </script>
 </body>
 </html>

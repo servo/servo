@@ -83,6 +83,42 @@
             return window.test_driver_internal.click(element,
                                                      {x: centerPoint[0],
                                                       y: centerPoint[1]});
+        },
+
+        /**
+         * Send keys to an element
+         *
+         * This matches the behaviour of the {@link
+         * https://w3c.github.io/webdriver/webdriver-spec.html#element-send-keys|WebDriver
+         * Send Keys command}.
+         *
+         * @param {Element} element - element to send keys to
+         * @param {String} keys - keys to send to the element
+         * @returns {Promise} fulfilled after keys are sent, or rejected in
+         *                    the cases the WebDriver command errors
+         */
+        send_keys: function(element, keys) {
+            if (window.top !== window) {
+                return Promise.reject(new Error("can only send keys in top-level window"));
+            }
+
+            if (!window.document.contains(element)) {
+                return Promise.reject(new Error("element in different document or shadow tree"));
+            }
+
+            if (!inView(element)) {
+                element.scrollIntoView({behavior: "instant",
+                                        block: "end",
+                                        inline: "nearest"});
+            }
+
+            var pointerInteractablePaintTree = getPointerInteractablePaintTree(element);
+            if (pointerInteractablePaintTree.length === 0 ||
+                !element.contains(pointerInteractablePaintTree[0])) {
+                return Promise.reject(new Error("element send_keys intercepted error"));
+            }
+
+            return window.test_driver_internal.send_keys(element, keys);
         }
     };
 
@@ -95,6 +131,17 @@
          * @returns {Promise} fulfilled after click occurs or rejected if click fails
          */
         click: function(element, coords) {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+        /**
+         * Triggers a user-initated click
+         *
+         * @param {Element} element - element to be clicked
+         * @param {String} keys - keys to send to the element
+         * @returns {Promise} fulfilled after keys are sent or rejected if click fails
+         */
+        send_keys: function(element, keys) {
             return Promise.reject(new Error("unimplemented"));
         }
     };

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focus - key events</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#focus">
+<meta assert="flag" content="interact">
+<meta assert="assert" content="Check if the key events received by document are targeted at the element when it is focused">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="log"></div>
+<input id="test">
+<script>
+
+//These tests can be automated once we have an uniform way to use webdriver.
+var t1 = async_test("The keydown event must be targeted at the input element"),
+    t2 = async_test("The keypress event must be targeted at the input element"),
+    t3 = async_test("The keyup event must be targeted at the input element"),
+    testEle;
+
+setup(function () {
+  testEle = document.getElementById("test");
+  testEle.focus();
+}, {timeout: 10000});
+
+document.onkeydown = t1.step_func_done(function(evt){
+  assert_equals(evt.target, testEle, "The keydown events must be targeted at the input element.");
+});
+
+document.onkeypress = t2.step_func_done(function(evt){
+  assert_equals(evt.target, testEle, "The keypress events must be targeted at the input element.");
+});
+
+document.onkeyup = t3.step_func_done(function(evt){
+  assert_equals(evt.target, testEle, "The keyup events must be targeted at the input element.");
+});
+
+var input_element = document.getElementById("test");
+
+t1.step(function() {
+  test_driver.send_keys(input_element, "a");
+});
+
+</script>
