@@ -33,9 +33,9 @@ impl<'a> ToNsCssValue for &'a FontWeight {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         match *self {
             FontWeight::Normal =>
-                nscssvalue.set_enum(structs::NS_STYLE_FONT_WEIGHT_NORMAL as i32),
+                nscssvalue.set_enum(structs::NS_FONT_WEIGHT_NORMAL as i32),
             FontWeight::Bold =>
-                nscssvalue.set_enum(structs::NS_STYLE_FONT_WEIGHT_BOLD as i32),
+                nscssvalue.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
             FontWeight::Weight(weight) => nscssvalue.set_integer(weight.0 as i32),
         }
     }
