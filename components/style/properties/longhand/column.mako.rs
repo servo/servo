@@ -30,16 +30,14 @@ ${helpers.predefined_type(
 )}
 
 
-<%
-col_gap_type = "NonNegativeLengthOrPercentageOrNormal"
-%>
+
 ${helpers.predefined_type(
     "column-gap",
-    "length::%s" % col_gap_type,
+    "length::NonNegativeLengthOrPercentageOrNormal",
     "Either::Second(Normal)",
     extra_prefixes="moz",
     servo_pref="layout.columns.enabled",
-    animation_value_type=col_gap_type,
+    animation_value_type="NonNegativeLengthOrPercentageOrNormal",
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap",
     servo_restyle_damage = "reflow",
 )}
