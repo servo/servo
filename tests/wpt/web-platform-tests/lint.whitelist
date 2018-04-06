@@ -58,6 +58,7 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.m4v
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.otf
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.ttf
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.TTF
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.ttc
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.woff
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.woff2
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.eot
@@ -277,7 +278,6 @@ GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-
 GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-percent-guess.html
 GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-specified-guess.1.html
 GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-specified-guess.html
-GENERATE_TESTS: css/cssom/index-002.html
 GENERATE_TESTS: dom/nodes/case.js
 GENERATE_TESTS: dom/ranges/Range-cloneRange.html
 GENERATE_TESTS: dom/ranges/Range-collapse.html
@@ -459,7 +459,6 @@ CONSOLE: css/css-values/viewport-units-css2-001.html
 CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
 CONSOLE: css/css-writing-modes/tools/generators/gulpfile.js
 CONSOLE: css/css-writing-modes/tools/generators/text-orientation-generator.js
-CONSOLE: css/cssom/index-002.html
 
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-002.html
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-003.html
@@ -922,6 +921,7 @@ CSS-COLLIDING-TEST-NAME: css/cssom/interfaces.html
 
 # TODO https://github.com/w3c/web-platform-tests/issues/5770
 MISSING-LINK: css/geometry/*.worker.js
+MISSING-LINK: css/filter-effects/*.any.js
 
 WEBIDL2.JS: .gitmodules
 

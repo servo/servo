@@ -7,12 +7,8 @@
 <meta assert="assert" content="Check if the key events received by document are targeted at the element when it is focused">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<h2>Steps:</h2>
-<ol>
-  <li>Input any character into the textbox by keyboard in 10 seconds.</li>
-</ol>
-<h2>Expect results:</h2>
-<p>PASS</p>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <div id="log"></div>
 <input id="test">
 <script>
@@ -38,6 +34,12 @@ document.onkeypress = t2.step_func_done(function(evt){
 
 document.onkeyup = t3.step_func_done(function(evt){
   assert_equals(evt.target, testEle, "The keyup events must be targeted at the input element.");
+});
+
+var input_element = document.getElementById("test");
+
+t1.step(function() {
+  test_driver.send_keys(input_element, "a");
 });
 
 </script>
