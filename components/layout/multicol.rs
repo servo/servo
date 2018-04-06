@@ -106,9 +106,8 @@ impl Flow for MulticolFlow {
         {
             let column_style = self.block_flow.fragment.style.get_column();
 
-            // FIXME(#20498): This should support percentages too.
             let column_gap = match column_style.column_gap {
-                Either::First(len) => len.into(),
+                Either::First(len) => len.0.to_pixel_length(content_inline_size).into(),
                 Either::Second(_normal) => self.block_flow.fragment.style.get_font().font_size.size(),
             };
 
