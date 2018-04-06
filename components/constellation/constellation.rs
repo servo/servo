@@ -931,8 +931,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_request_from_bluetoothmanager(&mut self, message:BluetoothManagerMsg) {
-        
+    fn handle_request_from_bluetoothmanager(&mut self, message: BluetoothManagerMsg) {
+        match message {
+            BluetoothManagerMsg::OpenDeviceSelectDialog(devices, sender) => {
+                let msg = EmbedderMsg::GetSelectedBluetoothDevice(devices, sender);
+                self.embedder_proxy.send(msg);
+            }
+        }
     }
 
     fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
