@@ -603,7 +603,6 @@ IdlArray.prototype.assert_throws = function(error, idlArrayFunc)
 {
     try {
         idlArrayFunc.call(this, this);
-        throw new IdlHarnessError(`${idlArrayFunc} did not throw the expected IdlHarnessError`);
     } catch (e) {
         if (e instanceof AssertionError) {
             throw e;
@@ -613,9 +612,11 @@ IdlArray.prototype.assert_throws = function(error, idlArrayFunc)
             error = error.message;
         }
         if (e.message !== error) {
-            throw new IdlHarnessError(`${idlArrayFunc} threw ${e}, not the expected IdlHarnessError`);
+            throw new IdlHarnessError(`${idlArrayFunc} threw "${e}", not the expected IdlHarnessError "${error}"`);
         }
+        return;
     }
+    throw new IdlHarnessError(`${idlArrayFunc} did not throw the expected IdlHarnessError`);
 }
 
 //@}

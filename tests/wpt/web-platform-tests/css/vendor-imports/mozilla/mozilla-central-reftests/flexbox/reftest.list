@@ -97,6 +97,12 @@
 == flexbox-collapsed-item-horiz-002.html flexbox-collapsed-item-horiz-002-ref.html
 == flexbox-collapsed-item-horiz-003.html flexbox-collapsed-item-horiz-003-ref.html
 
+# Tests for "flex-basis: content"
+== flexbox-flex-basis-content-001a.html flexbox-flex-basis-content-001-ref.html
+== flexbox-flex-basis-content-001b.html flexbox-flex-basis-content-001-ref.html
+== flexbox-flex-basis-content-002a.html flexbox-flex-basis-content-002-ref.html
+== flexbox-flex-basis-content-002b.html flexbox-flex-basis-content-002-ref.html
+
 # Tests for flex-flow shorthand property
 == flexbox-flex-flow-001.html flexbox-flex-flow-001-ref.html
 == flexbox-flex-flow-002.html flexbox-flex-flow-002-ref.html
