@@ -64,37 +64,40 @@ impl MessagePortInternal {
     // Step 7 substeps
     #[allow(unrooted_must_root)]
     fn process_pending_port_messages(&self) {
-        if let Some(PortMessageTask { origin, data }) = self.pending_port_messages.borrow_mut().pop_front() {
-            // Substep 1
-            let final_target_port = self.dom_port.borrow().as_ref().unwrap().root();
+        let PortMessageTask { origin, data } = match self.pending_port_messages.borrow_mut().pop_front() {
+            Some(task) => task,
+            None => return,
+        };
 
-            // Substep 2
-            let target_global = final_target_port.global();
+        // Substep 1
+        let final_target_port = self.dom_port.borrow().as_ref().unwrap().root();
 
-            // Substep 3-4
-            rooted!(in(target_global.get_cx()) let mut message_clone = UndefinedValue());
-            let deserialize_result = StructuredCloneData::Vector(data).read(
-                &target_global,
-                message_clone.handle_mut(),
-            );
-            if !deserialize_result {
-                return;
-            }
+        // Substep 2
+        let target_global = final_target_port.global();
 
-            // Substep 5
-            let new_ports = TRANSFERRED_MESSAGE_PORTS.with(|list| {
-                mem::replace(&mut *list.borrow_mut(), vec![])
-            });
-
-            // Substep 6
-            MessageEvent::dispatch_jsval(
-                final_target_port.upcast(),
-                &target_global,
-                message_clone.handle(),
-                Some(&origin),
-                new_ports,
-            );
+        // Substep 3-4
+        rooted!(in(target_global.get_cx()) let mut message_clone = UndefinedValue());
+        let deserialize_result = StructuredCloneData::Vector(data).read(
+            &target_global,
+            message_clone.handle_mut()
+        );
+        if !deserialize_result {
+            return;
         }
+
+        // Substep 5
+        let new_ports = TRANSFERRED_MESSAGE_PORTS.with(|list| {
+            mem::replace(&mut *list.borrow_mut(), vec![])
+        });
+
+        // Substep 6
+        MessageEvent::dispatch_jsval(
+            final_target_port.upcast(),
+            &target_global,
+            message_clone.handle(),
+            Some(&origin),
+            new_ports,
+        );
     }
 }
 
