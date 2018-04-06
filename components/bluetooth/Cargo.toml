@@ -14,6 +14,7 @@ bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
 device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
 ipc-channel = "0.10"
+script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}
 uuid = {version = "0.6", features = ["v4"]}

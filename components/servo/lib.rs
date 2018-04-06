@@ -67,8 +67,7 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
-use bluetooth::BluetoothThreadFactory;
-use bluetooth_traits::BluetoothRequest;
+use bluetooth::new_bluetooth_thread;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
 use compositing::{IOCompositor, ShutdownState, RenderNotifier};
@@ -458,7 +457,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         webrender_api_sender: webrender_api::RenderApiSender,
                         window_gl: Rc<gl::Gl>)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
-    let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
+    let (bluetooth_thread, bluetooth_constellation_sender) = new_bluetooth_thread();
 
     let (public_resource_threads, private_resource_threads) =
         new_resource_threads(user_agent,
@@ -537,6 +536,8 @@ fn create_constellation(user_agent: Cow<'static, str>,
         // Set constellation channel used by WebVR thread to broadcast events
         webvr_constellation_sender.send(constellation_chan.clone()).unwrap();
     }
+
+    bluetooth_constellation_sender.send(from_bluetoothmanager_sender.clone()).unwrap();
 
     // channels to communicate with Service Worker Manager
     let sw_senders = SWManagerSenders {
