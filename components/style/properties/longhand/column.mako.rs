@@ -32,7 +32,7 @@ ${helpers.predefined_type(
 
 <%
 # FIXME(#20498): Servo should support percentages in column-gap.
-col_gap_type = "NonNegativeLengthOrPercentageOrNormal" if product == "gecko" else "NonNegativeLengthOrNormal"
+col_gap_type = "NonNegativeLengthOrPercentageOrNormal"
 %>
 ${helpers.predefined_type(
     "column-gap",
