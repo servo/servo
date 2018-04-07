@@ -71,6 +71,7 @@ pub struct HTMLIFrameElement {
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     pipeline_id: Cell<Option<PipelineId>>,
     pending_pipeline_id: Cell<Option<PipelineId>>,
+    about_blank_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: MutNullableDom<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DomRefCell<Option<LoadBlocker>>,
@@ -164,6 +165,8 @@ impl HTMLIFrameElement {
             NavigationType::InitialAboutBlank => {
                 let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
+                self.about_blank_pipeline_id.set(Some(new_pipeline_id));
+
                 global_scope
                     .script_to_constellation_chan()
                     .send(ScriptMsg::ScriptNewIFrame(load_info, pipeline_sender))
@@ -231,7 +234,11 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         let load_data = LoadData::new(url, creator_pipeline_id, document.get_referrer_policy(), Some(document.url()));
-        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, false);
+
+        let pipeline_id = self.pipeline_id();
+        // If the initial `about:blank` page is the current page, load with replacement enabled.
+        let replace = pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
     }
 
     fn create_nested_browsing_context(&self) {
@@ -253,6 +260,7 @@ impl HTMLIFrameElement {
     fn destroy_nested_browsing_context(&self) {
         self.pipeline_id.set(None);
         self.pending_pipeline_id.set(None);
+        self.about_blank_pipeline_id.set(None);
         self.top_level_browsing_context_id.set(None);
         self.browsing_context_id.set(None);
     }
@@ -285,6 +293,7 @@ impl HTMLIFrameElement {
             top_level_browsing_context_id: Cell::new(None),
             pipeline_id: Cell::new(None),
             pending_pipeline_id: Cell::new(None),
+            about_blank_pipeline_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
             load_blocker: DomRefCell::new(None),
