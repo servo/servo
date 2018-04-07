@@ -2453,6 +2453,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.trim_history(top_level_id);
         }
 
+        self.notify_history_changed(change.top_level_browsing_context_id);
         self.update_frame_tree_if_active(change.top_level_browsing_context_id);
     }
 
