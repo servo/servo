@@ -1021,6 +1021,7 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 (0, 0) => dest.write_char('0'),
 
                 (1, 0) => dest.write_char('n'),
+                (-1, 0) => dest.write_str("-n"),
                 (_, 0) => write!(dest, "{}n", a),
 
                 (0, _) => write!(dest, "{}", b),
