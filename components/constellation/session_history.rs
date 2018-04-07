@@ -42,6 +42,15 @@ impl JointSessionHistory {
             diff.replace(&old_reloader, &new_reloader);
         }
     }
+
+    pub fn remove_entries_for_browsing_context(&mut self, context_id: BrowsingContextId) {
+        self.past.retain(|&SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. }| {
+            browsing_context_id != context_id
+        });
+        self.future.retain(|&SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. }| {
+            browsing_context_id != context_id
+        });
+    }
 }
 
 /// Represents a pending change in a session history, that will be applied
