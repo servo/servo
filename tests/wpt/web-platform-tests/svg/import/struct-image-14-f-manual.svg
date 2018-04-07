@@ -16,9 +16,9 @@
         Tests that different PNG image types are correctly handled. These images are interlaced.
         </p>
         <p>
-        This test uses the 
+        This test uses the
         <a href="http://www.schaik.com/pngsuite/">PNG Group test suite</a>
-        created by Willem van Schaik.    
+        created by Willem van Schaik.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -43,68 +43,68 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-  
+
     <!-- something to show transparency -->
     <rect x="16" y="32" width="320" height="8" fill="#3C3"/>
     <rect x="16" y="48" width="320" height="8" fill="#9F9"/>
 
     <!-- 1 bit black and white -->
     <image xlink:href="../images/PngSuite/basi0g01.png" x="16" y="32" width="32" height="32"/>
-    
+
     <!-- 2 bit greyscale -->
     <image xlink:href="../images/PngSuite/basi0g02.png" x="64" y="32" width="32" height="32"/>
-    
+
     <!-- 4 bit greyscale -->
     <image xlink:href="../images/PngSuite/basi0g04.png" x="112" y="32" width="32" height="32"/>
-    
+
     <!-- 8 bit greyscale -->
     <image xlink:href="../images/PngSuite/basi0g08.png" x="160" y="32" width="32" height="32"/>
-    
+
     <!-- 16 bit greyscale -->
     <image xlink:href="../images/PngSuite/basi0g16.png" x="208" y="32" width="32" height="32"/>
-  
+
     <!-- 8 bit greyscale plus alpha -->
     <image xlink:href="../images/PngSuite/basi4a08.png" x="256" y="32" width="32" height="32"/>
-    
+
     <!-- 16 bit greyscale plus alpha -->
     <image xlink:href="../images/PngSuite/basi4a16.png" x="304" y="32" width="32" height="32"/>
-    
+
     <text x="16" y="100" font-size="16" fill="#3C3">Greyscale, various bit depths, two with alpha</text>
-    
+
     <!-- something to show transparency -->
     <rect x="16" y="132" width="368" height="8" fill="#9F9"/>
     <rect x="16" y="148" width="368" height="8" fill="#3C3"/>
 
     <!-- 8 bits RGB -->
     <image xlink:href="../images/PngSuite/basi2c08.png" x="16" y="132" width="32" height="32"/>
-    
+
     <!-- 16 bits RGB -->
     <image xlink:href="../images/PngSuite/basi2c16.png" x="64" y="132" width="32" height="32"/>
-    
+
     <!-- 1 bit indexed -->
     <image xlink:href="../images/PngSuite/basi3p01.png" x="112" y="132" width="32" height="32"/>
-    
+
     <!-- 2 bit indexed -->
     <image xlink:href="../images/PngSuite/basi3p02.png" x="160" y="132" width="32" height="32"/>
-    
+
     <!-- 4 bit indexed -->
     <image xlink:href="../images/PngSuite/basi3p04.png" x="208" y="132" width="32" height="32"/>
-  
+
     <!-- 8 bit indexed -->
     <image xlink:href="../images/PngSuite/basi3p08.png" x="256" y="132" width="32" height="32"/>
-    
+
     <!-- 8 bits RGB plus alpha -->
     <image xlink:href="../images/PngSuite/basi6a08.png" x="304" y="132" width="32" height="32"/>
-    
+
     <!-- 16 bits RGB plus alpha -->
     <image xlink:href="../images/PngSuite/basi6a16.png" x="352" y="132" width="32" height="32"/>
-    
+
     <text x="16" y="200" font-size="16" fill="#3C3">Truecolor and indexed, various bit depths, two with alpha</text>
-    
+
         <text x="16" y="260" font-size="24" fill="#3C3">Interlaced images</text>
-    
+
     <!--
-    <image xlink:href="../images/PngSuite/" x="" y="" width="32" height="32"/> 
+    <image xlink:href="../images/PngSuite/" x="" y="" width="32" height="32"/>
     -->
 
   </g>

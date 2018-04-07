@@ -14,23 +14,23 @@
         var elem = document.getElementById('longhand-whitespace');
 
         assert_equals(elem.style.cssText, 'font-size: var(--a);');
-    }, 'Longhand with variable preserves original serialization: with withespace')
+    }, 'Longhand with variable preserves original serialization: with whitespace')
 
     test(function() {
         var elem = document.getElementById('shorthand-whitespace');
 
         assert_equals(elem.style.cssText, 'font: var(--a);');
-    }, 'Shorthand with variable preserves original serialization: with withespace')
+    }, 'Shorthand with variable preserves original serialization: with whitespace')
 
     test(function() {
         var elem = document.getElementById('longhand');
 
         assert_equals(elem.style.cssText, 'font-size:var(--a);');
-    }, 'Longhand with variable preserves original serialization: without withespace')
+    }, 'Longhand with variable preserves original serialization: without whitespace')
 
     test(function() {
         var elem = document.getElementById('shorthand');
 
         assert_equals(elem.style.cssText, 'font:var(--a);');
-    }, 'Shorthand with variable preserves original serialization: without withespace')
+    }, 'Shorthand with variable preserves original serialization: without whitespace')
 </script>

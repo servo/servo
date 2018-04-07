@@ -24,7 +24,7 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-    	<p>
+      <p>
         Run the test. No interaction required.
       </p>
     </d:operatorScript>
@@ -60,64 +60,64 @@
     </g>
 
     <script><![CDATA[
-			function userspace2viewport(elm, r)
-			{
-				var ctm = elm.getCTM();
+      function userspace2viewport(elm, r)
+      {
+        var ctm = elm.getCTM();
 
-				var corners = [];
-				for(var i = 0; i < 4; i++)
-					corners.push(svg.createSVGPoint());
-				
-				corners[0].x = r.x;
-				corners[0].y = r.y;
-				corners[1].x = r.x + r.width;
-				corners[1].y = r.y;
-				corners[2].x = r.x + r.width;
-				corners[2].y = r.y + r.height;
-				corners[3].x = r.x;
-				corners[3].y = r.y + r.height;
+        var corners = [];
+        for(var i = 0; i < 4; i++)
+          corners.push(svg.createSVGPoint());
 
-				for(var i = 0; i < 4; i++)
-					corners[i] = corners[i].matrixTransform(ctm);
-				
-				var min = svg.createSVGPoint();
-				var max = svg.createSVGPoint();
-				min.x = corners[0].x;
-				min.y = corners[0].y;
-				max.x = corners[0].x;
-				max.y = corners[0].y;
-				
-				for(var i = 1; i < 4; i++)
-				{
-					var x = corners[i].x;
-					var y = corners[i].y;
-					
-					if(x < min.x)
-						min.x = x;
-					else if(x > max.x)
-						max.x = x;
-					
-					if(y < min.y)
-						min.y = y;
-					else if(y > max.y)
-						max.y = y;
-				}
-				
-				var res = svg.createSVGRect();
-				res.x = min.x;
-				res.y = min.y;
-				res.width = max.x - min.x;
-				res.height = max.y - min.y;
-				return res;
-			}
-		
+        corners[0].x = r.x;
+        corners[0].y = r.y;
+        corners[1].x = r.x + r.width;
+        corners[1].y = r.y;
+        corners[2].x = r.x + r.width;
+        corners[2].y = r.y + r.height;
+        corners[3].x = r.x;
+        corners[3].y = r.y + r.height;
+
+        for(var i = 0; i < 4; i++)
+          corners[i] = corners[i].matrixTransform(ctm);
+
+        var min = svg.createSVGPoint();
+        var max = svg.createSVGPoint();
+        min.x = corners[0].x;
+        min.y = corners[0].y;
+        max.x = corners[0].x;
+        max.y = corners[0].y;
+
+        for(var i = 1; i < 4; i++)
+        {
+          var x = corners[i].x;
+          var y = corners[i].y;
+
+          if(x < min.x)
+            min.x = x;
+          else if(x > max.x)
+            max.x = x;
+
+          if(y < min.y)
+            min.y = y;
+          else if(y > max.y)
+            max.y = y;
+        }
+
+        var res = svg.createSVGRect();
+        res.x = min.x;
+        res.y = min.y;
+        res.width = max.x - min.x;
+        res.height = max.y - min.y;
+        return res;
+      }
+
       var svg = document.documentElement,
           c = document.getElementById('c'),
           r1 = document.getElementById('r1'),
           r2 = document.getElementById('r2'),
           c1 = document.getElementById('c1'),
           c2 = document.getElementById('c2'),
-					g1 = document.getElementById('g1'),
+          g1 = document.getElementById('g1'),
           r = svg.createSVGRect(),
           nl;
 
@@ -126,9 +126,9 @@
         r.y = 95;
         r.width = 5;
         r.height = 5;
-		
-				r = userspace2viewport(g1, r);
-		
+
+        r = userspace2viewport(g1, r);
+
         nl = svg.getIntersectionList(r, null);
         if (nl && nl.length == 1) {
           c1.parentNode.removeChild(c1);
@@ -143,8 +143,8 @@
         r.width = 20;
         r.height = 20;
 
-				r = userspace2viewport(g1, r);
-				
+        r = userspace2viewport(g1, r);
+
         nl = svg.getEnclosureList(r, null);
         if (nl && nl.length == 1) {
           c2.parentNode.removeChild(c2);

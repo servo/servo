@@ -17,7 +17,7 @@
       </p>
       <p>
         For each of a representative sampling of selectors, a 'visibility: hidden' style rule is specified
-        to match a corresponding element in the markup. Identically shaped and sized elements (but which are not 
+        to match a corresponding element in the markup. Identically shaped and sized elements (but which are not
         applicable to any of the style selectors) are placed beneath them and should be visible
         if the style sheet was applied correctly.
       </p>

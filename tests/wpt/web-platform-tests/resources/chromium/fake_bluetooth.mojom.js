@@ -2896,6 +2896,306 @@
     encoder.skip(1);
     encoder.skip(1);
   };
+  function FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.prototype.initDefaults_ = function() {
+    this.gattCode = 0;
+    this.characteristicId = null;
+    this.serviceId = null;
+    this.peripheralAddress = null;
+  };
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 40}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+
+    // validate FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.characteristicId
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 8, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.serviceId
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 16, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.peripheralAddress
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 24, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    return validator.validationError.NONE;
+  };
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.encodedSize = codec.kStructHeaderSize + 32;
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.decode = function(decoder) {
+    var packed;
+    var val = new FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    val.gattCode = decoder.decodeStruct(codec.Uint16);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    val.characteristicId = decoder.decodeStruct(codec.String);
+    val.serviceId = decoder.decodeStruct(codec.String);
+    val.peripheralAddress = decoder.decodeStruct(codec.String);
+    return val;
+  };
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.encodedSize);
+    encoder.writeUint32(0);
+    encoder.encodeStruct(codec.Uint16, val.gattCode);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.encodeStruct(codec.String, val.characteristicId);
+    encoder.encodeStruct(codec.String, val.serviceId);
+    encoder.encodeStruct(codec.String, val.peripheralAddress);
+  };
+  function FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.prototype.initDefaults_ = function() {
+    this.success = false;
+  };
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 16}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    return validator.validationError.NONE;
+  };
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.encodedSize = codec.kStructHeaderSize + 8;
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.decode = function(decoder) {
+    var packed;
+    var val = new FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    packed = decoder.readUint8();
+    val.success = (packed >> 0) & 1 ? true : false;
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    return val;
+  };
+
+  FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.encodedSize);
+    encoder.writeUint32(0);
+    packed = 0;
+    packed |= (val.success & 1) << 0
+    encoder.writeUint8(packed);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+  };
+  function FakeCentral_IsNotifying_Params(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  FakeCentral_IsNotifying_Params.prototype.initDefaults_ = function() {
+    this.characteristicId = null;
+    this.serviceId = null;
+    this.peripheralAddress = null;
+  };
+  FakeCentral_IsNotifying_Params.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  FakeCentral_IsNotifying_Params.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 32}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate FakeCentral_IsNotifying_Params.characteristicId
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 0, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate FakeCentral_IsNotifying_Params.serviceId
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 8, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+    // validate FakeCentral_IsNotifying_Params.peripheralAddress
+    err = messageValidator.validateStringPointer(offset + codec.kStructHeaderSize + 16, false)
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    return validator.validationError.NONE;
+  };
+
+  FakeCentral_IsNotifying_Params.encodedSize = codec.kStructHeaderSize + 24;
+
+  FakeCentral_IsNotifying_Params.decode = function(decoder) {
+    var packed;
+    var val = new FakeCentral_IsNotifying_Params();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    val.characteristicId = decoder.decodeStruct(codec.String);
+    val.serviceId = decoder.decodeStruct(codec.String);
+    val.peripheralAddress = decoder.decodeStruct(codec.String);
+    return val;
+  };
+
+  FakeCentral_IsNotifying_Params.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(FakeCentral_IsNotifying_Params.encodedSize);
+    encoder.writeUint32(0);
+    encoder.encodeStruct(codec.String, val.characteristicId);
+    encoder.encodeStruct(codec.String, val.serviceId);
+    encoder.encodeStruct(codec.String, val.peripheralAddress);
+  };
+  function FakeCentral_IsNotifying_ResponseParams(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  FakeCentral_IsNotifying_ResponseParams.prototype.initDefaults_ = function() {
+    this.success = false;
+    this.isNotifying = false;
+  };
+  FakeCentral_IsNotifying_ResponseParams.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  FakeCentral_IsNotifying_ResponseParams.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 16}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
+
+    return validator.validationError.NONE;
+  };
+
+  FakeCentral_IsNotifying_ResponseParams.encodedSize = codec.kStructHeaderSize + 8;
+
+  FakeCentral_IsNotifying_ResponseParams.decode = function(decoder) {
+    var packed;
+    var val = new FakeCentral_IsNotifying_ResponseParams();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    packed = decoder.readUint8();
+    val.success = (packed >> 0) & 1 ? true : false;
+    val.isNotifying = (packed >> 1) & 1 ? true : false;
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    decoder.skip(1);
+    return val;
+  };
+
+  FakeCentral_IsNotifying_ResponseParams.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(FakeCentral_IsNotifying_ResponseParams.encodedSize);
+    encoder.writeUint32(0);
+    packed = 0;
+    packed |= (val.success & 1) << 0
+    packed |= (val.isNotifying & 1) << 1
+    encoder.writeUint8(packed);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+    encoder.skip(1);
+  };
   function FakeCentral_GetLastWrittenCharacteristicValue_Params(values) {
     this.initDefaults_();
     this.initFields_(values);
@@ -3786,10 +4086,12 @@
   var kFakeCentral_SetNextReadCharacteristicResponse_Name = 12;
   var kFakeCentral_SetNextWriteCharacteristicResponse_Name = 13;
   var kFakeCentral_SetNextSubscribeToNotificationsResponse_Name = 14;
-  var kFakeCentral_GetLastWrittenCharacteristicValue_Name = 15;
-  var kFakeCentral_SetNextReadDescriptorResponse_Name = 16;
-  var kFakeCentral_SetNextWriteDescriptorResponse_Name = 17;
-  var kFakeCentral_GetLastWrittenDescriptorValue_Name = 18;
+  var kFakeCentral_SetNextUnsubscribeFromNotificationsResponse_Name = 15;
+  var kFakeCentral_IsNotifying_Name = 16;
+  var kFakeCentral_GetLastWrittenCharacteristicValue_Name = 17;
+  var kFakeCentral_SetNextReadDescriptorResponse_Name = 18;
+  var kFakeCentral_SetNextWriteDescriptorResponse_Name = 19;
+  var kFakeCentral_GetLastWrittenDescriptorValue_Name = 20;
 
   function FakeCentralPtr(handleOrPtrInfo) {
     this.ptr = new bindings.InterfacePtrController(FakeCentral,
@@ -4211,6 +4513,61 @@
       });
     }.bind(this));
   };
+  FakeCentralPtr.prototype.setNextUnsubscribeFromNotificationsResponse = function() {
+    return FakeCentralProxy.prototype.setNextUnsubscribeFromNotificationsResponse
+        .apply(this.ptr.getProxy(), arguments);
+  };
+
+  FakeCentralProxy.prototype.setNextUnsubscribeFromNotificationsResponse = function(gattCode, characteristicId, serviceId, peripheralAddress) {
+    var params = new FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params();
+    params.gattCode = gattCode;
+    params.characteristicId = characteristicId;
+    params.serviceId = serviceId;
+    params.peripheralAddress = peripheralAddress;
+    return new Promise(function(resolve, reject) {
+      var builder = new codec.MessageV1Builder(
+          kFakeCentral_SetNextUnsubscribeFromNotificationsResponse_Name,
+          codec.align(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params.encodedSize),
+          codec.kMessageExpectsResponse, 0);
+      builder.encodeStruct(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params, params);
+      var message = builder.finish();
+      this.receiver_.acceptAndExpectResponse(message).then(function(message) {
+        var reader = new codec.MessageReader(message);
+        var responseParams =
+            reader.decodeStruct(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams);
+        resolve(responseParams);
+      }).catch(function(result) {
+        reject(Error("Connection error: " + result));
+      });
+    }.bind(this));
+  };
+  FakeCentralPtr.prototype.isNotifying = function() {
+    return FakeCentralProxy.prototype.isNotifying
+        .apply(this.ptr.getProxy(), arguments);
+  };
+
+  FakeCentralProxy.prototype.isNotifying = function(characteristicId, serviceId, peripheralAddress) {
+    var params = new FakeCentral_IsNotifying_Params();
+    params.characteristicId = characteristicId;
+    params.serviceId = serviceId;
+    params.peripheralAddress = peripheralAddress;
+    return new Promise(function(resolve, reject) {
+      var builder = new codec.MessageV1Builder(
+          kFakeCentral_IsNotifying_Name,
+          codec.align(FakeCentral_IsNotifying_Params.encodedSize),
+          codec.kMessageExpectsResponse, 0);
+      builder.encodeStruct(FakeCentral_IsNotifying_Params, params);
+      var message = builder.finish();
+      this.receiver_.acceptAndExpectResponse(message).then(function(message) {
+        var reader = new codec.MessageReader(message);
+        var responseParams =
+            reader.decodeStruct(FakeCentral_IsNotifying_ResponseParams);
+        resolve(responseParams);
+      }).catch(function(result) {
+        reject(Error("Connection error: " + result));
+      });
+    }.bind(this));
+  };
   FakeCentralPtr.prototype.getLastWrittenCharacteristicValue = function() {
     return FakeCentralProxy.prototype.getLastWrittenCharacteristicValue
         .apply(this.ptr.getProxy(), arguments);
@@ -4373,6 +4730,12 @@
   }
   FakeCentralStub.prototype.setNextSubscribeToNotificationsResponse = function(gattCode, characteristicId, serviceId, peripheralAddress) {
     return this.delegate_ && this.delegate_.setNextSubscribeToNotificationsResponse && this.delegate_.setNextSubscribeToNotificationsResponse(gattCode, characteristicId, serviceId, peripheralAddress);
+  }
+  FakeCentralStub.prototype.setNextUnsubscribeFromNotificationsResponse = function(gattCode, characteristicId, serviceId, peripheralAddress) {
+    return this.delegate_ && this.delegate_.setNextUnsubscribeFromNotificationsResponse && this.delegate_.setNextUnsubscribeFromNotificationsResponse(gattCode, characteristicId, serviceId, peripheralAddress);
+  }
+  FakeCentralStub.prototype.isNotifying = function(characteristicId, serviceId, peripheralAddress) {
+    return this.delegate_ && this.delegate_.isNotifying && this.delegate_.isNotifying(characteristicId, serviceId, peripheralAddress);
   }
   FakeCentralStub.prototype.getLastWrittenCharacteristicValue = function(characteristicId, serviceId, peripheralAddress) {
     return this.delegate_ && this.delegate_.getLastWrittenCharacteristicValue && this.delegate_.getLastWrittenCharacteristicValue(characteristicId, serviceId, peripheralAddress);
@@ -4637,6 +5000,39 @@
         responder.accept(message);
       });
       return true;
+    case kFakeCentral_SetNextUnsubscribeFromNotificationsResponse_Name:
+      var params = reader.decodeStruct(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params);
+      this.setNextUnsubscribeFromNotificationsResponse(params.gattCode, params.characteristicId, params.serviceId, params.peripheralAddress).then(function(response) {
+        var responseParams =
+            new FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams();
+        responseParams.success = response.success;
+        var builder = new codec.MessageV1Builder(
+            kFakeCentral_SetNextUnsubscribeFromNotificationsResponse_Name,
+            codec.align(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams.encodedSize),
+            codec.kMessageIsResponse, reader.requestID);
+        builder.encodeStruct(FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams,
+                             responseParams);
+        var message = builder.finish();
+        responder.accept(message);
+      });
+      return true;
+    case kFakeCentral_IsNotifying_Name:
+      var params = reader.decodeStruct(FakeCentral_IsNotifying_Params);
+      this.isNotifying(params.characteristicId, params.serviceId, params.peripheralAddress).then(function(response) {
+        var responseParams =
+            new FakeCentral_IsNotifying_ResponseParams();
+        responseParams.success = response.success;
+        responseParams.isNotifying = response.isNotifying;
+        var builder = new codec.MessageV1Builder(
+            kFakeCentral_IsNotifying_Name,
+            codec.align(FakeCentral_IsNotifying_ResponseParams.encodedSize),
+            codec.kMessageIsResponse, reader.requestID);
+        builder.encodeStruct(FakeCentral_IsNotifying_ResponseParams,
+                             responseParams);
+        var message = builder.finish();
+        responder.accept(message);
+      });
+      return true;
     case kFakeCentral_GetLastWrittenCharacteristicValue_Name:
       var params = reader.decodeStruct(FakeCentral_GetLastWrittenCharacteristicValue_Params);
       this.getLastWrittenCharacteristicValue(params.characteristicId, params.serviceId, params.peripheralAddress).then(function(response) {
@@ -4772,6 +5168,14 @@
         if (message.expectsResponse())
           paramsClass = FakeCentral_SetNextSubscribeToNotificationsResponse_Params;
       break;
+      case kFakeCentral_SetNextUnsubscribeFromNotificationsResponse_Name:
+        if (message.expectsResponse())
+          paramsClass = FakeCentral_SetNextUnsubscribeFromNotificationsResponse_Params;
+      break;
+      case kFakeCentral_IsNotifying_Name:
+        if (message.expectsResponse())
+          paramsClass = FakeCentral_IsNotifying_Params;
+      break;
       case kFakeCentral_GetLastWrittenCharacteristicValue_Name:
         if (message.expectsResponse())
           paramsClass = FakeCentral_GetLastWrittenCharacteristicValue_Params;
@@ -4857,6 +5261,14 @@
       case kFakeCentral_SetNextSubscribeToNotificationsResponse_Name:
         if (message.isResponse())
           paramsClass = FakeCentral_SetNextSubscribeToNotificationsResponse_ResponseParams;
+        break;
+      case kFakeCentral_SetNextUnsubscribeFromNotificationsResponse_Name:
+        if (message.isResponse())
+          paramsClass = FakeCentral_SetNextUnsubscribeFromNotificationsResponse_ResponseParams;
+        break;
+      case kFakeCentral_IsNotifying_Name:
+        if (message.isResponse())
+          paramsClass = FakeCentral_IsNotifying_ResponseParams;
         break;
       case kFakeCentral_GetLastWrittenCharacteristicValue_Name:
         if (message.isResponse())

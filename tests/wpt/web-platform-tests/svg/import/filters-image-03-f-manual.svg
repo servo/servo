@@ -47,7 +47,7 @@
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
     <defs>
       <!-- A breakdown of this testcase:
-      
+
         All filters:
           filterUnits not specified, defaults to objectBoundingBox.
           x=0, y=0, width=1, height=1 -> filter region = bounding box.
@@ -65,7 +65,7 @@
 
         2. All specified relative
            x = 20.8%        = 100/480 (0.2083)
-           y =    0%	   =   0/360 (0.0)
+           y =    0%     =   0/360 (0.0)
            width  = 10.4%   =  50/480 (0.1042)
            height = 13.8%   =  50/360 (0.1388)
 
@@ -139,13 +139,13 @@
            xlink:href="../images/smiley.png"/>
       </filter>
     </defs>
-    
+
     <g transform="translate(60 100)">
       <rect fill="red" width="50" height="50" filter="url(#default)"/>
       <rect fill="red" x="100" width="50" height="50" filter="url(#all_specified_relative)"/>
       <rect fill="red" x="200" width="50" height="50" filter="url(#all_specified_absolute)"/>
       <rect fill="red" x="300" width="50" height="50" filter="url(#y_specified)"/>
-      
+
       <rect fill="red" y="100" width="50" height="50" filter="url(#width_specified)"/>
       <rect fill="red" x="100" y="100" width="50" height="50" filter="url(#height_specified)"/>
       <rect fill="red" x="200" y="100" width="50" height="50" filter="url(#width_height_specified)"/>

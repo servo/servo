@@ -52,7 +52,7 @@
       <p>
         The rendered image should match the reference image. The edges
         of the blue rectangle must be parallel to the grid lines in the
-        displaced image. The center of the bottommost right distorted image 
+        displaced image. The center of the bottommost right distorted image
         should be on a gridpoint.
       </p>
     </d:passCriteria>
@@ -100,8 +100,6 @@
         <tspan x="222" y="138">(20 deg. rotation)</tspan>
       </text>
 
-
-
       <rect x="301" y="15" width="128" height="128" filter="url(#RotateMapTest)"/>
       <rect x="-1" y="-1" width="2" height="2" transform="translate(365,79) rotate(20) scale(32)" fill="blue" fill-opacity="0.5"/>
       <text>
@@ -110,11 +108,9 @@
         <tspan x="365" y="184">rotated blue rectangle)</tspan>
       </text>
 
-
       <rect x="15" y="158" width="128" height="128" filter="url(#DispMapChecker)"/>
       <rect x="20" y="258" width="118" height="20" fill="#DDD"/>
       <text x="79" y="273">Checkerboard Image</text>
-
 
       <rect x="158" y="158" width="128" height="128" filter="url(#SphereMap)"/>
       <rect x="163" y="255" width="118" height="30" fill="#DDD"/>
@@ -122,7 +118,6 @@
         <tspan x="222" y="268">Displacement Map</tspan>
         <tspan x="222" y="283">(spherical distortion)</tspan>
       </text>
-
 
       <rect x="301" y="200" width="128" height="128" filter="url(#SphereMapTest)"/>
       <text x="365" y="345">Result</text>

@@ -131,7 +131,6 @@
           <animate xlink:href="#textID_0" attributeName="text-anchor" values="end;middle;start" dur="3s" fill="freeze"/>
           <animateTransform xlink:href="#textID_0" attributeName="transform" type="translate" values="0;30;60" dur="3s" fill="freeze" calcMode="discrete"/>
 
-
           <g transform="translate(110, 0)" text-anchor="end" font-size="30" font-weight="bold">
             <animate attributeName="text-anchor" values="end;middle;start" dur="3s" fill="freeze"/>
             <animateTransform attributeName="transform" type="translate" values="0;30;60" calcMode="discrete" dur="3s" fill="freeze" additive="sum"/>
