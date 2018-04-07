@@ -772,24 +772,37 @@ pub trait TElement
     /// Executes the callback for each applicable style rule data which isn't
     /// the main document's data (which stores UA / author rules).
     ///
+    /// The element passed to the callback is the containing shadow host for the
+    /// data if it comes from Shadow DOM, None if it comes from XBL.
+    ///
     /// Returns whether normal document author rules should apply.
     fn each_applicable_non_document_style_rule_data<'a, F>(&self, mut f: F) -> bool
     where
         Self: 'a,
-        F: FnMut(&'a CascadeData, QuirksMode),
+        F: FnMut(&'a CascadeData, QuirksMode, Option<Self>),
     {
-        let mut doc_rules_apply = !self.each_xbl_cascade_data(&mut f);
+        let mut doc_rules_apply = !self.each_xbl_cascade_data(|data, quirks_mode| {
+            f(data, quirks_mode, None);
+        });
 
         if let Some(shadow) = self.containing_shadow() {
             doc_rules_apply = false;
-            f(shadow.style_data(), self.as_node().owner_doc().quirks_mode());
+            f(
+                shadow.style_data(),
+                self.as_node().owner_doc().quirks_mode(),
+                Some(shadow.host()),
+            );
         }
 
         let mut current = self.assigned_slot();
         while let Some(slot) = current {
             // Slots can only have assigned nodes when in a shadow tree.
-            let data = slot.containing_shadow().unwrap().style_data();
-            f(data, self.as_node().owner_doc().quirks_mode());
+            let shadow = slot.containing_shadow().unwrap();
+            f(
+                shadow.style_data(),
+                self.as_node().owner_doc().quirks_mode(),
+                Some(shadow.host()),
+            );
             current = slot.assigned_slot();
         }
 

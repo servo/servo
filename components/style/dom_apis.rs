@@ -7,7 +7,7 @@
 
 use Atom;
 use context::QuirksMode;
-use dom::{TDocument, TElement, TNode};
+use dom::{TDocument, TElement, TNode, TShadowRoot};
 use invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
 use invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
 use selectors::{Element, NthIndexCache, SelectorList};
@@ -33,6 +33,7 @@ where
         quirks_mode,
     );
     context.scope_element = Some(element.opaque());
+    context.current_host = element.containing_shadow_host().map(|e| e.opaque());
     matching::matches_selector_list(selector_list, element, &mut context)
 }
 
@@ -54,6 +55,7 @@ where
         quirks_mode,
     );
     context.scope_element = Some(element.opaque());
+    context.current_host = element.containing_shadow_host().map(|e| e.opaque());
 
     let mut current = Some(element);
     while let Some(element) = current.take() {
@@ -547,6 +549,10 @@ where
 
     let root_element = root.as_element();
     matching_context.scope_element = root_element.map(|e| e.opaque());
+    matching_context.current_host = match root_element {
+        Some(root) => root.containing_shadow_host().map(|host| host.opaque()),
+        None => root.as_shadow_root().map(|root| root.host().opaque()),
+    };
 
     let fast_result = query_selector_fast::<E, Q>(
         root,

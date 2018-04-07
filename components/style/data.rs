@@ -262,8 +262,8 @@ impl ElementData {
 
         let mut non_document_styles = SmallVec::<[_; 3]>::new();
         let matches_doc_author_rules =
-            element.each_applicable_non_document_style_rule_data(|data, quirks_mode| {
-                non_document_styles.push((data, quirks_mode))
+            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
+                non_document_styles.push((data, quirks_mode, host.map(|h| h.opaque())))
             });
 
         let mut processor = StateAndAttrInvalidationProcessor::new(

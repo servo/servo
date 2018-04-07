@@ -553,6 +553,16 @@ impl<E: TElement> StyleSharingCache<E> {
             return;
         }
 
+        // We can't share style across shadow hosts right now, because they may
+        // match different :host rules.
+        //
+        // TODO(emilio): We could share across the ones that don't have :host
+        // rules or have the same.
+        if element.shadow_root().is_some() {
+            debug!("Failing to insert into the cache: Shadow Host");
+            return;
+        }
+
         // If the element has running animations, we can't share style.
         //
         // This is distinct from the specifies_{animations,transitions} check below,
@@ -713,6 +723,11 @@ impl<E: TElement> StyleSharingCache<E> {
             // TODO(emilio): We could have a look at whether the shadow roots
             // actually have slotted rules and such.
             trace!("Miss: Different assigned slots");
+            return None;
+        }
+
+        if target.element.shadow_root().is_some() {
+            trace!("Miss: Shadow host");
             return None;
         }
 
