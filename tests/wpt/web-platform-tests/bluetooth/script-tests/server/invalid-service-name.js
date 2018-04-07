@@ -11,7 +11,7 @@ const expected = new DOMException(
     " e.g. 'alert_notification'.",
     'TypeError');
 
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
     .then(({device}) => assert_promise_rejects_with_message(
         device.gatt.CALLS([
           getPrimaryService('wrong_name')|

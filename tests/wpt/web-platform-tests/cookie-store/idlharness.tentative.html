@@ -10,21 +10,38 @@
 'use strict';
 
 promise_test(async t => {
-  const urls = ['/interfaces/html.idl', '/interfaces/cookie-store.idl'];
-  const [html, cookie_store] = await Promise.all(
-    urls.map(url => fetch(url).then(response => response.text())));
+  const urls = [
+    '/interfaces/uievents.idl',
+    '/interfaces/dom.idl',
+    '/interfaces/html.idl',
+    '/interfaces/cookie-store.idl'
+  ];
+  const [uievents, dom, html, cookie_store] = await Promise.all(
+    urls.map(url => fetch(url).then(r => r.text())));
 
   const idl_array = new IdlArray();
 
   // Dependencies of HTML
+  idl_array.add_untested_idls(dom, { only: [
+    'Event',
+    'EventInit',
+    'EventTarget',
+    'HTMLCollection',
+    'NodeList',
+  ] });
   idl_array.add_untested_idls('interface Document {};');
+  idl_array.add_untested_idls('interface Element {};');
   idl_array.add_untested_idls('interface LinkStyle {};');
   idl_array.add_untested_idls('interface SVGElement {};');
   idl_array.add_untested_idls(html);
+  idl_array.add_untested_idls(uievents, { only: [
+    'UIEvent',
+    'UIEventInit',
+    'MouseEvent',
+    'MouseEventInit',
+    'EventModifierInit',
+  ] });
 
-  idl_array.add_untested_idls('interface Event {};');
-  idl_array.add_untested_idls('dictionary EventInit {};');
-  idl_array.add_untested_idls('interface EventTarget {};');
   idl_array.add_untested_idls(
     `[Global=ServiceWorker, Exposed=ServiceWorker]
      interface ServiceWorkerGlobalScope {};`);

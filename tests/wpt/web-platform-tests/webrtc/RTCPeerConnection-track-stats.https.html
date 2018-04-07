@@ -378,7 +378,7 @@
     }));
   }, 'replaceTrack(): original track attachment stats present after replacing');
 
-  promise_test(async function() {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
     let [tracks, streams] = await getUserMediaTracksAndStreams(2);
@@ -424,7 +424,7 @@
         'senderReport should contain remote-candidate stats');
   }, 'RTCRtpSender.getStats() contains only outbound-rtp and related stats');
 
-  promise_test(async function() {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
     let [tracks, streams] = await getUserMediaTracksAndStreams(2);
@@ -469,6 +469,72 @@
     assert_equals(findStatsOfType(receiverReport, 'remote-candidate').length, 1,
         'receiverReport should contain remote-candidate stats');
   }, 'RTCRtpReceiver.getStats() contains only inbound-rtp and related stats');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    let [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    let sender = caller.addTrack(tracks[0], streams[0]);
+    callee.addTrack(tracks[1], streams[1]);
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+    await onIceConnectionStateCompleted(caller);
+
+    let senderReport = await sender.getStats();
+    let trackReport = await caller.getStats(sender.track);
+
+    senderReport.forEach(senderReportStat => {
+      let trackReportStat = trackReport.get(senderReportStat.id);
+      assert_object_equals(trackReportStat, senderReportStat);
+    });
+    trackReport.forEach(trackReportStat => {
+      let senderReportStat = senderReport.get(trackReportStat.id);
+      assert_object_equals(senderReportStat, trackReportStat);
+    });
+  }, 'RTCPeerConnection.getStats(sendingTrack) is the same as ' +
+     'RTCRtpSender.getStats()');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    let [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    let sender = caller.addTrack(tracks[0], streams[0]);
+    callee.addTrack(tracks[1], streams[1]);
+    exchangeIceCandidates(caller, callee);
+    await doSignalingHandshake(caller, callee);
+    await onIceConnectionStateCompleted(caller);
+    let receiver = caller.getReceivers()[0];
+
+    let receiverReport = await receiver.getStats();
+    let trackReport = await caller.getStats(receiver.track);
+
+    receiverReport.forEach(receiverReportStat => {
+      let trackReportStat = trackReport.get(receiverReportStat.id);
+      assert_object_equals(trackReportStat, receiverReportStat);
+    });
+    trackReport.forEach(trackReportStat => {
+      let receiverReportStat = receiverReport.get(trackReportStat.id);
+      assert_object_equals(receiverReportStat, trackReportStat);
+    });
+  }, 'RTCPeerConnection.getStats(receivingTrack) is the same as ' +
+     'RTCRtpReceiver.getStats()');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    let [tracks, streams] = await getUserMediaTracksAndStreams(1);
+    await promise_rejects(t, 'InvalidAccessError', pc.getStats(tracks[0]));
+  }, 'RTCPeerConnection.getStats(track) throws InvalidAccessError when there ' +
+     'are zero senders or receivers for the track');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    let [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    let sender1 = pc.addTrack(tracks[0]);
+    let sender2 = pc.addTrack(tracks[1]);
+    await sender2.replaceTrack(sender1.track);
+    await promise_rejects(t, 'InvalidAccessError', pc.getStats(sender1.track));
+  }, 'RTCPeerConnection.getStats(track) throws InvalidAccessError when there ' +
+     'are multiple senders for the track');
 
   // Helpers.
 
@@ -539,6 +605,16 @@
         }
       }
     }
+  }
+
+  async function async_assert_throws(exceptionName, promise, description) {
+    try {
+      await promise;
+    } catch (e) {
+      assert_equals(e.name, exceptionName);
+      return;
+    }
+    assert_unreached('No exception was thrown.');
   }
 
 </script>

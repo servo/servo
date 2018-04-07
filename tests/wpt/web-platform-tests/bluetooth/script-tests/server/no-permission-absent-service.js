@@ -7,7 +7,7 @@ const expected = new DOMException(
     'https://goo.gl/HxfxSQ',
     'SecurityError');
 
-bluetooth_test(() => getHealthThermometerDevice({
+bluetooth_test(() => getConnectedHealthThermometerDevice({
       filters: [{services: ['health_thermometer']}]
     })
     .then(({device}) => Promise.all([
