@@ -282,4 +282,15 @@
 
   }, `Setting transceiver.currentDirection to recvonly in the middle of tonechange events should stop future tonechange events from firing`);
 
+  /* Section 7.3 - Tone change event */
+  test(t => {
+    let ev = new RTCDTMFToneChangeEvent('tonechange', {'tone': '1'});
+    assert_equals(ev.type, 'tonechange');
+    assert_equals(ev.tone, '1');
+  }, 'Tone change event constructor works');
+
+  test(t => {
+    let ev = new RTCDTMFToneChangeEvent('worngname', {});
+  }, 'Tone change event with unexpected name should not crash');
+
 </script>

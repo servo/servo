@@ -822,17 +822,18 @@ def run(**kwargs):
     with get_ssl_environment(config) as ssl_env:
         ports = get_ports(config, ssl_env)
         config = normalise_config(config, ports)
-        host = config["browser_host"]
+        browser_host = config["browser_host"]
+        server_host = config["server_host"]
         bind_address = config["bind_address"]
 
         if config["check_subdomains"]:
             paths = get_paths(config)
             ssl_config = get_ssl_config(config, ssl_env)
-            check_subdomains(host, paths, bind_address, ssl_config, config["aliases"])
+            check_subdomains(browser_host, paths, bind_address, ssl_config, config["aliases"])
 
         stash_address = None
         if bind_address:
-            stash_address = (host, get_port())
+            stash_address = (server_host, get_port())
 
         with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
             servers = start(config, ssl_env, build_routes(config["aliases"]), **kwargs)

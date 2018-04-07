@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSSOM View - getBoxQuads() returns proper border and margin boxes for block and flex</title>
+  <link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+    .container {
+      width: 100px;
+      height: 50px;
+      background-color: gray;
+    }
+    span {
+      display: block;
+      background: gold;
+      height: 4px;
+      width: 14px;
+      margin: auto;
+      padding: 0px;
+      border: 3px solid blue;
+    }
+  </style>
+ </head>
+ <body>
+  <div class="container">
+  <span id="block-block"></span>
+  </div>
+
+  <div class="container" style="display:flex">
+  <span id="flex-block"></span>
+  </div>
+
+  <script>
+    test(function() {
+      let bb = document.getElementById("block-block");
+      assert_equals(bb.getBoxQuads({box: "border"})[0].bounds.width,  20, "Block layout border box is expected width.");
+      assert_equals(bb.getBoxQuads({box: "margin"})[0].bounds.width, 100, "Block layout margin box is expected width.");
+
+      // For containers that expand items to fill block-axis space, measure the box heights also.
+      let fb = document.getElementById("flex-block");
+      assert_equals(fb.getBoxQuads({box: "border"})[0].bounds.width,  20, "Flex layout border box is expected width.");
+      assert_equals(fb.getBoxQuads({box: "margin"})[0].bounds.width, 100, "Flex layout margin box is expected width.");
+
+      assert_equals(fb.getBoxQuads({box: "border"})[0].bounds.height, 10, "Flex layout border box is expected height.");
+      assert_equals(fb.getBoxQuads({box: "margin"})[0].bounds.height, 50, "Flex layout margin box is expected height.");
+    });
+  </script>
+ </body>
+</html>
