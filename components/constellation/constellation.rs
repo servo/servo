@@ -2453,13 +2453,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.trim_history(top_level_id);
         }
 
+        self.notify_history_changed(change.top_level_browsing_context_id);
         self.update_frame_tree_if_active(change.top_level_browsing_context_id);
     }
 
     fn trim_history(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         let pipelines_to_evict = {
-            let session_history = self.joint_session_histories.entry(top_level_browsing_context_id)
-                .or_insert(JointSessionHistory::new());
+            let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
             let history_length = PREFS.get("session-history.max-length").as_u64().unwrap_or(20) as usize;
 
@@ -2493,8 +2493,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
         }
 
-        let session_history = self.joint_session_histories.entry(top_level_browsing_context_id)
-            .or_insert(JointSessionHistory::new());
+        let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
         for (alive_id, dead) in dead_pipelines {
             session_history.replace(NeedsToReload::No(alive_id), dead);
@@ -2778,6 +2777,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(browsing_context) => browsing_context,
         };
 
+        {
+            let session_history = self.get_joint_session_history(browsing_context.top_level_id);
+            session_history.remove_entries_for_browsing_context(browsing_context_id);
+        }
+
         if BrowsingContextId::from(browsing_context.top_level_id) == browsing_context_id {
             self.event_loops.remove(&browsing_context.top_level_id);
         }
@@ -2903,6 +2907,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             }
         }
+    }
+
+    fn get_joint_session_history(&mut self, top_level_id: TopLevelBrowsingContextId) -> &mut JointSessionHistory {
+        self.joint_session_histories.entry(top_level_id).or_insert(JointSessionHistory::new())
     }
 
     // Convert a browsing context to a sendable form to pass to the compositor
