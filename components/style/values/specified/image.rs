@@ -227,8 +227,20 @@ impl Parse for Gradient {
 
         let (shape, repeating, mut compat_mode) = match result {
             Some(result) => result,
-            None => return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func.clone()))),
+            None => return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func))),
         };
+
+        #[cfg(feature = "gecko")]
+        {
+            use gecko_bindings::structs;
+            if compat_mode == CompatMode::Moz &&
+                !unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_gradients }
+            {
+                return Err(input.new_custom_error(
+                    StyleParseErrorKind::UnexpectedFunction(func)
+                ));
+            }
+        }
 
         let (kind, items) = input.parse_nested_block(|i| {
             let shape = match shape {
