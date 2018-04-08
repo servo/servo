@@ -136,8 +136,11 @@ interface GainNode : AudioNode {
   <div id="log"></div>
 
   <script>
-(function() {
+promise_test(async function () {
+  const webAudioApi = await fetch('/interfaces/web-audio-api.idl').then(r => r.text());
+
   var idl_array = new IdlArray();
+  idl_array.add_untested_idls(webAudioApi, { only: ['AudioNodeOptions'] });
   idl_array.add_untested_idls(document.getElementById("event-target-idl").textContent);
   idl_array.add_untested_idls(document.getElementById("base-audio-context-idl").textContent);
   idl_array.add_untested_idls(document.getElementById("audio-node-idl").textContent);
@@ -148,7 +151,7 @@ interface GainNode : AudioNode {
 
   idl_array.add_objects({GainNode: ["gain_node"]});
   idl_array.test();
-})();
+}, 'webaudio Gain interfaces');
   </script>
 </body>
 </html>

@@ -26,14 +26,14 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>This test requires user interaction. Firstly, move the pointer
-	over the top circle. Then, move it over the bottom circle.</p>
+  over the top circle. Then, move it over the bottom circle.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test is passed if two black circles are displayed. The top circle 
-must turn pink when the pointer is over the circle, and go back to black once 
-the pointer leaves. The second circle  must turn blue when the pointer is over 
-the circle, and go back to black once the pointer leaves. 
+        The test is passed if two black circles are displayed. The top circle
+must turn pink when the pointer is over the circle, and go back to black once
+the pointer leaves. The second circle  must turn blue when the pointer is over
+the circle, and go back to black once the pointer leaves.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -72,7 +72,7 @@ the circle, and go back to black once the pointer leaves.
     <g fill="#000" font-family="Arial" font-size="40">
       <!-- Event bubbling (i.e., propagation) is not turned off, so
               event if first processed by 'circle', but then processed by 'g',
-              with result that circle turns blue, but then instantaneously 
+              with result that circle turns blue, but then instantaneously
               turns pink. -->
       <g onmouseover="bubbleYes(evt, '#F08')" onmouseout="bubbleYes(evt, 'inherit')">
         <circle onmouseover="bubbleYes(evt, '#00F')" onmouseout="bubbleYes(evt, 'inherit')" cx="70" cy="120" r="50"/>

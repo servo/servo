@@ -10,12 +10,15 @@
 'use strict';
 
 promise_test(async t => {
-  const [html, dom, mediacapture, webaudio] = await Promise.all([
+  const [html, dom, uievents, mediacapture, webaudio] = await Promise.all([
     // Needed for EventTarget, HTMLMediaElement
     '/interfaces/html.idl',
 
     // Needed for Event, EventListener
     '/interfaces/dom.idl',
+
+    // Needed for MouseEvent
+    '/interfaces/uievents.idl',
 
     // Needed for MediaStream, MediaStreamTrack
     '/interfaces/mediacapture-main.idl',
@@ -28,7 +31,15 @@ promise_test(async t => {
   // Dependencies of HTML
   idl_array.add_untested_idls('interface LinkStyle {};');
   idl_array.add_untested_idls('interface SVGElement {};');
+  idl_array.add_untested_idls('interface WorkletGlobalScope {};');
   idl_array.add_untested_idls(html);
+  idl_array.add_untested_idls(uievents, { only: [
+    'MouseEvent',
+    'MouseEventInit',
+    'EventModifierInit',
+    'UIEvent',
+    'UIEventInit',
+  ]});
 
   idl_array.add_untested_idls(dom);
   idl_array.add_untested_idls(mediacapture);

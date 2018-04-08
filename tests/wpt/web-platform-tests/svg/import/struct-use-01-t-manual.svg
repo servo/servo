@@ -43,12 +43,12 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-	    <defs>
-	    	<font-face font-family="FreeSerif" unicode-range="U+0020-U+00FF">
-	      <font-face-src>
-	        <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
-	      </font-face-src>
-	    </font-face>
+      <defs>
+        <font-face font-family="FreeSerif" unicode-range="U+0020-U+00FF">
+        <font-face-src>
+          <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
+        </font-face-src>
+      </font-face>
       <g fill="red" stroke="yellow" stroke-width="3">
         <rect id="usedRect" width="20" height="20"/>
         <circle id="usedCircle" cx="10" cy="10" r="10"/>
@@ -66,7 +66,6 @@
         <text id="usedText">Text</text>
       </g>
     </defs>
-
 
     <g>
       <g id="labels" transform="translate(130, 40)" font-size="20" text-anchor="end">

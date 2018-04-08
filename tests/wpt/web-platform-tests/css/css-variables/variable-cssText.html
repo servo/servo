@@ -28,15 +28,15 @@
     "use strict";
 
     var testcases = [
-        { element: "target1",   expectedCssText: "--var:  var1;" },
+        { element: "target1",   expectedCssText: "--var: var1;" },
         { element: "target2",   expectedCssText: "margin: var(--prop);" },
         { element: "target3",   expectedCssText: "background: var(--prop);" },
         { element: "target4",   expectedCssText: "margin: var(--prop)  !important;" },
         { element: "target5",   expectedCssText: "background: var(--prop)  !important;" },
         { element: "target6",   expectedCssText: "background: green;" },
         { element: "target7",   expectedCssText: "background: var(--prop);" },
-        { element: "target8",   expectedCssText: "color:  var(--prop);" },
-        { element: "target9",   expectedCssText: "margin-top: 10px; margin-right: ; margin-bottom: ; margin-left: ;" },
+        { element: "target8",   expectedCssText: "color: var(--prop);" },
+        { element: "target9",   expectedCssText: "margin-right: ; margin-bottom: ; margin-left: ; margin-top: 10px;" },
         { element: "target10",  expectedCssText: "" }
     ];
 
@@ -45,7 +45,7 @@
             var div = document.getElementById(testcase.element);
             var actualCssText = div.style.cssText;
             assert_equals(actualCssText, testcase.expectedCssText);
-        }, testcase.element + " " + testcase.propertyName);
+        }, testcase.element);
     });
 </script>
 

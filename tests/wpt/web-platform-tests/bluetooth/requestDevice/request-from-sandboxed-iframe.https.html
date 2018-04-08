@@ -14,7 +14,7 @@ const expected = 'SecurityError: requestDevice() called from cross-origin ' +
 
 let iframe = document.createElement('iframe');
 
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
     // 1. Load the iframe.
     .then(() => new Promise(resolve => {
       iframe.sandbox.add('allow-scripts');

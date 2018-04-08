@@ -20,7 +20,7 @@
       <p>
         Run the test. No interaction required.
       </p>
-    </d:operatorScript> 
+    </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         Test passes if there is a blue circle, a blue square, and no red on the page.

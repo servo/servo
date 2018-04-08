@@ -25,7 +25,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        On the bottom half of the test, there is a first switch. 
+        On the bottom half of the test, there is a first switch.
         Because SVG Tiny does not support DOM, an SVG Tiny implementation
         which does not support other SVG Profiles should show a green
         rectangle. If the application supports the DOM, meaning that

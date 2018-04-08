@@ -29,6 +29,19 @@
         var A = idl.members["A"];
         assert_array_equals(A.get_inheritance_stack().map(d => d.name), ["A", "B", "C"]);
     }, 'should return an array of inherited dictionaries in order of inheritance, starting with itself.');
+
+    test(function () {
+      let i = new IdlArray();
+      i.add_untested_idls('dictionary A : B {};');
+      i.assert_throws(new IdlHarnessError('A inherits B, but B is undefined.'), i => i.test());
+    }, 'A : B with B undeclared should throw IdlHarnessError');
+
+    test(function () {
+      let i = new IdlArray();
+      i.add_untested_idls('dictionary A : B {};');
+      i.add_untested_idls('interface B {};');
+      i.assert_throws(new IdlHarnessError('A inherits B, but A is not an interface.'), i => i.test());
+    }, 'dictionary A : B with B interface should throw IdlHarnessError');
 </script>
 </body>
 </html>

@@ -22,9 +22,9 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-    	<p>
-    		Mouseover each of the red rectangles, and then click on the bottommost rectangle.
-    	</p>
+      <p>
+        Mouseover each of the red rectangles, and then click on the bottommost rectangle.
+      </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
@@ -52,13 +52,13 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-	
-		<defs>
-			<!-- SVGElementInstance animates fill on mouseover -->
-			<rect id="rect" width="50" height="50" fill="red">
-				<set attributeName="fill" begin="mouseover" end="mouseout" to="blue"/>
-			</rect>
-		</defs>
+
+    <defs>
+      <!-- SVGElementInstance animates fill on mouseover -->
+      <rect id="rect" width="50" height="50" fill="red">
+        <set attributeName="fill" begin="mouseover" end="mouseout" to="blue"/>
+      </rect>
+    </defs>
 
     <text x="120" y="20" font-size="15">Shadow tree event listener chain</text>
 

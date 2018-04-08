@@ -19,20 +19,32 @@ interface EventTarget {};
 </pre>
 <script>
 "use strict"
-var idl_array = new IdlArray();
-function doTest(idl) {
-  idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
-  idl_array.add_idls(idl);
-  idl_array.add_objects({
-    HTMLVideoElement: [document.getElementById("media")],
-    RemotePlayback: [document.getElementById("media").remote]
-  });
-  idl_array.test();
-}
 
-promise_test(function() {
-  return fetch("/interfaces/remoteplayback.idl")
-      .then(response => response.text())
+promise_test(async function() {
+  var idl_array = new IdlArray();
+  function doTest([html, idl]) {
+    idl_array.add_untested_idls('interface Element {};');
+    idl_array.add_untested_idls(html, { only: [
+      'HTMLElement',
+      'HTMLOrSVGElement',
+      'GlobalEventHandlers',
+      'DocumentAndElementEventHandlers',
+      'ElementContentEditable',
+    ] });
+    idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
+    idl_array.add_idls(idl);
+    idl_array.add_objects({
+      HTMLVideoElement: [document.getElementById("media")],
+      RemotePlayback: [document.getElementById("media").remote]
+    });
+    idl_array.test();
+  }
+
+  return Promise.all(
+    [
+      "/interfaces/html.idl",
+      "/interfaces/remoteplayback.idl",
+    ].map(url => fetch(url).then(r => r.text())))
       .then(doTest);
 }, "Test driver");
 </script>

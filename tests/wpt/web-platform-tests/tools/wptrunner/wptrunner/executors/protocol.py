@@ -259,6 +259,20 @@ class ClickProtocolPart(ProtocolPart):
         :param element: A protocol-specific handle to an element."""
         pass
 
+class SendKeysProtocolPart(ProtocolPart):
+    """Protocol part for performing trusted clicks"""
+    __metaclass__ = ABCMeta
+
+    name = "send_keys"
+
+    @abstractmethod
+    def send_keys(self, element, keys):
+        """Send keys to a specific element.
+
+        :param element: A protocol-specific handle to an element.
+        :param keys: A protocol-specific handle to a string of input keys."""
+        pass
+
 
 class TestDriverProtocolPart(ProtocolPart):
     """Protocol part that implements the basic functionality required for

@@ -55,7 +55,7 @@
         <circle id="testAdjacentSiblingSelector" cx="100" cy="300" r="40" fill="red" />
     </g>
     <circle id="testAttributeSelector" cx="300" cy="80" r="35" fill="red" />
-    <circle id="testIdSelector" cx="400" cy="140" r="50" fill="red" /> 
+    <circle id="testIdSelector" cx="400" cy="140" r="50" fill="red" />
     <g>
         <rect id="testPseudoClassSelector" x="270" y="240" width="150" height="80" fill="red" />
     </g>

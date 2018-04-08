@@ -130,4 +130,24 @@ usb_test(usb => {
     });
   });
 }, 'ondisconnect event is triggered by removing a device');
+
+usb_test(() => {
+  return getFakeDevice().then(({ device, fakeDevice }) => {
+    navigator.usb.test.onrequestdevice = event => {
+      event.respondWith(fakeDevice);
+    }
+    return callWithTrustedClick(() => {
+      let first = navigator.usb.requestDevice({ filters: [] });
+      let second = navigator.usb.requestDevice({ filters: [] });
+      return Promise.all([
+        first.then(chosenDevice => {
+          assert_equals(chosenDevice, device);
+        }),
+        second.then(chosenDevice => {
+          assert_equals(chosenDevice, device);
+        })
+      ]);
+    });
+  });
+}, 'multiple requestDevice calls are allowed per user activation');
 </script>

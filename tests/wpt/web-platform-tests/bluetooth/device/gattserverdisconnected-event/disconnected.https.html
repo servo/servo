@@ -9,7 +9,7 @@
 const test_desc = 'A device disconnecting while connected should fire the ' +
     'gattserverdisconnected event.';
 
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
   .then(({device, fake_peripheral}) => {
     fake_peripheral.simulateGATTDisconnection();
     return eventPromise(device, 'gattserverdisconnected');

@@ -12,7 +12,7 @@ const test_desc = 'If a site disconnects from a device while the platform is ' +
 let device, fake_peripheral;
 let num_events = 0;
 
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
   .then(_ => ({device, fake_peripheral} = _))
   // 1. Listen for disconnections.
   .then(() =>
