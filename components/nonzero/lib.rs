@@ -5,72 +5,14 @@
 //! `NonZero*` types that are either `core::nonzero::NonZero<_>`
 //! or some stable types with an equivalent API (but no memory layout optimization).
 
-#![cfg_attr(feature = "unstable", feature(nonzero))]
-#![cfg_attr(feature = "unstable", feature(const_fn))]
-#![cfg_attr(feature = "unstable", feature(const_nonzero_new))]
-
-#[cfg_attr(not(feature = "unstable"), macro_use)]
+#[macro_use]
 extern crate serde;
+//extern crate serde_derive;
 
 pub use imp::*;
 
-#[cfg(feature = "unstable")]
 mod imp {
-    extern crate core;
-    use self::core::nonzero::NonZero as CoreNonZero;
-    use serde::{Serialize, Serializer, Deserialize, Deserializer};
 
-    pub use self::core::nonzero::Zeroable;
-
-    #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-    pub struct NonZero<T: Zeroable>(CoreNonZero<T>);
-
-    impl<T: Zeroable> NonZero<T> {
-        #[inline]
-        pub const unsafe fn new_unchecked(x: T) -> Self {
-            NonZero(CoreNonZero::new_unchecked(x))
-        }
-
-        #[inline]
-        pub fn new(x: T) -> Option<Self> {
-            CoreNonZero::new(x).map(NonZero)
-        }
-
-        #[inline]
-        pub fn get(self) -> T {
-            self.0.get()
-        }
-    }
-
-    // Not using derive because of the additional Clone bound required by the inner impl
-
-    impl<T> Serialize for NonZero<T>
-    where
-        T: Serialize + Zeroable + Clone,
-    {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            self.0.serialize(serializer)
-        }
-    }
-
-    impl<'de, T> Deserialize<'de> for NonZero<T>
-    where
-        T: Deserialize<'de> + Zeroable,
-    {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            CoreNonZero::deserialize(deserializer).map(NonZero)
-        }
-    }
-}
-
-#[cfg(not(feature = "unstable"))]
-mod imp {
     #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub struct NonZero<T: Zeroable>(T);
 
