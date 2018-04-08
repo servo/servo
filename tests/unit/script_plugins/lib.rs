@@ -194,23 +194,6 @@ pub mod unrooted_must_root {
     */
     pub fn ban_box() {}
 
-    /* *
-    ```
-    #![feature(plugin)]
-    #![plugin(script_plugins)]
-
-    #[must_root] struct Foo(i32);
-
-    fn foo(x: &Foo) -> i32 {
-        let y = &Box::new(Foo(x.0 + 3));
-        y.0
-    }
-
-    fn main() {}
-    ```
-    */
-    // pub fn allow_box_ref() {} // is it a correct usage? I guess it isn't.
-
     /**
     ```compile_fail
     #![feature(plugin)]
@@ -271,6 +254,31 @@ pub mod unrooted_must_root {
     ```
     */
     pub fn generic_impl() {}
+
+    /**
+    ```
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+    #![feature(generic_param_attrs)]
+
+    #[must_root] struct Foo(i32);
+    #[allow_unrooted_interior] struct SomeContainer<T>(T);
+
+    impl<#[must_root] T> SomeContainer<T> {
+        fn foo(val: &T) {
+            SomeContainer(val);
+        }
+    }
+
+    fn test() {
+        SomeContainer(Foo(3));
+        SomeContainer::foo(&Foo(3));
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn allowing_unrooted_interior() {}
 
     /* *
     ```
