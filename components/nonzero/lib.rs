@@ -7,7 +7,6 @@
 
 #[macro_use]
 extern crate serde;
-//extern crate serde_derive;
 
 pub use imp::*;
 
