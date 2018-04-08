@@ -11,7 +11,6 @@ extern crate serde;
 pub use imp::*;
 
 mod imp {
-
     #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub struct NonZero<T: Zeroable>(T);
 
