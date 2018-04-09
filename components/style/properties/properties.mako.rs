@@ -826,7 +826,8 @@ impl LonghandId {
         }
     }
 
-    fn inherited(&self) -> bool {
+    /// Returns whether the longhand property is inherited by default.
+    pub fn inherited(&self) -> bool {
         ${static_longhand_id_set("INHERITED", lambda p: p.style_struct.inherited)}
         INHERITED.contains(*self)
     }
