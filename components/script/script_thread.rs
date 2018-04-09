@@ -34,6 +34,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use dom::bindings::root::{RootedReference, ThreadLocalStackRoots};
@@ -225,6 +226,8 @@ pub enum MainThreadScriptMsg {
     /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
     /// the current entry will be replaced instead of a new entry being added.
     Navigate(PipelineId, LoadData, bool),
+    /// Gets the nth child window proxy for this browsing context, sorted in tree order.
+    GetChildWindowProxy(PipelineId, BrowsingContextId, usize, Sender<Option<Trusted<WindowProxy>>>),
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
@@ -1190,6 +1193,7 @@ impl ScriptThread {
                     MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
                     MainThreadScriptMsg::ExitWindow(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
+                    MainThreadScriptMsg::GetChildWindowProxy(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                     MainThreadScriptMsg::DispatchJobQueue { .. }  => None,
@@ -1332,6 +1336,9 @@ impl ScriptThread {
         match msg {
             MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace)
+            },
+            MainThreadScriptMsg::GetChildWindowProxy(pipeline_id, browsing_context_id, index, sender) => {
+                self.handle_get_child_window_proxy(pipeline_id, browsing_context_id, index, sender)
             },
             MainThreadScriptMsg::ExitWindow(id) => {
                 self.handle_exit_window_msg(id)
@@ -1979,6 +1986,36 @@ impl ScriptThread {
         let msg = ScriptMsg::GetParentInfo(pipeline_id, result_sender);
         self.script_sender.send((pipeline_id, msg)).expect("Failed to send to constellation.");
         result_receiver.recv().expect("Failed to get frame id from constellation.")
+    }
+
+    fn ask_constellation_for_child_browsing_context(
+        &self,
+        pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        index: usize
+    ) -> Option<BrowsingContextId> {
+        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let msg = ScriptMsg::GetChildBrowsingContextId(browsing_context_id, index, result_sender);
+        self.script_sender.send((pipeline_id, msg)).expect("Failed to send to constellation.");
+        result_receiver.recv().expect("Failed to get frame id from constellation.")
+    }
+
+    /// Handles a request for getting a child window proxy object. The result is sent back through the Sender.
+    fn handle_get_child_window_proxy(
+        &self,
+        pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        index: usize,
+        sender: Sender<Option<Trusted<WindowProxy>>>
+    ) {
+        let maybe_proxy = self.ask_constellation_for_child_browsing_context(
+            pipeline_id,
+            browsing_context_id,
+            index
+        ).and_then(|bcid| {
+            self.window_proxies.borrow().get(&bcid).map(|proxy| Trusted::new(&**proxy))
+        });
+        let _ = sender.send(maybe_proxy);
     }
 
     // Get the browsing context for a pipeline that may exist in another
