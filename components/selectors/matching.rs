@@ -466,15 +466,9 @@ where
             //   pseudo-classes are allowed to match it.
             //
             // Since we know that the parent is a shadow root, we necessarily
-            // are in a shadow tree of the host.
-            let all_selectors_could_match = selector.clone().all(|component| {
-                match *component {
-                    Component::NonTSPseudoClass(ref pc) => pc.is_host(),
-                    _ => false,
-                }
-            });
-
-            if !all_selectors_could_match {
+            // are in a shadow tree of the host, and the next selector will only
+            // match if the selector is a featureless :host selector.
+            if !selector.clone().is_featureless_host_selector() {
                 return None;
             }
 
@@ -819,6 +813,9 @@ where
         Component::Empty => {
             flags_setter(element, ElementSelectorFlags::HAS_EMPTY_SELECTOR);
             element.is_empty()
+        }
+        Component::Host => {
+            context.shared.shadow_host().map_or(false, |host| host == element.opaque())
         }
         Component::Scope => {
             match context.shared.scope_element {

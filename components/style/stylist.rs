@@ -591,25 +591,24 @@ impl Stylist {
     pub fn any_applicable_rule_data<E, F>(&self, element: E, mut f: F) -> bool
     where
         E: TElement,
-        F: FnMut(&CascadeData, QuirksMode) -> bool,
+        F: FnMut(&CascadeData) -> bool,
     {
-        if f(&self.cascade_data.user_agent.cascade_data, self.quirks_mode()) {
+        if f(&self.cascade_data.user_agent.cascade_data) {
             return true;
         }
 
         let mut maybe = false;
 
         let doc_author_rules_apply =
-            element.each_applicable_non_document_style_rule_data(|data, quirks_mode| {
-                maybe = maybe || f(&*data, quirks_mode);
+            element.each_applicable_non_document_style_rule_data(|data, _, _| {
+                maybe = maybe || f(&*data);
             });
 
         if maybe || !doc_author_rules_apply {
             return maybe;
         }
 
-        f(&self.cascade_data.author, self.quirks_mode()) ||
-        f(&self.cascade_data.user, self.quirks_mode())
+        f(&self.cascade_data.author) || f(&self.cascade_data.user)
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1261,6 +1260,21 @@ impl Stylist {
         // for !important it should be the other way around. So probably we need
         // to add some sort of AuthorScoped cascade level or something.
         if matches_author_rules && !only_default_rules {
+            if let Some(shadow) = rule_hash_target.shadow_root() {
+                if let Some(map) = shadow.style_data().host_rules(pseudo_element) {
+                    context.with_shadow_host(Some(rule_hash_target), |context| {
+                        map.get_all_matching_rules(
+                            element,
+                            rule_hash_target,
+                            applicable_declarations,
+                            context,
+                            flags_setter,
+                            CascadeLevel::AuthorNormal,
+                        );
+                    });
+                }
+            }
+
             // Match slotted rules in reverse order, so that the outer slotted
             // rules come before the inner rules (and thus have less priority).
             let mut slots = SmallVec::<[_; 3]>::new();
@@ -1271,32 +1285,35 @@ impl Stylist {
             }
 
             for slot in slots.iter().rev() {
-                let styles = slot.containing_shadow().unwrap().style_data();
+                let shadow = slot.containing_shadow().unwrap();
+                let styles = shadow.style_data();
                 if let Some(map) = styles.slotted_rules(pseudo_element) {
-                    map.get_all_matching_rules(
-                        element,
-                        rule_hash_target,
-                        applicable_declarations,
-                        context,
-                        flags_setter,
-                        CascadeLevel::AuthorNormal,
-                    );
+                    context.with_shadow_host(Some(shadow.host()), |context| {
+                        map.get_all_matching_rules(
+                            element,
+                            rule_hash_target,
+                            applicable_declarations,
+                            context,
+                            flags_setter,
+                            CascadeLevel::AuthorNormal,
+                        );
+                    });
                 }
             }
 
-            // TODO(emilio): We need to look up :host rules if the element is a
-            // shadow host, when we implement that.
             if let Some(containing_shadow) = rule_hash_target.containing_shadow() {
                 let cascade_data = containing_shadow.style_data();
                 if let Some(map) = cascade_data.normal_rules(pseudo_element) {
-                    map.get_all_matching_rules(
-                        element,
-                        rule_hash_target,
-                        applicable_declarations,
-                        context,
-                        flags_setter,
-                        CascadeLevel::AuthorNormal,
-                    );
+                    context.with_shadow_host(Some(containing_shadow.host()), |context| {
+                        map.get_all_matching_rules(
+                            element,
+                            rule_hash_target,
+                            applicable_declarations,
+                            context,
+                            flags_setter,
+                            CascadeLevel::AuthorNormal,
+                        );
+                    });
                 }
 
                 match_document_author_rules = false;
@@ -1421,7 +1438,7 @@ impl Stylist {
         }
 
         let hash = id.get_hash();
-        self.any_applicable_rule_data(element, |data, _| {
+        self.any_applicable_rule_data(element, |data| {
             data.mapped_ids.might_contain_hash(hash)
         })
     }
@@ -1483,22 +1500,24 @@ impl Stylist {
             );
         }
 
-        element.each_applicable_non_document_style_rule_data(|data, quirks_mode| {
-            data.selectors_for_cache_revalidation.lookup(
-                element,
-                quirks_mode,
-                |selector_and_hashes| {
-                    results.push(matches_selector(
-                        &selector_and_hashes.selector,
-                        selector_and_hashes.selector_offset,
-                        Some(&selector_and_hashes.hashes),
-                        &element,
-                        &mut matching_context,
-                        flags_setter
-                    ));
-                    true
-                }
-            );
+        element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
+            matching_context.with_shadow_host(host, |matching_context| {
+                data.selectors_for_cache_revalidation.lookup(
+                    element,
+                    quirks_mode,
+                    |selector_and_hashes| {
+                        results.push(matches_selector(
+                            &selector_and_hashes.selector,
+                            selector_and_hashes.selector_offset,
+                            Some(&selector_and_hashes.hashes),
+                            &element,
+                            matching_context,
+                            flags_setter
+                        ));
+                        true
+                    }
+                );
+            })
         });
 
         results
@@ -1929,6 +1948,15 @@ pub struct CascadeData {
     /// cascade level.
     normal_rules: ElementAndPseudoRules,
 
+    /// The `:host` pseudo rules that are the rightmost selector.
+    ///
+    /// Note that as of right now these can't affect invalidation in any way,
+    /// until we support the :host(<selector>) notation.
+    ///
+    /// Also, note that other engines don't accept stuff like :host::before /
+    /// :host::after, so we don't need to store pseudo rules at all.
+    host_rules: Option<Box<SelectorMap<Rule>>>,
+
     /// The data coming from ::slotted() pseudo-element rules.
     ///
     /// We need to store them separately because an element needs to match
@@ -2005,6 +2033,7 @@ impl CascadeData {
     pub fn new() -> Self {
         Self {
             normal_rules: ElementAndPseudoRules::default(),
+            host_rules: None,
             slotted_rules: None,
             invalidation_map: InvalidationMap::new(),
             attribute_dependencies: NonCountingBloomFilter::new(),
@@ -2089,6 +2118,15 @@ impl CascadeData {
     #[inline]
     fn normal_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
         self.normal_rules.rules(pseudo)
+    }
+
+    #[inline]
+    fn host_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
+        if pseudo.is_some() {
+            return None;
+        }
+
+        self.host_rules.as_ref().map(|rules| &**rules)
     }
 
     #[inline]
@@ -2224,19 +2262,23 @@ impl CascadeData {
                             }
                         }
 
-                        let rules = if selector.is_slotted() {
-                            self.slotted_rules.get_or_insert_with(|| {
-                                Box::new(Default::default())
-                            })
+                        if selector.is_featureless_host_selector() {
+                            let host_rules =
+                                self.host_rules.get_or_insert_with(|| {
+                                    Box::new(Default::default())
+                                });
+                            host_rules.insert(rule, quirks_mode)?;
                         } else {
-                            &mut self.normal_rules
-                        };
+                            let rules = if selector.is_slotted() {
+                                self.slotted_rules.get_or_insert_with(|| {
+                                    Box::new(Default::default())
+                                })
+                            } else {
+                                &mut self.normal_rules
+                            };
 
-                        rules.insert(
-                            rule,
-                            pseudo_element,
-                            quirks_mode,
-                        )?;
+                            rules.insert(rule, pseudo_element, quirks_mode)?;
+                        }
                     }
                     self.rules_source_order += 1;
                 }

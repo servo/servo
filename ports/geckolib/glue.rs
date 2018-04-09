@@ -4933,7 +4933,7 @@ pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(
 
     unsafe {
         Atom::with(local_name, |atom| {
-            data.stylist.any_applicable_rule_data(element, |data, _| {
+            data.stylist.any_applicable_rule_data(element, |data| {
                 data.might_have_attribute_dependency(atom)
             })
         })
@@ -4951,7 +4951,7 @@ pub extern "C" fn Servo_StyleSet_HasStateDependency(
     let state = ElementState::from_bits_truncate(state);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
-    data.stylist.any_applicable_rule_data(element, |data, _| {
+    data.stylist.any_applicable_rule_data(element, |data| {
         data.has_state_dependency(state)
     })
 }

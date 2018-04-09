@@ -6,7 +6,7 @@ use attr::CaseSensitivity;
 use bloom::BloomFilter;
 use nth_index_cache::NthIndexCache;
 use parser::SelectorImpl;
-use tree::OpaqueElement;
+use tree::{Element, OpaqueElement};
 
 /// What kind of selector matching mode we should use.
 ///
@@ -118,6 +118,9 @@ where
     /// See https://drafts.csswg.org/selectors-4/#scope-pseudo
     pub scope_element: Option<OpaqueElement>,
 
+    /// The current shadow host we're collecting :host rules for.
+    pub current_host: Option<OpaqueElement>,
+
     /// Controls how matching for links is handled.
     visited_handling: VisitedHandlingMode,
 
@@ -178,12 +181,23 @@ where
             quirks_mode,
             classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
             scope_element: None,
+            current_host: None,
             nesting_level: 0,
             in_negation: false,
             pseudo_element_matching_fn: None,
             extra_data: Default::default(),
             _impl: ::std::marker::PhantomData,
         }
+    }
+
+    /// Override the quirks mode we're matching against.
+    ///
+    /// FIXME(emilio): This is a hack for XBL quirks-mode mismatches.
+    #[inline]
+    pub fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
+        self.quirks_mode = quirks_mode;
+        self.classes_and_ids_case_sensitivity =
+            quirks_mode.classes_and_ids_case_sensitivity();
     }
 
     /// Whether we're matching a nested selector.
@@ -265,5 +279,31 @@ where
         let result = f(self);
         self.visited_handling = original_handling_mode;
         result
+    }
+
+    /// Runs F with a given shadow host which is the root of the tree whose
+    /// rules we're matching.
+    #[inline]
+    pub fn with_shadow_host<F, E, R>(
+        &mut self,
+        host: Option<E>,
+        f: F,
+    ) -> R
+    where
+        E: Element,
+        F: FnOnce(&mut Self) -> R,
+    {
+        let original_host = self.current_host.take();
+        self.current_host = host.map(|h| h.opaque());
+        let result = f(self);
+        self.current_host = original_host;
+        result
+    }
+
+    /// Returns the current shadow host whose shadow root we're matching rules
+    /// against.
+    #[inline]
+    pub fn shadow_host(&self) -> Option<OpaqueElement> {
+        self.current_host.clone()
     }
 }

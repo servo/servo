@@ -18,6 +18,7 @@ use invalidation::element::restyle_hints::RestyleHint;
 use selector_map::SelectorMap;
 use selector_parser::Snapshot;
 use selectors::NthIndexCache;
+use selectors::OpaqueElement;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
@@ -38,9 +39,8 @@ where
 {
     element: E,
     wrapper: ElementWrapper<'b, E>,
-    nth_index_cache: Option<&'a mut NthIndexCache>,
     snapshot: &'a Snapshot,
-    quirks_mode: QuirksMode,
+    matching_context: &'a mut MatchingContext<'b, E::Impl>,
     lookup_element: E,
     removed_id: Option<&'a WeakAtom>,
     added_id: Option<&'a WeakAtom>,
@@ -56,7 +56,7 @@ where
 /// changes.
 pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
-    shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode)],
+    shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode, Option<OpaqueElement>)],
     matches_document_author_rules: bool,
     element: E,
     data: &'a mut ElementData,
@@ -67,7 +67,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
-        shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode)],
+        shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode, Option<OpaqueElement>)],
         matches_document_author_rules: bool,
         element: E,
         data: &'a mut ElementData,
@@ -237,8 +237,7 @@ where
                 state_changes,
                 element,
                 snapshot: &snapshot,
-                quirks_mode: self.shared_context.quirks_mode(),
-                nth_index_cache: self.matching_context.nth_index_cache.as_mut().map(|c| &mut **c),
+                matching_context: &mut self.matching_context,
                 removed_id: id_removed,
                 added_id: id_added,
                 classes_removed: &classes_removed,
@@ -260,11 +259,12 @@ where
                 }
             }
 
-            for &(ref data, quirks_mode) in self.shadow_rule_datas {
+            for &(ref data, quirks_mode, ref host) in self.shadow_rule_datas {
                 // FIXME(emilio): Replace with assert / remove when we figure
                 // out what to do with the quirks mode mismatches
                 // (that is, when bug 1406875 is properly fixed).
-                collector.quirks_mode = quirks_mode;
+                collector.matching_context.set_quirks_mode(quirks_mode);
+                collector.matching_context.current_host = host.clone();
                 collector.collect_dependencies_in_invalidation_map(data.invalidation_map());
             }
 
@@ -333,7 +333,7 @@ where
         &mut self,
         map: &'selectors InvalidationMap,
     ) {
-        let quirks_mode = self.quirks_mode;
+        let quirks_mode = self.matching_context.quirks_mode();
         let removed_id = self.removed_id;
         if let Some(ref id) = removed_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
@@ -386,7 +386,7 @@ where
     ) {
         map.lookup_with_additional(
             self.lookup_element,
-            self.quirks_mode,
+            self.matching_context.quirks_mode(),
             self.removed_id,
             self.classes_removed,
             |dependency| {
@@ -403,7 +403,7 @@ where
     ) {
         map.lookup_with_additional(
             self.lookup_element,
-            self.quirks_mode,
+            self.matching_context.quirks_mode(),
             self.removed_id,
             self.classes_removed,
             |dependency| {
@@ -429,51 +429,29 @@ where
         visited_handling_mode: VisitedHandlingMode,
         dependency: &Dependency,
     ) -> bool {
-        let matches_now = {
-            let mut context = MatchingContext::new_for_visited(
-                MatchingMode::Normal,
-                None,
-                self.nth_index_cache.as_mut().map(|c| &mut **c),
-                visited_handling_mode,
-                self.quirks_mode,
-            );
-
+        let element = &self.element;
+        let wrapper = &self.wrapper;
+        self.matching_context.with_visited_handling_mode(visited_handling_mode, |mut context| {
             let matches_now = matches_selector(
                 &dependency.selector,
                 dependency.selector_offset,
                 None,
-                &self.element,
+                element,
                 &mut context,
                 &mut |_, _| {},
-            );
-
-            matches_now
-        };
-
-        let matched_then = {
-            let mut context = MatchingContext::new_for_visited(
-                MatchingMode::Normal,
-                None,
-                self.nth_index_cache.as_mut().map(|c| &mut **c),
-                visited_handling_mode,
-                self.quirks_mode,
             );
 
             let matched_then = matches_selector(
                 &dependency.selector,
                 dependency.selector_offset,
                 None,
-                &self.wrapper,
+                wrapper,
                 &mut context,
                 &mut |_, _| {},
             );
 
-            matched_then
-        };
-
-        // Check for mismatches in both the match result and also the status
-        // of whether a relevant link was found.
-        matched_then != matches_now
+            matched_then != matches_now
+        })
     }
 
     fn scan_dependency(
