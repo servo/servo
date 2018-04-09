@@ -12,8 +12,9 @@
 use computed_values::{font_stretch, font_style, font_weight};
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{SourceLocation, CowRcStr};
+#[cfg(feature = "gecko")]
+use cssparser::UnicodeRange;
 use error_reporting::{ContextualParseError, ParseErrorReporter};
-#[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, ParserErrorContext, Parse};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;

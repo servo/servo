@@ -13,42 +13,39 @@ use std::borrow::Cow;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::computed::Percentage;
-use values::generics::basic_shape::{Circle as GenericCircle};
-use values::generics::basic_shape::{ClippingShape as GenericClippingShape, Ellipse as GenericEllipse};
-use values::generics::basic_shape::{FillRule, BasicShape as GenericBasicShape};
-use values::generics::basic_shape::{FloatAreaShape as GenericFloatAreaShape, InsetRect as GenericInsetRect};
-use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
-use values::generics::basic_shape::{Polygon as GenericPolygon, ShapeRadius as GenericShapeRadius};
+use values::generics::basic_shape as generic;
+use values::generics::basic_shape::{FillRule, GeometryBox, ShapeBox, ShapeSource};
 use values::generics::rect::Rect;
 use values::specified::LengthOrPercentage;
 use values::specified::border::BorderRadius;
 use values::specified::image::Image;
-use values::specified::position::{HorizontalPosition, Position, PositionComponent, Side, VerticalPosition};
+use values::specified::position::{HorizontalPosition, Position, PositionComponent};
+use values::specified::position::{Side, VerticalPosition};
 use values::specified::url::SpecifiedUrl;
 
 /// A specified clipping shape.
-pub type ClippingShape = GenericClippingShape<BasicShape, SpecifiedUrl>;
+pub type ClippingShape = generic::ClippingShape<BasicShape, SpecifiedUrl>;
 
 /// A specified float area shape.
-pub type FloatAreaShape = GenericFloatAreaShape<BasicShape, Image>;
+pub type FloatAreaShape = generic::FloatAreaShape<BasicShape, Image>;
 
 /// A specified basic shape.
-pub type BasicShape = GenericBasicShape<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
+pub type BasicShape = generic::BasicShape<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
 
 /// The specified value of `inset()`
-pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
+pub type InsetRect = generic::InsetRect<LengthOrPercentage>;
 
 /// A specified circle.
-pub type Circle = GenericCircle<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
+pub type Circle = generic::Circle<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
 
 /// A specified ellipse.
-pub type Ellipse = GenericEllipse<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
+pub type Ellipse = generic::Ellipse<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
 
 /// The specified value of `ShapeRadius`
-pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
+pub type ShapeRadius = generic::ShapeRadius<LengthOrPercentage>;
 
 /// The specified value of `Polygon`
-pub type Polygon = GenericPolygon<LengthOrPercentage>;
+pub type Polygon = generic::Polygon<LengthOrPercentage>;
 
 impl<ReferenceBox, ImageOrUrl> Parse for ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
 where
@@ -110,10 +107,10 @@ impl Parse for BasicShape {
         let function = input.expect_function()?.clone();
         input.parse_nested_block(move |i| {
             (match_ignore_ascii_case! { &function,
-                "inset" => return InsetRect::parse_function_arguments(context, i).map(GenericBasicShape::Inset),
-                "circle" => return Circle::parse_function_arguments(context, i).map(GenericBasicShape::Circle),
-                "ellipse" => return Ellipse::parse_function_arguments(context, i).map(GenericBasicShape::Ellipse),
-                "polygon" => return Polygon::parse_function_arguments(context, i).map(GenericBasicShape::Polygon),
+                "inset" => return InsetRect::parse_function_arguments(context, i).map(generic::BasicShape::Inset),
+                "circle" => return Circle::parse_function_arguments(context, i).map(generic::BasicShape::Circle),
+                "ellipse" => return Ellipse::parse_function_arguments(context, i).map(generic::BasicShape::Ellipse),
+                "polygon" => return Polygon::parse_function_arguments(context, i).map(generic::BasicShape::Polygon),
                 _ => Err(())
             }).map_err(|()| location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone())))
         })
@@ -139,7 +136,7 @@ impl InsetRect {
         } else {
             None
         };
-        Ok(GenericInsetRect {
+        Ok(generic::InsetRect {
             rect: rect,
             round: round,
         })
@@ -166,7 +163,7 @@ impl Circle {
             Position::center()
         };
 
-        Ok(GenericCircle { radius, position })
+        Ok(generic::Circle { radius, position })
     }
 }
 
@@ -176,7 +173,7 @@ impl ToCss for Circle {
         W: Write,
     {
         dest.write_str("circle(")?;
-        if GenericShapeRadius::ClosestSide != self.radius {
+        if generic::ShapeRadius::ClosestSide != self.radius {
             self.radius.to_css(dest)?;
             dest.write_str(" ")?;
         }
@@ -208,7 +205,7 @@ impl Ellipse {
             Position::center()
         };
 
-        Ok(GenericEllipse {
+        Ok(generic::Ellipse {
             semiaxis_x: a,
             semiaxis_y: b,
             position: position,
@@ -239,12 +236,12 @@ impl Parse for ShapeRadius {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
-            return Ok(GenericShapeRadius::Length(lop))
+            return Ok(generic::ShapeRadius::Length(lop))
         }
 
         try_match_ident_ignore_ascii_case! { input,
-            "closest-side" => Ok(GenericShapeRadius::ClosestSide),
-            "farthest-side" => Ok(GenericShapeRadius::FarthestSide),
+            "closest-side" => Ok(generic::ShapeRadius::ClosestSide),
+            "farthest-side" => Ok(generic::ShapeRadius::FarthestSide),
         }
     }
 }

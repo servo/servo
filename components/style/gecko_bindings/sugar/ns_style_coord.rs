@@ -4,9 +4,9 @@
 
 //! Rust helpers for Gecko's `nsStyleCoord`.
 
-use gecko_bindings::bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
-use gecko_bindings::structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
-use gecko_bindings::structs::{nsStyleCoord_CalcValue, nscoord};
+use gecko_bindings::bindings;
+use gecko_bindings::structs::{nsStyleCoord, nsStyleCoord_Calc, nsStyleCoord_CalcValue};
+use gecko_bindings::structs::{nsStyleCorners, nsStyleUnit, nsStyleUnion, nsStyleSides, nscoord};
 use std::mem;
 
 impl nsStyleCoord {
@@ -257,7 +257,7 @@ pub unsafe trait CoordDataMut : CoordData {
         unsafe {
             if self.unit() == nsStyleUnit::eStyleUnit_Calc {
                 let (unit, union) = self.values_mut();
-                Gecko_ResetStyleCoord(unit, union);
+                bindings::Gecko_ResetStyleCoord(unit, union);
             }
         }
     }
@@ -368,7 +368,7 @@ pub unsafe trait CoordDataMut : CoordData {
                 }
                 Calc(calc) => {
                     // Gecko_SetStyleCoordCalcValue changes the unit internally
-                    Gecko_SetStyleCoordCalcValue(unit, union, calc);
+                    bindings::Gecko_SetStyleCoordCalcValue(unit, union, calc);
                 }
             }
         }
@@ -388,7 +388,7 @@ pub unsafe trait CoordDataMut : CoordData {
     fn addref_if_calc(&mut self) {
         unsafe {
             if self.unit() == nsStyleUnit::eStyleUnit_Calc {
-                Gecko_AddRefCalcArbitraryThread(self.as_calc_mut());
+                bindings::Gecko_AddRefCalcArbitraryThread(self.as_calc_mut());
             }
         }
     }

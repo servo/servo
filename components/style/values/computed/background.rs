@@ -12,7 +12,8 @@ use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, ToComputedValue};
 use values::computed::length::LengthOrPercentageOrAuto;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
-use values::specified::background::{BackgroundRepeat as SpecifiedBackgroundRepeat, BackgroundRepeatKeyword};
+use values::specified::background::BackgroundRepeat as SpecifiedBackgroundRepeat;
+use values::specified::background::BackgroundRepeatKeyword;
 
 /// A computed value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<LengthOrPercentageOrAuto>;

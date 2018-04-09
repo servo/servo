@@ -26,12 +26,13 @@ use values::specified::calc::CalcNode;
 pub use properties::animated_properties::TransitionProperty;
 pub use self::angle::Angle;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignContent, JustifyContent, AlignItems, ContentDistribution, SelfAlignment, JustifyItems};
+pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignSelf, JustifySelf};
+pub use self::align::{SelfAlignment, JustifyContent, JustifyItems, JustifySelf};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
-pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
+pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
+pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing};
 pub use self::column::ColumnCount;
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariationSettings, FontVariantEastAsian};

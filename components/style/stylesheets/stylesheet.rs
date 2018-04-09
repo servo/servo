@@ -22,7 +22,8 @@ use style_traits::ParsingMode;
 use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::rule_parser::{State, TopLevelRuleParser};
-use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator};
+use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};
+use stylesheets::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {

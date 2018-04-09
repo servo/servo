@@ -4,7 +4,8 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::{BasicParseError, BasicParseErrorKind, Parser, ToCss, Token, CowRcStr, SourceLocation};
+use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
+use cssparser::{ToCss, Token, CowRcStr, SourceLocation};
 use element_state::{DocumentState, ElementState};
 use gecko_bindings::structs;
 use gecko_bindings::structs::RawServoSelectorList;

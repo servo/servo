@@ -7,8 +7,9 @@
 //! [font-feature-values]: https://drafts.csswg.org/css-fonts-3/#at-font-feature-values-rule
 
 use Atom;
-use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token};
+use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, CowRcStr};
+use cssparser::{DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{QualifiedRuleParser, RuleListParser, SourceLocation, Token};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")]
 use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;

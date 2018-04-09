@@ -15,8 +15,8 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// A computed angle.
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
-#[derive(PartialOrd, ToAnimatedZero)]
+#[derive(Animate, Clone, Copy, Debug, MallocSizeOf)]
+#[derive(PartialEq, PartialOrd, ToAnimatedZero, ToCss)]
 pub enum Angle {
     /// An angle with degree unit.
     #[css(dimension)]
