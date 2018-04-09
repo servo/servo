@@ -6,34 +6,19 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/nfc_help.js"></script>
-
 <h2>Note</h2>
 <ol>
   <li>
     Run test is an insecure context, e.g. http://example.com/
   </li>
 </ol>
-
-<div id="log"></div>
-
 <script>
 
 "use strict";
 
-promise_test(t => {
-  return promise_rejects(t, 'SecurityError', navigator.nfc.push(test_text_data));
-}, "nfc.push should fail with SecurityError in an insecure context.");
-
-promise_test(t => {
-  return promise_rejects(t, 'SecurityError', navigator.nfc.cancelPush());
-}, "nfc.cancelPush should fail with SecurityError in an insecure context.");
-
-promise_test(t => {
-  return promise_rejects(t, 'SecurityError', navigator.nfc.watch(noop));
-}, "nfc.watch should fail with SecurityError in an insecure context.");
-
-promise_test(t => {
-  return promise_rejects(t, 'SecurityError', navigator.nfc.cancelWatch());
-}, "nfc.cancelWatch should fail with SecurityError in an insecure context.");
+test(t => {
+  assert_false(isSecureContext);
+  assert_false('nfc' in navigator);
+}, 'navigator.nfc requires a secure context');
 
 </script>

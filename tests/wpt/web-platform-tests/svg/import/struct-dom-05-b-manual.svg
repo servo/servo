@@ -63,7 +63,7 @@
       featureStrings[length++] = "views";
       featureStrings[length++] = "css2";
       featureStrings[length++] = "events";
-      featureStrings[length++] = "uievents	";
+      featureStrings[length++] = "uievents  ";
       featureStrings[length++] = "mouseevents";
       featureStrings[length++] = "mutationevents";
       featureStrings[length++] = "traversal";

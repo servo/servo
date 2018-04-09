@@ -19,10 +19,11 @@
     <script>
       'use strict';
 
-      function doIdlTest(idlText) {
+      function doIdlTest([dom, idlText]) {
         var idl_array = new IdlArray();
 
         // dummies
+        idl_array.add_untested_idls(dom, { only: ['Event', 'EventInit']});
         idl_array.add_untested_idls("interface Navigator {};");
         idl_array.add_untested_idls("interface EventTarget {};");
         idl_array.add_untested_idls("interface EventHandler {};");
@@ -35,10 +36,12 @@
       }
 
       promise_test(() => {
-        return fetch('/interfaces/mediacapture-main.idl')
-          .then(response => response.text())
-          .then(doIdlTest);
-
+        return Promise.all(
+          [
+            '/interfaces/dom.idl',
+            '/interfaces/mediacapture-main.idl',
+          ].map(url => fetch(url).then(r => r.text())))
+            .then(doIdlTest);
       }, 'Test driver')
     </script>
   </body>

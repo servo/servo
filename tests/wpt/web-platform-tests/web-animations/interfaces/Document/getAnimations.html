@@ -42,6 +42,19 @@ test(t => {
 }, 'Test the order of document.getAnimations with script generated animations')
 
 test(t => {
+  // This element exists but is not a descendent of any document, so isn't
+  // picked up by getAnimations.
+  const div = document.createElement('div');
+  const anim = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+  assert_equals(document.getAnimations().length, 0);
+
+  // Now connect the div; it should appear in the list of animations.
+  document.body.appendChild(div);
+  t.add_cleanup(() => { div.remove(); });
+  assert_equals(document.getAnimations().length, 1);
+}, 'Test document.getAnimations for a disconnected node');
+
+test(t => {
   const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
   const anim = new Animation(effect, document.timeline);
   anim.play();

@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -18,7 +18,7 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>Run the test. No interaction required.
-        
+
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
@@ -40,38 +40,38 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-		<defs>
-			<filter id="convolve-without-order" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
-				<feConvolveMatrix kernelMatrix="1 1 1 1 -8 1 1 1 1" preserveAlpha="true"/>
-			</filter>
-			<filter id="convolve-with-order1" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
-				<feConvolveMatrix order="3" kernelMatrix="1 1 1 1 -8 1 1 1 1" preserveAlpha="true"/>
-			</filter>
-			<filter id="convolve-with-order2" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
-				<feConvolveMatrix order="3 3" kernelMatrix="1 1 1 1 -8 1 1 1 1" preserveAlpha="true"/>
-			</filter>
-		</defs>
+    <defs>
+      <filter id="convolve-without-order" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -8 1 1 1 1" preserveAlpha="true"/>
+      </filter>
+      <filter id="convolve-with-order1" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix order="3" kernelMatrix="1 1 1 1 -8 1 1 1 1" preserveAlpha="true"/>
+      </filter>
+      <filter id="convolve-with-order2" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix order="3 3" kernelMatrix="1 1 1 1 -8 1 1 1 1" preserveAlpha="true"/>
+      </filter>
+    </defs>
 
-		<text x="50%" y="3em" style="font-size:18px; text-anchor:middle">feConvolveMatrix 'order' attribute</text>
+    <text x="50%" y="3em" style="font-size:18px; text-anchor:middle">feConvolveMatrix 'order' attribute</text>
 
-		<image x="90" y="100" width="100" height="100" xlink:href="../images/image1.jpg" filter="url(#convolve-without-order)"/>
-		<text x="135" y="220" style="font-size:9px; text-anchor:middle">without order</text>
-		
-		<image x="190" y="100" width="100" height="100" xlink:href="../images/image1.jpg" filter="url(#convolve-with-order1)"/>
-		<text x="235" y="220" style="font-size:9px; text-anchor:middle">order="3"</text>
-		
-		<image x="290" y="100" width="100" height="100" xlink:href="../images/image1.jpg" filter="url(#convolve-with-order2)"/>
-		<text x="335" y="220" style="font-size:9px; text-anchor:middle">order="3 3"</text>
-	</g>
+    <image x="90" y="100" width="100" height="100" xlink:href="../images/image1.jpg" filter="url(#convolve-without-order)"/>
+    <text x="135" y="220" style="font-size:9px; text-anchor:middle">without order</text>
+
+    <image x="190" y="100" width="100" height="100" xlink:href="../images/image1.jpg" filter="url(#convolve-with-order1)"/>
+    <text x="235" y="220" style="font-size:9px; text-anchor:middle">order="3"</text>
+
+    <image x="290" y="100" width="100" height="100" xlink:href="../images/image1.jpg" filter="url(#convolve-with-order2)"/>
+    <text x="335" y="220" style="font-size:9px; text-anchor:middle">order="3 3"</text>
+  </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
-  <text id="revision" x="10" y="340" stroke="none" 
+  <text id="revision" x="10" y="340" stroke="none"
     fill="black">$Revision: 1.9 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
   <!-- comment out this watermark once the test is approved --><!--
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>-->
 </svg>

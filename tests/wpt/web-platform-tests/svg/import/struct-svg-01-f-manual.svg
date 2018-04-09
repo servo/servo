@@ -96,7 +96,7 @@
 
             if(pass)
             {
-                document.getElementById("failText").setAttribute("display", "none");    
+                document.getElementById("failText").setAttribute("display", "none");
             }
         }
         catch(ex)
@@ -120,4 +120,3 @@
   </g>
   -->
 </svg>
-
