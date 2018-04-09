@@ -15,7 +15,8 @@ use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::MozTabSize as GenericMozTabSize;
 use values::generics::text::Spacing;
-use values::specified::text::{TextDecorationLine, TextEmphasisFillMode, TextEmphasisShapeKeyword, TextOverflowSide};
+use values::specified::text::{TextDecorationLine, TextEmphasisFillMode};
+use values::specified::text::{TextEmphasisShapeKeyword, TextOverflowSide};
 
 pub use values::specified::TextAlignKeyword as TextAlign;
 pub use values::specified::TextEmphasisPosition;

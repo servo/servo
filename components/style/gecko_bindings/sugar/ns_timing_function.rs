@@ -6,7 +6,8 @@ use gecko_bindings::structs::{nsTimingFunction, nsTimingFunction_Type};
 use std::mem;
 use values::computed::ToComputedValue;
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
-use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, TimingKeyword};
+use values::generics::transform::{StepPosition, TimingKeyword};
+use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::specified::transform::TimingFunction;
 
 impl nsTimingFunction {

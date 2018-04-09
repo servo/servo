@@ -15,7 +15,8 @@ use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use gecko_bindings::structs::ServoElementSnapshotTable;
 use invalidation::element::element_wrapper::ElementSnapshot;
-use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
+use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
+use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use string_cache::{Atom, Namespace};
 
 /// A snapshot of a Gecko element.

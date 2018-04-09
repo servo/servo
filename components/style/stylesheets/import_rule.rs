@@ -8,7 +8,8 @@
 
 use cssparser::SourceLocation;
 use media_queries::MediaList;
-use shared_lock::{DeepCloneWithLock, DeepCloneParams, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneWithLock, DeepCloneParams};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ToCss};

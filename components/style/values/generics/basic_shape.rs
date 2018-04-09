@@ -210,10 +210,9 @@ where
             return Err(());
         }
         self.coordinates.iter().zip(other.coordinates.iter()).map(|(this, other)| {
-            Ok(
-                this.0.compute_squared_distance(&other.0)? +
-                this.1.compute_squared_distance(&other.1)?,
-            )
+            let d1 = this.0.compute_squared_distance(&other.0)?;
+            let d2 = this.1.compute_squared_distance(&other.1)?;
+            Ok(d1 + d2)
         }).sum()
     }
 }
