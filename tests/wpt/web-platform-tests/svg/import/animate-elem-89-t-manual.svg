@@ -21,13 +21,13 @@
         Test possible values for 'calcMode="spline"', with both commas, whitespace, and mixed separators
       </p>
       <p>
-        Six animations (three sets of two) have been defined. The three green ones on the left show rectangles which get smaller. The three orange ones on the right show rectangles of constant size, which move. 
+        Six animations (three sets of two) have been defined. The three green ones on the left show rectangles which get smaller. The three orange ones on the right show rectangles of constant size, which move.
         The black text and grey ruler lines help show the sizes and movement of the rectangles over time.
 <!-- derived from animate-elem-12-t.svg: by duplicating the animated rectangles, then changing the list separators -->
       </p>
-  	</d:testDescription>
+    </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-			<p>
+      <p>
         Run the test. No interaction required.
       </p>
     </d:operatorScript>
@@ -60,11 +60,11 @@
           <line x1="70" y1="111" x2="450" y2="111"/>
           <line x1="70" y1="0" x2="450" y2="0"/>
         </g>
-	</g>
+  </g>
 
 <!-- first set of three subtests, keySplines on animation element -->
       <g transform="translate(60,50)">
-       
+
         <rect x="140" y="-10" width="50" height="210" fill="rgb(34, 139, 34)" stroke="#555" stroke-width="4">
           <animate attributeName="height" calcMode="spline" keySplines="0,0,1,1;0,0,1,1;.75,0,0,.75" values="210;177;121;10" begin="0s" dur="9s" fill="freeze"/>
 <!-- commas -->
@@ -78,7 +78,7 @@
 <!-- commas and spaces -->
         </rect>
       </g>
-      
+
 <!-- second set of three subtests, keySplines on animateMotion element -->
       <g transform="translate(250,50)">
 

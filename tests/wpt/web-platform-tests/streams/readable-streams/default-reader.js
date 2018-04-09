@@ -485,4 +485,17 @@ promise_test(t => {
 
 }, 'Reading twice on a stream that gets errored');
 
+test(() => {
+  const rs = new ReadableStream();
+  let toStringCalled = false;
+  const mode = {
+    toString() {
+      toStringCalled = true;
+      return '';
+    }
+  };
+  assert_throws(new RangeError(), () => rs.getReader({ mode }), 'getReader() should throw');
+  assert_true(toStringCalled, 'toString() should be called');
+}, 'getReader() should call ToString() on mode');
+
 done();

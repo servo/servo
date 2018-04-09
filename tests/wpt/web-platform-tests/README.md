@@ -271,7 +271,7 @@ will be `C:\\OpenSSL-Win32\\bin\\openssl.cfg`).
 ### Trusting Root CA
 
 To prevent browser SSL warnings when running HTTPS tests locally, the
-web-platform-tests Root CA file `rootca.pem` in [tools/certs](tools/certs)
+web-platform-tests Root CA file `cacert.pem` in [tools/certs](tools/certs)
 must be added as a trusted certificate in your OS/browser.
 
 Publication

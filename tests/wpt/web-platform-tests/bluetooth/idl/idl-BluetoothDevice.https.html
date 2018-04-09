@@ -17,7 +17,7 @@ test(() => {
 
 const test_desc_attr = 'BluetoothDevice attributes.';
 let device;
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
   .then(({device}) => {
     assert_equals(device.constructor.name, 'BluetoothDevice');
     var old_device_id = device.id;
