@@ -6,7 +6,7 @@
 //! element styles need to be invalidated.
 
 use context::StackLimitChecker;
-use dom::{TElement, TNode};
+use dom::{TElement, TNode, TShadowRoot};
 use selector_parser::SelectorImpl;
 use selectors::matching::{CompoundSelectorMatchingResult, MatchingContext};
 use selectors::matching::matches_compound_selector_from;
@@ -534,20 +534,22 @@ where
 
         let mut any_descendant = false;
 
-        // NOTE(emilio): This should not be needed for Shadow DOM for normal
-        // element state / attribute invalidations (it's needed for XBL though,
-        // due to the weird way the anon content there works (it doesn't block
-        // combinators)).
+        // NOTE(emilio): This is only needed for Shadow DOM to invalidate
+        // correctly on :host(..) changes. Instead of doing this, we could add
+        // a third kind of invalidation list that walks shadow root children,
+        // but it's not clear it's worth it.
         //
-        // However, it's needed as of right now for document state invalidation,
-        // were we rely on iterating every element that ends up in the composed
-        // doc.
-        //
-        // Also, we could avoid having that special-case for document state
-        // invalidations if we invalidate for document state changes per
-        // subtree, though that's kind of annoying because we need to invalidate
-        // the shadow host subtree (to handle :host and ::slotted), and the
-        // actual shadow tree (to handle all other rules in the ShadowRoot).
+        // Also, it's needed as of right now for document state invalidation,
+        // where we rely on iterating every element that ends up in the composed
+        // doc, but we could fix that invalidating per subtree.
+        if let Some(root) = self.element.shadow_root() {
+            any_descendant |=
+                self.invalidate_dom_descendants_of(root.as_node(), invalidations);
+        }
+
+        // This is needed for XBL (technically) unconditionally, because XBL
+        // bindings do not block combinators in any way. However this is kinda
+        // broken anyway, since we should be looking at XBL rules too.
         if let Some(anon_content) = self.element.xbl_binding_anonymous_content() {
             any_descendant |=
                 self.invalidate_dom_descendants_of(anon_content, invalidations);

@@ -457,6 +457,7 @@ fn specific_bucket_for<'a>(
         //
         // Meanwhile taking the code path below is slower, but still correct.
         // Component::Slotted(ref selector) => find_bucket(selector.iter()),
+        Component::Host(Some(ref selector)) => find_bucket(selector.iter()),
         _ => Bucket::Universal
     }
 }

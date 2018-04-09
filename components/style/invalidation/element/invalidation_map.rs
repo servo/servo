@@ -207,16 +207,6 @@ impl InvalidationMap {
         })
     }
 
-    /// Adds a selector to this `InvalidationMap`.  Returns Err(..) to
-    /// signify OOM.
-    pub fn note_selector(
-        &mut self,
-        selector: &Selector<SelectorImpl>,
-        quirks_mode: QuirksMode,
-    ) -> Result<(), FailedAllocationError> {
-        self.collect_invalidations_for(selector, quirks_mode)
-    }
-
     /// Clears this map, leaving it empty.
     pub fn clear(&mut self) {
         self.class_to_selector.clear();
@@ -228,13 +218,14 @@ impl InvalidationMap {
         self.has_class_attribute_selectors = false;
     }
 
-    // Returns Err(..) to signify OOM.
-    fn collect_invalidations_for(
+    /// Adds a selector to this `InvalidationMap`.  Returns Err(..) to
+    /// signify OOM.
+    pub fn note_selector(
         &mut self,
         selector: &Selector<SelectorImpl>,
-        quirks_mode: QuirksMode
+        quirks_mode: QuirksMode,
     ) -> Result<(), FailedAllocationError> {
-        debug!("InvalidationMap::collect_invalidations_for({:?})", selector);
+        debug!("InvalidationMap::note_selector({:?})", selector);
 
         let mut iter = selector.iter();
         let mut combinator;
