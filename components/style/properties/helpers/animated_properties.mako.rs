@@ -1204,7 +1204,8 @@ impl Animate for ComputedTransformOperation {
             ) => {
                 Ok(TransformOperation::Translate(
                     fx.animate(tx, procedure)?,
-                    Some(fy.unwrap_or(*fx).animate(&ty.unwrap_or(*tx), procedure)?)
+                    Some(fy.unwrap_or(LengthOrPercentage::zero())
+                        .animate(&ty.unwrap_or(LengthOrPercentage::zero()), procedure)?)
                 ))
             },
             (
