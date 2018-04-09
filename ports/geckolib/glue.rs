@@ -953,6 +953,25 @@ pub unsafe extern "C" fn Servo_Property_IsShorthand(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_Property_IsInherited(
+    prop_name: *const nsACString,
+) -> bool {
+    let prop_name = prop_name.as_ref().unwrap().as_str_unchecked();
+    let prop_id = match PropertyId::parse(prop_name) {
+        Ok(id) => id,
+        Err(_) => return false,
+    };
+    let longhand_id = match prop_id {
+        PropertyId::Custom(_) => return true,
+        PropertyId::Longhand(id) |
+        PropertyId::LonghandAlias(id, _) => id,
+        PropertyId::Shorthand(id) |
+        PropertyId::ShorthandAlias(id, _) => id.longhands().next().unwrap(),
+    };
+    longhand_id.inherited()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool {
     use style::properties::animated_properties;
     animated_properties::nscsspropertyid_is_animatable(property)
