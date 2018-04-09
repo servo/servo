@@ -17,7 +17,8 @@ use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::border::BorderSpacing as GenericBorderSpacing;
 use values::generics::rect::Rect;
 use values::generics::size::Size;
-use values::specified::border::{BorderImageRepeat as SpecifiedBorderImageRepeat, BorderImageRepeatKeyword};
+use values::specified::border::BorderImageRepeat as SpecifiedBorderImageRepeat;
+use values::specified::border::BorderImageRepeatKeyword;
 
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;

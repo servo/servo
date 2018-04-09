@@ -29,7 +29,6 @@ use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::{Gecko_ConstructStyleChildrenIterator, Gecko_DestroyStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
@@ -73,7 +72,8 @@ use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, Direction, PseudoClassStringArg};
 use selectors::{Element, OpaqueElement};
-use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
+use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
+use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::VisitedHandlingMode;
 use selectors::sink::Push;
@@ -454,7 +454,7 @@ impl<'a> Drop for GeckoChildrenIterator<'a> {
     fn drop(&mut self) {
         if let GeckoChildrenIterator::GeckoIterator(ref mut it) = *self {
             unsafe {
-                Gecko_DestroyStyleChildrenIterator(it);
+                bindings::Gecko_DestroyStyleChildrenIterator(it);
             }
         }
     }
@@ -1046,7 +1046,7 @@ impl<'le> TElement for GeckoElement<'le> {
            self.may_have_anonymous_children() {
             unsafe {
                 let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
-                Gecko_ConstructStyleChildrenIterator(self.0, &mut iter);
+                bindings::Gecko_ConstructStyleChildrenIterator(self.0, &mut iter);
                 return LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter));
             }
         }

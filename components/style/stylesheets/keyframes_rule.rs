@@ -8,12 +8,14 @@ use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, Parse
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation, Token};
 use error_reporting::{NullReporter, ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
-use properties::{DeclarationSource, Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
-use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
+use properties::{DeclarationSource, Importance, PropertyDeclaration};
+use properties::{LonghandId, PropertyDeclarationBlock, PropertyId};
+use properties::{PropertyDeclarationId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard};
+use shared_lock::{Locked, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};

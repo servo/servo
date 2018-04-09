@@ -366,25 +366,24 @@ fn parse_declaration_value_block<'i, 't>(
                 token.serialization_type()
             }
             Token::BadUrl(u) => {
-                return Err(input.new_custom_error(StyleParseErrorKind::BadUrlInDeclarationValueBlock(u)))
+                let e = StyleParseErrorKind::BadUrlInDeclarationValueBlock(u);
+                return Err(input.new_custom_error(e))
             }
             Token::BadString(s) => {
-                return Err(input.new_custom_error(StyleParseErrorKind::BadStringInDeclarationValueBlock(s)))
+                let e = StyleParseErrorKind::BadStringInDeclarationValueBlock(s);
+                return Err(input.new_custom_error(e))
             }
             Token::CloseParenthesis => {
-                return Err(input.new_custom_error(
-                    StyleParseErrorKind::UnbalancedCloseParenthesisInDeclarationValueBlock
-                ))
+                let e = StyleParseErrorKind::UnbalancedCloseParenthesisInDeclarationValueBlock;
+                return Err(input.new_custom_error(e))
             }
             Token::CloseSquareBracket => {
-                return Err(input.new_custom_error(
-                    StyleParseErrorKind::UnbalancedCloseSquareBracketInDeclarationValueBlock
-                ))
+                let e = StyleParseErrorKind::UnbalancedCloseSquareBracketInDeclarationValueBlock;
+                return Err(input.new_custom_error(e))
             }
             Token::CloseCurlyBracket => {
-                return Err(input.new_custom_error(
-                    StyleParseErrorKind::UnbalancedCloseCurlyBracketInDeclarationValueBlock
-                ))
+                let e = StyleParseErrorKind::UnbalancedCloseCurlyBracketInDeclarationValueBlock;
+                return Err(input.new_custom_error(e))
             }
             Token::Function(ref name) => {
                 if name.eq_ignore_ascii_case("var") {

@@ -11,8 +11,9 @@ use std::mem;
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::{CSSFloat, CustomIdent};
 use values::computed::{self, Context, ToComputedValue};
-use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
-use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType, TrackListValue};
+use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth};
+use values::generics::grid::{TrackKeyword, TrackRepeat, LineNameList, TrackSize};
+use values::generics::grid::{TrackList, TrackListType, TrackListValue};
 use values::specified::{LengthOrPercentage, Integer};
 
 /// Parse a single flexible length.
@@ -175,7 +176,8 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
         let mut names = vec![];
         let mut values = vec![];
 
-        let mut list_type = TrackListType::Explicit;    // assume it's the simplest case
+        // assume it's the simplest case.
+        let mut list_type = TrackListType::Explicit;
         // holds <auto-repeat> value. It can only be only one in a TrackList.
         let mut auto_repeat = None;
         // if there is any <auto-repeat> the list will be of type TrackListType::Auto(idx)

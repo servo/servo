@@ -39,9 +39,9 @@ extern crate fallible;
 extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 extern crate hashglobe;
+#[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
 extern crate itertools;
 extern crate itoa;
-#[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]

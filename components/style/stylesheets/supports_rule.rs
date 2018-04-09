@@ -4,15 +4,17 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
-use cssparser::{Delimiter, parse_important, Parser, SourceLocation, Token};
+use cssparser::{Delimiter, Parser, SourceLocation, Token};
 use cssparser::{ParseError as CssParseError, ParserInput};
+use cssparser::parse_important;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use parser::ParserContext;
 use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::ffi::{CStr, CString};
 use std::fmt::{self, Write};
 use std::str;

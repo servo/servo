@@ -9,7 +9,8 @@ use builder::{SelectorBuilder, SpecificityAndFlags};
 use context::QuirksMode;
 use cssparser::{ParseError, ParseErrorKind, BasicParseError, BasicParseErrorKind};
 use cssparser::{SourceLocation, CowRcStr, Delimiter};
-use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
+use cssparser::{Token, Parser as CssParser, ToCss, CssStringWriter};
+use cssparser::{parse_nth, serialize_identifier};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::ThinArc;
 use sink::Push;
@@ -1281,7 +1282,8 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     {
         let selector = parse_selector(parser, input)?;
         if selector.has_pseudo_element() {
-            return Err(input.new_custom_error(SelectorParseErrorKind::PseudoElementInComplexSelector))
+            let e = SelectorParseErrorKind::PseudoElementInComplexSelector;
+            return Err(input.new_custom_error(e))
         }
         Ok(selector)
     }
@@ -1409,9 +1411,8 @@ where
                 Ok(OptionalQName::Some(namespace, Some(local_name.clone())))
             }
             Ok(t) if in_attr_selector => {
-                Err(location.new_custom_error(
-                    SelectorParseErrorKind::InvalidQualNameInAttr(t.clone())
-                ))
+                let e = SelectorParseErrorKind::InvalidQualNameInAttr(t.clone());
+                Err(location.new_custom_error(e))
             }
             Ok(t) => {
                 Err(location.new_custom_error(
@@ -1675,7 +1676,8 @@ where
             },
             Some(SimpleSelectorParseResult::PseudoElement(_)) |
             Some(SimpleSelectorParseResult::SlottedPseudo(_)) => {
-                return Err(input.new_custom_error(SelectorParseErrorKind::NonSimpleSelectorInNegation));
+                let e = SelectorParseErrorKind::NonSimpleSelectorInNegation;
+                return Err(input.new_custom_error(e));
             }
         }
     }
@@ -1740,10 +1742,10 @@ where
                     match input.next_including_whitespace() {
                         Ok(&Token::Colon) => {},
                         Ok(&Token::WhiteSpace(_)) | Err(_) => break,
-                        Ok(t) =>
-                            return Err(location.new_custom_error(
-                                SelectorParseErrorKind::PseudoElementExpectedColon(t.clone())
-                            )),
+                        Ok(t) => {
+                            let e = SelectorParseErrorKind::PseudoElementExpectedColon(t.clone());
+                            return Err(location.new_custom_error(e));
+                        },
                     }
 
                     let location = input.current_source_location();
@@ -1883,9 +1885,10 @@ where
                     let class = Component::Class(class.as_ref().into());
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
-                ref t => Err(location.new_custom_error(
-                    SelectorParseErrorKind::ClassNeedsIdent(t.clone())
-                )),
+                ref t => {
+                    let e = SelectorParseErrorKind::ClassNeedsIdent(t.clone());
+                    Err(location.new_custom_error(e))
+                },
             }
         }
         Ok(Token::SquareBracketBlock) => {
@@ -1901,33 +1904,32 @@ where
             let (name, is_functional) = match next_token {
                 Token::Ident(name) => (name, false),
                 Token::Function(name) => (name, true),
-                t => return Err(input.new_custom_error(
-                    SelectorParseErrorKind::PseudoElementExpectedIdent(t)
-                )),
+                t => {
+                    let e = SelectorParseErrorKind::PseudoElementExpectedIdent(t);
+                    return Err(input.new_custom_error(e));
+                },
             };
             let is_pseudo_element = !is_single_colon ||
                 P::pseudo_element_allows_single_colon(&name);
             if is_pseudo_element {
                 let parse_result = if is_functional {
                     if P::parse_slotted(parser) && name.eq_ignore_ascii_case("slotted") {
-                        SimpleSelectorParseResult::SlottedPseudo(
-                            input.parse_nested_block(|input| {
-                                parse_inner_compound_selector(
-                                    parser,
-                                    input,
-                                )
-                            })?
-                        )
+                        let r = input.parse_nested_block(|input| {
+                            parse_inner_compound_selector(
+                                parser,
+                                input,
+                            )
+                        })?;
+                        SimpleSelectorParseResult::SlottedPseudo(r)
                     } else {
-                        SimpleSelectorParseResult::PseudoElement(
-                            input.parse_nested_block(|input| {
-                                P::parse_functional_pseudo_element(
-                                    parser,
-                                    name,
-                                    input,
-                                )
-                            })?
-                        )
+                        let r = input.parse_nested_block(|input| {
+                            P::parse_functional_pseudo_element(
+                                parser,
+                                name,
+                                input,
+                            )
+                        })?;
+                        SimpleSelectorParseResult::PseudoElement(r)
                     }
                 } else {
                     SimpleSelectorParseResult::PseudoElement(
@@ -2138,7 +2140,10 @@ pub mod tests {
             parser: &mut CssParser<'i, 't>,
         ) -> Result<PseudoClass, SelectorParseError<'i>> {
             match_ignore_ascii_case! { &name,
-                "lang" => return Ok(PseudoClass::Lang(parser.expect_ident_or_string()?.as_ref().to_owned())),
+                "lang" => {
+                    let lang = parser.expect_ident_or_string()?.as_ref().to_owned();
+                    return Ok(PseudoClass::Lang(lang));
+                },
                 _ => {}
             }
             Err(parser.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))

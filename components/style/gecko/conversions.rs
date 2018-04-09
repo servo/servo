@@ -10,15 +10,15 @@
 
 use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
-use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetLayerImageImageValue};
-use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElement};
+use gecko_bindings::bindings;
 use gecko_bindings::structs::{self, nsCSSUnit, nsStyleCoord_CalcValue};
 use gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage, TextAlign};
+use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{Percentage, TextAlign};
 use values::computed::url::ComputedImageUrl;
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
@@ -156,13 +156,13 @@ impl nsStyleImage {
             },
             GenericImage::Url(ref url) => {
                 unsafe {
-                    Gecko_SetLayerImageImageValue(self, url.image_value.get());
+                    bindings::Gecko_SetLayerImageImageValue(self, url.image_value.get());
                 }
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.get());
-                    Gecko_InitializeImageCropRect(self);
+                    bindings::Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.get());
+                    bindings::Gecko_InitializeImageCropRect(self);
 
                     // Set CropRect
                     let ref mut rect = *self.mCropRect.mPtr;
@@ -174,18 +174,18 @@ impl nsStyleImage {
             }
             GenericImage::Element(ref element) => {
                 unsafe {
-                    Gecko_SetImageElement(self, element.as_ptr());
+                    bindings::Gecko_SetImageElement(self, element.as_ptr());
                 }
             }
         }
     }
 
     fn set_gradient(&mut self, gradient: Gradient) {
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_CIRCULAR, NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE, NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER, NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE};
-        use gecko_bindings::structs::nsStyleCoord;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
+        use self::structs::nsStyleCoord;
         use values::computed::image::LineDirection;
         use values::generics::image::{Circle, Ellipse, EndingShape, GradientKind, ShapeExtent};
         use values::specified::position::{X, Y};
@@ -199,8 +199,8 @@ impl nsStyleImage {
         let gecko_gradient = match gradient.kind {
             GradientKind::Linear(direction) => {
                 let gecko_gradient = unsafe {
-                    Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
-                                         NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
+                    bindings::Gecko_CreateGradient(structs::NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
+                                         structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
                                          gradient.repeating,
                                          gradient.compat_mode != CompatMode::Modern,
                                          gradient.compat_mode == CompatMode::Moz,
@@ -279,12 +279,12 @@ impl nsStyleImage {
             GradientKind::Radial(shape, position, angle) => {
                 let keyword_to_gecko_size = |keyword| {
                     match keyword {
-                        ShapeExtent::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                        ShapeExtent::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
-                        ShapeExtent::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
-                        ShapeExtent::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
-                        ShapeExtent::Contain => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                        ShapeExtent::Cover => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                        ShapeExtent::ClosestSide => CLOSEST_SIDE,
+                        ShapeExtent::FarthestSide => FARTHEST_SIDE,
+                        ShapeExtent::ClosestCorner => CLOSEST_CORNER,
+                        ShapeExtent::FarthestCorner => FARTHEST_CORNER,
+                        ShapeExtent::Contain => CLOSEST_SIDE,
+                        ShapeExtent::Cover => FARTHEST_CORNER,
                     }
                 };
                 let (gecko_shape, gecko_size) = match shape {
@@ -293,23 +293,23 @@ impl nsStyleImage {
                             Circle::Extent(extent) => {
                                 keyword_to_gecko_size(extent)
                             },
-                            _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
+                            _ => structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
                         };
-                        (NS_STYLE_GRADIENT_SHAPE_CIRCULAR as u8, size as u8)
+                        (structs::NS_STYLE_GRADIENT_SHAPE_CIRCULAR as u8, size as u8)
                     },
                     EndingShape::Ellipse(ref ellipse) => {
                         let size = match *ellipse {
                             Ellipse::Extent(extent) => {
                                 keyword_to_gecko_size(extent)
                             },
-                            _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
+                            _ => structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
                         };
-                        (NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL as u8, size as u8)
+                        (structs::NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL as u8, size as u8)
                     }
                 };
 
                 let gecko_gradient = unsafe {
-                    Gecko_CreateGradient(gecko_shape,
+                    bindings::Gecko_CreateGradient(gecko_shape,
                                          gecko_size,
                                          gradient.repeating,
                                          gradient.compat_mode == CompatMode::Moz,
@@ -375,13 +375,12 @@ impl nsStyleImage {
         }
 
         unsafe {
-            Gecko_SetGradientImageValue(self, gecko_gradient);
+            bindings::Gecko_SetGradientImageValue(self, gecko_gradient);
         }
     }
 
     /// Converts into Image.
     pub unsafe fn into_image(self: &nsStyleImage) -> Option<Image> {
-        use gecko_bindings::bindings::Gecko_GetImageElement;
         use gecko_bindings::structs::nsStyleImageType;
         use values::computed::{NumberOrPercentage, MozImageRect};
 
@@ -413,7 +412,7 @@ impl nsStyleImage {
             },
             nsStyleImageType::eStyleImageType_Element => {
                 use gecko_string_cache::Atom;
-                let atom = Gecko_GetImageElement(self);
+                let atom = bindings::Gecko_GetImageElement(self);
                 Some(GenericImage::Element(Atom::from_raw(atom)))
             },
             _ => panic!("Unexpected image type")
@@ -421,32 +420,31 @@ impl nsStyleImage {
     }
 
     unsafe fn get_image_url(self: &nsStyleImage) -> ComputedImageUrl {
-        use gecko_bindings::bindings::Gecko_GetURLValue;
-        let url_value = Gecko_GetURLValue(self);
+        let url_value = bindings::Gecko_GetURLValue(self);
         ComputedImageUrl::from_url_value_data(url_value.as_ref().unwrap())
             .expect("Could not convert to ComputedUrl")
     }
 
     unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {
         use gecko::values::convert_nscolor_to_rgba;
-        use gecko_bindings::bindings::Gecko_GetGradientImageValue;
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_CIRCULAR, NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE, NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER, NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE};
+        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
         use values::computed::{Length, LengthOrPercentage};
         use values::computed::image::LineDirection;
         use values::computed::position::Position;
-        use values::generics::image::{ColorStop, CompatMode, Circle, Ellipse, EndingShape, GradientKind, ShapeExtent};
+        use values::generics::image::{ColorStop, CompatMode, Circle, Ellipse};
+        use values::generics::image::{EndingShape, GradientKind, ShapeExtent};
         use values::specified::position::{X, Y};
 
-        let gecko_gradient = Gecko_GetGradientImageValue(self).as_ref().unwrap();
+        let gecko_gradient = bindings::Gecko_GetGradientImageValue(self).as_ref().unwrap();
         let angle = Angle::from_gecko_style_coord(&gecko_gradient.mAngle);
         let horizontal_style = LengthOrPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosX);
         let vertical_style = LengthOrPercentage::from_gecko_style_coord(&gecko_gradient.mBgPosY);
 
         let kind = match gecko_gradient.mShape as u32 {
-            NS_STYLE_GRADIENT_SHAPE_LINEAR => {
+            structs::NS_STYLE_GRADIENT_SHAPE_LINEAR => {
                 let line_direction = match (angle, horizontal_style, vertical_style) {
                     (Some(a), None, None) => LineDirection::Angle(a),
                     (None, Some(horizontal), Some(vertical)) => {
@@ -495,10 +493,10 @@ impl nsStyleImage {
             _ => {
                 let gecko_size_to_keyword = |gecko_size| {
                     match gecko_size {
-                        NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE => ShapeExtent::ClosestSide,
-                        NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE => ShapeExtent::FarthestSide,
-                        NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER => ShapeExtent::ClosestCorner,
-                        NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER => ShapeExtent::FarthestCorner,
+                        CLOSEST_SIDE => ShapeExtent::ClosestSide,
+                        FARTHEST_SIDE => ShapeExtent::FarthestSide,
+                        CLOSEST_CORNER => ShapeExtent::ClosestCorner,
+                        FARTHEST_CORNER => ShapeExtent::FarthestCorner,
                         // FIXME: We should support ShapeExtent::Contain and ShapeExtent::Cover.
                         // But we can't choose those yet since Gecko does not support both values.
                         // https://bugzilla.mozilla.org/show_bug.cgi?id=1217664
@@ -507,9 +505,9 @@ impl nsStyleImage {
                 };
 
                 let shape = match gecko_gradient.mShape as u32 {
-                    NS_STYLE_GRADIENT_SHAPE_CIRCULAR => {
+                    structs::NS_STYLE_GRADIENT_SHAPE_CIRCULAR => {
                         let circle = match gecko_gradient.mSize as u32 {
-                            NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => {
+                            structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => {
                                 let radius = Length::from_gecko_style_coord(&gecko_gradient.mRadiusX)
                                     .expect("mRadiusX could not convert to Length");
                                 debug_assert_eq!(radius,
@@ -520,9 +518,9 @@ impl nsStyleImage {
                         };
                         EndingShape::Circle(circle)
                     },
-                    NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL => {
+                    structs::NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL => {
                         let length_percentage_keyword = match gecko_gradient.mSize as u32 {
-                            NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => {
+                            structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => {
                                 match (LengthOrPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusX),
                                        LengthOrPercentage::from_gecko_style_coord(&gecko_gradient.mRadiusY)) {
                                     (Some(x), Some(y)) => Ellipse::Radii(x, y),
