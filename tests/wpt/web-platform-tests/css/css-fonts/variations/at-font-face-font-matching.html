@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing @font-face font matching logic introduced in CSS Fonts level 4</title>
+    <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-matching-algorithm" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        .test
+        {
+            float:left;
+            border:1px solid red;
+            font-size:24pt;
+            white-space: nowrap;
+            clear:both;
+        }
+
+        @font-face { font-family: W100; src: url('./resources/csstest-weights-100-kerned.ttf'); }
+        @font-face { font-family: W200; src: url('./resources/csstest-weights-200-kerned.ttf'); }
+        @font-face { font-family: W300; src: url('./resources/csstest-weights-300-kerned.ttf'); }
+
+
+        @font-face { font-family: descriptorPriorityTest; src: url('./resources/csstest-weights-100-kerned.ttf'); font-stretch : 125%; }
+        @font-face { font-family: descriptorPriorityTest; src: url('./resources/csstest-weights-200-kerned.ttf'); font-style: italic; }
+        @font-face { font-family: descriptorPriorityTest; src: url('./resources/csstest-weights-300-kerned.ttf'); font-weight: 350; }
+    </style>
+    <style id="dynamicStyles">
+    </style>
+</head>
+<body>
+
+    <span style="position: absolute; top: -100vh;">
+        <span style="font-family: 'W100';">A</span>
+        <span style="font-family: 'W200';">A</span>
+        <span style="font-family: 'W300';">A</span>
+    </span>
+
+    <div id="master" class="test">A1 A2 A2 A3 A3 A3</div>
+    <div id="test" class="test">A1 A2 A2 A3 A3 A3</div>
+    <div style="clear:both"></div>
+    <script>
+
+        // wait for the fonts to load
+        // -- this should not be necessary if the fonts are installed as required
+        // -- but if they are not, the test is otherwise unstable
+        var once_fonts_are_ready = (document.fonts ? document.fonts.ready : new Promise(function(ready) { window.onload = time => [...document.querySelectorAll('body > span:nth-child(1) > span')].every(e => e.offsetWidth > 20) ? ready() : requestAnimationFrame(window.onload) }));
+
+        var masterElement = document.getElementById("master");
+        var testElement = document.getElementById("test");
+        var dynamicStyles = document.getElementById("dynamicStyles");
+
+        function verifyFont(testFamily, testWeight, testStyle, testStretch, expectedFamily) {
+
+            testElement.style.fontWeight  = "normal";
+            testElement.style.fontStyle   = "normal";
+            testElement.style.fontStretch = "normal";
+
+            masterElement.style.fontFamily = expectedFamily;
+            let masterWidth = masterElement.offsetWidth;
+
+            testElement.style.fontFamily = expectedFamily;
+            assert_equals(masterWidth, testElement.offsetWidth, "Sanity test: same family name gets same width" + dynamicStyles.innerHTML);
+
+            testElement.style.fontFamily = "serif";
+            assert_not_equals(masterWidth, testElement.offsetWidth, "Sanity test: different family get different width");
+
+            testElement.style.fontWeight = testWeight;
+            testElement.style.fontStyle  = testStyle;
+            testElement.style.fontStretch = testStretch;
+            testElement.style.fontFamily = testFamily;
+
+            assert_true(masterWidth == testElement.offsetWidth, "Unexpected font on test element");
+        }
+
+        var descriptorPriorityCases = [
+            { weight: "normal", style: "oblique -5deg", stretch: "125%",   expectedFamily: "'W100'", description: "Stretch has higher priority than style"},
+            { weight: "350",    style: "normal",        stretch: "125%",   expectedFamily: "'W100'", description: "Stretch has higher priority than weight"},
+            { weight: "350",    style: "oblique -5deg", stretch: "normal", expectedFamily: "'W200'", description: "Style has higher priority than weight"}
+        ];
+
+        descriptorPriorityCases.forEach(function (testCase) {
+            promise_test(
+                assert => once_fonts_are_ready.then(assert => {
+                    verifyFont("descriptorPriorityTest", testCase.weight, testCase.style, testCase.stretch, testCase.expectedFamily);
+                }),
+                "Descriptor mathcing priority: " + testCase.description
+            );
+        });
+
+        function createFontFaceRules(fontFaceFamily, descriptorName, expectedMatch, unexpectedMatch) {
+            dynamicStyles.innerHTML =
+                "@font-face { font-family: " + fontFaceFamily + "; src: url('./resources/csstest-weights-100-kerned.ttf'); "+ descriptorName + ": " + expectedMatch   + "; }" +
+                "@font-face { font-family: " + fontFaceFamily + "; src: url('./resources/csstest-weights-200-kerned.ttf'); " + descriptorName + ": " + unexpectedMatch + "; }";
+        }
+
+        function testDescriptor(descriptorName, testCases) {
+            testCases.forEach(function (testCase) {
+                    // Go though test cases, checking each descriptor has higher priority than next in the list
+                    for(let i = 0; i < testCase.testDescriptors.length - 1; i++) {
+                        let expectedMatch   = testCase.testDescriptors[i];
+                        let unexpectedMatch = testCase.testDescriptors[i + 1];
+                        promise_test(
+                            assert => once_fonts_are_ready.then(assert => {
+                                createFontFaceRules("MatchTestFamily", descriptorName, expectedMatch, unexpectedMatch);
+
+                                let testWeight  = (descriptorName == "font-weight")  ? testCase.value : "normal";
+                                let testStyle   = (descriptorName == "font-style")   ? testCase.value : "normal";
+                                let testStretch = (descriptorName == "font-stretch") ? testCase.value : "normal";
+
+                                verifyFont("MatchTestFamily", testWeight, testStyle, testStretch, "'W100'");
+                            }),
+                            "Matching " + descriptorName + ": '" + testCase.value + "' should prefer '" + expectedMatch + "' over '" + unexpectedMatch + "'");
+                    }
+            });
+        }
+
+        // Each case defines property value being tested and set of descriptor values in order of matching priority from highest to lowest
+
+        testDescriptor("font-weight", [
+            { value: "400", testDescriptors: ["400", "450 460", "500", "350 399", "351 398", "501 550", "502 560"] },
+            { value: "430", testDescriptors: ["420 440", "450 460", "500", "400 425", "350 399", "340 398", "501 550", "502 560"] },
+            { value: "500", testDescriptors: ["500", "450 460", "400", "350 399", "351 398", "501 550", "502 560"] },
+            { value: "501", testDescriptors: ["501", "502 510", "503 520", "500", "450 460", "390 410", "300 350"] },
+            { value: "399", testDescriptors: ["350 399", "340 360", "200 300", "400", "450 460", "500 501", "502 510"] }
+        ]);
+
+        testDescriptor("font-stretch", [
+            { value: "100%", testDescriptors: ["100%", "110% 120%", "115% 116%"] },
+            { value: "110%", testDescriptors: ["110% 120%", "115% 116%", "105%", "100%", "50% 80%", "60% 70%"] },
+            { value: "90%",  testDescriptors: ["90% 100%", "50% 80%", "60% 70%", "110% 140%", "120% 130%"] },
+        ]);
+
+        testDescriptor("font-style", [
+            { value: "normal",         testDescriptors: ["normal", "oblique 0deg", "oblique 10deg 40deg", "oblique 20deg 30deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
+            { value: "italic",         testDescriptors: ["italic", "oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 5deg 10deg", "oblique 5deg", "normal", "oblique 0deg", "oblique -60deg -30deg", "oblique -50deg -40deg" ] },
+            { value: "oblique 20deg",  testDescriptors: ["oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 10deg", "italic", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
+            { value: "oblique 21deg",  testDescriptors: ["oblique 21deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 20deg", "oblique 10deg", "italic", "oblique 0deg",  "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
+            { value: "oblique 10deg",  testDescriptors: ["oblique 10deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
+            { value: "oblique 0deg",   testDescriptors: ["oblique 0deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
+            { value: "oblique -10deg", testDescriptors: ["oblique -10deg", "oblique -5deg", "oblique -1deg 0deg", "oblique -20deg -15deg", "oblique -60deg -30deg", "oblique -50deg -40deg", "italic", "oblique 0deg 10deg", "oblique 40deg 50deg" ] },
+            { value: "oblique -20deg", testDescriptors: ["oblique -20deg", "oblique -60deg -40deg", "oblique -10deg", "italic", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg"] },
+            { value: "oblique -21deg", testDescriptors: ["oblique -21deg", "oblique -60deg -40deg", "oblique -10deg", "italic", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg"] },
+        ]);
+
+    </script>
+</body>
+</html>

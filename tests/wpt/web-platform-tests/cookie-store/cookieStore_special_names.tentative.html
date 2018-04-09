@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Async Cookies: cookieStore handles special cookie names correctly</title>
+<title>Cookie Store: cookieStore handles special cookie names correctly</title>
 <link rel="help" href="https://github.com/WICG/cookie-store">
 <link rel="author" href="pwnall@chromium.org" title="Victor Costan">
 <script src="/resources/testharness.js"></script>
@@ -8,28 +8,64 @@
 <script>
 'use strict';
 
-promise_test(async testCase => {
-  await promise_rejects(testCase, new TypeError(), cookieStore.set(
-      '__Secure-cookie-name', 'secure-cookie-value'));
+['__Secure-', '__Host-'].forEach(prefix => {
+  promise_test(async testCase => {
+    await promise_rejects(
+      testCase, new TypeError(),
+      cookieStore.set(`${prefix}cookie-name`, `secure-cookie-value`),
+      `Setting ${prefix} cookies should fail in non-secure contexts`);
 
-  try { await cookieStore.delete('__Secure-cookie-name'); } catch (e) {}
-}, 'cookieStore.set with __Secure- name on insecure origin');
+    try { await cookieStore.delete(`${prefix}cookie-name`); } catch (e) {}
+  }, `cookieStore.set with ${prefix} name on non-secure origin`);
 
-promise_test(async testCase => {
-  await promise_rejects(testCase, new TypeError(), cookieStore.set(
-      '__Host-cookie-name', 'host-cookie-value'));
+  promise_test(async testCase => {
+    await promise_rejects(
+      testCase, new TypeError(),
+      cookieStore.set(
+        `${prefix}cookie-name`, `secure-cookie-value`, {
+          expires: Date.now() - (24 * 60 * 60 * 1000)
+        }),
+      `Setting expired ${prefix} cookies should fail in non-secure contexts`);
 
-  try { await cookieStore.delete('__Host-cookie-name'); } catch (e) {}
-}, 'cookieStore.set with __Host- name on insecure origin');
+    try { await cookieStore.delete(`${prefix}cookie-name`); } catch (e) {}
+  }, `cookieStore.set of expired ${prefix} cookie on non-secure origin`);
 
-promise_test(async testCase => {
-  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
-      '__Secure-cookie-name', 'secure-cookie-value'));
-}, 'cookieStore.delete with __Secure- name on insecure origin');
+  promise_test(async testCase => {
+    assert_equals(
+      await cookieStore.get(`${prefix}cookie-name`),
+      null,
+      'get with ${prefix} prefix should not reject');
+    assert_equals(
+      await cookieStore.get({name: `${prefix}cookie-name`}),
+      null,
+      'get with ${prefix} prefix name option should not reject');
+    assert_equals(
+      await cookieStore.get({name: prefix, matchType: 'startsWith'}),
+      null,
+      'get with ${prefix} name and startsWith options should not reject');
+  }, `cookieStore.get with ${prefix} name on non-secure origin`);
 
-promise_test(async testCase => {
-  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
-      '__Host-cookie-name', 'host-cookie-value'));
-}, 'cookieStore.delete with __Host- name on insecure origin');
+  promise_test(async testCase => {
+    assert_array_equals(
+      await cookieStore.getAll(`${prefix}cookie-name`),
+      [],
+      'getAll with ${prefix} prefix should not reject');
+    assert_array_equals(
+      await cookieStore.getAll({name: `${prefix}cookie-name`}),
+      [],
+      'getAll with ${prefix} prefix name option should not reject');
+    assert_array_equals(
+      await cookieStore.getAll({name: prefix, matchType: 'startsWith'}),
+      [],
+      'getAll with ${prefix} name and startsWith options should not reject');
+  }, `cookieStore.getAll with ${prefix} name on non-secure origin`);
+
+  promise_test(async testCase => {
+    await promise_rejects(
+      testCase, new TypeError(),
+      cookieStore.delete(`${prefix}cookie-name`, `host-cookie-value`),
+      `Deleting ${prefix} cookies should fail in non-secure contexts`);
+  }, `cookieStore.delete with ${prefix} name on non-secure origin`);
+});
 
 </script>

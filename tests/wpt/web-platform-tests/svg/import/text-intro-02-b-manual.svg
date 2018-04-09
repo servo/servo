@@ -31,7 +31,7 @@
         the various international characters used in this test case. A
         suitable font should be used by the SVG renderer if none of the
         specified font families are available (or if they are available but do
-        not have the required glyphs). 
+        not have the required glyphs).
       </p>
       <p>
         Run the test. No interaction required.

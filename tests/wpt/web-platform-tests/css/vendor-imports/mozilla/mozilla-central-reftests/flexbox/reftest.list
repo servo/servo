@@ -1,6 +1,7 @@
 # Tests for absolutely-positioned children of a flex container
 == flexbox-abspos-child-001a.html flexbox-abspos-child-001-ref.html
 == flexbox-abspos-child-001b.html flexbox-abspos-child-001-ref.html
+== flexbox-abspos-child-002.html flexbox-abspos-child-002-ref.html
 
 # Tests for handling anonymous flex items
 == flexbox-anonymous-items-001.html flexbox-anonymous-items-001-ref.html
@@ -96,6 +97,12 @@
 == flexbox-collapsed-item-horiz-001.html flexbox-collapsed-item-horiz-001-ref.html
 == flexbox-collapsed-item-horiz-002.html flexbox-collapsed-item-horiz-002-ref.html
 == flexbox-collapsed-item-horiz-003.html flexbox-collapsed-item-horiz-003-ref.html
+
+# Tests for "flex-basis: content"
+== flexbox-flex-basis-content-001a.html flexbox-flex-basis-content-001-ref.html
+== flexbox-flex-basis-content-001b.html flexbox-flex-basis-content-001-ref.html
+== flexbox-flex-basis-content-002a.html flexbox-flex-basis-content-002-ref.html
+== flexbox-flex-basis-content-002b.html flexbox-flex-basis-content-002-ref.html
 
 # Tests for flex-flow shorthand property
 == flexbox-flex-flow-001.html flexbox-flex-flow-001-ref.html

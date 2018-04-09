@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing new font-matching algorithm for font-weight values introduced in CSS Fonts level 4 (for system fonts)</title>
+    <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-matching-algorithm" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- THIS TEST REQUIRES THAT YOU INSTALL THE [csstest-*.ttf] FONTS OF THE [resources] FOLDER -->
+    <meta name="flags" content="font" />
+    <style>
+
+        .testcase {
+            float:left;
+            margin: 5px;
+            font-size:48pt;
+            font-feature-settings: "kern" 1;
+            color: rgba(0,0,0,0.5);
+            background: linear-gradient(to left, lime 0%, lime 91px, red 91px);
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 900');
+            font-weight: 100;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 800');
+            font-weight: 250;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 700');
+            font-weight: 400;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 600');
+            font-weight: 450;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 300');
+            font-weight: 500;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 200');
+            font-weight: 750;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 100');
+            font-weight: 900;
+        }
+
+    </style>
+</head>
+<body>
+
+    <span style="position: absolute; top: -100vh;">
+        <span style="font-family: fontMatch; font-weight: 100;">A</span>
+        <span style="font-family: fontMatch; font-weight: 250;">A</span>
+        <span style="font-family: fontMatch; font-weight: 400;">A</span>
+        <span style="font-family: fontMatch; font-weight: 450;">A</span>
+        <span style="font-family: fontMatch; font-weight: 500;">A</span>
+        <span style="font-family: fontMatch; font-weight: 750;">A</span>
+        <span style="font-family: fontMatch; font-weight: 900;">A</span>
+    </span>
+
+    <div id="testcases" style="overflow: hidden">
+        <!--
+            These testcases work using the new kerned CSSTest Weights fonts.
+            The letter A and its corresponding numeric digit kern as one character.
+        -->
+        <div class="testcase" style="font-family:'CSSTest Weights W2569'; font-weight: 375;">
+            A2
+        </div>
+        <div class="testcase" style="font-family:'CSSTest Weights Full'; font-weight: 375;">
+            A3
+        </div>
+        <div class="testcase" style="font-family:'CSSTest Weights W1479'; font-weight: 475;">
+            A4
+        </div>
+        <div class="testcase" style="font-family:'CSSTest Weights Full'; font-weight: 425;">
+            A5
+        </div>
+        <div class="testcase" style="font-family:'CSSTest Weights Full'; font-weight: 525;">
+            A6
+        </div>
+        <div class="testcase" style="font-family:'CSSTest Weights Full'; font-weight: 675;">
+            A7
+        </div>
+        <br clear="all">
+    </div>
+
+    <script>
+
+        var base_testcases = document.querySelectorAll('.testcase');
+        for(var i = 0; i < base_testcases.length; i++) {
+            test(
+                assert => { assert_approx_equals(base_testcases[i].getBoundingClientRect().width, 90, 2, "@font-face should be mapped to " + base_testcases[i].style.fontFamily + "."); },
+                "Test native font matching on " + base_testcases[i].style.fontFamily + " for weight " + base_testcases[i].style.fontWeight
+            );
+        }
+
+    </script>
+</body>
+</html>

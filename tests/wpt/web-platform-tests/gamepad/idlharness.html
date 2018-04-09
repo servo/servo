@@ -14,8 +14,9 @@
 promise_test(async () => {
   const idl_array = new IdlArray();
   const gamepad_idl = await fetch("/interfaces/gamepad.idl").then(r => r.text());
+  const dom = await fetch("/interfaces/dom.idl").then(r => r.text());
 
-  idl_array.add_untested_idls('interface Event {};');
+  idl_array.add_untested_idls(dom, {only: ['Event', 'EventInit']});
   idl_array.add_untested_idls('interface Navigator {};');
   idl_array.add_idls(gamepad_idl);
 

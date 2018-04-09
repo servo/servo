@@ -16,9 +16,9 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/color.html#ColorProperty">
         <p>
           Tests if the color datatype is supported. There are multiple syntaxes for
-        specifying the same color, such as #37F and #3377FF. This test is focussed on the 
-	X11 color names, which are not part of the tiny profile.
-	Each group of circles uses four forms - 6-digit hex, rbg() integer form, rgb() percentage form,
+        specifying the same color, such as #37F and #3377FF. This test is focussed on the
+  X11 color names, which are not part of the tiny profile.
+  Each group of circles uses four forms - 6-digit hex, rbg() integer form, rgb() percentage form,
         and named ('X11') colors. It does not use 3-digit hex, because the colors used in this test
         cannot be represented in three digit form.
         </p>
@@ -31,7 +31,7 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         For each of the nine groups of circles shown here, all circles must
-        be identical in color, and the same color as in the reference image. 
+        be identical in color, and the same color as in the reference image.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

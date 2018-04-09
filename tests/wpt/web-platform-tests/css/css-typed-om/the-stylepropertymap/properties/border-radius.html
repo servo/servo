@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>border radius properties</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+for (const suffix of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
+  // Computed value is always a pair of values, which are not supported in
+  // Typed OM level 1.
+  runPropertyTests('border-' + suffix + '-radius', [
+    {
+      syntax: '<length>',
+      computed: (_, result) => assert_is_unsupported(result)
+    },
+    {
+      syntax: '<percentage>',
+      computed: (_, result) => assert_is_unsupported(result)
+    },
+  ]);
+}
+
+// shorthand
+runUnsupportedPropertyTests('border-radius', [
+  '30px', '25% 10%', '10% / 50%', '50% 20% / 10% 40%'
+]);
+
+</script>

@@ -25,12 +25,12 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Run the test. No interaction required.
+        Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The test is passed if the three letter β are all the same size.
+        The test is passed if the three letter β are all the same size.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
