@@ -23,7 +23,7 @@
           the inner triangle is hollow.
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
       Run the test. No interaction required.
       </p>
@@ -47,7 +47,7 @@
     <!-- First Group of Triangles using M, L & Z commands ===================== -->
     <!-- ====================================================================== -->
     <g transform="scale(1.8)">
-      <!--		<text font-size="12"  x="160" y="14">Lines drawn with commands:</text> -->
+      <!--    <text font-size="12"  x="160" y="14">Lines drawn with commands:</text> -->
       <text font-size="12" x="88" y="30">M, L, L, L, Z,</text>
       <text font-size="12" x="98" y="46">subpath</text>
       <text font-size="12" x="88" y="61">M, L, L, L, Z</text>

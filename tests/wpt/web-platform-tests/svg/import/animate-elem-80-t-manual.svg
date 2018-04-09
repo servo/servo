@@ -190,7 +190,6 @@
         <text y="75" text-anchor="middle">(sx and sy)</text>
       </g>
 
-
       <g transform="translate(20,180)">
         <use xlink:href="#ref" x="40" y="40"/>
 

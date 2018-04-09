@@ -21,7 +21,7 @@
         The test shows a target that can be used to generate the various
         kinds of mouse events supported in SVG. Below the
         target, the list of events is shown with red markers next to each.
-      </p>      
+      </p>
       <p>
         If the test passes, all the markers should have turned to green
         after the events have been triggered on the target. If any event

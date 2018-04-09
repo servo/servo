@@ -1,3 +1,7 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the CSS Object Model (CSSOM) spec.
+// See https://drafts.csswg.org/cssom/
+
 typedef USVString CSSOMString;
 
 [Exposed=Window,
@@ -47,6 +51,7 @@ interface LinkStyle {
 };
 
 ProcessingInstruction implements LinkStyle;
+
 [Exposed=Window,
  LegacyArrayClass]
 interface CSSRuleList {

@@ -71,7 +71,6 @@
         <glyph unicode="a" glyph-name="upward-triangle" d="M0 0L500 0L250 900Z"/>
       </font>
 
-
       <font horiz-adv-x="500">
         <font-face font-family="SVGFont2" font-weight="bold" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
         <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
@@ -85,7 +84,6 @@
         <glyph unicode=" " glyph-name="space"/>
         <glyph unicode="a" glyph-name="upward-triangle" d="M0 0L500 0L250 900Z"/>
       </font>
-
 
       <font horiz-adv-x="500">
         <font-face font-family="SVGFont3" font-weight="300" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
@@ -119,7 +117,7 @@
     <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
-  <!-- comment out this watermark once the test is approved 
+  <!-- comment out this watermark once the test is approved
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
     <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"

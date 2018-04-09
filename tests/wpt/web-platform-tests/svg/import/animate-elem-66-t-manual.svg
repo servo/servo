@@ -106,7 +106,7 @@
         <text>&gt; 5s</text>
         <text x="80">0s-5s</text>
       </g>
-      
+
       <g transform="translate(150,40)" stroke="black">
         <defs>
           <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
