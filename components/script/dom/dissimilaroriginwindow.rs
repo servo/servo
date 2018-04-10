@@ -192,9 +192,13 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
+        let incumbent = match GlobalScope::incumbent() {
+            None => return warn!("postMessage called with no incumbent global"),
+            Some(incumbent) => incumbent,
+        };
         let msg = ScriptMsg::PostMessage(self.window_proxy.browsing_context_id(),
                                                 origin,
                                                 data.move_to_arraybuffer());
-        let _ = self.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+        let _ = incumbent.script_to_constellation_chan().send(msg);
     }
 }
