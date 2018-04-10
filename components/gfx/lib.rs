@@ -38,7 +38,7 @@ extern crate harfbuzz_sys as harfbuzz;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
+#[cfg(any(target_os = "linux", target_os = "android"))] extern crate libc;
 #[macro_use]
 extern crate log;
 #[cfg_attr(target_os = "windows", macro_use)]

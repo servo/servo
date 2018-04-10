@@ -40,11 +40,9 @@ num = [
 packages = [
   "bitflags",
   "winapi",
-  "syn",
-  "quote",
-  "unicode-xid",
   "log",
-  "rand"
+  "rand",
+  "num-traits",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
