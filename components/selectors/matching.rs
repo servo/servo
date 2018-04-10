@@ -692,10 +692,10 @@ where
     match *selector {
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
+            // <slots> are never flattened tree slottables.
+            !element.is_html_slot_element() &&
+            element.assigned_slot().is_some() &&
             context.shared.nest(|context| {
-                // <slots> are never flattened tree slottables.
-                !element.is_html_slot_element() &&
-                element.assigned_slot().is_some() &&
                 matches_complex_selector(
                     selector.iter(),
                     element,
@@ -814,8 +814,18 @@ where
             flags_setter(element, ElementSelectorFlags::HAS_EMPTY_SELECTOR);
             element.is_empty()
         }
-        Component::Host => {
-            context.shared.shadow_host().map_or(false, |host| host == element.opaque())
+        Component::Host(ref selector) => {
+            context.shared.shadow_host().map_or(false, |host| host == element.opaque()) &&
+            selector.as_ref().map_or(true, |selector| {
+                context.shared.nest(|context| {
+                    matches_complex_selector(
+                        selector.iter(),
+                        element,
+                        context,
+                        flags_setter,
+                    )
+                })
+            })
         }
         Component::Scope => {
             match context.shared.scope_element {

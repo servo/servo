@@ -2238,7 +2238,10 @@ impl CascadeData {
                         );
 
                         if rebuild_kind.should_rebuild_invalidation() {
-                            self.invalidation_map.note_selector(&rule.selector, quirks_mode)?;
+                            self.invalidation_map.note_selector(
+                                selector,
+                                quirks_mode,
+                            )?;
                             let mut visitor = StylistSelectorVisitor {
                                 needs_revalidation: false,
                                 passed_rightmost_selector: false,

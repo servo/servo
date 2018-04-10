@@ -794,6 +794,14 @@ pub trait TElement
             );
         }
 
+        if let Some(shadow) = self.shadow_root() {
+            f(
+                shadow.style_data(),
+                self.as_node().owner_doc().quirks_mode(),
+                Some(shadow.host()),
+            );
+        }
+
         let mut current = self.assigned_slot();
         while let Some(slot) = current {
             // Slots can only have assigned nodes when in a shadow tree.

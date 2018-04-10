@@ -381,11 +381,14 @@ where
         }
 
         match *self {
-            Slotted(ref selectors) => {
-                for selector in selectors.iter() {
-                    if !selector.visit(visitor) {
-                        return false;
-                    }
+            Slotted(ref selector) => {
+                if !selector.visit(visitor) {
+                    return false;
+                }
+            }
+            Host(Some(ref selector)) => {
+                if !selector.visit(visitor) {
+                    return false;
                 }
             }
             Negation(ref negated) => {
@@ -618,7 +621,7 @@ impl<'a, Impl: 'a + SelectorImpl> SelectorIter<'a, Impl> {
     /// combinators to the left.
     #[inline]
     pub(crate) fn is_featureless_host_selector(&mut self) -> bool {
-        self.all(|component| matches!(*component, Component::Host)) &&
+        self.all(|component| matches!(*component, Component::Host(..))) &&
         self.next_sequence().is_none()
     }
 
@@ -793,10 +796,6 @@ pub enum Component<Impl: SelectorImpl> {
     Root,
     Empty,
     Scope,
-    /// The `:host` pseudo-class:
-    ///
-    /// https://drafts.csswg.org/css-scoping/#host-selector
-    Host,
     NthChild(i32, i32),
     NthLastChild(i32, i32),
     NthOfType(i32, i32),
@@ -815,7 +814,19 @@ pub enum Component<Impl: SelectorImpl> {
     /// NOTE(emilio): This should support a list of selectors, but as of this
     /// writing no other browser does, and that allows them to put ::slotted()
     /// in the rule hash, so we do that too.
+    ///
+    /// See https://github.com/w3c/csswg-drafts/issues/2158
     Slotted(Selector<Impl>),
+    /// The `:host` pseudo-class:
+    ///
+    /// https://drafts.csswg.org/css-scoping/#host-selector
+    ///
+    /// NOTE(emilio): This should support a list of selectors, but as of this
+    /// writing no other browser does, and that allows them to put :host()
+    /// in the rule hash, so we do that too.
+    ///
+    /// See https://github.com/w3c/csswg-drafts/issues/2158
+    Host(Option<Selector<Impl>>),
     PseudoElement(Impl::PseudoElement),
 }
 
@@ -1119,7 +1130,15 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             Root => dest.write_str(":root"),
             Empty => dest.write_str(":empty"),
             Scope => dest.write_str(":scope"),
-            Host => dest.write_str(":host"),
+            Host(ref selector) => {
+                dest.write_str(":host")?;
+                if let Some(ref selector) = *selector {
+                    dest.write_char('(')?;
+                    selector.to_css(dest)?;
+                    dest.write_char(')')?;
+                }
+                Ok(())
+            },
             FirstOfType => dest.write_str(":first-of-type"),
             LastOfType => dest.write_str(":last-of-type"),
             OnlyOfType => dest.write_str(":only-of-type"),
@@ -1816,6 +1835,7 @@ where
         "nth-of-type" => return Ok(parse_nth_pseudo_class(input, Component::NthOfType)?),
         "nth-last-child" => return Ok(parse_nth_pseudo_class(input, Component::NthLastChild)?),
         "nth-last-of-type" => return Ok(parse_nth_pseudo_class(input, Component::NthLastOfType)?),
+        "host" => return Ok(Component::Host(Some(parse_inner_compound_selector(parser, input)?))),
         "not" => {
             if inside_negation {
                 return Err(input.new_custom_error(
@@ -1969,7 +1989,7 @@ where
         "root" => Ok(Component::Root),
         "empty" => Ok(Component::Empty),
         "scope" => Ok(Component::Scope),
-        "host" if P::parse_host(parser) => Ok(Component::Host),
+        "host" if P::parse_host(parser) => Ok(Component::Host(None)),
         "first-of-type" => Ok(Component::FirstOfType),
         "last-of-type" => Ok(Component::LastOfType),
         "only-of-type" => Ok(Component::OnlyOfType),
