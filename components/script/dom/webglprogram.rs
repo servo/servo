@@ -303,10 +303,11 @@ impl WebGLProgram {
 
         // Check if the name is reserved
         if name.starts_with("gl_") {
-            return Err(WebGLError::InvalidOperation);
+            return Ok(None);
         }
 
-        if name.starts_with("webgl") || name.starts_with("_webgl_") {
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#GLSL_CONSTRUCTS
+        if name.starts_with("webgl_") || name.starts_with("_webgl_") {
             return Ok(None);
         }
 

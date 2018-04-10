@@ -151,6 +151,13 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
             }
         };
 
+        // GL_INVALID_VALUE is generated if target is one of the six cube map 2D
+        // image targets and the width and height parameters are not equal.
+        if target.is_cubic() && self.width != self.height {
+            self.context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::InvalidCubicTextureDimensions);
+        }
+
         // GL_INVALID_VALUE is generated if level is less than 0.
         if self.level < 0 {
             self.context.webgl_error(InvalidValue);
@@ -286,13 +293,6 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
             height,
             border,
         } = self.common_validator.validate()?;
-
-        // GL_INVALID_VALUE is generated if target is one of the six cube map 2D
-        // image targets and the width and height parameters are not equal.
-        if target.is_cubic() && width != height {
-            context.webgl_error(InvalidValue);
-            return Err(TexImageValidationError::InvalidCubicTextureDimensions);
-        }
 
         // GL_INVALID_ENUM is generated if format or data_type is not an
         // accepted value.
