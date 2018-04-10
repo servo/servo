@@ -14,7 +14,7 @@ use servo_arc::Arc;
 use shared_lock::SharedRwLock;
 use std::borrow::Cow;
 use std::str;
-use stylesheets::{Stylesheet, StylesheetLoader, Origin, UrlExtraData};
+use stylesheets::{Origin, Stylesheet, StylesheetLoader, UrlExtraData};
 
 struct EncodingRs;
 
@@ -26,8 +26,7 @@ impl EncodingSupport for EncodingRs {
     }
 
     fn is_utf16_be_or_le(encoding: &Self::Encoding) -> bool {
-        *encoding == encoding_rs::UTF_16LE ||
-        *encoding == encoding_rs::UTF_16BE
+        *encoding == encoding_rs::UTF_16LE || *encoding == encoding_rs::UTF_16BE
     }
 
     fn from_label(ascii_label: &[u8]) -> Option<Self::Encoding> {
@@ -35,11 +34,16 @@ impl EncodingSupport for EncodingRs {
     }
 }
 
-fn decode_stylesheet_bytes<'a>(css: &'a [u8], protocol_encoding_label: Option<&str>,
-                               environment_encoding: Option<&'static encoding_rs::Encoding>)
-                               -> Cow<'a, str> {
+fn decode_stylesheet_bytes<'a>(
+    css: &'a [u8],
+    protocol_encoding_label: Option<&str>,
+    environment_encoding: Option<&'static encoding_rs::Encoding>,
+) -> Cow<'a, str> {
     let fallback_encoding = stylesheet_encoding::<EncodingRs>(
-        css, protocol_encoding_label.map(str::as_bytes), environment_encoding);
+        css,
+        protocol_encoding_label.map(str::as_bytes),
+        environment_encoding,
+    );
     let (result, _used_encoding, _) = fallback_encoding.decode(&css);
     // FIXME record used encoding for environment encoding of @import
     result
@@ -51,48 +55,56 @@ impl Stylesheet {
     ///
     /// Takes care of decoding the network bytes and forwards the resulting
     /// string to `Stylesheet::from_str`.
-    pub fn from_bytes<R>(bytes: &[u8],
-                         url_data: UrlExtraData,
-                         protocol_encoding_label: Option<&str>,
-                         environment_encoding: Option<&'static encoding_rs::Encoding>,
-                         origin: Origin,
-                         media: MediaList,
-                         shared_lock: SharedRwLock,
-                         stylesheet_loader: Option<&StylesheetLoader>,
-                         error_reporter: &R,
-                         quirks_mode: QuirksMode)
-                         -> Stylesheet
-        where R: ParseErrorReporter
+    pub fn from_bytes<R>(
+        bytes: &[u8],
+        url_data: UrlExtraData,
+        protocol_encoding_label: Option<&str>,
+        environment_encoding: Option<&'static encoding_rs::Encoding>,
+        origin: Origin,
+        media: MediaList,
+        shared_lock: SharedRwLock,
+        stylesheet_loader: Option<&StylesheetLoader>,
+        error_reporter: &R,
+        quirks_mode: QuirksMode,
+    ) -> Stylesheet
+    where
+        R: ParseErrorReporter,
     {
         let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string,
-                             url_data,
-                             origin,
-                             Arc::new(shared_lock.wrap(media)),
-                             shared_lock,
-                             stylesheet_loader,
-                             error_reporter,
-                             quirks_mode,
-                             0)
+        Stylesheet::from_str(
+            &string,
+            url_data,
+            origin,
+            Arc::new(shared_lock.wrap(media)),
+            shared_lock,
+            stylesheet_loader,
+            error_reporter,
+            quirks_mode,
+            0,
+        )
     }
 
     /// Updates an empty stylesheet with a set of bytes that reached over the
     /// network.
-    pub fn update_from_bytes<R>(existing: &Stylesheet,
-                                bytes: &[u8],
-                                protocol_encoding_label: Option<&str>,
-                                environment_encoding: Option<&'static encoding_rs::Encoding>,
-                                url_data: UrlExtraData,
-                                stylesheet_loader: Option<&StylesheetLoader>,
-                                error_reporter: &R)
-        where R: ParseErrorReporter
+    pub fn update_from_bytes<R>(
+        existing: &Stylesheet,
+        bytes: &[u8],
+        protocol_encoding_label: Option<&str>,
+        environment_encoding: Option<&'static encoding_rs::Encoding>,
+        url_data: UrlExtraData,
+        stylesheet_loader: Option<&StylesheetLoader>,
+        error_reporter: &R,
+    ) where
+        R: ParseErrorReporter,
     {
         let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
-        Self::update_from_str(existing,
-                              &string,
-                              url_data,
-                              stylesheet_loader,
-                              error_reporter,
-                              0)
+        Self::update_from_str(
+            existing,
+            &string,
+            url_data,
+            stylesheet_loader,
+            error_reporter,
+            0,
+        )
     }
 }

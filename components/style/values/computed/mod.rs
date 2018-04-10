@@ -9,7 +9,7 @@ use Atom;
 use Prefix;
 use context::QuirksMode;
 use euclid::Size2D;
-use font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
+use font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
 use media_queries::Device;
 #[cfg(feature = "gecko")]
 use properties;
@@ -25,24 +25,24 @@ use super::{CSSFloat, CSSInteger};
 use super::animated::ToAnimatedValue;
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
-use super::generics::grid::{TrackSize as GenericTrackSize, TrackList as GenericTrackList};
+use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::specified;
 
 pub use app_units::Au;
 pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignItems, AlignContent, JustifyContent, SelfAlignment, JustifyItems};
+pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
-pub use self::background::{BackgroundSize, BackgroundRepeat};
-pub use self::border::{BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
-pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
-pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
-pub use self::font::{FontFamily, FontLanguageOverride, FontVariationSettings, FontVariantEastAsian};
-pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
-pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
+pub use self::background::{BackgroundRepeat, BackgroundSize};
+pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderImageSlice, BorderImageWidth};
+pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
+pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontVariantAlternates, FontWeight};
+pub use self::font::{FontFamily, FontLanguageOverride, FontVariantEastAsian, FontVariationSettings};
+pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
+pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective};
 pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
@@ -52,7 +52,7 @@ pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
-pub use self::inherited_box::{Orientation, ImageOrientation};
+pub use self::inherited_box::{ImageOrientation, Orientation};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
@@ -96,10 +96,10 @@ pub mod counters;
 pub mod effects;
 pub mod flex;
 pub mod font;
-pub mod image;
-pub mod inherited_box;
 #[cfg(feature = "gecko")]
 pub mod gecko;
+pub mod image;
+pub mod inherited_box;
 pub mod length;
 pub mod list;
 pub mod outline;
@@ -171,13 +171,9 @@ impl<'a> Context<'a> {
     /// Creates a suitable context for media query evaluation, in which
     /// font-relative units compute against the system_font, and executes `f`
     /// with it.
-    pub fn for_media_query_evaluation<F, R>(
-        device: &Device,
-        quirks_mode: QuirksMode,
-        f: F,
-    ) -> R
+    pub fn for_media_query_evaluation<F, R>(device: &Device, quirks_mode: QuirksMode, f: F) -> R
     where
-        F: FnOnce(&Context) -> R
+        F: FnOnce(&Context) -> R,
     {
         let mut conditions = RuleCacheConditions::default();
         let provider = get_metrics_provider_for_product();
@@ -209,7 +205,9 @@ impl<'a> Context<'a> {
 
     /// The current viewport size, used to resolve viewport units.
     pub fn viewport_size_for_viewport_unit_resolution(&self) -> Size2D<Au> {
-        self.builder.device.au_viewport_size_for_viewport_unit_resolution()
+        self.builder
+            .device
+            .au_viewport_size_for_viewport_unit_resolution()
     }
 
     /// The default computed style we're getting our reset style from.
@@ -259,7 +257,9 @@ impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ComputedVecIter<'a, 'cx, 'cx_
     }
 }
 
-impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ExactSizeIterator for ComputedVecIter<'a, 'cx, 'cx_a, S> {
+impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ExactSizeIterator
+    for ComputedVecIter<'a, 'cx, 'cx_a, S>
+{
     fn len(&self) -> usize {
         self.values.len()
     }
@@ -308,7 +308,9 @@ pub trait ToComputedValue {
 }
 
 impl<A, B> ToComputedValue for (A, B)
-    where A: ToComputedValue, B: ToComputedValue,
+where
+    A: ToComputedValue,
+    B: ToComputedValue,
 {
     type ComputedValue = (
         <A as ToComputedValue>::ComputedValue,
@@ -317,17 +319,24 @@ impl<A, B> ToComputedValue for (A, B)
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        (self.0.to_computed_value(context), self.1.to_computed_value(context))
+        (
+            self.0.to_computed_value(context),
+            self.1.to_computed_value(context),
+        )
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        (A::from_computed_value(&computed.0), B::from_computed_value(&computed.1))
+        (
+            A::from_computed_value(&computed.0),
+            B::from_computed_value(&computed.1),
+        )
     }
 }
 
 impl<T> ToComputedValue for Option<T>
-    where T: ToComputedValue
+where
+    T: ToComputedValue,
 {
     type ComputedValue = Option<<T as ToComputedValue>::ComputedValue>;
 
@@ -343,7 +352,8 @@ impl<T> ToComputedValue for Option<T>
 }
 
 impl<T> ToComputedValue for Size2D<T>
-    where T: ToComputedValue
+where
+    T: ToComputedValue,
 {
     type ComputedValue = Size2D<<T as ToComputedValue>::ComputedValue>;
 
@@ -365,13 +375,16 @@ impl<T> ToComputedValue for Size2D<T>
 }
 
 impl<T> ToComputedValue for Vec<T>
-    where T: ToComputedValue
+where
+    T: ToComputedValue,
 {
     type ComputedValue = Vec<<T as ToComputedValue>::ComputedValue>;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        self.iter().map(|item| item.to_computed_value(context)).collect()
+        self.iter()
+            .map(|item| item.to_computed_value(context))
+            .collect()
     }
 
     #[inline]
@@ -381,7 +394,8 @@ impl<T> ToComputedValue for Vec<T>
 }
 
 impl<T> ToComputedValue for Box<T>
-    where T: ToComputedValue
+where
+    T: ToComputedValue,
 {
     type ComputedValue = Box<<T as ToComputedValue>::ComputedValue>;
 
@@ -397,18 +411,26 @@ impl<T> ToComputedValue for Box<T>
 }
 
 impl<T> ToComputedValue for Box<[T]>
-    where T: ToComputedValue
+where
+    T: ToComputedValue,
 {
     type ComputedValue = Box<[<T as ToComputedValue>::ComputedValue]>;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        self.iter().map(|item| item.to_computed_value(context)).collect::<Vec<_>>().into_boxed_slice()
+        self.iter()
+            .map(|item| item.to_computed_value(context))
+            .collect::<Vec<_>>()
+            .into_boxed_slice()
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        computed.iter().map(T::from_computed_value).collect::<Vec<_>>().into_boxed_slice()
+        computed
+            .iter()
+            .map(T::from_computed_value)
+            .collect::<Vec<_>>()
+            .into_boxed_slice()
     }
 }
 
@@ -504,19 +526,25 @@ impl ToComputedValue for specified::NumberOrPercentage {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> NumberOrPercentage {
         match *self {
-            specified::NumberOrPercentage::Percentage(percentage) =>
-                NumberOrPercentage::Percentage(percentage.to_computed_value(context)),
-            specified::NumberOrPercentage::Number(number) =>
-                NumberOrPercentage::Number(number.to_computed_value(context)),
+            specified::NumberOrPercentage::Percentage(percentage) => {
+                NumberOrPercentage::Percentage(percentage.to_computed_value(context))
+            },
+            specified::NumberOrPercentage::Number(number) => {
+                NumberOrPercentage::Number(number.to_computed_value(context))
+            },
         }
     }
     #[inline]
     fn from_computed_value(computed: &NumberOrPercentage) -> Self {
         match *computed {
-            NumberOrPercentage::Percentage(percentage) =>
-                specified::NumberOrPercentage::Percentage(ToComputedValue::from_computed_value(&percentage)),
-            NumberOrPercentage::Number(number) =>
-                specified::NumberOrPercentage::Number(ToComputedValue::from_computed_value(&number)),
+            NumberOrPercentage::Percentage(percentage) => {
+                specified::NumberOrPercentage::Percentage(ToComputedValue::from_computed_value(
+                    &percentage,
+                ))
+            },
+            NumberOrPercentage::Number(number) => {
+                specified::NumberOrPercentage::Number(ToComputedValue::from_computed_value(&number))
+            },
         }
     }
 }
@@ -627,7 +655,7 @@ impl ClipRectOrAuto {
     pub fn is_auto(&self) -> bool {
         match *self {
             Either::Second(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }

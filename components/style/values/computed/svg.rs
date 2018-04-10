@@ -7,7 +7,7 @@
 use app_units::Au;
 use values::RGBA;
 use values::computed::{LengthOrPercentage, NonNegativeLength};
-use values::computed::{NonNegativeNumber, NonNegativeLengthOrPercentage, Number};
+use values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number};
 use values::computed::Opacity;
 use values::computed::url::ComputedUrl;
 use values::generics::svg as generic;
@@ -51,8 +51,9 @@ pub type SVGLength = generic::SVGLength<SvgLengthOrPercentageOrNumber>;
 
 impl From<Au> for SVGLength {
     fn from(length: Au) -> Self {
-        generic::SVGLength::Length(
-            generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(length.into()))
+        generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+            length.into(),
+        ))
     }
 }
 
@@ -64,7 +65,7 @@ pub type NonNegativeSvgLengthOrPercentageOrNumber =
 impl Into<NonNegativeSvgLengthOrPercentageOrNumber> for SvgLengthOrPercentageOrNumber {
     fn into(self) -> NonNegativeSvgLengthOrPercentageOrNumber {
         match self {
-            generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) =>{
+            generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
                 generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop.into())
             },
             generic::SvgLengthOrPercentageOrNumber::Number(num) => {
@@ -79,8 +80,9 @@ pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthOrPercentageOrNumber>
 
 impl From<NonNegativeLength> for SVGWidth {
     fn from(length: NonNegativeLength) -> Self {
-        generic::SVGLength::Length(
-            generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(length.into()))
+        generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+            length.into(),
+        ))
     }
 }
 

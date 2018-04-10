@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use std::fmt::{self, Write};
-use style_traits::{ToCss, CssWriter};
+use style_traits::{CssWriter, ToCss};
 use values::animated::ToAnimatedZero;
 use values::computed::{Context, Number, NumberOrPercentage, ToComputedValue};
 use values::computed::length::{LengthOrPercentage, NonNegativeLength};
@@ -49,7 +49,10 @@ impl BorderImageSideWidth {
 impl BorderSpacing {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderSpacing(Size::new(NonNegativeLength::zero(), NonNegativeLength::zero()))
+        GenericBorderSpacing(Size::new(
+            NonNegativeLength::zero(),
+            NonNegativeLength::zero(),
+        ))
     }
 
     /// Returns the horizontal spacing.
@@ -66,7 +69,10 @@ impl BorderSpacing {
 impl BorderCornerRadius {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderCornerRadius(Size::new(LengthOrPercentage::zero(), LengthOrPercentage::zero()))
+        GenericBorderCornerRadius(Size::new(
+            LengthOrPercentage::zero(),
+            LengthOrPercentage::zero(),
+        ))
     }
 }
 
@@ -87,7 +93,10 @@ pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeat
 impl BorderImageRepeat {
     /// Returns the `stretch` value.
     pub fn stretch() -> Self {
-        BorderImageRepeat(BorderImageRepeatKeyword::Stretch, BorderImageRepeatKeyword::Stretch)
+        BorderImageRepeat(
+            BorderImageRepeatKeyword::Stretch,
+            BorderImageRepeatKeyword::Stretch,
+        )
     }
 }
 

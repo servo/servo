@@ -14,19 +14,13 @@ impl<T> Deref for nsTArray<T> {
     type Target = [T];
 
     fn deref<'a>(&'a self) -> &'a [T] {
-        unsafe {
-            slice::from_raw_parts(self.slice_begin(),
-                                  self.header().mLength as usize)
-        }
+        unsafe { slice::from_raw_parts(self.slice_begin(), self.header().mLength as usize) }
     }
 }
 
 impl<T> DerefMut for nsTArray<T> {
     fn deref_mut<'a>(&'a mut self) -> &'a mut [T] {
-        unsafe {
-            slice::from_raw_parts_mut(self.slice_begin(),
-                                      self.header().mLength as usize)
-        }
+        unsafe { slice::from_raw_parts_mut(self.slice_begin(), self.header().mLength as usize) }
     }
 }
 
@@ -56,8 +50,11 @@ impl<T> nsTArray<T> {
     pub fn ensure_capacity(&mut self, cap: usize) {
         if cap >= self.len() {
             unsafe {
-                bindings::Gecko_EnsureTArrayCapacity(self as *mut nsTArray<T> as *mut _,
-                                                     cap, mem::size_of::<T>())
+                bindings::Gecko_EnsureTArrayCapacity(
+                    self as *mut nsTArray<T> as *mut _,
+                    cap,
+                    mem::size_of::<T>(),
+                )
             }
         }
     }
@@ -66,17 +63,19 @@ impl<T> nsTArray<T> {
     #[inline]
     pub unsafe fn clear(&mut self) {
         if self.len() != 0 {
-            bindings::Gecko_ClearPODTArray(self as *mut nsTArray<T> as *mut _,
-                                           mem::size_of::<T>(),
-                                           mem::align_of::<T>());
+            bindings::Gecko_ClearPODTArray(
+                self as *mut nsTArray<T> as *mut _,
+                mem::size_of::<T>(),
+                mem::align_of::<T>(),
+            );
         }
     }
-
 
     /// Clears a POD array. This is safe since copy types are memcopyable.
     #[inline]
     pub fn clear_pod(&mut self)
-        where T: Copy
+    where
+        T: Copy,
     {
         unsafe { self.clear() }
     }
@@ -98,7 +97,10 @@ impl<T> nsTArray<T> {
     /// Resizes an array containing only POD elements
     ///
     /// This will not leak since it only works on POD types (and thus doesn't assert)
-    pub unsafe fn set_len_pod(&mut self, len: u32) where T: Copy {
+    pub unsafe fn set_len_pod(&mut self, len: u32)
+    where
+        T: Copy,
+    {
         self.ensure_capacity(len as usize);
         let header = self.header_mut();
         header.mLength = len;

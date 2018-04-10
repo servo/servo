@@ -7,8 +7,8 @@
 use values::animated::ToAnimatedZero;
 
 /// A generic value for the `vertical-align` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToComputedValue, ToCss)]
 pub enum VerticalAlign<LengthOrPercentage> {
     /// `baseline`
     Baseline,
@@ -57,8 +57,8 @@ pub enum AnimationIterationCount<Number> {
 }
 
 /// A generic value for the `perspective` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum Perspective<NonNegativeLength> {
     /// A non-negative length.
     Length(NonNegativeLength),

@@ -21,14 +21,16 @@ use values::specified::length::LengthOrPercentage;
 pub type ScrollSnapPoint = GenericScrollSnapPoint<LengthOrPercentage>;
 
 impl Parse for ScrollSnapPoint {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericScrollSnapPoint::None);
         }
         input.expect_function_matching("repeat")?;
-        let length = input.parse_nested_block(|i| {
-            LengthOrPercentage::parse_non_negative(context, i)
-        })?;
+        let length =
+            input.parse_nested_block(|i| LengthOrPercentage::parse_non_negative(context, i))?;
         Ok(GenericScrollSnapPoint::Repeat(length))
     }
 }
@@ -45,27 +47,25 @@ pub enum PixelOrPercentage {
 impl Parse for PixelOrPercentage {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let token = input.next()?;
         let value = match *token {
-            Token::Dimension { value, ref unit, .. } => {
+            Token::Dimension {
+                value, ref unit, ..
+            } => {
                 match_ignore_ascii_case! { unit,
                     "px" => Ok(PixelOrPercentage::Pixel(CSSPixelLength::new(value))),
                     _ => Err(()),
                 }
-            }
-            Token::Percentage { unit_value, .. } => {
-                Ok(PixelOrPercentage::Percentage(
-                    computed::Percentage(unit_value)
-                ))
-            }
+            },
+            Token::Percentage { unit_value, .. } => Ok(PixelOrPercentage::Percentage(
+                computed::Percentage(unit_value),
+            )),
             _ => Err(()),
         };
-        value.map_err(|()| {
-            location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-        })
+        value.map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -110,7 +110,10 @@ impl Parse for IntersectionObserverRootMargin {
 //
 // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin>
 impl ToCss for IntersectionObserverRootMargin {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         // We cannot use the ToCss impl of Rect, because that would
         // merge items when they are equal. We want to list them all.
         let mut writer = SequenceWriter::new(dest, " ");

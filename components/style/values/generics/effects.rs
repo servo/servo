@@ -10,8 +10,7 @@ use style_traits::values::{CssWriter, SequenceWriter, ToCss};
 use values::specified::url::SpecifiedUrl;
 
 /// A generic value for a single `box-shadow`.
-#[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToAnimatedValue, ToAnimatedZero)]
+#[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToAnimatedZero)]
 pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
     /// The base shadow.
     pub base: SimpleShadow<Color, SizeLength, BlurShapeLength>,
@@ -24,8 +23,8 @@ pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
 
 /// A generic value for a single `filter`.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
+         ToComputedValue, ToCss)]
 pub enum Filter<Angle, Factor, Length, DropShadow> {
     /// `blur(<length>)`
     #[css(function)]
@@ -67,8 +66,8 @@ pub enum Filter<Angle, Factor, Length, DropShadow> {
 ///
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko and Webkit.
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToAnimatedValue, ToAnimatedZero, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
+         ToAnimatedZero, ToCss)]
 pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     /// Color.
     pub color: Color,
@@ -80,10 +79,8 @@ pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     pub blur: ShapeLength,
 }
 
-impl<Color, SizeLength, BlurShapeLength, ShapeLength> ToCss for BoxShadow<Color,
-                                                                          SizeLength,
-                                                                          BlurShapeLength,
-                                                                          ShapeLength>
+impl<Color, SizeLength, BlurShapeLength, ShapeLength> ToCss
+    for BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength>
 where
     Color: ToCss,
     SizeLength: ToCss,

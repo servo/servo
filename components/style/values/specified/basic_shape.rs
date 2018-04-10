@@ -52,19 +52,25 @@ where
     ReferenceBox: Parse,
     ImageOrUrl: Parse,
 {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(ShapeSource::None)
+            return Ok(ShapeSource::None);
         }
 
         if let Ok(image_or_url) = input.try(|i| ImageOrUrl::parse(context, i)) {
-            return Ok(ShapeSource::ImageOrUrl(image_or_url))
+            return Ok(ShapeSource::ImageOrUrl(image_or_url));
         }
 
-        fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
-                                     component: &mut Option<U>) -> bool {
+        fn parse_component<U: Parse>(
+            context: &ParserContext,
+            input: &mut Parser,
+            component: &mut Option<U>,
+        ) -> bool {
             if component.is_some() {
-                return false            // already parsed this component
+                return false; // already parsed this component
             }
 
             *component = input.try(|i| U::parse(context, i)).ok();
@@ -75,22 +81,28 @@ where
         let mut ref_box = None;
 
         while parse_component(context, input, &mut shape) ||
-              parse_component(context, input, &mut ref_box) {
+            parse_component(context, input, &mut ref_box)
+        {
             //
         }
 
         if let Some(shp) = shape {
-            return Ok(ShapeSource::Shape(shp, ref_box))
+            return Ok(ShapeSource::Shape(shp, ref_box));
         }
 
-        ref_box.map(|v| ShapeSource::Box(v)).ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        ref_box
+            .map(|v| ShapeSource::Box(v))
+            .ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
 impl Parse for GeometryBox {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(shape_box) = input.try(|i| ShapeBox::parse(i)) {
-            return Ok(GeometryBox::ShapeBox(shape_box))
+            return Ok(GeometryBox::ShapeBox(shape_box));
         }
 
         try_match_ident_ignore_ascii_case! { input,
@@ -102,7 +114,10 @@ impl Parse for GeometryBox {
 }
 
 impl Parse for BasicShape {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let function = input.expect_function()?.clone();
         input.parse_nested_block(move |i| {
@@ -112,13 +127,18 @@ impl Parse for BasicShape {
                 "ellipse" => return Ellipse::parse_function_arguments(context, i).map(generic::BasicShape::Ellipse),
                 "polygon" => return Polygon::parse_function_arguments(context, i).map(generic::BasicShape::Polygon),
                 _ => Err(())
-            }).map_err(|()| location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone())))
+            }).map_err(|()| {
+                location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone()))
+            })
         })
     }
 }
 
 impl Parse for InsetRect {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("inset")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -144,8 +164,10 @@ impl InsetRect {
 }
 
 impl Parse for Circle {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("circle")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -156,7 +178,9 @@ impl Circle {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let radius = input.try(|i| ShapeRadius::parse(context, i)).unwrap_or_default();
+        let radius = input
+            .try(|i| ShapeRadius::parse(context, i))
+            .unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
         } else {
@@ -185,7 +209,10 @@ impl ToCss for Circle {
 }
 
 impl Parse for Ellipse {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("ellipse")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -196,9 +223,14 @@ impl Ellipse {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let (a, b) = input.try(|i| -> Result<_, ParseError> {
-            Ok((ShapeRadius::parse(context, i)?, ShapeRadius::parse(context, i)?))
-        }).unwrap_or_default();
+        let (a, b) = input
+            .try(|i| -> Result<_, ParseError> {
+                Ok((
+                    ShapeRadius::parse(context, i)?,
+                    ShapeRadius::parse(context, i)?,
+                ))
+            })
+            .unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
         } else {
@@ -233,10 +265,12 @@ impl ToCss for Ellipse {
 }
 
 impl Parse for ShapeRadius {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
-            return Ok(generic::ShapeRadius::Length(lop))
+            return Ok(generic::ShapeRadius::Length(lop));
         }
 
         try_match_ident_ignore_ascii_case! { input,
@@ -252,35 +286,39 @@ impl Parse for ShapeRadius {
 /// are converted to percentages where possible. Only the two or four
 /// value forms are used. In case of two keyword-percentage pairs,
 /// the keywords are folded into the percentages
-fn serialize_basicshape_position<W>(
-    position: &Position,
-    dest: &mut CssWriter<W>,
-) -> fmt::Result
+fn serialize_basicshape_position<W>(position: &Position, dest: &mut CssWriter<W>) -> fmt::Result
 where
     W: Write,
 {
     fn to_keyword_and_lop<S>(component: &PositionComponent<S>) -> (S, Cow<LengthOrPercentage>)
-        where S: Copy + Side
+    where
+        S: Copy + Side,
     {
         match *component {
-            PositionComponent::Center => {
-                (S::start(), Cow::Owned(LengthOrPercentage::Percentage(Percentage(0.5))))
-            },
+            PositionComponent::Center => (
+                S::start(),
+                Cow::Owned(LengthOrPercentage::Percentage(Percentage(0.5))),
+            ),
             PositionComponent::Side(keyword, None) => {
                 // left | top => 0%
                 // right | bottom => 100%
                 let p = if keyword.is_start() { 0. } else { 1. };
-                (S::start(), Cow::Owned(LengthOrPercentage::Percentage(Percentage(p))))
+                (
+                    S::start(),
+                    Cow::Owned(LengthOrPercentage::Percentage(Percentage(p))),
+                )
             },
             PositionComponent::Side(keyword, Some(ref lop)) if !keyword.is_start() => {
                 if let LengthOrPercentage::Percentage(p) = *to_non_zero_length(lop) {
-                    (S::start(), Cow::Owned(LengthOrPercentage::Percentage(Percentage(1. - p.0))))
+                    (
+                        S::start(),
+                        Cow::Owned(LengthOrPercentage::Percentage(Percentage(1. - p.0))),
+                    )
                 } else {
                     (keyword, Cow::Borrowed(lop))
                 }
             },
-            PositionComponent::Length(ref lop) |
-            PositionComponent::Side(_, Some(ref lop)) => {
+            PositionComponent::Length(ref lop) | PositionComponent::Side(_, Some(ref lop)) => {
                 (S::start(), to_non_zero_length(lop))
             },
         }
@@ -291,9 +329,7 @@ where
             LengthOrPercentage::Length(ref l) if l.is_zero() => {
                 Cow::Owned(LengthOrPercentage::Percentage(Percentage(0.)))
             },
-            _ => {
-                Cow::Borrowed(lop)
-            }
+            _ => Cow::Borrowed(lop),
         }
     }
 
@@ -321,7 +357,10 @@ where
 }
 
 impl Parse for Polygon {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("polygon")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -333,14 +372,19 @@ impl Polygon {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let fill = input.try(|i| -> Result<_, ParseError> {
-            let fill = FillRule::parse(i)?;
-            i.expect_comma()?;      // only eat the comma if there is something before it
-            Ok(fill)
-        }).unwrap_or_default();
+        let fill = input
+            .try(|i| -> Result<_, ParseError> {
+                let fill = FillRule::parse(i)?;
+                i.expect_comma()?; // only eat the comma if there is something before it
+                Ok(fill)
+            })
+            .unwrap_or_default();
 
         let buf = input.parse_comma_separated(|i| {
-            Ok((LengthOrPercentage::parse(context, i)?, LengthOrPercentage::parse(context, i)?))
+            Ok((
+                LengthOrPercentage::parse(context, i)?,
+                LengthOrPercentage::parse(context, i)?,
+            ))
         })?;
 
         Ok(Polygon {

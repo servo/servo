@@ -85,7 +85,7 @@ impl ToCss for AlignFlags {
             AlignFlags::LEGACY => dest.write_str("legacy ")?,
             AlignFlags::SAFE => dest.write_str("safe ")?,
             // Don't serialize "unsafe", since it's the default.
-            _ => {}
+            _ => {},
         }
 
         dest.write_str(match self.value() {
@@ -106,7 +106,7 @@ impl ToCss for AlignFlags {
             AlignFlags::SPACE_BETWEEN => "space-between",
             AlignFlags::SPACE_AROUND => "space-around",
             AlignFlags::SPACE_EVENLY => "space-evenly",
-            _ => unreachable!()
+            _ => unreachable!(),
         })
     }
 }
@@ -153,7 +153,7 @@ impl ContentDistribution {
 
     fn from_bits(bits: u16) -> Self {
         Self {
-            primary: AlignFlags::from_bits_truncate(bits as u8)
+            primary: AlignFlags::from_bits_truncate(bits as u8),
         }
     }
 
@@ -198,8 +198,8 @@ impl ContentDistribution {
         }
 
         // <overflow-position>? <content-position>
-        let overflow_position =
-            input.try(parse_overflow_position)
+        let overflow_position = input
+            .try(parse_overflow_position)
             .unwrap_or(AlignFlags::empty());
 
         let content_position = try_match_ident_ignore_ascii_case! { input,
@@ -212,7 +212,9 @@ impl ContentDistribution {
             "right" if axis == AxisDirection::Inline => AlignFlags::RIGHT,
         };
 
-        Ok(ContentDistribution::new(content_position | overflow_position))
+        Ok(ContentDistribution::new(
+            content_position | overflow_position,
+        ))
     }
 }
 
@@ -295,8 +297,7 @@ impl SelfAlignment {
     pub fn is_valid_on_both_axes(&self) -> bool {
         match self.0.value() {
             // left | right are only allowed on the inline axis.
-            AlignFlags::LEFT |
-            AlignFlags::RIGHT => false,
+            AlignFlags::LEFT | AlignFlags::RIGHT => false,
 
             _ => true,
         }
@@ -317,12 +318,12 @@ impl SelfAlignment {
 
         // auto | normal | stretch
         if let Ok(value) = input.try(parse_auto_normal_stretch) {
-            return Ok(SelfAlignment(value))
+            return Ok(SelfAlignment(value));
         }
 
         // <overflow-position>? <self-position>
-        let overflow_position =
-            input.try(parse_overflow_position)
+        let overflow_position = input
+            .try(parse_overflow_position)
             .unwrap_or(AlignFlags::empty());
         let self_position = parse_self_position(input, axis)?;
         Ok(SelfAlignment(overflow_position | self_position))
@@ -336,8 +337,14 @@ impl SelfAlignment {
 pub struct AlignSelf(pub SelfAlignment);
 
 impl Parse for AlignSelf {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Ok(AlignSelf(SelfAlignment::parse(input, AxisDirection::Block)?))
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(AlignSelf(SelfAlignment::parse(
+            input,
+            AxisDirection::Block,
+        )?))
     }
 }
 
@@ -360,8 +367,14 @@ impl From<AlignSelf> for u8 {
 pub struct JustifySelf(pub SelfAlignment);
 
 impl Parse for JustifySelf {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Ok(JustifySelf(SelfAlignment::parse(input, AxisDirection::Inline)?))
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(JustifySelf(SelfAlignment::parse(
+            input,
+            AxisDirection::Inline,
+        )?))
     }
 }
 
@@ -391,11 +404,13 @@ impl AlignItems {
     }
 }
 
-
 impl Parse for AlignItems {
     // normal | stretch | <baseline-position> |
     // <overflow-position>? <self-position>
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         // <baseline-position>
         if let Ok(baseline) = input.try(parse_baseline) {
             return Ok(AlignItems(baseline));
@@ -403,10 +418,12 @@ impl Parse for AlignItems {
 
         // normal | stretch
         if let Ok(value) = input.try(parse_normal_stretch) {
-            return Ok(AlignItems(value))
+            return Ok(AlignItems(value));
         }
         // <overflow-position>? <self-position>
-        let overflow = input.try(parse_overflow_position).unwrap_or(AlignFlags::empty());
+        let overflow = input
+            .try(parse_overflow_position)
+            .unwrap_or(AlignFlags::empty());
         let self_position = parse_self_position(input, AxisDirection::Block)?;
         Ok(AlignItems(self_position | overflow))
     }
@@ -433,7 +450,10 @@ impl JustifyItems {
 }
 
 impl Parse for JustifyItems {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         // <baseline-position>
         //
         // It's weird that this accepts <baseline-position>, but not
@@ -456,16 +476,18 @@ impl Parse for JustifyItems {
         //   https://bugs.chromium.org/p/chromium/issues/detail?id=726148
         //
         if let Ok(value) = input.try(parse_auto_normal_stretch) {
-            return Ok(JustifyItems(value))
+            return Ok(JustifyItems(value));
         }
 
         // [ legacy || [ left | right | center ] ]
         if let Ok(value) = input.try(parse_legacy) {
-            return Ok(JustifyItems(value))
+            return Ok(JustifyItems(value));
         }
 
         // <overflow-position>? <self-position>
-        let overflow = input.try(parse_overflow_position).unwrap_or(AlignFlags::empty());
+        let overflow = input
+            .try(parse_overflow_position)
+            .unwrap_or(AlignFlags::empty());
         let self_position = parse_self_position(input, AxisDirection::Inline)?;
         Ok(JustifyItems(overflow | self_position))
     }
@@ -506,7 +528,9 @@ fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, Pars
 }
 
 // <content-distribution>
-fn parse_content_distribution<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
+fn parse_content_distribution<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
         "stretch" => Ok(AlignFlags::STRETCH),
         "space-between" => Ok(AlignFlags::SPACE_BETWEEN),
@@ -516,7 +540,9 @@ fn parse_content_distribution<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Alig
 }
 
 // <overflow-position>
-fn parse_overflow_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
+fn parse_overflow_position<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<AlignFlags, ParseError<'i>> {
     try_match_ident_ignore_ascii_case! { input,
         "safe" => Ok(AlignFlags::SAFE),
         "unsafe" => Ok(AlignFlags::UNSAFE),
@@ -553,7 +579,9 @@ fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseE
             "right" => Ok(AlignFlags::LEGACY | AlignFlags::RIGHT),
             "center" => Ok(AlignFlags::LEGACY | AlignFlags::CENTER),
             _ => Err(())
-        }).map_err(|()| b_location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(b.clone())))
+        }).map_err(|()| {
+            b_location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(b.clone()))
+        })
     } else if b.eq_ignore_ascii_case("legacy") {
         (match_ignore_ascii_case! { &a,
             "left" => Ok(AlignFlags::LEGACY | AlignFlags::LEFT),

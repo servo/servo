@@ -69,7 +69,7 @@ use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
-use dom::{TElement, SendElement};
+use dom::{SendElement, TElement};
 use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
@@ -84,7 +84,7 @@ use std::mem;
 use std::ops::Deref;
 use style_resolver::{PrimaryStyle, ResolvedElementStyles};
 use stylist::Stylist;
-use uluru::{LRUCache, Entry};
+use uluru::{Entry, LRUCache};
 
 mod checks;
 
@@ -119,7 +119,9 @@ impl OpaqueComputedValues {
         OpaqueComputedValues(p)
     }
 
-    fn eq(&self, cv: &ComputedValues) -> bool { Self::from(cv) == *self }
+    fn eq(&self, cv: &ComputedValues) -> bool {
+        Self::from(cv) == *self
+    }
 }
 
 /// Some data we want to avoid recomputing all the time while trying to share
@@ -159,7 +161,7 @@ impl ValidationData {
             let mut pres_hints = SmallVec::new();
             element.synthesize_presentational_hints_for_legacy_attributes(
                 VisitedHandlingMode::AllLinksUnvisited,
-                &mut pres_hints
+                &mut pres_hints,
             );
             pres_hints
         })
@@ -189,11 +191,14 @@ impl ValidationData {
     where
         E: TElement,
     {
-        self.parent_style_identity.get_or_insert_with(|| {
-            let parent = el.inheritance_parent().unwrap();
-            let values = OpaqueComputedValues::from(parent.borrow_data().unwrap().styles.primary());
-            values
-        }).clone()
+        self.parent_style_identity
+            .get_or_insert_with(|| {
+                let parent = el.inheritance_parent().unwrap();
+                let values =
+                    OpaqueComputedValues::from(parent.borrow_data().unwrap().styles.primary());
+                values
+            })
+            .clone()
     }
 
     /// Computes the revalidation results if needed, and returns it.
@@ -220,8 +225,7 @@ impl ValidationData {
             // just do revalidation selector matching without a bloom
             // filter, to avoid thrashing the filter.
             let bloom_to_use = if bloom_known_valid {
-                debug_assert_eq!(bloom.current_parent(),
-                                 element.traversal_parent());
+                debug_assert_eq!(bloom.current_parent(), element.traversal_parent());
                 Some(bloom.filter())
             } else {
                 if bloom.current_parent() == element.traversal_parent() {
@@ -269,7 +273,6 @@ impl<E: TElement> Deref for StyleSharingCandidate<E> {
     }
 }
 
-
 impl<E: TElement> StyleSharingCandidate<E> {
     /// Get the classlist of this candidate.
     fn class_list(&mut self) -> &[Atom] {
@@ -300,7 +303,8 @@ impl<E: TElement> StyleSharingCandidate<E> {
             bloom,
             nth_index_cache,
             /* bloom_known_valid = */ false,
-            &mut |_, _| {})
+            &mut |_, _| {},
+        )
     }
 }
 
@@ -352,7 +356,7 @@ impl<E: TElement> StyleSharingTarget<E> {
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
-        selector_flags_map: &mut SelectorFlagsMap<E>
+        selector_flags_map: &mut SelectorFlagsMap<E>,
     ) -> &SmallBitVec {
         // It's important to set the selector flags. Otherwise, if we succeed in
         // sharing the style, we may not set the slow selector flags for the
@@ -380,7 +384,8 @@ impl<E: TElement> StyleSharingTarget<E> {
             bloom,
             nth_index_cache,
             /* bloom_known_valid = */ true,
-            &mut set_selector_flags)
+            &mut set_selector_flags,
+        )
     }
 
     /// Attempts to share a style with another node.
@@ -395,19 +400,25 @@ impl<E: TElement> StyleSharingTarget<E> {
         let nth_index_cache = &mut context.thread_local.nth_index_cache;
 
         if cache.dom_depth != bloom_filter.matching_depth() {
-            debug!("Can't share style, because DOM depth changed from {:?} to {:?}, element: {:?}",
-                   cache.dom_depth, bloom_filter.matching_depth(), self.element);
+            debug!(
+                "Can't share style, because DOM depth changed from {:?} to {:?}, element: {:?}",
+                cache.dom_depth,
+                bloom_filter.matching_depth(),
+                self.element
+            );
             return None;
         }
-        debug_assert_eq!(bloom_filter.current_parent(),
-                         self.element.traversal_parent());
+        debug_assert_eq!(
+            bloom_filter.current_parent(),
+            self.element.traversal_parent()
+        );
 
         cache.share_style_if_possible(
             shared_context,
             selector_flags_map,
             bloom_filter,
             nth_index_cache,
-            self
+            self,
         )
     }
 
@@ -440,16 +451,15 @@ impl<Candidate> SharingCacheBase<Candidate> {
 }
 
 impl<E: TElement> SharingCache<E> {
-    fn insert(
-        &mut self,
-        element: E,
-        validation_data_holder: Option<&mut StyleSharingTarget<E>>,
-    ) {
+    fn insert(&mut self, element: E, validation_data_holder: Option<&mut StyleSharingTarget<E>>) {
         let validation_data = match validation_data_holder {
             Some(v) => v.take_validation_data(),
             None => ValidationData::default(),
         };
-        self.entries.insert(StyleSharingCandidate { element, validation_data });
+        self.entries.insert(StyleSharingCandidate {
+            element,
+            validation_data,
+        });
     }
 }
 
@@ -514,10 +524,17 @@ impl<E: TElement> StyleSharingCache<E> {
     // See https://github.com/servo/servo/pull/18420#issuecomment-328769322
     #[inline(never)]
     pub fn new() -> Self {
-        assert_eq!(mem::size_of::<SharingCache<E>>(), mem::size_of::<TypelessSharingCache>());
-        assert_eq!(mem::align_of::<SharingCache<E>>(), mem::align_of::<TypelessSharingCache>());
+        assert_eq!(
+            mem::size_of::<SharingCache<E>>(),
+            mem::size_of::<TypelessSharingCache>()
+        );
+        assert_eq!(
+            mem::align_of::<SharingCache<E>>(),
+            mem::align_of::<TypelessSharingCache>()
+        );
         let cache_arc = SHARING_CACHE_KEY.with(|c| c.clone());
-        let cache = OwningHandle::new_with_fn(cache_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());
+        let cache =
+            OwningHandle::new_with_fn(cache_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());
         debug_assert!(cache.is_empty());
 
         StyleSharingCache {
@@ -545,7 +562,7 @@ impl<E: TElement> StyleSharingCache<E> {
             None => {
                 debug!("Failing to insert to the cache: no parent element");
                 return;
-            }
+            },
         };
 
         if element.is_native_anonymous() {
@@ -593,11 +610,16 @@ impl<E: TElement> StyleSharingCache<E> {
             return;
         }
 
-        debug!("Inserting into cache: {:?} with parent {:?}", element, parent);
+        debug!(
+            "Inserting into cache: {:?} with parent {:?}",
+            element, parent
+        );
 
         if self.dom_depth != dom_depth {
-            debug!("Clearing cache because depth changed from {:?} to {:?}, element: {:?}",
-                   self.dom_depth, dom_depth, element);
+            debug!(
+                "Clearing cache because depth changed from {:?} to {:?}, element: {:?}",
+                self.dom_depth, dom_depth, element
+            );
             self.clear();
             self.dom_depth = dom_depth;
         }
@@ -619,14 +641,18 @@ impl<E: TElement> StyleSharingCache<E> {
         target: &mut StyleSharingTarget<E>,
     ) -> Option<ResolvedElementStyles> {
         if shared_context.options.disable_style_sharing_cache {
-            debug!("{:?} Cannot share style: style sharing cache disabled",
-                   target.element);
+            debug!(
+                "{:?} Cannot share style: style sharing cache disabled",
+                target.element
+            );
             return None;
         }
 
         if target.inheritance_parent().is_none() {
-            debug!("{:?} Cannot share style: element has no parent",
-                   target.element);
+            debug!(
+                "{:?} Cannot share style: element has no parent",
+                target.element
+            );
             return None;
         }
 
@@ -642,7 +668,7 @@ impl<E: TElement> StyleSharingCache<E> {
                 &shared_context,
                 bloom_filter,
                 nth_index_cache,
-                selector_flags_map
+                selector_flags_map,
             )
         })
     }
@@ -653,7 +679,7 @@ impl<E: TElement> StyleSharingCache<E> {
         shared: &SharedStyleContext,
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
-        selector_flags_map: &mut SelectorFlagsMap<E>
+        selector_flags_map: &mut SelectorFlagsMap<E>,
     ) -> Option<ResolvedElementStyles> {
         debug_assert!(!target.is_native_anonymous());
 
@@ -708,7 +734,10 @@ impl<E: TElement> StyleSharingCache<E> {
         // Other than this, we don't need anything else like the containing XBL
         // binding parent or what not, since two elements with different XBL
         // bindings will necessarily end up with different style.
-        if !target.element.has_same_xbl_proto_binding_as(candidate.element) {
+        if !target
+            .element
+            .has_same_xbl_proto_binding_as(candidate.element)
+        {
             trace!("Miss: Different proto bindings");
             return None;
         }
@@ -732,18 +761,15 @@ impl<E: TElement> StyleSharingCache<E> {
         }
 
         if target.matches_user_and_author_rules() !=
-            candidate.element.matches_user_and_author_rules() {
+            candidate.element.matches_user_and_author_rules()
+        {
             trace!("Miss: User and Author Rules");
             return None;
         }
 
         // It's possible that there are no styles for either id.
         let may_match_different_id_rules =
-            checks::may_match_different_id_rules(
-                shared,
-                target.element,
-                candidate.element,
-            );
+            checks::may_match_different_id_rules(shared, target.element, candidate.element);
 
         if may_match_different_id_rules {
             trace!("Miss: ID Attr");
@@ -765,8 +791,14 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if !checks::revalidate(target, candidate, shared, bloom,
-                               nth_index_cache, selector_flags_map) {
+        if !checks::revalidate(
+            target,
+            candidate,
+            shared,
+            bloom,
+            nth_index_cache,
+            selector_flags_map,
+        ) {
             trace!("Miss: Revalidation");
             return None;
         }
@@ -776,7 +808,10 @@ impl<E: TElement> StyleSharingCache<E> {
             shared.traversal_flags,
         ));
 
-        debug!("Sharing allowed between {:?} and {:?}", target.element, candidate.element);
+        debug!(
+            "Sharing allowed between {:?} and {:?}",
+            target.element, candidate.element
+        );
         Some(candidate.element.borrow_data().unwrap().share_styles())
     }
 

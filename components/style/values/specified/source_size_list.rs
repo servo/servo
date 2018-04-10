@@ -56,25 +56,19 @@ impl SourceSizeList {
 
     /// Evaluate this <source-size-list> to get the final viewport length.
     pub fn evaluate(&self, device: &Device, quirks_mode: QuirksMode) -> Au {
-        let matching_source_size = self.source_sizes.iter().find(|source_size| {
-            source_size.condition.matches(device, quirks_mode)
-        });
+        let matching_source_size = self.source_sizes
+            .iter()
+            .find(|source_size| source_size.condition.matches(device, quirks_mode));
 
         computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
             match matching_source_size {
-                Some(source_size) => {
-                    source_size.value.to_computed_value(context)
-                }
-                None => {
-                    match self.value {
-                        Some(ref v) => v.to_computed_value(context),
-                        None => {
-                            Length::NoCalc(NoCalcLength::ViewportPercentage(
-                                ViewportPercentageLength::Vw(100.)
-                            )).to_computed_value(context)
-                        }
-                    }
-                }
+                Some(source_size) => source_size.value.to_computed_value(context),
+                None => match self.value {
+                    Some(ref v) => v.to_computed_value(context),
+                    None => Length::NoCalc(NoCalcLength::ViewportPercentage(
+                        ViewportPercentageLength::Vw(100.),
+                    )).to_computed_value(context),
+                },
             }
         }).into()
     }
@@ -103,10 +97,7 @@ impl SourceSizeList {
     /// NOTE(emilio): This doesn't match the grammar in the spec, see:
     ///
     /// https://html.spec.whatwg.org/multipage/#parsing-a-sizes-attribute
-    pub fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Self {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Self {
         let mut source_sizes = vec![];
 
         loop {
@@ -116,12 +107,15 @@ impl SourceSizeList {
 
             match result {
                 Ok(SourceSizeOrLength::Length(value)) => {
-                    return Self { source_sizes, value: Some(value) }
-                }
+                    return Self {
+                        source_sizes,
+                        value: Some(value),
+                    }
+                },
                 Ok(SourceSizeOrLength::SourceSize(source_size)) => {
                     source_sizes.push(source_size);
-                }
-                Err(..) => {}
+                },
+                Err(..) => {},
             }
 
             match input.next() {
@@ -131,7 +125,10 @@ impl SourceSizeList {
             }
         }
 
-        SourceSizeList { source_sizes, value: None }
+        SourceSizeList {
+            source_sizes,
+            value: None,
+        }
     }
 }
 

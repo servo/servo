@@ -19,7 +19,6 @@ use values::specified::url::SpecifiedUrl;
 /// Specified SVG Paint value
 pub type SVGPaint = generic::SVGPaint<RGBAColor, SpecifiedUrl>;
 
-
 /// Specified SVG Paint Kind value
 pub type SVGPaintKind = generic::SVGPaintKind<RGBAColor, SpecifiedUrl>;
 
@@ -61,9 +60,10 @@ impl Parse for SVGLength {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        input.try(|i| SvgLengthOrPercentageOrNumber::parse(context, i))
-             .map(Into::into)
-             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
+        input
+            .try(|i| SvgLengthOrPercentageOrNumber::parse(context, i))
+            .map(Into::into)
+            .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
 }
 
@@ -86,9 +86,10 @@ impl Parse for SVGWidth {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        input.try(|i| NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i))
-             .map(Into::into)
-             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
+        input
+            .try(|i| NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i))
+            .map(Into::into)
+            .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
 }
 
@@ -106,9 +107,11 @@ impl Parse for SVGStrokeDashArray {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(values) = input.try(|i| CommaWithSpace::parse(i, |i| {
-            NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i)
-        })) {
+        if let Ok(values) = input.try(|i| {
+            CommaWithSpace::parse(i, |i| {
+                NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i)
+            })
+        }) {
             Ok(generic::SVGStrokeDashArray::Values(values))
         } else if let Ok(_) = input.try(|i| i.expect_ident_matching("none")) {
             Ok(generic::SVGStrokeDashArray::Values(vec![]))
@@ -189,10 +192,10 @@ impl SVGPaintOrder {
 impl Parse for SVGPaintOrder {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<SVGPaintOrder, ParseError<'i>> {
         if let Ok(()) = input.try(|i| i.expect_ident_matching("normal")) {
-            return Ok(SVGPaintOrder::normal())
+            return Ok(SVGPaintOrder::normal());
         }
 
         let mut value = 0;
@@ -214,20 +217,20 @@ impl Parse for SVGPaintOrder {
                 Ok(val) => {
                     if (seen & (1 << val as u8)) != 0 {
                         // don't parse the same ident twice
-                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                     }
 
                     value |= (val as u8) << (pos * PAINT_ORDER_SHIFT);
                     seen |= 1 << (val as u8);
                     pos += 1;
-                }
+                },
                 Err(_) => break,
             }
         }
 
         if value == 0 {
             // Couldn't find any keyword
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         // fill in rest
@@ -252,7 +255,7 @@ impl ToCss for SVGPaintOrder {
         W: Write,
     {
         if self.0 == 0 {
-            return dest.write_str("normal")
+            return dest.write_str("normal");
         }
 
         let mut last_pos_to_serialize = 0;
@@ -283,10 +286,14 @@ pub struct MozContextProperties(pub CustomIdent);
 impl Parse for MozContextProperties {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<MozContextProperties, ParseError<'i>> {
         let location = input.current_source_location();
         let i = input.expect_ident()?;
-        Ok(MozContextProperties(CustomIdent::from_ident(location, i, &["all", "none", "auto"])?))
+        Ok(MozContextProperties(CustomIdent::from_ident(
+            location,
+            i,
+            &["all", "none", "auto"],
+        )?))
     }
 }

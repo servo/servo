@@ -10,7 +10,7 @@ use values::generics::box_::AnimationIterationCount as GenericAnimationIteration
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 
-pub use values::specified::box_::{AnimationName, Display, OverflowClipBox, Contain};
+pub use values::specified::box_::{AnimationName, Contain, Display, OverflowClipBox};
 pub use values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction, WillChange};
 
 /// A computed value for the `vertical-align` property.
