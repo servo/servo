@@ -74,25 +74,33 @@ impl DissimilarOriginWindow {
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
     }
 
+    pub fn pipeline_id(&self) -> PipelineId {
+        self.upcast::<GlobalScope>().pipeline_id()
+    }
+
     pub fn origin(&self) -> &MutableOrigin {
         self.upcast::<GlobalScope>().origin()
+    }
+
+    pub fn window_proxy(&self) -> DomRoot<WindowProxy> {
+        DomRoot::from_ref(&*self.window_proxy)
     }
 }
 
 impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     // https://html.spec.whatwg.org/multipage/#dom-window
     fn Window(&self) -> DomRoot<WindowProxy> {
-        DomRoot::from_ref(&*self.window_proxy)
+        self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
     fn Self_(&self) -> DomRoot<WindowProxy> {
-        DomRoot::from_ref(&*self.window_proxy)
+        self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
     fn Frames(&self) -> DomRoot<WindowProxy> {
-        DomRoot::from_ref(&*self.window_proxy)
+        self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
