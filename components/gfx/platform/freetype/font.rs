@@ -14,6 +14,7 @@ use freetype::freetype::{FT_Int32, FT_Kerning_Mode, FT_STYLE_FLAG_ITALIC};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
 use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
 use freetype::freetype::FT_Sfnt_Tag;
+use freetype::succeeded;
 use freetype::tt_os2::TT_OS2;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
@@ -78,7 +79,7 @@ impl Drop for FontHandle {
     fn drop(&mut self) {
         assert!(!self.face.is_null());
         unsafe {
-            if !FT_Done_Face(self.face).succeeded() {
+            if !succeeded(FT_Done_Face(self.face)) {
                 panic!("FT_Done_Face failed");
             }
         }
@@ -115,7 +116,7 @@ impl FontHandleMethods for FontHandle {
                 let result = FT_New_Memory_Face(lib, buffer.as_ptr(), buffer.len() as FT_Long,
                                                 face_index, &mut face);
 
-                if !result.succeeded() || face.is_null() {
+                if !succeeded(result) || face.is_null() {
                     return Err(());
                 }
                 if let Some(s) = pt_size {
@@ -222,7 +223,7 @@ impl FontHandleMethods for FontHandle {
             let res =  FT_Load_Glyph(self.face,
                                      glyph as FT_UInt,
                                      GLYPH_LOAD_FLAGS);
-            if res.succeeded() {
+            if succeeded(res) {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = mem::transmute(void_glyph);
                 assert!(!slot.is_null());
@@ -296,12 +297,12 @@ impl FontHandleMethods for FontHandle {
         unsafe {
             // Get the length
             let mut len = 0;
-            if !FT_Load_Sfnt_Table(self.face, tag, 0, ptr::null_mut(), &mut len).succeeded() {
+            if !succeeded(FT_Load_Sfnt_Table(self.face, tag, 0, ptr::null_mut(), &mut len)) {
                 return None
             }
             // Get the bytes
             let mut buf = vec![0u8; len as usize];
-            if !FT_Load_Sfnt_Table(self.face, tag, 0, buf.as_mut_ptr(), &mut len).succeeded() {
+            if !succeeded(FT_Load_Sfnt_Table(self.face, tag, 0, buf.as_mut_ptr(), &mut len)) {
                 return None
             }
             Some(FontTable { buffer: buf })
@@ -319,13 +320,13 @@ impl<'a> FontHandle {
 
         unsafe {
             let result = FT_Set_Char_Size(face, char_size as FT_F26Dot6, 0, 0, 0);
-            if result.succeeded() { Ok(()) } else { Err(()) }
+            if succeeded(result) { Ok(()) } else { Err(()) }
         }
     }
 
     fn has_table(&self, tag: FontTableTag) -> bool {
         unsafe {
-            FT_Load_Sfnt_Table(self.face, tag as FT_ULong, 0, ptr::null_mut(), &mut 0).succeeded()
+            succeeded(FT_Load_Sfnt_Table(self.face, tag as FT_ULong, 0, ptr::null_mut(), &mut 0))
         }
     }
 
