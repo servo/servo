@@ -56,14 +56,10 @@ impl CssUrl {
 
     /// Convert from URLValueData to SpecifiedUrl.
     unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
+        let arc_type =
+            &url.mString as *const _ as *const RawOffsetArc<String>;
         Ok(CssUrl {
-            serialization: if url.mUsingRustString {
-                let arc_type =
-                    url.mStrings.mRustString.as_ref() as *const _ as *const RawOffsetArc<String>;
-                Arc::from_raw_offset((*arc_type).clone())
-            } else {
-                Arc::new(url.mStrings.mString.as_ref().to_string())
-            },
+            serialization: Arc::from_raw_offset((*arc_type).clone()),
             extra_data: url.mExtraData.to_safe(),
         })
     }
