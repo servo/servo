@@ -28,7 +28,7 @@ use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
@@ -36,7 +36,7 @@ use time::{now, precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
-use webrender_api::{LayoutVector2D, ScrollEventPhase, ScrollLocation};
+use webrender_api::{LayoutVector2D, ScrollLocation};
 use windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
@@ -198,8 +198,6 @@ struct ScrollZoomEvent {
     scroll_location: ScrollLocation,
     /// Apply changes to the frame at this location
     cursor: DeviceIntPoint,
-    /// The scroll event phase.
-    phase: ScrollEventPhase,
     /// The number of OS events that have been coalesced together into this one event.
     event_count: u32,
 }
@@ -843,7 +841,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     scroll_location: ScrollLocation::Delta(webrender_api::LayoutVector2D::from_untyped(
                                                            &scroll_delta.to_untyped())),
                     cursor: cursor,
-                    phase: ScrollEventPhase::Move(true),
                     event_count: 1,
                 });
             }
@@ -895,18 +892,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self,
                               scroll_location: ScrollLocation,
                               cursor: DeviceIntPoint) {
-        let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
-            (false, None) => ScrollEventPhase::Start,
-            (false, Some(last_scroll)) if last_scroll.elapsed() > Duration::from_millis(80) =>
-                ScrollEventPhase::Start,
-            (_, _) => ScrollEventPhase::Move(self.scroll_in_progress),
-        };
         self.in_scroll_transaction = Some(Instant::now());
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             scroll_location: scroll_location,
             cursor: cursor,
-            phase: event_phase,
             event_count: 1,
         });
     }
@@ -919,7 +909,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             magnification: 1.0,
             scroll_location: scroll_location,
             cursor: cursor,
-            phase: ScrollEventPhase::Start,
             event_count: 1,
         });
     }
@@ -932,7 +921,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             magnification: 1.0,
             scroll_location: scroll_location,
             cursor: cursor,
-            phase: ScrollEventPhase::End,
             event_count: 1,
         });
     }
@@ -955,44 +943,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             };
 
-            if let Some(combined_event) = last_combined_event {
-                if combined_event.phase != scroll_event.phase {
-                    let combined_delta = match combined_event.scroll_location {
-                        ScrollLocation::Delta(delta) => delta,
-                        ScrollLocation::Start | ScrollLocation::End => {
-                            // If this is an event which is scrolling to the start or end of the page,
-                            // disregard other pending events and exit the loop.
-                            last_combined_event = Some(scroll_event);
-                            break;
-                        }
-                    };
-                    // TODO: units don't match!
-                    let delta = combined_delta / self.scale.get();
-
-                    let cursor =
-                        (combined_event.cursor.to_f32() / self.scale).to_untyped();
-                    let location = webrender_api::ScrollLocation::Delta(delta);
-                    let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
-                    let mut txn = webrender_api::Transaction::new();
-                    txn.scroll(location, cursor, combined_event.phase);
-                    self.webrender_api.send_transaction(self.webrender_document, txn);
-                    last_combined_event = None
-                }
-            }
-
-            match (&mut last_combined_event, scroll_event.phase) {
-                (last_combined_event @ &mut None, _) => {
+            match &mut last_combined_event {
+                last_combined_event @ &mut None => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
                         scroll_location: ScrollLocation::Delta(webrender_api::LayoutVector2D::from_untyped(
                                                                &this_delta.to_untyped())),
                         cursor: this_cursor,
-                        phase: scroll_event.phase,
                         event_count: 1,
                     })
                 }
-                (&mut Some(ref mut last_combined_event),
-                 ScrollEventPhase::Move(false)) => {
+                &mut Some(ref mut last_combined_event) => {
                     // Mac OS X sometimes delivers scroll events out of vsync during a
                     // fling. This causes events to get bunched up occasionally, causing
                     // nasty-looking "pops". To mitigate this, during a fling we average
@@ -1006,12 +967,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         last_combined_event.scroll_location = ScrollLocation::Delta(
                             (delta * old_event_count + this_delta) /
                             new_event_count);
-                    }
-                }
-                (&mut Some(ref mut last_combined_event), _) => {
-                    if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
-                        last_combined_event.scroll_location = ScrollLocation::Delta(delta + this_delta);
-                        last_combined_event.event_count += 1
                     }
                 }
             }
@@ -1031,7 +986,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
             let mut txn = webrender_api::Transaction::new();
-            txn.scroll(scroll_location, cursor, combined_event.phase);
+            txn.scroll(scroll_location, cursor);
             self.webrender_api.send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
         }
@@ -1142,7 +1097,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             magnification: magnification,
             scroll_location: ScrollLocation::Delta(TypedVector2D::zero()), // TODO: Scroll to keep the center in view?
             cursor:  TypedPoint2D::new(-1, -1), // Make sure this hits the base layer.
-            phase: ScrollEventPhase::Move(true),
             event_count: 1,
         });
     }
@@ -1372,7 +1326,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 
         self.process_animations();
-        self.start_scrolling_bounce_if_necessary();
         self.waiting_for_results_of_scroll = false;
 
         Ok(rv)
@@ -1429,19 +1382,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {
         self.root_pipeline.as_ref().map(|pipeline| pipeline.id)
-    }
-
-    fn start_scrolling_bounce_if_necessary(&mut self) {
-        if self.scroll_in_progress {
-            return
-        }
-
-        if self.webrender.layers_are_bouncing_back() {
-            let mut txn = webrender_api::Transaction::new();
-            txn.tick_scrolling_bounce_animations();
-            self.webrender_api.send_transaction(self.webrender_document, txn);
-            self.send_viewport_rects()
-        }
     }
 
     pub fn receive_messages(&mut self) -> bool {
