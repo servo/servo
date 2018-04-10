@@ -2438,12 +2438,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         .collect::<Vec<_>>()
                 };
 
+                self.update_activity(old_pipeline_id);
+                self.update_activity(change.new_pipeline_id);
+
                 for pipeline_id in pipelines_to_close {
                     self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
                 }
 
-                self.update_activity(old_pipeline_id);
-                self.update_activity(change.new_pipeline_id);
                 self.notify_history_changed(change.top_level_browsing_context_id);
             }
         }
