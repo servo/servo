@@ -38,6 +38,7 @@ extern crate harfbuzz_sys as harfbuzz;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
+#[cfg(target_os = "linux")]
 extern crate libc;
 #[macro_use]
 extern crate log;

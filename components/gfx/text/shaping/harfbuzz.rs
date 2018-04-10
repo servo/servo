@@ -25,17 +25,17 @@ use harfbuzz::hb_face_destroy;
 use harfbuzz::hb_feature_t;
 use harfbuzz::hb_font_create;
 use harfbuzz::hb_font_funcs_create;
-use harfbuzz::hb_font_funcs_set_glyph_func;
 use harfbuzz::hb_font_funcs_set_glyph_h_advance_func;
 use harfbuzz::hb_font_funcs_set_glyph_h_kerning_func;
+use harfbuzz::hb_font_funcs_set_variation_glyph_func;
 use harfbuzz::hb_font_set_funcs;
 use harfbuzz::hb_font_set_ppem;
 use harfbuzz::hb_font_set_scale;
 use harfbuzz::hb_glyph_info_t;
 use harfbuzz::hb_glyph_position_t;
-use libc::{c_char, c_int, c_uint, c_void};
 use platform::font::FontTable;
 use std::{char, cmp, ptr};
+use std::os::raw::{c_char, c_int, c_uint, c_void};
 use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
@@ -418,7 +418,7 @@ unsafe impl Sync for FontFuncs {}
 lazy_static! {
     static ref HB_FONT_FUNCS: FontFuncs = unsafe {
         let hb_funcs = hb_font_funcs_create();
-        hb_font_funcs_set_glyph_func(hb_funcs, Some(glyph_func), ptr::null_mut(), None);
+        hb_font_funcs_set_variation_glyph_func(hb_funcs, Some(glyph_func), ptr::null_mut(), None);
         hb_font_funcs_set_glyph_h_advance_func(
             hb_funcs, Some(glyph_h_advance_func), ptr::null_mut(), None);
         hb_font_funcs_set_glyph_h_kerning_func(

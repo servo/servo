@@ -40,7 +40,7 @@ fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.22", optional = true}
 itertools = "0.7.6"
-itoa = "0.3"
+itoa = "0.4"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
@@ -78,7 +78,7 @@ kernel32-sys = "0.2"
 [build-dependencies]
 lazy_static = "1"
 log = "0.4"
-bindgen = { version = "0.33.2", optional = true, default-features = false }
+bindgen = { version = "0.36", optional = true, default-features = false }
 regex = {version = "0.2", optional = true}
 walkdir = "2.1.4"
 toml = {version = "0.4.5", optional = true, default-features = false}
