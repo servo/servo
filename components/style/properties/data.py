@@ -210,7 +210,7 @@ class Longhand(object):
             # discrete). For now, it is still non-animatable.
             self.animatable = False
             self.transitionable = False
-            self.animation_type = None
+            self.animation_value_type = None
 
         # See compute_damage for the various values this can take
         self.servo_restyle_damage = servo_restyle_damage
