@@ -17,6 +17,7 @@ use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use ipc_channel::ipc;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
@@ -40,6 +41,8 @@ use js::rust::wrappers::{NewWindowProxy, SetWindowProxy, JS_TransplantObject};
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use script_thread::ScriptThread;
+use script_traits::ScriptMsg;
 use std::cell::Cell;
 use std::ptr;
 
@@ -301,17 +304,43 @@ impl WindowProxy {
 
 // This is only called from extern functions,
 // there's no use using the lifetimed handles here.
+// https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
 #[allow(unsafe_code)]
-unsafe fn GetSubframeWindow(cx: *mut JSContext,
-                            proxy: RawHandleObject,
-                            id: RawHandleId)
-                            -> Option<DomRoot<Window>> {
+unsafe fn GetSubframeWindowProxy(
+    cx: *mut JSContext,
+    proxy: RawHandleObject,
+    id: RawHandleId
+) -> Option<DomRoot<WindowProxy>> {
     let index = get_array_index_from_id(cx, Handle::from_raw(id));
     if let Some(index) = index {
         rooted!(in(cx) let target = GetProxyPrivate(*proxy).to_object());
-        let win = root_from_handleobject::<Window>(target.handle()).unwrap();
-        let mut found = false;
-        return win.IndexedGetter(index, &mut found);
+        if let Ok(win) = root_from_handleobject::<Window>(target.handle()) {
+            let browsing_context_id = win.window_proxy().browsing_context_id();
+            let (result_sender, result_receiver) = ipc::channel().unwrap();
+
+            let _ = win.upcast::<GlobalScope>().script_to_constellation_chan().send(
+                ScriptMsg::GetChildBrowsingContextId(
+                    browsing_context_id,
+                    index as usize,
+                    result_sender
+                )
+            );
+            return result_receiver.recv().ok()
+                .and_then(|maybe_bcid| maybe_bcid)
+                .and_then(ScriptThread::find_window_proxy);
+        } else if let Ok(win) = root_from_handleobject::<DissimilarOriginWindow>(target.handle()) {
+            let browsing_context_id = win.window_proxy().browsing_context_id();
+            let (result_sender, result_receiver) = ipc::channel().unwrap();
+
+            let _ = win.global().script_to_constellation_chan().send(ScriptMsg::GetChildBrowsingContextId(
+                browsing_context_id,
+                index as usize,
+                result_sender
+            ));
+            return result_receiver.recv().ok()
+                .and_then(|maybe_bcid| maybe_bcid)
+                .and_then(ScriptThread::find_window_proxy);
+        }
     }
 
     None
@@ -323,7 +352,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
                                               id: RawHandleId,
                                               mut desc: RawMutableHandle<PropertyDescriptor>)
                                               -> bool {
-    let window = GetSubframeWindow(cx, proxy, id);
+    let window = GetSubframeWindowProxy(cx, proxy, id);
     if let Some(window) = window {
         rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
@@ -372,7 +401,7 @@ unsafe extern "C" fn has(cx: *mut JSContext,
                          id: RawHandleId,
                          bp: *mut bool)
                          -> bool {
-    let window = GetSubframeWindow(cx, proxy, id);
+    let window = GetSubframeWindowProxy(cx, proxy, id);
     if window.is_some() {
         *bp = true;
         return true;
@@ -395,7 +424,7 @@ unsafe extern "C" fn get(cx: *mut JSContext,
                          id: RawHandleId,
                          vp: RawMutableHandleValue)
                          -> bool {
-    let window = GetSubframeWindow(cx, proxy, id);
+    let window = GetSubframeWindowProxy(cx, proxy, id);
     if let Some(window) = window {
         window.to_jsval(cx, MutableHandle::from_raw(vp));
         return true;
