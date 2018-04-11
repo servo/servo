@@ -103,6 +103,7 @@ linux-dev:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
   commands:
+    - ./etc/ci/check_rustfmt.sh
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
     - ./etc/ci/clean_build_artifacts.sh
