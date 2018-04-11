@@ -10,12 +10,14 @@ pub type ServoUnsafeCell<T> = ::std::cell::UnsafeCell<T>;
 pub type ServoCell<T> = ::std::cell::Cell<T>;
 pub type ServoNodeData = AtomicRefCell<ElementData>;
 pub type ServoWritingMode = ::logical_geometry::WritingMode;
-pub type ServoCustomPropertiesMap = Option<::servo_arc::Arc<::custom_properties::CustomPropertiesMap>>;
+pub type ServoCustomPropertiesMap =
+    Option<::servo_arc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
 pub type ServoVisitedStyle = Option<::servo_arc::RawOffsetArc<::properties::ComputedValues>>;
 pub type ServoComputedValueFlags = ::properties::computed_value_flags::ComputedValueFlags;
 pub type ServoRawOffsetArc<T> = ::servo_arc::RawOffsetArc<T>;
-pub type ComputedStyleStrong = ::gecko_bindings::sugar::ownership::Strong<::properties::ComputedValues>;
+pub type ComputedStyleStrong =
+    ::gecko_bindings::sugar::ownership::Strong<::properties::ComputedValues>;
 
 #[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod root {
@@ -416,8 +418,6 @@ pub mod root {
     pub const NS_STYLE_FONT_STYLE_NORMAL: u32 = 0;
     pub const NS_STYLE_FONT_STYLE_ITALIC: u32 = 1;
     pub const NS_STYLE_FONT_STYLE_OBLIQUE: u32 = 2;
-    pub const NS_STYLE_FONT_WEIGHT_NORMAL: u32 = 400;
-    pub const NS_STYLE_FONT_WEIGHT_BOLD: u32 = 700;
     pub const NS_STYLE_FONT_WEIGHT_BOLDER: i32 = -1;
     pub const NS_STYLE_FONT_WEIGHT_LIGHTER: i32 = -2;
     pub const NS_STYLE_FONT_SIZE_XXSMALL: u32 = 0;
@@ -904,6 +904,8 @@ pub mod root {
         }
         pub type pair_first_type<_T1> = _T1;
         pub type pair_second_type<_T2> = _T2;
+        pub type pair__PCCP = u8;
+        pub type pair__PCCFP = u8;
         #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct input_iterator_tag {
@@ -952,6 +954,18 @@ pub mod root {
             pub _M_bpos: usize,
         }
     }
+    pub mod __gnu_cxx {
+        #[allow(unused_imports)]
+        use self::super::super::root;
+    }
+    pub type __int8_t = ::std::os::raw::c_schar;
+    pub type __uint8_t = ::std::os::raw::c_uchar;
+    pub type __int16_t = ::std::os::raw::c_short;
+    pub type __uint16_t = ::std::os::raw::c_ushort;
+    pub type __int32_t = ::std::os::raw::c_int;
+    pub type __uint32_t = ::std::os::raw::c_uint;
+    pub type __int64_t = ::std::os::raw::c_long;
+    pub type __uint64_t = ::std::os::raw::c_ulong;
     pub mod mozilla {
         #[allow(unused_imports)]
         use self::super::super::root;
@@ -3555,7 +3569,9 @@ pub mod root {
             pub struct Element {
                 pub _base: root::mozilla::dom::FragmentOrElement,
                 pub mState: root::mozilla::EventStates,
-                pub mServoData: ::gecko_bindings::structs::ServoCell<*mut ::gecko_bindings::structs::ServoNodeData>,
+                pub mServoData: ::gecko_bindings::structs::ServoCell<
+                    *mut ::gecko_bindings::structs::ServoNodeData,
+                >,
             }
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
@@ -3631,11 +3647,11 @@ pub mod root {
             /// @param aCaseSensitive Whether to do a case-sensitive compare on the values.
             /// @return ATTR_MISSING, ATTR_VALUE_NO_MATCH or the non-negative index
             /// indicating the first value of aValues that matched
-            pub type Element_AttrValuesArray = *const *const root::nsStaticAtom;
+            pub type Element_AttrValuesArray = *const root::nsStaticAtom;
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct Element_MappedAttributeEntry {
-                pub attribute: *mut *mut root::nsStaticAtom,
+                pub attribute: *const root::nsStaticAtom,
             }
             #[test]
             fn bindgen_test_layout_Element_MappedAttributeEntry() {
@@ -5275,51 +5291,50 @@ pub mod root {
         pub const UseCounter_eUseCounter_console_profile: root::mozilla::UseCounter = 74;
         pub const UseCounter_eUseCounter_console_profileEnd: root::mozilla::UseCounter = 75;
         pub const UseCounter_eUseCounter_EnablePrivilege: root::mozilla::UseCounter = 76;
-        pub const UseCounter_eUseCounter_DOMExceptionCode: root::mozilla::UseCounter = 77;
-        pub const UseCounter_eUseCounter_MutationEvent: root::mozilla::UseCounter = 78;
-        pub const UseCounter_eUseCounter_Components: root::mozilla::UseCounter = 79;
-        pub const UseCounter_eUseCounter_PrefixedVisibilityAPI: root::mozilla::UseCounter = 80;
-        pub const UseCounter_eUseCounter_NodeIteratorDetach: root::mozilla::UseCounter = 81;
-        pub const UseCounter_eUseCounter_LenientThis: root::mozilla::UseCounter = 82;
-        pub const UseCounter_eUseCounter_MozGetAsFile: root::mozilla::UseCounter = 83;
-        pub const UseCounter_eUseCounter_UseOfCaptureEvents: root::mozilla::UseCounter = 84;
-        pub const UseCounter_eUseCounter_UseOfReleaseEvents: root::mozilla::UseCounter = 85;
-        pub const UseCounter_eUseCounter_UseOfDOM3LoadMethod: root::mozilla::UseCounter = 86;
-        pub const UseCounter_eUseCounter_ChromeUseOfDOM3LoadMethod: root::mozilla::UseCounter = 87;
-        pub const UseCounter_eUseCounter_ShowModalDialog: root::mozilla::UseCounter = 88;
-        pub const UseCounter_eUseCounter_SyncXMLHttpRequest: root::mozilla::UseCounter = 89;
-        pub const UseCounter_eUseCounter_Window_Cc_ontrollers: root::mozilla::UseCounter = 90;
-        pub const UseCounter_eUseCounter_ImportXULIntoContent: root::mozilla::UseCounter = 91;
-        pub const UseCounter_eUseCounter_PannerNodeDoppler: root::mozilla::UseCounter = 92;
-        pub const UseCounter_eUseCounter_NavigatorGetUserMedia: root::mozilla::UseCounter = 93;
-        pub const UseCounter_eUseCounter_WebrtcDeprecatedPrefix: root::mozilla::UseCounter = 94;
+        pub const UseCounter_eUseCounter_MutationEvent: root::mozilla::UseCounter = 77;
+        pub const UseCounter_eUseCounter_Components: root::mozilla::UseCounter = 78;
+        pub const UseCounter_eUseCounter_PrefixedVisibilityAPI: root::mozilla::UseCounter = 79;
+        pub const UseCounter_eUseCounter_NodeIteratorDetach: root::mozilla::UseCounter = 80;
+        pub const UseCounter_eUseCounter_LenientThis: root::mozilla::UseCounter = 81;
+        pub const UseCounter_eUseCounter_MozGetAsFile: root::mozilla::UseCounter = 82;
+        pub const UseCounter_eUseCounter_UseOfCaptureEvents: root::mozilla::UseCounter = 83;
+        pub const UseCounter_eUseCounter_UseOfReleaseEvents: root::mozilla::UseCounter = 84;
+        pub const UseCounter_eUseCounter_UseOfDOM3LoadMethod: root::mozilla::UseCounter = 85;
+        pub const UseCounter_eUseCounter_ChromeUseOfDOM3LoadMethod: root::mozilla::UseCounter = 86;
+        pub const UseCounter_eUseCounter_ShowModalDialog: root::mozilla::UseCounter = 87;
+        pub const UseCounter_eUseCounter_SyncXMLHttpRequest: root::mozilla::UseCounter = 88;
+        pub const UseCounter_eUseCounter_Window_Cc_ontrollers: root::mozilla::UseCounter = 89;
+        pub const UseCounter_eUseCounter_ImportXULIntoContent: root::mozilla::UseCounter = 90;
+        pub const UseCounter_eUseCounter_PannerNodeDoppler: root::mozilla::UseCounter = 91;
+        pub const UseCounter_eUseCounter_NavigatorGetUserMedia: root::mozilla::UseCounter = 92;
+        pub const UseCounter_eUseCounter_WebrtcDeprecatedPrefix: root::mozilla::UseCounter = 93;
         pub const UseCounter_eUseCounter_RTCPeerConnectionGetStreams: root::mozilla::UseCounter =
-            95;
-        pub const UseCounter_eUseCounter_AppCache: root::mozilla::UseCounter = 96;
-        pub const UseCounter_eUseCounter_AppCacheInsecure: root::mozilla::UseCounter = 97;
+            94;
+        pub const UseCounter_eUseCounter_AppCache: root::mozilla::UseCounter = 95;
+        pub const UseCounter_eUseCounter_AppCacheInsecure: root::mozilla::UseCounter = 96;
         pub const UseCounter_eUseCounter_PrefixedImageSmoothingEnabled: root::mozilla::UseCounter =
-            98;
-        pub const UseCounter_eUseCounter_PrefixedFullscreenAPI: root::mozilla::UseCounter = 99;
-        pub const UseCounter_eUseCounter_LenientSetter: root::mozilla::UseCounter = 100;
-        pub const UseCounter_eUseCounter_FileLastModifiedDate: root::mozilla::UseCounter = 101;
+            97;
+        pub const UseCounter_eUseCounter_PrefixedFullscreenAPI: root::mozilla::UseCounter = 98;
+        pub const UseCounter_eUseCounter_LenientSetter: root::mozilla::UseCounter = 99;
+        pub const UseCounter_eUseCounter_FileLastModifiedDate: root::mozilla::UseCounter = 100;
         pub const UseCounter_eUseCounter_ImageBitmapRenderingContext_TransferImageBitmap:
-            root::mozilla::UseCounter = 102;
+            root::mozilla::UseCounter = 101;
         pub const UseCounter_eUseCounter_URLCreateObjectURL_MediaStream: root::mozilla::UseCounter =
-            103;
-        pub const UseCounter_eUseCounter_XMLBaseAttribute: root::mozilla::UseCounter = 104;
-        pub const UseCounter_eUseCounter_WindowContentUntrusted: root::mozilla::UseCounter = 105;
+            102;
+        pub const UseCounter_eUseCounter_XMLBaseAttribute: root::mozilla::UseCounter = 103;
+        pub const UseCounter_eUseCounter_WindowContentUntrusted: root::mozilla::UseCounter = 104;
         pub const UseCounter_eUseCounter_RegisterProtocolHandlerInsecure:
-            root::mozilla::UseCounter = 106;
+            root::mozilla::UseCounter = 105;
         pub const UseCounter_eUseCounter_MixedDisplayObjectSubrequest: root::mozilla::UseCounter =
-            107;
-        pub const UseCounter_eUseCounter_MotionEvent: root::mozilla::UseCounter = 108;
-        pub const UseCounter_eUseCounter_OrientationEvent: root::mozilla::UseCounter = 109;
-        pub const UseCounter_eUseCounter_ProximityEvent: root::mozilla::UseCounter = 110;
-        pub const UseCounter_eUseCounter_AmbientLightEvent: root::mozilla::UseCounter = 111;
+            106;
+        pub const UseCounter_eUseCounter_MotionEvent: root::mozilla::UseCounter = 107;
+        pub const UseCounter_eUseCounter_OrientationEvent: root::mozilla::UseCounter = 108;
+        pub const UseCounter_eUseCounter_ProximityEvent: root::mozilla::UseCounter = 109;
+        pub const UseCounter_eUseCounter_AmbientLightEvent: root::mozilla::UseCounter = 110;
         pub const UseCounter_eUseCounter_IDBOpenDBOptions_StorageType: root::mozilla::UseCounter =
-            112;
-        pub const UseCounter_eUseCounter_GetPropertyCSSValue: root::mozilla::UseCounter = 113;
-        pub const UseCounter_eUseCounter_Count: root::mozilla::UseCounter = 114;
+            111;
+        pub const UseCounter_eUseCounter_GetPropertyCSSValue: root::mozilla::UseCounter = 112;
+        pub const UseCounter_eUseCounter_Count: root::mozilla::UseCounter = 113;
         pub type UseCounter = i16;
         pub const LogLevel_Disabled: root::mozilla::LogLevel = 0;
         pub const LogLevel_Error: root::mozilla::LogLevel = 1;
@@ -5545,73 +5560,24 @@ pub mod root {
             #[repr(C)]
             pub struct URLValueData__bindgen_vtable(::std::os::raw::c_void);
             #[repr(C)]
-            #[derive(Debug)]
             pub struct URLValueData {
                 pub vtable_: *const URLValueData__bindgen_vtable,
                 pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
-                pub mURI: root::nsMainThreadPtrHandle<root::nsIURI>,
+                pub mURI: root::nsCOMPtr,
                 pub mExtraData: root::RefPtr<root::mozilla::URLExtraData>,
                 pub mURIResolved: bool,
                 pub mIsLocalRef: [u8; 2usize],
                 pub mMightHaveRef: [u8; 2usize],
-                pub mStrings: root::mozilla::css::URLValueData_RustOrGeckoString,
-                pub mUsingRustString: bool,
+                pub mString: ::gecko_bindings::structs::ServoRawOffsetArc<root::RustString>,
                 pub mLoadedImage: bool,
                 pub mCORSMode: root::mozilla::CORSMode,
             }
             pub type URLValueData_HasThreadSafeRefCnt = root::mozilla::TrueType;
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct URLValueData_RustOrGeckoString {
-                pub mString: root::__BindgenUnionField<::nsstring::nsStringRepr>,
-                pub mRustString:
-                    root::__BindgenUnionField<::gecko_bindings::structs::ServoRawOffsetArc<root::RustString>>,
-                pub bindgen_union_field: [u64; 2usize],
-            }
-            #[test]
-            fn bindgen_test_layout_URLValueData_RustOrGeckoString() {
-                assert_eq!(
-                    ::std::mem::size_of::<URLValueData_RustOrGeckoString>(),
-                    16usize,
-                    concat!("Size of: ", stringify!(URLValueData_RustOrGeckoString))
-                );
-                assert_eq!(
-                    ::std::mem::align_of::<URLValueData_RustOrGeckoString>(),
-                    8usize,
-                    concat!("Alignment of ", stringify!(URLValueData_RustOrGeckoString))
-                );
-                assert_eq!(
-                    unsafe {
-                        &(*(::std::ptr::null::<URLValueData_RustOrGeckoString>())).mString
-                            as *const _ as usize
-                    },
-                    0usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(URLValueData_RustOrGeckoString),
-                        "::",
-                        stringify!(mString)
-                    )
-                );
-                assert_eq!(
-                    unsafe {
-                        &(*(::std::ptr::null::<URLValueData_RustOrGeckoString>())).mRustString
-                            as *const _ as usize
-                    },
-                    0usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(URLValueData_RustOrGeckoString),
-                        "::",
-                        stringify!(mRustString)
-                    )
-                );
-            }
             #[test]
             fn bindgen_test_layout_URLValueData() {
                 assert_eq!(
                     ::std::mem::size_of::<URLValueData>(),
-                    64usize,
+                    56usize,
                     concat!("Size of: ", stringify!(URLValueData))
                 );
                 assert_eq!(
@@ -5691,34 +5657,21 @@ pub mod root {
                 );
                 assert_eq!(
                     unsafe {
-                        &(*(::std::ptr::null::<URLValueData>())).mStrings as *const _ as usize
+                        &(*(::std::ptr::null::<URLValueData>())).mString as *const _ as usize
                     },
                     40usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(URLValueData),
                         "::",
-                        stringify!(mStrings)
-                    )
-                );
-                assert_eq!(
-                    unsafe {
-                        &(*(::std::ptr::null::<URLValueData>())).mUsingRustString as *const _
-                            as usize
-                    },
-                    56usize,
-                    concat!(
-                        "Offset of field: ",
-                        stringify!(URLValueData),
-                        "::",
-                        stringify!(mUsingRustString)
+                        stringify!(mString)
                     )
                 );
                 assert_eq!(
                     unsafe {
                         &(*(::std::ptr::null::<URLValueData>())).mLoadedImage as *const _ as usize
                     },
-                    57usize,
+                    48usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(URLValueData),
@@ -5730,7 +5683,7 @@ pub mod root {
                     unsafe {
                         &(*(::std::ptr::null::<URLValueData>())).mCORSMode as *const _ as usize
                     },
-                    58usize,
+                    49usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(URLValueData),
@@ -5740,7 +5693,6 @@ pub mod root {
                 );
             }
             #[repr(C)]
-            #[derive(Debug)]
             pub struct URLValue {
                 pub _base: root::mozilla::css::URLValueData,
             }
@@ -5748,7 +5700,7 @@ pub mod root {
             fn bindgen_test_layout_URLValue() {
                 assert_eq!(
                     ::std::mem::size_of::<URLValue>(),
-                    64usize,
+                    56usize,
                     concat!("Size of: ", stringify!(URLValue))
                 );
                 assert_eq!(
@@ -5758,7 +5710,6 @@ pub mod root {
                 );
             }
             #[repr(C)]
-            #[derive(Debug)]
             pub struct ImageValue {
                 pub _base: root::mozilla::css::URLValueData,
                 pub mRequests: [u64; 4usize],
@@ -5767,7 +5718,7 @@ pub mod root {
             fn bindgen_test_layout_ImageValue() {
                 assert_eq!(
                     ::std::mem::size_of::<ImageValue>(),
-                    96usize,
+                    88usize,
                     concat!("Size of: ", stringify!(ImageValue))
                 );
                 assert_eq!(
@@ -5779,7 +5730,7 @@ pub mod root {
                     unsafe {
                         &(*(::std::ptr::null::<ImageValue>())).mRequests as *const _ as usize
                     },
-                    64usize,
+                    56usize,
                     concat!(
                         "Offset of field: ",
                         stringify!(ImageValue),
@@ -6553,6 +6504,14 @@ pub mod root {
                 pub mErrorLineNumber: u32,
                 pub mPrevErrorLineNumber: u32,
                 pub mErrorColNumber: u32,
+            }
+            extern "C" {
+                #[link_name = "\u{1}_ZN7mozilla3css13ErrorReporter12sInitializedE"]
+                pub static mut ErrorReporter_sInitialized: bool;
+            }
+            extern "C" {
+                #[link_name = "\u{1}_ZN7mozilla3css13ErrorReporter13sReportErrorsE"]
+                pub static mut ErrorReporter_sReportErrors: bool;
             }
             #[test]
             fn bindgen_test_layout_ErrorReporter() {
@@ -8722,297 +8681,6 @@ pub mod root {
                 )
             );
         }
-        /// Event messages
-        pub type EventMessageType = u16;
-        pub const EventMessage_eVoidEvent: root::mozilla::EventMessage = 0;
-        pub const EventMessage_eAllEvents: root::mozilla::EventMessage = 1;
-        pub const EventMessage_eWindowClose: root::mozilla::EventMessage = 2;
-        pub const EventMessage_eKeyPress: root::mozilla::EventMessage = 3;
-        pub const EventMessage_eKeyUp: root::mozilla::EventMessage = 4;
-        pub const EventMessage_eKeyDown: root::mozilla::EventMessage = 5;
-        pub const EventMessage_eKeyDownOnPlugin: root::mozilla::EventMessage = 6;
-        pub const EventMessage_eKeyUpOnPlugin: root::mozilla::EventMessage = 7;
-        pub const EventMessage_eAccessKeyNotFound: root::mozilla::EventMessage = 8;
-        pub const EventMessage_eResize: root::mozilla::EventMessage = 9;
-        pub const EventMessage_eScroll: root::mozilla::EventMessage = 10;
-        pub const EventMessage_eInstall: root::mozilla::EventMessage = 11;
-        pub const EventMessage_eAppInstalled: root::mozilla::EventMessage = 12;
-        pub const EventMessage_ePluginActivate: root::mozilla::EventMessage = 13;
-        pub const EventMessage_ePluginFocus: root::mozilla::EventMessage = 14;
-        pub const EventMessage_eOffline: root::mozilla::EventMessage = 15;
-        pub const EventMessage_eOnline: root::mozilla::EventMessage = 16;
-        pub const EventMessage_eLanguageChange: root::mozilla::EventMessage = 17;
-        pub const EventMessage_eMouseMove: root::mozilla::EventMessage = 18;
-        pub const EventMessage_eMouseUp: root::mozilla::EventMessage = 19;
-        pub const EventMessage_eMouseDown: root::mozilla::EventMessage = 20;
-        pub const EventMessage_eMouseEnterIntoWidget: root::mozilla::EventMessage = 21;
-        pub const EventMessage_eMouseExitFromWidget: root::mozilla::EventMessage = 22;
-        pub const EventMessage_eMouseDoubleClick: root::mozilla::EventMessage = 23;
-        pub const EventMessage_eMouseClick: root::mozilla::EventMessage = 24;
-        pub const EventMessage_eMouseAuxClick: root::mozilla::EventMessage = 25;
-        pub const EventMessage_eMouseActivate: root::mozilla::EventMessage = 26;
-        pub const EventMessage_eMouseOver: root::mozilla::EventMessage = 27;
-        pub const EventMessage_eMouseOut: root::mozilla::EventMessage = 28;
-        pub const EventMessage_eMouseHitTest: root::mozilla::EventMessage = 29;
-        pub const EventMessage_eMouseEnter: root::mozilla::EventMessage = 30;
-        pub const EventMessage_eMouseLeave: root::mozilla::EventMessage = 31;
-        pub const EventMessage_eMouseTouchDrag: root::mozilla::EventMessage = 32;
-        pub const EventMessage_eMouseLongTap: root::mozilla::EventMessage = 33;
-        pub const EventMessage_eMouseEventFirst: root::mozilla::EventMessage = 18;
-        pub const EventMessage_eMouseEventLast: root::mozilla::EventMessage = 33;
-        pub const EventMessage_ePointerMove: root::mozilla::EventMessage = 34;
-        pub const EventMessage_ePointerUp: root::mozilla::EventMessage = 35;
-        pub const EventMessage_ePointerDown: root::mozilla::EventMessage = 36;
-        pub const EventMessage_ePointerOver: root::mozilla::EventMessage = 37;
-        pub const EventMessage_ePointerOut: root::mozilla::EventMessage = 38;
-        pub const EventMessage_ePointerEnter: root::mozilla::EventMessage = 39;
-        pub const EventMessage_ePointerLeave: root::mozilla::EventMessage = 40;
-        pub const EventMessage_ePointerCancel: root::mozilla::EventMessage = 41;
-        pub const EventMessage_ePointerGotCapture: root::mozilla::EventMessage = 42;
-        pub const EventMessage_ePointerLostCapture: root::mozilla::EventMessage = 43;
-        pub const EventMessage_ePointerEventFirst: root::mozilla::EventMessage = 34;
-        pub const EventMessage_ePointerEventLast: root::mozilla::EventMessage = 43;
-        pub const EventMessage_eContextMenu: root::mozilla::EventMessage = 44;
-        pub const EventMessage_eLoad: root::mozilla::EventMessage = 45;
-        pub const EventMessage_eUnload: root::mozilla::EventMessage = 46;
-        pub const EventMessage_eHashChange: root::mozilla::EventMessage = 47;
-        pub const EventMessage_eImageAbort: root::mozilla::EventMessage = 48;
-        pub const EventMessage_eLoadError: root::mozilla::EventMessage = 49;
-        pub const EventMessage_eLoadEnd: root::mozilla::EventMessage = 50;
-        pub const EventMessage_ePopState: root::mozilla::EventMessage = 51;
-        pub const EventMessage_eStorage: root::mozilla::EventMessage = 52;
-        pub const EventMessage_eBeforeUnload: root::mozilla::EventMessage = 53;
-        pub const EventMessage_eReadyStateChange: root::mozilla::EventMessage = 54;
-        pub const EventMessage_eFormSubmit: root::mozilla::EventMessage = 55;
-        pub const EventMessage_eFormReset: root::mozilla::EventMessage = 56;
-        pub const EventMessage_eFormChange: root::mozilla::EventMessage = 57;
-        pub const EventMessage_eFormSelect: root::mozilla::EventMessage = 58;
-        pub const EventMessage_eFormInvalid: root::mozilla::EventMessage = 59;
-        pub const EventMessage_eFormCheckboxStateChange: root::mozilla::EventMessage = 60;
-        pub const EventMessage_eFormRadioStateChange: root::mozilla::EventMessage = 61;
-        pub const EventMessage_eFocus: root::mozilla::EventMessage = 62;
-        pub const EventMessage_eBlur: root::mozilla::EventMessage = 63;
-        pub const EventMessage_eFocusIn: root::mozilla::EventMessage = 64;
-        pub const EventMessage_eFocusOut: root::mozilla::EventMessage = 65;
-        pub const EventMessage_eDragEnter: root::mozilla::EventMessage = 66;
-        pub const EventMessage_eDragOver: root::mozilla::EventMessage = 67;
-        pub const EventMessage_eDragExit: root::mozilla::EventMessage = 68;
-        pub const EventMessage_eDrag: root::mozilla::EventMessage = 69;
-        pub const EventMessage_eDragEnd: root::mozilla::EventMessage = 70;
-        pub const EventMessage_eDragStart: root::mozilla::EventMessage = 71;
-        pub const EventMessage_eDrop: root::mozilla::EventMessage = 72;
-        pub const EventMessage_eDragLeave: root::mozilla::EventMessage = 73;
-        pub const EventMessage_eDragDropEventFirst: root::mozilla::EventMessage = 66;
-        pub const EventMessage_eDragDropEventLast: root::mozilla::EventMessage = 73;
-        pub const EventMessage_eXULPopupShowing: root::mozilla::EventMessage = 74;
-        pub const EventMessage_eXULPopupShown: root::mozilla::EventMessage = 75;
-        pub const EventMessage_eXULPopupPositioned: root::mozilla::EventMessage = 76;
-        pub const EventMessage_eXULPopupHiding: root::mozilla::EventMessage = 77;
-        pub const EventMessage_eXULPopupHidden: root::mozilla::EventMessage = 78;
-        pub const EventMessage_eXULBroadcast: root::mozilla::EventMessage = 79;
-        pub const EventMessage_eXULCommandUpdate: root::mozilla::EventMessage = 80;
-        pub const EventMessage_eLegacyMouseLineOrPageScroll: root::mozilla::EventMessage = 81;
-        pub const EventMessage_eLegacyMousePixelScroll: root::mozilla::EventMessage = 82;
-        pub const EventMessage_eScrollPortUnderflow: root::mozilla::EventMessage = 83;
-        pub const EventMessage_eScrollPortOverflow: root::mozilla::EventMessage = 84;
-        pub const EventMessage_eLegacySubtreeModified: root::mozilla::EventMessage = 85;
-        pub const EventMessage_eLegacyNodeInserted: root::mozilla::EventMessage = 86;
-        pub const EventMessage_eLegacyNodeRemoved: root::mozilla::EventMessage = 87;
-        pub const EventMessage_eLegacyNodeRemovedFromDocument: root::mozilla::EventMessage = 88;
-        pub const EventMessage_eLegacyNodeInsertedIntoDocument: root::mozilla::EventMessage = 89;
-        pub const EventMessage_eLegacyAttrModified: root::mozilla::EventMessage = 90;
-        pub const EventMessage_eLegacyCharacterDataModified: root::mozilla::EventMessage = 91;
-        pub const EventMessage_eLegacyMutationEventFirst: root::mozilla::EventMessage = 85;
-        pub const EventMessage_eLegacyMutationEventLast: root::mozilla::EventMessage = 91;
-        pub const EventMessage_eUnidentifiedEvent: root::mozilla::EventMessage = 92;
-        pub const EventMessage_eCompositionStart: root::mozilla::EventMessage = 93;
-        pub const EventMessage_eCompositionEnd: root::mozilla::EventMessage = 94;
-        pub const EventMessage_eCompositionUpdate: root::mozilla::EventMessage = 95;
-        pub const EventMessage_eCompositionChange: root::mozilla::EventMessage = 96;
-        pub const EventMessage_eCompositionCommitAsIs: root::mozilla::EventMessage = 97;
-        pub const EventMessage_eCompositionCommit: root::mozilla::EventMessage = 98;
-        pub const EventMessage_eCompositionCommitRequestHandled: root::mozilla::EventMessage = 99;
-        pub const EventMessage_eLegacyDOMActivate: root::mozilla::EventMessage = 100;
-        pub const EventMessage_eLegacyDOMFocusIn: root::mozilla::EventMessage = 101;
-        pub const EventMessage_eLegacyDOMFocusOut: root::mozilla::EventMessage = 102;
-        pub const EventMessage_ePageShow: root::mozilla::EventMessage = 103;
-        pub const EventMessage_ePageHide: root::mozilla::EventMessage = 104;
-        pub const EventMessage_eSVGLoad: root::mozilla::EventMessage = 105;
-        pub const EventMessage_eSVGUnload: root::mozilla::EventMessage = 106;
-        pub const EventMessage_eSVGResize: root::mozilla::EventMessage = 107;
-        pub const EventMessage_eSVGScroll: root::mozilla::EventMessage = 108;
-        pub const EventMessage_eSVGZoom: root::mozilla::EventMessage = 109;
-        pub const EventMessage_eXULCommand: root::mozilla::EventMessage = 110;
-        pub const EventMessage_eCopy: root::mozilla::EventMessage = 111;
-        pub const EventMessage_eCut: root::mozilla::EventMessage = 112;
-        pub const EventMessage_ePaste: root::mozilla::EventMessage = 113;
-        pub const EventMessage_ePasteNoFormatting: root::mozilla::EventMessage = 114;
-        pub const EventMessage_eQuerySelectedText: root::mozilla::EventMessage = 115;
-        pub const EventMessage_eQueryTextContent: root::mozilla::EventMessage = 116;
-        pub const EventMessage_eQueryCaretRect: root::mozilla::EventMessage = 117;
-        pub const EventMessage_eQueryTextRect: root::mozilla::EventMessage = 118;
-        pub const EventMessage_eQueryTextRectArray: root::mozilla::EventMessage = 119;
-        pub const EventMessage_eQueryEditorRect: root::mozilla::EventMessage = 120;
-        pub const EventMessage_eQueryContentState: root::mozilla::EventMessage = 121;
-        pub const EventMessage_eQuerySelectionAsTransferable: root::mozilla::EventMessage = 122;
-        pub const EventMessage_eQueryCharacterAtPoint: root::mozilla::EventMessage = 123;
-        pub const EventMessage_eQueryDOMWidgetHittest: root::mozilla::EventMessage = 124;
-        pub const EventMessage_eLoadStart: root::mozilla::EventMessage = 125;
-        pub const EventMessage_eProgress: root::mozilla::EventMessage = 126;
-        pub const EventMessage_eSuspend: root::mozilla::EventMessage = 127;
-        pub const EventMessage_eEmptied: root::mozilla::EventMessage = 128;
-        pub const EventMessage_eStalled: root::mozilla::EventMessage = 129;
-        pub const EventMessage_ePlay: root::mozilla::EventMessage = 130;
-        pub const EventMessage_ePause: root::mozilla::EventMessage = 131;
-        pub const EventMessage_eLoadedMetaData: root::mozilla::EventMessage = 132;
-        pub const EventMessage_eLoadedData: root::mozilla::EventMessage = 133;
-        pub const EventMessage_eWaiting: root::mozilla::EventMessage = 134;
-        pub const EventMessage_ePlaying: root::mozilla::EventMessage = 135;
-        pub const EventMessage_eCanPlay: root::mozilla::EventMessage = 136;
-        pub const EventMessage_eCanPlayThrough: root::mozilla::EventMessage = 137;
-        pub const EventMessage_eSeeking: root::mozilla::EventMessage = 138;
-        pub const EventMessage_eSeeked: root::mozilla::EventMessage = 139;
-        pub const EventMessage_eTimeUpdate: root::mozilla::EventMessage = 140;
-        pub const EventMessage_eEnded: root::mozilla::EventMessage = 141;
-        pub const EventMessage_eRateChange: root::mozilla::EventMessage = 142;
-        pub const EventMessage_eDurationChange: root::mozilla::EventMessage = 143;
-        pub const EventMessage_eVolumeChange: root::mozilla::EventMessage = 144;
-        pub const EventMessage_eAfterPaint: root::mozilla::EventMessage = 145;
-        pub const EventMessage_eSwipeGestureMayStart: root::mozilla::EventMessage = 146;
-        pub const EventMessage_eSwipeGestureStart: root::mozilla::EventMessage = 147;
-        pub const EventMessage_eSwipeGestureUpdate: root::mozilla::EventMessage = 148;
-        pub const EventMessage_eSwipeGestureEnd: root::mozilla::EventMessage = 149;
-        pub const EventMessage_eSwipeGesture: root::mozilla::EventMessage = 150;
-        pub const EventMessage_eMagnifyGestureStart: root::mozilla::EventMessage = 151;
-        pub const EventMessage_eMagnifyGestureUpdate: root::mozilla::EventMessage = 152;
-        pub const EventMessage_eMagnifyGesture: root::mozilla::EventMessage = 153;
-        pub const EventMessage_eRotateGestureStart: root::mozilla::EventMessage = 154;
-        pub const EventMessage_eRotateGestureUpdate: root::mozilla::EventMessage = 155;
-        pub const EventMessage_eRotateGesture: root::mozilla::EventMessage = 156;
-        pub const EventMessage_eTapGesture: root::mozilla::EventMessage = 157;
-        pub const EventMessage_ePressTapGesture: root::mozilla::EventMessage = 158;
-        pub const EventMessage_eEdgeUIStarted: root::mozilla::EventMessage = 159;
-        pub const EventMessage_eEdgeUICanceled: root::mozilla::EventMessage = 160;
-        pub const EventMessage_eEdgeUICompleted: root::mozilla::EventMessage = 161;
-        pub const EventMessage_ePluginInputEvent: root::mozilla::EventMessage = 162;
-        pub const EventMessage_eSetSelection: root::mozilla::EventMessage = 163;
-        pub const EventMessage_eContentCommandCut: root::mozilla::EventMessage = 164;
-        pub const EventMessage_eContentCommandCopy: root::mozilla::EventMessage = 165;
-        pub const EventMessage_eContentCommandPaste: root::mozilla::EventMessage = 166;
-        pub const EventMessage_eContentCommandDelete: root::mozilla::EventMessage = 167;
-        pub const EventMessage_eContentCommandUndo: root::mozilla::EventMessage = 168;
-        pub const EventMessage_eContentCommandRedo: root::mozilla::EventMessage = 169;
-        pub const EventMessage_eContentCommandPasteTransferable: root::mozilla::EventMessage = 170;
-        pub const EventMessage_eContentCommandLookUpDictionary: root::mozilla::EventMessage = 171;
-        pub const EventMessage_eContentCommandScroll: root::mozilla::EventMessage = 172;
-        pub const EventMessage_eGestureNotify: root::mozilla::EventMessage = 173;
-        pub const EventMessage_eScrolledAreaChanged: root::mozilla::EventMessage = 174;
-        pub const EventMessage_eTransitionStart: root::mozilla::EventMessage = 175;
-        pub const EventMessage_eTransitionRun: root::mozilla::EventMessage = 176;
-        pub const EventMessage_eTransitionEnd: root::mozilla::EventMessage = 177;
-        pub const EventMessage_eTransitionCancel: root::mozilla::EventMessage = 178;
-        pub const EventMessage_eAnimationStart: root::mozilla::EventMessage = 179;
-        pub const EventMessage_eAnimationEnd: root::mozilla::EventMessage = 180;
-        pub const EventMessage_eAnimationIteration: root::mozilla::EventMessage = 181;
-        pub const EventMessage_eAnimationCancel: root::mozilla::EventMessage = 182;
-        pub const EventMessage_eWebkitTransitionEnd: root::mozilla::EventMessage = 183;
-        pub const EventMessage_eWebkitAnimationStart: root::mozilla::EventMessage = 184;
-        pub const EventMessage_eWebkitAnimationEnd: root::mozilla::EventMessage = 185;
-        pub const EventMessage_eWebkitAnimationIteration: root::mozilla::EventMessage = 186;
-        pub const EventMessage_eSMILBeginEvent: root::mozilla::EventMessage = 187;
-        pub const EventMessage_eSMILEndEvent: root::mozilla::EventMessage = 188;
-        pub const EventMessage_eSMILRepeatEvent: root::mozilla::EventMessage = 189;
-        pub const EventMessage_eAudioProcess: root::mozilla::EventMessage = 190;
-        pub const EventMessage_eAudioComplete: root::mozilla::EventMessage = 191;
-        pub const EventMessage_eBeforeScriptExecute: root::mozilla::EventMessage = 192;
-        pub const EventMessage_eAfterScriptExecute: root::mozilla::EventMessage = 193;
-        pub const EventMessage_eBeforePrint: root::mozilla::EventMessage = 194;
-        pub const EventMessage_eAfterPrint: root::mozilla::EventMessage = 195;
-        pub const EventMessage_eMessage: root::mozilla::EventMessage = 196;
-        pub const EventMessage_eMessageError: root::mozilla::EventMessage = 197;
-        pub const EventMessage_eOpen: root::mozilla::EventMessage = 198;
-        pub const EventMessage_eDeviceOrientation: root::mozilla::EventMessage = 199;
-        pub const EventMessage_eAbsoluteDeviceOrientation: root::mozilla::EventMessage = 200;
-        pub const EventMessage_eDeviceMotion: root::mozilla::EventMessage = 201;
-        pub const EventMessage_eDeviceProximity: root::mozilla::EventMessage = 202;
-        pub const EventMessage_eUserProximity: root::mozilla::EventMessage = 203;
-        pub const EventMessage_eDeviceLight: root::mozilla::EventMessage = 204;
-        pub const EventMessage_eVRDisplayActivate: root::mozilla::EventMessage = 205;
-        pub const EventMessage_eVRDisplayDeactivate: root::mozilla::EventMessage = 206;
-        pub const EventMessage_eVRDisplayConnect: root::mozilla::EventMessage = 207;
-        pub const EventMessage_eVRDisplayDisconnect: root::mozilla::EventMessage = 208;
-        pub const EventMessage_eVRDisplayPresentChange: root::mozilla::EventMessage = 209;
-        pub const EventMessage_eShow: root::mozilla::EventMessage = 210;
-        pub const EventMessage_eFullscreenChange: root::mozilla::EventMessage = 211;
-        pub const EventMessage_eFullscreenError: root::mozilla::EventMessage = 212;
-        pub const EventMessage_eMozFullscreenChange: root::mozilla::EventMessage = 213;
-        pub const EventMessage_eMozFullscreenError: root::mozilla::EventMessage = 214;
-        pub const EventMessage_eTouchStart: root::mozilla::EventMessage = 215;
-        pub const EventMessage_eTouchMove: root::mozilla::EventMessage = 216;
-        pub const EventMessage_eTouchEnd: root::mozilla::EventMessage = 217;
-        pub const EventMessage_eTouchCancel: root::mozilla::EventMessage = 218;
-        pub const EventMessage_eTouchPointerCancel: root::mozilla::EventMessage = 219;
-        pub const EventMessage_ePointerLockChange: root::mozilla::EventMessage = 220;
-        pub const EventMessage_ePointerLockError: root::mozilla::EventMessage = 221;
-        pub const EventMessage_eMozPointerLockChange: root::mozilla::EventMessage = 222;
-        pub const EventMessage_eMozPointerLockError: root::mozilla::EventMessage = 223;
-        pub const EventMessage_eWheel: root::mozilla::EventMessage = 224;
-        pub const EventMessage_eWheelOperationStart: root::mozilla::EventMessage = 225;
-        pub const EventMessage_eWheelOperationEnd: root::mozilla::EventMessage = 226;
-        pub const EventMessage_eTimeChange: root::mozilla::EventMessage = 227;
-        pub const EventMessage_eNetworkUpload: root::mozilla::EventMessage = 228;
-        pub const EventMessage_eNetworkDownload: root::mozilla::EventMessage = 229;
-        pub const EventMessage_eMediaRecorderDataAvailable: root::mozilla::EventMessage = 230;
-        pub const EventMessage_eMediaRecorderWarning: root::mozilla::EventMessage = 231;
-        pub const EventMessage_eMediaRecorderStop: root::mozilla::EventMessage = 232;
-        pub const EventMessage_eGamepadButtonDown: root::mozilla::EventMessage = 233;
-        pub const EventMessage_eGamepadButtonUp: root::mozilla::EventMessage = 234;
-        pub const EventMessage_eGamepadAxisMove: root::mozilla::EventMessage = 235;
-        pub const EventMessage_eGamepadConnected: root::mozilla::EventMessage = 236;
-        pub const EventMessage_eGamepadDisconnected: root::mozilla::EventMessage = 237;
-        pub const EventMessage_eGamepadEventFirst: root::mozilla::EventMessage = 233;
-        pub const EventMessage_eGamepadEventLast: root::mozilla::EventMessage = 237;
-        pub const EventMessage_eEditorInput: root::mozilla::EventMessage = 238;
-        pub const EventMessage_eSelectStart: root::mozilla::EventMessage = 239;
-        pub const EventMessage_eSelectionChange: root::mozilla::EventMessage = 240;
-        pub const EventMessage_eVisibilityChange: root::mozilla::EventMessage = 241;
-        pub const EventMessage_eToggle: root::mozilla::EventMessage = 242;
-        pub const EventMessage_eClose: root::mozilla::EventMessage = 243;
-        pub const EventMessage_eEventMessage_MaxValue: root::mozilla::EventMessage = 244;
-        pub type EventMessage = u16;
-        /// Event class IDs
-        pub type EventClassIDType = u8;
-        pub const EventClassID_eBasicEventClass: root::mozilla::EventClassID = 0;
-        pub const EventClassID_eGUIEventClass: root::mozilla::EventClassID = 1;
-        pub const EventClassID_eInputEventClass: root::mozilla::EventClassID = 2;
-        pub const EventClassID_eUIEventClass: root::mozilla::EventClassID = 3;
-        pub const EventClassID_eKeyboardEventClass: root::mozilla::EventClassID = 4;
-        pub const EventClassID_eCompositionEventClass: root::mozilla::EventClassID = 5;
-        pub const EventClassID_eQueryContentEventClass: root::mozilla::EventClassID = 6;
-        pub const EventClassID_eSelectionEventClass: root::mozilla::EventClassID = 7;
-        pub const EventClassID_eEditorInputEventClass: root::mozilla::EventClassID = 8;
-        pub const EventClassID_eMouseEventBaseClass: root::mozilla::EventClassID = 9;
-        pub const EventClassID_eMouseEventClass: root::mozilla::EventClassID = 10;
-        pub const EventClassID_eDragEventClass: root::mozilla::EventClassID = 11;
-        pub const EventClassID_eMouseScrollEventClass: root::mozilla::EventClassID = 12;
-        pub const EventClassID_eWheelEventClass: root::mozilla::EventClassID = 13;
-        pub const EventClassID_ePointerEventClass: root::mozilla::EventClassID = 14;
-        pub const EventClassID_eGestureNotifyEventClass: root::mozilla::EventClassID = 15;
-        pub const EventClassID_eSimpleGestureEventClass: root::mozilla::EventClassID = 16;
-        pub const EventClassID_eTouchEventClass: root::mozilla::EventClassID = 17;
-        pub const EventClassID_eScrollPortEventClass: root::mozilla::EventClassID = 18;
-        pub const EventClassID_eScrollAreaEventClass: root::mozilla::EventClassID = 19;
-        pub const EventClassID_eFormEventClass: root::mozilla::EventClassID = 20;
-        pub const EventClassID_eClipboardEventClass: root::mozilla::EventClassID = 21;
-        pub const EventClassID_eFocusEventClass: root::mozilla::EventClassID = 22;
-        pub const EventClassID_eTransitionEventClass: root::mozilla::EventClassID = 23;
-        pub const EventClassID_eAnimationEventClass: root::mozilla::EventClassID = 24;
-        pub const EventClassID_eSMILTimeEventClass: root::mozilla::EventClassID = 25;
-        pub const EventClassID_eCommandEventClass: root::mozilla::EventClassID = 26;
-        pub const EventClassID_eContentCommandEventClass: root::mozilla::EventClassID = 27;
-        pub const EventClassID_ePluginEventClass: root::mozilla::EventClassID = 28;
-        pub const EventClassID_eMutationEventClass: root::mozilla::EventClassID = 29;
-        pub type EventClassID = u8;
         #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct EventListenerManager {
@@ -9411,6 +9079,297 @@ pub mod root {
                 *self
             }
         }
+        /// Event messages
+        pub type EventMessageType = u16;
+        pub const EventMessage_eVoidEvent: root::mozilla::EventMessage = 0;
+        pub const EventMessage_eAllEvents: root::mozilla::EventMessage = 1;
+        pub const EventMessage_eWindowClose: root::mozilla::EventMessage = 2;
+        pub const EventMessage_eKeyPress: root::mozilla::EventMessage = 3;
+        pub const EventMessage_eKeyUp: root::mozilla::EventMessage = 4;
+        pub const EventMessage_eKeyDown: root::mozilla::EventMessage = 5;
+        pub const EventMessage_eKeyDownOnPlugin: root::mozilla::EventMessage = 6;
+        pub const EventMessage_eKeyUpOnPlugin: root::mozilla::EventMessage = 7;
+        pub const EventMessage_eAccessKeyNotFound: root::mozilla::EventMessage = 8;
+        pub const EventMessage_eResize: root::mozilla::EventMessage = 9;
+        pub const EventMessage_eScroll: root::mozilla::EventMessage = 10;
+        pub const EventMessage_eInstall: root::mozilla::EventMessage = 11;
+        pub const EventMessage_eAppInstalled: root::mozilla::EventMessage = 12;
+        pub const EventMessage_ePluginActivate: root::mozilla::EventMessage = 13;
+        pub const EventMessage_ePluginFocus: root::mozilla::EventMessage = 14;
+        pub const EventMessage_eOffline: root::mozilla::EventMessage = 15;
+        pub const EventMessage_eOnline: root::mozilla::EventMessage = 16;
+        pub const EventMessage_eLanguageChange: root::mozilla::EventMessage = 17;
+        pub const EventMessage_eMouseMove: root::mozilla::EventMessage = 18;
+        pub const EventMessage_eMouseUp: root::mozilla::EventMessage = 19;
+        pub const EventMessage_eMouseDown: root::mozilla::EventMessage = 20;
+        pub const EventMessage_eMouseEnterIntoWidget: root::mozilla::EventMessage = 21;
+        pub const EventMessage_eMouseExitFromWidget: root::mozilla::EventMessage = 22;
+        pub const EventMessage_eMouseDoubleClick: root::mozilla::EventMessage = 23;
+        pub const EventMessage_eMouseClick: root::mozilla::EventMessage = 24;
+        pub const EventMessage_eMouseAuxClick: root::mozilla::EventMessage = 25;
+        pub const EventMessage_eMouseActivate: root::mozilla::EventMessage = 26;
+        pub const EventMessage_eMouseOver: root::mozilla::EventMessage = 27;
+        pub const EventMessage_eMouseOut: root::mozilla::EventMessage = 28;
+        pub const EventMessage_eMouseHitTest: root::mozilla::EventMessage = 29;
+        pub const EventMessage_eMouseEnter: root::mozilla::EventMessage = 30;
+        pub const EventMessage_eMouseLeave: root::mozilla::EventMessage = 31;
+        pub const EventMessage_eMouseTouchDrag: root::mozilla::EventMessage = 32;
+        pub const EventMessage_eMouseLongTap: root::mozilla::EventMessage = 33;
+        pub const EventMessage_eMouseEventFirst: root::mozilla::EventMessage = 18;
+        pub const EventMessage_eMouseEventLast: root::mozilla::EventMessage = 33;
+        pub const EventMessage_ePointerMove: root::mozilla::EventMessage = 34;
+        pub const EventMessage_ePointerUp: root::mozilla::EventMessage = 35;
+        pub const EventMessage_ePointerDown: root::mozilla::EventMessage = 36;
+        pub const EventMessage_ePointerOver: root::mozilla::EventMessage = 37;
+        pub const EventMessage_ePointerOut: root::mozilla::EventMessage = 38;
+        pub const EventMessage_ePointerEnter: root::mozilla::EventMessage = 39;
+        pub const EventMessage_ePointerLeave: root::mozilla::EventMessage = 40;
+        pub const EventMessage_ePointerCancel: root::mozilla::EventMessage = 41;
+        pub const EventMessage_ePointerGotCapture: root::mozilla::EventMessage = 42;
+        pub const EventMessage_ePointerLostCapture: root::mozilla::EventMessage = 43;
+        pub const EventMessage_ePointerEventFirst: root::mozilla::EventMessage = 34;
+        pub const EventMessage_ePointerEventLast: root::mozilla::EventMessage = 43;
+        pub const EventMessage_eContextMenu: root::mozilla::EventMessage = 44;
+        pub const EventMessage_eLoad: root::mozilla::EventMessage = 45;
+        pub const EventMessage_eUnload: root::mozilla::EventMessage = 46;
+        pub const EventMessage_eHashChange: root::mozilla::EventMessage = 47;
+        pub const EventMessage_eImageAbort: root::mozilla::EventMessage = 48;
+        pub const EventMessage_eLoadError: root::mozilla::EventMessage = 49;
+        pub const EventMessage_eLoadEnd: root::mozilla::EventMessage = 50;
+        pub const EventMessage_ePopState: root::mozilla::EventMessage = 51;
+        pub const EventMessage_eStorage: root::mozilla::EventMessage = 52;
+        pub const EventMessage_eBeforeUnload: root::mozilla::EventMessage = 53;
+        pub const EventMessage_eReadyStateChange: root::mozilla::EventMessage = 54;
+        pub const EventMessage_eFormSubmit: root::mozilla::EventMessage = 55;
+        pub const EventMessage_eFormReset: root::mozilla::EventMessage = 56;
+        pub const EventMessage_eFormChange: root::mozilla::EventMessage = 57;
+        pub const EventMessage_eFormSelect: root::mozilla::EventMessage = 58;
+        pub const EventMessage_eFormInvalid: root::mozilla::EventMessage = 59;
+        pub const EventMessage_eFormCheckboxStateChange: root::mozilla::EventMessage = 60;
+        pub const EventMessage_eFormRadioStateChange: root::mozilla::EventMessage = 61;
+        pub const EventMessage_eFocus: root::mozilla::EventMessage = 62;
+        pub const EventMessage_eBlur: root::mozilla::EventMessage = 63;
+        pub const EventMessage_eFocusIn: root::mozilla::EventMessage = 64;
+        pub const EventMessage_eFocusOut: root::mozilla::EventMessage = 65;
+        pub const EventMessage_eDragEnter: root::mozilla::EventMessage = 66;
+        pub const EventMessage_eDragOver: root::mozilla::EventMessage = 67;
+        pub const EventMessage_eDragExit: root::mozilla::EventMessage = 68;
+        pub const EventMessage_eDrag: root::mozilla::EventMessage = 69;
+        pub const EventMessage_eDragEnd: root::mozilla::EventMessage = 70;
+        pub const EventMessage_eDragStart: root::mozilla::EventMessage = 71;
+        pub const EventMessage_eDrop: root::mozilla::EventMessage = 72;
+        pub const EventMessage_eDragLeave: root::mozilla::EventMessage = 73;
+        pub const EventMessage_eDragDropEventFirst: root::mozilla::EventMessage = 66;
+        pub const EventMessage_eDragDropEventLast: root::mozilla::EventMessage = 73;
+        pub const EventMessage_eXULPopupShowing: root::mozilla::EventMessage = 74;
+        pub const EventMessage_eXULPopupShown: root::mozilla::EventMessage = 75;
+        pub const EventMessage_eXULPopupPositioned: root::mozilla::EventMessage = 76;
+        pub const EventMessage_eXULPopupHiding: root::mozilla::EventMessage = 77;
+        pub const EventMessage_eXULPopupHidden: root::mozilla::EventMessage = 78;
+        pub const EventMessage_eXULBroadcast: root::mozilla::EventMessage = 79;
+        pub const EventMessage_eXULCommandUpdate: root::mozilla::EventMessage = 80;
+        pub const EventMessage_eLegacyMouseLineOrPageScroll: root::mozilla::EventMessage = 81;
+        pub const EventMessage_eLegacyMousePixelScroll: root::mozilla::EventMessage = 82;
+        pub const EventMessage_eScrollPortUnderflow: root::mozilla::EventMessage = 83;
+        pub const EventMessage_eScrollPortOverflow: root::mozilla::EventMessage = 84;
+        pub const EventMessage_eLegacySubtreeModified: root::mozilla::EventMessage = 85;
+        pub const EventMessage_eLegacyNodeInserted: root::mozilla::EventMessage = 86;
+        pub const EventMessage_eLegacyNodeRemoved: root::mozilla::EventMessage = 87;
+        pub const EventMessage_eLegacyNodeRemovedFromDocument: root::mozilla::EventMessage = 88;
+        pub const EventMessage_eLegacyNodeInsertedIntoDocument: root::mozilla::EventMessage = 89;
+        pub const EventMessage_eLegacyAttrModified: root::mozilla::EventMessage = 90;
+        pub const EventMessage_eLegacyCharacterDataModified: root::mozilla::EventMessage = 91;
+        pub const EventMessage_eLegacyMutationEventFirst: root::mozilla::EventMessage = 85;
+        pub const EventMessage_eLegacyMutationEventLast: root::mozilla::EventMessage = 91;
+        pub const EventMessage_eUnidentifiedEvent: root::mozilla::EventMessage = 92;
+        pub const EventMessage_eCompositionStart: root::mozilla::EventMessage = 93;
+        pub const EventMessage_eCompositionEnd: root::mozilla::EventMessage = 94;
+        pub const EventMessage_eCompositionUpdate: root::mozilla::EventMessage = 95;
+        pub const EventMessage_eCompositionChange: root::mozilla::EventMessage = 96;
+        pub const EventMessage_eCompositionCommitAsIs: root::mozilla::EventMessage = 97;
+        pub const EventMessage_eCompositionCommit: root::mozilla::EventMessage = 98;
+        pub const EventMessage_eCompositionCommitRequestHandled: root::mozilla::EventMessage = 99;
+        pub const EventMessage_eLegacyDOMActivate: root::mozilla::EventMessage = 100;
+        pub const EventMessage_eLegacyDOMFocusIn: root::mozilla::EventMessage = 101;
+        pub const EventMessage_eLegacyDOMFocusOut: root::mozilla::EventMessage = 102;
+        pub const EventMessage_ePageShow: root::mozilla::EventMessage = 103;
+        pub const EventMessage_ePageHide: root::mozilla::EventMessage = 104;
+        pub const EventMessage_eSVGLoad: root::mozilla::EventMessage = 105;
+        pub const EventMessage_eSVGUnload: root::mozilla::EventMessage = 106;
+        pub const EventMessage_eSVGResize: root::mozilla::EventMessage = 107;
+        pub const EventMessage_eSVGScroll: root::mozilla::EventMessage = 108;
+        pub const EventMessage_eSVGZoom: root::mozilla::EventMessage = 109;
+        pub const EventMessage_eXULCommand: root::mozilla::EventMessage = 110;
+        pub const EventMessage_eCopy: root::mozilla::EventMessage = 111;
+        pub const EventMessage_eCut: root::mozilla::EventMessage = 112;
+        pub const EventMessage_ePaste: root::mozilla::EventMessage = 113;
+        pub const EventMessage_ePasteNoFormatting: root::mozilla::EventMessage = 114;
+        pub const EventMessage_eQuerySelectedText: root::mozilla::EventMessage = 115;
+        pub const EventMessage_eQueryTextContent: root::mozilla::EventMessage = 116;
+        pub const EventMessage_eQueryCaretRect: root::mozilla::EventMessage = 117;
+        pub const EventMessage_eQueryTextRect: root::mozilla::EventMessage = 118;
+        pub const EventMessage_eQueryTextRectArray: root::mozilla::EventMessage = 119;
+        pub const EventMessage_eQueryEditorRect: root::mozilla::EventMessage = 120;
+        pub const EventMessage_eQueryContentState: root::mozilla::EventMessage = 121;
+        pub const EventMessage_eQuerySelectionAsTransferable: root::mozilla::EventMessage = 122;
+        pub const EventMessage_eQueryCharacterAtPoint: root::mozilla::EventMessage = 123;
+        pub const EventMessage_eQueryDOMWidgetHittest: root::mozilla::EventMessage = 124;
+        pub const EventMessage_eLoadStart: root::mozilla::EventMessage = 125;
+        pub const EventMessage_eProgress: root::mozilla::EventMessage = 126;
+        pub const EventMessage_eSuspend: root::mozilla::EventMessage = 127;
+        pub const EventMessage_eEmptied: root::mozilla::EventMessage = 128;
+        pub const EventMessage_eStalled: root::mozilla::EventMessage = 129;
+        pub const EventMessage_ePlay: root::mozilla::EventMessage = 130;
+        pub const EventMessage_ePause: root::mozilla::EventMessage = 131;
+        pub const EventMessage_eLoadedMetaData: root::mozilla::EventMessage = 132;
+        pub const EventMessage_eLoadedData: root::mozilla::EventMessage = 133;
+        pub const EventMessage_eWaiting: root::mozilla::EventMessage = 134;
+        pub const EventMessage_ePlaying: root::mozilla::EventMessage = 135;
+        pub const EventMessage_eCanPlay: root::mozilla::EventMessage = 136;
+        pub const EventMessage_eCanPlayThrough: root::mozilla::EventMessage = 137;
+        pub const EventMessage_eSeeking: root::mozilla::EventMessage = 138;
+        pub const EventMessage_eSeeked: root::mozilla::EventMessage = 139;
+        pub const EventMessage_eTimeUpdate: root::mozilla::EventMessage = 140;
+        pub const EventMessage_eEnded: root::mozilla::EventMessage = 141;
+        pub const EventMessage_eRateChange: root::mozilla::EventMessage = 142;
+        pub const EventMessage_eDurationChange: root::mozilla::EventMessage = 143;
+        pub const EventMessage_eVolumeChange: root::mozilla::EventMessage = 144;
+        pub const EventMessage_eAfterPaint: root::mozilla::EventMessage = 145;
+        pub const EventMessage_eSwipeGestureMayStart: root::mozilla::EventMessage = 146;
+        pub const EventMessage_eSwipeGestureStart: root::mozilla::EventMessage = 147;
+        pub const EventMessage_eSwipeGestureUpdate: root::mozilla::EventMessage = 148;
+        pub const EventMessage_eSwipeGestureEnd: root::mozilla::EventMessage = 149;
+        pub const EventMessage_eSwipeGesture: root::mozilla::EventMessage = 150;
+        pub const EventMessage_eMagnifyGestureStart: root::mozilla::EventMessage = 151;
+        pub const EventMessage_eMagnifyGestureUpdate: root::mozilla::EventMessage = 152;
+        pub const EventMessage_eMagnifyGesture: root::mozilla::EventMessage = 153;
+        pub const EventMessage_eRotateGestureStart: root::mozilla::EventMessage = 154;
+        pub const EventMessage_eRotateGestureUpdate: root::mozilla::EventMessage = 155;
+        pub const EventMessage_eRotateGesture: root::mozilla::EventMessage = 156;
+        pub const EventMessage_eTapGesture: root::mozilla::EventMessage = 157;
+        pub const EventMessage_ePressTapGesture: root::mozilla::EventMessage = 158;
+        pub const EventMessage_eEdgeUIStarted: root::mozilla::EventMessage = 159;
+        pub const EventMessage_eEdgeUICanceled: root::mozilla::EventMessage = 160;
+        pub const EventMessage_eEdgeUICompleted: root::mozilla::EventMessage = 161;
+        pub const EventMessage_ePluginInputEvent: root::mozilla::EventMessage = 162;
+        pub const EventMessage_eSetSelection: root::mozilla::EventMessage = 163;
+        pub const EventMessage_eContentCommandCut: root::mozilla::EventMessage = 164;
+        pub const EventMessage_eContentCommandCopy: root::mozilla::EventMessage = 165;
+        pub const EventMessage_eContentCommandPaste: root::mozilla::EventMessage = 166;
+        pub const EventMessage_eContentCommandDelete: root::mozilla::EventMessage = 167;
+        pub const EventMessage_eContentCommandUndo: root::mozilla::EventMessage = 168;
+        pub const EventMessage_eContentCommandRedo: root::mozilla::EventMessage = 169;
+        pub const EventMessage_eContentCommandPasteTransferable: root::mozilla::EventMessage = 170;
+        pub const EventMessage_eContentCommandLookUpDictionary: root::mozilla::EventMessage = 171;
+        pub const EventMessage_eContentCommandScroll: root::mozilla::EventMessage = 172;
+        pub const EventMessage_eGestureNotify: root::mozilla::EventMessage = 173;
+        pub const EventMessage_eScrolledAreaChanged: root::mozilla::EventMessage = 174;
+        pub const EventMessage_eTransitionStart: root::mozilla::EventMessage = 175;
+        pub const EventMessage_eTransitionRun: root::mozilla::EventMessage = 176;
+        pub const EventMessage_eTransitionEnd: root::mozilla::EventMessage = 177;
+        pub const EventMessage_eTransitionCancel: root::mozilla::EventMessage = 178;
+        pub const EventMessage_eAnimationStart: root::mozilla::EventMessage = 179;
+        pub const EventMessage_eAnimationEnd: root::mozilla::EventMessage = 180;
+        pub const EventMessage_eAnimationIteration: root::mozilla::EventMessage = 181;
+        pub const EventMessage_eAnimationCancel: root::mozilla::EventMessage = 182;
+        pub const EventMessage_eWebkitTransitionEnd: root::mozilla::EventMessage = 183;
+        pub const EventMessage_eWebkitAnimationStart: root::mozilla::EventMessage = 184;
+        pub const EventMessage_eWebkitAnimationEnd: root::mozilla::EventMessage = 185;
+        pub const EventMessage_eWebkitAnimationIteration: root::mozilla::EventMessage = 186;
+        pub const EventMessage_eSMILBeginEvent: root::mozilla::EventMessage = 187;
+        pub const EventMessage_eSMILEndEvent: root::mozilla::EventMessage = 188;
+        pub const EventMessage_eSMILRepeatEvent: root::mozilla::EventMessage = 189;
+        pub const EventMessage_eAudioProcess: root::mozilla::EventMessage = 190;
+        pub const EventMessage_eAudioComplete: root::mozilla::EventMessage = 191;
+        pub const EventMessage_eBeforeScriptExecute: root::mozilla::EventMessage = 192;
+        pub const EventMessage_eAfterScriptExecute: root::mozilla::EventMessage = 193;
+        pub const EventMessage_eBeforePrint: root::mozilla::EventMessage = 194;
+        pub const EventMessage_eAfterPrint: root::mozilla::EventMessage = 195;
+        pub const EventMessage_eMessage: root::mozilla::EventMessage = 196;
+        pub const EventMessage_eMessageError: root::mozilla::EventMessage = 197;
+        pub const EventMessage_eOpen: root::mozilla::EventMessage = 198;
+        pub const EventMessage_eDeviceOrientation: root::mozilla::EventMessage = 199;
+        pub const EventMessage_eAbsoluteDeviceOrientation: root::mozilla::EventMessage = 200;
+        pub const EventMessage_eDeviceMotion: root::mozilla::EventMessage = 201;
+        pub const EventMessage_eDeviceProximity: root::mozilla::EventMessage = 202;
+        pub const EventMessage_eUserProximity: root::mozilla::EventMessage = 203;
+        pub const EventMessage_eDeviceLight: root::mozilla::EventMessage = 204;
+        pub const EventMessage_eVRDisplayActivate: root::mozilla::EventMessage = 205;
+        pub const EventMessage_eVRDisplayDeactivate: root::mozilla::EventMessage = 206;
+        pub const EventMessage_eVRDisplayConnect: root::mozilla::EventMessage = 207;
+        pub const EventMessage_eVRDisplayDisconnect: root::mozilla::EventMessage = 208;
+        pub const EventMessage_eVRDisplayPresentChange: root::mozilla::EventMessage = 209;
+        pub const EventMessage_eShow: root::mozilla::EventMessage = 210;
+        pub const EventMessage_eFullscreenChange: root::mozilla::EventMessage = 211;
+        pub const EventMessage_eFullscreenError: root::mozilla::EventMessage = 212;
+        pub const EventMessage_eMozFullscreenChange: root::mozilla::EventMessage = 213;
+        pub const EventMessage_eMozFullscreenError: root::mozilla::EventMessage = 214;
+        pub const EventMessage_eTouchStart: root::mozilla::EventMessage = 215;
+        pub const EventMessage_eTouchMove: root::mozilla::EventMessage = 216;
+        pub const EventMessage_eTouchEnd: root::mozilla::EventMessage = 217;
+        pub const EventMessage_eTouchCancel: root::mozilla::EventMessage = 218;
+        pub const EventMessage_eTouchPointerCancel: root::mozilla::EventMessage = 219;
+        pub const EventMessage_ePointerLockChange: root::mozilla::EventMessage = 220;
+        pub const EventMessage_ePointerLockError: root::mozilla::EventMessage = 221;
+        pub const EventMessage_eMozPointerLockChange: root::mozilla::EventMessage = 222;
+        pub const EventMessage_eMozPointerLockError: root::mozilla::EventMessage = 223;
+        pub const EventMessage_eWheel: root::mozilla::EventMessage = 224;
+        pub const EventMessage_eWheelOperationStart: root::mozilla::EventMessage = 225;
+        pub const EventMessage_eWheelOperationEnd: root::mozilla::EventMessage = 226;
+        pub const EventMessage_eTimeChange: root::mozilla::EventMessage = 227;
+        pub const EventMessage_eNetworkUpload: root::mozilla::EventMessage = 228;
+        pub const EventMessage_eNetworkDownload: root::mozilla::EventMessage = 229;
+        pub const EventMessage_eMediaRecorderDataAvailable: root::mozilla::EventMessage = 230;
+        pub const EventMessage_eMediaRecorderWarning: root::mozilla::EventMessage = 231;
+        pub const EventMessage_eMediaRecorderStop: root::mozilla::EventMessage = 232;
+        pub const EventMessage_eGamepadButtonDown: root::mozilla::EventMessage = 233;
+        pub const EventMessage_eGamepadButtonUp: root::mozilla::EventMessage = 234;
+        pub const EventMessage_eGamepadAxisMove: root::mozilla::EventMessage = 235;
+        pub const EventMessage_eGamepadConnected: root::mozilla::EventMessage = 236;
+        pub const EventMessage_eGamepadDisconnected: root::mozilla::EventMessage = 237;
+        pub const EventMessage_eGamepadEventFirst: root::mozilla::EventMessage = 233;
+        pub const EventMessage_eGamepadEventLast: root::mozilla::EventMessage = 237;
+        pub const EventMessage_eEditorInput: root::mozilla::EventMessage = 238;
+        pub const EventMessage_eSelectStart: root::mozilla::EventMessage = 239;
+        pub const EventMessage_eSelectionChange: root::mozilla::EventMessage = 240;
+        pub const EventMessage_eVisibilityChange: root::mozilla::EventMessage = 241;
+        pub const EventMessage_eToggle: root::mozilla::EventMessage = 242;
+        pub const EventMessage_eClose: root::mozilla::EventMessage = 243;
+        pub const EventMessage_eEventMessage_MaxValue: root::mozilla::EventMessage = 244;
+        pub type EventMessage = u16;
+        /// Event class IDs
+        pub type EventClassIDType = u8;
+        pub const EventClassID_eBasicEventClass: root::mozilla::EventClassID = 0;
+        pub const EventClassID_eGUIEventClass: root::mozilla::EventClassID = 1;
+        pub const EventClassID_eInputEventClass: root::mozilla::EventClassID = 2;
+        pub const EventClassID_eUIEventClass: root::mozilla::EventClassID = 3;
+        pub const EventClassID_eKeyboardEventClass: root::mozilla::EventClassID = 4;
+        pub const EventClassID_eCompositionEventClass: root::mozilla::EventClassID = 5;
+        pub const EventClassID_eQueryContentEventClass: root::mozilla::EventClassID = 6;
+        pub const EventClassID_eSelectionEventClass: root::mozilla::EventClassID = 7;
+        pub const EventClassID_eEditorInputEventClass: root::mozilla::EventClassID = 8;
+        pub const EventClassID_eMouseEventBaseClass: root::mozilla::EventClassID = 9;
+        pub const EventClassID_eMouseEventClass: root::mozilla::EventClassID = 10;
+        pub const EventClassID_eDragEventClass: root::mozilla::EventClassID = 11;
+        pub const EventClassID_eMouseScrollEventClass: root::mozilla::EventClassID = 12;
+        pub const EventClassID_eWheelEventClass: root::mozilla::EventClassID = 13;
+        pub const EventClassID_ePointerEventClass: root::mozilla::EventClassID = 14;
+        pub const EventClassID_eGestureNotifyEventClass: root::mozilla::EventClassID = 15;
+        pub const EventClassID_eSimpleGestureEventClass: root::mozilla::EventClassID = 16;
+        pub const EventClassID_eTouchEventClass: root::mozilla::EventClassID = 17;
+        pub const EventClassID_eScrollPortEventClass: root::mozilla::EventClassID = 18;
+        pub const EventClassID_eScrollAreaEventClass: root::mozilla::EventClassID = 19;
+        pub const EventClassID_eFormEventClass: root::mozilla::EventClassID = 20;
+        pub const EventClassID_eClipboardEventClass: root::mozilla::EventClassID = 21;
+        pub const EventClassID_eFocusEventClass: root::mozilla::EventClassID = 22;
+        pub const EventClassID_eTransitionEventClass: root::mozilla::EventClassID = 23;
+        pub const EventClassID_eAnimationEventClass: root::mozilla::EventClassID = 24;
+        pub const EventClassID_eSMILTimeEventClass: root::mozilla::EventClassID = 25;
+        pub const EventClassID_eCommandEventClass: root::mozilla::EventClassID = 26;
+        pub const EventClassID_eContentCommandEventClass: root::mozilla::EventClassID = 27;
+        pub const EventClassID_ePluginEventClass: root::mozilla::EventClassID = 28;
+        pub const EventClassID_eMutationEventClass: root::mozilla::EventClassID = 29;
+        pub type EventClassID = u8;
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct SegmentedVector_SegmentImpl_Storage {
@@ -9994,16 +9953,6 @@ pub mod root {
             pub const FrameChildListID_kNoReflowPrincipalList:
                 root::mozilla::layout::FrameChildListID = 32768;
             pub type FrameChildListID = u32;
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct UndisplayedNode {
-            _unused: [u8; 0],
-        }
-        impl Clone for UndisplayedNode {
-            fn clone(&self) -> Self {
-                *self
-            }
         }
         #[repr(C)]
         #[derive(Debug, Copy)]
@@ -12376,7 +12325,6 @@ pub mod root {
             );
         }
         #[repr(C)]
-        #[derive(Debug)]
         pub struct GeckoUserInterface {
             pub gecko: root::nsStyleUserInterface,
         }
@@ -12434,7 +12382,6 @@ pub mod root {
             );
         }
         #[repr(C)]
-        #[derive(Debug)]
         pub struct GeckoSVG {
             pub gecko: root::nsStyleSVG,
         }
@@ -12544,7 +12491,6 @@ pub mod root {
             );
         }
         #[repr(C)]
-        #[derive(Debug)]
         pub struct GeckoDisplay {
             pub gecko: root::nsStyleDisplay,
         }
@@ -13396,10 +13342,6 @@ pub mod root {
                 );
             }
         }
-    }
-    pub mod __gnu_cxx {
-        #[allow(unused_imports)]
-        use self::super::super::root;
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -16636,11 +16578,15 @@ pub mod root {
         pub Color: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoColor>,
         pub List: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoList>,
         pub Text: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoText>,
-        pub Visibility: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoVisibility>,
-        pub UserInterface: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoUserInterface>,
-        pub TableBorder: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoTableBorder>,
+        pub Visibility:
+            ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoVisibility>,
+        pub UserInterface:
+            ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoUserInterface>,
+        pub TableBorder:
+            ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoTableBorder>,
         pub SVG: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoSVG>,
-        pub Background: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoBackground>,
+        pub Background:
+            ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoBackground>,
         pub Position: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoPosition>,
         pub TextReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoTextReset>,
         pub Display: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoDisplay>,
@@ -18893,39 +18839,6 @@ pub mod root {
         eCSSCounterDesc_SpeakAs = 9,
         eCSSCounterDesc_COUNT = 10,
     }
-    pub const nsStyleStructID_nsStyleStructID_None: root::nsStyleStructID = -1;
-    pub const nsStyleStructID_nsStyleStructID_Inherited_Start: root::nsStyleStructID = 0;
-    pub const nsStyleStructID_nsStyleStructID_DUMMY1: root::nsStyleStructID = -1;
-    pub const nsStyleStructID_eStyleStruct_Font: root::nsStyleStructID = 0;
-    pub const nsStyleStructID_eStyleStruct_Color: root::nsStyleStructID = 1;
-    pub const nsStyleStructID_eStyleStruct_List: root::nsStyleStructID = 2;
-    pub const nsStyleStructID_eStyleStruct_Text: root::nsStyleStructID = 3;
-    pub const nsStyleStructID_eStyleStruct_Visibility: root::nsStyleStructID = 4;
-    pub const nsStyleStructID_eStyleStruct_UserInterface: root::nsStyleStructID = 5;
-    pub const nsStyleStructID_eStyleStruct_TableBorder: root::nsStyleStructID = 6;
-    pub const nsStyleStructID_eStyleStruct_SVG: root::nsStyleStructID = 7;
-    pub const nsStyleStructID_eStyleStruct_Variables: root::nsStyleStructID = 8;
-    pub const nsStyleStructID_nsStyleStructID_Reset_Start: root::nsStyleStructID = 9;
-    pub const nsStyleStructID_nsStyleStructID_DUMMY2: root::nsStyleStructID = 8;
-    pub const nsStyleStructID_eStyleStruct_Background: root::nsStyleStructID = 9;
-    pub const nsStyleStructID_eStyleStruct_Position: root::nsStyleStructID = 10;
-    pub const nsStyleStructID_eStyleStruct_TextReset: root::nsStyleStructID = 11;
-    pub const nsStyleStructID_eStyleStruct_Display: root::nsStyleStructID = 12;
-    pub const nsStyleStructID_eStyleStruct_Content: root::nsStyleStructID = 13;
-    pub const nsStyleStructID_eStyleStruct_UIReset: root::nsStyleStructID = 14;
-    pub const nsStyleStructID_eStyleStruct_Table: root::nsStyleStructID = 15;
-    pub const nsStyleStructID_eStyleStruct_Margin: root::nsStyleStructID = 16;
-    pub const nsStyleStructID_eStyleStruct_Padding: root::nsStyleStructID = 17;
-    pub const nsStyleStructID_eStyleStruct_Border: root::nsStyleStructID = 18;
-    pub const nsStyleStructID_eStyleStruct_Outline: root::nsStyleStructID = 19;
-    pub const nsStyleStructID_eStyleStruct_XUL: root::nsStyleStructID = 20;
-    pub const nsStyleStructID_eStyleStruct_SVGReset: root::nsStyleStructID = 21;
-    pub const nsStyleStructID_eStyleStruct_Column: root::nsStyleStructID = 22;
-    pub const nsStyleStructID_eStyleStruct_Effects: root::nsStyleStructID = 23;
-    pub const nsStyleStructID_nsStyleStructID_Length: root::nsStyleStructID = 24;
-    pub const nsStyleStructID_nsStyleStructID_Inherited_Count: root::nsStyleStructID = 9;
-    pub const nsStyleStructID_nsStyleStructID_Reset_Count: root::nsStyleStructID = 15;
-    pub type nsStyleStructID = i32;
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsIObserver {
@@ -19067,10 +18980,6 @@ pub mod root {
         fn clone(&self) -> Self {
             *self
         }
-    }
-    extern "C" {
-        #[link_name = "\u{1}_ZN10nsCSSProps9kSIDTableE"]
-        pub static mut nsCSSProps_kSIDTable: [root::nsStyleStructID; 327usize];
     }
     extern "C" {
         #[link_name = "\u{1}_ZN10nsCSSProps18kKeywordTableTableE"]
@@ -20070,59 +19979,6 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsRevocableEventPtr<T> {
         pub mEvent: root::RefPtr<T>,
-        pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
-    }
-    /// Class to safely handle main-thread-only pointers off the main thread.
-    ///
-    /// Classes like XPCWrappedJS are main-thread-only, which means that it is
-    /// forbidden to call methods on instances of these classes off the main thread.
-    /// For various reasons (see bug 771074), this restriction recently began to
-    /// apply to AddRef/Release as well.
-    ///
-    /// This presents a problem for consumers that wish to hold a callback alive
-    /// on non-main-thread code. A common example of this is the proxy callback
-    /// pattern, where non-main-thread code holds a strong-reference to the callback
-    /// object, and dispatches new Runnables (also with a strong reference) to the
-    /// main thread in order to execute the callback. This involves several AddRef
-    /// and Release calls on the other thread, which is (now) verboten.
-    ///
-    /// The basic idea of this class is to introduce a layer of indirection.
-    /// nsMainThreadPtrHolder is a threadsafe reference-counted class that internally
-    /// maintains one strong reference to the main-thread-only object. It must be
-    /// instantiated on the main thread (so that the AddRef of the underlying object
-    /// happens on the main thread), but consumers may subsequently pass references
-    /// to the holder anywhere they please. These references are meant to be opaque
-    /// when accessed off-main-thread (assertions enforce this).
-    ///
-    /// The semantics of RefPtr<nsMainThreadPtrHolder<T> > would be cumbersome, so
-    /// we also introduce nsMainThreadPtrHandle<T>, which is conceptually identical
-    /// to the above (though it includes various convenience methods). The basic
-    /// pattern is as follows.
-    ///
-    /// // On the main thread:
-    /// nsCOMPtr<nsIFooCallback> callback = ...;
-    /// nsMainThreadPtrHandle<nsIFooCallback> callbackHandle =
-    /// new nsMainThreadPtrHolder<nsIFooCallback>(callback);
-    /// // Pass callbackHandle to structs/classes that might be accessed on other
-    /// // threads.
-    ///
-    /// All structs and classes that might be accessed on other threads should store
-    /// an nsMainThreadPtrHandle<T> rather than an nsCOMPtr<T>.
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsMainThreadPtrHolder<T> {
-        pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
-        pub mRawPtr: *mut T,
-        pub mStrict: bool,
-        pub mMainThreadEventTarget: root::nsCOMPtr,
-        pub mName: *const ::std::os::raw::c_char,
-        pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
-    }
-    pub type nsMainThreadPtrHolder_HasThreadSafeRefCnt = root::mozilla::TrueType;
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsMainThreadPtrHandle<T> {
-        pub mPtr: root::RefPtr<root::nsMainThreadPtrHolder<T>>,
         pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
     }
     /// the private nsTHashtable::EntryType class used by nsBaseHashtable
@@ -22313,7 +22169,6 @@ pub mod root {
     /// in DefinitelyEquals(), so that we don't need to call into the non-OMT-safe
     /// Equals() on the nsIURI objects returned from imgRequestProxy::GetURI().
     #[repr(C)]
-    #[derive(Debug)]
     pub struct nsStyleImageRequest {
         pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
         pub mRequestProxy: root::RefPtr<root::imgRequestProxy>,
@@ -25395,7 +25250,6 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug)]
     pub struct nsStyleDisplay {
         pub mBinding: root::RefPtr<root::mozilla::css::URLValue>,
         pub mDisplay: root::mozilla::StyleDisplay,
@@ -26757,7 +26611,6 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug)]
     pub struct nsCursorImage {
         pub mHaveHotspot: bool,
         pub mHotspotX: f32,
@@ -26818,7 +26671,6 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug)]
     pub struct nsStyleUserInterface {
         pub mUserInput: root::mozilla::StyleUserInput,
         pub mUserModify: root::mozilla::StyleUserModify,
@@ -27287,7 +27139,6 @@ pub mod root {
         );
     }
     #[repr(C)]
-    #[derive(Debug)]
     pub struct nsStyleSVG {
         pub mFill: root::nsStyleSVGPaint,
         pub mStroke: root::nsStyleSVGPaint,
@@ -29097,6 +28948,37 @@ pub mod root {
     pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_29 = 2097152;
     pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_29 = 20;
     pub type _bindgen_ty_29 = u32;
+    /// A class that implements nsIWeakReference
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsNodeWeakReference {
+        pub _base: root::nsIWeakReference,
+        pub mRefCnt: root::nsAutoRefCnt,
+    }
+    pub type nsNodeWeakReference_HasThreadSafeRefCnt = root::mozilla::FalseType;
+    #[test]
+    fn bindgen_test_layout_nsNodeWeakReference() {
+        assert_eq!(
+            ::std::mem::size_of::<nsNodeWeakReference>(),
+            24usize,
+            concat!("Size of: ", stringify!(nsNodeWeakReference))
+        );
+        assert_eq!(
+            ::std::mem::align_of::<nsNodeWeakReference>(),
+            8usize,
+            concat!("Alignment of ", stringify!(nsNodeWeakReference))
+        );
+        assert_eq!(
+            unsafe { &(*(::std::ptr::null::<nsNodeWeakReference>())).mRefCnt as *const _ as usize },
+            16usize,
+            concat!(
+                "Offset of field: ",
+                stringify!(nsNodeWeakReference),
+                "::",
+                stringify!(mRefCnt)
+            )
+        );
+    }
     /// An internal interface that abstracts some DOMNode-related parts that both
     /// nsIContent and nsIDocument share.  An instance of this interface has a list
     /// of nsIContent children and provides access to them.
@@ -29286,8 +29168,7 @@ pub mod root {
         ParserHasNotified = 26,
         MayBeApzAware = 27,
         ElementMayHaveAnonymousChildren = 28,
-        NodeMayHaveChildrenWithLayoutBoxesDisabled = 29,
-        BooleanFlagCount = 30,
+        BooleanFlagCount = 29,
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -31174,28 +31055,14 @@ pub mod root {
     pub struct nsFrameManager {
         pub mPresShell: *mut root::nsIPresShell,
         pub mRootFrame: *mut root::nsIFrame,
-        pub mDisplayNoneMap: *mut root::nsFrameManager_UndisplayedMap,
-        pub mDisplayContentsMap: *mut root::nsFrameManager_UndisplayedMap,
         pub mIsDestroyingFrames: bool,
     }
-    pub type nsFrameManager_ComputedStyle = root::mozilla::ComputedStyle;
     pub use self::super::root::mozilla::layout::FrameChildListID as nsFrameManager_ChildListID;
-    pub type nsFrameManager_UndisplayedNode = root::mozilla::UndisplayedNode;
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsFrameManager_UndisplayedMap {
-        _unused: [u8; 0],
-    }
-    impl Clone for nsFrameManager_UndisplayedMap {
-        fn clone(&self) -> Self {
-            *self
-        }
-    }
     #[test]
     fn bindgen_test_layout_nsFrameManager() {
         assert_eq!(
             ::std::mem::size_of::<nsFrameManager>(),
-            40usize,
+            24usize,
             concat!("Size of: ", stringify!(nsFrameManager))
         );
         assert_eq!(
@@ -31225,33 +31092,9 @@ pub mod root {
         );
         assert_eq!(
             unsafe {
-                &(*(::std::ptr::null::<nsFrameManager>())).mDisplayNoneMap as *const _ as usize
-            },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsFrameManager),
-                "::",
-                stringify!(mDisplayNoneMap)
-            )
-        );
-        assert_eq!(
-            unsafe {
-                &(*(::std::ptr::null::<nsFrameManager>())).mDisplayContentsMap as *const _ as usize
-            },
-            24usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsFrameManager),
-                "::",
-                stringify!(mDisplayContentsMap)
-            )
-        );
-        assert_eq!(
-            unsafe {
                 &(*(::std::ptr::null::<nsFrameManager>())).mIsDestroyingFrames as *const _ as usize
             },
-            32usize,
+            16usize,
             concat!(
                 "Offset of field: ",
                 stringify!(nsFrameManager),
@@ -33912,82 +33755,80 @@ pub mod root {
     pub type nsIDocument_ShadowRootSet = [u64; 4usize];
     pub const nsIDocument_DeprecatedOperations_eEnablePrivilege:
         root::nsIDocument_DeprecatedOperations = 0;
-    pub const nsIDocument_DeprecatedOperations_eDOMExceptionCode:
-        root::nsIDocument_DeprecatedOperations = 1;
     pub const nsIDocument_DeprecatedOperations_eMutationEvent:
-        root::nsIDocument_DeprecatedOperations = 2;
+        root::nsIDocument_DeprecatedOperations = 1;
     pub const nsIDocument_DeprecatedOperations_eComponents: root::nsIDocument_DeprecatedOperations =
-        3;
+        2;
     pub const nsIDocument_DeprecatedOperations_ePrefixedVisibilityAPI:
-        root::nsIDocument_DeprecatedOperations = 4;
+        root::nsIDocument_DeprecatedOperations = 3;
     pub const nsIDocument_DeprecatedOperations_eNodeIteratorDetach:
-        root::nsIDocument_DeprecatedOperations = 5;
+        root::nsIDocument_DeprecatedOperations = 4;
     pub const nsIDocument_DeprecatedOperations_eLenientThis:
-        root::nsIDocument_DeprecatedOperations = 6;
+        root::nsIDocument_DeprecatedOperations = 5;
     pub const nsIDocument_DeprecatedOperations_eMozGetAsFile:
-        root::nsIDocument_DeprecatedOperations = 7;
+        root::nsIDocument_DeprecatedOperations = 6;
     pub const nsIDocument_DeprecatedOperations_eUseOfCaptureEvents:
-        root::nsIDocument_DeprecatedOperations = 8;
+        root::nsIDocument_DeprecatedOperations = 7;
     pub const nsIDocument_DeprecatedOperations_eUseOfReleaseEvents:
-        root::nsIDocument_DeprecatedOperations = 9;
+        root::nsIDocument_DeprecatedOperations = 8;
     pub const nsIDocument_DeprecatedOperations_eUseOfDOM3LoadMethod:
-        root::nsIDocument_DeprecatedOperations = 10;
+        root::nsIDocument_DeprecatedOperations = 9;
     pub const nsIDocument_DeprecatedOperations_eChromeUseOfDOM3LoadMethod:
-        root::nsIDocument_DeprecatedOperations = 11;
+        root::nsIDocument_DeprecatedOperations = 10;
     pub const nsIDocument_DeprecatedOperations_eShowModalDialog:
-        root::nsIDocument_DeprecatedOperations = 12;
+        root::nsIDocument_DeprecatedOperations = 11;
     pub const nsIDocument_DeprecatedOperations_eSyncXMLHttpRequest:
-        root::nsIDocument_DeprecatedOperations = 13;
+        root::nsIDocument_DeprecatedOperations = 12;
     pub const nsIDocument_DeprecatedOperations_eWindow_Cc_ontrollers:
-        root::nsIDocument_DeprecatedOperations = 14;
+        root::nsIDocument_DeprecatedOperations = 13;
     pub const nsIDocument_DeprecatedOperations_eImportXULIntoContent:
-        root::nsIDocument_DeprecatedOperations = 15;
+        root::nsIDocument_DeprecatedOperations = 14;
     pub const nsIDocument_DeprecatedOperations_ePannerNodeDoppler:
-        root::nsIDocument_DeprecatedOperations = 16;
+        root::nsIDocument_DeprecatedOperations = 15;
     pub const nsIDocument_DeprecatedOperations_eNavigatorGetUserMedia:
-        root::nsIDocument_DeprecatedOperations = 17;
+        root::nsIDocument_DeprecatedOperations = 16;
     pub const nsIDocument_DeprecatedOperations_eWebrtcDeprecatedPrefix:
-        root::nsIDocument_DeprecatedOperations = 18;
+        root::nsIDocument_DeprecatedOperations = 17;
     pub const nsIDocument_DeprecatedOperations_eRTCPeerConnectionGetStreams:
-        root::nsIDocument_DeprecatedOperations = 19;
+        root::nsIDocument_DeprecatedOperations = 18;
     pub const nsIDocument_DeprecatedOperations_eAppCache: root::nsIDocument_DeprecatedOperations =
-        20;
+        19;
     pub const nsIDocument_DeprecatedOperations_eAppCacheInsecure:
-        root::nsIDocument_DeprecatedOperations = 21;
+        root::nsIDocument_DeprecatedOperations = 20;
     pub const nsIDocument_DeprecatedOperations_ePrefixedImageSmoothingEnabled:
-        root::nsIDocument_DeprecatedOperations = 22;
+        root::nsIDocument_DeprecatedOperations = 21;
     pub const nsIDocument_DeprecatedOperations_ePrefixedFullscreenAPI:
-        root::nsIDocument_DeprecatedOperations = 23;
+        root::nsIDocument_DeprecatedOperations = 22;
     pub const nsIDocument_DeprecatedOperations_eLenientSetter:
-        root::nsIDocument_DeprecatedOperations = 24;
+        root::nsIDocument_DeprecatedOperations = 23;
     pub const nsIDocument_DeprecatedOperations_eFileLastModifiedDate:
-        root::nsIDocument_DeprecatedOperations = 25;
+        root::nsIDocument_DeprecatedOperations = 24;
     pub const nsIDocument_DeprecatedOperations_eImageBitmapRenderingContext_TransferImageBitmap:
-        root::nsIDocument_DeprecatedOperations = 26;
+        root::nsIDocument_DeprecatedOperations = 25;
     pub const nsIDocument_DeprecatedOperations_eURLCreateObjectURL_MediaStream:
-        root::nsIDocument_DeprecatedOperations = 27;
+        root::nsIDocument_DeprecatedOperations = 26;
     pub const nsIDocument_DeprecatedOperations_eXMLBaseAttribute:
-        root::nsIDocument_DeprecatedOperations = 28;
+        root::nsIDocument_DeprecatedOperations = 27;
     pub const nsIDocument_DeprecatedOperations_eWindowContentUntrusted:
-        root::nsIDocument_DeprecatedOperations = 29;
+        root::nsIDocument_DeprecatedOperations = 28;
     pub const nsIDocument_DeprecatedOperations_eRegisterProtocolHandlerInsecure:
-        root::nsIDocument_DeprecatedOperations = 30;
+        root::nsIDocument_DeprecatedOperations = 29;
     pub const nsIDocument_DeprecatedOperations_eMixedDisplayObjectSubrequest:
-        root::nsIDocument_DeprecatedOperations = 31;
+        root::nsIDocument_DeprecatedOperations = 30;
     pub const nsIDocument_DeprecatedOperations_eMotionEvent:
-        root::nsIDocument_DeprecatedOperations = 32;
+        root::nsIDocument_DeprecatedOperations = 31;
     pub const nsIDocument_DeprecatedOperations_eOrientationEvent:
-        root::nsIDocument_DeprecatedOperations = 33;
+        root::nsIDocument_DeprecatedOperations = 32;
     pub const nsIDocument_DeprecatedOperations_eProximityEvent:
-        root::nsIDocument_DeprecatedOperations = 34;
+        root::nsIDocument_DeprecatedOperations = 33;
     pub const nsIDocument_DeprecatedOperations_eAmbientLightEvent:
-        root::nsIDocument_DeprecatedOperations = 35;
+        root::nsIDocument_DeprecatedOperations = 34;
     pub const nsIDocument_DeprecatedOperations_eIDBOpenDBOptions_StorageType:
-        root::nsIDocument_DeprecatedOperations = 36;
+        root::nsIDocument_DeprecatedOperations = 35;
     pub const nsIDocument_DeprecatedOperations_eGetPropertyCSSValue:
-        root::nsIDocument_DeprecatedOperations = 37;
+        root::nsIDocument_DeprecatedOperations = 36;
     pub const nsIDocument_DeprecatedOperations_eDeprecatedOperationCount:
-        root::nsIDocument_DeprecatedOperations = 38;
+        root::nsIDocument_DeprecatedOperations = 37;
     pub type nsIDocument_DeprecatedOperations = u32;
     pub const nsIDocument_DocumentWarnings_eIgnoringWillChangeOverBudget:
         root::nsIDocument_DocumentWarnings = 0;
@@ -35634,37 +35475,6 @@ pub mod root {
         fn clone(&self) -> Self {
             *self
         }
-    }
-    /// A class that implements nsIWeakReference
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsNodeWeakReference {
-        pub _base: root::nsIWeakReference,
-        pub mRefCnt: root::nsAutoRefCnt,
-    }
-    pub type nsNodeWeakReference_HasThreadSafeRefCnt = root::mozilla::FalseType;
-    #[test]
-    fn bindgen_test_layout_nsNodeWeakReference() {
-        assert_eq!(
-            ::std::mem::size_of::<nsNodeWeakReference>(),
-            24usize,
-            concat!("Size of: ", stringify!(nsNodeWeakReference))
-        );
-        assert_eq!(
-            ::std::mem::align_of::<nsNodeWeakReference>(),
-            8usize,
-            concat!("Alignment of ", stringify!(nsNodeWeakReference))
-        );
-        assert_eq!(
-            unsafe { &(*(::std::ptr::null::<nsNodeWeakReference>())).mRefCnt as *const _ as usize },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(nsNodeWeakReference),
-                "::",
-                stringify!(mRefCnt)
-            )
-        );
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -40015,7 +39825,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIEventTarget_close0_instantiation() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_2() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -40030,25 +39840,6 @@ pub mod root {
             concat!(
                 "Alignment of template specialization: ",
                 stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
-    fn __bindgen_test_layout_nsMainThreadPtrHandle_open0_nsIURI_close0_instantiation() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsMainThreadPtrHandle<root::nsIURI>>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsMainThreadPtrHandle<root::nsIURI>)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsMainThreadPtrHandle<root::nsIURI>>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsMainThreadPtrHandle<root::nsIURI>)
             )
         );
     }
@@ -40596,7 +40387,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIEventTarget_close0_instantiation_1() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIEventTarget_close0_instantiation() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -40983,13 +40774,37 @@ pub mod root {
     #[test]
     fn __bindgen_test_layout_nsTArray_open0_pair_open1_nsString_nsString_close1_close0_instantiation(
 ) {
-        assert_eq ! ( :: std :: mem :: size_of :: < root :: nsTArray < root :: std :: pair < ::nsstring::nsStringRepr , ::nsstring::nsStringRepr > > > ( ) , 8usize , concat ! ( "Size of template specialization: " , stringify ! ( root :: nsTArray < root :: std :: pair < ::nsstring::nsStringRepr , ::nsstring::nsStringRepr > > ) ) );
-        assert_eq ! ( :: std :: mem :: align_of :: < root :: nsTArray < root :: std :: pair < ::nsstring::nsStringRepr , ::nsstring::nsStringRepr > > > ( ) , 8usize , concat ! ( "Alignment of template specialization: " , stringify ! ( root :: nsTArray < root :: std :: pair < ::nsstring::nsStringRepr , ::nsstring::nsStringRepr > > ) ) );
+        assert_eq!(
+            ::std::mem::size_of::<
+                root::nsTArray<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>,
+            >(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsTArray<
+                    root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>,
+                >)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<
+                root::nsTArray<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>,
+            >(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsTArray<
+                    root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>,
+                >)
+            )
+        );
     }
     #[test]
     fn __bindgen_test_layout_pair_open0_nsString_nsString_close0_instantiation() {
         assert_eq!(
-            ::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>(),
+            ::std::mem::size_of::<
+                root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>,
+            >(),
             32usize,
             concat!(
                 "Size of template specialization: ",
@@ -40997,7 +40812,9 @@ pub mod root {
             )
         );
         assert_eq!(
-            ::std::mem::align_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>(),
+            ::std::mem::align_of::<
+                root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>,
+            >(),
             8usize,
             concat!(
                 "Alignment of template specialization: ",
@@ -42192,7 +42009,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_2() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_3() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -42230,25 +42047,6 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_3() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_4() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
@@ -42269,6 +42067,25 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_5() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_6() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43058,7 +42875,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_6() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_7() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43353,7 +43170,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_7() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_8() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43372,7 +43189,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_8() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_9() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43620,7 +43437,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_9() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_10() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -43639,7 +43456,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_10() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_11() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -44481,7 +44298,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_11() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_12() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -44864,25 +44681,6 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_12() {
-        assert_eq!(
-            ::std::mem::size_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Size of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-        assert_eq!(
-            ::std::mem::align_of::<root::nsCOMPtr>(),
-            8usize,
-            concat!(
-                "Alignment of template specialization: ",
-                stringify!(root::nsCOMPtr)
-            )
-        );
-    }
-    #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_13() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
@@ -44941,6 +44739,25 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_16() {
+        assert_eq!(
+            ::std::mem::size_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Size of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+        assert_eq!(
+            ::std::mem::align_of::<root::nsCOMPtr>(),
+            8usize,
+            concat!(
+                "Alignment of template specialization: ",
+                stringify!(root::nsCOMPtr)
+            )
+        );
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_17() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
@@ -47706,7 +47523,7 @@ pub mod root {
         );
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_17() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIURI_close0_instantiation_18() {
         assert_eq!(
             ::std::mem::size_of::<root::nsCOMPtr>(),
             8usize,
