@@ -29,7 +29,7 @@ const UNSIGNED_LONG_MAX: u32 = 2147483647;
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum LengthOrPercentageOrAuto {
     Auto,
-    Percentage(f32),
+    Percentage(     f32),
     Length(Au),
 }
 
