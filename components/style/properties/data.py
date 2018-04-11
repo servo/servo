@@ -406,7 +406,7 @@ class Alias(object):
         return self.enabled_in == "content"
 
     def nscsspropertyid(self):
-        return "nsCSSPropertyID::eCSSPropertyAlias_%s" % self.camel_case
+        return "nsCSSPropertyID::eCSSPropertyAlias_%s" % self.ident
 
 
 class Method(object):
