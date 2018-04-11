@@ -299,6 +299,12 @@ class Longhand(object):
             return computed
         return "<{} as ToAnimatedValue>::AnimatedValue".format(computed)
 
+    def nscsspropertyid(self):
+        ident = self.ident
+        if ident == "float":
+            ident = "float_"
+        return "nsCSSPropertyID::eCSSProperty_%s" % ident
+
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
@@ -362,6 +368,9 @@ class Shorthand(object):
     def enabled_in_content(self):
         return self.enabled_in == "content"
 
+    def nscsspropertyid(self):
+        return "nsCSSPropertyID::eCSSProperty_%s" % self.ident
+
 
 class Alias(object):
     def __init__(self, name, original):
@@ -387,6 +396,9 @@ class Alias(object):
 
     def enabled_in_content(self):
         return self.enabled_in == "content"
+
+    def nscsspropertyid(self):
+        return "nsCSSPropertyID::eCSSPropertyAlias_%s" % self.camel_case
 
 
 class Method(object):
@@ -460,7 +472,8 @@ class PropertiesData(object):
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
         self.add_prefixed_aliases(longhand)
-        self.longhand_aliases += list(map(lambda x: Alias(x, longhand), longhand.alias))
+        longhand.alias = list(map(lambda x: Alias(x, longhand), longhand.alias))
+        self.longhand_aliases += longhand.alias
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
         self.longhands_by_name[name] = longhand
@@ -475,7 +488,8 @@ class PropertiesData(object):
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.add_prefixed_aliases(shorthand)
-        self.shorthand_aliases += list(map(lambda x: Alias(x, shorthand), shorthand.alias))
+        shorthand.alias = list(map(lambda x: Alias(x, shorthand), shorthand.alias))
+        self.shorthand_aliases += shorthand.alias
         self.shorthands.append(shorthand)
         return shorthand
 
