@@ -12,7 +12,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 # NOTE(emilio): This assumes that HEAD is a merge commit, which is true for
 # builbot stuff. Locally you probably want to use `-1`.
-LAST_MERGE="$(git log --merges --format=%h -2)"
+LAST_MERGE="$(git log --merges --format=%h -2 | tail -1)"
 
 cargo install --force rustfmt-nightly
 git diff $LAST_MERGE | rustfmt-format-diff -p 1
