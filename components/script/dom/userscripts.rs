@@ -8,7 +8,6 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::Node;
 use js::jsval::UndefinedValue;
 use servo_config::opts;
-use servo_config::resource_files::resources_dir_path;
 use std::fs::{File, read_dir};
 use std::io::Read;
 use std::path::PathBuf;
@@ -22,17 +21,7 @@ pub fn load_script(head: &HTMLHeadElement) {
         let cx = win.get_cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
 
-        let path = if &**path_str == "" {
-            if let Ok(mut p) = resources_dir_path() {
-                p.push("user-agent-js");
-                p
-            } else {
-                return
-            }
-        } else {
-            PathBuf::from(path_str)
-        };
-
+        let path = PathBuf::from(path_str);
         let mut files = read_dir(&path).expect("Bad path passed to --userscripts")
                                        .filter_map(|e| e.ok())
                                        .map(|e| e.path()).collect::<Vec<_>>();

@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate embedder_traits;
 extern crate net_traits;
 
+use embedder_traits::resources::register_resources_for_tests;
 use net_traits::pub_domains::{is_pub_domain, is_reg_domain, pub_suffix, reg_suffix};
 
 // These tests may need to be updated if the PSL changes.
 
 #[test]
 fn test_is_pub_domain_plain() {
+    register_resources_for_tests();
     assert!(is_pub_domain("com"));
     assert!(is_pub_domain(".org"));
     assert!(is_pub_domain("za.org"));
@@ -19,6 +22,7 @@ fn test_is_pub_domain_plain() {
 
 #[test]
 fn test_is_pub_domain_wildcard() {
+    register_resources_for_tests();
     assert!(is_pub_domain("hello.bd"));
     assert!(is_pub_domain("world.jm"));
     assert!(is_pub_domain("toto.kobe.jp"));
@@ -26,6 +30,7 @@ fn test_is_pub_domain_wildcard() {
 
 #[test]
 fn test_is_pub_domain_exception() {
+    register_resources_for_tests();
     assert_eq!(is_pub_domain("www.ck"), false);
     assert_eq!(is_pub_domain("city.kawasaki.jp"), false);
     assert_eq!(is_pub_domain("city.nagoya.jp"), false);
@@ -34,6 +39,7 @@ fn test_is_pub_domain_exception() {
 
 #[test]
 fn test_is_pub_domain_not() {
+    register_resources_for_tests();
     assert_eq!(is_pub_domain(""), false);
     assert_eq!(is_pub_domain("."), false);
     assert_eq!(is_pub_domain("..."), false);
@@ -46,6 +52,7 @@ fn test_is_pub_domain_not() {
 
 #[test]
 fn test_is_pub_domain() {
+    register_resources_for_tests();
     assert!(!is_pub_domain("city.yokohama.jp"));
     assert!(!is_pub_domain("foo.bar.baz.yokohama.jp"));
     assert!(!is_pub_domain("foo.bar.city.yokohama.jp"));
@@ -64,6 +71,7 @@ fn test_is_pub_domain() {
 
 #[test]
 fn test_is_reg_domain() {
+    register_resources_for_tests();
     assert!(!is_reg_domain("com"));
     assert!(!is_reg_domain("foo.bar.baz.yokohama.jp"));
     assert!(!is_reg_domain("foo.bar.com"));
@@ -81,6 +89,7 @@ fn test_is_reg_domain() {
 
 #[test]
 fn test_pub_suffix() {
+    register_resources_for_tests();
     assert_eq!(pub_suffix("city.yokohama.jp"), "yokohama.jp");
     assert_eq!(pub_suffix("com"), "com");
     assert_eq!(pub_suffix("foo.bar.baz.yokohama.jp"), "baz.yokohama.jp");
@@ -98,6 +107,7 @@ fn test_pub_suffix() {
 
 #[test]
 fn test_reg_suffix() {
+    register_resources_for_tests();
     assert_eq!(reg_suffix("city.yokohama.jp"), "city.yokohama.jp");
     assert_eq!(reg_suffix("com"), "com");
     assert_eq!(reg_suffix("foo.bar.baz.yokohama.jp"), "bar.baz.yokohama.jp");
@@ -115,6 +125,7 @@ fn test_reg_suffix() {
 
 #[test]
 fn test_weirdness() {
+    register_resources_for_tests();
     // These are weird results, but AFAICT they are spec-compliant.
     assert_ne!(pub_suffix("city.yokohama.jp"), pub_suffix(pub_suffix("city.yokohama.jp")));
     assert!(!is_pub_domain(pub_suffix("city.yokohama.jp")));

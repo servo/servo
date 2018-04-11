@@ -9,6 +9,7 @@
 
 extern crate app_units;
 extern crate atomic_refcell;
+extern crate embedder_traits;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;
@@ -55,6 +56,7 @@ mod dom_wrapper;
 use app_units::Au;
 use dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use dom_wrapper::drop_style_and_layout_data;
+use embedder_traits::resources::{self, Resource};
 use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};
 use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
@@ -110,7 +112,6 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
-use servo_config::resource_files::read_resource_file;
 use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -1740,11 +1741,11 @@ fn get_root_flow_background_color(flow: &mut Flow) -> webrender_api::ColorF {
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     fn parse_ua_stylesheet(
         shared_lock: &SharedRwLock,
-        filename: &'static str,
+        filename: &str,
+        content: String,
     ) -> Result<DocumentStyleSheet, &'static str> {
-        let res = read_resource_file(filename).map_err(|_| filename)?;
         Ok(DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
-            &res,
+            &content.as_bytes(),
             ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
             None,
             None,
@@ -1758,12 +1759,17 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     }
 
     let shared_lock = SharedRwLock::new();
-    let mut user_or_user_agent_stylesheets = vec!();
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
-    for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-        user_or_user_agent_stylesheets.push(parse_ua_stylesheet(&shared_lock, filename)?);
-    }
+    let mut user_or_user_agent_stylesheets = vec![
+        parse_ua_stylesheet(&shared_lock, "user-agent.css",
+                            resources::read_string(Resource::UserAgentCSS))?,
+        parse_ua_stylesheet(&shared_lock, "servo.css",
+                            resources::read_string(Resource::ServoCSS))?,
+        parse_ua_stylesheet(&shared_lock, "presentational-hints.css",
+                            resources::read_string(Resource::PresentationalHintsCSS))?,
+    ];
+
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(
             DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
@@ -1781,7 +1787,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         );
     }
 
-    let quirks_mode_stylesheet = parse_ua_stylesheet(&shared_lock, "quirks-mode.css")?;
+    let quirks_mode_stylesheet = parse_ua_stylesheet(&shared_lock, "quirks-mode.css",
+                                                     resources::read_string(Resource::QuirksModeCSS))?;
 
     Ok(UserAgentStylesheets {
         shared_lock: shared_lock,

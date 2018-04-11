@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use basedir::default_config_dir;
+use embedder_traits::resources::{self, Resource};
 use num_cpus;
 use opts;
-use resource_files::resources_dir_path;
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::cmp::max;
@@ -18,7 +18,7 @@ use std::sync::{Arc, RwLock};
 lazy_static! {
     pub static ref PREFS: Preferences = {
         let defaults = default_prefs();
-        if let Ok(prefs) = read_prefs() {
+        if let Ok(prefs) = read_prefs(&resources::read_string(Resource::Preferences)) {
             defaults.extend(prefs);
         }
         defaults
@@ -156,9 +156,8 @@ pub fn default_prefs() -> Preferences {
     prefs
 }
 
-pub fn read_prefs_from_file<T>(mut file: T)
-    -> Result<HashMap<String, Pref>, ()> where T: Read {
-    let json = Json::from_reader(&mut file).or_else(|e| {
+pub fn read_prefs(txt: &str) -> Result<HashMap<String, Pref>, ()> {
+    let json = Json::from_str(txt).or_else(|e| {
         println!("Ignoring invalid JSON in preferences: {:?}.", e);
         Err(())
     })?;
@@ -194,27 +193,16 @@ pub fn add_user_prefs() {
 
 fn init_user_prefs(path: &mut PathBuf) {
     path.push("prefs.json");
-    if let Ok(file) = File::open(path) {
-        if let Ok(prefs) = read_prefs_from_file(file) {
+    if let Ok(mut file) = File::open(path) {
+        let mut txt = String::new();
+        file.read_to_string(&mut txt).expect("Can't read use prefs");
+        if let Ok(prefs) = read_prefs(&txt) {
             PREFS.extend(prefs);
         }
     } else {
     writeln!(&mut stderr(), "Error opening prefs.json from config directory")
         .expect("failed printing to stderr");
     }
-}
-
-fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
-    let mut path = resources_dir_path().map_err(|_| ())?;
-    path.push("prefs.json");
-
-    let file = File::open(path).or_else(|e| {
-        writeln!(&mut stderr(), "Error opening preferences: {:?}.", e)
-            .expect("failed printing to stderr");
-        Err(())
-    })?;
-
-    read_prefs_from_file(file)
 }
 
 pub struct Preferences(Arc<RwLock<HashMap<String, Pref>>>);

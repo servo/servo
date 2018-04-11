@@ -30,6 +30,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
+use embedder_traits::resources::{self, Resource};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
@@ -45,7 +46,6 @@ use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use servo_config::prefs::PREFS;
-use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -671,16 +671,14 @@ impl FetchResponseListener for ParserContext {
                 // Handle text/html
                 if let Some(reason) = ssl_error {
                     self.is_synthesized_document = true;
-                    let page_bytes = read_resource_file("badcert.html").unwrap();
-                    let page = String::from_utf8(page_bytes).unwrap();
+                    let page = resources::read_string(Resource::BadCertHTML);
                     let page = page.replace("${reason}", &reason);
                     parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 }
                 if let Some(reason) = network_error {
                     self.is_synthesized_document = true;
-                    let page_bytes = read_resource_file("neterror.html").unwrap();
-                    let page = String::from_utf8(page_bytes).unwrap();
+                    let page = resources::read_string(Resource::NetErrorHTML);
                     let page = page.replace("${reason}", &reason);
                     parser.push_string_input_chunk(page);
                     parser.parse_sync();

@@ -52,12 +52,6 @@ public class MainActivity extends android.app.NativeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        try {
-            extractAssets();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
         final Intent intent = getIntent();
         if (intent != null && intent.getAction().equals(Intent.ACTION_VIEW)) {
             final String url = intent.getDataString();
@@ -223,80 +217,9 @@ public class MainActivity extends android.app.NativeActivity {
         }
     }
 
-    private boolean needsToExtractAssets(String path) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        int version = BuildConfig.VERSION_CODE;
-
-        if (!new File(path).exists()) {
-            // Assets folder doesn't exist, resources need to be copied
-            prefs.edit().putInt(PREF_KEY_RESOURCES_SYNC, version).apply();
-            return true;
-        }
-
-        if (version != prefs.getInt(PREF_KEY_RESOURCES_SYNC, -1)) {
-            // Also force a reextract when the version changes and the resources may be updated
-            // This can be improved by generating a hash or version number of the resources
-            // instead of using version code of the app
-            prefs.edit().putInt(PREF_KEY_RESOURCES_SYNC, version).apply();
-            return true;
-        }
-        return false;
-    }
-
     private File getAppDataDir() {
         File file = getExternalFilesDir(null);
         return file != null ? file : getFilesDir();
-    }
-    /**
-     * extracts assets/ in the APK to /sdcard/servo.
-     */
-    private void extractAssets() throws IOException {
-        String path = getAppDataDir().getAbsolutePath();
-        if (!needsToExtractAssets(path)) {
-            return;
-        }
-
-        ZipFile zipFile = null;
-        File targetDir = new File(path);
-        try {
-            zipFile = new ZipFile(this.getApplicationInfo().sourceDir);
-            for (Enumeration<? extends ZipEntry> e = zipFile.entries(); e.hasMoreElements(); ) {
-                ZipEntry entry = e.nextElement();
-                if (entry.isDirectory() || !entry.getName().startsWith("assets/")) {
-                    continue;
-                }
-                File targetFile = new File(targetDir, entry.getName().substring("assets/".length()));
-                targetFile.getParentFile().mkdirs();
-                byte[] tempBuffer = new byte[(int)entry.getSize()];
-                BufferedInputStream is = null;
-                FileOutputStream os = null;
-                try {
-                    is = new BufferedInputStream(zipFile.getInputStream(entry));
-                    os = new FileOutputStream(targetFile);
-                    is.read(tempBuffer);
-                    os.write(tempBuffer);
-                } finally {
-                    try {
-                        if (is != null) {
-                            is.close();
-                        }
-                        if (os != null) {
-                            os.close();
-                        }
-                    } catch (Exception ex) {
-                        Log.e(LOGTAG, Log.getStackTraceString(ex));
-                    }
-                }
-            }
-        } finally {
-            try {
-                if (zipFile != null) {
-                    zipFile.close();
-                }
-            } catch (Exception e) {
-                Log.e(LOGTAG, Log.getStackTraceString(e));
-            }
-        }
     }
 
     private void set_url(String url) {
