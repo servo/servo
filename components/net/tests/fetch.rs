@@ -34,10 +34,11 @@ use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
-use servo_config::resource_files::resources_dir_path;
+use embedder_traits::resources::register_resources_for_tests;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
@@ -48,6 +49,7 @@ use unicase::UniCase;
 
 #[test]
 fn test_fetch_response_is_not_network_error() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -67,6 +69,7 @@ fn test_fetch_response_is_not_network_error() {
 
 #[test]
 fn test_fetch_on_bad_port_is_network_error() {
+    register_resources_for_tests();
     let url = ServoUrl::parse("http://www.example.org:6667").unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -79,6 +82,7 @@ fn test_fetch_on_bad_port_is_network_error() {
 
 #[test]
 fn test_fetch_response_body_matches_const_message() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"Hello World!";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -104,6 +108,7 @@ fn test_fetch_response_body_matches_const_message() {
 
 #[test]
 fn test_fetch_aboutblank() {
+    register_resources_for_tests();
     let url = ServoUrl::parse("about:blank").unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -115,6 +120,7 @@ fn test_fetch_aboutblank() {
 
 #[test]
 fn test_fetch_blob() {
+    register_resources_for_tests();
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
 
@@ -155,9 +161,8 @@ fn test_fetch_blob() {
 
 #[test]
 fn test_fetch_file() {
-    let mut path = resources_dir_path().expect("Cannot find resource dir");
-    path.push("servo.css");
-
+    register_resources_for_tests();
+    let path = Path::new("../../resources/servo.css").canonicalize().unwrap();
     let url = ServoUrl::from_file_path(path.clone()).unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -183,6 +188,7 @@ fn test_fetch_file() {
 
 #[test]
 fn test_fetch_ftp() {
+    register_resources_for_tests();
     let url = ServoUrl::parse("ftp://not-supported").unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -193,6 +199,7 @@ fn test_fetch_ftp() {
 
 #[test]
 fn test_fetch_bogus_scheme() {
+    register_resources_for_tests();
     let url = ServoUrl::parse("bogus://whatever").unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -203,6 +210,7 @@ fn test_fetch_bogus_scheme() {
 
 #[test]
 fn test_cors_preflight_fetch() {
+    register_resources_for_tests();
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
@@ -240,6 +248,7 @@ fn test_cors_preflight_fetch() {
 
 #[test]
 fn test_cors_preflight_cache_fetch() {
+    register_resources_for_tests();
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let counter = state.clone();
@@ -292,6 +301,7 @@ fn test_cors_preflight_cache_fetch() {
 
 #[test]
 fn test_cors_preflight_fetch_network_error() {
+    register_resources_for_tests();
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
@@ -322,6 +332,7 @@ fn test_cors_preflight_fetch_network_error() {
 
 #[test]
 fn test_fetch_response_is_basic_filtered() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
         response.headers_mut().set(SetCookie(vec![]));
@@ -348,6 +359,7 @@ fn test_fetch_response_is_basic_filtered() {
 
 #[test]
 fn test_fetch_response_is_cors_filtered() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
         // this is mandatory for the Cors Check to pass
@@ -402,6 +414,7 @@ fn test_fetch_response_is_cors_filtered() {
 
 #[test]
 fn test_fetch_response_is_opaque_filtered() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -435,6 +448,7 @@ fn test_fetch_response_is_opaque_filtered() {
 
 #[test]
 fn test_fetch_response_is_opaque_redirect_filtered() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
@@ -481,6 +495,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
 
 #[test]
 fn test_fetch_with_local_urls_only() {
+    register_resources_for_tests();
     // If flag `local_urls_only` is set, fetching a non-local URL must result in network error.
 
     static MESSAGE: &'static [u8] = b"";
@@ -519,26 +534,24 @@ fn test_fetch_with_local_urls_only() {
 // And make sure to specify `localhost` as the server name.
 #[test]
 fn test_fetch_with_hsts() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
     };
 
-    let path = resources_dir_path().expect("Cannot find resource dir");
-    let mut cert_path = path.clone();
-    cert_path.push("self_signed_certificate_for_testing.crt");
+    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt").canonicalize().unwrap();
+    let key_path = Path::new("../../resources/privatekey_for_testing.key").canonicalize().unwrap();
 
-    let mut key_path = path.clone();
-    key_path.push("privatekey_for_testing.key");
-
-    let ssl = hyper_openssl::OpensslServer::from_files(key_path, cert_path)
+    let ssl = hyper_openssl::OpensslServer::from_files(key_path, cert_path.clone())
         .unwrap();
 
     //takes an address and something that implements hyper::net::Ssl
     let mut server = Server::https("0.0.0.0:0", ssl).unwrap().handle_threads(handler, 1).unwrap();
 
-    let ca_file = resources_dir_path().unwrap().join("self_signed_certificate_for_testing.crt");
-    let ssl_client = create_ssl_client(&ca_file);
+    let mut ca_content = String::new();
+    File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
+    let ssl_client = create_ssl_client(&ca_content);
 
     let context =  FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
@@ -568,6 +581,7 @@ fn test_fetch_with_hsts() {
 
 #[test]
 fn test_fetch_with_sri_network_error() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"alert('Hello, Network Error');";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -592,6 +606,7 @@ fn test_fetch_with_sri_network_error() {
 
 #[test]
 fn test_fetch_with_sri_sucess() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"alert('Hello, world.');";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -659,6 +674,7 @@ fn test_fetch_blocked_nosniff() {
 }
 
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
+    register_resources_for_tests();
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
             RequestUri::AbsolutePath(url) =>
@@ -689,6 +705,7 @@ fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response
 
 #[test]
 fn test_fetch_redirect_count_ceiling() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"no more redirects";
     // how many redirects to cause
     let redirect_cap = 20;
@@ -708,6 +725,7 @@ fn test_fetch_redirect_count_ceiling() {
 
 #[test]
 fn test_fetch_redirect_count_failure() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"this message shouldn't be reachable";
     // how many redirects to cause
     let redirect_cap = 21;
@@ -773,6 +791,7 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
 
 #[test]
 fn test_fetch_redirect_updates_method() {
+    register_resources_for_tests();
     let (tx, rx) = channel();
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, Method::Post);
@@ -831,6 +850,7 @@ fn response_is_done(response: &Response) -> bool {
 
 #[test]
 fn test_fetch_async_returns_complete_response() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"this message should be retrieved in full";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -849,6 +869,7 @@ fn test_fetch_async_returns_complete_response() {
 
 #[test]
 fn test_opaque_filtered_fetch_async_returns_complete_response() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -870,6 +891,7 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
 
 #[test]
 fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
@@ -906,6 +928,7 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
 
 #[test]
 fn test_fetch_with_devtools() {
+    register_resources_for_tests();
     static MESSAGE: &'static [u8] = b"Yay!";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
