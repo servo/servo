@@ -1578,10 +1578,10 @@ impl PropertyId {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                     % for property in properties:
                         "${property.name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
-                        % for name in property.alias:
-                            "${name}" => {
+                        % for alias in property.alias:
+                            "${alias.name}" => {
                                 StaticId::${kind}Alias(${kind}Id::${property.camel_case},
-                                                       AliasId::${to_camel_case(name)})
+                                                       AliasId::${alias.camel_case})
                             },
                         % endfor
                     % endfor
@@ -1621,10 +1621,10 @@ impl PropertyId {
                     Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${helpers.alias_to_nscsspropertyid(alias)} => {
+                    ${helpers.alias_to_nscsspropertyid(alias.name)} => {
                         Ok(PropertyId::LonghandAlias(
                             LonghandId::${property.camel_case},
-                            AliasId::${to_camel_case(alias)}
+                            AliasId::${alias.camel_case}
                         ))
                     }
                 % endfor
@@ -1634,10 +1634,10 @@ impl PropertyId {
                     Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${helpers.alias_to_nscsspropertyid(alias)} => {
+                    ${helpers.alias_to_nscsspropertyid(alias.name)} => {
                         Ok(PropertyId::ShorthandAlias(
                             ShorthandId::${property.camel_case},
-                            AliasId::${to_camel_case(alias)}
+                            AliasId::${alias.camel_case}
                         ))
                     }
                 % endfor
@@ -3868,12 +3868,12 @@ macro_rules! css_properties_accessors {
             % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in props:
                     % if property.enabled_in_content():
-                        % for name in [property.name] + property.alias:
-                            % if '-' in name:
-                                [${to_rust_ident(name).capitalize()}, Set${to_rust_ident(name).capitalize()},
+                        % for prop in [property] + property.alias:
+                            % if '-' in prop.name:
+                                [${prop.ident.capitalize()}, Set${prop.ident.capitalize()},
                                  PropertyId::${kind}(${kind}Id::${property.camel_case})],
                             % endif
-                            [${to_camel_case(name)}, Set${to_camel_case(name)},
+                            [${prop.camel_case}, Set${prop.camel_case},
                              PropertyId::${kind}(${kind}Id::${property.camel_case})],
                         % endfor
                     % endif

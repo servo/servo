@@ -460,7 +460,8 @@ class PropertiesData(object):
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
         self.add_prefixed_aliases(longhand)
-        self.longhand_aliases += list(map(lambda x: Alias(x, longhand), longhand.alias))
+        longhand.alias = list(map(lambda x: Alias(x, longhand), longhand.alias))
+        self.longhand_aliases += longhand.alias
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
         self.longhands_by_name[name] = longhand
@@ -475,7 +476,8 @@ class PropertiesData(object):
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.add_prefixed_aliases(shorthand)
-        self.shorthand_aliases += list(map(lambda x: Alias(x, shorthand), shorthand.alias))
+        shorthand.alias = list(map(lambda x: Alias(x, shorthand), shorthand.alias))
+        self.shorthand_aliases += shorthand.alias
         self.shorthands.append(shorthand)
         return shorthand
 
