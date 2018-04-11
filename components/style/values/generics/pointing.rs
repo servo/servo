@@ -5,8 +5,8 @@
 //! Generic values for pointing properties.
 
 /// A generic value for the `caret-color` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum CaretColor<Color> {
     /// An explicit color.
     Color(Color),

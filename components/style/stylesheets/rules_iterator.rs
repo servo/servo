@@ -14,8 +14,9 @@ use stylesheets::StylesheetInDocument;
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>
-    where 'b: 'a,
-          C: NestedRuleIterationCondition + 'static,
+where
+    'b: 'a,
+    C: NestedRuleIterationCondition + 'static,
 {
     device: &'a Device,
     quirks_mode: QuirksMode,
@@ -25,17 +26,17 @@ pub struct RulesIterator<'a, 'b, C>
 }
 
 impl<'a, 'b, C> RulesIterator<'a, 'b, C>
-    where 'b: 'a,
-          C: NestedRuleIterationCondition + 'static,
+where
+    'b: 'a,
+    C: NestedRuleIterationCondition + 'static,
 {
     /// Creates a new `RulesIterator` to iterate over `rules`.
     pub fn new(
         device: &'a Device,
         quirks_mode: QuirksMode,
         guard: &'a SharedRwLockReadGuard<'b>,
-        rules: &'a CssRules)
-        -> Self
-    {
+        rules: &'a CssRules,
+    ) -> Self {
         let mut stack = SmallVec::new();
         stack.push(rules.0.iter());
         Self {
@@ -54,8 +55,9 @@ impl<'a, 'b, C> RulesIterator<'a, 'b, C>
 }
 
 impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
-    where 'b: 'a,
-          C: NestedRuleIterationCondition + 'static,
+where
+    'b: 'a,
+    C: NestedRuleIterationCondition + 'static,
 {
     type Item = &'a CssRule;
 
@@ -75,8 +77,8 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                     Some(r) => r,
                     None => {
                         nested_iter_finished = true;
-                        continue
-                    }
+                        continue;
+                    },
                 };
 
                 match *rule {
@@ -87,51 +89,53 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                     CssRule::Viewport(_) |
                     CssRule::Keyframes(_) |
                     CssRule::Page(_) |
-                    CssRule::FontFeatureValues(_) => {
-                        return Some(rule)
-                    },
+                    CssRule::FontFeatureValues(_) => return Some(rule),
                     CssRule::Import(ref import_rule) => {
                         let import_rule = import_rule.read_with(self.guard);
-                        if !C::process_import(self.guard,
-                                              self.device,
-                                              self.quirks_mode,
-                                              import_rule) {
+                        if !C::process_import(
+                            self.guard,
+                            self.device,
+                            self.quirks_mode,
+                            import_rule,
+                        ) {
                             continue;
                         }
                         import_rule
-                            .stylesheet.contents(self.guard).rules
-                            .read_with(self.guard).0.iter()
-                    }
+                            .stylesheet
+                            .contents(self.guard)
+                            .rules
+                            .read_with(self.guard)
+                            .0
+                            .iter()
+                    },
                     CssRule::Document(ref doc_rule) => {
                         let doc_rule = doc_rule.read_with(self.guard);
-                        if !C::process_document(self.guard,
-                                                self.device,
-                                                self.quirks_mode,
-                                                doc_rule) {
+                        if !C::process_document(self.guard, self.device, self.quirks_mode, doc_rule)
+                        {
                             continue;
                         }
                         doc_rule.rules.read_with(self.guard).0.iter()
-                    }
+                    },
                     CssRule::Media(ref lock) => {
                         let media_rule = lock.read_with(self.guard);
-                        if !C::process_media(self.guard,
-                                             self.device,
-                                             self.quirks_mode,
-                                             media_rule) {
+                        if !C::process_media(self.guard, self.device, self.quirks_mode, media_rule)
+                        {
                             continue;
                         }
                         media_rule.rules.read_with(self.guard).0.iter()
-                    }
+                    },
                     CssRule::Supports(ref lock) => {
                         let supports_rule = lock.read_with(self.guard);
-                        if !C::process_supports(self.guard,
-                                                self.device,
-                                                self.quirks_mode,
-                                                supports_rule) {
+                        if !C::process_supports(
+                            self.guard,
+                            self.device,
+                            self.quirks_mode,
+                            supports_rule,
+                        ) {
                             continue;
                         }
                         supports_rule.rules.read_with(self.guard).0.iter()
-                    }
+                    },
                 }
             };
 
@@ -150,16 +154,16 @@ pub trait NestedRuleIterationCondition {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         quirks_mode: QuirksMode,
-        rule: &ImportRule)
-        -> bool;
+        rule: &ImportRule,
+    ) -> bool;
 
     /// Whether we should process the nested rules in a given `@media` rule.
     fn process_media(
         guard: &SharedRwLockReadGuard,
         device: &Device,
         quirks_mode: QuirksMode,
-        rule: &MediaRule)
-        -> bool;
+        rule: &MediaRule,
+    ) -> bool;
 
     /// Whether we should process the nested rules in a given `@-moz-document`
     /// rule.
@@ -167,16 +171,16 @@ pub trait NestedRuleIterationCondition {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         quirks_mode: QuirksMode,
-        rule: &DocumentRule)
-        -> bool;
+        rule: &DocumentRule,
+    ) -> bool;
 
     /// Whether we should process the nested rules in a given `@supports` rule.
     fn process_supports(
         guard: &SharedRwLockReadGuard,
         device: &Device,
         quirks_mode: QuirksMode,
-        rule: &SupportsRule)
-        -> bool;
+        rule: &SupportsRule,
+    ) -> bool;
 }
 
 /// A struct that represents the condition that a rule applies to the document.
@@ -187,9 +191,8 @@ impl NestedRuleIterationCondition for EffectiveRules {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         _quirks_mode: QuirksMode,
-        rule: &ImportRule)
-        -> bool
-    {
+        rule: &ImportRule,
+    ) -> bool {
         rule.stylesheet.is_effective_for_device(device, guard)
     }
 
@@ -197,19 +200,19 @@ impl NestedRuleIterationCondition for EffectiveRules {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         quirks_mode: QuirksMode,
-        rule: &MediaRule)
-        -> bool
-    {
-        rule.media_queries.read_with(guard).evaluate(device, quirks_mode)
+        rule: &MediaRule,
+    ) -> bool {
+        rule.media_queries
+            .read_with(guard)
+            .evaluate(device, quirks_mode)
     }
 
     fn process_document(
         _: &SharedRwLockReadGuard,
         device: &Device,
         _: QuirksMode,
-        rule: &DocumentRule)
-        -> bool
-    {
+        rule: &DocumentRule,
+    ) -> bool {
         rule.condition.evaluate(device)
     }
 
@@ -217,9 +220,8 @@ impl NestedRuleIterationCondition for EffectiveRules {
         _: &SharedRwLockReadGuard,
         _: &Device,
         _: QuirksMode,
-        rule: &SupportsRule)
-        -> bool
-    {
+        rule: &SupportsRule,
+    ) -> bool {
         rule.enabled
     }
 }
@@ -232,19 +234,12 @@ impl NestedRuleIterationCondition for AllRules {
         _: &SharedRwLockReadGuard,
         _: &Device,
         _: QuirksMode,
-        _: &ImportRule)
-        -> bool
-    {
+        _: &ImportRule,
+    ) -> bool {
         true
     }
 
-    fn process_media(
-        _: &SharedRwLockReadGuard,
-        _: &Device,
-        _: QuirksMode,
-        _: &MediaRule)
-        -> bool
-    {
+    fn process_media(_: &SharedRwLockReadGuard, _: &Device, _: QuirksMode, _: &MediaRule) -> bool {
         true
     }
 
@@ -252,9 +247,8 @@ impl NestedRuleIterationCondition for AllRules {
         _: &SharedRwLockReadGuard,
         _: &Device,
         _: QuirksMode,
-        _: &DocumentRule)
-        -> bool
-    {
+        _: &DocumentRule,
+    ) -> bool {
         true
     }
 
@@ -262,9 +256,8 @@ impl NestedRuleIterationCondition for AllRules {
         _: &SharedRwLockReadGuard,
         _: &Device,
         _: QuirksMode,
-        _: &SupportsRule)
-        -> bool
-    {
+        _: &SupportsRule,
+    ) -> bool {
         true
     }
 }

@@ -7,9 +7,9 @@
 use values::generics::url::UrlOrNone as GenericUrlOrNone;
 
 #[cfg(feature = "servo")]
-pub use ::servo::url::{ComputedUrl, ComputedImageUrl};
+pub use servo::url::{ComputedImageUrl, ComputedUrl};
 #[cfg(feature = "gecko")]
-pub use ::gecko::url::{ComputedUrl, ComputedImageUrl};
+pub use gecko::url::{ComputedImageUrl, ComputedUrl};
 
 /// Computed <url> | <none>
 pub type UrlOrNone = GenericUrlOrNone<ComputedUrl>;

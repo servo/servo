@@ -62,7 +62,7 @@ impl StyleRule {
         }
 
         n += self.block.unconditional_shallow_size_of(ops) +
-             self.block.read_with(guard).size_of(ops);
+            self.block.read_with(guard).size_of(ops);
 
         n
     }
@@ -88,4 +88,3 @@ impl ToCssWithGuard for StyleRule {
         dest.write_str("}")
     }
 }
-

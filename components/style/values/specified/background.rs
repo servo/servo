@@ -31,7 +31,9 @@ impl Parse for BackgroundSize {
             "cover" => Ok(GenericBackgroundSize::Cover),
             "contain" => Ok(GenericBackgroundSize::Contain),
             _ => Err(()),
-        }).map_err(|()| location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+        }).map_err(|()| {
+            location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
+        })
     }
 }
 
@@ -92,10 +94,8 @@ impl Parse for BackgroundRepeat {
         let horizontal = match BackgroundRepeatKeyword::from_ident(&ident) {
             Ok(h) => h,
             Err(()) => {
-                return Err(input.new_custom_error(
-                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-                ));
-            }
+                return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+            },
         };
 
         let vertical = input.try(BackgroundRepeatKeyword::parse).ok();

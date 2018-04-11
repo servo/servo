@@ -49,9 +49,10 @@ impl<Value> Spacing<Value> {
     pub fn parse_with<'i, 't, F>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        parse: F)
-        -> Result<Self, ParseError<'i>>
-        where F: FnOnce(&ParserContext, &mut Parser<'i, 't>) -> Result<Value, ParseError<'i>>
+        parse: F,
+    ) -> Result<Self, ParseError<'i>>
+    where
+        F: FnOnce(&ParserContext, &mut Parser<'i, 't>) -> Result<Value, ParseError<'i>>,
     {
         if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(Spacing::Normal);
@@ -103,12 +104,14 @@ where
     V: From<Au>,
 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
+    }
 }
 
 /// A generic value for the `line-height` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToAnimatedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToAnimatedValue, ToCss)]
 pub enum LineHeight<Number, LengthOrPercentage> {
     /// `normal`
     Normal,
@@ -123,7 +126,9 @@ pub enum LineHeight<Number, LengthOrPercentage> {
 
 impl<N, L> ToAnimatedZero for LineHeight<N, L> {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
+    }
 }
 
 impl<N, L> LineHeight<N, L> {
@@ -135,8 +140,8 @@ impl<N, L> LineHeight<N, L> {
 }
 
 /// A generic value for the `-moz-tab-size` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum MozTabSize<Number, Length> {
     /// A number.
     Number(Number),

@@ -34,7 +34,12 @@ impl RGBA {
     /// Returns a new color.
     #[inline]
     pub fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
-        RGBA { red: red, green: green, blue: blue, alpha: alpha }
+        RGBA {
+            red: red,
+            green: green,
+            blue: blue,
+            alpha: alpha,
+        }
     }
 }
 
@@ -52,9 +57,12 @@ impl Animate for RGBA {
         }
 
         alpha = alpha.min(1.);
-        let red = (self.red * self.alpha).animate(&(other.red * other.alpha), procedure)? * 1. / alpha;
-        let green = (self.green * self.alpha).animate(&(other.green * other.alpha), procedure)? * 1. / alpha;
-        let blue = (self.blue * self.alpha).animate(&(other.blue * other.alpha), procedure)? * 1. / alpha;
+        let red =
+            (self.red * self.alpha).animate(&(other.red * other.alpha), procedure)? * 1. / alpha;
+        let green = (self.green * self.alpha).animate(&(other.green * other.alpha), procedure)? *
+            1. / alpha;
+        let blue =
+            (self.blue * self.alpha).animate(&(other.blue * other.alpha), procedure)? * 1. / alpha;
 
         Ok(RGBA::new(red, green, blue, alpha))
     }
@@ -63,9 +71,23 @@ impl Animate for RGBA {
 impl ComputeSquaredDistance for RGBA {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        let start = [ self.alpha, self.red * self.alpha, self.green * self.alpha, self.blue * self.alpha ];
-        let end = [ other.alpha, other.red * other.alpha, other.green * other.alpha, other.blue * other.alpha ];
-        start.iter().zip(&end).map(|(this, other)| this.compute_squared_distance(other)).sum()
+        let start = [
+            self.alpha,
+            self.red * self.alpha,
+            self.green * self.alpha,
+            self.blue * self.alpha,
+        ];
+        let end = [
+            other.alpha,
+            other.red * other.alpha,
+            other.green * other.alpha,
+            other.blue * other.alpha,
+        ];
+        start
+            .iter()
+            .zip(&end)
+            .map(|(this, other)| this.compute_squared_distance(other))
+            .sum()
     }
 }
 
@@ -104,7 +126,7 @@ impl Color {
     fn effective_intermediate_rgba(&self) -> RGBA {
         RGBA {
             alpha: self.color.alpha * (1. - self.foreground_ratio),
-            .. self.color
+            ..self.color
         }
     }
 }
@@ -147,12 +169,13 @@ impl Animate for Color {
             let color = self_color.animate(&other_color, procedure)?;
             // Then we compute the final foreground ratio, and derive
             // the final alpha value from the effective alpha value.
-            let foreground_ratio = self.foreground_ratio.animate(&other.foreground_ratio, procedure)?;
+            let foreground_ratio = self.foreground_ratio
+                .animate(&other.foreground_ratio, procedure)?;
             let alpha = color.alpha / (1. - foreground_ratio);
             Ok(Color {
                 color: RGBA {
                     alpha: alpha,
-                    .. color
+                    ..color
                 },
                 foreground_ratio: foreground_ratio,
             })
@@ -173,20 +196,17 @@ impl ComputeSquaredDistance for Color {
         } else if self.is_currentcolor() && other.is_numeric() {
             Ok(
                 RGBA::transparent().compute_squared_distance(&other.color)? +
-                SquaredDistance::from_sqrt(1.),
+                    SquaredDistance::from_sqrt(1.),
             )
         } else if self.is_numeric() && other.is_currentcolor() {
-            Ok(
-                self.color.compute_squared_distance(&RGBA::transparent())? +
-                SquaredDistance::from_sqrt(1.),
-            )
+            Ok(self.color.compute_squared_distance(&RGBA::transparent())? +
+                SquaredDistance::from_sqrt(1.))
         } else {
             let self_color = self.effective_intermediate_rgba();
             let other_color = other.effective_intermediate_rgba();
-            Ok(
-                self_color.compute_squared_distance(&other_color)? +
-                self.foreground_ratio.compute_squared_distance(&other.foreground_ratio)?,
-            )
+            Ok(self_color.compute_squared_distance(&other_color)? +
+                self.foreground_ratio
+                    .compute_squared_distance(&other.foreground_ratio)?)
         }
     }
 }

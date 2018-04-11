@@ -30,8 +30,8 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 }
 
 /// A generic value for the `border-*-radius` longhand properties.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToComputedValue, ToCss)]
 pub struct BorderCornerRadius<L>(#[css(field_bound)] pub Size<L>);
 
 impl<L> BorderCornerRadius<L> {
@@ -42,8 +42,8 @@ impl<L> BorderCornerRadius<L> {
 }
 
 /// A generic value for the `border-spacing` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct BorderSpacing<L>(#[css(field_bound)] pub Size<L>);
 
 impl<L> BorderSpacing<L> {
@@ -56,8 +56,8 @@ impl<L> BorderSpacing<L> {
 /// A generic value for `border-radius`, `outline-radius` and `inset()`.
 ///
 /// <https://drafts.csswg.org/css-backgrounds-3/#border-radius>
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToComputedValue)]
 pub struct BorderRadius<LengthOrPercentage> {
     /// The top left radius.
     pub top_left: BorderCornerRadius<LengthOrPercentage>,
@@ -70,7 +70,8 @@ pub struct BorderRadius<LengthOrPercentage> {
 }
 
 impl<N> From<N> for BorderImageSlice<N>
-    where N: Clone,
+where
+    N: Clone,
 {
     #[inline]
     fn from(value: N) -> Self {
@@ -82,7 +83,8 @@ impl<N> From<N> for BorderImageSlice<N>
 }
 
 impl<N> ToCss for BorderImageSlice<N>
-    where N: PartialEq + ToCss,
+where
+    N: PartialEq + ToCss,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -103,7 +105,7 @@ impl<L> BorderRadius<L> {
         tl: BorderCornerRadius<L>,
         tr: BorderCornerRadius<L>,
         br: BorderCornerRadius<L>,
-        bl: BorderCornerRadius<L>
+        bl: BorderCornerRadius<L>,
     ) -> Self {
         BorderRadius {
             top_left: tl,
@@ -115,7 +117,8 @@ impl<L> BorderRadius<L> {
 }
 
 impl<L> BorderRadius<L>
-    where L: PartialEq + ToCss
+where
+    L: PartialEq + ToCss,
 {
     /// Serialises two given rects following the syntax of the `border-radius``
     /// property.
@@ -128,7 +131,9 @@ impl<L> BorderRadius<L>
         W: Write,
     {
         widths.to_css(dest)?;
-        if widths.0 != heights.0 || widths.1 != heights.1 || widths.2 != heights.2 || widths.3 != heights.3 {
+        if widths.0 != heights.0 || widths.1 != heights.1 || widths.2 != heights.2 ||
+            widths.3 != heights.3
+        {
             dest.write_str(" / ")?;
             heights.to_css(dest)?;
         }
@@ -137,7 +142,8 @@ impl<L> BorderRadius<L>
 }
 
 impl<L> ToCss for BorderRadius<L>
-    where L: PartialEq + ToCss
+where
+    L: PartialEq + ToCss,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where

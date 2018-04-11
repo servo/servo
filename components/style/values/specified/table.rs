@@ -6,7 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use style_traits::{StyleParseErrorKind, ParseError};
+use style_traits::{ParseError, StyleParseErrorKind};
 
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 /// span. for `<col span>` pres attr
@@ -14,7 +14,10 @@ pub struct XSpan(#[css(skip)] pub i32);
 
 impl Parse for XSpan {
     // never parse it, only set via presentation attribute
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<XSpan, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<XSpan, ParseError<'i>> {
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }

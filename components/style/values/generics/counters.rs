@@ -75,7 +75,7 @@ where
         W: fmt::Write,
     {
         if self.0.is_empty() {
-            return dest.write_str("none")
+            return dest.write_str("none");
         }
 
         let mut first = true;

@@ -10,8 +10,8 @@ use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
 use values::specified::BorderStyle;
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord)]
-#[derive(PartialEq, PartialOrd, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd, ToComputedValue,
+         ToCss)]
 /// <https://drafts.csswg.org/css-ui/#propdef-outline-style>
 pub enum OutlineStyle {
     /// auto
@@ -32,7 +32,7 @@ impl OutlineStyle {
     pub fn none_or_hidden(&self) -> bool {
         match *self {
             OutlineStyle::Auto => false,
-            OutlineStyle::Other(ref border_style) => border_style.none_or_hidden()
+            OutlineStyle::Other(ref border_style) => border_style.none_or_hidden(),
         }
     }
 }
@@ -40,11 +40,12 @@ impl OutlineStyle {
 impl Parse for OutlineStyle {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<OutlineStyle, ParseError<'i>> {
         if let Ok(border_style) = input.try(BorderStyle::parse) {
             if let BorderStyle::Hidden = border_style {
-                return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("hidden".into())));
+                return Err(input
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent("hidden".into())));
             }
 
             return Ok(OutlineStyle::Other(border_style));

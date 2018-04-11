@@ -116,12 +116,13 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         self.build_with_specificity_and_flags(spec)
     }
 
-
     /// Builds with an explicit SpecificityAndFlags. This is separated from build() so
     /// that unit tests can pass an explicit specificity.
     #[inline(always)]
-    pub fn build_with_specificity_and_flags(&mut self, spec: SpecificityAndFlags)
-                                            -> ThinArc<SpecificityAndFlags, Component<Impl>> {
+    pub fn build_with_specificity_and_flags(
+        &mut self,
+        spec: SpecificityAndFlags,
+    ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
         // First, compute the total number of Components we'll need to allocate
         // space for.
         let full_len = self.simple_selectors.len() + self.combinators.len();
@@ -159,9 +160,8 @@ struct SelectorBuilderIter<'a, Impl: SelectorImpl> {
 
 impl<'a, Impl: SelectorImpl> ExactSizeIterator for SelectorBuilderIter<'a, Impl> {
     fn len(&self) -> usize {
-        self.current_simple_selectors.len() +
-        self.rest_of_simple_selectors.len() +
-        self.combinators.len()
+        self.current_simple_selectors.len() + self.rest_of_simple_selectors.len() +
+            self.combinators.len()
     }
 }
 
@@ -173,9 +173,7 @@ impl<'a, Impl: SelectorImpl> Iterator for SelectorBuilderIter<'a, Impl> {
             // Move a simple selector out of this slice iterator.
             // This is safe because we’ve called SmallVec::set_len(0) above,
             // so SmallVec::drop won’t drop this simple selector.
-            unsafe {
-                Some(ptr::read(simple_selector_ref))
-            }
+            unsafe { Some(ptr::read(simple_selector_ref)) }
         } else {
             self.combinators.next().map(|(combinator, len)| {
                 let (rest, current) = split_from_end(self.rest_of_simple_selectors, len);
@@ -235,10 +233,8 @@ impl Add for Specificity {
     fn add(self, rhs: Specificity) -> Specificity {
         Specificity {
             id_selectors: self.id_selectors + rhs.id_selectors,
-            class_like_selectors:
-                self.class_like_selectors + rhs.class_like_selectors,
-            element_selectors:
-                self.element_selectors + rhs.element_selectors,
+            class_like_selectors: self.class_like_selectors + rhs.class_like_selectors,
+            element_selectors: self.element_selectors + rhs.element_selectors,
         }
     }
 }
@@ -266,28 +262,28 @@ impl From<u32> for Specificity {
 
 impl From<Specificity> for u32 {
     fn from(specificity: Specificity) -> u32 {
-        cmp::min(specificity.id_selectors, MAX_10BIT) << 20
-        | cmp::min(specificity.class_like_selectors, MAX_10BIT) << 10
-        | cmp::min(specificity.element_selectors, MAX_10BIT)
+        cmp::min(specificity.id_selectors, MAX_10BIT) << 20 |
+            cmp::min(specificity.class_like_selectors, MAX_10BIT) << 10 |
+            cmp::min(specificity.element_selectors, MAX_10BIT)
     }
 }
 
 fn specificity<Impl>(iter: slice::Iter<Component<Impl>>) -> u32
-    where Impl: SelectorImpl
+where
+    Impl: SelectorImpl,
 {
     complex_selector_specificity(iter).into()
 }
 
-fn complex_selector_specificity<Impl>(mut iter: slice::Iter<Component<Impl>>)
-                                      -> Specificity
-    where Impl: SelectorImpl
+fn complex_selector_specificity<Impl>(mut iter: slice::Iter<Component<Impl>>) -> Specificity
+where
+    Impl: SelectorImpl,
 {
     fn simple_selector_specificity<Impl>(
         simple_selector: &Component<Impl>,
         specificity: &mut Specificity,
-    )
-    where
-        Impl: SelectorImpl
+    ) where
+        Impl: SelectorImpl,
     {
         match *simple_selector {
             Component::Combinator(..) => unreachable!(),
@@ -298,44 +294,41 @@ fn complex_selector_specificity<Impl>(mut iter: slice::Iter<Component<Impl>>)
             //
             // Though other engines compute it dynamically, so maybe we should
             // do that instead, eventually.
-            Component::Slotted(..) |
-            Component::PseudoElement(..) |
-            Component::LocalName(..) => {
+            Component::Slotted(..) | Component::PseudoElement(..) | Component::LocalName(..) => {
                 specificity.element_selectors += 1
-            }
-            Component::ID(..) => {
-                specificity.id_selectors += 1
-            }
+            },
+            Component::ID(..) => specificity.id_selectors += 1,
             Component::Class(..) |
             Component::AttributeInNoNamespace { .. } |
             Component::AttributeInNoNamespaceExists { .. } |
             Component::AttributeOther(..) |
-
-            Component::FirstChild | Component::LastChild |
-            Component::OnlyChild | Component::Root |
-            Component::Empty | Component::Scope |
+            Component::FirstChild |
+            Component::LastChild |
+            Component::OnlyChild |
+            Component::Root |
+            Component::Empty |
+            Component::Scope |
             Component::Host(..) |
             Component::NthChild(..) |
             Component::NthLastChild(..) |
             Component::NthOfType(..) |
             Component::NthLastOfType(..) |
-            Component::FirstOfType | Component::LastOfType |
+            Component::FirstOfType |
+            Component::LastOfType |
             Component::OnlyOfType |
-            Component::NonTSPseudoClass(..) => {
-                specificity.class_like_selectors += 1
-            }
+            Component::NonTSPseudoClass(..) => specificity.class_like_selectors += 1,
             Component::ExplicitUniversalType |
             Component::ExplicitAnyNamespace |
             Component::ExplicitNoNamespace |
             Component::DefaultNamespace(..) |
             Component::Namespace(..) => {
                 // Does not affect specificity
-            }
+            },
             Component::Negation(ref negated) => {
                 for ss in negated.iter() {
                     simple_selector_specificity(&ss, specificity);
                 }
-            }
+            },
         }
     }
 

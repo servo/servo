@@ -54,7 +54,7 @@ impl VisitedHandlingMode {
         matches!(
             *self,
             VisitedHandlingMode::RelevantLinkVisited |
-            VisitedHandlingMode::AllLinksVisitedAndUnvisited
+                VisitedHandlingMode::AllLinksVisitedAndUnvisited
         )
     }
 
@@ -63,7 +63,7 @@ impl VisitedHandlingMode {
         matches!(
             *self,
             VisitedHandlingMode::AllLinksUnvisited |
-            VisitedHandlingMode::AllLinksVisitedAndUnvisited
+                VisitedHandlingMode::AllLinksVisitedAndUnvisited
         )
     }
 }
@@ -85,8 +85,7 @@ impl QuirksMode {
     #[inline]
     pub fn classes_and_ids_case_sensitivity(self) -> CaseSensitivity {
         match self {
-            QuirksMode::NoQuirks |
-            QuirksMode::LimitedQuirks => CaseSensitivity::CaseSensitive,
+            QuirksMode::NoQuirks | QuirksMode::LimitedQuirks => CaseSensitivity::CaseSensitive,
             QuirksMode::Quirks => CaseSensitivity::AsciiCaseInsensitive,
         }
     }
@@ -161,7 +160,7 @@ where
             bloom_filter,
             nth_index_cache,
             VisitedHandlingMode::AllLinksUnvisited,
-            quirks_mode
+            quirks_mode,
         )
     }
 
@@ -196,8 +195,7 @@ where
     #[inline]
     pub fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
         self.quirks_mode = quirks_mode;
-        self.classes_and_ids_case_sensitivity =
-            quirks_mode.classes_and_ids_case_sensitivity();
+        self.classes_and_ids_case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
     }
 
     /// Whether we're matching a nested selector.
@@ -249,10 +247,7 @@ where
     where
         F: FnOnce(&mut Self) -> R,
     {
-        debug_assert!(
-            !self.in_negation,
-            "Someone messed up parsing?"
-        );
+        debug_assert!(!self.in_negation, "Someone messed up parsing?");
         self.in_negation = true;
         let result = self.nest(f);
         self.in_negation = false;
@@ -284,11 +279,7 @@ where
     /// Runs F with a given shadow host which is the root of the tree whose
     /// rules we're matching.
     #[inline]
-    pub fn with_shadow_host<F, E, R>(
-        &mut self,
-        host: Option<E>,
-        f: F,
-    ) -> R
+    pub fn with_shadow_host<F, E, R>(&mut self, host: Option<E>, f: F) -> R
     where
         E: Element,
         F: FnOnce(&mut Self) -> R,

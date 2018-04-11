@@ -57,7 +57,9 @@ impl BorderSideWidth {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(length) = input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
+        if let Ok(length) =
+            input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks))
+        {
             return Ok(BorderSideWidth::Length(length));
         }
         try_match_ident_ignore_ascii_case! { input,
@@ -69,7 +71,10 @@ impl BorderSideWidth {
 }
 
 impl Parse for BorderSideWidth {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
@@ -105,7 +110,10 @@ impl BorderImageSideWidth {
 }
 
 impl Parse for BorderImageSideWidth {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(GenericBorderImageSideWidth::Auto);
         }
@@ -120,7 +128,10 @@ impl Parse for BorderImageSideWidth {
 }
 
 impl Parse for BorderImageSlice {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let mut fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
         let offsets = Rect::parse_with(context, input, NumberOrPercentage::parse_non_negative)?;
         if !fill {
@@ -134,7 +145,10 @@ impl Parse for BorderImageSlice {
 }
 
 impl Parse for BorderRadius {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let widths = Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?;
         let heights = if input.try(|i| i.expect_delim('/')).is_ok() {
             Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?
@@ -154,7 +168,7 @@ impl Parse for BorderRadius {
 impl Parse for BorderCornerRadius {
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Size::parse_with(context, input, LengthOrPercentage::parse_non_negative)
             .map(GenericBorderCornerRadius)
@@ -164,7 +178,7 @@ impl Parse for BorderCornerRadius {
 impl Parse for BorderSpacing {
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Size::parse_with(context, input, |context, input| {
             Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes).map(From::from)
@@ -221,6 +235,9 @@ impl Parse for BorderImageRepeat {
     ) -> Result<Self, ParseError<'i>> {
         let horizontal = BorderImageRepeatKeyword::parse(input)?;
         let vertical = input.try(BorderImageRepeatKeyword::parse).ok();
-        Ok(BorderImageRepeat(horizontal, vertical.unwrap_or(horizontal)))
+        Ok(BorderImageRepeat(
+            horizontal,
+            vertical.unwrap_or(horizontal),
+        ))
     }
 }

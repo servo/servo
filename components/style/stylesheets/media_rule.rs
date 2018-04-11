@@ -46,7 +46,9 @@ impl ToCssWithGuard for MediaRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSMediaRule
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@media ")?;
-        self.media_queries.read_with(guard).to_css(&mut CssWriter::new(dest))?;
+        self.media_queries
+            .read_with(guard)
+            .to_css(&mut CssWriter::new(dest))?;
         self.rules.read_with(guard).to_css_block(guard, dest)
     }
 }

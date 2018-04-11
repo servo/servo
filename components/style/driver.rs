@@ -7,7 +7,7 @@
 
 #![deny(missing_docs)]
 
-use context::{StyleContext, PerThreadTraversalStatistics};
+use context::{PerThreadTraversalStatistics, StyleContext};
 use context::{ThreadLocalStyleContext, TraversalStatistics};
 use dom::{SendNode, TElement, TNode};
 use parallel;
@@ -39,9 +39,8 @@ fn report_statistics(stats: &PerThreadTraversalStatistics) {
     // This should only be called in the main thread, or it may be racy
     // to update the statistics in a global variable.
     debug_assert!(unsafe { ::gecko_bindings::bindings::Gecko_IsMainThread() });
-    let gecko_stats = unsafe {
-        &mut ::gecko_bindings::structs::ServoTraversalStatistics_sSingleton
-    };
+    let gecko_stats =
+        unsafe { &mut ::gecko_bindings::structs::ServoTraversalStatistics_sSingleton };
     gecko_stats.mElementsTraversed += stats.elements_traversed;
     gecko_stats.mElementsStyled += stats.elements_styled;
     gecko_stats.mElementsMatched += stats.elements_matched;
@@ -63,18 +62,22 @@ fn report_statistics(stats: &PerThreadTraversalStatistics) {
 pub fn traverse_dom<E, D>(
     traversal: &D,
     token: PreTraverseToken<E>,
-    pool: Option<&rayon::ThreadPool>
-)
-where
+    pool: Option<&rayon::ThreadPool>,
+) where
     E: TElement,
     D: DomTraversal<E>,
 {
-    let root =
-        token.traversal_root().expect("Should've ensured we needed to traverse");
+    let root = token
+        .traversal_root()
+        .expect("Should've ensured we needed to traverse");
 
     let report_stats = should_report_statistics();
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
-    let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
+    let start_time = if dump_stats {
+        Some(time::precise_time_s())
+    } else {
+        None
+    };
 
     // Declare the main-thread context, as well as the worker-thread contexts,
     // which we may or may not instantiate. It's important to declare the worker-
@@ -96,21 +99,26 @@ where
     // Process the nodes breadth-first, just like the parallel traversal does.
     // This helps keep similar traversal characteristics for the style sharing
     // cache.
-    let mut discovered =
-        VecDeque::<SendNode<E::ConcreteNode>>::with_capacity(WORK_UNIT_MAX * 2);
+    let mut discovered = VecDeque::<SendNode<E::ConcreteNode>>::with_capacity(WORK_UNIT_MAX * 2);
     let mut depth = root.depth();
     let mut nodes_remaining_at_current_depth = 1;
     discovered.push_back(unsafe { SendNode::new(root.as_node()) });
     while let Some(node) = discovered.pop_front() {
         let mut children_to_process = 0isize;
-        let traversal_data = PerLevelTraversalData { current_dom_depth: depth };
+        let traversal_data = PerLevelTraversalData {
+            current_dom_depth: depth,
+        };
         traversal.process_preorder(&traversal_data, &mut context, *node, |n| {
             children_to_process += 1;
             discovered.push_back(unsafe { SendNode::new(n) });
         });
 
-        traversal.handle_postorder_traversal(&mut context, root.as_node().opaque(),
-                                             *node, children_to_process);
+        traversal.handle_postorder_traversal(
+            &mut context,
+            root.as_node().opaque(),
+            *node,
+            children_to_process,
+        );
 
         nodes_remaining_at_current_depth -= 1;
         if nodes_remaining_at_current_depth == 0 {
@@ -131,11 +139,13 @@ where
                             DispatchMode::TailCall,
                             /* recursion_ok = */ true,
                             root_opaque,
-                            PerLevelTraversalData { current_dom_depth: depth },
+                            PerLevelTraversalData {
+                                current_dom_depth: depth,
+                            },
                             scope,
                             pool,
                             traversal,
-                            maybe_tls.as_ref().unwrap()
+                            maybe_tls.as_ref().unwrap(),
                         );
                     });
                 });
@@ -147,16 +157,13 @@ where
 
     // Collect statistics from thread-locals if requested.
     if dump_stats || report_stats {
-        let mut aggregate =
-            mem::replace(&mut context.thread_local.statistics, Default::default());
+        let mut aggregate = mem::replace(&mut context.thread_local.statistics, Default::default());
         let parallel = maybe_tls.is_some();
         if let Some(ref mut tls) = maybe_tls {
             let slots = unsafe { tls.unsafe_get() };
-            aggregate = slots.iter().fold(aggregate, |acc, t| {
-                match *t.borrow() {
-                    None => acc,
-                    Some(ref cx) => &cx.statistics + &acc,
-                }
+            aggregate = slots.iter().fold(aggregate, |acc, t| match *t.borrow() {
+                None => acc,
+                Some(ref cx) => &cx.statistics + &acc,
             });
         }
 
@@ -165,12 +172,8 @@ where
         }
         // dump statistics to stdout if requested
         if dump_stats {
-            let stats = TraversalStatistics::new(
-                aggregate,
-                traversal,
-                parallel,
-                start_time.unwrap()
-            );
+            let stats =
+                TraversalStatistics::new(aggregate, traversal, parallel, start_time.unwrap());
             if stats.is_large {
                 println!("{}", stats);
             }

@@ -9,7 +9,7 @@
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::{LengthOrPercentage, Image};
+use values::computed::{Image, LengthOrPercentage};
 use values::computed::url::ComputedUrl;
 use values::generics::basic_shape as generic;
 
@@ -20,7 +20,8 @@ pub type ClippingShape = generic::ClippingShape<BasicShape, ComputedUrl>;
 pub type FloatAreaShape = generic::FloatAreaShape<BasicShape, Image>;
 
 /// A computed basic shape.
-pub type BasicShape = generic::BasicShape<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;
+pub type BasicShape =
+    generic::BasicShape<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;
 
 /// The computed value of `inset()`
 pub type InsetRect = generic::InsetRect<LengthOrPercentage>;

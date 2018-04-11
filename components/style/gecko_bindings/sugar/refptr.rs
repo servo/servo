@@ -105,7 +105,9 @@ impl<T: RefCounted> RefPtr<T> {
 
     /// Addref the inner data, obviously leaky on its own.
     pub fn addref(&self) {
-        unsafe { (*self.ptr).addref(); }
+        unsafe {
+            (*self.ptr).addref();
+        }
     }
 
     /// Release the inner data.
@@ -208,7 +210,9 @@ impl<T: RefCounted> structs::RefPtr<T> {
     /// `self` must be valid, possibly null.
     pub fn set_move(&mut self, other: RefPtr<T>) {
         if !self.mRawPtr.is_null() {
-            unsafe { (*self.mRawPtr).release(); }
+            unsafe {
+                (*self.mRawPtr).release();
+            }
         }
         *self = other.forget();
     }
@@ -217,7 +221,10 @@ impl<T: RefCounted> structs::RefPtr<T> {
 impl<T> structs::RefPtr<T> {
     /// Sets the contents to an Arc<T>
     /// will leak existing contents
-    pub fn set_arc_leaky<U>(&mut self, other: Arc<U>) where U: HasArcFFI<FFIType = T> {
+    pub fn set_arc_leaky<U>(&mut self, other: Arc<U>)
+    where
+        U: HasArcFFI<FFIType = T>,
+    {
         *self = unsafe { mem::transmute(Arc::into_raw_offset(other)) };
     }
 }
@@ -248,7 +255,7 @@ unsafe impl<T: ThreadSafeRefCounted> Send for RefPtr<T> {}
 unsafe impl<T: ThreadSafeRefCounted> Sync for RefPtr<T> {}
 
 macro_rules! impl_refcount {
-    ($t:ty, $addref:ident, $release:ident) => (
+    ($t:ty, $addref:ident, $release:ident) => {
         unsafe impl RefCounted for $t {
             fn addref(&self) {
                 unsafe { ::gecko_bindings::bindings::$addref(self as *const _ as *mut _) }
@@ -257,38 +264,51 @@ macro_rules! impl_refcount {
                 ::gecko_bindings::bindings::$release(self as *const _ as *mut _)
             }
         }
-    );
+    };
 }
 
 // Companion of NS_DECL_THREADSAFE_FFI_REFCOUNTING.
 //
 // Gets you a free RefCounted impl implemented via FFI.
 macro_rules! impl_threadsafe_refcount {
-    ($t:ty, $addref:ident, $release:ident) => (
+    ($t:ty, $addref:ident, $release:ident) => {
         impl_refcount!($t, $addref, $release);
         unsafe impl ThreadSafeRefCounted for $t {}
-    );
+    };
 }
 
-impl_threadsafe_refcount!(::gecko_bindings::structs::RawGeckoURLExtraData,
-                          Gecko_AddRefURLExtraDataArbitraryThread,
-                          Gecko_ReleaseURLExtraDataArbitraryThread);
-impl_threadsafe_refcount!(::gecko_bindings::structs::nsStyleQuoteValues,
-                          Gecko_AddRefQuoteValuesArbitraryThread,
-                          Gecko_ReleaseQuoteValuesArbitraryThread);
-impl_threadsafe_refcount!(::gecko_bindings::structs::nsCSSValueSharedList,
-                          Gecko_AddRefCSSValueSharedListArbitraryThread,
-                          Gecko_ReleaseCSSValueSharedListArbitraryThread);
-impl_threadsafe_refcount!(::gecko_bindings::structs::mozilla::css::URLValue,
-                          Gecko_AddRefCSSURLValueArbitraryThread,
-                          Gecko_ReleaseCSSURLValueArbitraryThread);
-impl_threadsafe_refcount!(::gecko_bindings::structs::mozilla::css::GridTemplateAreasValue,
-                          Gecko_AddRefGridTemplateAreasValueArbitraryThread,
-                          Gecko_ReleaseGridTemplateAreasValueArbitraryThread);
-impl_threadsafe_refcount!(::gecko_bindings::structs::ImageValue,
-                          Gecko_AddRefImageValueArbitraryThread,
-                          Gecko_ReleaseImageValueArbitraryThread);
-impl_threadsafe_refcount!(::gecko_bindings::structs::SharedFontList,
-                          Gecko_AddRefSharedFontListArbitraryThread,
-                          Gecko_ReleaseSharedFontListArbitraryThread);
-
+impl_threadsafe_refcount!(
+    ::gecko_bindings::structs::RawGeckoURLExtraData,
+    Gecko_AddRefURLExtraDataArbitraryThread,
+    Gecko_ReleaseURLExtraDataArbitraryThread
+);
+impl_threadsafe_refcount!(
+    ::gecko_bindings::structs::nsStyleQuoteValues,
+    Gecko_AddRefQuoteValuesArbitraryThread,
+    Gecko_ReleaseQuoteValuesArbitraryThread
+);
+impl_threadsafe_refcount!(
+    ::gecko_bindings::structs::nsCSSValueSharedList,
+    Gecko_AddRefCSSValueSharedListArbitraryThread,
+    Gecko_ReleaseCSSValueSharedListArbitraryThread
+);
+impl_threadsafe_refcount!(
+    ::gecko_bindings::structs::mozilla::css::URLValue,
+    Gecko_AddRefCSSURLValueArbitraryThread,
+    Gecko_ReleaseCSSURLValueArbitraryThread
+);
+impl_threadsafe_refcount!(
+    ::gecko_bindings::structs::mozilla::css::GridTemplateAreasValue,
+    Gecko_AddRefGridTemplateAreasValueArbitraryThread,
+    Gecko_ReleaseGridTemplateAreasValueArbitraryThread
+);
+impl_threadsafe_refcount!(
+    ::gecko_bindings::structs::ImageValue,
+    Gecko_AddRefImageValueArbitraryThread,
+    Gecko_ReleaseImageValueArbitraryThread
+);
+impl_threadsafe_refcount!(
+    ::gecko_bindings::structs::SharedFontList,
+    Gecko_AddRefSharedFontListArbitraryThread,
+    Gecko_ReleaseSharedFontListArbitraryThread
+);

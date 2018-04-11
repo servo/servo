@@ -47,7 +47,10 @@ impl BorderImageSideWidth {
 impl BorderSpacing {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderSpacing(Size::new(NonNegativeLength::zero(), NonNegativeLength::zero()))
+        GenericBorderSpacing(Size::new(
+            NonNegativeLength::zero(),
+            NonNegativeLength::zero(),
+        ))
     }
 
     /// Returns the horizontal spacing.
@@ -64,7 +67,10 @@ impl BorderSpacing {
 impl BorderCornerRadius {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderCornerRadius(Size::new(LengthOrPercentage::zero(), LengthOrPercentage::zero()))
+        GenericBorderCornerRadius(Size::new(
+            LengthOrPercentage::zero(),
+            LengthOrPercentage::zero(),
+        ))
     }
 }
 

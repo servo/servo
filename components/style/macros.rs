@@ -7,16 +7,16 @@
 macro_rules! exclusive_value {
     (($value:ident, $set:expr) => $ident:path) => {
         if $value.intersects($set) {
-            return Err(())
+            return Err(());
         } else {
             $ident
         }
-    }
+    };
 }
 
 #[cfg(feature = "gecko")]
 macro_rules! impl_gecko_keyword_conversions {
-    ($name: ident, $utype: ty) => {
+    ($name:ident, $utype:ty) => {
         impl From<$utype> for $name {
             fn from(bits: $utype) -> $name {
                 $name::from_gecko_keyword(bits)
@@ -44,7 +44,7 @@ macro_rules! trivial_to_computed_value {
                 other.clone()
             }
         }
-    }
+    };
 }
 
 /// A macro to parse an identifier, or return an `UnexpectedIndent` error
@@ -66,10 +66,10 @@ macro_rules! try_match_ident_ignore_ascii_case {
 }
 
 macro_rules! define_keyword_type {
-    ($name: ident, $css: expr) => {
+    ($name:ident, $css:expr) => {
         #[allow(missing_docs)]
-        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf)]
-        #[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq,
+                 ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
         pub struct $name;
 
         impl fmt::Debug for $name {
@@ -81,9 +81,12 @@ macro_rules! define_keyword_type {
         impl $crate::parser::Parse for $name {
             fn parse<'i, 't>(
                 _context: &$crate::parser::ParserContext,
-                input: &mut ::cssparser::Parser<'i, 't>
+                input: &mut ::cssparser::Parser<'i, 't>,
             ) -> Result<$name, ::style_traits::ParseError<'i>> {
-                input.expect_ident_matching($css).map(|_| $name).map_err(|e| e.into())
+                input
+                    .expect_ident_matching($css)
+                    .map(|_| $name)
+                    .map_err(|e| e.into())
             }
         }
     };
@@ -91,7 +94,7 @@ macro_rules! define_keyword_type {
 
 #[cfg(feature = "gecko")]
 macro_rules! impl_bitflags_conversions {
-    ($name: ident) => {
+    ($name:ident) => {
         impl From<u8> for $name {
             fn from(bits: u8) -> $name {
                 $name::from_bits(bits).expect("bits contain valid flag")

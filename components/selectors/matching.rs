@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint};
-use bloom::{BLOOM_HASH_MASK, BloomFilter};
+use attr::{AttrSelectorOperation, NamespaceConstraint, ParsedAttrSelectorOperation};
+use bloom::{BloomFilter, BLOOM_HASH_MASK};
 use nth_index_cache::NthIndexCacheInner;
 use parser::{AncestorHashes, Combinator, Component, LocalName};
-use parser::{Selector, SelectorImpl, SelectorIter, SelectorList, NonTSPseudoClass};
+use parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use std::borrow::Borrow;
 use std::iter;
 use tree::Element;
@@ -52,8 +52,8 @@ impl ElementSelectorFlags {
     /// Returns the subset of flags that apply to the parent.
     pub fn for_parent(self) -> ElementSelectorFlags {
         self & (ElementSelectorFlags::HAS_SLOW_SELECTOR |
-                ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS |
-                ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR)
+            ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS |
+            ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR)
     }
 }
 
@@ -70,19 +70,12 @@ pub fn matches_selector_list<E>(
     context: &mut MatchingContext<E::Impl>,
 ) -> bool
 where
-    E: Element
+    E: Element,
 {
     // This is pretty much any(..) but manually inlined because the compiler
     // refuses to do so from querySelector / querySelectorAll.
     for selector in &selector_list.0 {
-        let matches = matches_selector(
-            selector,
-            0,
-            None,
-            element,
-            context,
-            &mut |_, _| {},
-        );
+        let matches = matches_selector(selector, 0, None, element, context, &mut |_, _| {});
 
         if matches {
             return true;
@@ -219,7 +212,7 @@ pub enum CompoundSelectorMatchingResult {
     FullyMatched,
     /// The compound selector matched, and the next combinator offset is
     /// `next_combinator_offset`.
-    Matched { next_combinator_offset: usize, },
+    Matched { next_combinator_offset: usize },
     /// The selector didn't match.
     NotMatched,
 }
@@ -238,7 +231,7 @@ pub fn matches_compound_selector_from<E>(
     element: &E,
 ) -> CompoundSelectorMatchingResult
 where
-    E: Element
+    E: Element,
 {
     if cfg!(debug_assertions) && from_offset != 0 {
         selector.combinator_at_parse_order(from_offset - 1); // This asserts.
@@ -267,12 +260,12 @@ where
 
     let iter = selector.iter_from(selector.len() - from_offset);
     debug_assert!(
-        iter.clone().next().is_some() || (
-            from_offset != selector.len() && matches!(
-                selector.combinator_at_parse_order(from_offset),
-                Combinator::SlotAssignment | Combinator::PseudoElement
-            )
-        ),
+        iter.clone().next().is_some() ||
+            (from_offset != selector.len() &&
+                matches!(
+                    selector.combinator_at_parse_order(from_offset),
+                    Combinator::SlotAssignment | Combinator::PseudoElement
+                )),
         "Got the math wrong: {:?} | {:?} | {} {}",
         selector,
         selector.iter_raw_match_order().as_slice(),
@@ -281,12 +274,7 @@ where
     );
 
     for component in iter {
-        if !matches_simple_selector(
-            component,
-            element,
-            &mut local_context,
-            &mut |_, _| {}
-        ) {
+        if !matches_simple_selector(component, element, &mut local_context, &mut |_, _| {}) {
             return CompoundSelectorMatchingResult::NotMatched;
         }
     }
@@ -294,7 +282,7 @@ where
     if from_offset != selector.len() {
         return CompoundSelectorMatchingResult::Matched {
             next_combinator_offset: from_offset,
-        }
+        };
     }
 
     CompoundSelectorMatchingResult::FullyMatched
@@ -314,8 +302,7 @@ where
 {
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
-    if context.matching_mode() == MatchingMode::ForStatelessPseudoElement &&
-        !context.is_nested() {
+    if context.matching_mode() == MatchingMode::ForStatelessPseudoElement && !context.is_nested() {
         // Consume the pseudo.
         match *iter.next().unwrap() {
             Component::PseudoElement(ref pseudo) => {
@@ -324,19 +311,23 @@ where
                         return false;
                     }
                 }
-            }
+            },
             _ => {
-                debug_assert!(false,
-                              "Used MatchingMode::ForStatelessPseudoElement \
-                               in a non-pseudo selector");
-            }
+                debug_assert!(
+                    false,
+                    "Used MatchingMode::ForStatelessPseudoElement \
+                     in a non-pseudo selector"
+                );
+            },
         }
 
         // The only other parser-allowed Component in this sequence is a state
         // class. We just don't match in that case.
         if let Some(s) = iter.next() {
-            debug_assert!(matches!(*s, Component::NonTSPseudoClass(..)),
-                          "Someone messed up pseudo-element parsing");
+            debug_assert!(
+                matches!(*s, Component::NonTSPseudoClass(..)),
+                "Someone messed up pseudo-element parsing"
+            );
             return false;
         }
 
@@ -347,17 +338,12 @@ where
         }
     }
 
-    let result = matches_complex_selector_internal(
-        iter,
-        element,
-        context,
-        flags_setter,
-        Rightmost::Yes,
-    );
+    let result =
+        matches_complex_selector_internal(iter, element, context, flags_setter, Rightmost::Yes);
 
     match result {
         SelectorMatchingResult::Matched => true,
-        _ => false
+        _ => false,
     }
 }
 
@@ -378,36 +364,33 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
     // This compound selector had a pseudo-element to the right that we
     // intentionally skipped.
     if rightmost == Rightmost::Yes &&
-        context.matching_mode() == MatchingMode::ForStatelessPseudoElement {
+        context.matching_mode() == MatchingMode::ForStatelessPseudoElement
+    {
         return MatchesHoverAndActiveQuirk::No;
     }
 
-    let all_match = selector_iter.clone().all(|simple| {
-        match *simple {
-            Component::LocalName(_) |
-            Component::AttributeInNoNamespaceExists { .. } |
-            Component::AttributeInNoNamespace { .. } |
-            Component::AttributeOther(_) |
-            Component::ID(_) |
-            Component::Class(_) |
-            Component::PseudoElement(_) |
-            Component::Negation(_) |
-            Component::FirstChild |
-            Component::LastChild |
-            Component::OnlyChild |
-            Component::Empty |
-            Component::NthChild(_, _) |
-            Component::NthLastChild(_, _) |
-            Component::NthOfType(_, _) |
-            Component::NthLastOfType(_, _) |
-            Component::FirstOfType |
-            Component::LastOfType |
-            Component::OnlyOfType => false,
-            Component::NonTSPseudoClass(ref pseudo_class) => {
-                pseudo_class.is_active_or_hover()
-            },
-            _ => true,
-        }
+    let all_match = selector_iter.clone().all(|simple| match *simple {
+        Component::LocalName(_) |
+        Component::AttributeInNoNamespaceExists { .. } |
+        Component::AttributeInNoNamespace { .. } |
+        Component::AttributeOther(_) |
+        Component::ID(_) |
+        Component::Class(_) |
+        Component::PseudoElement(_) |
+        Component::Negation(_) |
+        Component::FirstChild |
+        Component::LastChild |
+        Component::OnlyChild |
+        Component::Empty |
+        Component::NthChild(_, _) |
+        Component::NthLastChild(_, _) |
+        Component::NthOfType(_, _) |
+        Component::NthLastOfType(_, _) |
+        Component::FirstOfType |
+        Component::LastOfType |
+        Component::OnlyOfType => false,
+        Component::NonTSPseudoClass(ref pseudo_class) => pseudo_class.is_active_or_hover(),
+        _ => true,
     });
 
     if all_match {
@@ -433,19 +416,15 @@ where
     E: Element,
 {
     match combinator {
-        Combinator::NextSibling |
-        Combinator::LaterSibling => {
-            element.prev_sibling_element()
-        }
-        Combinator::Child |
-        Combinator::Descendant => {
+        Combinator::NextSibling | Combinator::LaterSibling => element.prev_sibling_element(),
+        Combinator::Child | Combinator::Descendant => {
             if element.blocks_ancestor_combinators() {
                 return None;
             }
 
             match element.parent_element() {
                 Some(e) => return Some(e),
-                None => {}
+                None => {},
             }
 
             if !element.parent_node_is_shadow_root() {
@@ -473,14 +452,16 @@ where
             }
 
             element.containing_shadow_host()
-        }
+        },
         Combinator::SlotAssignment => {
-            debug_assert!(element.assigned_slot().map_or(true, |s| s.is_html_slot_element()));
+            debug_assert!(
+                element
+                    .assigned_slot()
+                    .map_or(true, |s| s.is_html_slot_element())
+            );
             element.assigned_slot()
-        }
-        Combinator::PseudoElement => {
-            element.pseudo_element_originating_element()
-        }
+        },
+        Combinator::PseudoElement => element.pseudo_element_originating_element(),
     }
 }
 
@@ -495,19 +476,25 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    debug!("Matching complex selector {:?} for {:?}", selector_iter, element);
+    debug!(
+        "Matching complex selector {:?} for {:?}",
+        selector_iter, element
+    );
 
     let matches_compound_selector = matches_compound_selector(
         &mut selector_iter,
         element,
         context,
         flags_setter,
-        rightmost
+        rightmost,
     );
 
     let combinator = selector_iter.next_sequence();
     if combinator.map_or(false, |c| c.is_sibling()) {
-        flags_setter(element, ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS);
+        flags_setter(
+            element,
+            ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS,
+        );
     }
 
     if !matches_compound_selector {
@@ -520,20 +507,16 @@ where
     };
 
     let candidate_not_found = match combinator {
-        Combinator::NextSibling |
-        Combinator::LaterSibling => {
+        Combinator::NextSibling | Combinator::LaterSibling => {
             SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant
-        }
+        },
         Combinator::Child |
         Combinator::Descendant |
         Combinator::SlotAssignment |
-        Combinator::PseudoElement => {
-            SelectorMatchingResult::NotMatchedGlobally
-        }
+        Combinator::PseudoElement => SelectorMatchingResult::NotMatchedGlobally,
     };
 
-    let mut next_element =
-        next_element_for_combinator(element, combinator, &selector_iter);
+    let mut next_element = next_element_for_combinator(element, combinator, &selector_iter);
 
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
@@ -549,16 +532,15 @@ where
             Some(next_element) => next_element,
         };
 
-        let result =
-            context.with_visited_handling_mode(visited_handling, |context| {
-                matches_complex_selector_internal(
-                    selector_iter.clone(),
-                    &element,
-                    context,
-                    flags_setter,
-                    Rightmost::No,
-                )
-            });
+        let result = context.with_visited_handling_mode(visited_handling, |context| {
+            matches_complex_selector_internal(
+                selector_iter.clone(),
+                &element,
+                context,
+                flags_setter,
+                Rightmost::No,
+            )
+        });
 
         match (result, combinator) {
             // Return the status immediately.
@@ -566,22 +548,24 @@ where
             (SelectorMatchingResult::NotMatchedGlobally, _) |
             (_, Combinator::NextSibling) => {
                 return result;
-            }
+            },
 
             // Upgrade the failure status to
             // NotMatchedAndRestartFromClosestDescendant.
-            (_, Combinator::PseudoElement) |
-            (_, Combinator::Child) => {
+            (_, Combinator::PseudoElement) | (_, Combinator::Child) => {
                 return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant;
-            }
+            },
 
             // If the failure status is
             // NotMatchedAndRestartFromClosestDescendant and combinator is
             // Combinator::LaterSibling, give up this Combinator::LaterSibling
             // matching and restart from the closest descendant combinator.
-            (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, Combinator::LaterSibling) => {
+            (
+                SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant,
+                Combinator::LaterSibling,
+            ) => {
                 return result;
-            }
+            },
 
             // The Combinator::Descendant combinator and the status is
             // NotMatchedAndRestartFromClosestLaterSibling or
@@ -596,23 +580,19 @@ where
             visited_handling = VisitedHandlingMode::AllLinksUnvisited;
         }
 
-        next_element =
-            next_element_for_combinator(&element, combinator, &selector_iter);
+        next_element = next_element_for_combinator(&element, combinator, &selector_iter);
     }
 }
 
 #[inline]
-fn matches_local_name<E>(
-    element: &E,
-    local_name: &LocalName<E::Impl>
-) -> bool
+fn matches_local_name<E>(element: &E, local_name: &LocalName<E::Impl>) -> bool
 where
     E: Element,
 {
     let name = select_name(
         element.is_html_element_in_html_document(),
         &local_name.name,
-        &local_name.lower_name
+        &local_name.lower_name,
     ).borrow();
     element.local_name() == name
 }
@@ -661,19 +641,13 @@ where
         None => return true,
     };
 
-    let mut local_context =
-        LocalMatchingContext {
-            shared: context,
-            matches_hover_and_active_quirk,
-        };
-    iter::once(selector).chain(selector_iter).all(|simple| {
-        matches_simple_selector(
-            simple,
-            element,
-            &mut local_context,
-            flags_setter,
-        )
-    })
+    let mut local_context = LocalMatchingContext {
+        shared: context,
+        matches_hover_and_active_quirk,
+    };
+    iter::once(selector)
+        .chain(selector_iter)
+        .all(|simple| matches_simple_selector(simple, element, &mut local_context, flags_setter))
 }
 
 /// Determines whether the given element matches the given single selector.
@@ -693,49 +667,40 @@ where
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
             // <slots> are never flattened tree slottables.
-            !element.is_html_slot_element() &&
-            element.assigned_slot().is_some() &&
-            context.shared.nest(|context| {
-                matches_complex_selector(
-                    selector.iter(),
-                    element,
-                    context,
-                    flags_setter,
-                )
-            })
-        }
+            !element.is_html_slot_element() && element.assigned_slot().is_some() &&
+                context.shared.nest(|context| {
+                    matches_complex_selector(selector.iter(), element, context, flags_setter)
+                })
+        },
         Component::PseudoElement(ref pseudo) => {
             element.match_pseudo_element(pseudo, context.shared)
-        }
-        Component::LocalName(ref local_name) => {
-            matches_local_name(element, local_name)
-        }
-        Component::ExplicitUniversalType |
-        Component::ExplicitAnyNamespace => {
-            true
-        }
-        Component::Namespace(_, ref url) |
-        Component::DefaultNamespace(ref url) => {
+        },
+        Component::LocalName(ref local_name) => matches_local_name(element, local_name),
+        Component::ExplicitUniversalType | Component::ExplicitAnyNamespace => true,
+        Component::Namespace(_, ref url) | Component::DefaultNamespace(ref url) => {
             element.namespace() == url.borrow()
-        }
+        },
         Component::ExplicitNoNamespace => {
             let ns = ::parser::namespace_empty_string::<E::Impl>();
             element.namespace() == ns.borrow()
-        }
+        },
         Component::ID(ref id) => {
             element.has_id(id, context.shared.classes_and_ids_case_sensitivity())
-        }
+        },
         Component::Class(ref class) => {
             element.has_class(class, context.shared.classes_and_ids_case_sensitivity())
-        }
-        Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
+        },
+        Component::AttributeInNoNamespaceExists {
+            ref local_name,
+            ref local_name_lower,
+        } => {
             let is_html = element.is_html_element_in_html_document();
             element.attr_matches(
                 &NamespaceConstraint::Specific(&::parser::namespace_empty_string::<E::Impl>()),
                 select_name(is_html, local_name, local_name_lower),
-                &AttrSelectorOperation::Exists
+                &AttrSelectorOperation::Exists,
             )
-        }
+        },
         Component::AttributeInNoNamespace {
             ref local_name,
             ref local_name_lower,
@@ -745,7 +710,7 @@ where
             never_matches,
         } => {
             if never_matches {
-                return false
+                return false;
             }
             let is_html = element.is_html_element_in_html_document();
             element.attr_matches(
@@ -755,12 +720,12 @@ where
                     operator: operator,
                     case_sensitivity: case_sensitivity.to_unconditional(is_html),
                     expected_value: value,
-                }
+                },
             )
-        }
+        },
         Component::AttributeOther(ref attr_sel) => {
             if attr_sel.never_matches {
-                return false
+                return false;
             }
             let is_html = element.is_html_element_in_html_document();
             element.attr_matches(
@@ -772,105 +737,80 @@ where
                         operator,
                         case_sensitivity,
                         ref expected_value,
-                    } => {
-                        AttrSelectorOperation::WithValue {
-                            operator: operator,
-                            case_sensitivity: case_sensitivity.to_unconditional(is_html),
-                            expected_value: expected_value,
-                        }
-                    }
-                }
+                    } => AttrSelectorOperation::WithValue {
+                        operator: operator,
+                        case_sensitivity: case_sensitivity.to_unconditional(is_html),
+                        expected_value: expected_value,
+                    },
+                },
             )
-        }
+        },
         Component::NonTSPseudoClass(ref pc) => {
             if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
-               !context.shared.is_nested() &&
-               pc.is_active_or_hover() &&
-               !element.is_link()
+                !context.shared.is_nested() && pc.is_active_or_hover() &&
+                !element.is_link()
             {
                 return false;
             }
 
-            element.match_non_ts_pseudo_class(
-                pc,
-                &mut context.shared,
-                flags_setter
-            )
-        }
-        Component::FirstChild => {
-            matches_first_child(element, flags_setter)
-        }
-        Component::LastChild => {
-            matches_last_child(element, flags_setter)
-        }
+            element.match_non_ts_pseudo_class(pc, &mut context.shared, flags_setter)
+        },
+        Component::FirstChild => matches_first_child(element, flags_setter),
+        Component::LastChild => matches_last_child(element, flags_setter),
         Component::OnlyChild => {
-            matches_first_child(element, flags_setter) &&
-            matches_last_child(element, flags_setter)
-        }
-        Component::Root => {
-            element.is_root()
-        }
+            matches_first_child(element, flags_setter) && matches_last_child(element, flags_setter)
+        },
+        Component::Root => element.is_root(),
         Component::Empty => {
             flags_setter(element, ElementSelectorFlags::HAS_EMPTY_SELECTOR);
             element.is_empty()
-        }
+        },
         Component::Host(ref selector) => {
-            context.shared.shadow_host().map_or(false, |host| host == element.opaque()) &&
-            selector.as_ref().map_or(true, |selector| {
-                context.shared.nest(|context| {
-                    matches_complex_selector(
-                        selector.iter(),
-                        element,
-                        context,
-                        flags_setter,
-                    )
+            context
+                .shared
+                .shadow_host()
+                .map_or(false, |host| host == element.opaque()) &&
+                selector.as_ref().map_or(true, |selector| {
+                    context.shared.nest(|context| {
+                        matches_complex_selector(selector.iter(), element, context, flags_setter)
+                    })
                 })
-            })
-        }
-        Component::Scope => {
-            match context.shared.scope_element {
-                Some(ref scope_element) => element.opaque() == *scope_element,
-                None => element.is_root(),
-            }
-        }
+        },
+        Component::Scope => match context.shared.scope_element {
+            Some(ref scope_element) => element.opaque() == *scope_element,
+            None => element.is_root(),
+        },
         Component::NthChild(a, b) => {
             matches_generic_nth_child(element, context, a, b, false, false, flags_setter)
-        }
+        },
         Component::NthLastChild(a, b) => {
             matches_generic_nth_child(element, context, a, b, false, true, flags_setter)
-        }
+        },
         Component::NthOfType(a, b) => {
             matches_generic_nth_child(element, context, a, b, true, false, flags_setter)
-        }
+        },
         Component::NthLastOfType(a, b) => {
             matches_generic_nth_child(element, context, a, b, true, true, flags_setter)
-        }
+        },
         Component::FirstOfType => {
             matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter)
-        }
+        },
         Component::LastOfType => {
             matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
-        }
+        },
         Component::OnlyOfType => {
             matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter) &&
-            matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
-        }
-        Component::Negation(ref negated) => {
-            context.shared.nest_for_negation(|context| {
-                let mut local_context = LocalMatchingContext {
-                    matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
-                    shared: context,
-                };
-                !negated.iter().all(|ss| {
-                    matches_simple_selector(
-                        ss,
-                        element,
-                        &mut local_context,
-                        flags_setter,
-                    )
-                })
-            })
-        }
+                matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
+        },
+        Component::Negation(ref negated) => context.shared.nest_for_negation(|context| {
+            let mut local_context = LocalMatchingContext {
+                matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
+                shared: context,
+            };
+            !negated
+                .iter()
+                .all(|ss| matches_simple_selector(ss, element, &mut local_context, flags_setter))
+        }),
     }
 }
 
@@ -901,26 +841,40 @@ where
         return false;
     }
 
-    flags_setter(element, if is_from_end {
-        ElementSelectorFlags::HAS_SLOW_SELECTOR
-    } else {
-        ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS
-    });
+    flags_setter(
+        element,
+        if is_from_end {
+            ElementSelectorFlags::HAS_SLOW_SELECTOR
+        } else {
+            ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS
+        },
+    );
 
     // Grab a reference to the appropriate cache.
-    let mut cache = context.shared.nth_index_cache.as_mut().map(|c| {
-        c.get(is_of_type, is_from_end)
-    });
+    let mut cache = context
+        .shared
+        .nth_index_cache
+        .as_mut()
+        .map(|c| c.get(is_of_type, is_from_end));
 
     // Lookup or compute the index.
     let index = if let Some(i) = cache.as_mut().and_then(|c| c.lookup(element.opaque())) {
         i
     } else {
-        let i = nth_child_index(element, is_of_type, is_from_end, cache.as_mut().map(|s| &mut **s));
+        let i = nth_child_index(
+            element,
+            is_of_type,
+            is_from_end,
+            cache.as_mut().map(|s| &mut **s),
+        );
         cache.as_mut().map(|c| c.insert(element.opaque(), i));
         i
     };
-    debug_assert_eq!(index, nth_child_index(element, is_of_type, is_from_end, None), "invalid cache");
+    debug_assert_eq!(
+        index,
+        nth_child_index(element, is_of_type, is_from_end, None),
+        "invalid cache"
+    );
 
     // Is there a non-negative integer n such that An+B=index?
     match index.checked_sub(b) {
@@ -934,8 +888,7 @@ where
 
 #[inline]
 fn same_type<E: Element>(a: &E, b: &E) -> bool {
-    a.local_name() == b.local_name() &&
-    a.namespace() == b.namespace()
+    a.local_name() == b.local_name() && a.namespace() == b.namespace()
 }
 
 #[inline]
@@ -972,7 +925,13 @@ where
 
     let mut index: i32 = 1;
     let mut curr = element.clone();
-    let next = |e: E| if is_from_end { e.next_sibling_element() } else { e.prev_sibling_element() };
+    let next = |e: E| {
+        if is_from_end {
+            e.next_sibling_element()
+        } else {
+            e.prev_sibling_element()
+        }
+    };
     while let Some(e) = next(curr) {
         curr = e;
         if !is_of_type || same_type(element, &curr) {
@@ -981,7 +940,7 @@ where
             // function.
             if !is_from_end {
                 if let Some(i) = cache.as_mut().and_then(|c| c.lookup(curr.opaque())) {
-                    return i + index
+                    return i + index;
                 }
             }
             index += 1;

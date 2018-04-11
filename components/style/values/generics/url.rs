@@ -9,8 +9,8 @@ use parser::{Parse, ParserContext};
 use style_traits::ParseError;
 
 /// An image url or none, used for example in list-style-image
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
+         ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum UrlOrNone<Url> {
     /// `none`
     None,
@@ -25,7 +25,10 @@ impl<Url> UrlOrNone<Url> {
     }
 }
 
-impl<Url> Parse for UrlOrNone<Url> where Url: Parse {
+impl<Url> Parse for UrlOrNone<Url>
+where
+    Url: Parse,
+{
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,

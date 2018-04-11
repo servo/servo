@@ -35,13 +35,13 @@ use rule_tree::StrongRuleNode;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
-use stylesheets::{CssRules, CounterStyleRule, FontFaceRule, FontFeatureValuesRule};
+use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
 use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
-use stylesheets::{StylesheetContents, StyleRule, SupportsRule};
+use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use stylesheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
-    ($servo_type:ty => $gecko_type:ty [$addref:ident, $release:ident]) => {
+    ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
         unsafe impl HasFFI for $servo_type {
             type FFIType = $gecko_type;
         }
@@ -56,7 +56,7 @@ macro_rules! impl_arc_ffi {
         pub unsafe extern "C" fn $release(obj: &$gecko_type) {
             <$servo_type>::release(obj);
         }
-    }
+    };
 }
 
 impl_arc_ffi!(Locked<CssRules> => ServoCssRules
@@ -152,7 +152,6 @@ pub unsafe extern "C" fn Servo_ComputedStyle_Release(obj: &ComputedValues) {
         let _: Arc<ComputedValues> = ptr::read(a);
     });
 }
-
 
 impl From<Arc<ComputedValues>> for Strong<ComputedValues> {
     fn from(arc: Arc<ComputedValues>) -> Self {

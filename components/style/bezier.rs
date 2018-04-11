@@ -71,11 +71,11 @@ impl Bezier {
         for _ in 0..NEWTON_METHOD_ITERATIONS {
             let x2 = self.sample_curve_x(t);
             if x2.approx_eq(x, epsilon) {
-                return t
+                return t;
             }
             let dx = self.sample_curve_derivative_x(t);
             if dx.approx_eq(0.0, 1e-6) {
-                break
+                break;
             }
             t -= (x2 - x) / dx;
         }
@@ -84,16 +84,16 @@ impl Bezier {
         let (mut lo, mut hi, mut t) = (0.0, 1.0, x);
 
         if t < lo {
-            return lo
+            return lo;
         }
         if t > hi {
-            return hi
+            return hi;
         }
 
         while lo < hi {
             let x2 = self.sample_curve_x(t);
             if x2.approx_eq(x, epsilon) {
-                return t
+                return t;
             }
             if x > x2 {
                 lo = t
@@ -124,4 +124,3 @@ impl ApproxEq for f64 {
         (self - value).abs() < epsilon
     }
 }
-

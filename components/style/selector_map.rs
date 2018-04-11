@@ -16,8 +16,8 @@ use hashglobe::FailedAllocationError;
 use precomputed_hash::PrecomputedHash;
 use rule_tree::CascadeLevel;
 use selector_parser::SelectorImpl;
-use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlags};
-use selectors::parser::{Component, Combinator, SelectorIter};
+use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext};
+use selectors::parser::{Combinator, Component, SelectorIter};
 use smallvec::SmallVec;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use stylist::Rule;
@@ -43,8 +43,10 @@ pub type PrecomputedHashSet<K> = HashSet<K, BuildHasherDefault<PrecomputedHasher
 impl Hasher for PrecomputedHasher {
     #[inline]
     fn write(&mut self, _: &[u8]) {
-        unreachable!("Called into PrecomputedHasher with something that isn't \
-                     a u32")
+        unreachable!(
+            "Called into PrecomputedHasher with something that isn't \
+             a u32"
+        )
     }
 
     #[inline]
@@ -60,7 +62,7 @@ impl Hasher for PrecomputedHasher {
 }
 
 /// A trait to abstract over a given selector map entry.
-pub trait SelectorMapEntry : Sized + Clone {
+pub trait SelectorMapEntry: Sized + Clone {
     /// Gets the selector we should use to index in the selector map.
     fn selector(&self) -> SelectorIter<SelectorImpl>;
 }
@@ -161,13 +163,12 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
-    )
-    where
+    ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
     {
         if self.is_empty() {
-            return
+            return;
         }
 
         let quirks_mode = context.quirks_mode();
@@ -222,7 +223,8 @@ impl SelectorMap<Rule> {
         );
 
         // Sort only the rules we just added.
-        matching_rules_list[init_len..].sort_unstable_by_key(|block| (block.specificity, block.source_order()));
+        matching_rules_list[init_len..]
+            .sort_unstable_by_key(|block| (block.specificity, block.source_order()));
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
@@ -233,20 +235,20 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
-    )
-    where
+    ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules {
-            if matches_selector(&rule.selector,
-                                0,
-                                Some(&rule.hashes),
-                                &element,
-                                context,
-                                flags_setter) {
-                matching_rules.push(
-                    rule.to_applicable_declaration_block(cascade_level));
+            if matches_selector(
+                &rule.selector,
+                0,
+                Some(&rule.hashes),
+                &element,
+                context,
+                flags_setter,
+            ) {
+                matching_rules.push(rule.to_applicable_declaration_block(cascade_level));
             }
         }
     }
@@ -262,14 +264,12 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         self.count += 1;
 
         let vector = match find_bucket(entry.selector()) {
-            Bucket::ID(id) => {
-                self.id_hash.try_entry(id.clone(), quirks_mode)?
-                    .or_insert_with(SmallVec::new)
-            }
-            Bucket::Class(class) => {
-                self.class_hash.try_entry(class.clone(), quirks_mode)?
-                    .or_insert_with(SmallVec::new)
-            }
+            Bucket::ID(id) => self.id_hash
+                .try_entry(id.clone(), quirks_mode)?
+                .or_insert_with(SmallVec::new),
+            Bucket::Class(class) => self.class_hash
+                .try_entry(class.clone(), quirks_mode)?
+                .or_insert_with(SmallVec::new),
             Bucket::LocalName { name, lower_name } => {
                 // If the local name in the selector isn't lowercase, insert it
                 // into the rule hash twice. This means that, during lookup, we
@@ -288,12 +288,11 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
                         .or_insert_with(SmallVec::new)
                         .try_push(entry.clone())?;
                 }
-                self.local_name_hash.try_entry(name.clone())?
+                self.local_name_hash
+                    .try_entry(name.clone())?
                     .or_insert_with(SmallVec::new)
-            }
-            Bucket::Universal => {
-                &mut self.other
-            }
+            },
+            Bucket::Universal => &mut self.other,
         };
 
         vector.try_push(entry)
@@ -312,7 +311,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     pub fn lookup<'a, E, F>(&'a self, element: E, quirks_mode: QuirksMode, mut f: F) -> bool
     where
         E: TElement,
-        F: FnMut(&'a T) -> bool
+        F: FnMut(&'a T) -> bool,
     {
         // Id.
         if let Some(id) = element.id() {
@@ -380,7 +379,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     ) -> bool
     where
         E: TElement,
-        F: FnMut(&'a T) -> bool
+        F: FnMut(&'a T) -> bool,
     {
         // Do the normal lookup.
         if !self.lookup(element, quirks_mode, |entry| f(entry)) {
@@ -416,22 +415,21 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 enum Bucket<'a> {
     ID(&'a Atom),
     Class(&'a Atom),
-    LocalName { name: &'a LocalName, lower_name: &'a LocalName, },
+    LocalName {
+        name: &'a LocalName,
+        lower_name: &'a LocalName,
+    },
     Universal,
 }
 
-fn specific_bucket_for<'a>(
-    component: &'a Component<SelectorImpl>
-) -> Bucket<'a> {
+fn specific_bucket_for<'a>(component: &'a Component<SelectorImpl>) -> Bucket<'a> {
     match *component {
         Component::ID(ref id) => Bucket::ID(id),
         Component::Class(ref class) => Bucket::Class(class),
-        Component::LocalName(ref selector) => {
-            Bucket::LocalName {
-                name: &selector.name,
-                lower_name: &selector.lower_name,
-            }
-        }
+        Component::LocalName(ref selector) => Bucket::LocalName {
+            name: &selector.name,
+            lower_name: &selector.lower_name,
+        },
         // ::slotted(..) isn't a normal pseudo-element, so we can insert it on
         // the rule hash normally without much problem. For example, in a
         // selector like:
@@ -458,7 +456,7 @@ fn specific_bucket_for<'a>(
         // Meanwhile taking the code path below is slower, but still correct.
         // Component::Slotted(ref selector) => find_bucket(selector.iter()),
         Component::Host(Some(ref selector)) => find_bucket(selector.iter()),
-        _ => Bucket::Universal
+        _ => Bucket::Universal,
     }
 }
 
@@ -480,12 +478,12 @@ fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
                 Bucket::ID(..) => return new_bucket,
                 Bucket::Class(..) => {
                     current_bucket = new_bucket;
-                }
+                },
                 Bucket::LocalName { .. } => {
                     if matches!(current_bucket, Bucket::Universal) {
                         current_bucket = new_bucket;
                     }
-                }
+                },
                 Bucket::Universal => {},
             }
         }
@@ -497,12 +495,14 @@ fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
         }
     }
 
-    return current_bucket
+    return current_bucket;
 }
 
 /// Wrapper for PrecomputedHashMap that does ASCII-case-insensitive lookup in quirks mode.
 #[derive(Debug, MallocSizeOf)]
-pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'static>(PrecomputedHashMap<K, V>);
+pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'static>(
+    PrecomputedHashMap<K, V>,
+);
 
 // FIXME(Manishearth) the 'static bound can be removed when
 // our HashMap fork (hashglobe) is able to use NonZero,

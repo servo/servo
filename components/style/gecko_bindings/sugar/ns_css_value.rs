@@ -6,8 +6,8 @@
 
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{nsCSSValue, nsCSSUnit};
-use gecko_bindings::structs::{nsCSSValue_Array, nsCSSValueList};
+use gecko_bindings::structs::{nsCSSUnit, nsCSSValue};
+use gecko_bindings::structs::{nsCSSValueList, nsCSSValue_Array};
 use gecko_string_cache::Atom;
 use std::marker::PhantomData;
 use std::mem;
@@ -32,15 +32,17 @@ impl nsCSSValue {
     /// Returns this nsCSSValue value as an integer, unchecked in release
     /// builds.
     pub fn integer_unchecked(&self) -> i32 {
-        debug_assert!(self.mUnit == nsCSSUnit::eCSSUnit_Integer ||
-                      self.mUnit == nsCSSUnit::eCSSUnit_Enumerated);
+        debug_assert!(
+            self.mUnit == nsCSSUnit::eCSSUnit_Integer ||
+                self.mUnit == nsCSSUnit::eCSSUnit_Enumerated
+        );
         unsafe { *self.mValue.mInt.as_ref() }
     }
 
     /// Checks if it is an integer and returns it if so
     pub fn integer(&self) -> Option<i32> {
-        if self.mUnit == nsCSSUnit::eCSSUnit_Integer ||
-           self.mUnit == nsCSSUnit::eCSSUnit_Enumerated {
+        if self.mUnit == nsCSSUnit::eCSSUnit_Integer || self.mUnit == nsCSSUnit::eCSSUnit_Enumerated
+        {
             Some(unsafe { *self.mValue.mInt.as_ref() })
         } else {
             None
@@ -57,8 +59,10 @@ impl nsCSSValue {
     /// Returns this nsCSSValue as a nsCSSValue::Array, unchecked in release
     /// builds.
     pub unsafe fn array_unchecked(&self) -> &nsCSSValue_Array {
-        debug_assert!(nsCSSUnit::eCSSUnit_Array as u32 <= self.mUnit as u32 &&
-                      self.mUnit as u32 <= nsCSSUnit::eCSSUnit_Calc_Divided as u32);
+        debug_assert!(
+            nsCSSUnit::eCSSUnit_Array as u32 <= self.mUnit as u32 &&
+                self.mUnit as u32 <= nsCSSUnit::eCSSUnit_Calc_Divided as u32
+        );
         let array = *self.mValue.mArray.as_ref();
         debug_assert!(!array.is_null());
         &*array
@@ -67,15 +71,9 @@ impl nsCSSValue {
     /// Sets LengthOrPercentage value to this nsCSSValue.
     pub unsafe fn set_lop(&mut self, lop: LengthOrPercentage) {
         match lop {
-            LengthOrPercentage::Length(px) => {
-                self.set_px(px.px())
-            }
-            LengthOrPercentage::Percentage(pc) => {
-                self.set_percentage(pc.0)
-            }
-            LengthOrPercentage::Calc(calc) => {
-                bindings::Gecko_CSSValue_SetCalc(self, calc.into())
-            }
+            LengthOrPercentage::Length(px) => self.set_px(px.px()),
+            LengthOrPercentage::Percentage(pc) => self.set_percentage(pc.0),
+            LengthOrPercentage::Calc(calc) => bindings::Gecko_CSSValue_SetCalc(self, calc.into()),
         }
     }
 
@@ -95,9 +93,9 @@ impl nsCSSValue {
             nsCSSUnit::eCSSUnit_Pixel => {
                 LengthOrPercentage::Length(Length::new(bindings::Gecko_CSSValue_GetNumber(self)))
             },
-            nsCSSUnit::eCSSUnit_Percent => {
-                LengthOrPercentage::Percentage(Percentage(bindings::Gecko_CSSValue_GetPercentage(self)))
-            },
+            nsCSSUnit::eCSSUnit_Percent => LengthOrPercentage::Percentage(Percentage(
+                bindings::Gecko_CSSValue_GetPercentage(self),
+            )),
             nsCSSUnit::eCSSUnit_Calc => {
                 LengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
             },
@@ -108,16 +106,17 @@ impl nsCSSValue {
     /// Returns Length  value.
     pub unsafe fn get_length(&self) -> Length {
         match self.mUnit {
-            nsCSSUnit::eCSSUnit_Pixel => {
-                Length::new(bindings::Gecko_CSSValue_GetNumber(self))
-            },
+            nsCSSUnit::eCSSUnit_Pixel => Length::new(bindings::Gecko_CSSValue_GetNumber(self)),
             _ => panic!("Unexpected unit"),
         }
     }
 
     fn set_valueless_unit(&mut self, unit: nsCSSUnit) {
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Null);
-        debug_assert!(unit as u32 <= nsCSSUnit::eCSSUnit_DummyInherit as u32, "Not a valueless unit");
+        debug_assert!(
+            unit as u32 <= nsCSSUnit::eCSSUnit_DummyInherit as u32,
+            "Not a valueless unit"
+        );
         self.mUnit = unit;
     }
 
@@ -241,9 +240,14 @@ impl nsCSSValue {
     /// Set to a list value
     ///
     /// This is only supported on the main thread.
-    pub fn set_list<I>(&mut self, values: I) where I: ExactSizeIterator<Item=nsCSSValue> {
+    pub fn set_list<I>(&mut self, values: I)
+    where
+        I: ExactSizeIterator<Item = nsCSSValue>,
+    {
         debug_assert!(values.len() > 0, "Empty list is not supported");
-        unsafe { bindings::Gecko_CSSValue_SetList(self, values.len() as u32); }
+        unsafe {
+            bindings::Gecko_CSSValue_SetList(self, values.len() as u32);
+        }
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_List);
         let list: &mut structs::nsCSSValueList = &mut unsafe {
             self.mValue.mList.as_ref() // &*nsCSSValueList_heap
@@ -258,9 +262,13 @@ impl nsCSSValue {
     ///
     /// This is only supported on the main thread.
     pub fn set_pair_list<I>(&mut self, mut values: I)
-    where I: ExactSizeIterator<Item=(nsCSSValue, nsCSSValue)> {
+    where
+        I: ExactSizeIterator<Item = (nsCSSValue, nsCSSValue)>,
+    {
         debug_assert!(values.len() > 0, "Empty list is not supported");
-        unsafe { bindings::Gecko_CSSValue_SetPairList(self, values.len() as u32); }
+        unsafe {
+            bindings::Gecko_CSSValue_SetPairList(self, values.len() as u32);
+        }
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_PairList);
         let mut item_ptr = &mut unsafe {
             self.mValue.mPairList.as_ref() // &*nsCSSValuePairList_heap
@@ -276,13 +284,21 @@ impl nsCSSValue {
     }
 
     /// Set a shared list
-    pub fn set_shared_list<I>(&mut self, values: I) where I: ExactSizeIterator<Item=nsCSSValue> {
+    pub fn set_shared_list<I>(&mut self, values: I)
+    where
+        I: ExactSizeIterator<Item = nsCSSValue>,
+    {
         debug_assert!(values.len() > 0, "Empty list is not supported");
         unsafe { bindings::Gecko_CSSValue_InitSharedList(self, values.len() as u32) };
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_SharedList);
         let list = unsafe {
-            self.mValue.mSharedList.as_ref()
-                .as_mut().expect("List pointer should be non-null").mHead.as_mut()
+            self.mValue
+                .mSharedList
+                .as_ref()
+                .as_mut()
+                .expect("List pointer should be non-null")
+                .mHead
+                .as_mut()
         };
         debug_assert!(list.is_some(), "New created shared list shouldn't be null");
         for (item, new_value) in list.unwrap().into_iter().zip(values) {
@@ -311,7 +327,7 @@ impl<'a> Iterator for nsCSSValueListIterator<'a> {
                 self.current = unsafe { item.mNext.as_ref() };
                 Some(&item.mValue)
             },
-            None => None
+            None => None,
         }
     }
 }
@@ -321,7 +337,9 @@ impl<'a> IntoIterator for &'a nsCSSValueList {
     type IntoIter = nsCSSValueListIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        nsCSSValueListIterator { current: Some(self) }
+        nsCSSValueListIterator {
+            current: Some(self),
+        }
     }
 }
 
@@ -340,7 +358,7 @@ impl<'a> Iterator for nsCSSValueListMutIterator<'a> {
                 self.current = item.mNext;
                 Some(&mut item.mValue)
             },
-            None => None
+            None => None,
         }
     }
 }
@@ -350,8 +368,10 @@ impl<'a> IntoIterator for &'a mut nsCSSValueList {
     type IntoIter = nsCSSValueListMutIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        nsCSSValueListMutIterator { current: self as *mut nsCSSValueList,
-                                    phantom: PhantomData }
+        nsCSSValueListMutIterator {
+            current: self as *mut nsCSSValueList,
+            phantom: PhantomData,
+        }
     }
 }
 

@@ -72,24 +72,16 @@ where
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         if procedure == Procedure::Add {
-            return Ok(ShadowList(
-                self.0.iter().chain(&other.0).cloned().collect(),
-            ));
+            return Ok(ShadowList(self.0.iter().chain(&other.0).cloned().collect()));
         }
         // FIXME(nox): Use itertools here, to avoid the need for `unreachable!`.
         let max_len = cmp::max(self.0.len(), other.0.len());
         let mut shadows = Vec::with_capacity(max_len);
         for i in 0..max_len {
             shadows.push(match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other)) => {
-                    shadow.animate(other, procedure)?
-                },
-                (Some(shadow), None) => {
-                    shadow.animate(&shadow.to_animated_zero()?, procedure)?
-                },
-                (None, Some(shadow)) => {
-                    shadow.to_animated_zero()?.animate(shadow, procedure)?
-                },
+                (Some(shadow), Some(other)) => shadow.animate(other, procedure)?,
+                (Some(shadow), None) => shadow.animate(&shadow.to_animated_zero()?, procedure)?,
+                (None, Some(shadow)) => shadow.to_animated_zero()?.animate(shadow, procedure)?,
                 (None, None) => unreachable!(),
             });
         }
@@ -105,16 +97,16 @@ where
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         use itertools::{EitherOrBoth, Itertools};
 
-        self.0.iter().zip_longest(other.0.iter()).map(|it| {
-            match it {
-                EitherOrBoth::Both(from, to) => {
-                    from.compute_squared_distance(to)
-                },
+        self.0
+            .iter()
+            .zip_longest(other.0.iter())
+            .map(|it| match it {
+                EitherOrBoth::Both(from, to) => from.compute_squared_distance(to),
                 EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
                     list.compute_squared_distance(&list.to_animated_zero()?)
                 },
-            }
-        }).sum()
+            })
+            .sum()
     }
 }
 
@@ -145,10 +137,8 @@ impl ComputeSquaredDistance for BoxShadow {
         if self.inset != other.inset {
             return Err(());
         }
-        Ok(
-            self.base.compute_squared_distance(&other.base)? +
-            self.spread.compute_squared_distance(&other.spread)?,
-        )
+        Ok(self.base.compute_squared_distance(&other.base)? +
+            self.spread.compute_squared_distance(&other.spread)?)
     }
 }
 

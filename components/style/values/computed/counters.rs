@@ -35,24 +35,23 @@ impl Content {
     }
 
     #[cfg(feature = "servo")]
-    fn parse_counter_style(
-        input: &mut Parser
-    ) -> ListStyleType {
-        input.try(|input| {
-            input.expect_comma()?;
-            ListStyleType::parse(input)
-        }).unwrap_or(ListStyleType::Decimal)
+    fn parse_counter_style(input: &mut Parser) -> ListStyleType {
+        input
+            .try(|input| {
+                input.expect_comma()?;
+                ListStyleType::parse(input)
+            })
+            .unwrap_or(ListStyleType::Decimal)
     }
 
     #[cfg(feature = "gecko")]
-    fn parse_counter_style(
-        context: &ParserContext,
-        input: &mut Parser
-    ) -> CounterStyleOrNone {
-        input.try(|input| {
-            input.expect_comma()?;
-            CounterStyleOrNone::parse(context, input)
-        }).unwrap_or(CounterStyleOrNone::decimal())
+    fn parse_counter_style(context: &ParserContext, input: &mut Parser) -> CounterStyleOrNone {
+        input
+            .try(|input| {
+                input.expect_comma()?;
+                CounterStyleOrNone::parse(context, input)
+            })
+            .unwrap_or(CounterStyleOrNone::decimal())
     }
 }
 
@@ -62,23 +61,34 @@ impl Parse for Content {
     // TODO: <uri>, attr(<identifier>)
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+        if input
+            .try(|input| input.expect_ident_matching("normal"))
+            .is_ok()
+        {
             return Ok(Content::Normal);
         }
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+        if input
+            .try(|input| input.expect_ident_matching("none"))
+            .is_ok()
+        {
             return Ok(Content::None);
         }
-        #[cfg(feature = "gecko")] {
-            if input.try(|input| input.expect_ident_matching("-moz-alt-content")).is_ok() {
+        #[cfg(feature = "gecko")]
+        {
+            if input
+                .try(|input| input.expect_ident_matching("-moz-alt-content"))
+                .is_ok()
+            {
                 return Ok(Content::MozAltContent);
             }
         }
 
         let mut content = vec![];
         loop {
-            #[cfg(feature = "gecko")] {
+            #[cfg(feature = "gecko")]
+            {
                 if let Ok(url) = input.try(|i| SpecifiedImageUrl::parse(_context, i)) {
                     content.push(ContentItem::Url(url));
                     continue;
@@ -87,8 +97,10 @@ impl Parse for Content {
             // FIXME: remove clone() when lifetimes are non-lexical
             match input.next().map(|t| t.clone()) {
                 Ok(Token::QuotedString(ref value)) => {
-                    content.push(ContentItem::String(value.as_ref().to_owned().into_boxed_str()));
-                }
+                    content.push(ContentItem::String(
+                        value.as_ref().to_owned().into_boxed_str(),
+                    ));
+                },
                 Ok(Token::Function(ref name)) => {
                     let result = match_ignore_ascii_case! { &name,
                         "counter" => Some(input.parse_nested_block(|input| {
@@ -119,25 +131,25 @@ impl Parse for Content {
                     };
                     match result {
                         Some(result) => content.push(result?),
-                        None => return Err(input.new_custom_error(
-                            StyleParseErrorKind::UnexpectedFunction(name.clone())
-                        ))
+                        None => {
+                            return Err(input.new_custom_error(
+                                StyleParseErrorKind::UnexpectedFunction(name.clone()),
+                            ))
+                        },
                     }
-                }
+                },
                 Ok(Token::Ident(ref ident)) => {
-                    content.push(
-                        match_ignore_ascii_case! { &ident,
-                            "open-quote" => ContentItem::OpenQuote,
-                            "close-quote" => ContentItem::CloseQuote,
-                            "no-open-quote" => ContentItem::NoOpenQuote,
-                            "no-close-quote" => ContentItem::NoCloseQuote,
-                            _ => return Err(input.new_custom_error(
-                                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
-                        }
-                    );
-                }
+                    content.push(match_ignore_ascii_case! { &ident,
+                        "open-quote" => ContentItem::OpenQuote,
+                        "close-quote" => ContentItem::CloseQuote,
+                        "no-open-quote" => ContentItem::NoOpenQuote,
+                        "no-close-quote" => ContentItem::NoCloseQuote,
+                        _ => return Err(input.new_custom_error(
+                                SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+                    });
+                },
                 Err(_) => break,
-                Ok(t) => return Err(input.new_unexpected_token_error(t))
+                Ok(t) => return Err(input.new_unexpected_token_error(t)),
             }
         }
         if content.is_empty() {

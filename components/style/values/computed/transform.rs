@@ -14,13 +14,8 @@ use values::generics::transform as generic;
 pub use values::generics::transform::TransformStyle;
 
 /// A single operation in a computed CSS `transform`
-pub type TransformOperation = generic::TransformOperation<
-    Angle,
-    Number,
-    Length,
-    Integer,
-    LengthOrPercentage,
->;
+pub type TransformOperation =
+    generic::TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>;
 /// A computed CSS `transform`
 pub type Transform = generic::Transform<TransformOperation>;
 
@@ -130,13 +125,21 @@ impl TransformOperation {
             generic::TransformOperation::Translate3D(..) => self.clone(),
             generic::TransformOperation::TranslateX(ref x) |
             generic::TransformOperation::Translate(ref x, None) => {
-                generic::TransformOperation::Translate3D(x.clone(), LengthOrPercentage::zero(), Length::zero())
+                generic::TransformOperation::Translate3D(
+                    x.clone(),
+                    LengthOrPercentage::zero(),
+                    Length::zero(),
+                )
             },
             generic::TransformOperation::Translate(ref x, Some(ref y)) => {
                 generic::TransformOperation::Translate3D(x.clone(), y.clone(), Length::zero())
             },
             generic::TransformOperation::TranslateY(ref y) => {
-                generic::TransformOperation::Translate3D(LengthOrPercentage::zero(), y.clone(), Length::zero())
+                generic::TransformOperation::Translate3D(
+                    LengthOrPercentage::zero(),
+                    y.clone(),
+                    Length::zero(),
+                )
             },
             generic::TransformOperation::TranslateZ(ref z) => {
                 generic::TransformOperation::Translate3D(
@@ -154,11 +157,21 @@ impl TransformOperation {
     pub fn to_scale_3d(&self) -> Self {
         match *self {
             generic::TransformOperation::Scale3D(..) => self.clone(),
-            generic::TransformOperation::Scale(s, None) => generic::TransformOperation::Scale3D(s, s, 1.),
-            generic::TransformOperation::Scale(x, Some(y)) => generic::TransformOperation::Scale3D(x, y, 1.),
-            generic::TransformOperation::ScaleX(x) => generic::TransformOperation::Scale3D(x, 1., 1.),
-            generic::TransformOperation::ScaleY(y) => generic::TransformOperation::Scale3D(1., y, 1.),
-            generic::TransformOperation::ScaleZ(z) => generic::TransformOperation::Scale3D(1., 1., z),
+            generic::TransformOperation::Scale(s, None) => {
+                generic::TransformOperation::Scale3D(s, s, 1.)
+            },
+            generic::TransformOperation::Scale(x, Some(y)) => {
+                generic::TransformOperation::Scale3D(x, y, 1.)
+            },
+            generic::TransformOperation::ScaleX(x) => {
+                generic::TransformOperation::Scale3D(x, 1., 1.)
+            },
+            generic::TransformOperation::ScaleY(y) => {
+                generic::TransformOperation::Scale3D(1., y, 1.)
+            },
+            generic::TransformOperation::ScaleZ(z) => {
+                generic::TransformOperation::Scale3D(1., 1., z)
+            },
             _ => unreachable!(),
         }
     }
@@ -170,18 +183,22 @@ impl TransformOperation {
 impl ToAnimatedZero for TransformOperation {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
-            generic::TransformOperation::Matrix3D(..) =>
-                Ok(generic::TransformOperation::Matrix3D(Matrix3D::identity())),
-            generic::TransformOperation::Matrix(..) =>
-                Ok(generic::TransformOperation::Matrix(Matrix::identity())),
-            generic::TransformOperation::Skew(sx, sy) => {
-                Ok(generic::TransformOperation::Skew(
-                    sx.to_animated_zero()?,
-                    sy.to_animated_zero()?,
-                ))
+            generic::TransformOperation::Matrix3D(..) => {
+                Ok(generic::TransformOperation::Matrix3D(Matrix3D::identity()))
             },
-            generic::TransformOperation::SkewX(s) => Ok(generic::TransformOperation::SkewX(s.to_animated_zero()?)),
-            generic::TransformOperation::SkewY(s) => Ok(generic::TransformOperation::SkewY(s.to_animated_zero()?)),
+            generic::TransformOperation::Matrix(..) => {
+                Ok(generic::TransformOperation::Matrix(Matrix::identity()))
+            },
+            generic::TransformOperation::Skew(sx, sy) => Ok(generic::TransformOperation::Skew(
+                sx.to_animated_zero()?,
+                sy.to_animated_zero()?,
+            )),
+            generic::TransformOperation::SkewX(s) => {
+                Ok(generic::TransformOperation::SkewX(s.to_animated_zero()?))
+            },
+            generic::TransformOperation::SkewY(s) => {
+                Ok(generic::TransformOperation::SkewY(s.to_animated_zero()?))
+            },
             generic::TransformOperation::Translate3D(ref tx, ref ty, ref tz) => {
                 Ok(generic::TransformOperation::Translate3D(
                     tx.to_animated_zero()?,
@@ -195,35 +212,48 @@ impl ToAnimatedZero for TransformOperation {
                     ty.to_animated_zero()?,
                 ))
             },
-            generic::TransformOperation::TranslateX(ref t) => {
-                Ok(generic::TransformOperation::TranslateX(t.to_animated_zero()?))
+            generic::TransformOperation::TranslateX(ref t) => Ok(
+                generic::TransformOperation::TranslateX(t.to_animated_zero()?),
+            ),
+            generic::TransformOperation::TranslateY(ref t) => Ok(
+                generic::TransformOperation::TranslateY(t.to_animated_zero()?),
+            ),
+            generic::TransformOperation::TranslateZ(ref t) => Ok(
+                generic::TransformOperation::TranslateZ(t.to_animated_zero()?),
+            ),
+            generic::TransformOperation::Scale3D(..) => {
+                Ok(generic::TransformOperation::Scale3D(1.0, 1.0, 1.0))
             },
-            generic::TransformOperation::TranslateY(ref t) => {
-                Ok(generic::TransformOperation::TranslateY(t.to_animated_zero()?))
+            generic::TransformOperation::Scale(_, _) => {
+                Ok(generic::TransformOperation::Scale(1.0, Some(1.0)))
             },
-            generic::TransformOperation::TranslateZ(ref t) => {
-                Ok(generic::TransformOperation::TranslateZ(t.to_animated_zero()?))
-            },
-            generic::TransformOperation::Scale3D(..) => Ok(generic::TransformOperation::Scale3D(1.0, 1.0, 1.0)),
-            generic::TransformOperation::Scale(_, _) => Ok(generic::TransformOperation::Scale(1.0, Some(1.0))),
             generic::TransformOperation::ScaleX(..) => Ok(generic::TransformOperation::ScaleX(1.0)),
             generic::TransformOperation::ScaleY(..) => Ok(generic::TransformOperation::ScaleY(1.0)),
             generic::TransformOperation::ScaleZ(..) => Ok(generic::TransformOperation::ScaleZ(1.0)),
             generic::TransformOperation::Rotate3D(x, y, z, a) => {
                 let (x, y, z, _) = generic::get_normalized_vector_and_angle(x, y, z, a);
-                Ok(generic::TransformOperation::Rotate3D(x, y, z, Angle::zero()))
+                Ok(generic::TransformOperation::Rotate3D(
+                    x,
+                    y,
+                    z,
+                    Angle::zero(),
+                ))
             },
-            generic::TransformOperation::RotateX(_) => Ok(generic::TransformOperation::RotateX(Angle::zero())),
-            generic::TransformOperation::RotateY(_) => Ok(generic::TransformOperation::RotateY(Angle::zero())),
-            generic::TransformOperation::RotateZ(_) => Ok(generic::TransformOperation::RotateZ(Angle::zero())),
-            generic::TransformOperation::Rotate(_) => Ok(generic::TransformOperation::Rotate(Angle::zero())),
+            generic::TransformOperation::RotateX(_) => {
+                Ok(generic::TransformOperation::RotateX(Angle::zero()))
+            },
+            generic::TransformOperation::RotateY(_) => {
+                Ok(generic::TransformOperation::RotateY(Angle::zero()))
+            },
+            generic::TransformOperation::RotateZ(_) => {
+                Ok(generic::TransformOperation::RotateZ(Angle::zero()))
+            },
+            generic::TransformOperation::Rotate(_) => {
+                Ok(generic::TransformOperation::Rotate(Angle::zero()))
+            },
             generic::TransformOperation::Perspective(..) |
-            generic::TransformOperation::AccumulateMatrix {
-                ..
-            } |
-            generic::TransformOperation::InterpolateMatrix {
-                ..
-            } => {
+            generic::TransformOperation::AccumulateMatrix { .. } |
+            generic::TransformOperation::InterpolateMatrix { .. } => {
                 // Perspective: We convert a perspective function into an equivalent
                 //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
                 // AccumulateMatrix/InterpolateMatrix: We do interpolation on
@@ -237,7 +267,6 @@ impl ToAnimatedZero for TransformOperation {
         }
     }
 }
-
 
 impl ToAnimatedZero for Transform {
     #[inline]
@@ -258,8 +287,9 @@ impl Rotate {
         match *self {
             generic::Rotate::None => None,
             generic::Rotate::Rotate(angle) => Some(generic::TransformOperation::Rotate(angle)),
-            generic::Rotate::Rotate3D(rx, ry, rz, angle) =>
-                Some(generic::TransformOperation::Rotate3D(rx, ry, rz, angle)),
+            generic::Rotate::Rotate3D(rx, ry, rz, angle) => {
+                Some(generic::TransformOperation::Rotate3D(rx, ry, rz, angle))
+            },
         }
     }
 
@@ -267,8 +297,9 @@ impl Rotate {
     pub fn from_transform_operation(operation: &TransformOperation) -> Rotate {
         match *operation {
             generic::TransformOperation::Rotate(angle) => generic::Rotate::Rotate(angle),
-            generic::TransformOperation::Rotate3D(rx, ry, rz, angle) =>
-                generic::Rotate::Rotate3D(rx, ry, rz, angle),
+            generic::TransformOperation::Rotate3D(rx, ry, rz, angle) => {
+                generic::Rotate::Rotate3D(rx, ry, rz, angle)
+            },
             _ => unreachable!("Found unexpected value for rotate property"),
         }
     }
@@ -283,8 +314,12 @@ impl Translate {
         match *self {
             generic::Translate::None => None,
             generic::Translate::TranslateX(tx) => Some(generic::TransformOperation::TranslateX(tx)),
-            generic::Translate::Translate(tx, ty) => Some(generic::TransformOperation::Translate(tx, Some(ty))),
-            generic::Translate::Translate3D(tx, ty, tz) => Some(generic::TransformOperation::Translate3D(tx, ty, tz)),
+            generic::Translate::Translate(tx, ty) => {
+                Some(generic::TransformOperation::Translate(tx, Some(ty)))
+            },
+            generic::Translate::Translate3D(tx, ty, tz) => {
+                Some(generic::TransformOperation::Translate3D(tx, ty, tz))
+            },
         }
     }
 
@@ -292,8 +327,12 @@ impl Translate {
     pub fn from_transform_operation(operation: &TransformOperation) -> Translate {
         match *operation {
             generic::TransformOperation::TranslateX(tx) => generic::Translate::TranslateX(tx),
-            generic::TransformOperation::Translate(tx, Some(ty)) => generic::Translate::Translate(tx, ty),
-            generic::TransformOperation::Translate3D(tx, ty, tz) => generic::Translate::Translate3D(tx, ty, tz),
+            generic::TransformOperation::Translate(tx, Some(ty)) => {
+                generic::Translate::Translate(tx, ty)
+            },
+            generic::TransformOperation::Translate3D(tx, ty, tz) => {
+                generic::Translate::Translate3D(tx, ty, tz)
+            },
             _ => unreachable!("Found unexpected value for translate"),
         }
     }
@@ -309,7 +348,9 @@ impl Scale {
             generic::Scale::None => None,
             generic::Scale::ScaleX(sx) => Some(generic::TransformOperation::ScaleX(sx)),
             generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, Some(sy))),
-            generic::Scale::Scale3D(sx, sy, sz) => Some(generic::TransformOperation::Scale3D(sx, sy, sz)),
+            generic::Scale::Scale3D(sx, sy, sz) => {
+                Some(generic::TransformOperation::Scale3D(sx, sy, sz))
+            },
         }
     }
 

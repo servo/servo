@@ -47,7 +47,9 @@ impl SquaredDistance {
 impl ComputeSquaredDistance for u16 {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(SquaredDistance::from_sqrt(((*self as f64) - (*other as f64)).abs()))
+        Ok(SquaredDistance::from_sqrt(
+            ((*self as f64) - (*other as f64)).abs(),
+        ))
     }
 }
 
@@ -80,7 +82,8 @@ impl ComputeSquaredDistance for Au {
 }
 
 impl<T> ComputeSquaredDistance for Option<T>
-    where T: ComputeSquaredDistance
+where
+    T: ComputeSquaredDistance,
 {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
@@ -93,11 +96,13 @@ impl<T> ComputeSquaredDistance for Option<T>
 }
 
 impl<T> ComputeSquaredDistance for Size2D<T>
-    where T: ComputeSquaredDistance
+where
+    T: ComputeSquaredDistance,
 {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(self.width.compute_squared_distance(&other.width)? + self.height.compute_squared_distance(&other.height)?)
+        Ok(self.width.compute_squared_distance(&other.width)? +
+            self.height.compute_squared_distance(&other.height)?)
     }
 }
 
@@ -121,7 +126,9 @@ impl Add for SquaredDistance {
 
     #[inline]
     fn add(self, rhs: Self) -> Self {
-        SquaredDistance { value: self.value + rhs.value }
+        SquaredDistance {
+            value: self.value + rhs.value,
+        }
     }
 }
 

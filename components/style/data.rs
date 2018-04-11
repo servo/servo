@@ -12,7 +12,7 @@ use invalidation::element::restyle_hints::RestyleHint;
 use malloc_size_of::MallocSizeOfOps;
 use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
-use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
+use selector_parser::{PseudoElement, RestyleDamage, EAGER_PSEUDO_COUNT};
 use selectors::NthIndexCache;
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
@@ -95,7 +95,12 @@ impl fmt::Debug for EagerPseudoArray {
         write!(f, "EagerPseudoArray {{ ")?;
         for i in 0..EAGER_PSEUDO_COUNT {
             if let Some(ref values) = self[i] {
-                write!(f, "{:?}: {:?}, ", PseudoElement::from_eager_index(i), &values.rules)?;
+                write!(
+                    f,
+                    "{:?}: {:?}, ",
+                    PseudoElement::from_eager_index(i),
+                    &values.rules
+                )?;
             }
         }
         write!(f, "}}")
@@ -132,7 +137,9 @@ impl EagerPseudoStyles {
     /// Returns a reference to the style for a given eager pseudo, if it exists.
     pub fn get(&self, pseudo: &PseudoElement) -> Option<&Arc<ComputedValues>> {
         debug_assert!(pseudo.is_eager());
-        self.0.as_ref().and_then(|p| p[pseudo.eager_index()].as_ref())
+        self.0
+            .as_ref()
+            .and_then(|p| p[pseudo.eager_index()].as_ref())
     }
 
     /// Sets the style for the eager pseudo.
@@ -188,8 +195,12 @@ impl ElementStyles {
 // substitute the rule node instead.
 impl fmt::Debug for ElementStyles {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ElementStyles {{ primary: {:?}, pseudos: {:?} }}",
-               self.primary.as_ref().map(|x| &x.rules), self.pseudos)
+        write!(
+            f,
+            "ElementStyles {{ primary: {:?}, pseudos: {:?} }}",
+            self.primary.as_ref().map(|x| &x.rules),
+            self.pseudos
+        )
     }
 }
 
@@ -248,13 +259,15 @@ impl ElementData {
         use invalidation::element::invalidator::TreeStyleInvalidator;
         use invalidation::element::state_and_attributes::StateAndAttrInvalidationProcessor;
 
-        debug!("invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
-                handled_snapshot: {}, pseudo: {:?}",
-                element,
-                shared_context.traversal_flags,
-                element.has_snapshot(),
-                element.handled_snapshot(),
-                element.implemented_pseudo_element());
+        debug!(
+            "invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
+             handled_snapshot: {}, pseudo: {:?}",
+            element,
+            shared_context.traversal_flags,
+            element.has_snapshot(),
+            element.handled_snapshot(),
+            element.implemented_pseudo_element()
+        );
 
         if !element.has_snapshot() || element.handled_snapshot() {
             return InvalidationResult::empty();
@@ -275,11 +288,7 @@ impl ElementData {
             nth_index_cache,
         );
 
-        let invalidator = TreeStyleInvalidator::new(
-            element,
-            stack_limit_checker,
-            &mut processor,
-        );
+        let invalidator = TreeStyleInvalidator::new(element, stack_limit_checker, &mut processor);
 
         let result = invalidator.invalidate();
 
@@ -305,8 +314,8 @@ impl ElementData {
 
     /// Returns this element's primary style as a resolved style to use for sharing.
     pub fn share_primary_style(&self) -> PrimaryStyle {
-        let reused_via_rule_node =
-            self.flags.contains(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+        let reused_via_rule_node = self.flags
+            .contains(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
 
         PrimaryStyle {
             style: ResolvedStyle(self.styles.primary().clone()),
@@ -317,19 +326,18 @@ impl ElementData {
     /// Sets a new set of styles, returning the old ones.
     pub fn set_styles(&mut self, new_styles: ResolvedElementStyles) -> ElementStyles {
         if new_styles.primary.reused_via_rule_node {
-            self.flags.insert(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+            self.flags
+                .insert(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
         } else {
-            self.flags.remove(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+            self.flags
+                .remove(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
         }
         mem::replace(&mut self.styles, new_styles.into())
     }
 
     /// Returns the kind of restyling that we're going to need to do on this
     /// element, based of the stored restyle hint.
-    pub fn restyle_kind(
-        &self,
-        shared_context: &SharedStyleContext
-    ) -> RestyleKind {
+    pub fn restyle_kind(&self, shared_context: &SharedStyleContext) -> RestyleKind {
         if shared_context.traversal_flags.for_animation_only() {
             return self.restyle_kind_for_animation(shared_context);
         }
@@ -343,25 +351,29 @@ impl ElementData {
         }
 
         if self.hint.has_replacements() {
-            debug_assert!(!self.hint.has_animation_hint(),
-                          "Animation only restyle hint should have already processed");
+            debug_assert!(
+                !self.hint.has_animation_hint(),
+                "Animation only restyle hint should have already processed"
+            );
             return RestyleKind::CascadeWithReplacements(self.hint & RestyleHint::replacements());
         }
 
-        debug_assert!(self.hint.has_recascade_self(),
-                      "We definitely need to do something: {:?}!", self.hint);
+        debug_assert!(
+            self.hint.has_recascade_self(),
+            "We definitely need to do something: {:?}!",
+            self.hint
+        );
         return RestyleKind::CascadeOnly;
     }
 
     /// Returns the kind of restyling for animation-only restyle.
-    fn restyle_kind_for_animation(
-        &self,
-        shared_context: &SharedStyleContext,
-    ) -> RestyleKind {
+    fn restyle_kind_for_animation(&self, shared_context: &SharedStyleContext) -> RestyleKind {
         debug_assert!(shared_context.traversal_flags.for_animation_only());
-        debug_assert!(self.has_styles(),
-                      "Unstyled element shouldn't be traversed during \
-                       animation-only traversal");
+        debug_assert!(
+            self.has_styles(),
+            "Unstyled element shouldn't be traversed during \
+             animation-only traversal"
+        );
 
         // return either CascadeWithReplacements or CascadeOnly in case of
         // animation-only restyle. I.e. animation-only restyle never does
@@ -384,11 +396,13 @@ impl ElementData {
     pub fn important_rules_are_different(
         &self,
         rules: &StrongRuleNode,
-        guards: &StylesheetGuards
+        guards: &StylesheetGuards,
     ) -> bool {
         debug_assert!(self.has_styles());
-        let (important_rules, _custom) =
-            self.styles.primary().rules().get_properties_overriding_animations(&guards);
+        let (important_rules, _custom) = self.styles
+            .primary()
+            .rules()
+            .get_properties_overriding_animations(&guards);
         let (other_important_rules, _custom) = rules.get_properties_overriding_animations(&guards);
         important_rules != other_important_rules
     }
@@ -419,7 +433,8 @@ impl ElementData {
     /// to do a post-traversal.
     pub fn set_restyled(&mut self) {
         self.flags.insert(ElementDataFlags::WAS_RESTYLED);
-        self.flags.remove(ElementDataFlags::TRAVERSED_WITHOUT_STYLING);
+        self.flags
+            .remove(ElementDataFlags::TRAVERSED_WITHOUT_STYLING);
     }
 
     /// Returns true if this element was restyled.
@@ -430,13 +445,15 @@ impl ElementData {
 
     /// Mark that we traversed this element without computing any style for it.
     pub fn set_traversed_without_styling(&mut self) {
-        self.flags.insert(ElementDataFlags::TRAVERSED_WITHOUT_STYLING);
+        self.flags
+            .insert(ElementDataFlags::TRAVERSED_WITHOUT_STYLING);
     }
 
     /// Returns whether the element was traversed without computing any style for
     /// it.
     pub fn traversed_without_styling(&self) -> bool {
-        self.flags.contains(ElementDataFlags::TRAVERSED_WITHOUT_STYLING)
+        self.flags
+            .contains(ElementDataFlags::TRAVERSED_WITHOUT_STYLING)
     }
 
     /// Returns whether this element has been part of a restyle.
@@ -464,8 +481,10 @@ impl ElementData {
     /// happens later in the styling pipeline. The former gives us the stronger guarantees
     /// we need for style sharing, the latter does not.
     pub fn safe_for_cousin_sharing(&self) -> bool {
-        !self.flags.intersects(ElementDataFlags::TRAVERSED_WITHOUT_STYLING |
-                               ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
+        !self.flags.intersects(
+            ElementDataFlags::TRAVERSED_WITHOUT_STYLING |
+                ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE,
+        )
     }
 
     /// Measures memory usage.

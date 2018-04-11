@@ -6,7 +6,7 @@
 
 #[cfg(feature = "servo")]
 use computed_values::list_style_type::T as ListStyleType;
-use cssparser::{Token, Parser};
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::CustomIdent;
@@ -26,7 +26,7 @@ pub type CounterIncrement = GenericCounterIncrement<Integer>;
 impl Parse for CounterIncrement {
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(Self::new(parse_counters(context, input, 1)?))
     }
@@ -38,7 +38,7 @@ pub type CounterReset = GenericCounterReset<Integer>;
 impl Parse for CounterReset {
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(Self::new(parse_counters(context, input, 0)?))
     }
@@ -49,7 +49,10 @@ fn parse_counters<'i, 't>(
     input: &mut Parser<'i, 't>,
     default_value: i32,
 ) -> Result<Vec<(CustomIdent, Integer)>, ParseError<'i>> {
-    if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+    if input
+        .try(|input| input.expect_ident_matching("none"))
+        .is_ok()
+    {
         return Ok(vec![]);
     }
 
@@ -62,8 +65,9 @@ fn parse_counters<'i, 't>(
             Err(_) => break,
         };
 
-        let counter_delta = input.try(|input| Integer::parse(context, input))
-                                    .unwrap_or(Integer::new(default_value));
+        let counter_delta = input
+            .try(|input| Integer::parse(context, input))
+            .unwrap_or(Integer::new(default_value));
         counters.push((counter_name, counter_delta))
     }
 
@@ -118,7 +122,11 @@ pub enum ContentItem {
     Counter(CustomIdent, #[css(skip_if = "is_decimal")] CounterStyleType),
     /// `counters(name, separator, style)`.
     #[css(comma, function)]
-    Counters(CustomIdent, Box<str>, #[css(skip_if = "is_decimal")] CounterStyleType),
+    Counters(
+        CustomIdent,
+        Box<str>,
+        #[css(skip_if = "is_decimal")] CounterStyleType,
+    ),
     /// `open-quote`.
     OpenQuote,
     /// `close-quote`.

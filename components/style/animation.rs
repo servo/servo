@@ -103,14 +103,13 @@ impl KeyframesAnimationState {
 
         // Update the next iteration direction if applicable.
         match self.direction {
-            AnimationDirection::Alternate |
-            AnimationDirection::AlternateReverse => {
+            AnimationDirection::Alternate | AnimationDirection::AlternateReverse => {
                 self.current_direction = match self.current_direction {
                     AnimationDirection::Normal => AnimationDirection::Reverse,
                     AnimationDirection::Reverse => AnimationDirection::Normal,
                     _ => unreachable!(),
                 };
-            }
+            },
             _ => {},
         }
 
@@ -124,12 +123,13 @@ impl KeyframesAnimationState {
     ///
     /// There are some bits of state we can't just replace, over all taking in
     /// account times, so here's that logic.
-    pub fn update_from_other(&mut self,
-                             other: &Self,
-                             timer: &Timer) {
+    pub fn update_from_other(&mut self, other: &Self, timer: &Timer) {
         use self::KeyframesRunningState::*;
 
-        debug!("KeyframesAnimationState::update_from_other({:?}, {:?})", self, other);
+        debug!(
+            "KeyframesAnimationState::update_from_other({:?}, {:?})",
+            self, other
+        );
 
         // NB: We shall not touch the started_at field, since we don't want to
         // restart the animation.
@@ -149,12 +149,13 @@ impl KeyframesAnimationState {
         //
         // If we're pausing the animation, compute the progress value.
         match (&mut self.running_state, old_running_state) {
-            (&mut Running, Paused(progress))
-                => new_started_at = timer.seconds() - (self.duration * progress),
-            (&mut Paused(ref mut new), Paused(old))
-                => *new = old,
-            (&mut Paused(ref mut progress), Running)
-                => *progress = (timer.seconds() - old_started_at) / old_duration,
+            (&mut Running, Paused(progress)) => {
+                new_started_at = timer.seconds() - (self.duration * progress)
+            },
+            (&mut Paused(ref mut new), Paused(old)) => *new = old,
+            (&mut Paused(ref mut progress), Running) => {
+                *progress = (timer.seconds() - old_started_at) / old_duration
+            },
             _ => {},
         }
 
@@ -162,9 +163,11 @@ impl KeyframesAnimationState {
         // TODO: see how changing the limit affects rendering in other browsers.
         // We might need to keep the iteration count even when it's infinite.
         match (&mut self.iteration_state, old_iteration_state) {
-            (&mut KeyframesIterationState::Finite(ref mut iters, _), KeyframesIterationState::Finite(old_iters, _))
-                => *iters = old_iters,
-            _ => {}
+            (
+                &mut KeyframesIterationState::Finite(ref mut iters, _),
+                KeyframesIterationState::Finite(old_iters, _),
+            ) => *iters = old_iters,
+            _ => {},
         }
 
         self.current_direction = old_direction;
@@ -242,7 +245,6 @@ impl Animation {
     }
 }
 
-
 /// A single animation frame of a single property.
 #[derive(Clone, Debug)]
 pub struct AnimationFrame {
@@ -284,8 +286,9 @@ impl PropertyAnimation {
 
         match transition_property {
             TransitionProperty::Unsupported(_) => result,
-            TransitionProperty::Shorthand(ref shorthand_id) => {
-                shorthand_id.longhands().filter_map(|longhand| {
+            TransitionProperty::Shorthand(ref shorthand_id) => shorthand_id
+                .longhands()
+                .filter_map(|longhand| {
                     PropertyAnimation::from_longhand(
                         longhand,
                         timing_function,
@@ -293,8 +296,8 @@ impl PropertyAnimation {
                         old_style,
                         new_style,
                     )
-                }).collect()
-            }
+                })
+                .collect(),
             TransitionProperty::Longhand(longhand_id) => {
                 let animation = PropertyAnimation::from_longhand(
                     longhand_id,
@@ -308,7 +311,7 @@ impl PropertyAnimation {
                     result.push(animation);
                 }
                 result
-            }
+            },
         }
     }
 
@@ -319,11 +322,7 @@ impl PropertyAnimation {
         old_style: &ComputedValues,
         new_style: &ComputedValues,
     ) -> Option<PropertyAnimation> {
-        let animated_property = AnimatedProperty::from_longhand(
-            longhand,
-            old_style,
-            new_style,
-        )?;
+        let animated_property = AnimatedProperty::from_longhand(longhand, old_style, new_style)?;
 
         let property_animation = PropertyAnimation {
             property: animated_property,
@@ -398,14 +397,13 @@ pub fn start_transitions_if_applicable(
     old_style: &ComputedValues,
     new_style: &mut Arc<ComputedValues>,
     timer: &Timer,
-    possibly_expired_animations: &[PropertyAnimation]
+    possibly_expired_animations: &[PropertyAnimation],
 ) -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_property_count() {
         // Create any property animations, if applicable.
-        let property_animations = PropertyAnimation::from_transition(i,
-                                                                     old_style,
-                                                                     Arc::make_mut(new_style));
+        let property_animations =
+            PropertyAnimation::from_transition(i, old_style, Arc::make_mut(new_style));
         for property_animation in property_animations {
             // Set the property to the initial value.
             //
@@ -418,22 +416,28 @@ pub fn start_transitions_if_applicable(
             // running on the same node.
             //
             // [1]: https://drafts.csswg.org/css-transitions/#starting
-            if possibly_expired_animations.iter().any(|animation| {
-                animation.has_the_same_end_value_as(&property_animation)
-            }) {
-                continue
+            if possibly_expired_animations
+                .iter()
+                .any(|animation| animation.has_the_same_end_value_as(&property_animation))
+            {
+                continue;
             }
 
             // Kick off the animation.
             let box_style = new_style.get_box();
             let now = timer.seconds();
-            let start_time =
-                now + (box_style.transition_delay_mod(i).seconds() as f64);
+            let start_time = now + (box_style.transition_delay_mod(i).seconds() as f64);
             new_animations_sender
-                .send(Animation::Transition(opaque_node, start_time, AnimationFrame {
-                    duration: box_style.transition_duration_mod(i).seconds() as f64,
-                    property_animation: property_animation,
-                }, /* is_expired = */ false)).unwrap();
+                .send(Animation::Transition(
+                    opaque_node,
+                    start_time,
+                    AnimationFrame {
+                        duration: box_style.transition_duration_mod(i).seconds() as f64,
+                        property_animation: property_animation,
+                    },
+                    /* is_expired = */ false,
+                ))
+                .unwrap();
 
             had_animations = true;
         }
@@ -454,7 +458,9 @@ where
 {
     match step.value {
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
-        KeyframesStepValue::Declarations { block: ref declarations } => {
+        KeyframesStepValue::Declarations {
+            block: ref declarations,
+        } => {
             let guard = declarations.read_with(context.guards.author);
 
             let iter = || {
@@ -462,33 +468,33 @@ where
                 // so we have to filter them out.
                 // See the spec issue https://github.com/w3c/csswg-drafts/issues/1824
                 // Also we filter our non-animatable properties.
-                guard.normal_declaration_iter()
-                     .filter(|declaration| declaration.is_animatable())
-                     .map(|decl| (decl, CascadeLevel::Animations))
+                guard
+                    .normal_declaration_iter()
+                    .filter(|declaration| declaration.is_animatable())
+                    .map(|decl| (decl, CascadeLevel::Animations))
             };
 
             // This currently ignores visited styles, which seems acceptable,
             // as existing browsers don't appear to animate visited styles.
-            let computed =
-                properties::apply_declarations::<E, _, _>(
-                    context.stylist.device(),
-                    /* pseudo = */ None,
-                    previous_style.rules(),
-                    &context.guards,
-                    iter,
-                    Some(previous_style),
-                    Some(previous_style),
-                    Some(previous_style),
-                    /* visited_style = */ None,
-                    font_metrics_provider,
-                    CascadeFlags::empty(),
-                    context.quirks_mode(),
-                    /* rule_cache = */ None,
-                    &mut Default::default(),
-                    /* element = */ None,
-                );
+            let computed = properties::apply_declarations::<E, _, _>(
+                context.stylist.device(),
+                /* pseudo = */ None,
+                previous_style.rules(),
+                &context.guards,
+                iter,
+                Some(previous_style),
+                Some(previous_style),
+                Some(previous_style),
+                /* visited_style = */ None,
+                font_metrics_provider,
+                CascadeFlags::empty(),
+                context.quirks_mode(),
+                /* rule_cache = */ None,
+                &mut Default::default(),
+                /* element = */ None,
+            );
             computed
-        }
+        },
     }
 }
 
@@ -507,13 +513,13 @@ pub fn maybe_start_animations(
         let name = if let Some(atom) = name.as_atom() {
             atom
         } else {
-            continue
+            continue;
         };
 
         debug!("maybe_start_animations: name={}", name);
         let total_duration = box_style.animation_duration_mod(i).seconds();
         if total_duration == 0. {
-            continue
+            continue;
         }
 
         if let Some(ref anim) = context.stylist.get_animation(name) {
@@ -539,10 +545,12 @@ pub fn maybe_start_animations(
             let animation_direction = box_style.animation_direction_mod(i);
 
             let initial_direction = match animation_direction {
-                AnimationDirection::Normal |
-                AnimationDirection::Alternate => AnimationDirection::Normal,
-                AnimationDirection::Reverse |
-                AnimationDirection::AlternateReverse => AnimationDirection::Reverse,
+                AnimationDirection::Normal | AnimationDirection::Alternate => {
+                    AnimationDirection::Normal
+                },
+                AnimationDirection::Reverse | AnimationDirection::AlternateReverse => {
+                    AnimationDirection::Reverse
+                },
             };
 
             let running_state = match box_style.animation_play_state_mod(i) {
@@ -550,19 +558,23 @@ pub fn maybe_start_animations(
                 AnimationPlayState::Running => KeyframesRunningState::Running,
             };
 
-
             new_animations_sender
-                .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
-                    started_at: animation_start,
-                    duration: duration as f64,
-                    delay: delay as f64,
-                    iteration_state: iteration_state,
-                    running_state: running_state,
-                    direction: animation_direction,
-                    current_direction: initial_direction,
-                    expired: false,
-                    cascade_style: new_style.clone(),
-                })).unwrap();
+                .send(Animation::Keyframes(
+                    node,
+                    name.clone(),
+                    KeyframesAnimationState {
+                        started_at: animation_start,
+                        duration: duration as f64,
+                        delay: delay as f64,
+                        iteration_state: iteration_state,
+                        running_state: running_state,
+                        direction: animation_direction,
+                        current_direction: initial_direction,
+                        expired: false,
+                        cascade_style: new_style.clone(),
+                    },
+                ))
+                .unwrap();
             had_animations = true;
         }
     }
@@ -572,10 +584,12 @@ pub fn maybe_start_animations(
 
 /// Updates a given computed style for a given animation frame. Returns a bool
 /// representing if the style was indeed updated.
-pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
-                                        now: f64,
-                                        start_time: f64,
-                                        frame: &AnimationFrame) -> bool {
+pub fn update_style_for_animation_frame(
+    mut new_style: &mut Arc<ComputedValues>,
+    now: f64,
+    start_time: f64,
+    frame: &AnimationFrame,
+) -> bool {
     let mut progress = (now - start_time) / frame.duration;
     if progress > 1.0 {
         progress = 1.0
@@ -585,7 +599,9 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
         return false;
     }
 
-    frame.property_animation.update(Arc::make_mut(&mut new_style), progress);
+    frame
+        .property_animation
+        .update(Arc::make_mut(&mut new_style), progress);
 
     true
 }
@@ -595,8 +611,7 @@ pub fn update_style_for_animation<E>(
     animation: &Animation,
     style: &mut Arc<ComputedValues>,
     font_metrics_provider: &FontMetricsProvider,
-)
-where
+) where
     E: TElement,
 {
     debug!("update_style_for_animation: entering");
@@ -607,15 +622,17 @@ where
             debug!("update_style_for_animation: transition found");
             let now = context.timer.seconds();
             let mut new_style = (*style).clone();
-            let updated_style = update_style_for_animation_frame(&mut new_style,
-                                                                 now, start_time,
-                                                                 frame);
+            let updated_style =
+                update_style_for_animation_frame(&mut new_style, now, start_time, frame);
             if updated_style {
                 *style = new_style
             }
-        }
+        },
         Animation::Keyframes(_, ref name, ref state) => {
-            debug!("update_style_for_animation: animation found: \"{}\", {:?}", name, state);
+            debug!(
+                "update_style_for_animation: animation found: \"{}\", {:?}",
+                name, state
+            );
             let duration = state.duration;
             let started_at = state.started_at;
 
@@ -628,7 +645,7 @@ where
                 None => {
                     warn!("update_style_for_animation: Animation {:?} not found", name);
                     return;
-                }
+                },
                 Some(animation) => animation,
             };
 
@@ -642,14 +659,20 @@ where
             let index = match maybe_index {
                 Some(index) => index,
                 None => {
-                    warn!("update_style_for_animation: Animation {:?} not found in style", name);
+                    warn!(
+                        "update_style_for_animation: Animation {:?} not found in style",
+                        name
+                    );
                     return;
-                }
+                },
             };
 
             let total_duration = style.get_box().animation_duration_mod(index).seconds() as f64;
             if total_duration == 0. {
-                debug!("update_style_for_animation: zero duration for animation {:?}", name);
+                debug!(
+                    "update_style_for_animation: zero duration for animation {:?}",
+                    name
+                );
                 return;
             }
 
@@ -662,38 +685,50 @@ where
                 total_progress = 1.;
             }
 
-            debug!("update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}",
-                   name, animation.steps, state, total_progress);
+            debug!(
+                "update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}",
+                name, animation.steps, state, total_progress
+            );
 
             // Get the target and the last keyframe position.
             let last_keyframe_position;
             let target_keyframe_position;
             match state.current_direction {
                 AnimationDirection::Normal => {
-                    target_keyframe_position =
-                        animation.steps.iter().position(|step| {
-                            total_progress as f32 <= step.start_percentage.0
-                        });
+                    target_keyframe_position = animation
+                        .steps
+                        .iter()
+                        .position(|step| total_progress as f32 <= step.start_percentage.0);
 
-                    last_keyframe_position = target_keyframe_position.and_then(|pos| {
-                        if pos != 0 { Some(pos - 1) } else { None }
-                    }).unwrap_or(0);
-                }
+                    last_keyframe_position = target_keyframe_position
+                        .and_then(|pos| if pos != 0 { Some(pos - 1) } else { None })
+                        .unwrap_or(0);
+                },
                 AnimationDirection::Reverse => {
-                    target_keyframe_position =
-                        animation.steps.iter().rev().position(|step| {
-                            total_progress as f32 <= 1. - step.start_percentage.0
-                        }).map(|pos| animation.steps.len() - pos - 1);
+                    target_keyframe_position = animation
+                        .steps
+                        .iter()
+                        .rev()
+                        .position(|step| total_progress as f32 <= 1. - step.start_percentage.0)
+                        .map(|pos| animation.steps.len() - pos - 1);
 
-                    last_keyframe_position = target_keyframe_position.and_then(|pos| {
-                        if pos != animation.steps.len() - 1 { Some(pos + 1) } else { None }
-                    }).unwrap_or(animation.steps.len() - 1);
-                }
+                    last_keyframe_position = target_keyframe_position
+                        .and_then(|pos| {
+                            if pos != animation.steps.len() - 1 {
+                                Some(pos + 1)
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or(animation.steps.len() - 1);
+                },
                 _ => unreachable!(),
             }
 
-            debug!("update_style_for_animation: keyframe from {:?} to {:?}",
-                   last_keyframe_position, target_keyframe_position);
+            debug!(
+                "update_style_for_animation: keyframe from {:?} to {:?}",
+                last_keyframe_position, target_keyframe_position
+            );
 
             let target_keyframe = match target_keyframe_position {
                 Some(target) => &animation.steps[target],
@@ -701,20 +736,22 @@ where
                     warn!("update_style_for_animation: No current keyframe found for animation \"{}\" at progress {}",
                           name, total_progress);
                     return;
-                }
+                },
             };
 
             let last_keyframe = &animation.steps[last_keyframe_position];
 
-            let relative_timespan = (target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0).abs();
+            let relative_timespan =
+                (target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0).abs();
             let relative_duration = relative_timespan as f64 * duration;
             let last_keyframe_ended_at = match state.current_direction {
                 AnimationDirection::Normal => {
                     state.started_at + (total_duration * last_keyframe.start_percentage.0 as f64)
-                }
+                },
                 AnimationDirection::Reverse => {
-                    state.started_at + (total_duration * (1. - last_keyframe.start_percentage.0 as f64))
-                }
+                    state.started_at +
+                        (total_duration * (1. - last_keyframe.start_percentage.0 as f64))
+                },
                 _ => unreachable!(),
             };
             let relative_progress = (now - last_keyframe_ended_at) / relative_duration;
@@ -748,32 +785,42 @@ where
             let mut new_style = (*style).clone();
 
             for property in animation.properties_changed.iter() {
-                debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"",
-                       property, name);
+                debug!(
+                    "update_style_for_animation: scanning prop {:?} for animation \"{}\"",
+                    property, name
+                );
                 let animation = PropertyAnimation::from_longhand(
                     property,
                     timing_function,
                     Time::from_seconds(relative_duration as f32),
                     &from_style,
-                    &target_style
+                    &target_style,
                 );
 
                 match animation {
                     Some(property_animation) => {
-                        debug!("update_style_for_animation: got property animation for prop {:?}", property);
+                        debug!(
+                            "update_style_for_animation: got property animation for prop {:?}",
+                            property
+                        );
                         debug!("update_style_for_animation: {:?}", property_animation);
                         property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
-                    }
+                    },
                     None => {
-                        debug!("update_style_for_animation: property animation {:?} not animating",
-                               property);
-                    }
+                        debug!(
+                            "update_style_for_animation: property animation {:?} not animating",
+                            property
+                        );
+                    },
                 }
             }
 
-            debug!("update_style_for_animation: got style change in animation \"{}\"", name);
+            debug!(
+                "update_style_for_animation: got style change in animation \"{}\"",
+                name
+            );
             *style = new_style;
-        }
+        },
     }
 }
 

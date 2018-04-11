@@ -13,7 +13,7 @@ pub enum ScrollSnapPoint<LengthOrPercentage> {
     None,
     /// `repeat(<length-or-percentage>)`
     #[css(function)]
-    Repeat(LengthOrPercentage)
+    Repeat(LengthOrPercentage),
 }
 
 impl<L> ScrollSnapPoint<L> {

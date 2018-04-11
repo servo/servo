@@ -16,7 +16,6 @@ use stylesheet_set::AuthorStylesheetSet;
 use stylesheets::StylesheetInDocument;
 use stylist::CascadeData;
 
-
 /// A set of author stylesheets and their computed representation, such as the
 /// ones used for ShadowRoot and XBL.
 pub struct AuthorStyles<S>
@@ -57,27 +56,20 @@ where
         device: &Device,
         quirks_mode: QuirksMode,
         guard: &SharedRwLockReadGuard,
-    )
-    where
+    ) where
         E: TElement,
         S: ToMediaListKey,
     {
-        let flusher = self.stylesheets.flush::<E>(
-            /* host = */ None,
-            /* snapshot_map = */ None,
-        );
+        let flusher = self.stylesheets
+            .flush::<E>(/* host = */ None, /* snapshot_map = */ None);
 
         if flusher.sheets.dirty() {
             self.quirks_mode = quirks_mode;
         }
 
         // Ignore OOM.
-        let _ = self.data.rebuild(
-            device,
-            quirks_mode,
-            flusher.sheets,
-            guard,
-        );
+        let _ = self.data
+            .rebuild(device, quirks_mode, flusher.sheets, guard);
     }
 }
 

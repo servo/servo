@@ -34,9 +34,12 @@ impl DeepCloneWithLock for CssRules {
         guard: &SharedRwLockReadGuard,
         params: &DeepCloneParams,
     ) -> Self {
-        CssRules(self.0.iter().map(|x| {
-            x.deep_clone_with_lock(lock, guard, params)
-        }).collect())
+        CssRules(
+            self.0
+                .iter()
+                .map(|x| x.deep_clone_with_lock(lock, guard, params))
+                .collect(),
+        )
     }
 }
 
@@ -59,12 +62,9 @@ impl CssRules {
     /// Returns whether all the rules in this list are namespace or import
     /// rules.
     fn only_ns_or_import(&self) -> bool {
-        self.0.iter().all(|r| {
-            match *r {
-                CssRule::Namespace(..) |
-                CssRule::Import(..) => true,
-                _ => false
-            }
+        self.0.iter().all(|r| match *r {
+            CssRule::Namespace(..) | CssRule::Import(..) => true,
+            _ => false,
         })
     }
 
@@ -96,7 +96,11 @@ impl CssRules {
     ///
     /// This should be speced into CSSOM spec at some point. See
     /// <https://github.com/w3c/csswg-drafts/issues/1985>
-    pub fn to_css_block(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
+    pub fn to_css_block(
+        &self,
+        guard: &SharedRwLockReadGuard,
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
         dest.write_str(" {")?;
         for rule in self.0.iter() {
             dest.write_str("\n  ")?;
@@ -116,25 +120,27 @@ pub trait CssRulesHelpers {
     ///
     /// TODO(emilio): We could also pass the write guard down into the loader
     /// instead, but that seems overkill.
-    fn insert_rule(&self,
-                   lock: &SharedRwLock,
-                   rule: &str,
-                   parent_stylesheet_contents: &StylesheetContents,
-                   index: usize,
-                   nested: bool,
-                   loader: Option<&StylesheetLoader>)
-                   -> Result<CssRule, RulesMutateError>;
+    fn insert_rule(
+        &self,
+        lock: &SharedRwLock,
+        rule: &str,
+        parent_stylesheet_contents: &StylesheetContents,
+        index: usize,
+        nested: bool,
+        loader: Option<&StylesheetLoader>,
+    ) -> Result<CssRule, RulesMutateError>;
 }
 
 impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
-    fn insert_rule(&self,
-                   lock: &SharedRwLock,
-                   rule: &str,
-                   parent_stylesheet_contents: &StylesheetContents,
-                   index: usize,
-                   nested: bool,
-                   loader: Option<&StylesheetLoader>)
-                   -> Result<CssRule, RulesMutateError> {
+    fn insert_rule(
+        &self,
+        lock: &SharedRwLock,
+        rule: &str,
+        parent_stylesheet_contents: &StylesheetContents,
+        index: usize,
+        nested: bool,
+        loader: Option<&StylesheetLoader>,
+    ) -> Result<CssRule, RulesMutateError> {
         let state = {
             let read_guard = lock.read();
             let rules = self.read_with(&read_guard);
@@ -157,13 +163,7 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
         // Step 3, 4
         // XXXManishearth should we also store the namespace map?
         let (new_rule, new_state) =
-            CssRule::parse(
-                &rule,
-                parent_stylesheet_contents,
-                lock,
-                state,
-                loader
-            )?;
+            CssRule::parse(&rule, parent_stylesheet_contents, lock, state, loader)?;
 
         {
             let mut write_guard = lock.write();
