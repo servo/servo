@@ -424,14 +424,8 @@ impl NonCustomPropertyId {
     #[cfg(feature = "gecko")]
     fn to_nscsspropertyid(self) -> nsCSSPropertyID {
         static MAP: [nsCSSPropertyID; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
-            % for property in data.longhands:
-                ${helpers.to_nscsspropertyid(property.ident)},
-            % endfor
-            % for property in data.shorthands:
-                ${helpers.to_nscsspropertyid(property.ident)},
-            % endfor
-            % for property in data.all_aliases():
-                ${helpers.alias_to_nscsspropertyid(property.ident)},
+            % for property in data.longhands + data.shorthands + data.all_aliases():
+                ${property.nscsspropertyid()},
             % endfor
         ];
 
@@ -1617,11 +1611,11 @@ impl PropertyId {
         use gecko_bindings::structs::*;
         match id {
             % for property in data.longhands:
-                ${helpers.to_nscsspropertyid(property.ident)} => {
+                ${property.nscsspropertyid()} => {
                     Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${helpers.alias_to_nscsspropertyid(alias.name)} => {
+                    ${alias.nscsspropertyid()} => {
                         Ok(PropertyId::LonghandAlias(
                             LonghandId::${property.camel_case},
                             AliasId::${alias.camel_case}
@@ -1630,11 +1624,11 @@ impl PropertyId {
                 % endfor
             % endfor
             % for property in data.shorthands:
-                ${helpers.to_nscsspropertyid(property.ident)} => {
+                ${property.nscsspropertyid()} => {
                     Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${helpers.alias_to_nscsspropertyid(alias.name)} => {
+                    ${alias.nscsspropertyid()} => {
                         Ok(PropertyId::ShorthandAlias(
                             ShorthandId::${property.camel_case},
                             AliasId::${alias.camel_case}

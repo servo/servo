@@ -872,17 +872,3 @@
     </%self:logical_setter_helper>
     }
 </%def>
-
-<%def name="alias_to_nscsspropertyid(alias)">
-    <%
-        return "nsCSSPropertyID::eCSSPropertyAlias_%s" % to_camel_case(alias)
-    %>
-</%def>
-
-<%def name="to_nscsspropertyid(ident)">
-    <%
-        if ident == "float":
-            ident = "float_"
-        return "nsCSSPropertyID::eCSSProperty_%s" % ident
-    %>
-</%def>

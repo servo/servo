@@ -299,6 +299,12 @@ class Longhand(object):
             return computed
         return "<{} as ToAnimatedValue>::AnimatedValue".format(computed)
 
+    def nscsspropertyid(self):
+        ident = self.ident
+        if ident == "float":
+            ident = "float_"
+        return "nsCSSPropertyID::eCSSProperty_%s" % ident
+
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
@@ -362,6 +368,9 @@ class Shorthand(object):
     def enabled_in_content(self):
         return self.enabled_in == "content"
 
+    def nscsspropertyid(self):
+        return "nsCSSPropertyID::eCSSProperty_%s" % self.ident
+
 
 class Alias(object):
     def __init__(self, name, original):
@@ -387,6 +396,9 @@ class Alias(object):
 
     def enabled_in_content(self):
         return self.enabled_in == "content"
+
+    def nscsspropertyid(self):
+        return "nsCSSPropertyID::eCSSPropertyAlias_%s" % self.camel_case
 
 
 class Method(object):
