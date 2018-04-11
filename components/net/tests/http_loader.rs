@@ -6,6 +6,7 @@ use cookie_rs::Cookie as CookiePair;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use embedder_traits::resources::register_resources_for_tests;
 use fetch;
 use fetch_with_context;
 use flate2::Compression;
@@ -312,6 +313,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
 #[test]
 fn test_redirected_request_to_devtools() {
+    register_resources_for_tests();
     let post_handler = move |request: HyperRequest, response: HyperResponse| {
         assert_eq!(request.method, Method::Get);
         response.send(b"Yay!").unwrap();

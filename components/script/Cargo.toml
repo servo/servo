@@ -42,6 +42,7 @@ deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
+embedder_traits = {path = "../embedder_traits"}
 encoding_rs = "0.7"
 euclid = "0.17"
 fnv = "1.0"

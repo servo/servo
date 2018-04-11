@@ -14,11 +14,10 @@
 //! we don't need to make the code more complex for it. The `mach` update command makes sure that
 //! those cases are not present.
 
-use servo_config::resource_files::read_resource_file;
+use embedder_traits::resources::{self, Resource};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
 use std::iter::FromIterator;
-use std::str::from_utf8;
 
 #[derive(Clone, Debug)]
 pub struct PubDomainRules {
@@ -121,9 +120,7 @@ impl PubDomainRules {
 }
 
 fn load_pub_domains() -> PubDomainRules {
-    let content = read_resource_file("public_domains.txt").expect("Could not find public suffix list file");
-    let content = from_utf8(&content).expect("Could not read public suffix list file");
-    PubDomainRules::parse(content)
+    PubDomainRules::parse(&resources::read_string(Resource::DomainList))
 }
 
 pub fn pub_suffix(domain: &str) -> &str {
