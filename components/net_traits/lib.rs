@@ -6,6 +6,7 @@
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;
+extern crate embedder_traits;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
@@ -17,8 +18,6 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate num_traits;
 #[macro_use] extern crate serde;
-extern crate servo_arc;
-extern crate servo_config;
 extern crate servo_url;
 extern crate url;
 extern crate uuid;

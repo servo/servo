@@ -13,6 +13,7 @@ doctest = false
 
 [dependencies]
 cookie = "0.10"
+embedder_traits = { path = "../embedder_traits" }
 hyper = "0.10"
 hyper_serde = "0.8"
 image = "0.18"
@@ -24,8 +25,6 @@ malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 msg = {path = "../msg"}
 num-traits = "0.1.32"
 serde = "1.0"
-servo_arc = {path = "../servo_arc"}
-servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = "1.2"
 uuid = {version = "0.6", features = ["v4", "serde"]}

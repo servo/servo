@@ -9,9 +9,9 @@ use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
 use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
 use openssl::ssl::{SslConnectorBuilder, SslMethod};
+use openssl::x509;
 use std::io;
 use std::net::TcpStream;
-use std::path::PathBuf;
 
 pub struct HttpsConnector {
     ssl: OpensslClient,
@@ -50,9 +50,31 @@ impl NetworkConnector for HttpsConnector {
 
 pub type Connector = HttpsConnector;
 
-pub fn create_ssl_client(ca_file: &PathBuf) -> OpensslClient {
+pub fn create_ssl_client(certs: &str) -> OpensslClient {
+    let mut certs = certs.to_string();
+    // certs include multiple certificates. We could add all of them at once,
+    // but if any of them were already added, openssl would fail to insert all
+    // of them.
     let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
-    ssl_connector_builder.set_ca_file(ca_file).expect("could not set CA file");
+    loop {
+        if let Some(index) = certs.rfind("-----BEGIN CERTIFICATE-----") {
+            let cert = certs.split_off(index);
+            let cert = x509::X509::from_pem(cert.as_bytes()).unwrap();
+            ssl_connector_builder.cert_store_mut().add_cert(cert).or_else(|e| {
+                let v: Option<Option<&str>> = e.errors().iter().nth(0).map(|e| e.reason());
+                if v == Some(Some("cert already in hash table")) {
+                    warn!("Cert already in hash table. Ignoring.");
+                    // Ignore error X509_R_CERT_ALREADY_IN_HASH_TABLE which means the
+                    // certificate is already in the store.
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            }).expect("could not set CA file");
+        } else {
+            break;
+        }
+    }
     ssl_connector_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
     ssl_connector_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     let ssl_connector = ssl_connector_builder.build();

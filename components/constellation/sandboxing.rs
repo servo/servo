@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// FIXME: we probably broke sandboxing
+
 use gaol::profile::{Operation, PathPattern, Profile};
-use servo_config::resource_files;
 use std::path::PathBuf;
 
 /// Our content process sandbox profile on Mac. As restrictive as possible.
@@ -12,8 +13,6 @@ pub fn content_process_sandbox_profile() -> Profile {
     use gaol::platform;
     Profile::new(vec![
         Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
-        Operation::FileReadAll(PathPattern::Subpath(resource_files::resources_dir_path()
-                                                    .expect("Cannot find resource dir"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/System/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from(
@@ -35,8 +34,6 @@ pub fn content_process_sandbox_profile() -> Profile {
 pub fn content_process_sandbox_profile() -> Profile {
     Profile::new(vec![
         Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
-        Operation::FileReadAll(PathPattern::Subpath(resource_files::resources_dir_path()
-                                                    .expect("Cannot find resource dir"))),
     ]).expect("Failed to create sandbox profile!")
 }
 

@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use embedder_traits::resources::{self, Resource};
 use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
 use serde_json;
-use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::str::from_utf8;
 use time;
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -64,15 +63,13 @@ impl HstsList {
     }
 
     /// Create an `HstsList` from the bytes of a JSON preload file.
-    pub fn from_preload(preload_content: &[u8]) -> Option<HstsList> {
+    pub fn from_preload(preload_content: &str) -> Option<HstsList> {
         #[derive(Deserialize)]
         struct HstsEntries {
             entries: Vec<HstsEntry>,
         }
 
-        let hsts_entries: Option<HstsEntries> = from_utf8(&preload_content)
-            .ok()
-            .and_then(|c| serde_json::from_str(c).ok());
+        let hsts_entries: Option<HstsEntries> = serde_json::from_str(preload_content).ok();
 
         hsts_entries.map_or(None, |hsts_entries| {
             let mut hsts_list: HstsList = HstsList::new();
@@ -86,10 +83,8 @@ impl HstsList {
     }
 
     pub fn from_servo_preload() -> HstsList {
-        let file_bytes = read_resource_file("hsts_preload.json")
-                            .expect("Could not find Servo HSTS preload file");
-        HstsList::from_preload(&file_bytes)
-            .expect("Servo HSTS preload file is invalid")
+        let list = resources::read_string(Resource::HstsPreloadList);
+        HstsList::from_preload(&list).expect("Servo HSTS preload file is invalid")
     }
 
     pub fn is_host_secure(&self, host: &str) -> bool {

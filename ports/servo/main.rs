@@ -38,6 +38,7 @@ extern crate winit;
 #[cfg(target_os = "windows")] extern crate user32;
 
 mod glutin_app;
+mod resources;
 
 use backtrace::Backtrace;
 use servo::Servo;
@@ -98,6 +99,8 @@ fn install_crash_handler() {}
 
 fn main() {
     install_crash_handler();
+
+    resources::init();
 
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());

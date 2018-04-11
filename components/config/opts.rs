@@ -9,7 +9,6 @@ use euclid::TypedSize2D;
 use getopts::Options;
 use num_cpus;
 use prefs::{self, PrefValue, PREFS};
-use resource_files::set_resources_path;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -195,6 +194,9 @@ pub struct Opts {
 
     /// True if webrender is allowed to batch draw calls as instances.
     pub webrender_batch: bool,
+
+    /// Load shaders from disk.
+    pub shaders_dir: Option<PathBuf>,
 
     /// True to compile all webrender shaders at init time. This is mostly
     /// useful when modifying the shaders, to ensure they all compile
@@ -544,6 +546,7 @@ pub fn default_opts() -> Opts {
         is_printing_version: false,
         webrender_record: false,
         webrender_batch: true,
+        shaders_dir: None,
         precache_shaders: false,
         signpost: false,
         certificate_path: None,
@@ -575,6 +578,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     "Uses userscripts in resources/user-agent-js, or a specified full path", "");
     opts.optmulti("", "user-stylesheet",
                   "A user stylesheet to be added to every document", "file.css");
+    opts.optopt("", "shaders",
+        "Shaders will be loaded from the specified directory instead of using the builtin ones.", "");
     opts.optflag("z", "headless", "Headless mode");
     opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
@@ -618,8 +623,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         Ok(m) => m,
         Err(f) => args_fail(&f.to_string()),
     };
-
-    set_resources_path(opt_match.opt_str("resources-path"));
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
@@ -844,6 +847,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         is_printing_version: is_printing_version,
         webrender_record: debug_options.webrender_record,
         webrender_batch: !debug_options.webrender_disable_batch,
+        shaders_dir: opt_match.opt_str("shaders").map(Into::into),
         precache_shaders: debug_options.precache_shaders,
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),

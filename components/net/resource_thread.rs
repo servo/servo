@@ -8,6 +8,7 @@ use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
 use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::resources::{self, Resource};
 use fetch::cors_cache::CorsCache;
 use fetch::methods::{CancellationListener, FetchContext, fetch};
 use filemanager_thread::{FileManager, TFDProvider};
@@ -31,7 +32,6 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use servo_allocator;
 use servo_config::opts;
-use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
@@ -118,14 +118,20 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
-    let ca_file = match opts::get().certificate_path {
-        Some(ref path) => PathBuf::from(path),
-        None => resources_dir_path()
-            .expect("Need certificate file to make network requests")
-            .join("certs"),
+    let certs = match opts::get().certificate_path {
+        Some(ref path) => {
+            let mut txt = String::new();
+            let mut file = File::open(PathBuf::from(path))
+                .expect("Couldn't not find certificate file");
+            file.read_to_string(&mut txt).expect("Cant read certificate");
+            txt
+        }
+        None => {
+            resources::read_string(Resource::SSLCertificates)
+        },
     };
 
-    let ssl_client = create_ssl_client(&ca_file);
+    let ssl_client = create_ssl_client(&certs);
     let http_state = HttpState {
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
@@ -135,7 +141,7 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         connector: create_http_connector(ssl_client),
     };
 
-    let private_ssl_client = create_ssl_client(&ca_file);
+    let private_ssl_client = create_ssl_client(&certs);
     let private_http_state = HttpState::new(private_ssl_client);
 
     (Arc::new(http_state), Arc::new(private_http_state))
