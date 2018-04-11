@@ -7,8 +7,8 @@
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::TElement;
 use gecko_bindings::bindings::{self, RawServoStyleSet};
-use gecko_bindings::structs::{RawGeckoPresContextOwned, ServoStyleSetSizes, ServoStyleSheet};
-use gecko_bindings::structs::{StyleSheetInfo, ServoStyleSheetInner, nsIDocument, self};
+use gecko_bindings::structs::{self, RawGeckoPresContextOwned, ServoStyleSetSizes, ServoStyleSheet};
+use gecko_bindings::structs::{ServoStyleSheetInner, StyleSheetInfo, nsIDocument};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use malloc_size_of::MallocSizeOfOps;
@@ -16,7 +16,7 @@ use media_queries::{Device, MediaList};
 use properties::ComputedValues;
 use selector_parser::SnapshotMap;
 use servo_arc::Arc;
-use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
+use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use stylesheets::{StylesheetContents, StylesheetInDocument};
 use stylist::Stylist;
 
@@ -27,9 +27,7 @@ pub struct GeckoStyleSheet(*const ServoStyleSheet);
 impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
     fn to_media_list_key(&self) -> MediaListKey {
         use std::mem;
-        unsafe {
-            MediaListKey::from_raw(mem::transmute(self.0))
-        }
+        unsafe { MediaListKey::from_raw(mem::transmute(self.0)) }
     }
 }
 
@@ -90,8 +88,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
         use std::mem;
 
         unsafe {
-            let servo_media_list =
-                self.raw()._base.mMedia.mRawPtr as *const ServoMediaList;
+            let servo_media_list = self.raw()._base.mMedia.mRawPtr as *const ServoMediaList;
             if servo_media_list.is_null() {
                 return None;
             }
@@ -128,9 +125,8 @@ impl PerDocumentStyleData {
         // right now not always honored, see bug 1405543...
         //
         // Should we just force XBL Stylists to be NoQuirks?
-        let quirks_mode = unsafe {
-            (*device.pres_context().mDocument.raw::<nsIDocument>()).mCompatMode
-        };
+        let quirks_mode =
+            unsafe { (*device.pres_context().mDocument.raw::<nsIDocument>()).mCompatMode };
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Stylist::new(device, quirks_mode.into()),
@@ -159,24 +155,27 @@ impl PerDocumentStyleDataImpl {
     where
         E: TElement,
     {
-        self.stylist.flush(
-            &StylesheetGuards::same(guard),
-            document_element,
-            snapshots,
-        )
+        self.stylist
+            .flush(&StylesheetGuards::same(guard), document_element, snapshots)
     }
 
     /// Returns whether private browsing is enabled.
     fn is_private_browsing_enabled(&self) -> bool {
-        let doc =
-            self.stylist.device().pres_context().mDocument.raw::<nsIDocument>();
+        let doc = self.stylist
+            .device()
+            .pres_context()
+            .mDocument
+            .raw::<nsIDocument>();
         unsafe { bindings::Gecko_IsPrivateBrowsingEnabled(doc) }
     }
 
     /// Returns whether the document is being used as an image.
     fn is_being_used_as_an_image(&self) -> bool {
-        let doc =
-            self.stylist.device().pres_context().mDocument.raw::<nsIDocument>();
+        let doc = self.stylist
+            .device()
+            .pres_context()
+            .mDocument
+            .raw::<nsIDocument>();
 
         unsafe { (*doc).mIsBeingUsedAsImage() }
     }

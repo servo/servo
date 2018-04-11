@@ -57,10 +57,7 @@ impl OriginSet {
     /// See the `OriginSet` documentation for information about the order
     /// origins are iterated.
     pub fn iter(&self) -> OriginSetIterator {
-        OriginSetIterator {
-            set: *self,
-            cur: 0,
-        }
+        OriginSetIterator { set: *self, cur: 0 }
     }
 }
 
@@ -94,7 +91,7 @@ impl Iterator for OriginSetIterator {
             self.cur += 1;
 
             if self.set.contains(origin.into()) {
-                return Some(origin)
+                return Some(origin);
             }
         }
     }
@@ -177,7 +174,10 @@ pub struct PerOriginIter<'a, T: 'a> {
     rev: bool,
 }
 
-impl<'a, T> Iterator for PerOriginIter<'a, T> where T: 'a {
+impl<'a, T> Iterator for PerOriginIter<'a, T>
+where
+    T: 'a,
+{
     type Item = (&'a T, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -201,7 +201,10 @@ pub struct PerOriginIterMut<'a, T: 'a> {
     _marker: PhantomData<&'a mut PerOrigin<T>>,
 }
 
-impl<'a, T> Iterator for PerOriginIterMut<'a, T> where T: 'a {
+impl<'a, T> Iterator for PerOriginIterMut<'a, T>
+where
+    T: 'a,
+{
     type Item = (&'a mut T, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -209,6 +212,9 @@ impl<'a, T> Iterator for PerOriginIterMut<'a, T> where T: 'a {
 
         self.cur += 1;
 
-        Some((unsafe { (*self.data).borrow_mut_for_origin(&origin) }, origin))
+        Some((
+            unsafe { (*self.data).borrow_mut_for_origin(&origin) },
+            origin,
+        ))
     }
 }

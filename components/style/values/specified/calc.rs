@@ -6,12 +6,12 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
-use cssparser::{Parser, Token, NumberOrPercentage, AngleOrNumber};
+use cssparser::{AngleOrNumber, NumberOrPercentage, Parser, Token};
 use parser::ParserContext;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use values::{CSSInteger, CSSFloat};
+use values::{CSSFloat, CSSInteger};
 use values::computed;
 use values::specified::{Angle, Time};
 use values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
@@ -98,11 +98,7 @@ impl ToCss for CalcLengthOrPercentage {
         macro_rules! first_value_check {
             ($val:expr) => {
                 if !first_value {
-                    dest.write_str(if $val < Zero::zero() {
-                        " - "
-                    } else {
-                        " + "
-                    })?;
+                    dest.write_str(if $val < Zero::zero() { " - " } else { " + " })?;
                 } else if $val < Zero::zero() {
                     dest.write_str("-")?;
                 }
@@ -164,39 +160,57 @@ impl CalcNode {
     fn parse_one<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        expected_unit: CalcUnit
+        expected_unit: CalcUnit,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         // FIXME: remove early returns when lifetimes are non-lexical
         match (input.next()?, expected_unit) {
             (&Token::Number { value, .. }, _) => return Ok(CalcNode::Number(value)),
-            (&Token::Dimension { value, ref unit, .. }, CalcUnit::Length) |
-            (&Token::Dimension { value, ref unit, .. }, CalcUnit::LengthOrPercentage) => {
+            (
+                &Token::Dimension {
+                    value, ref unit, ..
+                },
+                CalcUnit::Length,
+            ) |
+            (
+                &Token::Dimension {
+                    value, ref unit, ..
+                },
+                CalcUnit::LengthOrPercentage,
+            ) => {
                 return NoCalcLength::parse_dimension(context, value, unit)
                     .map(CalcNode::Length)
                     .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
-            (&Token::Dimension { value, ref unit, .. }, CalcUnit::Angle) => {
+            },
+            (
+                &Token::Dimension {
+                    value, ref unit, ..
+                },
+                CalcUnit::Angle,
+            ) => {
                 return Angle::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Angle)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
-            (&Token::Dimension { value, ref unit, .. }, CalcUnit::Time) => {
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            },
+            (
+                &Token::Dimension {
+                    value, ref unit, ..
+                },
+                CalcUnit::Time,
+            ) => {
                 return Time::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Time)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            },
             (&Token::Percentage { unit_value, .. }, CalcUnit::LengthOrPercentage) |
             (&Token::Percentage { unit_value, .. }, CalcUnit::Percentage) => {
                 return Ok(CalcNode::Percentage(unit_value))
-            }
-            (&Token::ParenthesisBlock, _) => {}
-            (&Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {}
-            (t, _) => return Err(location.new_unexpected_token_error(t.clone()))
+            },
+            (&Token::ParenthesisBlock, _) => {},
+            (&Token::Function(ref name), _) if name.eq_ignore_ascii_case("calc") => {},
+            (t, _) => return Err(location.new_unexpected_token_error(t.clone())),
         }
-        input.parse_nested_block(|i| {
-            CalcNode::parse(context, i, expected_unit)
-        })
+        input.parse_nested_block(|i| CalcNode::parse(context, i, expected_unit))
     }
 
     /// Parse a top-level `calc` expression, with all nested sub-expressions.
@@ -219,26 +233,22 @@ impl CalcNode {
                     // FIXME: remove clone() when lifetimes are non-lexical
                     match input.next()?.clone() {
                         Token::Delim('+') => {
-                            let rhs =
-                                Self::parse_product(context, input, expected_unit)?;
-                            let new_root =
-                                CalcNode::Sum(Box::new(root), Box::new(rhs));
+                            let rhs = Self::parse_product(context, input, expected_unit)?;
+                            let new_root = CalcNode::Sum(Box::new(root), Box::new(rhs));
                             root = new_root;
-                        }
+                        },
                         Token::Delim('-') => {
-                            let rhs =
-                                Self::parse_product(context, input, expected_unit)?;
-                            let new_root =
-                                CalcNode::Sub(Box::new(root), Box::new(rhs));
+                            let rhs = Self::parse_product(context, input, expected_unit)?;
+                            let new_root = CalcNode::Sub(Box::new(root), Box::new(rhs));
                             root = new_root;
-                        }
+                        },
                         t => return Err(input.new_unexpected_token_error(t)),
                     }
-                }
+                },
                 _ => {
                     input.reset(&start);
-                    break
-                }
+                    break;
+                },
             }
         }
 
@@ -257,9 +267,8 @@ impl CalcNode {
     fn parse_product<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        expected_unit: CalcUnit)
-        -> Result<Self, ParseError<'i>>
-    {
+        expected_unit: CalcUnit,
+    ) -> Result<Self, ParseError<'i>> {
         let mut root = Self::parse_one(context, input, expected_unit)?;
 
         loop {
@@ -269,17 +278,17 @@ impl CalcNode {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
                     let new_root = CalcNode::Mul(Box::new(root), Box::new(rhs));
                     root = new_root;
-                }
+                },
                 // TODO(emilio): Figure out why the `Integer` check.
                 Ok(&Token::Delim('/')) if expected_unit != CalcUnit::Integer => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
                     let new_root = CalcNode::Div(Box::new(root), Box::new(rhs));
                     root = new_root;
-                }
+                },
                 _ => {
                     input.reset(&start);
-                    break
-                }
+                    break;
+                },
             }
         }
 
@@ -288,11 +297,13 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
     /// value.
-    fn to_length_or_percentage(&self, clamping_mode: AllowedNumericType)
-                               -> Result<CalcLengthOrPercentage, ()> {
+    fn to_length_or_percentage(
+        &self,
+        clamping_mode: AllowedNumericType,
+    ) -> Result<CalcLengthOrPercentage, ()> {
         let mut ret = CalcLengthOrPercentage {
             clamping_mode: clamping_mode,
-            .. Default::default()
+            ..Default::default()
         };
         self.add_length_or_percentage_to(&mut ret, 1.0)?;
         Ok(ret)
@@ -302,33 +313,27 @@ impl CalcNode {
     fn to_percentage(&self) -> Result<CSSFloat, ()> {
         Ok(match *self {
             CalcNode::Percentage(percentage) => percentage,
-            CalcNode::Sub(ref a, ref b) => {
-                a.to_percentage()? - b.to_percentage()?
-            }
-            CalcNode::Sum(ref a, ref b) => {
-                a.to_percentage()? + b.to_percentage()?
-            }
-            CalcNode::Mul(ref a, ref b) => {
-                match a.to_percentage() {
-                    Ok(lhs) => {
-                        let rhs = b.to_number()?;
-                        lhs * rhs
-                    }
-                    Err(..) => {
-                        let lhs = a.to_number()?;
-                        let rhs = b.to_percentage()?;
-                        lhs * rhs
-                    }
-                }
-            }
+            CalcNode::Sub(ref a, ref b) => a.to_percentage()? - b.to_percentage()?,
+            CalcNode::Sum(ref a, ref b) => a.to_percentage()? + b.to_percentage()?,
+            CalcNode::Mul(ref a, ref b) => match a.to_percentage() {
+                Ok(lhs) => {
+                    let rhs = b.to_number()?;
+                    lhs * rhs
+                },
+                Err(..) => {
+                    let lhs = a.to_number()?;
+                    let rhs = b.to_percentage()?;
+                    lhs * rhs
+                },
+            },
             CalcNode::Div(ref a, ref b) => {
                 let lhs = a.to_percentage()?;
                 let rhs = b.to_number()?;
                 if rhs == 0. {
-                    return Err(())
+                    return Err(());
                 }
                 lhs / rhs
-            }
+            },
             CalcNode::Number(..) |
             CalcNode::Length(..) |
             CalcNode::Angle(..) |
@@ -343,89 +348,76 @@ impl CalcNode {
     fn add_length_or_percentage_to(
         &self,
         ret: &mut CalcLengthOrPercentage,
-        factor: CSSFloat)
-        -> Result<(), ()>
-    {
+        factor: CSSFloat,
+    ) -> Result<(), ()> {
         match *self {
             CalcNode::Percentage(pct) => {
                 ret.percentage = Some(computed::Percentage(
                     ret.percentage.map_or(0., |p| p.0) + pct * factor,
                 ));
-            }
-            CalcNode::Length(ref l) => {
-                match *l {
-                    NoCalcLength::Absolute(abs) => {
-                        ret.absolute = Some(
-                            match ret.absolute {
-                                Some(value) => value + abs * factor,
-                                None => abs * factor,
-                            }
-                        );
-                    }
-                    NoCalcLength::FontRelative(rel) => {
-                        match rel {
-                            FontRelativeLength::Em(em) => {
-                                ret.em = Some(ret.em.unwrap_or(0.) + em * factor);
-                            }
-                            FontRelativeLength::Ex(ex) => {
-                                ret.ex = Some(ret.ex.unwrap_or(0.) + ex * factor);
-                            }
-                            FontRelativeLength::Ch(ch) => {
-                                ret.ch = Some(ret.ch.unwrap_or(0.) + ch * factor);
-                            }
-                            FontRelativeLength::Rem(rem) => {
-                                ret.rem = Some(ret.rem.unwrap_or(0.) + rem * factor);
-                            }
-                        }
-                    }
-                    NoCalcLength::ViewportPercentage(rel) => {
-                        match rel {
-                            ViewportPercentageLength::Vh(vh) => {
-                                ret.vh = Some(ret.vh.unwrap_or(0.) + vh * factor)
-                            }
-                            ViewportPercentageLength::Vw(vw) => {
-                                ret.vw = Some(ret.vw.unwrap_or(0.) + vw * factor)
-                            }
-                            ViewportPercentageLength::Vmax(vmax) => {
-                                ret.vmax = Some(ret.vmax.unwrap_or(0.) + vmax * factor)
-                            }
-                            ViewportPercentageLength::Vmin(vmin) => {
-                                ret.vmin = Some(ret.vmin.unwrap_or(0.) + vmin * factor)
-                            }
-                        }
-                    }
-                    NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
-                }
-            }
+            },
+            CalcNode::Length(ref l) => match *l {
+                NoCalcLength::Absolute(abs) => {
+                    ret.absolute = Some(match ret.absolute {
+                        Some(value) => value + abs * factor,
+                        None => abs * factor,
+                    });
+                },
+                NoCalcLength::FontRelative(rel) => match rel {
+                    FontRelativeLength::Em(em) => {
+                        ret.em = Some(ret.em.unwrap_or(0.) + em * factor);
+                    },
+                    FontRelativeLength::Ex(ex) => {
+                        ret.ex = Some(ret.ex.unwrap_or(0.) + ex * factor);
+                    },
+                    FontRelativeLength::Ch(ch) => {
+                        ret.ch = Some(ret.ch.unwrap_or(0.) + ch * factor);
+                    },
+                    FontRelativeLength::Rem(rem) => {
+                        ret.rem = Some(ret.rem.unwrap_or(0.) + rem * factor);
+                    },
+                },
+                NoCalcLength::ViewportPercentage(rel) => match rel {
+                    ViewportPercentageLength::Vh(vh) => {
+                        ret.vh = Some(ret.vh.unwrap_or(0.) + vh * factor)
+                    },
+                    ViewportPercentageLength::Vw(vw) => {
+                        ret.vw = Some(ret.vw.unwrap_or(0.) + vw * factor)
+                    },
+                    ViewportPercentageLength::Vmax(vmax) => {
+                        ret.vmax = Some(ret.vmax.unwrap_or(0.) + vmax * factor)
+                    },
+                    ViewportPercentageLength::Vmin(vmin) => {
+                        ret.vmin = Some(ret.vmin.unwrap_or(0.) + vmin * factor)
+                    },
+                },
+                NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
+            },
             CalcNode::Sub(ref a, ref b) => {
                 a.add_length_or_percentage_to(ret, factor)?;
                 b.add_length_or_percentage_to(ret, factor * -1.0)?;
-            }
+            },
             CalcNode::Sum(ref a, ref b) => {
                 a.add_length_or_percentage_to(ret, factor)?;
                 b.add_length_or_percentage_to(ret, factor)?;
-            }
-            CalcNode::Mul(ref a, ref b) => {
-                match b.to_number() {
-                    Ok(rhs) => {
-                        a.add_length_or_percentage_to(ret, factor * rhs)?;
-                    }
-                    Err(..) => {
-                        let lhs = a.to_number()?;
-                        b.add_length_or_percentage_to(ret, factor * lhs)?;
-                    }
-                }
-            }
+            },
+            CalcNode::Mul(ref a, ref b) => match b.to_number() {
+                Ok(rhs) => {
+                    a.add_length_or_percentage_to(ret, factor * rhs)?;
+                },
+                Err(..) => {
+                    let lhs = a.to_number()?;
+                    b.add_length_or_percentage_to(ret, factor * lhs)?;
+                },
+            },
             CalcNode::Div(ref a, ref b) => {
                 let new_factor = b.to_number()?;
                 if new_factor == 0. {
                     return Err(());
                 }
                 a.add_length_or_percentage_to(ret, factor / new_factor)?;
-            }
-            CalcNode::Angle(..) |
-            CalcNode::Time(..) |
-            CalcNode::Number(..) => return Err(()),
+            },
+            CalcNode::Angle(..) | CalcNode::Time(..) | CalcNode::Number(..) => return Err(()),
         }
 
         Ok(())
@@ -439,33 +431,31 @@ impl CalcNode {
                 let lhs = a.to_time()?;
                 let rhs = b.to_time()?;
                 Time::from_calc(lhs.seconds() - rhs.seconds())
-            }
+            },
             CalcNode::Sum(ref a, ref b) => {
                 let lhs = a.to_time()?;
                 let rhs = b.to_time()?;
                 Time::from_calc(lhs.seconds() + rhs.seconds())
-            }
-            CalcNode::Mul(ref a, ref b) => {
-                match b.to_number() {
-                    Ok(rhs) => {
-                        let lhs = a.to_time()?;
-                        Time::from_calc(lhs.seconds() * rhs)
-                    }
-                    Err(()) => {
-                        let lhs = a.to_number()?;
-                        let rhs = b.to_time()?;
-                        Time::from_calc(lhs * rhs.seconds())
-                    }
-                }
-            }
+            },
+            CalcNode::Mul(ref a, ref b) => match b.to_number() {
+                Ok(rhs) => {
+                    let lhs = a.to_time()?;
+                    Time::from_calc(lhs.seconds() * rhs)
+                },
+                Err(()) => {
+                    let lhs = a.to_number()?;
+                    let rhs = b.to_time()?;
+                    Time::from_calc(lhs * rhs.seconds())
+                },
+            },
             CalcNode::Div(ref a, ref b) => {
                 let lhs = a.to_time()?;
                 let rhs = b.to_number()?;
                 if rhs == 0. {
-                    return Err(())
+                    return Err(());
                 }
                 Time::from_calc(lhs.seconds() / rhs)
-            }
+            },
             CalcNode::Number(..) |
             CalcNode::Length(..) |
             CalcNode::Percentage(..) |
@@ -481,33 +471,31 @@ impl CalcNode {
                 let lhs = a.to_angle()?;
                 let rhs = b.to_angle()?;
                 Angle::from_calc(lhs.radians() - rhs.radians())
-            }
+            },
             CalcNode::Sum(ref a, ref b) => {
                 let lhs = a.to_angle()?;
                 let rhs = b.to_angle()?;
                 Angle::from_calc(lhs.radians() + rhs.radians())
-            }
-            CalcNode::Mul(ref a, ref b) => {
-                match a.to_angle() {
-                    Ok(lhs) => {
-                        let rhs = b.to_number()?;
-                        Angle::from_calc(lhs.radians() * rhs)
-                    }
-                    Err(..) => {
-                        let lhs = a.to_number()?;
-                        let rhs = b.to_angle()?;
-                        Angle::from_calc(lhs * rhs.radians())
-                    }
-                }
-            }
+            },
+            CalcNode::Mul(ref a, ref b) => match a.to_angle() {
+                Ok(lhs) => {
+                    let rhs = b.to_number()?;
+                    Angle::from_calc(lhs.radians() * rhs)
+                },
+                Err(..) => {
+                    let lhs = a.to_number()?;
+                    let rhs = b.to_angle()?;
+                    Angle::from_calc(lhs * rhs.radians())
+                },
+            },
             CalcNode::Div(ref a, ref b) => {
                 let lhs = a.to_angle()?;
                 let rhs = b.to_number()?;
                 if rhs == 0. {
-                    return Err(())
+                    return Err(());
                 }
                 Angle::from_calc(lhs.radians() / rhs)
-            }
+            },
             CalcNode::Number(..) |
             CalcNode::Length(..) |
             CalcNode::Percentage(..) |
@@ -519,23 +507,17 @@ impl CalcNode {
     fn to_number(&self) -> Result<CSSFloat, ()> {
         Ok(match *self {
             CalcNode::Number(n) => n,
-            CalcNode::Sum(ref a, ref b) => {
-                a.to_number()? + b.to_number()?
-            }
-            CalcNode::Sub(ref a, ref b) => {
-                a.to_number()? - b.to_number()?
-            }
-            CalcNode::Mul(ref a, ref b) => {
-                a.to_number()? * b.to_number()?
-            }
+            CalcNode::Sum(ref a, ref b) => a.to_number()? + b.to_number()?,
+            CalcNode::Sub(ref a, ref b) => a.to_number()? - b.to_number()?,
+            CalcNode::Mul(ref a, ref b) => a.to_number()? * b.to_number()?,
             CalcNode::Div(ref a, ref b) => {
                 let lhs = a.to_number()?;
                 let rhs = b.to_number()?;
                 if rhs == 0. {
-                    return Err(())
+                    return Err(());
                 }
                 lhs / rhs
-            }
+            },
             CalcNode::Length(..) |
             CalcNode::Percentage(..) |
             CalcNode::Angle(..) |
@@ -546,7 +528,7 @@ impl CalcNode {
     /// Convenience parsing function for integers.
     pub fn parse_integer<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<CSSInteger, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Integer)?
             .to_number()
@@ -558,7 +540,7 @@ impl CalcNode {
     pub fn parse_length_or_percentage<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        clamping_mode: AllowedNumericType
+        clamping_mode: AllowedNumericType,
     ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::LengthOrPercentage)?
             .to_length_or_percentage(clamping_mode)
@@ -568,7 +550,7 @@ impl CalcNode {
     /// Convenience parsing function for percentages.
     pub fn parse_percentage<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<CSSFloat, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Percentage)?
             .to_percentage()
@@ -579,7 +561,7 @@ impl CalcNode {
     pub fn parse_length<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        clamping_mode: AllowedNumericType
+        clamping_mode: AllowedNumericType,
     ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Length)?
             .to_length_or_percentage(clamping_mode)
@@ -589,7 +571,7 @@ impl CalcNode {
     /// Convenience parsing function for `<number>`.
     pub fn parse_number<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<CSSFloat, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Number)?
             .to_number()
@@ -599,7 +581,7 @@ impl CalcNode {
     /// Convenience parsing function for `<angle>`.
     pub fn parse_angle<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Angle, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Angle)?
             .to_angle()
@@ -609,7 +591,7 @@ impl CalcNode {
     /// Convenience parsing function for `<time>`.
     pub fn parse_time<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Time, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Time)?
             .to_time()
@@ -619,12 +601,12 @@ impl CalcNode {
     /// Convenience parsing function for `<number>` or `<percentage>`.
     pub fn parse_number_or_percentage<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<NumberOrPercentage, ParseError<'i>> {
         let node = Self::parse(context, input, CalcUnit::Percentage)?;
 
         if let Ok(value) = node.to_number() {
-            return Ok(NumberOrPercentage::Number { value })
+            return Ok(NumberOrPercentage::Number { value });
         }
 
         match node.to_percentage() {
@@ -636,13 +618,13 @@ impl CalcNode {
     /// Convenience parsing function for `<number>` or `<angle>`.
     pub fn parse_angle_or_number<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<AngleOrNumber, ParseError<'i>> {
         let node = Self::parse(context, input, CalcUnit::Angle)?;
 
         if let Ok(angle) = node.to_angle() {
             let degrees = angle.degrees();
-            return Ok(AngleOrNumber::Angle { degrees })
+            return Ok(AngleOrNumber::Angle { degrees });
         }
 
         match node.to_number() {

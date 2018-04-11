@@ -8,7 +8,8 @@
 use {Atom, CaseSensitivityExt, LocalName, Namespace, WeakAtom};
 use dom::TElement;
 use element_state::ElementState;
-use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
+use selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, SelectorImpl};
+use selector_parser::{Snapshot, SnapshotMap};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -35,7 +36,7 @@ use std::fmt;
 /// still need to take the ElementWrapper approach for attribute-dependent
 /// style. So we do it the same both ways for now to reduce complexity, but it's
 /// worth measuring the performance impact (if any) of the mStateMask approach.
-pub trait ElementSnapshot : Sized {
+pub trait ElementSnapshot: Sized {
     /// The state of the snapshot, if any.
     fn state(&self) -> Option<ElementState>;
 
@@ -157,7 +158,7 @@ where
         _setter: &mut F,
     ) -> bool
     where
-         F: FnMut(&Self, ElementSelectorFlags),
+        F: FnMut(&Self, ElementSelectorFlags),
     {
         // Some pseudo-classes need special handling to evaluate them against
         // the snapshot.
@@ -166,11 +167,11 @@ where
             NonTSPseudoClass::MozAny(ref selectors) => {
                 use selectors::matching::matches_complex_selector;
                 return context.nest(|context| {
-                    selectors.iter().any(|s| {
-                        matches_complex_selector(s.iter(), self, context, _setter)
-                    })
+                    selectors
+                        .iter()
+                        .any(|s| matches_complex_selector(s.iter(), self, context, _setter))
                 });
-            }
+            },
 
             // :dir is implemented in terms of state flags, but which state flag
             // it maps to depends on the argument to :dir.  That means we can't
@@ -193,7 +194,7 @@ where
                     None => self.element.state(),
                 };
                 return state.contains(selector_flag);
-            }
+            },
 
             // For :link and :visited, we don't actually want to test the
             // element state directly.
@@ -202,10 +203,10 @@ where
             // match.
             NonTSPseudoClass::Link => {
                 return self.is_link() && context.visited_handling().matches_unvisited()
-            }
+            },
             NonTSPseudoClass::Visited => {
                 return self.is_link() && context.visited_handling().matches_visited()
-            }
+            },
 
             #[cfg(feature = "gecko")]
             NonTSPseudoClass::MozTableBorderNonzero => {
@@ -214,7 +215,7 @@ where
                         return snapshot.mIsTableBorderNonzero();
                     }
                 }
-            }
+            },
 
             #[cfg(feature = "gecko")]
             NonTSPseudoClass::MozBrowserFrame => {
@@ -223,34 +224,27 @@ where
                         return snapshot.mIsMozBrowserFrame();
                     }
                 }
-            }
+            },
 
             // :lang() needs to match using the closest ancestor xml:lang="" or
             // lang="" attribtue from snapshots.
             NonTSPseudoClass::Lang(ref lang_arg) => {
-                return self.element.match_element_lang(Some(self.get_lang()), lang_arg);
-            }
+                return self.element
+                    .match_element_lang(Some(self.get_lang()), lang_arg);
+            },
 
-            _ => {}
+            _ => {},
         }
 
         let flag = pseudo_class.state_flag();
         if flag.is_empty() {
-            return self.element.match_non_ts_pseudo_class(
-                pseudo_class,
-                context,
-                &mut |_, _| {},
-            )
+            return self.element
+                .match_non_ts_pseudo_class(pseudo_class, context, &mut |_, _| {});
         }
         match self.snapshot().and_then(|s| s.state()) {
             Some(snapshot_state) => snapshot_state.intersects(flag),
-            None => {
-                self.element.match_non_ts_pseudo_class(
-                    pseudo_class,
-                    context,
-                    &mut |_, _| {},
-                )
-            }
+            None => self.element
+                .match_non_ts_pseudo_class(pseudo_class, context, &mut |_, _| {}),
         }
     }
 
@@ -333,26 +327,24 @@ where
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => {
                 snapshot.attr_matches(ns, local_name, operation)
-            }
-            _ => self.element.attr_matches(ns, local_name, operation)
+            },
+            _ => self.element.attr_matches(ns, local_name, operation),
         }
     }
 
     fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs() => {
-                snapshot.id_attr().map_or(false, |atom| case_sensitivity.eq_atom(&atom, id))
-            }
-            _ => self.element.has_id(id, case_sensitivity)
+            Some(snapshot) if snapshot.has_attrs() => snapshot
+                .id_attr()
+                .map_or(false, |atom| case_sensitivity.eq_atom(&atom, id)),
+            _ => self.element.has_id(id, case_sensitivity),
         }
     }
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs() => {
-                snapshot.has_class(name, case_sensitivity)
-            }
-            _ => self.element.has_class(name, case_sensitivity)
+            Some(snapshot) if snapshot.has_attrs() => snapshot.has_class(name, case_sensitivity),
+            _ => self.element.has_class(name, case_sensitivity),
         }
     }
 
@@ -365,12 +357,14 @@ where
     }
 
     fn pseudo_element_originating_element(&self) -> Option<Self> {
-        self.element.pseudo_element_originating_element()
+        self.element
+            .pseudo_element_originating_element()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
     fn assigned_slot(&self) -> Option<Self> {
-        self.element.assigned_slot()
+        self.element
+            .assigned_slot()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 

@@ -8,7 +8,8 @@
 
 use cssparser::SourceLocation;
 use media_queries::MediaList;
-use shared_lock::{DeepCloneWithLock, DeepCloneParams, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ToCss};
@@ -31,10 +32,7 @@ impl DeepCloneWithLock for ImportSheet {
         use gecko::data::GeckoStyleSheet;
         use gecko_bindings::bindings;
         let clone = unsafe {
-            bindings::Gecko_StyleSheet_Clone(
-                self.0.raw() as *const _,
-                params.reference_sheet
-            )
+            bindings::Gecko_StyleSheet_Clone(self.0.raw() as *const _, params.reference_sheet)
         };
         ImportSheet(unsafe { GeckoStyleSheet::from_addrefed(clone) })
     }
@@ -116,7 +114,7 @@ impl ToCssWithGuard for ImportRule {
             Some(media) if !media.is_empty() => {
                 dest.write_str(" ")?;
                 media.to_css(&mut CssWriter::new(dest))?;
-            }
+            },
             _ => {},
         };
 

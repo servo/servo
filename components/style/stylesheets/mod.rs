@@ -29,7 +29,8 @@ use error_reporting::NullReporter;
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use parser::{ParserContext, ParserErrorContext};
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use str::CssStringWriter;
 use style_traits::ParsingMode;
@@ -47,8 +48,9 @@ pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOrigi
 pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
 pub use self::rule_list::{CssRules, CssRulesHelpers};
-pub use self::rules_iterator::{AllRules, EffectiveRules, NestedRuleIterationCondition, RulesIterator};
-pub use self::stylesheet::{Namespaces, Stylesheet, DocumentStyleSheet};
+pub use self::rules_iterator::{AllRules, EffectiveRules};
+pub use self::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
+pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
 pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 pub use self::style_rule::StyleRule;
 pub use self::supports_rule::SupportsRule;
@@ -92,7 +94,6 @@ impl Eq for UrlExtraData {}
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
-
     Namespace(Arc<Locked<NamespaceRule>>),
     Import(Arc<Locked<ImportRule>>),
     Style(Arc<Locked<StyleRule>>),
@@ -114,18 +115,19 @@ impl CssRule {
         match *self {
             // Not all fields are currently fully measured. Extra measurement
             // may be added later.
-
             CssRule::Namespace(_) => 0,
 
             // We don't need to measure ImportRule::stylesheet because we measure
             // it on the C++ side in the child list of the ServoStyleSheet.
             CssRule::Import(_) => 0,
 
-            CssRule::Style(ref lock) =>
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
+            CssRule::Style(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
 
-            CssRule::Media(ref lock) =>
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
+            CssRule::Media(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
 
             CssRule::FontFace(_) => 0,
             CssRule::FontFeatureValues(_) => 0,
@@ -133,14 +135,17 @@ impl CssRule {
             CssRule::Viewport(_) => 0,
             CssRule::Keyframes(_) => 0,
 
-            CssRule::Supports(ref lock) =>
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
+            CssRule::Supports(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
 
-            CssRule::Page(ref lock) =>
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
+            CssRule::Page(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
 
-            CssRule::Document(ref lock) =>
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
+            CssRule::Document(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
         }
     }
 }
@@ -149,28 +154,28 @@ impl CssRule {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
-    Style               = 1,
-    Charset             = 2,
-    Import              = 3,
-    Media               = 4,
-    FontFace            = 5,
-    Page                = 6,
+    Style = 1,
+    Charset = 2,
+    Import = 3,
+    Media = 4,
+    FontFace = 5,
+    Page = 6,
     // https://drafts.csswg.org/css-animations-1/#interface-cssrule-idl
-    Keyframes           = 7,
-    Keyframe            = 8,
+    Keyframes = 7,
+    Keyframe = 8,
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
-    Margin              = 9,
-    Namespace           = 10,
+    Margin = 9,
+    Namespace = 10,
     // https://drafts.csswg.org/css-counter-styles-3/#extentions-to-cssrule-interface
-    CounterStyle        = 11,
+    CounterStyle = 11,
     // https://drafts.csswg.org/css-conditional-3/#extentions-to-cssrule-interface
-    Supports            = 12,
+    Supports = 12,
     // https://www.w3.org/TR/2012/WD-css3-conditional-20120911/#extentions-to-cssrule-interface
-    Document            = 13,
+    Document = 13,
     // https://drafts.csswg.org/css-fonts-3/#om-fontfeaturevalues
-    FontFeatureValues   = 14,
+    FontFeatureValues = 14,
     // https://drafts.csswg.org/css-device-adapt/#css-rule-interface
-    Viewport            = 15,
+    Viewport = 15,
 }
 
 #[allow(missing_docs)]
@@ -211,7 +216,7 @@ impl CssRule {
             CssRule::Viewport(_) => CssRuleType::Viewport,
             CssRule::Supports(_) => CssRuleType::Supports,
             CssRule::Page(_) => CssRuleType::Page,
-            CssRule::Document(_)  => CssRuleType::Document,
+            CssRule::Document(_) => CssRuleType::Document,
         }
     }
 
@@ -234,7 +239,7 @@ impl CssRule {
         parent_stylesheet_contents: &StylesheetContents,
         shared_lock: &SharedRwLock,
         state: Option<State>,
-        loader: Option<&StylesheetLoader>
+        loader: Option<&StylesheetLoader>,
     ) -> Result<(Self, State), SingleRuleParseError> {
         let url_data = parent_stylesheet_contents.url_data.read();
         let error_reporter = NullReporter;
@@ -256,7 +261,9 @@ impl CssRule {
         let mut rule_parser = TopLevelRuleParser {
             stylesheet_origin: parent_stylesheet_contents.origin,
             context: context,
-            error_context: ParserErrorContext { error_reporter: &error_reporter },
+            error_context: ParserErrorContext {
+                error_reporter: &error_reporter,
+            },
             shared_lock: &shared_lock,
             loader: loader,
             state: state,
@@ -296,13 +303,19 @@ impl DeepCloneWithLock for CssRule {
             },
             CssRule::Style(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Style(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
+                CssRule::Style(Arc::new(lock.wrap(rule.deep_clone_with_lock(
+                    lock,
+                    guard,
+                    params,
+                ))))
             },
             CssRule::Media(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Media(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
+                CssRule::Media(Arc::new(lock.wrap(rule.deep_clone_with_lock(
+                    lock,
+                    guard,
+                    params,
+                ))))
             },
             CssRule::FontFace(ref arc) => {
                 let rule = arc.read_with(guard);
@@ -322,23 +335,35 @@ impl DeepCloneWithLock for CssRule {
             },
             CssRule::Keyframes(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Keyframes(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
+                CssRule::Keyframes(Arc::new(lock.wrap(rule.deep_clone_with_lock(
+                    lock,
+                    guard,
+                    params,
+                ))))
             },
             CssRule::Supports(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Supports(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
+                CssRule::Supports(Arc::new(lock.wrap(rule.deep_clone_with_lock(
+                    lock,
+                    guard,
+                    params,
+                ))))
             },
             CssRule::Page(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Page(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
+                CssRule::Page(Arc::new(lock.wrap(rule.deep_clone_with_lock(
+                    lock,
+                    guard,
+                    params,
+                ))))
             },
             CssRule::Document(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Document(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
+                CssRule::Document(Arc::new(lock.wrap(rule.deep_clone_with_lock(
+                    lock,
+                    guard,
+                    params,
+                ))))
             },
         }
     }

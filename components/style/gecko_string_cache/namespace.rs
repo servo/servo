@@ -13,8 +13,12 @@ use string_cache::{Atom, WeakAtom};
 
 #[macro_export]
 macro_rules! ns {
-    () => { $crate::string_cache::Namespace(atom!("")) };
-    ($s: tt) => { $crate::string_cache::Namespace(atom!($s)) };
+    () => {
+        $crate::string_cache::Namespace(atom!(""))
+    };
+    ($s:tt) => {
+        $crate::string_cache::Namespace(atom!($s))
+    };
 }
 
 /// A Gecko namespace is just a wrapped atom.
@@ -41,16 +45,13 @@ impl Deref for WeakNamespace {
     }
 }
 
-
 impl Deref for Namespace {
     type Target = WeakNamespace;
 
     #[inline]
     fn deref(&self) -> &WeakNamespace {
         let weak: *const WeakAtom = &*self.0;
-        unsafe {
-            &*(weak as *const WeakNamespace)
-        }
+        unsafe { &*(weak as *const WeakNamespace) }
     }
 }
 

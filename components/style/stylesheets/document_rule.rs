@@ -12,7 +12,8 @@ use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use media_queries::Device;
 use parser::{Parse, ParserContext};
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -102,15 +103,17 @@ macro_rules! parse_quoted_or_unquoted_string {
     ($input:ident, $url_matching_function:expr) => {
         $input.parse_nested_block(|input| {
             let start = input.position();
-            input.parse_entirely(|input| {
-                let string = input.expect_string()?;
-                Ok($url_matching_function(string.as_ref().to_owned()))
-            }).or_else(|_: ParseError| {
-                while let Ok(_) = input.next() {}
-                Ok($url_matching_function(input.slice_from(start).to_string()))
-            })
+            input
+                .parse_entirely(|input| {
+                    let string = input.expect_string()?;
+                    Ok($url_matching_function(string.as_ref().to_owned()))
+                })
+                .or_else(|_: ParseError| {
+                    while let Ok(_) = input.next() {}
+                    Ok($url_matching_function(input.slice_from(start).to_string()))
+                })
         })
-    }
+    };
 }
 
 impl UrlMatchingFunction {
@@ -119,17 +122,28 @@ impl UrlMatchingFunction {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|input| input.expect_function_matching("url-prefix")).is_ok() {
-            return parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::UrlPrefix)
+        if input
+            .try(|input| input.expect_function_matching("url-prefix"))
+            .is_ok()
+        {
+            return parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::UrlPrefix);
         }
 
-        if input.try(|input| input.expect_function_matching("domain")).is_ok() {
-            return parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::Domain)
+        if input
+            .try(|input| input.expect_function_matching("domain"))
+            .is_ok()
+        {
+            return parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::Domain);
         }
 
-        if input.try(|input| input.expect_function_matching("regexp")).is_ok() {
+        if input
+            .try(|input| input.expect_function_matching("regexp"))
+            .is_ok()
+        {
             return input.parse_nested_block(|input| {
-                Ok(UrlMatchingFunction::Regexp(input.expect_string()?.as_ref().to_owned()))
+                Ok(UrlMatchingFunction::Regexp(
+                    input.expect_string()?.as_ref().to_owned(),
+                ))
             });
         }
 
@@ -157,9 +171,7 @@ impl UrlMatchingFunction {
             UrlMatchingFunction::Domain(ref pat) |
             UrlMatchingFunction::Regexp(ref pat) => pat,
         });
-        unsafe {
-            Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func)
-        }
+        unsafe { Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func) }
     }
 
     #[cfg(not(feature = "gecko"))]
@@ -186,24 +198,25 @@ impl DocumentCondition {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let conditions = input.parse_comma_separated(|input| {
-            UrlMatchingFunction::parse(context, input)
-        })?;
+        let conditions =
+            input.parse_comma_separated(|input| UrlMatchingFunction::parse(context, input))?;
 
         let condition = DocumentCondition(conditions);
         if !condition.allowed_in(context) {
-            return Err(input.new_custom_error(
-                StyleParseErrorKind::UnsupportedAtRule("-moz-document".into())
-            ))
+            return Err(
+                input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(
+                    "-moz-document".into(),
+                )),
+            );
         }
         Ok(condition)
     }
 
     /// Evaluate a document condition.
     pub fn evaluate(&self, device: &Device) -> bool {
-        self.0.iter().any(|url_matching_function| {
-            url_matching_function.evaluate(device)
-        })
+        self.0
+            .iter()
+            .any(|url_matching_function| url_matching_function.evaluate(device))
     }
 
     #[cfg(feature = "servo")]
@@ -224,7 +237,9 @@ impl DocumentCondition {
             return true;
         }
 
-        if !unsafe { structs::StaticPrefs_sVarCache_layout_css_moz_document_url_prefix_hack_enabled } {
+        if !unsafe {
+            structs::StaticPrefs_sVarCache_layout_css_moz_document_url_prefix_hack_enabled
+        } {
             return false;
         }
 
@@ -238,7 +253,7 @@ impl DocumentCondition {
         // NOTE(emilio): This technically allows url-prefix("") too, but...
         match self.0[0] {
             UrlMatchingFunction::UrlPrefix(ref prefix) => prefix.is_empty(),
-            _ => false
+            _ => false,
         }
     }
 }

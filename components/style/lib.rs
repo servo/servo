@@ -30,30 +30,43 @@ extern crate arrayvec;
 extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
-#[allow(unused_extern_crates)] extern crate byteorder;
-#[cfg(feature = "gecko")] #[macro_use] #[no_link] extern crate cfg_if;
-#[macro_use] extern crate cssparser;
-#[macro_use] extern crate debug_unreachable;
+#[allow(unused_extern_crates)]
+extern crate byteorder;
+#[cfg(feature = "gecko")]
+#[macro_use]
+#[no_link]
+extern crate cfg_if;
+#[macro_use]
+extern crate cssparser;
+#[macro_use]
+extern crate debug_unreachable;
 extern crate euclid;
 extern crate fallible;
 extern crate fnv;
-#[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
+#[cfg(feature = "gecko")]
+#[macro_use]
+pub mod gecko_string_cache;
 extern crate hashglobe;
+#[cfg(feature = "servo")]
+#[macro_use]
+extern crate html5ever;
 extern crate itertools;
 extern crate itoa;
-#[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-#[macro_use] extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
 #[cfg(feature = "gecko")]
 pub extern crate nsstring;
-#[cfg(feature = "gecko")] extern crate num_cpus;
+#[cfg(feature = "gecko")]
+extern crate num_cpus;
 extern crate num_integer;
 extern crate num_traits;
 extern crate ordered_float;
@@ -62,14 +75,21 @@ extern crate parking_lot;
 extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
-#[cfg(feature = "servo")] #[macro_use] extern crate serde;
+#[cfg(feature = "servo")]
+#[macro_use]
+extern crate serde;
 pub extern crate servo_arc;
-#[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
-#[cfg(feature = "servo")] extern crate servo_config;
-#[cfg(feature = "servo")] extern crate servo_url;
+#[cfg(feature = "servo")]
+#[macro_use]
+extern crate servo_atoms;
+#[cfg(feature = "servo")]
+extern crate servo_config;
+#[cfg(feature = "servo")]
+extern crate servo_url;
 extern crate smallbitvec;
 extern crate smallvec;
-#[cfg(feature = "servo")] extern crate string_cache;
+#[cfg(feature = "servo")]
+extern crate string_cache;
 #[macro_use]
 extern crate style_derive;
 extern crate style_traits;
@@ -83,10 +103,12 @@ extern crate void;
 #[macro_use]
 mod macros;
 
-#[cfg(feature = "servo")] pub mod animation;
+#[cfg(feature = "servo")]
+pub mod animation;
 pub mod applicable_declarations;
 #[allow(missing_docs)] // TODO.
-#[cfg(feature = "servo")] pub mod attr;
+#[cfg(feature = "servo")]
+pub mod attr;
 pub mod author_styles;
 pub mod bezier;
 pub mod bloom;
@@ -98,12 +120,17 @@ pub mod dom;
 pub mod dom_apis;
 pub mod driver;
 pub mod element_state;
-#[cfg(feature = "servo")] mod encoding_support;
+#[cfg(feature = "servo")]
+mod encoding_support;
 pub mod error_reporting;
 pub mod font_face;
 pub mod font_metrics;
-#[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko;
-#[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko_bindings;
+#[cfg(feature = "gecko")]
+#[allow(unsafe_code)]
+pub mod gecko;
+#[cfg(feature = "gecko")]
+#[allow(unsafe_code)]
+pub mod gecko_bindings;
 pub mod hash;
 pub mod invalidation;
 #[allow(missing_docs)] // TODO.
@@ -133,16 +160,25 @@ pub mod traversal_flags;
 #[allow(non_camel_case_types)]
 pub mod values;
 
-#[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
-#[cfg(feature = "gecko")] pub use gecko_string_cache::Atom;
-#[cfg(feature = "gecko")] pub use gecko_string_cache::Namespace;
-#[cfg(feature = "gecko")] pub use gecko_string_cache::Atom as Prefix;
-#[cfg(feature = "gecko")] pub use gecko_string_cache::Atom as LocalName;
+#[cfg(feature = "gecko")]
+pub use gecko_string_cache as string_cache;
+#[cfg(feature = "gecko")]
+pub use gecko_string_cache::Atom;
+#[cfg(feature = "gecko")]
+pub use gecko_string_cache::Namespace;
+#[cfg(feature = "gecko")]
+pub use gecko_string_cache::Atom as Prefix;
+#[cfg(feature = "gecko")]
+pub use gecko_string_cache::Atom as LocalName;
 
-#[cfg(feature = "servo")] pub use servo_atoms::Atom;
-#[cfg(feature = "servo")] pub use html5ever::Prefix;
-#[cfg(feature = "servo")] pub use html5ever::LocalName;
-#[cfg(feature = "servo")] pub use html5ever::Namespace;
+#[cfg(feature = "servo")]
+pub use servo_atoms::Atom;
+#[cfg(feature = "servo")]
+pub use html5ever::Prefix;
+#[cfg(feature = "servo")]
+pub use html5ever::LocalName;
+#[cfg(feature = "servo")]
+pub use html5ever::Namespace;
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs
@@ -154,7 +190,9 @@ pub mod properties {
 }
 
 // uses a macro from properties
-#[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
+#[cfg(feature = "servo")]
+#[allow(unsafe_code)]
+pub mod servo;
 
 #[cfg(feature = "gecko")]
 #[allow(unsafe_code, missing_docs)]
@@ -178,8 +216,10 @@ macro_rules! reexport_computed_values {
 }
 longhand_properties_idents!(reexport_computed_values);
 
-#[cfg(feature = "gecko")] use gecko_string_cache::WeakAtom;
-#[cfg(feature = "servo")] use servo_atoms::Atom as WeakAtom;
+#[cfg(feature = "gecko")]
+use gecko_string_cache::WeakAtom;
+#[cfg(feature = "servo")]
+use servo_atoms::Atom as WeakAtom;
 
 /// Extension methods for selectors::attr::CaseSensitivity
 pub trait CaseSensitivityExt {

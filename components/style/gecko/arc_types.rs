@@ -8,13 +8,25 @@
 
 #![allow(non_snake_case, missing_docs)]
 
-use gecko_bindings::bindings::{RawServoCounterStyleRule, RawServoFontFeatureValuesRule, RawServoImportRule};
-use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule, RawServoSupportsRule};
-use gecko_bindings::bindings::{RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
-use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
+use gecko_bindings::bindings::RawServoCounterStyleRule;
+use gecko_bindings::bindings::RawServoDocumentRule;
+use gecko_bindings::bindings::RawServoFontFeatureValuesRule;
+use gecko_bindings::bindings::RawServoImportRule;
+use gecko_bindings::bindings::RawServoKeyframe;
+use gecko_bindings::bindings::RawServoKeyframesRule;
+use gecko_bindings::bindings::RawServoMediaRule;
+use gecko_bindings::bindings::RawServoNamespaceRule;
+use gecko_bindings::bindings::RawServoPageRule;
+use gecko_bindings::bindings::RawServoRuleNode;
+use gecko_bindings::bindings::RawServoRuleNodeStrong;
+use gecko_bindings::bindings::RawServoSupportsRule;
 use gecko_bindings::bindings::ServoCssRules;
-use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoFontFaceRule};
-use gecko_bindings::structs::{RawServoMediaList, RawServoStyleRule, RawServoStyleSheetContents};
+use gecko_bindings::structs::RawServoAnimationValue;
+use gecko_bindings::structs::RawServoDeclarationBlock;
+use gecko_bindings::structs::RawServoFontFaceRule;
+use gecko_bindings::structs::RawServoMediaList;
+use gecko_bindings::structs::RawServoStyleRule;
+use gecko_bindings::structs::RawServoStyleSheetContents;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
@@ -23,13 +35,13 @@ use rule_tree::StrongRuleNode;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
-use stylesheets::{CssRules, CounterStyleRule, FontFaceRule, FontFeatureValuesRule};
-use stylesheets::{ImportRule, KeyframesRule, MediaRule, StylesheetContents, StyleRule};
-use stylesheets::{NamespaceRule, PageRule, SupportsRule, DocumentRule};
+use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
+use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
+use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use stylesheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
-    ($servo_type:ty => $gecko_type:ty [$addref:ident, $release:ident]) => {
+    ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
         unsafe impl HasFFI for $servo_type {
             type FFIType = $gecko_type;
         }
@@ -44,7 +56,7 @@ macro_rules! impl_arc_ffi {
         pub unsafe extern "C" fn $release(obj: &$gecko_type) {
             <$servo_type>::release(obj);
         }
-    }
+    };
 }
 
 impl_arc_ffi!(Locked<CssRules> => ServoCssRules
@@ -140,7 +152,6 @@ pub unsafe extern "C" fn Servo_ComputedStyle_Release(obj: &ComputedValues) {
         let _: Arc<ComputedValues> = ptr::read(a);
     });
 }
-
 
 impl From<Arc<ComputedValues>> for Strong<ComputedValues> {
     fn from(arc: Arc<ComputedValues>) -> Self {

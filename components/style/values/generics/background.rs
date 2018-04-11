@@ -5,15 +5,15 @@
 //! Generic types for CSS values related to backgrounds.
 
 /// A generic value for the `background-size` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToComputedValue, ToCss)]
 pub enum BackgroundSize<LengthOrPercentageOrAuto> {
     /// `<width> <height>`
     Explicit {
         /// Explicit width.
         width: LengthOrPercentageOrAuto,
         /// Explicit height.
-        height: LengthOrPercentageOrAuto
+        height: LengthOrPercentageOrAuto,
     },
     /// `cover`
     #[animation(error)]

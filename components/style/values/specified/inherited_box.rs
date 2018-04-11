@@ -21,7 +21,7 @@ pub struct ImageOrientation {
     pub angle: Option<Angle>,
 
     /// Whether or not "flip" was specified
-    pub flipped: bool
+    pub flipped: bool,
 }
 
 impl ToCss for ImageOrientation {
@@ -64,16 +64,16 @@ fn orientation_of_angle(angle: &computed::Angle) -> Orientation {
         rounded_angle += TWO_PI;
     }
     if rounded_angle < 0.25 * PI {
-        return Orientation::Angle0
+        return Orientation::Angle0;
     }
     if rounded_angle < 0.75 * PI {
-        return Orientation::Angle90
+        return Orientation::Angle90;
     }
     if rounded_angle < 1.25 * PI {
-        return Orientation::Angle180
+        return Orientation::Angle180;
     }
     if rounded_angle < 1.75 * PI {
-        return Orientation::Angle270
+        return Orientation::Angle270;
     }
     Orientation::Angle0
 }
@@ -99,11 +99,9 @@ impl ToComputedValue for ImageOrientation {
     #[inline]
     fn from_computed_value(computed: &computed::ImageOrientation) -> Self {
         match *computed {
-            computed::ImageOrientation::FromImage => {
-                ImageOrientation {
-                    angle: None,
-                    flipped: false
-                }
+            computed::ImageOrientation::FromImage => ImageOrientation {
+                angle: None,
+                flipped: false,
             },
 
             computed::ImageOrientation::AngleWithFlipped(ref orientation, flipped) => {
@@ -111,7 +109,7 @@ impl ToComputedValue for ImageOrientation {
                     angle: Some(orientation.angle()),
                     flipped: flipped,
                 }
-            }
+            },
         }
     }
 }
@@ -120,14 +118,26 @@ impl Parse for ImageOrientation {
     // from-image | <angle> | [<angle>? flip]
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
+        if input
+            .try(|input| input.expect_ident_matching("from-image"))
+            .is_ok()
+        {
             // Handle from-image
-            Ok(ImageOrientation { angle: None, flipped: false })
-        } else if input.try(|input| input.expect_ident_matching("flip")).is_ok() {
+            Ok(ImageOrientation {
+                angle: None,
+                flipped: false,
+            })
+        } else if input
+            .try(|input| input.expect_ident_matching("flip"))
+            .is_ok()
+        {
             // Handle flip
-            Ok(ImageOrientation { angle: Some(Angle::zero()), flipped: true })
+            Ok(ImageOrientation {
+                angle: Some(Angle::zero()),
+                flipped: true,
+            })
         } else {
             // Handle <angle> | <angle> flip
             let angle = input.try(|input| Angle::parse(context, input)).ok();
@@ -135,8 +145,13 @@ impl Parse for ImageOrientation {
                 return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
 
-            let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
-            Ok(ImageOrientation { angle: angle, flipped: flipped })
+            let flipped = input
+                .try(|input| input.expect_ident_matching("flip"))
+                .is_ok();
+            Ok(ImageOrientation {
+                angle: angle,
+                flipped: flipped,
+            })
         }
     }
 }

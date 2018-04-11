@@ -96,17 +96,18 @@ trait PrivateMatchMethods: TElement {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
 
-        debug_assert!(replacements.intersects(RestyleHint::replacements()) &&
-                      (replacements & !RestyleHint::replacements()).is_empty());
+        debug_assert!(
+            replacements.intersects(RestyleHint::replacements()) &&
+                (replacements & !RestyleHint::replacements()).is_empty()
+        );
 
         let stylist = &context.shared.stylist;
         let guards = &context.shared.guards;
 
-        let primary_rules =
-            match cascade_visited {
-                CascadeVisitedMode::Unvisited => cascade_inputs.primary.rules.as_mut(),
-                CascadeVisitedMode::Visited => cascade_inputs.primary.visited_rules.as_mut(),
-            };
+        let primary_rules = match cascade_visited {
+            CascadeVisitedMode::Unvisited => cascade_inputs.primary.rules.as_mut(),
+            CascadeVisitedMode::Visited => cascade_inputs.primary.visited_rules.as_mut(),
+        };
 
         let primary_rules = match primary_rules {
             Some(r) => r,
@@ -115,16 +116,16 @@ trait PrivateMatchMethods: TElement {
 
         let replace_rule_node = |level: CascadeLevel,
                                  pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
-                                 path: &mut StrongRuleNode| -> bool {
+                                 path: &mut StrongRuleNode|
+         -> bool {
             let mut important_rules_changed = false;
-            let new_node =
-                stylist.rule_tree().update_rule_at_level(
-                    level,
-                    pdb,
-                    path,
-                    guards,
-                    &mut important_rules_changed,
-                );
+            let new_node = stylist.rule_tree().update_rule_at_level(
+                level,
+                pdb,
+                path,
+                guards,
+                &mut important_rules_changed,
+            );
             if let Some(n) = new_node {
                 *path = n;
             }
@@ -192,15 +193,18 @@ trait PrivateMatchMethods: TElement {
     fn after_change_style(
         &self,
         context: &mut StyleContext<Self>,
-        primary_style: &Arc<ComputedValues>
+        primary_style: &Arc<ComputedValues>,
     ) -> Option<Arc<ComputedValues>> {
         use context::CascadeInputs;
         use style_resolver::{PseudoElementResolution, StyleResolverForElement};
         use stylist::RuleInclusion;
 
         let rule_node = primary_style.rules();
-        let without_transition_rules =
-            context.shared.stylist.rule_tree().remove_transition_rule_if_applicable(rule_node);
+        let without_transition_rules = context
+            .shared
+            .stylist
+            .rule_tree()
+            .remove_transition_rule_if_applicable(rule_node);
         if without_transition_rules == *rule_node {
             // We don't have transition rule in this case, so return None to let
             // the caller use the original ComputedValues.
@@ -209,16 +213,18 @@ trait PrivateMatchMethods: TElement {
 
         // FIXME(bug 868975): We probably need to transition visited style as
         // well.
-        let inputs =
-            CascadeInputs {
-                rules: Some(without_transition_rules),
-                visited_rules: primary_style.visited_rules().cloned()
-            };
+        let inputs = CascadeInputs {
+            rules: Some(without_transition_rules),
+            visited_rules: primary_style.visited_rules().cloned(),
+        };
 
         // Actually `PseudoElementResolution` doesn't really matter.
-        let style =
-            StyleResolverForElement::new(*self, context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
-                .cascade_style_and_visited_with_default_parents(inputs);
+        let style = StyleResolverForElement::new(
+            *self,
+            context,
+            RuleInclusion::All,
+            PseudoElementResolution::IfApplicable,
+        ).cascade_style_and_visited_with_default_parents(inputs);
 
         Some(style.0)
     }
@@ -240,8 +246,10 @@ trait PrivateMatchMethods: TElement {
 
         let old_box_style = old.get_box();
 
-        let keyframes_could_have_changed =
-            context.shared.traversal_flags.contains(TraversalFlags::ForCSSRuleChanges);
+        let keyframes_could_have_changed = context
+            .shared
+            .traversal_flags
+            .contains(TraversalFlags::ForCSSRuleChanges);
 
         // If the traversal is triggered due to changes in CSS rules changes, we
         // need to try to update all CSS animations on the element if the
@@ -250,9 +258,7 @@ trait PrivateMatchMethods: TElement {
         //
         // TODO: We should check which @keyframes were added/changed/deleted and
         // update only animations corresponding to those @keyframes.
-        if keyframes_could_have_changed &&
-            (has_new_animation_style || self.has_css_animations())
-        {
+        if keyframes_could_have_changed && (has_new_animation_style || self.has_css_animations()) {
             return true;
         }
 
@@ -285,7 +291,7 @@ trait PrivateMatchMethods: TElement {
         context: &mut StyleContext<Self>,
         old_values: Option<&ComputedValues>,
         new_values: &ComputedValues,
-        restyle_hints: RestyleHint
+        restyle_hints: RestyleHint,
     ) {
         use context::PostAnimationTasks;
 
@@ -337,8 +343,10 @@ trait PrivateMatchMethods: TElement {
             tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
         }
 
-        let before_change_style = if self.might_need_transitions_update(old_values.as_ref().map(|s| &**s),
-                                                                        new_values) {
+        let before_change_style = if self.might_need_transitions_update(
+            old_values.as_ref().map(|s| &**s),
+            new_values,
+        ) {
             let after_change_style = if self.has_css_transitions() {
                 self.after_change_style(context, new_values)
             } else {
@@ -351,13 +359,9 @@ trait PrivateMatchMethods: TElement {
             let needs_transitions_update = {
                 // We borrow new_values here, so need to add a scope to make
                 // sure we release it before assigning a new value to it.
-                let after_change_style_ref =
-                    after_change_style.as_ref().unwrap_or(&new_values);
+                let after_change_style_ref = after_change_style.as_ref().unwrap_or(&new_values);
 
-                self.needs_transitions_update(
-                    old_values.as_ref().unwrap(),
-                    after_change_style_ref,
-                )
+                self.needs_transitions_update(old_values.as_ref().unwrap(), after_change_style_ref)
             };
 
             if needs_transitions_update {
@@ -387,9 +391,8 @@ trait PrivateMatchMethods: TElement {
         }
 
         if !tasks.is_empty() {
-            let task = ::context::SequentialTask::update_animations(*self,
-                                                                    before_change_style,
-                                                                    tasks);
+            let task =
+                ::context::SequentialTask::update_animations(*self, before_change_style, tasks);
             context.thread_local.tasks.push(task);
         }
     }
@@ -442,7 +445,6 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
-
     /// Computes and applies non-redundant damage.
     fn accumulate_damage_for(
         &self,
@@ -453,10 +455,11 @@ trait PrivateMatchMethods: TElement {
         pseudo: Option<&PseudoElement>,
     ) -> ChildCascadeRequirement {
         debug!("accumulate_damage_for: {:?}", self);
-        debug_assert!(!shared_context.traversal_flags.contains(TraversalFlags::Forgetful));
+        debug_assert!(!shared_context
+            .traversal_flags
+            .contains(TraversalFlags::Forgetful));
 
-        let difference =
-            self.compute_style_difference(old_values, new_values, pseudo);
+        let difference = self.compute_style_difference(old_values, new_values, pseudo);
 
         *damage |= difference.damage;
 
@@ -465,21 +468,22 @@ trait PrivateMatchMethods: TElement {
         // We need to cascade the children in order to ensure the correct
         // propagation of inherited computed value flags.
         if old_values.flags.maybe_inherited() != new_values.flags.maybe_inherited() {
-            debug!(" > flags changed: {:?} != {:?}", old_values.flags, new_values.flags);
+            debug!(
+                " > flags changed: {:?} != {:?}",
+                old_values.flags, new_values.flags
+            );
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         match difference.change {
-            StyleChange::Unchanged => {
-                return ChildCascadeRequirement::CanSkipCascade
-            },
+            StyleChange::Unchanged => return ChildCascadeRequirement::CanSkipCascade,
             StyleChange::Changed { reset_only } => {
                 // If inherited properties changed, the best we can do is
                 // cascade the children.
                 if !reset_only {
-                    return ChildCascadeRequirement::MustCascadeChildren
+                    return ChildCascadeRequirement::MustCascadeChildren;
                 }
-            }
+            },
         }
 
         let old_display = old_values.get_box().clone_display();
@@ -492,14 +496,14 @@ trait PrivateMatchMethods: TElement {
         // that gets handled on the frame constructor when processing
         // the reframe, so no need to handle that here.
         if old_display == Display::None && old_display != new_display {
-            return ChildCascadeRequirement::MustCascadeChildren
+            return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         // Blockification of children may depend on our display value,
         // so we need to actually do the recascade. We could potentially
         // do better, but it doesn't seem worth it.
         if old_display.is_item_container() != new_display.is_item_container() {
-            return ChildCascadeRequirement::MustCascadeChildren
+            return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         // Line break suppression may also be affected if the display
@@ -507,7 +511,7 @@ trait PrivateMatchMethods: TElement {
         #[cfg(feature = "gecko")]
         {
             if old_display.is_ruby_type() != new_display.is_ruby_type() {
-                return ChildCascadeRequirement::MustCascadeChildren
+                return ChildCascadeRequirement::MustCascadeChildren;
             }
         }
 
@@ -520,23 +524,20 @@ trait PrivateMatchMethods: TElement {
         {
             use values::specified::align::AlignFlags;
 
-            let old_justify_items =
-                old_values.get_position().clone_justify_items();
-            let new_justify_items =
-                new_values.get_position().clone_justify_items();
+            let old_justify_items = old_values.get_position().clone_justify_items();
+            let new_justify_items = new_values.get_position().clone_justify_items();
 
             let was_legacy_justify_items =
                 old_justify_items.computed.0.contains(AlignFlags::LEGACY);
 
-            let is_legacy_justify_items =
-                new_justify_items.computed.0.contains(AlignFlags::LEGACY);
+            let is_legacy_justify_items = new_justify_items.computed.0.contains(AlignFlags::LEGACY);
 
             if is_legacy_justify_items != was_legacy_justify_items {
                 return ChildCascadeRequirement::MustCascadeChildren;
             }
 
-            if was_legacy_justify_items &&
-                old_justify_items.computed != new_justify_items.computed {
+            if was_legacy_justify_items && old_justify_items.computed != new_justify_items.computed
+            {
                 return ChildCascadeRequirement::MustCascadeChildren;
             }
         }
@@ -577,8 +578,11 @@ trait PrivateMatchMethods: TElement {
         animation::complete_expired_transitions(this_opaque, style, context);
 
         // Merge any running animations into the current style, and cancel them.
-        let had_running_animations =
-            context.running_animations.read().get(&this_opaque).is_some();
+        let had_running_animations = context
+            .running_animations
+            .read()
+            .get(&this_opaque)
+            .is_some();
         if !had_running_animations {
             return;
         }
@@ -616,7 +620,7 @@ trait PrivateMatchMethods: TElement {
 impl<E: TElement> PrivateMatchMethods for E {}
 
 /// The public API that elements expose for selector matching.
-pub trait MatchMethods : TElement {
+pub trait MatchMethods: TElement {
     /// Returns the closest parent element that doesn't have a display: contents
     /// style (and thus generates a box).
     ///
@@ -635,8 +639,12 @@ pub trait MatchMethods : TElement {
                 None => return current,
             };
 
-            let is_display_contents =
-                current.borrow_data().unwrap().styles.primary().is_display_contents();
+            let is_display_contents = current
+                .borrow_data()
+                .unwrap()
+                .styles
+                .primary()
+                .is_display_contents();
 
             if !is_display_contents {
                 return current;
@@ -673,7 +681,11 @@ pub trait MatchMethods : TElement {
             let device = context.shared.stylist.device();
             let new_font_size = new_primary_style.get_font().clone_font_size();
 
-            if old_styles.primary.as_ref().map_or(true, |s| s.get_font().clone_font_size() != new_font_size) {
+            if old_styles
+                .primary
+                .as_ref()
+                .map_or(true, |s| s.get_font().clone_font_size() != new_font_size)
+            {
                 debug_assert!(self.owner_doc_matches_for_testing(device));
                 device.set_root_font_size(new_font_size.size());
                 // If the root font-size changed since last time, and something
@@ -701,7 +713,11 @@ pub trait MatchMethods : TElement {
         }
 
         // Don't accumulate damage if we're in a forgetful traversal.
-        if context.shared.traversal_flags.contains(TraversalFlags::Forgetful) {
+        if context
+            .shared
+            .traversal_flags
+            .contains(TraversalFlags::Forgetful)
+        {
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
@@ -719,7 +735,7 @@ pub trait MatchMethods : TElement {
                 &old_primary_style,
                 new_primary_style,
                 None,
-            )
+            ),
         );
 
         if data.styles.pseudos.is_empty() && old_styles.pseudos.is_empty() {
@@ -727,9 +743,11 @@ pub trait MatchMethods : TElement {
             return cascade_requirement;
         }
 
-        let pseudo_styles =
-            old_styles.pseudos.as_array().iter().zip(
-            data.styles.pseudos.as_array().iter());
+        let pseudo_styles = old_styles
+            .pseudos
+            .as_array()
+            .iter()
+            .zip(data.styles.pseudos.as_array().iter());
 
         for (i, (old, new)) in pseudo_styles.enumerate() {
             match (old, new) {
@@ -741,7 +759,7 @@ pub trait MatchMethods : TElement {
                         new,
                         Some(&PseudoElement::from_eager_index(i)),
                     );
-                }
+                },
                 (&None, &None) => {},
                 _ => {
                     // It's possible that we're switching from not having
@@ -757,13 +775,12 @@ pub trait MatchMethods : TElement {
                         data.damage |= RestyleDamage::reconstruct();
                         return cascade_requirement;
                     }
-                }
+                },
             }
         }
 
         cascade_requirement
     }
-
 
     /// Applies selector flags to an element, deferring mutations of the parent
     /// until after the traversal.
@@ -783,7 +800,9 @@ pub trait MatchMethods : TElement {
                 // If this is the element we're styling, we have exclusive
                 // access to the element, and thus it's fine inserting them,
                 // even from the worker.
-                unsafe { element.set_selector_flags(self_flags); }
+                unsafe {
+                    element.set_selector_flags(self_flags);
+                }
             } else {
                 // Otherwise, this element is an ancestor of the current element
                 // we're styling, and thus multiple children could write to it
@@ -829,7 +848,7 @@ pub trait MatchMethods : TElement {
             replacements,
             context,
             CascadeVisitedMode::Visited,
-            cascade_inputs
+            cascade_inputs,
         );
         result
     }
@@ -841,7 +860,7 @@ pub trait MatchMethods : TElement {
         &self,
         old_values: &ComputedValues,
         new_values: &ComputedValues,
-        pseudo: Option<&PseudoElement>
+        pseudo: Option<&PseudoElement>,
     ) -> StyleDifference {
         debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
         RestyleDamage::compute_style_difference(old_values, new_values)

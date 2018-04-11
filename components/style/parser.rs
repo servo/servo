@@ -6,9 +6,9 @@
 
 use context::QuirksMode;
 use cssparser::{Parser, SourceLocation, UnicodeRange};
-use error_reporting::{ParseErrorReporter, ContextualParseError};
+use error_reporting::{ContextualParseError, ParseErrorReporter};
 use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
-use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
+use stylesheets::{CssRuleType, Namespaces, Origin, UrlExtraData};
 
 /// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
 #[cfg(feature = "gecko")]
@@ -116,12 +116,14 @@ impl<'a> ParserContext<'a> {
     /// Whether we're in a @page rule.
     #[inline]
     pub fn in_page_rule(&self) -> bool {
-        self.rule_type.map_or(false, |rule_type| rule_type == CssRuleType::Page)
+        self.rule_type
+            .map_or(false, |rule_type| rule_type == CssRuleType::Page)
     }
 
     /// Get the rule type, which assumes that one is available.
     pub fn rule_type(&self) -> CssRuleType {
-        self.rule_type.expect("Rule type expected, but none was found.")
+        self.rule_type
+            .expect("Rule type expected, but none was found.")
     }
 
     /// Record a CSS parse error with this context’s error reporting.
@@ -130,15 +132,16 @@ impl<'a> ParserContext<'a> {
         context: &ParserErrorContext<R>,
         location: SourceLocation,
         error: ContextualParseError,
-    )
-    where
+    ) where
         R: ParseErrorReporter,
     {
         let location = SourceLocation {
             line: location.line,
             column: location.column,
         };
-        context.error_reporter.report_error(self.url_data, location, error)
+        context
+            .error_reporter
+            .report_error(self.url_data, location, error)
     }
 
     /// Returns whether chrome-only rules should be parsed.
@@ -151,7 +154,7 @@ impl<'a> ParserContext<'a> {
 // trait. This will make it easy to write more generic values in the future.
 /// A trait to abstract parsing of a specified value given a `ParserContext` and
 /// CSS input.
-pub trait Parse : Sized {
+pub trait Parse: Sized {
     /// Parse a value of this type.
     ///
     /// Returns an error on failure.
@@ -166,15 +169,19 @@ where
     T: Parse + OneOrMoreSeparated,
     <T as OneOrMoreSeparated>::S: Separator,
 {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         <T as OneOrMoreSeparated>::S::parse(input, |i| T::parse(context, i))
     }
 }
 
 impl Parse for UnicodeRange {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         UnicodeRange::parse(input).map_err(|e| e.into())
     }
 }

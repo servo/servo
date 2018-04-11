@@ -5,7 +5,7 @@
 //! Different objects protected by the same lock
 
 #[cfg(feature = "gecko")]
-use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
 use servo_arc::Arc;
@@ -51,7 +51,7 @@ impl SharedRwLock {
     #[cfg(feature = "servo")]
     pub fn new() -> Self {
         SharedRwLock {
-            arc: Arc::new(RwLock::new(()))
+            arc: Arc::new(RwLock::new(())),
         }
     }
 
@@ -59,7 +59,7 @@ impl SharedRwLock {
     #[cfg(feature = "gecko")]
     pub fn new() -> Self {
         SharedRwLock {
-            cell: Arc::new(AtomicRefCell::new(SomethingZeroSizedButTyped))
+            cell: Arc::new(AtomicRefCell::new(SomethingZeroSizedButTyped)),
         }
     }
 
@@ -109,9 +109,7 @@ impl<'a> Drop for SharedRwLockReadGuard<'a> {
     fn drop(&mut self) {
         // Unsafe: self.lock is private to this module, only ever set after `raw_read()`,
         // and never copied or cloned (see `compile_time_assert` below).
-        unsafe {
-            self.0.arc.raw_unlock_read()
-        }
+        unsafe { self.0.arc.raw_unlock_read() }
     }
 }
 
@@ -126,9 +124,7 @@ impl<'a> Drop for SharedRwLockWriteGuard<'a> {
     fn drop(&mut self) {
         // Unsafe: self.lock is private to this module, only ever set after `raw_write()`,
         // and never copied or cloned (see `compile_time_assert` below).
-        unsafe {
-            self.0.arc.raw_unlock_write()
-        }
+        unsafe { self.0.arc.raw_unlock_write() }
     }
 }
 
@@ -163,8 +159,10 @@ impl<T> Locked<T> {
 
     /// Access the data for reading.
     pub fn read_with<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a T {
-        assert!(self.same_lock_as(&guard.0),
-                "Locked::read_with called with a guard from an unrelated SharedRwLock");
+        assert!(
+            self.same_lock_as(&guard.0),
+            "Locked::read_with called with a guard from an unrelated SharedRwLock"
+        );
         let ptr = self.data.get();
 
         // Unsafe:
@@ -173,9 +171,7 @@ impl<T> Locked<T> {
         //   and we’ve checked that it’s the correct lock.
         // * The returned reference borrows *both* the data and the guard,
         //   so that it can outlive neither.
-        unsafe {
-            &*ptr
-        }
+        unsafe { &*ptr }
     }
 
     /// Access the data for reading without verifying the lock. Use with caution.
@@ -187,8 +183,10 @@ impl<T> Locked<T> {
 
     /// Access the data for writing.
     pub fn write_with<'a>(&'a self, guard: &'a mut SharedRwLockWriteGuard) -> &'a mut T {
-        assert!(self.same_lock_as(&guard.0),
-                "Locked::write_with called with a guard from an unrelated SharedRwLock");
+        assert!(
+            self.same_lock_as(&guard.0),
+            "Locked::write_with called with a guard from an unrelated SharedRwLock"
+        );
         let ptr = self.data.get();
 
         // Unsafe:
@@ -199,9 +197,7 @@ impl<T> Locked<T> {
         //   so that it can outlive neither.
         // * We require a mutable borrow of the guard,
         //   so that one write guard can only be used once at a time.
-        unsafe {
-            &mut *ptr
-        }
+        unsafe { &mut *ptr }
     }
 }
 
@@ -211,13 +207,13 @@ mod compile_time_assert {
 
     trait Marker1 {}
     impl<T: Clone> Marker1 for T {}
-    impl<'a> Marker1 for SharedRwLockReadGuard<'a> {}  // Assert SharedRwLockReadGuard: !Clone
-    impl<'a> Marker1 for SharedRwLockWriteGuard<'a> {}  // Assert SharedRwLockWriteGuard: !Clone
+    impl<'a> Marker1 for SharedRwLockReadGuard<'a> {} // Assert SharedRwLockReadGuard: !Clone
+    impl<'a> Marker1 for SharedRwLockWriteGuard<'a> {} // Assert SharedRwLockWriteGuard: !Clone
 
     trait Marker2 {}
     impl<T: Copy> Marker2 for T {}
-    impl<'a> Marker2 for SharedRwLockReadGuard<'a> {}  // Assert SharedRwLockReadGuard: !Copy
-    impl<'a> Marker2 for SharedRwLockWriteGuard<'a> {}  // Assert SharedRwLockWriteGuard: !Copy
+    impl<'a> Marker2 for SharedRwLockReadGuard<'a> {} // Assert SharedRwLockReadGuard: !Copy
+    impl<'a> Marker2 for SharedRwLockWriteGuard<'a> {} // Assert SharedRwLockWriteGuard: !Copy
 }
 
 /// Like ToCss, but with a lock guard given by the caller, and with the writer specified
@@ -248,10 +244,9 @@ pub struct DeepCloneParams {
 #[cfg(feature = "servo")]
 pub struct DeepCloneParams;
 
-
 /// A trait to do a deep clone of a given CSS type. Gets a lock and a read
 /// guard, in order to be able to read and clone nested structures.
-pub trait DeepCloneWithLock : Sized {
+pub trait DeepCloneWithLock: Sized {
     /// Deep clones this object.
     fn deep_clone_with_lock(
         &self,

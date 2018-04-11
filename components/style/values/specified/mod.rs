@@ -10,7 +10,7 @@ use {Atom, Namespace, Prefix};
 use context::QuirksMode;
 use cssparser::{Parser, Token};
 use num_traits::One;
-use parser::{ParserContext, Parse};
+use parser::{Parse, ParserContext};
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -19,24 +19,25 @@ use super::{Auto, CSSFloat, CSSInteger, Either};
 use super::computed::{Context, ToComputedValue};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
-use super::generics::grid::{TrackSize as GenericTrackSize, TrackList as GenericTrackList};
+use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
 use values::serialize_atom_identifier;
 use values::specified::calc::CalcNode;
 
 pub use properties::animated_properties::TransitionProperty;
 pub use self::angle::Angle;
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignContent, JustifyContent, AlignItems, ContentDistribution, SelfAlignment, JustifyItems};
+pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignSelf, JustifySelf};
+pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
-pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
+pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
+pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing};
 pub use self::column::ColumnCount;
-pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
-pub use self::font::{FontFamily, FontLanguageOverride, FontVariationSettings, FontVariantEastAsian};
-pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
-pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
+pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontVariantAlternates, FontWeight};
+pub use self::font::{FontFamily, FontLanguageOverride, FontVariantEastAsian, FontVariationSettings};
+pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
+pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective};
 pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
@@ -71,7 +72,7 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize, TextAlign};
-pub use self::text::{TextEmphasisStyle, TextEmphasisPosition};
+pub use self::text::{TextEmphasisPosition, TextEmphasisStyle};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform};
@@ -129,14 +130,12 @@ fn parse_number_with_clamping_mode<'i, 't>(
                 value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
             })
-        }
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-        ref t => return Err(location.new_unexpected_token_error(t.clone()))
+        },
+        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
+        ref t => return Err(location.new_unexpected_token_error(t.clone())),
     }
 
-    let result = input.parse_nested_block(|i| {
-        CalcNode::parse_number(context, i)
-    })?;
+    let result = input.parse_nested_block(|i| CalcNode::parse_number(context, i))?;
 
     Ok(Number {
         value: result.min(f32::MAX).max(f32::MIN),
@@ -150,8 +149,8 @@ fn parse_number_with_clamping_mode<'i, 't>(
 // FIXME(emilio): Should move to border.rs
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, Parse, PartialEq)]
-#[derive(PartialOrd, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, Parse, PartialEq, PartialOrd,
+         ToComputedValue, ToCss)]
 pub enum BorderStyle {
     None = -1,
     Solid = 6,
@@ -184,9 +183,11 @@ pub struct Number {
     calc_clamping_mode: Option<AllowedNumericType>,
 }
 
-
 impl Parse for Number {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
@@ -202,18 +203,23 @@ impl Number {
 
     /// Returns the numeric value, clamped if needed.
     pub fn get(&self) -> f32 {
-        self.calc_clamping_mode.map_or(self.value, |mode| mode.clamp(self.value))
+        self.calc_clamping_mode
+            .map_or(self.value, |mode| mode.clamp(self.value))
     }
 
     #[allow(missing_docs)]
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Number, ParseError<'i>> {
+    pub fn parse_non_negative<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Number, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 
     #[allow(missing_docs)]
-    pub fn parse_at_least_one<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Number, ParseError<'i>> {
+    pub fn parse_at_least_one<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Number, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
     }
 
@@ -231,7 +237,9 @@ impl ToComputedValue for Number {
     type ComputedValue = CSSFloat;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> CSSFloat { self.get() }
+    fn to_computed_value(&self, _: &Context) -> CSSFloat {
+        self.get()
+    }
 
     #[inline]
     fn from_computed_value(computed: &CSSFloat) -> Self {
@@ -276,7 +284,10 @@ impl From<Number> for f64 {
 pub type NonNegativeNumber = NonNegative<Number>;
 
 impl Parse for NonNegativeNumber {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
             .map(NonNegative::<Number>)
     }
@@ -293,7 +304,10 @@ impl NonNegativeNumber {
 pub type GreaterThanOrEqualToOneNumber = GreaterThanOrEqualToOne<Number>;
 
 impl Parse for GreaterThanOrEqualToOneNumber {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
             .map(GreaterThanOrEqualToOne::<Number>)
     }
@@ -311,12 +325,11 @@ pub enum NumberOrPercentage {
     Number(Number),
 }
 
-
 impl NumberOrPercentage {
     fn parse_with_clamping_mode<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        type_: AllowedNumericType
+        type_: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
             return Ok(NumberOrPercentage::Percentage(per));
@@ -326,14 +339,19 @@ impl NumberOrPercentage {
     }
 
     /// Parse a non-negative number or percentage.
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Self, ParseError<'i>> {
+    pub fn parse_non_negative<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 }
 
 impl Parse for NumberOrPercentage {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
@@ -342,9 +360,11 @@ impl Parse for NumberOrPercentage {
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToCss)]
 pub struct Opacity(Number);
 
-
 impl Parse for Opacity {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Number::parse(context, input).map(Opacity)
     }
 }
@@ -419,19 +439,22 @@ impl Integer {
 }
 
 impl Parse for Integer {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
 
         // FIXME: remove early returns when lifetimes are non-lexical
         match *input.next()? {
-            Token::Number { int_value: Some(v), .. } => return Ok(Integer::new(v)),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-            ref t => return Err(location.new_unexpected_token_error(t.clone()))
+            Token::Number {
+                int_value: Some(v), ..
+            } => return Ok(Integer::new(v)),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
 
-        let result = input.parse_nested_block(|i| {
-            CalcNode::parse_integer(context, i)
-        })?;
+        let result = input.parse_nested_block(|i| CalcNode::parse_integer(context, i))?;
 
         Ok(Integer::from_calc(result))
     }
@@ -467,7 +490,7 @@ impl Integer {
     /// Parse a positive integer (>= 1).
     pub fn parse_positive<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Integer, ParseError<'i>> {
         Integer::parse_with_minimum(context, input, 1)
     }
@@ -477,7 +500,9 @@ impl ToComputedValue for Integer {
     type ComputedValue = i32;
 
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> i32 { self.value }
+    fn to_computed_value(&self, _: &Context) -> i32 {
+        self.value
+    }
 
     #[inline]
     fn from_computed_value(computed: &i32) -> Self {
@@ -506,7 +531,10 @@ pub type PositiveInteger = GreaterThanOrEqualToOne<Integer>;
 
 impl Parse for PositiveInteger {
     #[inline]
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne::<Integer>)
     }
 }
@@ -539,7 +567,6 @@ pub struct ClipRect {
     /// <left> (<length> | <auto>)
     pub left: Option<Length>,
 }
-
 
 impl ToCss for ClipRect {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
@@ -587,38 +614,64 @@ impl ToComputedValue for ClipRect {
     fn to_computed_value(&self, context: &Context) -> super::computed::ClipRect {
         super::computed::ClipRect {
             top: self.top.as_ref().map(|top| top.to_computed_value(context)),
-            right: self.right.as_ref().map(|right| right.to_computed_value(context)),
-            bottom: self.bottom.as_ref().map(|bottom| bottom.to_computed_value(context)),
-            left: self.left.as_ref().map(|left| left.to_computed_value(context)),
+            right: self.right
+                .as_ref()
+                .map(|right| right.to_computed_value(context)),
+            bottom: self.bottom
+                .as_ref()
+                .map(|bottom| bottom.to_computed_value(context)),
+            left: self.left
+                .as_ref()
+                .map(|left| left.to_computed_value(context)),
         }
     }
 
     #[inline]
     fn from_computed_value(computed: &super::computed::ClipRect) -> Self {
         ClipRect {
-            top: computed.top.map(|top| ToComputedValue::from_computed_value(&top)),
-            right: computed.right.map(|right| ToComputedValue::from_computed_value(&right)),
-            bottom: computed.bottom.map(|bottom| ToComputedValue::from_computed_value(&bottom)),
-            left: computed.left.map(|left| ToComputedValue::from_computed_value(&left)),
+            top: computed
+                .top
+                .map(|top| ToComputedValue::from_computed_value(&top)),
+            right: computed
+                .right
+                .map(|right| ToComputedValue::from_computed_value(&right)),
+            bottom: computed
+                .bottom
+                .map(|bottom| ToComputedValue::from_computed_value(&bottom)),
+            left: computed
+                .left
+                .map(|left| ToComputedValue::from_computed_value(&left)),
         }
     }
 }
 
 impl Parse for ClipRect {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl ClipRect {
     /// Parses a rect(<top>, <left>, <bottom>, <right>), allowing quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         use values::specified::Length;
 
-        fn parse_argument<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>,
-                                  allow_quirks: AllowQuirks) -> Result<Option<Length>, ParseError<'i>> {
-            if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+        fn parse_argument<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+            allow_quirks: AllowQuirks,
+        ) -> Result<Option<Length>, ParseError<'i>> {
+            if input
+                .try(|input| input.expect_ident_matching("auto"))
+                .is_ok()
+            {
                 Ok(None)
             } else {
                 Length::parse_quirky(context, input, allow_quirks).map(Some)
@@ -659,8 +712,11 @@ pub type ClipRectOrAuto = Either<ClipRect, Auto>;
 
 impl ClipRectOrAuto {
     /// Parses a ClipRect or Auto, allowing quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
             Ok(Either::First(v))
         } else {
@@ -697,7 +753,10 @@ pub struct Attr {
 }
 
 impl Parse for Attr {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Attr, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Attr, ParseError<'i>> {
         input.expect_function_matching("attr")?;
         input.parse_nested_block(|i| Attr::parse_function(context, i))
     }
@@ -705,7 +764,12 @@ impl Parse for Attr {
 
 /// Get the Namespace for a given prefix from the namespace map.
 fn get_namespace_for_prefix(prefix: &Prefix, context: &ParserContext) -> Option<Namespace> {
-    context.namespaces.as_ref()?.prefixes.get(prefix).map(|x| x.clone())
+    context
+        .namespaces
+        .as_ref()?
+        .prefixes
+        .get(prefix)
+        .map(|x| x.clone())
 }
 
 impl Attr {
@@ -732,9 +796,7 @@ impl Attr {
                         let prefix = Prefix::from(ns.as_ref());
                         let ns = match get_namespace_for_prefix(&prefix, context) {
                             Some(ns) => ns,
-                            None => return Err(location.new_custom_error(
-                                StyleParseErrorKind::UnspecifiedError
-                            )),
+                            None => return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                         };
                         Some((prefix, ns))
                     } else {
@@ -743,8 +805,8 @@ impl Attr {
                     return Ok(Attr {
                         namespace: prefix_and_ns,
                         attribute: Atom::from(second_token.as_ref()),
-                    })
-                }
+                    });
+                },
                 // In the case of attr(foobar    ) we don't want to error out
                 // because of the trailing whitespace
                 Token::WhiteSpace(..) => {},

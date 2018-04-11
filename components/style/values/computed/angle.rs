@@ -15,8 +15,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// A computed angle.
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
-#[derive(PartialOrd, ToAnimatedZero)]
+#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToAnimatedZero, ToCss)]
 pub enum Angle {
     /// An angle with degree unit.
     #[css(dimension)]
@@ -103,10 +102,7 @@ impl Zero for Angle {
     #[inline]
     fn is_zero(&self) -> bool {
         match *self {
-            Angle::Deg(val) |
-            Angle::Grad(val) |
-            Angle::Turn(val) |
-            Angle::Rad(val) => val == 0.
+            Angle::Deg(val) | Angle::Grad(val) | Angle::Turn(val) | Angle::Rad(val) => val == 0.,
         }
     }
 }
@@ -116,6 +112,7 @@ impl ComputeSquaredDistance for Angle {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         // Use the formula for calculating the distance between angles defined in SVG:
         // https://www.w3.org/TR/SVG/animate.html#complexDistances
-        self.radians64().compute_squared_distance(&other.radians64())
+        self.radians64()
+            .compute_squared_distance(&other.radians64())
     }
 }

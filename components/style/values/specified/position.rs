@@ -61,7 +61,10 @@ pub enum Y {
 }
 
 impl Parse for Position {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
@@ -75,8 +78,9 @@ impl Position {
     ) -> Result<Self, ParseError<'i>> {
         match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
-                if let Ok(y_pos) = input.try(|i|
-                    PositionComponent::parse_quirky(context, i, allow_quirks)) {
+                if let Ok(y_pos) =
+                    input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
@@ -92,7 +96,9 @@ impl Position {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 if let Ok(y_keyword) = input.try(Y::parse) {
-                    let y_lop = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+                    let y_lop = input
+                        .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                        .ok();
                     let x_pos = PositionComponent::Side(x_keyword, lop);
                     let y_pos = PositionComponent::Side(y_keyword, y_lop);
                     return Ok(Self::new(x_pos, y_pos));
@@ -106,7 +112,9 @@ impl Position {
                     let y_pos = PositionComponent::Side(y_keyword, None);
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
+                if let Ok(y_lop) =
+                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                {
                     let y_pos = PositionComponent::Length(y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
@@ -118,9 +126,11 @@ impl Position {
         }
         let y_keyword = Y::parse(input)?;
         let lop_and_x_pos: Result<_, ParseError> = input.try(|i| {
-            let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+            let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                .ok();
             if let Ok(x_keyword) = i.try(X::parse) {
-                let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+                let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                    .ok();
                 let x_pos = PositionComponent::Side(x_keyword, x_lop);
                 return Ok((y_lop, x_pos));
             };
@@ -150,12 +160,18 @@ impl ToCss for Position {
         W: Write,
     {
         match (&self.horizontal, &self.vertical) {
-            (x_pos @ &PositionComponent::Side(_, Some(_)), &PositionComponent::Length(ref y_lop)) => {
+            (
+                x_pos @ &PositionComponent::Side(_, Some(_)),
+                &PositionComponent::Length(ref y_lop),
+            ) => {
                 x_pos.to_css(dest)?;
                 dest.write_str(" top ")?;
                 y_lop.to_css(dest)
             },
-            (&PositionComponent::Length(ref x_lop), y_pos @ &PositionComponent::Side(_, Some(_))) => {
+            (
+                &PositionComponent::Length(ref x_lop),
+                y_pos @ &PositionComponent::Side(_, Some(_)),
+            ) => {
                 dest.write_str("left ")?;
                 x_lop.to_css(dest)?;
                 dest.write_str(" ")?;
@@ -171,17 +187,21 @@ impl ToCss for Position {
 }
 
 impl<S: Parse> Parse for PositionComponent<S> {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl<S: Parse> PositionComponent<S> {
     /// Parses a component of a CSS position, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(PositionComponent::Center);
         }
@@ -189,7 +209,9 @@ impl<S: Parse> PositionComponent<S> {
             return Ok(PositionComponent::Length(lop));
         }
         let keyword = S::parse(context, input)?;
-        let lop = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+        let lop = input
+            .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+            .ok();
         Ok(PositionComponent::Side(keyword, lop))
     }
 }
@@ -206,19 +228,16 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            PositionComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(Percentage(0.5))
-            },
+            PositionComponent::Center => ComputedLengthOrPercentage::Percentage(Percentage(0.5)),
             PositionComponent::Side(ref keyword, None) => {
                 let p = Percentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
             },
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
                 match length.to_computed_value(context) {
-                    ComputedLengthOrPercentage::Length(length) => {
-                        ComputedLengthOrPercentage::Calc(
-                            CalcLengthOrPercentage::new(-length, Some(Percentage::hundred())))
-                    },
+                    ComputedLengthOrPercentage::Length(length) => ComputedLengthOrPercentage::Calc(
+                        CalcLengthOrPercentage::new(-length, Some(Percentage::hundred())),
+                    ),
                     ComputedLengthOrPercentage::Percentage(p) => {
                         ComputedLengthOrPercentage::Percentage(Percentage(1.0 - p.0))
                     },
@@ -230,9 +249,7 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                 }
             },
             PositionComponent::Side(_, Some(ref length)) |
-            PositionComponent::Length(ref length) => {
-                length.to_computed_value(context)
-            },
+            PositionComponent::Length(ref length) => length.to_computed_value(context),
         }
     }
 
@@ -299,7 +316,10 @@ pub type LegacyHPosition = OriginComponent<X>;
 pub type LegacyVPosition = OriginComponent<Y>;
 
 impl Parse for LegacyPosition {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
@@ -313,8 +333,7 @@ impl LegacyPosition {
     ) -> Result<Self, ParseError<'i>> {
         match input.try(|i| OriginComponent::parse(context, i)) {
             Ok(x_pos @ OriginComponent::Center) => {
-                if let Ok(y_pos) = input.try(|i|
-                    OriginComponent::parse(context, i)) {
+                if let Ok(y_pos) = input.try(|i| OriginComponent::parse(context, i)) {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
@@ -330,8 +349,10 @@ impl LegacyPosition {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = OriginComponent::Side(x_keyword);
-                if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
-                    return Ok(Self::new(x_pos, OriginComponent::Length(y_lop)))
+                if let Ok(y_lop) =
+                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                {
+                    return Ok(Self::new(x_pos, OriginComponent::Length(y_lop)));
                 }
                 let _ = input.try(|i| i.expect_ident_matching("center"));
                 return Ok(Self::new(x_pos, OriginComponent::Center));
@@ -341,7 +362,9 @@ impl LegacyPosition {
                     let y_pos = OriginComponent::Side(y_keyword);
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
+                if let Ok(y_lop) =
+                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                {
                     let y_pos = OriginComponent::Length(y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
@@ -425,7 +448,9 @@ impl ToCss for GridAutoFlow {
     {
         self.autoflow.to_css(dest)?;
 
-        if self.dense { dest.write_str(" dense")?; }
+        if self.dense {
+            dest.write_str(" dense")?;
+        }
         Ok(())
     }
 }
@@ -434,7 +459,7 @@ impl Parse for GridAutoFlow {
     /// [ row | column ] || dense
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<GridAutoFlow, ParseError<'i>> {
         let mut value = None;
         let mut dense = false;
@@ -458,7 +483,8 @@ impl Parse for GridAutoFlow {
                 _ => false
             };
             if !success {
-                return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+                return Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
             }
         }
 
@@ -479,14 +505,12 @@ impl From<u8> for GridAutoFlow {
         use gecko_bindings::structs;
 
         GridAutoFlow {
-            autoflow:
-                if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
-                    AutoFlow::Row
-                } else {
-                    AutoFlow::Column
-                },
-            dense:
-                bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
+            autoflow: if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
+                AutoFlow::Row
+            } else {
+                AutoFlow::Column
+            },
+            dense: bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
         }
     }
 }
@@ -669,9 +693,8 @@ impl<'a> Iterator for TemplateAreasTokenizer<'a> {
 }
 
 fn is_name_code_point(c: char) -> bool {
-    c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' ||
-    c >= '\u{80}' || c == '_' ||
-    c >= '0' && c <= '9' || c == '-'
+    c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '\u{80}' || c == '_' ||
+        c >= '0' && c <= '9' || c == '-'
 }
 
 /// This property specifies named grid areas.

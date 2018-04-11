@@ -5,7 +5,7 @@
 //! Specified angles.
 
 use cssparser::{Parser, Token};
-use parser::{ParserContext, Parse};
+use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
@@ -59,22 +59,34 @@ impl ToComputedValue for Angle {
 impl Angle {
     /// Creates an angle with the given value in degrees.
     pub fn from_degrees(value: CSSFloat, was_calc: bool) -> Self {
-        Angle { value: ComputedAngle::Deg(value), was_calc }
+        Angle {
+            value: ComputedAngle::Deg(value),
+            was_calc,
+        }
     }
 
     /// Creates an angle with the given value in gradians.
     pub fn from_gradians(value: CSSFloat, was_calc: bool) -> Self {
-        Angle { value: ComputedAngle::Grad(value), was_calc }
+        Angle {
+            value: ComputedAngle::Grad(value),
+            was_calc,
+        }
     }
 
     /// Creates an angle with the given value in turns.
     pub fn from_turns(value: CSSFloat, was_calc: bool) -> Self {
-        Angle { value: ComputedAngle::Turn(value), was_calc }
+        Angle {
+            value: ComputedAngle::Turn(value),
+            was_calc,
+        }
     }
 
     /// Creates an angle with the given value in radians.
     pub fn from_radians(value: CSSFloat, was_calc: bool) -> Self {
-        Angle { value: ComputedAngle::Rad(value), was_calc }
+        Angle {
+            value: ComputedAngle::Rad(value),
+            was_calc,
+        }
     }
 
     /// Returns the amount of radians this angle represents.
@@ -135,11 +147,7 @@ impl Parse for Angle {
 
 impl Angle {
     /// Parse an `<angle>` value given a value and an unit.
-    pub fn parse_dimension(
-        value: CSSFloat,
-        unit: &str,
-        from_calc: bool,
-    ) -> Result<Angle, ()> {
+    pub fn parse_dimension(value: CSSFloat, unit: &str, from_calc: bool) -> Result<Angle, ()> {
         let angle = match_ignore_ascii_case! { unit,
             "deg" => Angle::from_degrees(value, from_calc),
             "grad" => Angle::from_gradians(value, from_calc),
@@ -168,19 +176,19 @@ impl Angle {
         // FIXME: remove clone() when lifetimes are non-lexical
         let token = input.next()?.clone();
         match token {
-            Token::Dimension { value, ref unit, .. } => {
+            Token::Dimension {
+                value, ref unit, ..
+            } => {
                 Angle::parse_dimension(value, unit, /* from_calc = */ false)
-            }
-            Token::Number { value, .. } if value == 0. => {
-                match allow_unitless_zero {
-                    AllowUnitlessZeroAngle::Yes => Ok(Angle::zero()),
-                    AllowUnitlessZeroAngle::No => Err(()),
-                }
+            },
+            Token::Number { value, .. } if value == 0. => match allow_unitless_zero {
+                AllowUnitlessZeroAngle::Yes => Ok(Angle::zero()),
+                AllowUnitlessZeroAngle::No => Err(()),
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
-            }
-            _ => Err(())
+            },
+            _ => Err(()),
         }.map_err(|()| input.new_unexpected_token_error(token.clone()))
     }
 }

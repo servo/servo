@@ -255,7 +255,7 @@ macro_rules! trivial_to_animated_value {
                 animated
             }
         }
-    }
+    };
 }
 
 trivial_to_animated_value!(Au);
@@ -276,8 +276,10 @@ impl ToAnimatedValue for ComputedBorderCornerRadius {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedBorderCornerRadius::new((animated.0).0.width.clamp_to_non_negative(),
-                                        (animated.0).0.height.clamp_to_non_negative())
+        ComputedBorderCornerRadius::new(
+            (animated.0).0.width.clamp_to_non_negative(),
+            (animated.0).0.height.clamp_to_non_negative(),
+        )
     }
 }
 
@@ -300,12 +302,12 @@ impl ToAnimatedValue for ComputedMaxLength {
                     },
                     LengthOrPercentageOrNone::Percentage(percentage) => {
                         LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
-                    }
-                    _ => lopn
+                    },
+                    _ => lopn,
                 };
                 ComputedMaxLength::LengthOrPercentageOrNone(result)
             },
-            _ => animated
+            _ => animated,
         }
     }
 }
@@ -329,34 +331,42 @@ impl ToAnimatedValue for ComputedMozLength {
                     },
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))
-                    }
-                    _ => lopa
+                    },
+                    _ => lopa,
                 };
                 ComputedMozLength::LengthOrPercentageOrAuto(result)
             },
-            _ => animated
+            _ => animated,
         }
     }
 }
 
 impl ToAnimatedZero for Au {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(Au(0)) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Au(0))
+    }
 }
 
 impl ToAnimatedZero for f32 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0.)
+    }
 }
 
 impl ToAnimatedZero for f64 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0.)
+    }
 }
 
 impl ToAnimatedZero for i32 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0)
+    }
 }
 
 impl<T> ToAnimatedZero for Option<T>

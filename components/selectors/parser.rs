@@ -2,26 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorOperator};
-use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
+use attr::{AttrSelectorOperator, AttrSelectorWithNamespace, ParsedAttrSelectorOperation};
+use attr::{NamespaceConstraint, ParsedCaseSensitivity, SELECTOR_WHITESPACE};
 use bloom::BLOOM_HASH_MASK;
 use builder::{SelectorBuilder, SpecificityAndFlags};
 use context::QuirksMode;
-use cssparser::{ParseError, ParseErrorKind, BasicParseError, BasicParseErrorKind};
-use cssparser::{SourceLocation, CowRcStr, Delimiter};
-use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
+use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
+use cssparser::{CowRcStr, Delimiter, SourceLocation};
+use cssparser::{CssStringWriter, Parser as CssParser, ToCss, Token};
+use cssparser::{parse_nth, serialize_identifier};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::ThinArc;
 use sink::Push;
 use smallvec::SmallVec;
 use std::borrow::{Borrow, Cow};
-use std::fmt::{self, Display, Debug, Write};
+use std::fmt::{self, Debug, Display, Write};
 use std::iter::Rev;
 use std::slice;
-pub use visitor::{Visit, SelectorVisitor};
+pub use visitor::{SelectorVisitor, Visit};
 
 /// A trait that represents a pseudo-element.
-pub trait PseudoElement : Sized + ToCss {
+pub trait PseudoElement: Sized + ToCss {
     /// The `SelectorImpl` this pseudo-element is used for.
     type Impl: SelectorImpl;
 
@@ -36,7 +37,7 @@ pub trait PseudoElement : Sized + ToCss {
 }
 
 /// A trait that represents a pseudo-class.
-pub trait NonTSPseudoClass : Sized + ToCss {
+pub trait NonTSPseudoClass: Sized + ToCss {
     /// The `SelectorImpl` this pseudo-element is used for.
     type Impl: SelectorImpl;
 
@@ -154,7 +155,11 @@ pub trait Parser<'i> {
         location: SourceLocation,
         name: CowRcStr<'i>,
     ) -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass, ParseError<'i, Self::Error>> {
-        Err(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+        Err(
+            location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
+                name,
+            )),
+        )
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>(
@@ -162,7 +167,11 @@ pub trait Parser<'i> {
         name: CowRcStr<'i>,
         arguments: &mut CssParser<'i, 't>,
     ) -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass, ParseError<'i, Self::Error>> {
-        Err(arguments.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+        Err(
+            arguments.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
+                name,
+            )),
+        )
     }
 
     fn parse_pseudo_element(
@@ -170,7 +179,11 @@ pub trait Parser<'i> {
         location: SourceLocation,
         name: CowRcStr<'i>,
     ) -> Result<<Self::Impl as SelectorImpl>::PseudoElement, ParseError<'i, Self::Error>> {
-        Err(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+        Err(
+            location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
+                name,
+            )),
+        )
     }
 
     fn parse_functional_pseudo_element<'t>(
@@ -178,7 +191,11 @@ pub trait Parser<'i> {
         name: CowRcStr<'i>,
         arguments: &mut CssParser<'i, 't>,
     ) -> Result<<Self::Impl as SelectorImpl>::PseudoElement, ParseError<'i, Self::Error>> {
-        Err(arguments.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+        Err(
+            arguments.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
+                name,
+            )),
+        )
     }
 
     fn default_namespace(&self) -> Option<<Self::Impl as SelectorImpl>::NamespaceUrl> {
@@ -206,11 +223,13 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
         input: &mut CssParser<'i, 't>,
     ) -> Result<Self, ParseError<'i, P::Error>>
     where
-        P: Parser<'i, Impl=Impl>,
+        P: Parser<'i, Impl = Impl>,
     {
         let mut values = SmallVec::new();
         loop {
-            values.push(input.parse_until_before(Delimiter::Comma, |input| parse_selector(parser, input))?);
+            values
+                .push(input
+                    .parse_until_before(Delimiter::Comma, |input| parse_selector(parser, input))?);
             match input.next() {
                 Err(_) => return Ok(SelectorList(values)),
                 Ok(&Token::Comma) => continue,
@@ -231,16 +250,14 @@ fn parse_inner_compound_selector<'i, 't, P, Impl>(
     input: &mut CssParser<'i, 't>,
 ) -> Result<Selector<Impl>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     let location = input.current_source_location();
     let selector = Selector::parse(parser, input)?;
     // Ensure they're actually all compound selectors.
     if selector.iter_raw_match_order().any(|s| s.is_combinator()) {
-        return Err(location.new_custom_error(
-            SelectorParseErrorKind::NonCompoundSelector
-        ))
+        return Err(location.new_custom_error(SelectorParseErrorKind::NonCompoundSelector));
     }
 
     Ok(selector)
@@ -252,12 +269,12 @@ pub fn parse_compound_selector_list<'i, 't, P, Impl>(
     input: &mut CssParser<'i, 't>,
 ) -> Result<Box<[Selector<Impl>]>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
-    input.parse_comma_separated(|input| {
-        parse_inner_compound_selector(parser, input)
-    }).map(|selectors| selectors.into_boxed_slice())
+    input
+        .parse_comma_separated(|input| parse_inner_compound_selector(parser, input))
+        .map(|selectors| selectors.into_boxed_slice())
 }
 
 /// Ancestor hashes for the bloom filter. We precompute these and store them
@@ -281,31 +298,26 @@ pub struct AncestorHashes {
 }
 
 impl AncestorHashes {
-    pub fn new<Impl: SelectorImpl>(
-        selector: &Selector<Impl>,
-        quirks_mode: QuirksMode,
-    ) -> Self
-        where Impl::Identifier: PrecomputedHash,
-              Impl::ClassName: PrecomputedHash,
-              Impl::LocalName: PrecomputedHash,
-              Impl::NamespaceUrl: PrecomputedHash,
+    pub fn new<Impl: SelectorImpl>(selector: &Selector<Impl>, quirks_mode: QuirksMode) -> Self
+    where
+        Impl::Identifier: PrecomputedHash,
+        Impl::ClassName: PrecomputedHash,
+        Impl::LocalName: PrecomputedHash,
+        Impl::NamespaceUrl: PrecomputedHash,
     {
         Self::from_iter(selector.iter(), quirks_mode)
     }
 
-    fn from_iter<Impl: SelectorImpl>(
-        iter: SelectorIter<Impl>,
-        quirks_mode: QuirksMode,
-    ) -> Self
-        where Impl::Identifier: PrecomputedHash,
-              Impl::ClassName: PrecomputedHash,
-              Impl::LocalName: PrecomputedHash,
-              Impl::NamespaceUrl: PrecomputedHash,
+    fn from_iter<Impl: SelectorImpl>(iter: SelectorIter<Impl>, quirks_mode: QuirksMode) -> Self
+    where
+        Impl::Identifier: PrecomputedHash,
+        Impl::ClassName: PrecomputedHash,
+        Impl::LocalName: PrecomputedHash,
+        Impl::NamespaceUrl: PrecomputedHash,
     {
         // Compute ancestor hashes for the bloom filter.
         let mut hashes = [0u32; 4];
-        let mut hash_iter = AncestorIter::new(iter)
-                             .filter_map(|x| x.ancestor_hash(quirks_mode));
+        let mut hash_iter = AncestorIter::new(iter).filter_map(|x| x.ancestor_hash(quirks_mode));
         for i in 0..4 {
             hashes[i] = match hash_iter.next() {
                 Some(x) => x & BLOOM_HASH_MASK,
@@ -330,12 +342,15 @@ impl AncestorHashes {
     /// Returns the fourth hash, reassembled from parts.
     pub fn fourth_hash(&self) -> u32 {
         ((self.packed_hashes[0] & 0xff000000) >> 24) |
-        ((self.packed_hashes[1] & 0xff000000) >> 16) |
-        ((self.packed_hashes[2] & 0xff000000) >> 8)
+            ((self.packed_hashes[1] & 0xff000000) >> 16) |
+            ((self.packed_hashes[2] & 0xff000000) >> 8)
     }
 }
 
-impl<Impl: SelectorImpl> Visit for Selector<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
+impl<Impl: SelectorImpl> Visit for Selector<Impl>
+where
+    Impl::NonTSPseudoClass: Visit<Impl = Impl>,
+{
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -367,7 +382,7 @@ impl<Impl: SelectorImpl> Visit for Selector<Impl> where Impl::NonTSPseudoClass: 
 
 impl<Impl: SelectorImpl> Visit for Component<Impl>
 where
-    Impl::NonTSPseudoClass: Visit<Impl=Impl>
+    Impl::NonTSPseudoClass: Visit<Impl = Impl>,
 {
     type Impl = Impl;
 
@@ -385,21 +400,24 @@ where
                 if !selector.visit(visitor) {
                     return false;
                 }
-            }
+            },
             Host(Some(ref selector)) => {
                 if !selector.visit(visitor) {
                     return false;
                 }
-            }
+            },
             Negation(ref negated) => {
                 for component in negated.iter() {
                     if !component.visit(visitor) {
                         return false;
                     }
                 }
-            }
+            },
 
-            AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
+            AttributeInNoNamespaceExists {
+                ref local_name,
+                ref local_name_lower,
+            } => {
                 if !visitor.visit_attribute_selector(
                     &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
                     local_name,
@@ -407,9 +425,14 @@ where
                 ) {
                     return false;
                 }
-            }
-            AttributeInNoNamespace { ref local_name, ref local_name_lower, never_matches, .. }
-            if !never_matches => {
+            },
+            AttributeInNoNamespace {
+                ref local_name,
+                ref local_name_lower,
+                never_matches,
+                ..
+            } if !never_matches =>
+            {
                 if !visitor.visit_attribute_selector(
                     &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
                     local_name,
@@ -417,7 +440,7 @@ where
                 ) {
                     return false;
                 }
-            }
+            },
             AttributeOther(ref attr_selector) if !attr_selector.never_matches => {
                 if !visitor.visit_attribute_selector(
                     &attr_selector.namespace(),
@@ -426,14 +449,14 @@ where
                 ) {
                     return false;
                 }
-            }
+            },
 
             NonTSPseudoClass(ref pseudo_class) => {
                 if !pseudo_class.visit(visitor) {
                     return false;
                 }
             },
-            _ => {}
+            _ => {},
         }
 
         true
@@ -481,12 +504,12 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     #[inline]
     pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
         if !self.has_pseudo_element() {
-            return None
+            return None;
         }
 
         for component in self.iter() {
             if let Component::PseudoElement(ref pseudo) = *component {
-                return Some(pseudo)
+                return Some(pseudo);
             }
         }
 
@@ -499,12 +522,14 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     /// Used for "pre-computed" pseudo-elements in components/style/stylist.rs
     #[inline]
     pub fn is_universal(&self) -> bool {
-        self.iter_raw_match_order().all(|c| matches!(*c,
-            Component::ExplicitUniversalType |
-            Component::ExplicitAnyNamespace |
-            Component::Combinator(Combinator::PseudoElement) |
-            Component::PseudoElement(..)
-        ))
+        self.iter_raw_match_order().all(|c| {
+            matches!(
+                *c,
+                Component::ExplicitUniversalType | Component::ExplicitAnyNamespace |
+                    Component::Combinator(Combinator::PseudoElement) |
+                    Component::PseudoElement(..)
+            )
+        })
     }
 
     /// Returns an iterator over this selector in matching order (right-to-left).
@@ -542,10 +567,10 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn combinator_at_match_order(&self, index: usize) -> Combinator {
         match self.0.slice[index] {
             Component::Combinator(c) => c,
-            ref other => {
-                panic!("Not a combinator: {:?}, {:?}, index: {}",
-                       other, self, index)
-            }
+            ref other => panic!(
+                "Not a combinator: {:?}, {:?}, index: {}",
+                other, self, index
+            ),
         }
     }
 
@@ -562,10 +587,10 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn combinator_at_parse_order(&self, index: usize) -> Combinator {
         match self.0.slice[self.len() - index - 1] {
             Component::Combinator(c) => c,
-            ref other => {
-                panic!("Not a combinator: {:?}, {:?}, index: {}",
-                       other, self, index)
-            }
+            ref other => panic!(
+                "Not a combinator: {:?}, {:?}, index: {}",
+                other, self, index
+            ),
         }
     }
 
@@ -622,7 +647,7 @@ impl<'a, Impl: 'a + SelectorImpl> SelectorIter<'a, Impl> {
     #[inline]
     pub(crate) fn is_featureless_host_selector(&mut self) -> bool {
         self.all(|component| matches!(*component, Component::Host(..))) &&
-        self.next_sequence().is_none()
+            self.next_sequence().is_none()
     }
 
     /// Returns remaining count of the simple selectors and combinators in the Selector.
@@ -637,8 +662,10 @@ impl<'a, Impl: SelectorImpl> Iterator for SelectorIter<'a, Impl> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        debug_assert!(self.next_combinator.is_none(),
-                      "You should call next_sequence!");
+        debug_assert!(
+            self.next_combinator.is_none(),
+            "You should call next_sequence!"
+        );
         match *self.iter.next()? {
             Component::Combinator(c) => {
                 self.next_combinator = Some(c);
@@ -678,7 +705,9 @@ impl<'a, Impl: 'a + SelectorImpl> AncestorIter<'a, Impl> {
             // If this is ever changed to stop at the "pseudo-element"
             // combinator, we will need to fix the way we compute hashes for
             // revalidation selectors.
-            if self.0.next_sequence().map_or(true, |x| matches!(x, Combinator::Child | Combinator::Descendant)) {
+            if self.0.next_sequence().map_or(true, |x| {
+                matches!(x, Combinator::Child | Combinator::Descendant)
+            }) {
                 break;
             }
         }
@@ -707,10 +736,10 @@ impl<'a, Impl: SelectorImpl> Iterator for AncestorIter<'a, Impl> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Combinator {
-    Child,  //  >
-    Descendant,  // space
+    Child,        //  >
+    Descendant,   // space
     NextSibling,  // +
-    LaterSibling,  // ~
+    LaterSibling, // ~
     /// A dummy combinator we use to the left of pseudo-elements.
     ///
     /// It serializes as the empty string, and acts effectively as a child
@@ -727,11 +756,11 @@ impl Combinator {
     /// Returns true if this combinator is a child or descendant combinator.
     #[inline]
     pub fn is_ancestor(&self) -> bool {
-        matches!(*self,
-                 Combinator::Child |
-                 Combinator::Descendant |
-                 Combinator::PseudoElement |
-                 Combinator::SlotAssignment)
+        matches!(
+            *self,
+            Combinator::Child | Combinator::Descendant | Combinator::PseudoElement |
+                Combinator::SlotAssignment
+        )
     }
 
     /// Returns true if this combinator is a pseudo-element combinator.
@@ -792,7 +821,9 @@ pub enum Component<Impl: SelectorImpl> {
     /// visit_complex_selector, and what the consumers of those APIs should do
     /// about the presence of combinators in negation.
     Negation(Box<[Component<Impl>]>),
-    FirstChild, LastChild, OnlyChild,
+    FirstChild,
+    LastChild,
+    OnlyChild,
     Root,
     Empty,
     Scope,
@@ -833,13 +864,17 @@ pub enum Component<Impl: SelectorImpl> {
 impl<Impl: SelectorImpl> Component<Impl> {
     /// Compute the ancestor hash to check against the bloom filter.
     fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32>
-        where Impl::Identifier: PrecomputedHash,
-              Impl::ClassName: PrecomputedHash,
-              Impl::LocalName: PrecomputedHash,
-              Impl::NamespaceUrl: PrecomputedHash,
+    where
+        Impl::Identifier: PrecomputedHash,
+        Impl::ClassName: PrecomputedHash,
+        Impl::LocalName: PrecomputedHash,
+        Impl::NamespaceUrl: PrecomputedHash,
     {
         match *self {
-            Component::LocalName(LocalName { ref name, ref lower_name }) => {
+            Component::LocalName(LocalName {
+                ref name,
+                ref lower_name,
+            }) => {
                 // Only insert the local-name into the filter if it's all
                 // lowercase.  Otherwise we would need to test both hashes, and
                 // our data structures aren't really set up for that.
@@ -849,8 +884,7 @@ impl<Impl: SelectorImpl> Component<Impl> {
                     None
                 }
             },
-            Component::DefaultNamespace(ref url) |
-            Component::Namespace(_, ref url) => {
+            Component::DefaultNamespace(ref url) | Component::Namespace(_, ref url) => {
                 Some(url.precomputed_hash())
             },
             // In quirks mode, class and id selectors should match
@@ -894,17 +928,26 @@ impl<Impl: SelectorImpl> Debug for Selector<Impl> {
 }
 
 impl<Impl: SelectorImpl> Debug for Component<Impl> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.to_css(f)
+    }
 }
 impl<Impl: SelectorImpl> Debug for AttrSelectorWithNamespace<Impl> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.to_css(f)
+    }
 }
 impl<Impl: SelectorImpl> Debug for LocalName<Impl> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.to_css(f)
+    }
 }
 
 impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         let mut iter = self.0.iter();
         let first = iter.next()
             .expect("Empty SelectorList, should contain at least one selector");
@@ -918,7 +961,10 @@ impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
 }
 
 impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         // Compound selectors invert the order of their contents, so we need to
         // undo that during serialization.
         //
@@ -931,8 +977,14 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
         // which we need for |split|. So we split by combinators on a match-order
         // sequence and then reverse.
 
-        let mut combinators = self.iter_raw_match_order().rev().filter(|x| x.is_combinator()).peekable();
-        let compound_selectors = self.iter_raw_match_order().as_slice().split(|x| x.is_combinator()).rev();
+        let mut combinators = self.iter_raw_match_order()
+            .rev()
+            .filter(|x| x.is_combinator())
+            .peekable();
+        let compound_selectors = self.iter_raw_match_order()
+            .as_slice()
+            .split(|x| x.is_combinator())
+            .rev();
 
         let mut combinators_exhausted = false;
         for compound in compound_selectors {
@@ -978,7 +1030,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                             }
                             // Skip step 2, which is an "otherwise".
                             perform_step_2 = false;
-                        }
+                        },
                         (_, _) => (),
                     }
                 }
@@ -1000,7 +1052,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                             // compound selector, so we don't have to worry about the
                             // real namespace being in a different `compound`.
                             if can_elide_namespace {
-                                continue
+                                continue;
                             }
                         }
                         simple.to_css(dest)?;
@@ -1025,12 +1077,15 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
             // (we handle this above)
         }
 
-       Ok(())
+        Ok(())
     }
 }
 
 impl ToCss for Combinator {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         match *self {
             Combinator::Child => dest.write_str(" > "),
             Combinator::Descendant => dest.write_str(" "),
@@ -1043,12 +1098,18 @@ impl ToCss for Combinator {
 }
 
 impl<Impl: SelectorImpl> ToCss for Component<Impl> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         use self::Component::*;
 
         /// Serialize <an+b> values (part of the CSS Syntax spec, but currently only used here).
         /// <https://drafts.csswg.org/css-syntax-3/#serialize-an-anb-value>
-        fn write_affine<W>(dest: &mut W, a: i32, b: i32) -> fmt::Result where W: fmt::Write {
+        fn write_affine<W>(dest: &mut W, a: i32, b: i32) -> fmt::Result
+        where
+            W: fmt::Write,
+        {
             match (a, b) {
                 (0, 0) => dest.write_char('0'),
 
@@ -1064,25 +1125,21 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
         }
 
         match *self {
-            Combinator(ref c) => {
-                c.to_css(dest)
-            }
+            Combinator(ref c) => c.to_css(dest),
             Slotted(ref selector) => {
                 dest.write_str("::slotted(")?;
                 selector.to_css(dest)?;
                 dest.write_char(')')
-            }
-            PseudoElement(ref p) => {
-                p.to_css(dest)
-            }
+            },
+            PseudoElement(ref p) => p.to_css(dest),
             ID(ref s) => {
                 dest.write_char('#')?;
                 display_to_css_identifier(s, dest)
-            }
+            },
             Class(ref s) => {
                 dest.write_char('.')?;
                 display_to_css_identifier(s, dest)
-            }
+            },
             LocalName(ref s) => s.to_css(dest),
             ExplicitUniversalType => dest.write_char('*'),
 
@@ -1092,14 +1149,20 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             Namespace(ref prefix, _) => {
                 display_to_css_identifier(prefix, dest)?;
                 dest.write_char('|')
-            }
+            },
 
             AttributeInNoNamespaceExists { ref local_name, .. } => {
                 dest.write_char('[')?;
                 display_to_css_identifier(local_name, dest)?;
                 dest.write_char(']')
-            }
-            AttributeInNoNamespace { ref local_name, operator, ref value, case_sensitivity, .. } => {
+            },
+            AttributeInNoNamespace {
+                ref local_name,
+                operator,
+                ref value,
+                case_sensitivity,
+                ..
+            } => {
                 dest.write_char('[')?;
                 display_to_css_identifier(local_name, dest)?;
                 operator.to_css(dest)?;
@@ -1112,7 +1175,7 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                     ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
                 }
                 dest.write_char(']')
-            }
+            },
             AttributeOther(ref attr_selector) => attr_selector.to_css(dest),
 
             // Pseudo-classes
@@ -1122,7 +1185,7 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                     component.to_css(dest)?;
                 }
                 dest.write_str(")")
-            }
+            },
 
             FirstChild => dest.write_str(":first-child"),
             LastChild => dest.write_str(":last-child"),
@@ -1152,29 +1215,32 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 }
                 write_affine(dest, a, b)?;
                 dest.write_char(')')
-            }
+            },
             NonTSPseudoClass(ref pseudo) => pseudo.to_css(dest),
         }
     }
 }
 
 impl<Impl: SelectorImpl> ToCss for AttrSelectorWithNamespace<Impl> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         dest.write_char('[')?;
         match self.namespace {
             NamespaceConstraint::Specific((ref prefix, _)) => {
                 display_to_css_identifier(prefix, dest)?;
                 dest.write_char('|')?
-            }
-            NamespaceConstraint::Any => {
-                dest.write_str("*|")?
-            }
+            },
+            NamespaceConstraint::Any => dest.write_str("*|")?,
         }
         display_to_css_identifier(&self.local_name, dest)?;
         match self.operation {
             ParsedAttrSelectorOperation::Exists => {},
             ParsedAttrSelectorOperation::WithValue {
-                operator, case_sensitivity, ref expected_value
+                operator,
+                case_sensitivity,
+                ref expected_value,
             } => {
                 operator.to_css(dest)?;
                 dest.write_char('"')?;
@@ -1192,7 +1258,10 @@ impl<Impl: SelectorImpl> ToCss for AttrSelectorWithNamespace<Impl> {
 }
 
 impl<Impl: SelectorImpl> ToCss for LocalName<Impl> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         display_to_css_identifier(&self.name, dest)
     }
 }
@@ -1225,7 +1294,7 @@ fn parse_selector<'i, 't, P, Impl>(
     input: &mut CssParser<'i, 't>,
 ) -> Result<Selector<Impl>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     let mut builder = SelectorBuilder::default();
@@ -1238,14 +1307,14 @@ where
             Some((has_pseudo, slot)) => {
                 has_pseudo_element = has_pseudo;
                 slotted = slot;
-            }
+            },
             None => {
                 return Err(input.new_custom_error(if builder.has_combinators() {
                     SelectorParseErrorKind::DanglingCombinator
                 } else {
                     SelectorParseErrorKind::EmptySelector
                 }))
-            }
+            },
         };
 
         if has_pseudo_element || slotted {
@@ -1262,25 +1331,25 @@ where
                 Ok(&Token::WhiteSpace(_)) => any_whitespace = true,
                 Ok(&Token::Delim('>')) => {
                     combinator = Combinator::Child;
-                    break
-                }
+                    break;
+                },
                 Ok(&Token::Delim('+')) => {
                     combinator = Combinator::NextSibling;
-                    break
-                }
+                    break;
+                },
                 Ok(&Token::Delim('~')) => {
                     combinator = Combinator::LaterSibling;
-                    break
-                }
+                    break;
+                },
                 Ok(_) => {
                     input.reset(&before_this_token);
                     if any_whitespace {
                         combinator = Combinator::Descendant;
-                        break
+                        break;
                     } else {
-                        break 'outer_loop
+                        break 'outer_loop;
                     }
-                }
+                },
             }
         }
         builder.push_combinator(combinator);
@@ -1296,11 +1365,12 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         input: &mut CssParser<'i, 't>,
     ) -> Result<Self, ParseError<'i, P::Error>>
     where
-        P: Parser<'i, Impl=Impl>
+        P: Parser<'i, Impl = Impl>,
     {
         let selector = parse_selector(parser, input)?;
         if selector.has_pseudo_element() {
-            return Err(input.new_custom_error(SelectorParseErrorKind::PseudoElementInComplexSelector))
+            let e = SelectorParseErrorKind::PseudoElementInComplexSelector;
+            return Err(input.new_custom_error(e));
         }
         Ok(selector)
     }
@@ -1315,28 +1385,31 @@ fn parse_type_selector<'i, 't, P, Impl, S>(
     sink: &mut S,
 ) -> Result<bool, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
     S: Push<Component<Impl>>,
 {
     match parse_qualified_name(parser, input, /* in_attr_selector = */ false) {
-        Err(ParseError { kind: ParseErrorKind::Basic(BasicParseErrorKind::EndOfInput), .. }) |
+        Err(ParseError {
+            kind: ParseErrorKind::Basic(BasicParseErrorKind::EndOfInput),
+            ..
+        }) |
         Ok(OptionalQName::None(_)) => Ok(false),
         Ok(OptionalQName::Some(namespace, local_name)) => {
             match namespace {
-                QNamePrefix::ImplicitAnyNamespace => {}
+                QNamePrefix::ImplicitAnyNamespace => {},
                 QNamePrefix::ImplicitDefaultNamespace(url) => {
                     sink.push(Component::DefaultNamespace(url))
-                }
+                },
                 QNamePrefix::ExplicitNamespace(prefix, url) => {
                     sink.push(match parser.default_namespace() {
-                        Some(ref default_url) if url == *default_url => Component::DefaultNamespace(url),
+                        Some(ref default_url) if url == *default_url => {
+                            Component::DefaultNamespace(url)
+                        },
                         _ => Component::Namespace(prefix, url),
                     })
-                }
-                QNamePrefix::ExplicitNoNamespace => {
-                    sink.push(Component::ExplicitNoNamespace)
-                }
+                },
+                QNamePrefix::ExplicitNoNamespace => sink.push(Component::ExplicitNoNamespace),
                 QNamePrefix::ExplicitAnyNamespace => {
                     match parser.default_namespace() {
                         // Element type selectors that have no namespace
@@ -1353,25 +1426,21 @@ where
                         None => {},
                         Some(_) => sink.push(Component::ExplicitAnyNamespace),
                     }
-                }
+                },
                 QNamePrefix::ImplicitNoNamespace => {
-                    unreachable!()  // Not returned with in_attr_selector = false
-                }
+                    unreachable!() // Not returned with in_attr_selector = false
+                },
             }
             match local_name {
-                Some(name) => {
-                    sink.push(Component::LocalName(LocalName {
-                        lower_name: to_ascii_lowercase(&name).as_ref().into(),
-                        name: name.as_ref().into(),
-                    }))
-                }
-                None => {
-                    sink.push(Component::ExplicitUniversalType)
-                }
+                Some(name) => sink.push(Component::LocalName(LocalName {
+                    lower_name: to_ascii_lowercase(&name).as_ref().into(),
+                    name: name.as_ref().into(),
+                })),
+                None => sink.push(Component::ExplicitUniversalType),
             }
             Ok(true)
-        }
-        Err(e) => Err(e)
+        },
+        Err(e) => Err(e),
     }
 }
 
@@ -1384,12 +1453,12 @@ enum SimpleSelectorParseResult<Impl: SelectorImpl> {
 
 #[derive(Debug)]
 enum QNamePrefix<Impl: SelectorImpl> {
-    ImplicitNoNamespace, // `foo` in attr selectors
-    ImplicitAnyNamespace, // `foo` in type selectors, without a default ns
-    ImplicitDefaultNamespace(Impl::NamespaceUrl),  // `foo` in type selectors, with a default ns
-    ExplicitNoNamespace,  // `|foo`
-    ExplicitAnyNamespace,  // `*|foo`
-    ExplicitNamespace(Impl::NamespacePrefix, Impl::NamespaceUrl),  // `prefix|foo`
+    ImplicitNoNamespace,                          // `foo` in attr selectors
+    ImplicitAnyNamespace,                         // `foo` in type selectors, without a default ns
+    ImplicitDefaultNamespace(Impl::NamespaceUrl), // `foo` in type selectors, with a default ns
+    ExplicitNoNamespace,                          // `|foo`
+    ExplicitAnyNamespace,                         // `*|foo`
+    ExplicitNamespace(Impl::NamespacePrefix, Impl::NamespaceUrl), // `prefix|foo`
 }
 
 enum OptionalQName<'i, Impl: SelectorImpl> {
@@ -1407,7 +1476,7 @@ fn parse_qualified_name<'i, 't, P, Impl>(
     in_attr_selector: bool,
 ) -> Result<OptionalQName<'i, Impl>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     let default_namespace = |local_name| {
@@ -1421,22 +1490,17 @@ where
     let explicit_namespace = |input: &mut CssParser<'i, 't>, namespace| {
         let location = input.current_source_location();
         match input.next_including_whitespace() {
-            Ok(&Token::Delim('*')) if !in_attr_selector => {
-                Ok(OptionalQName::Some(namespace, None))
-            }
+            Ok(&Token::Delim('*')) if !in_attr_selector => Ok(OptionalQName::Some(namespace, None)),
             Ok(&Token::Ident(ref local_name)) => {
                 Ok(OptionalQName::Some(namespace, Some(local_name.clone())))
-            }
+            },
             Ok(t) if in_attr_selector => {
-                Err(location.new_custom_error(
-                    SelectorParseErrorKind::InvalidQualNameInAttr(t.clone())
-                ))
-            }
-            Ok(t) => {
-                Err(location.new_custom_error(
-                    SelectorParseErrorKind::ExplicitNamespaceUnexpectedToken(t.clone())
-                ))
-            }
+                let e = SelectorParseErrorKind::InvalidQualNameInAttr(t.clone());
+                Err(location.new_custom_error(e))
+            },
+            Ok(t) => Err(location.new_custom_error(
+                SelectorParseErrorKind::ExplicitNamespaceUnexpectedToken(t.clone()),
+            )),
             Err(e) => Err(e.into()),
         }
     };
@@ -1450,18 +1514,24 @@ where
                 Ok(&Token::Delim('|')) => {
                     let prefix = value.as_ref().into();
                     let result = parser.namespace_for_prefix(&prefix);
-                    let url = result.ok_or(after_ident.source_location().new_custom_error(
-                        SelectorParseErrorKind::ExpectedNamespace(value)))?;
+                    let url = result.ok_or(
+                        after_ident
+                            .source_location()
+                            .new_custom_error(SelectorParseErrorKind::ExpectedNamespace(value)),
+                    )?;
                     explicit_namespace(input, QNamePrefix::ExplicitNamespace(prefix, url))
                 },
                 _ => {
                     input.reset(&after_ident);
                     if in_attr_selector {
-                        Ok(OptionalQName::Some(QNamePrefix::ImplicitNoNamespace, Some(value)))
+                        Ok(OptionalQName::Some(
+                            QNamePrefix::ImplicitNoNamespace,
+                            Some(value),
+                        ))
                     } else {
                         default_namespace(Some(value))
                     }
-                }
+                },
             }
         },
         Ok(Token::Delim('*')) => {
@@ -1470,14 +1540,14 @@ where
             match input.next_including_whitespace().map(|t| t.clone()) {
                 Ok(Token::Delim('|')) => {
                     explicit_namespace(input, QNamePrefix::ExplicitAnyNamespace)
-                }
+                },
                 result => {
                     input.reset(&after_star);
                     if in_attr_selector {
                         match result {
-                            Ok(t) => Err(after_star.source_location().new_custom_error(
-                                SelectorParseErrorKind::ExpectedBarInAttr(t)
-                            )),
+                            Ok(t) => Err(after_star
+                                .source_location()
+                                .new_custom_error(SelectorParseErrorKind::ExpectedBarInAttr(t))),
                             Err(e) => Err(e.into()),
                         }
                     } else {
@@ -1486,17 +1556,15 @@ where
                 },
             }
         },
-        Ok(Token::Delim('|')) => {
-            explicit_namespace(input, QNamePrefix::ExplicitNoNamespace)
-        }
+        Ok(Token::Delim('|')) => explicit_namespace(input, QNamePrefix::ExplicitNoNamespace),
         Ok(t) => {
             input.reset(&start);
             Ok(OptionalQName::None(t))
-        }
+        },
         Err(e) => {
             input.reset(&start);
             Err(e.into())
-        }
+        },
     }
 }
 
@@ -1505,7 +1573,7 @@ fn parse_attribute_selector<'i, 't, P, Impl>(
     input: &mut CssParser<'i, 't>,
 ) -> Result<Component<Impl>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     let namespace;
@@ -1516,29 +1584,23 @@ where
     match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
         OptionalQName::None(t) => {
             return Err(input.new_custom_error(
-                SelectorParseErrorKind::NoQualifiedNameInAttributeSelector(t)
+                SelectorParseErrorKind::NoQualifiedNameInAttributeSelector(t),
             ))
-        }
+        },
         OptionalQName::Some(_, None) => unreachable!(),
         OptionalQName::Some(ns, Some(ln)) => {
             local_name = ln;
             namespace = match ns {
-                QNamePrefix::ImplicitNoNamespace |
-                QNamePrefix::ExplicitNoNamespace => {
-                    None
-                }
+                QNamePrefix::ImplicitNoNamespace | QNamePrefix::ExplicitNoNamespace => None,
                 QNamePrefix::ExplicitNamespace(prefix, url) => {
                     Some(NamespaceConstraint::Specific((prefix, url)))
-                }
-                QNamePrefix::ExplicitAnyNamespace => {
-                    Some(NamespaceConstraint::Any)
-                }
-                QNamePrefix::ImplicitAnyNamespace |
-                QNamePrefix::ImplicitDefaultNamespace(_) => {
-                    unreachable!()  // Not returned with in_attr_selector = true
-                }
+                },
+                QNamePrefix::ExplicitAnyNamespace => Some(NamespaceConstraint::Any),
+                QNamePrefix::ImplicitAnyNamespace | QNamePrefix::ImplicitDefaultNamespace(_) => {
+                    unreachable!() // Not returned with in_attr_selector = true
+                },
             }
-        }
+        },
     }
 
     let location = input.current_source_location();
@@ -1548,20 +1610,22 @@ where
             let local_name_lower = to_ascii_lowercase(&local_name).as_ref().into();
             let local_name = local_name.as_ref().into();
             if let Some(namespace) = namespace {
-                return Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
-                    namespace: namespace,
-                    local_name: local_name,
-                    local_name_lower: local_name_lower,
-                    operation: ParsedAttrSelectorOperation::Exists,
-                    never_matches: false,
-                })))
+                return Ok(Component::AttributeOther(Box::new(
+                    AttrSelectorWithNamespace {
+                        namespace: namespace,
+                        local_name: local_name,
+                        local_name_lower: local_name_lower,
+                        operation: ParsedAttrSelectorOperation::Exists,
+                        never_matches: false,
+                    },
+                )));
             } else {
                 return Ok(Component::AttributeInNoNamespaceExists {
                     local_name: local_name,
                     local_name_lower: local_name_lower,
-                })
+                });
             }
-        }
+        },
 
         // [foo=bar]
         Ok(&Token::Delim('=')) => AttrSelectorOperator::Equal,
@@ -1575,29 +1639,29 @@ where
         Ok(&Token::SubstringMatch) => AttrSelectorOperator::Substring,
         // [foo$=bar]
         Ok(&Token::SuffixMatch) => AttrSelectorOperator::Suffix,
-        Ok(t) => return Err(location.new_custom_error(
-            SelectorParseErrorKind::UnexpectedTokenInAttributeSelector(t.clone())
-        ))
+        Ok(t) => {
+            return Err(location.new_custom_error(
+                SelectorParseErrorKind::UnexpectedTokenInAttributeSelector(t.clone()),
+            ))
+        },
     };
 
     let value = match input.expect_ident_or_string() {
         Ok(t) => t.clone(),
-        Err(BasicParseError { kind: BasicParseErrorKind::UnexpectedToken(t), location }) => {
-            return Err(location.new_custom_error(SelectorParseErrorKind::BadValueInAttr(t)))
-        }
+        Err(BasicParseError {
+            kind: BasicParseErrorKind::UnexpectedToken(t),
+            location,
+        }) => return Err(location.new_custom_error(SelectorParseErrorKind::BadValueInAttr(t))),
         Err(e) => return Err(e.into()),
     };
     let never_matches = match operator {
-        AttrSelectorOperator::Equal |
-        AttrSelectorOperator::DashMatch => false,
+        AttrSelectorOperator::Equal | AttrSelectorOperator::DashMatch => false,
 
-        AttrSelectorOperator::Includes => {
-            value.is_empty() || value.contains(SELECTOR_WHITESPACE)
-        }
+        AttrSelectorOperator::Includes => value.is_empty() || value.contains(SELECTOR_WHITESPACE),
 
         AttrSelectorOperator::Prefix |
         AttrSelectorOperator::Substring |
-        AttrSelectorOperator::Suffix => value.is_empty()
+        AttrSelectorOperator::Suffix => value.is_empty(),
     };
 
     let mut case_sensitivity = parse_attribute_flags(input)?;
@@ -1608,8 +1672,10 @@ where
         let local_name_lower_cow = to_ascii_lowercase(&local_name);
         if let ParsedCaseSensitivity::CaseSensitive = case_sensitivity {
             if namespace.is_none() &&
-                include!(concat!(env!("OUT_DIR"), "/ascii_case_insensitive_html_attributes.rs"))
-                .contains(&*local_name_lower_cow)
+                include!(concat!(
+                    env!("OUT_DIR"),
+                    "/ascii_case_insensitive_html_attributes.rs"
+                )).contains(&*local_name_lower_cow)
             {
                 case_sensitivity =
                     ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
@@ -1619,17 +1685,19 @@ where
     }
     let local_name = local_name.as_ref().into();
     if let Some(namespace) = namespace {
-        Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
-            namespace: namespace,
-            local_name: local_name,
-            local_name_lower: local_name_lower,
-            never_matches: never_matches,
-            operation: ParsedAttrSelectorOperation::WithValue {
-                operator: operator,
-                case_sensitivity: case_sensitivity,
-                expected_value: value,
-            }
-        })))
+        Ok(Component::AttributeOther(Box::new(
+            AttrSelectorWithNamespace {
+                namespace: namespace,
+                local_name: local_name,
+                local_name_lower: local_name_lower,
+                never_matches: never_matches,
+                operation: ParsedAttrSelectorOperation::WithValue {
+                    operator: operator,
+                    case_sensitivity: case_sensitivity,
+                    expected_value: value,
+                },
+            },
+        )))
     } else {
         Ok(Component::AttributeInNoNamespace {
             local_name: local_name,
@@ -1642,7 +1710,6 @@ where
     }
 }
 
-
 fn parse_attribute_flags<'i, 't>(
     input: &mut CssParser<'i, 't>,
 ) -> Result<ParsedCaseSensitivity, BasicParseError<'i>> {
@@ -1651,14 +1718,13 @@ fn parse_attribute_flags<'i, 't>(
         Err(_) => {
             // Selectors spec says language-defined, but HTML says sensitive.
             Ok(ParsedCaseSensitivity::CaseSensitive)
-        }
+        },
         Ok(&Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
             Ok(ParsedCaseSensitivity::AsciiCaseInsensitive)
-        }
-        Ok(t) => Err(location.new_basic_unexpected_token_error(t.clone()))
+        },
+        Ok(t) => Err(location.new_basic_unexpected_token_error(t.clone())),
     }
 }
-
 
 /// Level 3: Parse **one** simple_selector.  (Though we might insert a second
 /// implied "<defaultns>|*" type selector.)
@@ -1667,7 +1733,7 @@ fn parse_negation<'i, 't, P, Impl>(
     input: &mut CssParser<'i, 't>,
 ) -> Result<Component<Impl>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     // We use a sequence because a type selector may be represented as two Components.
@@ -1679,9 +1745,10 @@ where
     // that there are no trailing tokens after we're done.
     let is_type_sel = match parse_type_selector(parser, input, &mut sequence) {
         Ok(result) => result,
-        Err(ParseError { kind: ParseErrorKind::Basic(BasicParseErrorKind::EndOfInput), .. }) => {
-            return Err(input.new_custom_error(SelectorParseErrorKind::EmptyNegation))
-        }
+        Err(ParseError {
+            kind: ParseErrorKind::Basic(BasicParseErrorKind::EndOfInput),
+            ..
+        }) => return Err(input.new_custom_error(SelectorParseErrorKind::EmptyNegation)),
         Err(e) => return Err(e.into()),
     };
     if !is_type_sel {
@@ -1694,8 +1761,9 @@ where
             },
             Some(SimpleSelectorParseResult::PseudoElement(_)) |
             Some(SimpleSelectorParseResult::SlottedPseudo(_)) => {
-                return Err(input.new_custom_error(SelectorParseErrorKind::NonSimpleSelectorInNegation));
-            }
+                let e = SelectorParseErrorKind::NonSimpleSelectorInNegation;
+                return Err(input.new_custom_error(e));
+            },
         }
     }
 
@@ -1718,7 +1786,7 @@ fn parse_compound_selector<'i, 't, P, Impl>(
     builder: &mut SelectorBuilder<Impl>,
 ) -> Result<Option<(bool, bool)>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     input.skip_whitespace();
@@ -1748,7 +1816,7 @@ where
             SimpleSelectorParseResult::SimpleSelector(s) => {
                 builder.push_simple_selector(s);
                 empty = false
-            }
+            },
             SimpleSelectorParseResult::PseudoElement(p) => {
                 // Try to parse state to its right. There are only 3 allowable
                 // state selectors that can go on pseudo-elements.
@@ -1759,10 +1827,10 @@ where
                     match input.next_including_whitespace() {
                         Ok(&Token::Colon) => {},
                         Ok(&Token::WhiteSpace(_)) | Err(_) => break,
-                        Ok(t) =>
-                            return Err(location.new_custom_error(
-                                SelectorParseErrorKind::PseudoElementExpectedColon(t.clone())
-                            )),
+                        Ok(t) => {
+                            let e = SelectorParseErrorKind::PseudoElementExpectedColon(t.clone());
+                            return Err(location.new_custom_error(e));
+                        },
                     }
 
                     let location = input.current_source_location();
@@ -1770,16 +1838,18 @@ where
                     // We don't need it for now.
                     let name = match input.next_including_whitespace()? {
                         &Token::Ident(ref name) => name.clone(),
-                        t => return Err(location.new_custom_error(
-                            SelectorParseErrorKind::NoIdentForPseudo(t.clone())
-                        )),
+                        t => {
+                            return Err(location.new_custom_error(
+                                SelectorParseErrorKind::NoIdentForPseudo(t.clone()),
+                            ))
+                        },
                     };
 
                     let pseudo_class =
                         P::parse_non_ts_pseudo_class(parser, location, name.clone())?;
                     if !p.supports_pseudo_class(&pseudo_class) {
                         return Err(input.new_custom_error(
-                            SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)
+                            SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
                         ));
                     }
                     state_selectors.push(Component::NonTSPseudoClass(pseudo_class));
@@ -1796,8 +1866,8 @@ where
 
                 pseudo = true;
                 empty = false;
-                break
-            }
+                break;
+            },
             SimpleSelectorParseResult::SlottedPseudo(selector) => {
                 empty = false;
                 slot = true;
@@ -1809,7 +1879,7 @@ where
                 // ::after after it, so we shouldn't break, but we shouldn't
                 // push more type selectors either.
                 break;
-            }
+            },
         }
     }
     if empty {
@@ -1827,7 +1897,7 @@ fn parse_functional_pseudo_class<'i, 't, P, Impl>(
     inside_negation: bool,
 ) -> Result<Component<Impl>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     match_ignore_ascii_case! { &name,
@@ -1846,10 +1916,8 @@ where
         },
         _ => {}
     }
-    P::parse_non_ts_functional_pseudo_class(parser, name, input)
-        .map(Component::NonTSPseudoClass)
+    P::parse_non_ts_functional_pseudo_class(parser, name, input).map(Component::NonTSPseudoClass)
 }
-
 
 fn parse_nth_pseudo_class<'i, 't, Impl, F>(
     input: &mut CssParser<'i, 't>,
@@ -1862,7 +1930,6 @@ where
     let (a, b) = parse_nth(input)?;
     Ok(selector(a, b))
 }
-
 
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
 /// can be specified with the single colon syntax (in addition to the
@@ -1886,7 +1953,7 @@ fn parse_one_simple_selector<'i, 't, P, Impl>(
     inside_negation: bool,
 ) -> Result<Option<SimpleSelectorParseResult<Impl>>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
+    P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
     let start = input.state();
@@ -1895,23 +1962,24 @@ where
         Ok(Token::IDHash(id)) => {
             let id = Component::ID(id.as_ref().into());
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
-        }
+        },
         Ok(Token::Delim('.')) => {
             let location = input.current_source_location();
             match *input.next_including_whitespace()? {
                 Token::Ident(ref class) => {
                     let class = Component::Class(class.as_ref().into());
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
-                }
-                ref t => Err(location.new_custom_error(
-                    SelectorParseErrorKind::ClassNeedsIdent(t.clone())
-                )),
+                },
+                ref t => {
+                    let e = SelectorParseErrorKind::ClassNeedsIdent(t.clone());
+                    Err(location.new_custom_error(e))
+                },
             }
-        }
+        },
         Ok(Token::SquareBracketBlock) => {
             let attr = input.parse_nested_block(|input| parse_attribute_selector(parser, input))?;
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(attr)))
-        }
+        },
         Ok(Token::Colon) => {
             let location = input.current_source_location();
             let (is_single_colon, next_token) = match input.next_including_whitespace()?.clone() {
@@ -1921,38 +1989,32 @@ where
             let (name, is_functional) = match next_token {
                 Token::Ident(name) => (name, false),
                 Token::Function(name) => (name, true),
-                t => return Err(input.new_custom_error(
-                    SelectorParseErrorKind::PseudoElementExpectedIdent(t)
-                )),
+                t => {
+                    let e = SelectorParseErrorKind::PseudoElementExpectedIdent(t);
+                    return Err(input.new_custom_error(e));
+                },
             };
-            let is_pseudo_element = !is_single_colon ||
-                P::pseudo_element_allows_single_colon(&name);
+            let is_pseudo_element =
+                !is_single_colon || P::pseudo_element_allows_single_colon(&name);
             if is_pseudo_element {
                 let parse_result = if is_functional {
                     if P::parse_slotted(parser) && name.eq_ignore_ascii_case("slotted") {
-                        SimpleSelectorParseResult::SlottedPseudo(
-                            input.parse_nested_block(|input| {
-                                parse_inner_compound_selector(
-                                    parser,
-                                    input,
-                                )
-                            })?
-                        )
+                        let selector = input.parse_nested_block(|input| {
+                            parse_inner_compound_selector(parser, input)
+                        })?;
+                        SimpleSelectorParseResult::SlottedPseudo(selector)
                     } else {
-                        SimpleSelectorParseResult::PseudoElement(
-                            input.parse_nested_block(|input| {
-                                P::parse_functional_pseudo_element(
-                                    parser,
-                                    name,
-                                    input,
-                                )
-                            })?
-                        )
+                        let selector = input.parse_nested_block(|input| {
+                            P::parse_functional_pseudo_element(parser, name, input)
+                        })?;
+                        SimpleSelectorParseResult::PseudoElement(selector)
                     }
                 } else {
-                    SimpleSelectorParseResult::PseudoElement(
-                        P::parse_pseudo_element(parser, location, name)?
-                    )
+                    SimpleSelectorParseResult::PseudoElement(P::parse_pseudo_element(
+                        parser,
+                        location,
+                        name,
+                    )?)
                 };
                 Ok(Some(parse_result))
             } else {
@@ -1963,13 +2025,15 @@ where
                 } else {
                     parse_simple_pseudo_class(parser, location, name)?
                 };
-                Ok(Some(SimpleSelectorParseResult::SimpleSelector(pseudo_class)))
+                Ok(Some(SimpleSelectorParseResult::SimpleSelector(
+                    pseudo_class,
+                )))
             }
-        }
+        },
         _ => {
             input.reset(&start);
             Ok(None)
-        }
+        },
     }
 }
 
@@ -1979,8 +2043,8 @@ fn parse_simple_pseudo_class<'i, P, Impl>(
     name: CowRcStr<'i>,
 ) -> Result<Component<Impl>, ParseError<'i, P::Error>>
 where
-    P: Parser<'i, Impl=Impl>,
-    Impl: SelectorImpl
+    P: Parser<'i, Impl = Impl>,
+    Impl: SelectorImpl,
 {
     (match_ignore_ascii_case! { &name,
         "first-child" => Ok(Component::FirstChild),
@@ -1995,8 +2059,7 @@ where
         "only-of-type" => Ok(Component::OnlyOfType),
         _ => Err(())
     }).or_else(|()| {
-        P::parse_non_ts_pseudo_class(parser, location, name)
-            .map(Component::NonTSPseudoClass)
+        P::parse_non_ts_pseudo_class(parser, location, name).map(Component::NonTSPseudoClass)
     })
 }
 
@@ -2004,7 +2067,7 @@ where
 #[cfg(test)]
 pub mod tests {
     use builder::HAS_PSEUDO_BIT;
-    use cssparser::{Parser as CssParser, ToCss, serialize_identifier, ParserInput};
+    use cssparser::{serialize_identifier, Parser as CssParser, ParserInput, ToCss};
     use parser;
     use std::collections::HashMap;
     use std::fmt;
@@ -2029,8 +2092,7 @@ pub mod tests {
         fn supports_pseudo_class(&self, pc: &PseudoClass) -> bool {
             match *pc {
                 PseudoClass::Hover => true,
-                PseudoClass::Active |
-                PseudoClass::Lang(..) => false,
+                PseudoClass::Active | PseudoClass::Lang(..) => false,
             }
         }
     }
@@ -2045,7 +2107,10 @@ pub mod tests {
     }
 
     impl ToCss for PseudoClass {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where
+            W: fmt::Write,
+        {
             match *self {
                 PseudoClass::Hover => dest.write_str(":hover"),
                 PseudoClass::Active => dest.write_str(":active"),
@@ -2053,13 +2118,16 @@ pub mod tests {
                     dest.write_str(":lang(")?;
                     serialize_identifier(lang, dest)?;
                     dest.write_char(')')
-                }
+                },
             }
         }
     }
 
     impl ToCss for PseudoElement {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where
+            W: fmt::Write,
+        {
             match *self {
                 PseudoElement::Before => dest.write_str("::before"),
                 PseudoElement::After => dest.write_str("::after"),
@@ -2149,7 +2217,11 @@ pub mod tests {
                 "active" => return Ok(PseudoClass::Active),
                 _ => {}
             }
-            Err(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+            Err(
+                location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
+                    name,
+                )),
+            )
         }
 
         fn parse_non_ts_functional_pseudo_class<'t>(
@@ -2158,10 +2230,17 @@ pub mod tests {
             parser: &mut CssParser<'i, 't>,
         ) -> Result<PseudoClass, SelectorParseError<'i>> {
             match_ignore_ascii_case! { &name,
-                "lang" => return Ok(PseudoClass::Lang(parser.expect_ident_or_string()?.as_ref().to_owned())),
+                "lang" => {
+                    let lang = parser.expect_ident_or_string()?.as_ref().to_owned();
+                    return Ok(PseudoClass::Lang(lang));
+                },
                 _ => {}
             }
-            Err(parser.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+            Err(
+                parser.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
+                    name,
+                )),
+            )
         }
 
         fn parse_pseudo_element(
@@ -2174,7 +2253,11 @@ pub mod tests {
                 "after" => return Ok(PseudoElement::After),
                 _ => {}
             }
-            Err(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+            Err(
+                location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
+                    name,
+                )),
+            )
         }
 
         fn default_namespace(&self) -> Option<DummyAtom> {
@@ -2209,7 +2292,7 @@ pub mod tests {
     fn parse_ns_expected<'i, 'a>(
         input: &'i str,
         parser: &DummyParser,
-        expected: Option<&'a str>
+        expected: Option<&'a str>,
     ) -> Result<SelectorList<DummySelectorImpl>, SelectorParseError<'i>> {
         let mut parser_input = ParserInput::new(input);
         let result = SelectorList::parse(parser, &mut CssParser::new(&mut parser_input));
@@ -2222,7 +2305,7 @@ pub mod tests {
                 selectors.0[0].to_css_string(),
                 match expected {
                     Some(x) => x,
-                    None => input
+                    None => input,
                 }
             );
         }
@@ -2248,31 +2331,51 @@ pub mod tests {
         assert!(parse("").is_err());
         assert!(parse(":lang(4)").is_err());
         assert!(parse(":lang(en US)").is_err());
-        assert_eq!(parse("EeÉ"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::LocalName(LocalName {
-                    name: DummyAtom::from("EeÉ"),
-                    lower_name: DummyAtom::from("eeÉ") })
-            ), specificity(0, 0, 1))
-        ))));
-        assert_eq!(parse("|e"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::ExplicitNoNamespace,
-                Component::LocalName(LocalName {
-                    name: DummyAtom::from("e"),
-                    lower_name: DummyAtom::from("e")
-                })), specificity(0, 0, 1))
-        ))));
+        assert_eq!(
+            parse("EeÉ"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("EeÉ"),
+                            lower_name: DummyAtom::from("eeÉ"),
+                        }),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("|e"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::ExplicitNoNamespace,
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("e"),
+                            lower_name: DummyAtom::from("e"),
+                        }),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
+        );
         // When the default namespace is not set, *| should be elided.
         // https://github.com/servo/servo/pull/17537
-        assert_eq!(parse_expected("*|e", Some("e")), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::LocalName(LocalName {
-                    name: DummyAtom::from("e"),
-                    lower_name: DummyAtom::from("e")
-                })
-            ), specificity(0, 0, 1))
-        ))));
+        assert_eq!(
+            parse_expected("*|e", Some("e")),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("e"),
+                            lower_name: DummyAtom::from("e"),
+                        }),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
+        );
         // When the default namespace is set, *| should _not_ be elided (as foo
         // is no longer equivalent to *|foo--the former is only for foo in the
         // default namespace).
@@ -2282,199 +2385,326 @@ pub mod tests {
                 "*|e",
                 &DummyParser::default_with_namespace(DummyAtom::from("https://mozilla.org"))
             ),
-            Ok(SelectorList::from_vec(vec!(
-                Selector::from_vec(vec!(
-                    Component::ExplicitAnyNamespace,
-                    Component::LocalName(LocalName {
-                        name: DummyAtom::from("e"),
-                        lower_name: DummyAtom::from("e")
-                    })
-                ), specificity(0, 0, 1)))))
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::ExplicitAnyNamespace,
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("e"),
+                            lower_name: DummyAtom::from("e"),
+                        }),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
         );
-        assert_eq!(parse("*"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::ExplicitUniversalType,
-            ), specificity(0, 0, 0))
-        ))));
-        assert_eq!(parse("|*"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::ExplicitNoNamespace,
-                Component::ExplicitUniversalType,
-            ), specificity(0, 0, 0))
-        ))));
-        assert_eq!(parse_expected("*|*", Some("*")), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::ExplicitUniversalType,
-            ), specificity(0, 0, 0))
-        ))));
+        assert_eq!(
+            parse("*"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(vec![Component::ExplicitUniversalType], specificity(0, 0, 0)),
+            ]))
+        );
+        assert_eq!(
+            parse("|*"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::ExplicitNoNamespace,
+                        Component::ExplicitUniversalType,
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_expected("*|*", Some("*")),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(vec![Component::ExplicitUniversalType], specificity(0, 0, 0)),
+            ]))
+        );
         assert_eq!(
             parse_ns(
                 "*|*",
                 &DummyParser::default_with_namespace(DummyAtom::from("https://mozilla.org"))
             ),
-            Ok(SelectorList::from_vec(vec!(
-                Selector::from_vec(vec!(
-                    Component::ExplicitAnyNamespace,
-                    Component::ExplicitUniversalType,
-                ), specificity(0, 0, 0)))))
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::ExplicitAnyNamespace,
+                        Component::ExplicitUniversalType,
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
         );
-        assert_eq!(parse(".foo:lang(en-US)"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                    Component::Class(DummyAtom::from("foo")),
-                    Component::NonTSPseudoClass(PseudoClass::Lang("en-US".to_owned()))
-            ), specificity(0, 2, 0))
-        ))));
-        assert_eq!(parse("#bar"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::ID(DummyAtom::from("bar"))
-            ), specificity(1, 0, 0))
-        ))));
-        assert_eq!(parse("e.foo#bar"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::LocalName(LocalName {
-                    name: DummyAtom::from("e"),
-                    lower_name: DummyAtom::from("e")
-                }),
-                Component::Class(DummyAtom::from("foo")),
-                Component::ID(DummyAtom::from("bar"))
-            ), specificity(1, 1, 1))
-        ))));
-        assert_eq!(parse("e.foo #bar"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-               Component::LocalName(LocalName {
-                   name: DummyAtom::from("e"),
-                   lower_name: DummyAtom::from("e")
-               }),
-               Component::Class(DummyAtom::from("foo")),
-               Component::Combinator(Combinator::Descendant),
-               Component::ID(DummyAtom::from("bar")),
-            ), specificity(1, 1, 1))
-        ))));
+        assert_eq!(
+            parse(".foo:lang(en-US)"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Class(DummyAtom::from("foo")),
+                        Component::NonTSPseudoClass(PseudoClass::Lang("en-US".to_owned())),
+                    ],
+                    specificity(0, 2, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("#bar"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![Component::ID(DummyAtom::from("bar"))],
+                    specificity(1, 0, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("e.foo#bar"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("e"),
+                            lower_name: DummyAtom::from("e"),
+                        }),
+                        Component::Class(DummyAtom::from("foo")),
+                        Component::ID(DummyAtom::from("bar")),
+                    ],
+                    specificity(1, 1, 1),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("e.foo #bar"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("e"),
+                            lower_name: DummyAtom::from("e"),
+                        }),
+                        Component::Class(DummyAtom::from("foo")),
+                        Component::Combinator(Combinator::Descendant),
+                        Component::ID(DummyAtom::from("bar")),
+                    ],
+                    specificity(1, 1, 1),
+                ),
+            ]))
+        );
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         let mut parser = DummyParser::default();
-        assert_eq!(parse_ns("[Foo]", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::AttributeInNoNamespaceExists {
-                    local_name: DummyAtom::from("Foo"),
-                    local_name_lower: DummyAtom::from("foo"),
-                }
-            ), specificity(0, 1, 0))
-        ))));
+        assert_eq!(
+            parse_ns("[Foo]", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::AttributeInNoNamespaceExists {
+                            local_name: DummyAtom::from("Foo"),
+                            local_name_lower: DummyAtom::from("foo"),
+                        },
+                    ],
+                    specificity(0, 1, 0),
+                ),
+            ]))
+        );
         assert!(parse_ns("svg|circle", &parser).is_err());
-        parser.ns_prefixes.insert(DummyAtom("svg".into()), DummyAtom(SVG.into()));
-        assert_eq!(parse_ns("svg|circle", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::Namespace(DummyAtom("svg".into()), SVG.into()),
-                Component::LocalName(LocalName {
-                    name: DummyAtom::from("circle"),
-                    lower_name: DummyAtom::from("circle"),
-                })
-            ), specificity(0, 0, 1))
-        ))));
-        assert_eq!(parse_ns("svg|*", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::Namespace(DummyAtom("svg".into()), SVG.into()),
-                Component::ExplicitUniversalType,
-            ), specificity(0, 0, 0))
-        ))));
+        parser
+            .ns_prefixes
+            .insert(DummyAtom("svg".into()), DummyAtom(SVG.into()));
+        assert_eq!(
+            parse_ns("svg|circle", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Namespace(DummyAtom("svg".into()), SVG.into()),
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("circle"),
+                            lower_name: DummyAtom::from("circle"),
+                        }),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns("svg|*", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Namespace(DummyAtom("svg".into()), SVG.into()),
+                        Component::ExplicitUniversalType,
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         // but it does apply to implicit type selectors
         // https://github.com/servo/rust-selectors/pull/82
         parser.default_ns = Some(MATHML.into());
-        assert_eq!(parse_ns("[Foo]", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::DefaultNamespace(MATHML.into()),
-                Component::AttributeInNoNamespaceExists {
-                    local_name: DummyAtom::from("Foo"),
-                    local_name_lower: DummyAtom::from("foo"),
-                },
-            ), specificity(0, 1, 0))
-        ))));
+        assert_eq!(
+            parse_ns("[Foo]", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::DefaultNamespace(MATHML.into()),
+                        Component::AttributeInNoNamespaceExists {
+                            local_name: DummyAtom::from("Foo"),
+                            local_name_lower: DummyAtom::from("foo"),
+                        },
+                    ],
+                    specificity(0, 1, 0),
+                ),
+            ]))
+        );
         // Default namespace does apply to type selectors
-        assert_eq!(parse_ns("e", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::DefaultNamespace(MATHML.into()),
-                Component::LocalName(LocalName {
-                    name: DummyAtom::from("e"),
-                    lower_name: DummyAtom::from("e") }),
-            ), specificity(0, 0, 1))
-        ))));
-        assert_eq!(parse_ns("*", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::DefaultNamespace(MATHML.into()),
-                Component::ExplicitUniversalType,
-            ), specificity(0, 0, 0))
-        ))));
-        assert_eq!(parse_ns("*|*", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::ExplicitAnyNamespace,
-                Component::ExplicitUniversalType,
-            ), specificity(0, 0, 0))
-        ))));
+        assert_eq!(
+            parse_ns("e", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::DefaultNamespace(MATHML.into()),
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("e"),
+                            lower_name: DummyAtom::from("e"),
+                        }),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns("*", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::DefaultNamespace(MATHML.into()),
+                        Component::ExplicitUniversalType,
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns("*|*", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::ExplicitAnyNamespace,
+                        Component::ExplicitUniversalType,
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
         // Default namespace applies to universal and type selectors inside :not and :matches,
         // but not otherwise.
-        assert_eq!(parse_ns(":not(.cl)", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::DefaultNamespace(MATHML.into()),
-                Component::Negation(vec![
-                    Component::Class(DummyAtom::from("cl"))
-                ].into_boxed_slice()),
-            ), specificity(0, 1, 0))
-        ))));
-        assert_eq!(parse_ns(":not(*)", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::DefaultNamespace(MATHML.into()),
-                Component::Negation(vec![
-                    Component::DefaultNamespace(MATHML.into()),
-                    Component::ExplicitUniversalType,
-                ].into_boxed_slice()),
-            ), specificity(0, 0, 0))
-        ))));
-        assert_eq!(parse_ns(":not(e)", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::DefaultNamespace(MATHML.into()),
-                Component::Negation(vec![
-                    Component::DefaultNamespace(MATHML.into()),
-                    Component::LocalName(LocalName {
-                        name: DummyAtom::from("e"),
-                        lower_name: DummyAtom::from("e")
-                    }),
-                ].into_boxed_slice())
-            ), specificity(0, 0, 1))
-        ))));
-        assert_eq!(parse("[attr|=\"foo\"]"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::AttributeInNoNamespace {
-                    local_name: DummyAtom::from("attr"),
-                    local_name_lower: DummyAtom::from("attr"),
-                    operator: AttrSelectorOperator::DashMatch,
-                    value: DummyAtom::from("foo"),
-                    never_matches: false,
-                    case_sensitivity: ParsedCaseSensitivity::CaseSensitive,
-                }
-            ), specificity(0, 1, 0))
-        ))));
+        assert_eq!(
+            parse_ns(":not(.cl)", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::DefaultNamespace(MATHML.into()),
+                        Component::Negation(
+                            vec![Component::Class(DummyAtom::from("cl"))].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 1, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns(":not(*)", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::DefaultNamespace(MATHML.into()),
+                        Component::Negation(
+                            vec![
+                                Component::DefaultNamespace(MATHML.into()),
+                                Component::ExplicitUniversalType,
+                            ].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns(":not(e)", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::DefaultNamespace(MATHML.into()),
+                        Component::Negation(
+                            vec![
+                                Component::DefaultNamespace(MATHML.into()),
+                                Component::LocalName(LocalName {
+                                    name: DummyAtom::from("e"),
+                                    lower_name: DummyAtom::from("e"),
+                                }),
+                            ].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("[attr|=\"foo\"]"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::AttributeInNoNamespace {
+                            local_name: DummyAtom::from("attr"),
+                            local_name_lower: DummyAtom::from("attr"),
+                            operator: AttrSelectorOperator::DashMatch,
+                            value: DummyAtom::from("foo"),
+                            never_matches: false,
+                            case_sensitivity: ParsedCaseSensitivity::CaseSensitive,
+                        },
+                    ],
+                    specificity(0, 1, 0),
+                ),
+            ]))
+        );
         // https://github.com/mozilla/servo/issues/1723
-        assert_eq!(parse("::before"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::PseudoElement(PseudoElement::Before),
-            ), specificity(0, 0, 1) | HAS_PSEUDO_BIT)
-        ))));
-        assert_eq!(parse("::before:hover"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::PseudoElement(PseudoElement::Before),
-                Component::NonTSPseudoClass(PseudoClass::Hover),
-            ), specificity(0, 1, 1) | HAS_PSEUDO_BIT)
-        ))));
-        assert_eq!(parse("::before:hover:hover"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::PseudoElement(PseudoElement::Before),
-                Component::NonTSPseudoClass(PseudoClass::Hover),
-                Component::NonTSPseudoClass(PseudoClass::Hover),
-            ), specificity(0, 2, 1) | HAS_PSEUDO_BIT)
-        ))));
+        assert_eq!(
+            parse("::before"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![Component::PseudoElement(PseudoElement::Before)],
+                    specificity(0, 0, 1) | HAS_PSEUDO_BIT,
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("::before:hover"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::PseudoElement(PseudoElement::Before),
+                        Component::NonTSPseudoClass(PseudoClass::Hover),
+                    ],
+                    specificity(0, 1, 1) | HAS_PSEUDO_BIT,
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("::before:hover:hover"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::PseudoElement(PseudoElement::Before),
+                        Component::NonTSPseudoClass(PseudoClass::Hover),
+                        Component::NonTSPseudoClass(PseudoClass::Hover),
+                    ],
+                    specificity(0, 2, 1) | HAS_PSEUDO_BIT,
+                ),
+            ]))
+        );
         assert!(parse("::before:hover:active").is_err());
         assert!(parse("::before:hover .foo").is_err());
         assert!(parse("::before .foo").is_err());
@@ -2483,77 +2713,133 @@ pub mod tests {
 
         // https://github.com/servo/servo/issues/15335
         assert!(parse(":: before").is_err());
-        assert_eq!(parse("div ::after"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                 Component::LocalName(LocalName {
-                    name: DummyAtom::from("div"),
-                    lower_name: DummyAtom::from("div") }),
-                Component::Combinator(Combinator::Descendant),
-                Component::Combinator(Combinator::PseudoElement),
-                Component::PseudoElement(PseudoElement::After),
-            ), specificity(0, 0, 2) | HAS_PSEUDO_BIT)
-        ))));
-        assert_eq!(parse("#d1 > .ok"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(
-                Component::ID(DummyAtom::from("d1")),
-                Component::Combinator(Combinator::Child),
-                Component::Class(DummyAtom::from("ok")),
-            ), (1 << 20) + (1 << 10) + (0 << 0))
-        ))));
+        assert_eq!(
+            parse("div ::after"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::LocalName(LocalName {
+                            name: DummyAtom::from("div"),
+                            lower_name: DummyAtom::from("div"),
+                        }),
+                        Component::Combinator(Combinator::Descendant),
+                        Component::Combinator(Combinator::PseudoElement),
+                        Component::PseudoElement(PseudoElement::After),
+                    ],
+                    specificity(0, 0, 2) | HAS_PSEUDO_BIT,
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse("#d1 > .ok"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::ID(DummyAtom::from("d1")),
+                        Component::Combinator(Combinator::Child),
+                        Component::Class(DummyAtom::from("ok")),
+                    ],
+                    (1 << 20) + (1 << 10) + (0 << 0),
+                ),
+            ]))
+        );
         parser.default_ns = None;
         assert!(parse(":not(#provel.old)").is_err());
         assert!(parse(":not(#provel > old)").is_err());
         assert!(parse("table[rules]:not([rules=\"none\"]):not([rules=\"\"])").is_ok());
-        assert_eq!(parse(":not(#provel)"), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(Component::Negation(vec!(
-                    Component::ID(DummyAtom::from("provel")),
-                ).into_boxed_slice()
-            )), specificity(1, 0, 0))
-        ))));
-        assert_eq!(parse_ns(":not(svg|circle)", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(Component::Negation(
-                vec![
-                    Component::Namespace(DummyAtom("svg".into()), SVG.into()),
-                    Component::LocalName(LocalName {
-                        name: DummyAtom::from("circle"),
-                        lower_name: DummyAtom::from("circle")
-                    }),
-                ].into_boxed_slice()
-            )), specificity(0, 0, 1))
-        ))));
+        assert_eq!(
+            parse(":not(#provel)"),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Negation(
+                            vec![Component::ID(DummyAtom::from("provel"))].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(1, 0, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns(":not(svg|circle)", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Negation(
+                            vec![
+                                Component::Namespace(DummyAtom("svg".into()), SVG.into()),
+                                Component::LocalName(LocalName {
+                                    name: DummyAtom::from("circle"),
+                                    lower_name: DummyAtom::from("circle"),
+                                }),
+                            ].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 0, 1),
+                ),
+            ]))
+        );
         // https://github.com/servo/servo/issues/16017
-        assert_eq!(parse_ns(":not(*)", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(Component::Negation(
-                vec![
-                    Component::ExplicitUniversalType,
-                ].into_boxed_slice()
-            )), specificity(0, 0, 0))
-        ))));
-        assert_eq!(parse_ns(":not(|*)", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(Component::Negation(
-                vec![
-                    Component::ExplicitNoNamespace,
-                    Component::ExplicitUniversalType,
-                ].into_boxed_slice()
-            )), specificity(0, 0, 0))
-        ))));
+        assert_eq!(
+            parse_ns(":not(*)", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Negation(
+                            vec![Component::ExplicitUniversalType].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns(":not(|*)", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Negation(
+                            vec![
+                                Component::ExplicitNoNamespace,
+                                Component::ExplicitUniversalType,
+                            ].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
         // *| should be elided if there is no default namespace.
         // https://github.com/servo/servo/pull/17537
-        assert_eq!(parse_ns_expected(":not(*|*)", &parser, Some(":not(*)")), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(Component::Negation(
-                vec![
-                    Component::ExplicitUniversalType,
-                ].into_boxed_slice()
-            )), specificity(0, 0, 0))
-        ))));
-        assert_eq!(parse_ns(":not(svg|*)", &parser), Ok(SelectorList::from_vec(vec!(
-            Selector::from_vec(vec!(Component::Negation(
-                vec![
-                    Component::Namespace(DummyAtom("svg".into()), SVG.into()),
-                    Component::ExplicitUniversalType,
-                ].into_boxed_slice()
-            )), specificity(0, 0, 0))
-        ))));
+        assert_eq!(
+            parse_ns_expected(":not(*|*)", &parser, Some(":not(*)")),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Negation(
+                            vec![Component::ExplicitUniversalType].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
+        assert_eq!(
+            parse_ns(":not(svg|*)", &parser),
+            Ok(SelectorList::from_vec(vec![
+                Selector::from_vec(
+                    vec![
+                        Component::Negation(
+                            vec![
+                                Component::Namespace(DummyAtom("svg".into()), SVG.into()),
+                                Component::ExplicitUniversalType,
+                            ].into_boxed_slice(),
+                        ),
+                    ],
+                    specificity(0, 0, 0),
+                ),
+            ]))
+        );
 
         assert!(parse("::slotted()").is_err());
         assert!(parse("::slotted(div)").is_ok());
@@ -2574,7 +2860,10 @@ pub mod tests {
         let selector = &parse("q::before").unwrap().0[0];
         assert!(!selector.is_universal());
         let mut iter = selector.iter();
-        assert_eq!(iter.next(), Some(&Component::PseudoElement(PseudoElement::Before)));
+        assert_eq!(
+            iter.next(),
+            Some(&Component::PseudoElement(PseudoElement::Before))
+        );
         assert_eq!(iter.next(), None);
         let combinator = iter.next_sequence();
         assert_eq!(combinator, Some(Combinator::PseudoElement));
@@ -2587,8 +2876,9 @@ pub mod tests {
     fn test_universal() {
         let selector = &parse_ns(
             "*|*::before",
-            &DummyParser::default_with_namespace(DummyAtom::from("https://mozilla.org"))
-        ).unwrap().0[0];
+            &DummyParser::default_with_namespace(DummyAtom::from("https://mozilla.org")),
+        ).unwrap()
+            .0[0];
         assert!(selector.is_universal());
     }
 
@@ -2597,7 +2887,10 @@ pub mod tests {
         let selector = &parse("::before").unwrap().0[0];
         assert!(selector.is_universal());
         let mut iter = selector.iter();
-        assert_eq!(iter.next(), Some(&Component::PseudoElement(PseudoElement::Before)));
+        assert_eq!(
+            iter.next(),
+            Some(&Component::PseudoElement(PseudoElement::Before))
+        );
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next_sequence(), None);
     }
@@ -2619,11 +2912,11 @@ pub mod tests {
 
     #[test]
     fn visitor() {
-        let mut test_visitor = TestVisitor { seen: vec![], };
+        let mut test_visitor = TestVisitor { seen: vec![] };
         parse(":not(:hover) ~ label").unwrap().0[0].visit(&mut test_visitor);
         assert!(test_visitor.seen.contains(&":hover".into()));
 
-        let mut test_visitor = TestVisitor { seen: vec![], };
+        let mut test_visitor = TestVisitor { seen: vec![] };
         parse("::before:hover").unwrap().0[0].visit(&mut test_visitor);
         assert!(test_visitor.seen.contains(&":hover".into()));
     }

@@ -9,7 +9,7 @@
 use values::computed::{Context, ToComputedValue};
 use values::specified;
 
-pub use super::specified::{AlignContent, JustifyContent, AlignItems, SelfAlignment};
+pub use super::specified::{AlignContent, AlignItems, JustifyContent, SelfAlignment};
 pub use super::specified::{AlignSelf, JustifySelf};
 
 /// The computed value for the `justify-items` property.
@@ -59,18 +59,20 @@ impl ToComputedValue for specified::JustifyItems {
     fn to_computed_value(&self, _context: &Context) -> JustifyItems {
         use values::specified::align;
         let specified = *self;
-        let computed =
-            if self.0 != align::AlignFlags::AUTO {
-                *self
-            } else {
-                // If the inherited value of `justify-items` includes the
-                // `legacy` keyword, `auto` computes to the inherited value,
-                // but we assume it computes to `normal`, and handle that
-                // special-case in StyleAdjuster.
-                Self::normal()
-            };
+        let computed = if self.0 != align::AlignFlags::AUTO {
+            *self
+        } else {
+            // If the inherited value of `justify-items` includes the
+            // `legacy` keyword, `auto` computes to the inherited value,
+            // but we assume it computes to `normal`, and handle that
+            // special-case in StyleAdjuster.
+            Self::normal()
+        };
 
-        JustifyItems { specified, computed }
+        JustifyItems {
+            specified,
+            computed,
+        }
     }
 
     #[inline]

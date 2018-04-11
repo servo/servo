@@ -41,7 +41,7 @@ impl Cursor {
     pub fn auto() -> Self {
         Self {
             images: vec![].into_boxed_slice(),
-            keyword: CursorKind::Auto
+            keyword: CursorKind::Auto,
         }
     }
 }
@@ -51,7 +51,7 @@ impl Parse for Cursor {
     #[cfg(feature = "servo")]
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(Cursor(CursorKind::parse(context, input)?))
     }
@@ -60,7 +60,7 @@ impl Parse for Cursor {
     #[cfg(feature = "gecko")]
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut images = vec![];
         loop {
@@ -94,13 +94,13 @@ impl ToCss for Cursor {
 impl Parse for CursorKind {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
-        CursorKind::from_css_keyword(&ident)
-            .map_err(|_| location.new_custom_error(
-                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+        CursorKind::from_css_keyword(&ident).map_err(|_| {
+            location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
+        })
     }
 }
 
@@ -108,7 +108,7 @@ impl Parse for CursorKind {
 impl CursorImage {
     fn parse_image<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(Self {
             url: SpecifiedImageUrl::parse(context, input)?,

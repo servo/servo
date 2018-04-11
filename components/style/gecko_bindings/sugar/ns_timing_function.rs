@@ -6,36 +6,47 @@ use gecko_bindings::structs::{nsTimingFunction, nsTimingFunction_Type};
 use std::mem;
 use values::computed::ToComputedValue;
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
-use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, TimingKeyword};
+use values::generics::transform::{StepPosition, TimingKeyword};
+use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::specified::transform::TimingFunction;
 
 impl nsTimingFunction {
     fn set_as_step(&mut self, function_type: nsTimingFunction_Type, steps: u32) {
-        debug_assert!(function_type == nsTimingFunction_Type::StepStart ||
-                      function_type == nsTimingFunction_Type::StepEnd,
-                      "function_type should be step-start or step-end");
+        debug_assert!(
+            function_type == nsTimingFunction_Type::StepStart ||
+                function_type == nsTimingFunction_Type::StepEnd,
+            "function_type should be step-start or step-end"
+        );
         self.mType = function_type;
         unsafe {
-            self.__bindgen_anon_1.__bindgen_anon_1.as_mut().mStepsOrFrames = steps;
+            self.__bindgen_anon_1
+                .__bindgen_anon_1
+                .as_mut()
+                .mStepsOrFrames = steps;
         }
     }
 
     fn set_as_frames(&mut self, frames: u32) {
         self.mType = nsTimingFunction_Type::Frames;
         unsafe {
-            self.__bindgen_anon_1.__bindgen_anon_1.as_mut().mStepsOrFrames = frames;
+            self.__bindgen_anon_1
+                .__bindgen_anon_1
+                .as_mut()
+                .mStepsOrFrames = frames;
         }
     }
 
     fn set_as_bezier(
         &mut self,
         function_type: nsTimingFunction_Type,
-        x1: f32, y1: f32, x2: f32, y2: f32,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
     ) {
         self.mType = function_type;
         unsafe {
-            let ref mut gecko_cubic_bezier =
-                self.__bindgen_anon_1.mFunc.as_mut();
+            let ref mut gecko_cubic_bezier = self.__bindgen_anon_1.mFunc.as_mut();
             gecko_cubic_bezier.mX1 = x1;
             gecko_cubic_bezier.mY1 = y1;
             gecko_cubic_bezier.mX2 = x2;
@@ -70,7 +81,10 @@ impl From<TimingFunction> for nsTimingFunction {
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 tf.set_as_bezier(
                     nsTimingFunction_Type::CubicBezier,
-                    x1.get(), y1.get(), x2.get(), y2.get(),
+                    x1.get(),
+                    y1.get(),
+                    x2.get(),
+                    y2.get(),
                 );
             },
             GenericTimingFunction::Keyword(keyword) => {
@@ -85,43 +99,48 @@ impl From<TimingFunction> for nsTimingFunction {
 impl From<nsTimingFunction> for ComputedTimingFunction {
     fn from(function: nsTimingFunction) -> ComputedTimingFunction {
         match function.mType {
-            nsTimingFunction_Type::StepStart => {
-                GenericTimingFunction::Steps(
-                    unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames },
-                    StepPosition::Start)
-            },
-            nsTimingFunction_Type::StepEnd => {
-                GenericTimingFunction::Steps(
-                    unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames },
-                    StepPosition::End)
-            },
-            nsTimingFunction_Type::Frames => {
-                GenericTimingFunction::Frames(
-                    unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames })
-            }
-            nsTimingFunction_Type::Ease => {
-                GenericTimingFunction::Keyword(TimingKeyword::Ease)
-            },
-            nsTimingFunction_Type::Linear => {
-                GenericTimingFunction::Keyword(TimingKeyword::Linear)
-            },
-            nsTimingFunction_Type::EaseIn => {
-                GenericTimingFunction::Keyword(TimingKeyword::EaseIn)
-            },
+            nsTimingFunction_Type::StepStart => GenericTimingFunction::Steps(
+                unsafe {
+                    function
+                        .__bindgen_anon_1
+                        .__bindgen_anon_1
+                        .as_ref()
+                        .mStepsOrFrames
+                },
+                StepPosition::Start,
+            ),
+            nsTimingFunction_Type::StepEnd => GenericTimingFunction::Steps(
+                unsafe {
+                    function
+                        .__bindgen_anon_1
+                        .__bindgen_anon_1
+                        .as_ref()
+                        .mStepsOrFrames
+                },
+                StepPosition::End,
+            ),
+            nsTimingFunction_Type::Frames => GenericTimingFunction::Frames(unsafe {
+                function
+                    .__bindgen_anon_1
+                    .__bindgen_anon_1
+                    .as_ref()
+                    .mStepsOrFrames
+            }),
+            nsTimingFunction_Type::Ease => GenericTimingFunction::Keyword(TimingKeyword::Ease),
+            nsTimingFunction_Type::Linear => GenericTimingFunction::Keyword(TimingKeyword::Linear),
+            nsTimingFunction_Type::EaseIn => GenericTimingFunction::Keyword(TimingKeyword::EaseIn),
             nsTimingFunction_Type::EaseOut => {
                 GenericTimingFunction::Keyword(TimingKeyword::EaseOut)
             },
             nsTimingFunction_Type::EaseInOut => {
                 GenericTimingFunction::Keyword(TimingKeyword::EaseInOut)
             },
-            nsTimingFunction_Type::CubicBezier => {
-                unsafe {
-                    GenericTimingFunction::CubicBezier {
-                        x1: function.__bindgen_anon_1.mFunc.as_ref().mX1,
-                        y1: function.__bindgen_anon_1.mFunc.as_ref().mY1,
-                        x2: function.__bindgen_anon_1.mFunc.as_ref().mX2,
-                        y2: function.__bindgen_anon_1.mFunc.as_ref().mY2,
-                    }
+            nsTimingFunction_Type::CubicBezier => unsafe {
+                GenericTimingFunction::CubicBezier {
+                    x1: function.__bindgen_anon_1.mFunc.as_ref().mX1,
+                    y1: function.__bindgen_anon_1.mFunc.as_ref().mY1,
+                    x2: function.__bindgen_anon_1.mFunc.as_ref().mX2,
+                    y2: function.__bindgen_anon_1.mFunc.as_ref().mY2,
                 }
             },
         }

@@ -9,13 +9,14 @@ use WeakAtom;
 use dom::TElement;
 use element_state::ElementState;
 use gecko::snapshot_helpers;
-use gecko::wrapper::{NamespaceConstraintHelpers, GeckoElement};
+use gecko::wrapper::{GeckoElement, NamespaceConstraintHelpers};
 use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use gecko_bindings::structs::ServoElementSnapshotTable;
 use invalidation::element::element_wrapper::ElementSnapshot;
-use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
+use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
+use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use string_cache::{Atom, Namespace};
 
 /// A snapshot of a Gecko element.
@@ -90,13 +91,13 @@ impl GeckoElementSnapshot {
         unsafe {
             match *operation {
                 AttrSelectorOperation::Exists => {
-                    bindings:: Gecko_SnapshotHasAttr(
-                        self,
-                        ns.atom_or_null(),
-                        local_name.as_ptr(),
-                    )
-                }
-                AttrSelectorOperation::WithValue { operator, case_sensitivity, expected_value } => {
+                    bindings::Gecko_SnapshotHasAttr(self, ns.atom_or_null(), local_name.as_ptr())
+                },
+                AttrSelectorOperation::WithValue {
+                    operator,
+                    case_sensitivity,
+                    expected_value,
+                } => {
                     let ignore_case = match case_sensitivity {
                         CaseSensitivity::CaseSensitive => false,
                         CaseSensitivity::AsciiCaseInsensitive => true,
@@ -108,7 +109,7 @@ impl GeckoElementSnapshot {
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
-                            ignore_case
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Includes => bindings::Gecko_SnapshotAttrIncludes(
                             self,
@@ -138,15 +139,17 @@ impl GeckoElementSnapshot {
                             expected_value.as_ptr(),
                             ignore_case,
                         ),
-                        AttrSelectorOperator::Substring => bindings::Gecko_SnapshotAttrHasSubstring(
-                            self,
-                            ns.atom_or_null(),
-                            local_name.as_ptr(),
-                            expected_value.as_ptr(),
-                            ignore_case,
-                        ),
+                        AttrSelectorOperator::Substring => {
+                            bindings::Gecko_SnapshotAttrHasSubstring(
+                                self,
+                                ns.atom_or_null(),
+                                local_name.as_ptr(),
+                                expected_value.as_ptr(),
+                                ignore_case,
+                            )
+                        },
                     }
-                }
+                },
             }
         }
     }
@@ -169,12 +172,10 @@ impl ElementSnapshot for GeckoElementSnapshot {
     #[inline]
     fn id_attr(&self) -> Option<&WeakAtom> {
         if !self.has_any(Flags::Id) {
-            return None
+            return None;
         }
 
-        let ptr = unsafe {
-            bindings::Gecko_SnapshotAtomAttrValue(self, atom!("id").as_ptr())
-        };
+        let ptr = unsafe { bindings::Gecko_SnapshotAtomAttrValue(self, atom!("id").as_ptr()) };
 
         // FIXME(emilio): This should assert, since this flag is exact.
         if ptr.is_null() {
@@ -201,7 +202,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
     #[inline]
     fn each_class<F>(&self, callback: F)
     where
-        F: FnMut(&Atom)
+        F: FnMut(&Atom),
     {
         if !self.has_any(Flags::MaybeClass) {
             return;

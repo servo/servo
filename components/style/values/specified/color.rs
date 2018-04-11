@@ -4,12 +4,12 @@
 
 //! Specified color values.
 
-use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, RGBA, Token};
+use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nscolor;
 use itoa;
-use parser::{ParserContext, Parse};
+use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use properties::longhands::system_colors::SystemColor;
 use std::fmt::{self, Write};
@@ -76,12 +76,10 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
         let location = input.current_source_location();
         let token = input.next()?.clone();
         match token {
-            Token::Dimension { value, ref unit, .. } => {
-                let angle = Angle::parse_dimension(
-                    value,
-                    unit,
-                    /* from_calc = */ false,
-                );
+            Token::Dimension {
+                value, ref unit, ..
+            } => {
+                let angle = Angle::parse_dimension(value, unit, /* from_calc = */ false);
 
                 let degrees = match angle {
                     Ok(angle) => angle.degrees(),
@@ -89,30 +87,22 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
                 };
 
                 Ok(AngleOrNumber::Angle { degrees })
-            }
-            Token::Number { value, .. } => {
-                Ok(AngleOrNumber::Number { value })
-            }
+            },
+            Token::Number { value, .. } => Ok(AngleOrNumber::Number { value }),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(|i| CalcNode::parse_angle_or_number(self.0, i))
-            }
+            },
             t => return Err(location.new_unexpected_token_error(t)),
         }
     }
 
-    fn parse_percentage<'t>(
-        &self,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<f32, ParseError<'i>> {
+    fn parse_percentage<'t>(&self, input: &mut Parser<'i, 't>) -> Result<f32, ParseError<'i>> {
         use values::specified::Percentage;
 
         Ok(Percentage::parse(self.0, input)?.get())
     }
 
-    fn parse_number<'t>(
-        &self,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<f32, ParseError<'i>> {
+    fn parse_number<'t>(&self, input: &mut Parser<'i, 't>) -> Result<f32, ParseError<'i>> {
         use values::specified::Number;
 
         Ok(Number::parse(self.0, input)?.get())
@@ -131,14 +121,17 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(|i| CalcNode::parse_number_or_percentage(self.0, i))
-            }
-            t => return Err(location.new_unexpected_token_error(t))
+            },
+            t => return Err(location.new_unexpected_token_error(t)),
         }
     }
 }
 
 impl Parse for Color {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         // Currently we only store authored value for color keywords,
         // because all browsers serialize those values as keywords for
         // specified value.
@@ -148,15 +141,13 @@ impl Parse for Color {
 
         let compontent_parser = ColorComponentParser(&*context);
         match input.try(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
-            Ok(value) => {
-                Ok(match value {
-                    CSSParserColor::CurrentColor => Color::CurrentColor,
-                    CSSParserColor::RGBA(rgba) => Color::Numeric {
-                        parsed: rgba,
-                        authored: authored.map(|s| s.to_ascii_lowercase().into_boxed_str()),
-                    },
-                })
-            }
+            Ok(value) => Ok(match value {
+                CSSParserColor::CurrentColor => Color::CurrentColor,
+                CSSParserColor::RGBA(rgba) => Color::Numeric {
+                    parsed: rgba,
+                    authored: authored.map(|s| s.to_ascii_lowercase().into_boxed_str()),
+                },
+            }),
             Err(e) => {
                 #[cfg(feature = "gecko")]
                 {
@@ -173,13 +164,13 @@ impl Parse for Color {
 
                 match e.kind {
                     ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken(t)) => {
-                        Err(e.location.new_custom_error(
-                            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(t))
-                        ))
-                    }
-                    _ => Err(e)
+                        Err(e.location.new_custom_error(StyleParseErrorKind::ValueError(
+                            ValueParseErrorKind::InvalidColor(t),
+                        )))
+                    },
+                    _ => Err(e),
                 }
-            }
+            },
         }
     }
 }
@@ -191,8 +182,13 @@ impl ToCss for Color {
     {
         match *self {
             Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
-            Color::Numeric { authored: Some(ref authored), .. } => dest.write_str(authored),
-            Color::Numeric { parsed: ref rgba, .. } => rgba.to_css(dest),
+            Color::Numeric {
+                authored: Some(ref authored),
+                ..
+            } => dest.write_str(authored),
+            Color::Numeric {
+                parsed: ref rgba, ..
+            } => rgba.to_css(dest),
             Color::Complex(_) => Ok(()),
             #[cfg(feature = "gecko")]
             Color::System(system) => system.to_css(dest),
@@ -210,12 +206,9 @@ impl ToCss for Color {
 /// handle a cssparser::Color here. This should really be done in cssparser
 /// directly rather than here.
 fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
-    CSSParserColor::parse_hash(value).map(|color| {
-        match color {
-            CSSParserColor::RGBA(rgba) => rgba,
-            CSSParserColor::CurrentColor =>
-                unreachable!("parse_hash should never return currentcolor"),
-        }
+    CSSParserColor::parse_hash(value).map(|color| match color {
+        CSSParserColor::RGBA(rgba) => rgba,
+        CSSParserColor::CurrentColor => unreachable!("parse_hash should never return currentcolor"),
     })
 }
 
@@ -266,19 +259,22 @@ impl Color {
     fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
         let location = input.current_source_location();
         let (value, unit) = match *input.next()? {
-            Token::Number { int_value: Some(integer), .. } => {
-                (integer, None)
-            },
-            Token::Dimension { int_value: Some(integer), ref unit, .. } => {
-                (integer, Some(unit))
-            },
+            Token::Number {
+                int_value: Some(integer),
+                ..
+            } => (integer, None),
+            Token::Dimension {
+                int_value: Some(integer),
+                ref unit,
+                ..
+            } => (integer, Some(unit)),
             Token::Ident(ref ident) => {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 return parse_hash_color(ident.as_bytes())
                     .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            }
+            },
             ref t => {
                 return Err(location.new_unexpected_token_error(t.clone()));
             },
@@ -299,7 +295,7 @@ impl Color {
         } else if value <= 999999 {
             6
         } else {
-            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         };
         let total = length + unit.as_ref().map_or(0, |d| d.len());
         if total > 6 {
@@ -310,12 +306,13 @@ impl Color {
         let mut written = space_padding;
         written += itoa::write(&mut serialization[written..], value).unwrap();
         if let Some(unit) = unit {
-            written += (&mut serialization[written..]).write(unit.as_bytes()).unwrap();
+            written += (&mut serialization[written..])
+                .write(unit.as_bytes())
+                .unwrap();
         }
         debug_assert_eq!(written, 6);
-        parse_hash_color(&serialization).map_err(|()| {
-            location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-        })
+        parse_hash_color(&serialization)
+            .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
     /// Returns false if the color is completely transparent, and
@@ -339,28 +336,14 @@ impl Color {
     ///
     /// If `context` is `None`, and the specified color requires data from
     /// the context to resolve, then `None` is returned.
-    pub fn to_computed_color(
-        &self,
-        _context: Option<&Context>,
-    ) -> Option<ComputedColor> {
+    pub fn to_computed_color(&self, _context: Option<&Context>) -> Option<ComputedColor> {
         match *self {
-            Color::CurrentColor => {
-                Some(ComputedColor::currentcolor())
-            }
-            Color::Numeric { ref parsed, .. } => {
-                Some(ComputedColor::rgba(*parsed))
-            }
-            Color::Complex(ref complex) => {
-                Some(*complex)
-            }
+            Color::CurrentColor => Some(ComputedColor::currentcolor()),
+            Color::Numeric { ref parsed, .. } => Some(ComputedColor::rgba(*parsed)),
+            Color::Complex(ref complex) => Some(*complex),
             #[cfg(feature = "gecko")]
-            Color::System(system) => {
-                _context.map(|context| {
-                    convert_nscolor_to_computedcolor(
-                        system.to_computed_value(context)
-                    )
-                })
-            }
+            Color::System(system) => _context
+                .map(|context| convert_nscolor_to_computedcolor(system.to_computed_value(context))),
             #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
@@ -374,12 +357,10 @@ impl Color {
                         Keyword::MozVisitedhyperlinktext => pres_context.mVisitedLinkColor,
                     })
                 })
-            }
+            },
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => {
-                _context.map(|context| {
-                    ComputedColor::rgba(context.device().body_text_color())
-                })
+                _context.map(|context| ComputedColor::rgba(context.device().body_text_color()))
             },
         }
     }
@@ -416,9 +397,11 @@ impl ToComputedValue for Color {
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub struct RGBAColor(pub Color);
 
-
 impl Parse for RGBAColor {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Color::parse(context, input).map(RGBAColor)
     }
 }
@@ -427,7 +410,8 @@ impl ToComputedValue for RGBAColor {
     type ComputedValue = RGBA;
 
     fn to_computed_value(&self, context: &Context) -> RGBA {
-        self.0.to_computed_value(context)
+        self.0
+            .to_computed_value(context)
             .to_rgba(context.style().get_color().clone_color())
     }
 
@@ -453,7 +437,8 @@ impl ToComputedValue for ColorPropertyValue {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> RGBA {
-        self.0.to_computed_value(context)
+        self.0
+            .to_computed_value(context)
             .to_rgba(context.builder.get_parent_color().clone_color())
     }
 

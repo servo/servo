@@ -65,14 +65,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         element.map_or(false, |e| e.skip_item_display_fixup())
     }
 
-
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// <https://drafts.csswg.org/css2/visuren.html#dis-pos-flo>
-    fn blockify_if_necessary<E>(
-        &mut self,
-        layout_parent_style: &ComputedValues,
-        element: Option<E>,
-    )
+    fn blockify_if_necessary<E>(&mut self, layout_parent_style: &ComputedValues, element: Option<E>)
     where
         E: TElement,
     {
@@ -82,13 +77,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 if !blockify {
                     blockify = $if_what;
                 }
-            }
+            };
         }
 
         let is_root = self.style.pseudo.is_none() && element.map_or(false, |e| e.is_root());
         blockify_if!(is_root);
         if !self.skip_item_display_fixup(element) {
-            blockify_if!(layout_parent_style.get_box().clone_display().is_item_container());
+            blockify_if!(
+                layout_parent_style
+                    .get_box()
+                    .clone_display()
+                    .is_item_container()
+            );
         }
 
         let is_item_or_root = blockify;
@@ -103,10 +103,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let display = self.style.get_box().clone_display();
         let blockified_display = display.equivalent_block_display(is_root);
         if display != blockified_display {
-            self.style.mutate_box().set_adjusted_display(
-                blockified_display,
-                is_item_or_root,
-            );
+            self.style
+                .mutate_box()
+                .set_adjusted_display(blockified_display, is_item_or_root);
         }
     }
 
@@ -114,22 +113,35 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     pub fn set_bits(&mut self) {
         let display = self.style.get_box().clone_display();
 
-        if !display.is_contents() && !self.style.get_text().clone_text_decoration_line().is_empty() {
-            self.style.flags.insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
+        if !display.is_contents() &&
+            !self.style
+                .get_text()
+                .clone_text_decoration_line()
+                .is_empty()
+        {
+            self.style
+                .flags
+                .insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
         }
 
         if display == Display::None {
-            self.style.flags.insert(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE);
+            self.style
+                .flags
+                .insert(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE);
         }
 
         if self.style.is_pseudo_element() {
-            self.style.flags.insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
+            self.style
+                .flags
+                .insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
 
         #[cfg(feature = "servo")]
         {
             if self.style.get_parent_column().is_multicol() {
-                self.style.flags.insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
+                self.style
+                    .flags
+                    .insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
             }
         }
     }
@@ -162,15 +174,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use computed_values::text_combine_upright::T as TextCombineUpright;
         use computed_values::writing_mode::T as WritingMode;
 
-        let writing_mode =
-            self.style.get_inheritedbox().clone_writing_mode();
-        let text_combine_upright =
-            self.style.get_inheritedtext().clone_text_combine_upright();
+        let writing_mode = self.style.get_inheritedbox().clone_writing_mode();
+        let text_combine_upright = self.style.get_inheritedtext().clone_text_combine_upright();
 
         if writing_mode != WritingMode::HorizontalTb &&
-           text_combine_upright == TextCombineUpright::All {
-            self.style.flags.insert(ComputedValueFlags::IS_TEXT_COMBINED);
-            self.style.mutate_inheritedbox().set_writing_mode(WritingMode::HorizontalTb);
+            text_combine_upright == TextCombineUpright::All
+        {
+            self.style
+                .flags
+                .insert(ComputedValueFlags::IS_TEXT_COMBINED);
+            self.style
+                .mutate_inheritedbox()
+                .set_writing_mode(WritingMode::HorizontalTb);
         }
     }
 
@@ -184,9 +199,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_text_in_ruby(&mut self) {
         let parent_display = self.style.get_parent_box().clone_display();
         if parent_display.is_ruby_type() ||
-           self.style.get_parent_flags().contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
+            self.style
+                .get_parent_flags()
+                .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
         {
-            self.style.flags.insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+            self.style
+                .flags
+                .insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
         }
     }
 
@@ -203,24 +222,19 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// <https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html>
     /// <https://github.com/servo/servo/issues/15754>
-    fn adjust_for_writing_mode(
-        &mut self,
-        layout_parent_style: &ComputedValues,
-    ) {
-        let our_writing_mode =
-            self.style.get_inheritedbox().clone_writing_mode();
-        let parent_writing_mode =
-            layout_parent_style.get_inheritedbox().clone_writing_mode();
+    fn adjust_for_writing_mode(&mut self, layout_parent_style: &ComputedValues) {
+        let our_writing_mode = self.style.get_inheritedbox().clone_writing_mode();
+        let parent_writing_mode = layout_parent_style.get_inheritedbox().clone_writing_mode();
 
         if our_writing_mode != parent_writing_mode &&
-           self.style.get_box().clone_display() == Display::Inline {
+            self.style.get_box().clone_display() == Display::Inline
+        {
             // TODO(emilio): Figure out if we can just set the adjusted display
             // on Gecko too and unify this code path.
             if cfg!(feature = "servo") {
-                self.style.mutate_box().set_adjusted_display(
-                    Display::InlineBlock,
-                    false,
-                );
+                self.style
+                    .mutate_box()
+                    .set_adjusted_display(Display::InlineBlock, false);
             } else {
                 self.style.mutate_box().set_display(Display::InlineBlock);
             }
@@ -241,13 +255,17 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         if self.style.get_box().clone_display() == Display::Inline {
-            self.style.mutate_box().set_adjusted_display(Display::InlineBlock,
-                                                         false);
+            self.style
+                .mutate_box()
+                .set_adjusted_display(Display::InlineBlock, false);
         }
 
-
         // When 'contain: paint', update overflow from 'visible' to 'clip'.
-        if self.style.get_box().clone_contain().contains(SpecifiedValue::PAINT) {
+        if self.style
+            .get_box()
+            .clone_contain()
+            .contains(SpecifiedValue::PAINT)
+        {
             if self.style.get_box().clone_overflow_x() == Overflow::Visible {
                 let box_style = self.style.mutate_box();
                 box_style.set_overflow_x(Overflow::MozHiddenUnscrollable);
@@ -282,15 +300,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use computed_values::align_self::T as AlignSelf;
 
         if self.style.get_position().clone_align_self() == AlignSelf::Auto &&
-           !self.style.out_of_flow_positioned() {
-            let self_align =
-                match layout_parent_style.get_position().clone_align_items() {
-                    AlignItems::Stretch => AlignSelf::Stretch,
-                    AlignItems::Baseline => AlignSelf::Baseline,
-                    AlignItems::FlexStart => AlignSelf::FlexStart,
-                    AlignItems::FlexEnd => AlignSelf::FlexEnd,
-                    AlignItems::Center => AlignSelf::Center,
-                };
+            !self.style.out_of_flow_positioned()
+        {
+            let self_align = match layout_parent_style.get_position().clone_align_items() {
+                AlignItems::Stretch => AlignSelf::Stretch,
+                AlignItems::Baseline => AlignSelf::Baseline,
+                AlignItems::FlexStart => AlignSelf::FlexStart,
+                AlignItems::FlexEnd => AlignSelf::FlexEnd,
+                AlignItems::Center => AlignSelf::Center,
+            };
             self.style.mutate_position().set_align_self(self_align);
         }
     }
@@ -305,8 +323,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// The initial value of outline-width may be changed at computed value time.
     fn adjust_for_outline(&mut self) {
-        if self.style.get_outline().clone_outline_style().none_or_hidden() &&
-           self.style.get_outline().outline_has_nonzero_width() {
+        if self.style
+            .get_outline()
+            .clone_outline_style()
+            .none_or_hidden() && self.style.get_outline().outline_has_nonzero_width()
+        {
             self.style.mutate_outline().set_outline_width(Au(0).into());
         }
     }
@@ -349,8 +370,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             }
         }
 
-        if overflow_x != original_overflow_x ||
-           overflow_y != original_overflow_y {
+        if overflow_x != original_overflow_x || overflow_y != original_overflow_y {
             let box_style = self.style.mutate_box();
             box_style.set_overflow_x(overflow_x);
             box_style.set_overflow_y(overflow_y);
@@ -365,8 +385,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         //
         // FIXME(emilio): ::before and ::after should support display: contents,
         // see bug 1418138.
-        if self.style.pseudo.is_none() ||
-           self.style.get_box().clone_display() != Display::Contents {
+        if self.style.pseudo.is_none() || self.style.get_box().clone_display() != Display::Contents
+        {
             return;
         }
 
@@ -380,10 +400,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// in matching.rs because anonymous box restyling works separately to the
     /// normal cascading process.
     #[cfg(feature = "gecko")]
-    fn adjust_for_fieldset_content(
-        &mut self,
-        layout_parent_style: &ComputedValues,
-    ) {
+    fn adjust_for_fieldset_content(&mut self, layout_parent_style: &ComputedValues) {
         match self.style.pseudo {
             Some(ref p) if p.is_fieldset_content() => {},
             _ => return,
@@ -395,10 +412,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // when <fieldset> has "display: contents".
         let parent_display = layout_parent_style.get_box().clone_display();
         let new_display = match parent_display {
-            Display::Flex |
-            Display::InlineFlex => Some(Display::Flex),
-            Display::Grid |
-            Display::InlineGrid => Some(Display::Grid),
+            Display::Flex | Display::InlineFlex => Some(Display::Flex),
+            Display::Grid | Display::InlineGrid => Some(Display::Grid),
             _ => None,
         };
         if let Some(new_display) = new_display {
@@ -420,13 +435,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         match self.style.get_inheritedtext().clone_text_align() {
-            TextAlign::MozLeft |
-            TextAlign::MozCenter |
-            TextAlign::MozRight => {},
+            TextAlign::MozLeft | TextAlign::MozCenter | TextAlign::MozRight => {},
             _ => return,
         }
 
-        self.style.mutate_inheritedtext().set_text_align(TextAlign::Start)
+        self.style
+            .mutate_inheritedtext()
+            .set_text_align(TextAlign::Start)
     }
 
     /// Computes the used text decoration for Servo.
@@ -445,16 +460,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     }
 
     #[cfg(feature = "gecko")]
-    fn should_suppress_linebreak(
-        &self,
-        layout_parent_style: &ComputedValues,
-    ) -> bool {
+    fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValues) -> bool {
         // Line break suppression should only be propagated to in-flow children.
         if self.style.floated() || self.style.out_of_flow_positioned() {
             return false;
         }
         let parent_display = layout_parent_style.get_box().clone_display();
-        if layout_parent_style.flags.contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK) {
+        if layout_parent_style
+            .flags
+            .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
+        {
             // Line break suppression is propagated to any children of
             // line participants.
             if parent_display.is_line_participant() {
@@ -463,15 +478,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
         match self.style.get_box().clone_display() {
             // Ruby base and text are always non-breakable.
-            Display::RubyBase |
-            Display::RubyText => true,
+            Display::RubyBase | Display::RubyText => true,
             // Ruby base container and text container are breakable.
             // Note that, when certain HTML tags, e.g. form controls, have ruby
             // level container display type, they could also escape from the
             // line break suppression flag while they shouldn't. However, it is
             // generally fine since they themselves are non-breakable.
-            Display::RubyBaseContainer |
-            Display::RubyTextContainer => false,
+            Display::RubyBaseContainer | Display::RubyTextContainer => false,
             // Anything else is non-breakable if and only if its layout parent
             // has a ruby display type, because any of the ruby boxes can be
             // anonymous.
@@ -485,11 +498,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// * suppress border and padding for ruby level containers,
     /// * correct unicode-bidi.
     #[cfg(feature = "gecko")]
-    fn adjust_for_ruby<E>(
-        &mut self,
-        layout_parent_style: &ComputedValues,
-        element: Option<E>,
-    )
+    fn adjust_for_ruby<E>(&mut self, layout_parent_style: &ComputedValues, element: Option<E>)
     where
         E: TElement,
     {
@@ -498,12 +507,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
         if self.should_suppress_linebreak(layout_parent_style) {
-            self.style.flags.insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
+            self.style
+                .flags
+                .insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
             if !self.skip_item_display_fixup(element) {
                 let inline_display = self_display.inlinify();
                 if self_display != inline_display {
-                    self.style.mutate_box().set_adjusted_display(inline_display, false);
+                    self.style
+                        .mutate_box()
+                        .set_adjusted_display(inline_display, false);
                 }
             }
         }
@@ -520,8 +533,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // per spec https://drafts.csswg.org/css-ruby-1/#bidi
         if self_display.is_ruby_type() {
             let new_value = match self.style.get_text().clone_unicode_bidi() {
-                UnicodeBidi::Normal |
-                UnicodeBidi::Embed => Some(UnicodeBidi::Isolate),
+                UnicodeBidi::Normal | UnicodeBidi::Embed => Some(UnicodeBidi::Isolate),
                 UnicodeBidi::BidiOverride => Some(UnicodeBidi::IsolateOverride),
                 _ => None,
             };
@@ -548,19 +560,21 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
 
-        let is_link_element =
-            self.style.pseudo.is_none() &&
-            element.map_or(false, |e| e.is_link());
+        let is_link_element = self.style.pseudo.is_none() && element.map_or(false, |e| e.is_link());
 
         if !is_link_element {
             return;
         }
 
         if element.unwrap().is_visited_link() {
-            self.style.flags.insert(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+            self.style
+                .flags
+                .insert(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         } else {
             // Need to remove to handle unvisited link inside visited.
-            self.style.flags.remove(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
+            self.style
+                .flags
+                .remove(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         }
     }
 
@@ -578,10 +592,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
 
-        let parent_justify_items =
-            self.style.get_parent_position().clone_justify_items();
+        let parent_justify_items = self.style.get_parent_position().clone_justify_items();
 
-        if !parent_justify_items.computed.0.contains(align::AlignFlags::LEGACY) {
+        if !parent_justify_items
+            .computed
+            .0
+            .contains(align::AlignFlags::LEGACY)
+        {
             return;
         }
 
@@ -605,19 +622,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         layout_parent_style: &ComputedValues,
         element: Option<E>,
         flags: CascadeFlags,
-    )
-    where
+    ) where
         E: TElement,
     {
         if cfg!(debug_assertions) {
-            if element.and_then(|e| e.implemented_pseudo_element()).is_some() {
+            if element
+                .and_then(|e| e.implemented_pseudo_element())
+                .is_some()
+            {
                 // It'd be nice to assert `self.style.pseudo == Some(&pseudo)`,
                 // but we do resolve ::-moz-list pseudos on ::before / ::after
                 // content, sigh.
-                debug_assert!(
-                    self.style.pseudo.is_some(),
-                    "Someone really messed up"
-                );
+                debug_assert!(self.style.pseudo.is_some(), "Someone really messed up");
             }
         }
         // FIXME(emilio): The apply_declarations callsite in Servo's

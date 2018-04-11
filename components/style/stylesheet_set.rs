@@ -30,7 +30,10 @@ where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     fn new(sheet: S) -> Self {
-        Self { sheet, committed: false }
+        Self {
+            sheet,
+            committed: false,
+        }
     }
 }
 
@@ -47,7 +50,6 @@ where
         StylesheetCollectionIterator(self.0.clone())
     }
 }
-
 
 impl<'a, S> Iterator for StylesheetCollectionIterator<'a, S>
 where
@@ -86,14 +88,16 @@ where
             if self.current.is_none() {
                 let next_origin = self.origins.next()?;
 
-                self.current =
-                    Some((next_origin, self.collections.borrow_for_origin(&next_origin).iter()));
+                self.current = Some((
+                    next_origin,
+                    self.collections.borrow_for_origin(&next_origin).iter(),
+                ));
             }
 
             {
                 let (origin, ref mut iter) = *self.current.as_mut().unwrap();
                 if let Some(s) = iter.next() {
-                    return Some((s, origin))
+                    return Some((s, origin));
                 }
             }
 
@@ -176,7 +180,7 @@ where
 /// appropriate stylesheets that need work.
 pub struct SheetCollectionFlusher<'a, S>
 where
-    S: StylesheetInDocument + PartialEq + 'static
+    S: StylesheetInDocument + PartialEq + 'static,
 {
     iter: slice::IterMut<'a, StylesheetSetEntry<S>>,
     validity: DataValidity,
@@ -216,7 +220,7 @@ where
             if !committed {
                 // If the sheet was uncommitted, we need to do a full rebuild
                 // anyway.
-                return Some((&potential_sheet.sheet, SheetRebuildKind::Full))
+                return Some((&potential_sheet.sheet, SheetRebuildKind::Full));
             }
 
             let rebuild_kind = match self.validity {
@@ -283,9 +287,7 @@ where
     }
 
     fn remove(&mut self, sheet: &S) {
-        let index = self.entries.iter().position(|entry| {
-            entry.sheet == *sheet
-        });
+        let index = self.entries.iter().position(|entry| entry.sheet == *sheet);
         if cfg!(feature = "gecko") && index.is_none() {
             // FIXME(emilio): Make Gecko's PresShell::AddUserSheet not suck.
             return;
@@ -322,9 +324,10 @@ where
     fn insert_before(&mut self, sheet: S, before_sheet: &S) {
         debug_assert!(!self.contains(&sheet));
 
-        let index = self.entries.iter().position(|entry| {
-            entry.sheet == *before_sheet
-        }).expect("`before_sheet` stylesheet not found");
+        let index = self.entries
+            .iter()
+            .position(|entry| entry.sheet == *before_sheet)
+            .expect("`before_sheet` stylesheet not found");
 
         // Inserting stylesheets somewhere but at the end changes the validity
         // of the cascade data, but not the invalidation data.
@@ -483,7 +486,9 @@ where
 
     /// Returns the number of stylesheets in the set.
     pub fn len(&self) -> usize {
-        self.collections.iter_origins().fold(0, |s, (item, _)| s + item.len())
+        self.collections
+            .iter_origins()
+            .fold(0, |s, (item, _)| s + item.len())
     }
 
     /// Returns the `index`th stylesheet in the set for the given origin.
@@ -493,7 +498,9 @@ where
 
     /// Returns whether the given set has changed from the last flush.
     pub fn has_changed(&self) -> bool {
-        self.collections.iter_origins().any(|(collection, _)| collection.dirty)
+        self.collections
+            .iter_origins()
+            .any(|(collection, _)| collection.dirty)
     }
 
     /// Flush the current set, unmarking it as dirty, and returns a
@@ -508,8 +515,7 @@ where
     {
         debug!("DocumentStylesheetSet::flush");
 
-        let had_invalidations =
-            self.invalidations.flush(document_element, snapshots);
+        let had_invalidations = self.invalidations.flush(document_element, snapshots);
 
         DocumentStylesheetFlusher {
             collections: &mut self.collections,
@@ -620,7 +626,8 @@ where
     /// Mark the sheet set dirty, as appropriate.
     pub fn force_dirty(&mut self) {
         self.invalidations.invalidate_fully();
-        self.collection.set_data_validity_at_least(DataValidity::FullyInvalid);
+        self.collection
+            .set_data_validity_at_least(DataValidity::FullyInvalid);
     }
 
     /// Flush the stylesheets for this author set.

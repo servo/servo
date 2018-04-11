@@ -92,17 +92,22 @@ impl Dependency {
             return None;
         }
 
-        Some(self.selector.combinator_at_match_order(self.selector_offset - 1))
+        Some(
+            self.selector
+                .combinator_at_match_order(self.selector_offset - 1),
+        )
     }
 
     /// The kind of invalidation that this would generate.
     pub fn invalidation_kind(&self) -> DependencyInvalidationKind {
         match self.combinator() {
             None => DependencyInvalidationKind::Element,
-            Some(Combinator::Child) |
-            Some(Combinator::Descendant) => DependencyInvalidationKind::Descendants,
-            Some(Combinator::LaterSibling) |
-            Some(Combinator::NextSibling) => DependencyInvalidationKind::Siblings,
+            Some(Combinator::Child) | Some(Combinator::Descendant) => {
+                DependencyInvalidationKind::Descendants
+            },
+            Some(Combinator::LaterSibling) | Some(Combinator::NextSibling) => {
+                DependencyInvalidationKind::Siblings
+            },
             // TODO(emilio): We could look at the selector itself to see if it's
             // an eager pseudo, and return only Descendants here if not.
             Some(Combinator::PseudoElement) => DependencyInvalidationKind::ElementAndDescendants,
@@ -196,15 +201,14 @@ impl InvalidationMap {
 
     /// Returns the number of dependencies stored in the invalidation map.
     pub fn len(&self) -> usize {
-        self.state_affecting_selectors.len() +
-        self.document_state_selectors.len() +
-        self.other_attribute_affecting_selectors.len() +
-        self.id_to_selector.iter().fold(0, |accum, (_, ref v)| {
-            accum + v.len()
-        }) +
-        self.class_to_selector.iter().fold(0, |accum, (_, ref v)| {
-            accum + v.len()
-        })
+        self.state_affecting_selectors.len() + self.document_state_selectors.len() +
+            self.other_attribute_affecting_selectors.len() +
+            self.id_to_selector
+                .iter()
+                .fold(0, |accum, (_, ref v)| accum + v.len()) +
+            self.class_to_selector
+                .iter()
+                .fold(0, |accum, (_, ref v)| accum + v.len())
     }
 
     /// Clears this map, leaving it empty.
@@ -283,22 +287,26 @@ impl InvalidationMap {
             }
 
             if !compound_visitor.state.is_empty() {
-                self.state_affecting_selectors
-                    .insert(StateDependency {
+                self.state_affecting_selectors.insert(
+                    StateDependency {
                         dep: Dependency {
                             selector: selector.clone(),
                             selector_offset: sequence_start,
                         },
                         state: compound_visitor.state,
-                    }, quirks_mode)?;
+                    },
+                    quirks_mode,
+                )?;
             }
 
             if compound_visitor.other_attributes {
-                self.other_attribute_affecting_selectors
-                    .insert(Dependency {
+                self.other_attribute_affecting_selectors.insert(
+                    Dependency {
                         selector: selector.clone(),
                         selector_offset: sequence_start,
-                    }, quirks_mode)?;
+                    },
+                    quirks_mode,
+                )?;
             }
 
             combinator = iter.next_sequence();
@@ -310,10 +318,11 @@ impl InvalidationMap {
         }
 
         if !document_state.is_empty() {
-            self.document_state_selectors.try_push(DocumentStateDependency {
-                state: document_state,
-                selector: selector.clone(),
-            })?;
+            self.document_state_selectors
+                .try_push(DocumentStateDependency {
+                    state: document_state,
+                    selector: selector.clone(),
+                })?;
         }
 
         Ok(())
@@ -365,22 +374,20 @@ impl<'a> SelectorVisitor for CompoundSelectorDependencyCollector<'a> {
         match *s {
             Component::ID(ref id) => {
                 self.ids.push(id.clone());
-            }
+            },
             Component::Class(ref class) => {
                 self.classes.push(class.clone());
-            }
+            },
             Component::NonTSPseudoClass(ref pc) => {
                 self.other_attributes |= pc.is_attr_based();
                 self.state |= match *pc {
                     #[cfg(feature = "gecko")]
-                    NonTSPseudoClass::Dir(ref dir) => {
-                        dir_selector_to_state(dir)
-                    }
+                    NonTSPseudoClass::Dir(ref dir) => dir_selector_to_state(dir),
                     _ => pc.state_flag(),
                 };
                 *self.document_state |= pc.document_state_flag();
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         true

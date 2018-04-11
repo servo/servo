@@ -11,10 +11,11 @@
 #[cfg(feature = "gecko")]
 use computed_values::{font_stretch, font_style, font_weight};
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{SourceLocation, CowRcStr};
+use cssparser::{CowRcStr, SourceLocation};
+#[cfg(feature = "gecko")]
+use cssparser::UnicodeRange;
 use error_reporting::{ContextualParseError, ParseErrorReporter};
-#[cfg(feature = "gecko")] use cssparser::UnicodeRange;
-use parser::{ParserContext, ParserErrorContext, Parse};
+use parser::{Parse, ParserContext, ParserErrorContext};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;
 use selectors::parser::SelectorParseErrorKind;
@@ -58,7 +59,10 @@ pub struct UrlSource {
 }
 
 impl ToCss for UrlSource {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         self.url.to_css(dest)?;
         if !self.format_hints.is_empty() {
             dest.write_str(" format(")?;
@@ -79,8 +83,7 @@ impl ToCss for UrlSource {
 /// on whether and when it is downloaded and ready to use.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-#[derive(ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
 pub enum FontDisplay {
     Auto,
     Block,
@@ -104,8 +107,10 @@ pub enum FontWeight {
 
 #[cfg(feature = "gecko")]
 impl Parse for FontWeight {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
-        -> Result<FontWeight, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<FontWeight, ParseError<'i>> {
         let result = input.try(|input| {
             let ident = input.expect_ident().map_err(|_| ())?;
             match_ignore_ascii_case! { &ident,
@@ -125,12 +130,14 @@ impl Parse for FontWeight {
 /// Parse the block inside a `@font-face` rule.
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.
-pub fn parse_font_face_block<R>(context: &ParserContext,
-                                error_context: &ParserErrorContext<R>,
-                                input: &mut Parser,
-                                location: SourceLocation)
-                                -> FontFaceRuleData
-    where R: ParseErrorReporter
+pub fn parse_font_face_block<R>(
+    context: &ParserContext,
+    error_context: &ParserErrorContext<R>,
+    input: &mut Parser,
+    location: SourceLocation,
+) -> FontFaceRuleData
+where
+    R: ParseErrorReporter,
 {
     let mut rule = FontFaceRuleData::empty(location);
     {
@@ -166,19 +173,27 @@ impl<'a> FontFace<'a> {
     /// sources which don't list any format hint, or the ones which list at
     /// least "truetype" or "opentype".
     pub fn effective_sources(&self) -> EffectiveSources {
-        EffectiveSources(self.sources().iter().rev().filter(|source| {
-            if let Source::Url(ref url_source) = **source {
-                let hints = &url_source.format_hints;
-                // We support only opentype fonts and truetype is an alias for
-                // that format. Sources without format hints need to be
-                // downloaded in case we support them.
-                hints.is_empty() || hints.iter().any(|hint| {
-                    hint == "truetype" || hint == "opentype" || hint == "woff"
+        EffectiveSources(
+            self.sources()
+                .iter()
+                .rev()
+                .filter(|source| {
+                    if let Source::Url(ref url_source) = **source {
+                        let hints = &url_source.format_hints;
+                        // We support only opentype fonts and truetype is an alias for
+                        // that format. Sources without format hints need to be
+                        // downloaded in case we support them.
+                        hints.is_empty() ||
+                            hints.iter().any(|hint| {
+                                hint == "truetype" || hint == "opentype" || hint == "woff"
+                            })
+                    } else {
+                        true
+                    }
                 })
-            } else {
-                true
-            }
-        }).cloned().collect())
+                .cloned()
+                .collect(),
+        )
     }
 }
 
@@ -208,22 +223,28 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
 }
 
 impl Parse for Source {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Source, ParseError<'i>> {
-        if input.try(|input| input.expect_function_matching("local")).is_ok() {
-            return input.parse_nested_block(|input| {
-                FamilyName::parse(context, input)
-            }).map(Source::Local)
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Source, ParseError<'i>> {
+        if input
+            .try(|input| input.expect_function_matching("local"))
+            .is_ok()
+        {
+            return input
+                .parse_nested_block(|input| FamilyName::parse(context, input))
+                .map(Source::Local);
         }
 
         let url = SpecifiedUrl::parse(context, input)?;
 
         // Parsing optional format()
-        let format_hints = if input.try(|input| input.expect_function_matching("format")).is_ok() {
+        let format_hints = if input
+            .try(|input| input.expect_function_matching("format"))
+            .is_ok()
+        {
             input.parse_nested_block(|input| {
-                input.parse_comma_separated(|input| {
-                    Ok(input.expect_string()?.as_ref().to_owned())
-                })
+                input.parse_comma_separated(|input| Ok(input.expect_string()?.as_ref().to_owned()))
             })?
         } else {
             vec![]
@@ -249,7 +270,9 @@ macro_rules! is_descriptor_enabled {
             mozilla::StaticPrefs_sVarCache_layout_css_font_variations_enabled
         }
     };
-    ($name: tt) => { true }
+    ($name:tt) => {
+        true
+    };
 }
 
 macro_rules! font_face_descriptors_common {
