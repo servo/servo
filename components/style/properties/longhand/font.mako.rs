@@ -150,7 +150,7 @@ ${helpers.predefined_type("font-feature-settings",
                           products="gecko",
                           initial_value="computed::FontFeatureSettings::normal()",
                           initial_specified_value="specified::FontFeatureSettings::normal()",
-                          extra_prefixes="moz",
+                          extra_prefixes="moz:layout.css.prefixes.font-features",
                           animation_value_type="discrete",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings")}
@@ -178,7 +178,7 @@ ${helpers.predefined_type("font-language-override",
                           initial_value="computed::FontLanguageOverride::zero()",
                           initial_specified_value="specified::FontLanguageOverride::normal()",
                           animation_value_type="discrete",
-                          extra_prefixes="moz",
+                          extra_prefixes="moz:layout.css.prefixes.font-features",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override")}
 

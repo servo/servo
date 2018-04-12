@@ -57,12 +57,14 @@ ${helpers.predefined_type(
 // Flex container properties
 ${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse",
                          spec="https://drafts.csswg.org/css-flexbox/#flex-direction-property",
-                         extra_prefixes="webkit", animation_value_type="discrete",
+                         extra_prefixes="webkit",
+                         animation_value_type="discrete",
                          servo_restyle_damage = "reflow")}
 
 ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                          spec="https://drafts.csswg.org/css-flexbox/#flex-wrap-property",
-                         extra_prefixes="webkit", animation_value_type="discrete",
+                         extra_prefixes="webkit",
+                         animation_value_type="discrete",
                          servo_restyle_damage = "reflow")}
 
 % if product == "servo":
@@ -267,7 +269,7 @@ ${helpers.predefined_type(
 
 ${helpers.single_keyword("box-sizing",
                          "content-box border-box",
-                         extra_prefixes="moz webkit",
+                         extra_prefixes="moz:layout.css.prefixes.box-sizing webkit",
                          spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
                          gecko_enum_prefix="StyleBoxSizing",
                          custom_consts={ "content-box": "Content", "border-box": "Border" },

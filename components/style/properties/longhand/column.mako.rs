@@ -73,7 +73,7 @@ ${helpers.single_keyword("column-span", "none all",
                          products="gecko", animation_value_type="discrete",
                          gecko_pref="layout.css.column-span.enabled",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-span",
-                         extra_prefixes="moz")}
+                         extra_prefixes="moz:layout.css.column-span.enabled")}
 
 ${helpers.single_keyword("column-rule-style",
                          "none hidden dotted dashed solid double groove ridge inset outset",

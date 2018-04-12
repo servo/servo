@@ -226,6 +226,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
 
+<% transition_extra_prefixes = "moz:layout.css.prefixes.transitions webkit" %>
+
 ${helpers.predefined_type("transition-duration",
                           "Time",
                           "computed::Time::zero()",
@@ -234,7 +236,7 @@ ${helpers.predefined_type("transition-duration",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transition_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
 ${helpers.predefined_type("transition-timing-function",
@@ -244,7 +246,7 @@ ${helpers.predefined_type("transition-timing-function",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transition_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function")}
 
 ${helpers.predefined_type(
@@ -257,7 +259,7 @@ ${helpers.predefined_type(
     need_index=True,
     needs_context=False,
     animation_value_type="none",
-    extra_prefixes="moz webkit",
+    extra_prefixes=transition_extra_prefixes,
     spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property",
 )}
 
@@ -268,9 +270,11 @@ ${helpers.predefined_type("transition-delay",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transition_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay")}
 
+
+<% animation_extra_prefixes = "moz:layout.css.prefixes.animations webkit" %>
 
 ${helpers.predefined_type(
     "animation-name",
@@ -280,7 +284,7 @@ ${helpers.predefined_type(
     vector=True,
     need_index=True,
     animation_value_type="none",
-    extra_prefixes="moz webkit",
+    extra_prefixes=animation_extra_prefixes,
     allowed_in_keyframe_block=False,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-name",
 )}
@@ -293,7 +297,7 @@ ${helpers.predefined_type("animation-duration",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=animation_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
 // animation-timing-function is the exception to the rule for allowed_in_keyframe_block:
@@ -305,7 +309,7 @@ ${helpers.predefined_type("animation-timing-function",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=animation_extra_prefixes,
                           allowed_in_keyframe_block=True,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function")}
 
@@ -317,7 +321,7 @@ ${helpers.predefined_type(
     vector=True,
     need_index=True,
     animation_value_type="none",
-    extra_prefixes="moz webkit",
+    extra_prefixes=animation_extra_prefixes,
     allowed_in_keyframe_block=False,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
 )}
@@ -330,7 +334,7 @@ ${helpers.single_keyword("animation-direction",
                          vector=True,
                          gecko_enum_prefix="PlaybackDirection",
                          custom_consts=animation_direction_custom_consts,
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=animation_extra_prefixes,
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
                          allowed_in_keyframe_block=False)}
 
@@ -339,7 +343,7 @@ ${helpers.single_keyword("animation-play-state",
                          need_index=True,
                          animation_value_type="none",
                          vector=True,
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=animation_extra_prefixes,
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
                          allowed_in_keyframe_block=False)}
 
@@ -349,7 +353,7 @@ ${helpers.single_keyword("animation-fill-mode",
                          animation_value_type="none",
                          vector=True,
                          gecko_enum_prefix="FillMode",
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=animation_extra_prefixes,
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
                          allowed_in_keyframe_block=False)}
 
@@ -360,7 +364,7 @@ ${helpers.predefined_type("animation-delay",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=animation_extra_prefixes,
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
                           allowed_in_keyframe_block=False)}
 
@@ -397,9 +401,11 @@ ${helpers.predefined_type(
     allow_empty="NotInitial"
 )}
 
+<% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
+
 ${helpers.predefined_type("transform", "Transform",
                           "generics::transform::Transform::none()",
-                          extra_prefixes="webkit moz",
+                          extra_prefixes=transform_extra_prefixes,
                           animation_value_type="ComputedValue",
                           gecko_ffi_name="mSpecifiedTransform",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
@@ -517,7 +523,7 @@ ${helpers.predefined_type(
     "computed::Perspective::none()",
     gecko_ffi_name="mChildPerspective",
     spec="https://drafts.csswg.org/css-transforms/#perspective",
-    extra_prefixes="moz webkit",
+    extra_prefixes=transform_extra_prefixes,
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     animation_value_type="AnimatedPerspective",
     servo_restyle_damage = "reflow_out_of_flow",
@@ -527,7 +533,7 @@ ${helpers.predefined_type("perspective-origin",
                           "position::Position",
                           "computed::position::Position::center()",
                           boxed=True,
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transform_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
                           animation_value_type="ComputedValue",
                           servo_restyle_damage = "reflow_out_of_flow")}
@@ -535,7 +541,7 @@ ${helpers.predefined_type("perspective-origin",
 ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
                          spec="https://drafts.csswg.org/css-transforms/#backface-visibility-property",
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=transform_extra_prefixes,
                          animation_value_type="discrete")}
 
 ${helpers.single_keyword("transform-box",
@@ -553,7 +559,7 @@ ${helpers.predefined_type(
     "computed::TransformStyle::" + ("Auto" if product == "servo" else "Flat"),
     spec="https://drafts.csswg.org/css-transforms-2/#transform-style-property",
     needs_context=False,
-    extra_prefixes="moz webkit",
+    extra_prefixes=transform_extra_prefixes,
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     animation_value_type="discrete",
     servo_restyle_damage = "reflow_out_of_flow",
@@ -563,7 +569,7 @@ ${helpers.predefined_type("transform-origin",
                           "TransformOrigin",
                           "computed::TransformOrigin::initial_value()",
                           animation_value_type="ComputedValue",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transform_extra_prefixes,
                           gecko_ffi_name="mTransformOrigin",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-transforms/#transform-origin-property",
