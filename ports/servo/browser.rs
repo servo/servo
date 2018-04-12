@@ -86,12 +86,12 @@ impl Browser {
     /// Handle key events before sending them to Servo.
     fn handle_key_from_window(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
         match (mods, ch, key) {
-            (CMD_OR_CONTROL, Some('r'), _) => {
+            (CMD_OR_CONTROL, Some('r'), _) => if state == KeyState::Pressed {
                 if let Some(id) = self.browser_id {
                     self.event_queue.push(WindowEvent::Reload(id));
                 }
             }
-            (CMD_OR_CONTROL, Some('l'), _) => {
+            (CMD_OR_CONTROL, Some('l'), _) => if state == KeyState::Pressed {
                 if let Some(id) = self.browser_id {
                     let url: String = if let Some(ref current_url) = self.current_url {
                         current_url.to_string()
@@ -106,37 +106,40 @@ impl Browser {
                     }
                 }
             }
-            (CMD_OR_CONTROL, Some('q'), _) => {
+            (CMD_OR_CONTROL, Some('q'), _) => if state == KeyState::Pressed {
                 self.event_queue.push(WindowEvent::Quit);
             }
-            (_, Some('3'), _) if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT => {
+            (_, Some('3'), _) =>
+            if state == KeyState::Pressed && mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT {
                 self.event_queue.push(WindowEvent::CaptureWebRender);
             }
-            (KeyModifiers::CONTROL, None, Key::F10) => {
+            (KeyModifiers::CONTROL, None, Key::F10) => if state == KeyState::Pressed {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
                 self.event_queue.push(event);
             }
-            (KeyModifiers::CONTROL, None, Key::F11) => {
+            (KeyModifiers::CONTROL, None, Key::F11) => if state == KeyState::Pressed {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
                 self.event_queue.push(event);
             }
-            (KeyModifiers::CONTROL, None, Key::F12) => {
+            (KeyModifiers::CONTROL, None, Key::F12) => if state == KeyState::Pressed {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::Profiler);
                 self.event_queue.push(event);
             }
-            (CMD_OR_ALT, None, Key::Right) | (KeyModifiers::NONE, None, Key::NavigateForward) => {
+            (CMD_OR_ALT, None, Key::Right) | (KeyModifiers::NONE, None, Key::NavigateForward) =>
+            if state == KeyState::Pressed {
                 if let Some(id) = self.browser_id {
                     let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
                     self.event_queue.push(event);
                 }
             }
-            (CMD_OR_ALT, None, Key::Left) | (KeyModifiers::NONE, None, Key::NavigateBackward) => {
+            (CMD_OR_ALT, None, Key::Left) | (KeyModifiers::NONE, None, Key::NavigateBackward) =>
+            if state == KeyState::Pressed {
                 if let Some(id) = self.browser_id {
                     let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
                     self.event_queue.push(event);
                 }
             }
-            (KeyModifiers::NONE, None, Key::Escape) => {
+            (KeyModifiers::NONE, None, Key::Escape) => if state == KeyState::Pressed {
                 self.event_queue.push(WindowEvent::Quit);
             }
             _ => {
