@@ -2122,8 +2122,8 @@ dependencies = [
 
 [[package]]
 name = "osmesa-src"
-version = "17.3.1-devel"
-source = "git+https://github.com/servo/osmesa-src#6d23daede16f7edf7c66bdcce73c7583d0853733"
+version = "18.1.0-devel"
+source = "git+https://github.com/servo/osmesa-src#25825d4ca357cdaf540f20fafc545f5aff1aa355"
 
 [[package]]
 name = "osmesa-sys"
@@ -2730,7 +2730,7 @@ dependencies = [
  "glutin 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "osmesa-src 17.3.1-devel (git+https://github.com/servo/osmesa-src)",
+ "osmesa-src 18.1.0-devel (git+https://github.com/servo/osmesa-src)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3958,7 +3958,7 @@ dependencies = [
 "checksum openssl 0.9.24 (registry+https://github.com/rust-lang/crates.io-index)" = "a3605c298474a3aa69de92d21139fb5e2a81688d308262359d85cdd0d12a7985"
 "checksum openssl-sys 0.9.27 (registry+https://github.com/rust-lang/crates.io-index)" = "d6fdc5c4a02e69ce65046f1763a0181107038e02176233acb0b3351d7cc588f9"
 "checksum ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "da12c96037889ae0be29dd2bdd260e5a62a7df24e6466d5a15bb8131c1c200a8"
-"checksum osmesa-src 17.3.1-devel (git+https://github.com/servo/osmesa-src)" = "<none>"
+"checksum osmesa-src 18.1.0-devel (git+https://github.com/servo/osmesa-src)" = "<none>"
 "checksum osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88cfece6e95d2e717e0872a7f53a8684712ad13822a7979bc760b9c77ec0013b"
 "checksum ovr-mobile-sys 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a69b517feac6fc640f0679625defa0998bbcb32871a6901e63063c2abf9c4cbe"
 "checksum owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf84f41639e037b484f93433aa3897863b561ed65c6e59c7073d7c561710f37"
