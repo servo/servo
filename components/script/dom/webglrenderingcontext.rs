@@ -2348,6 +2348,45 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         Int32Value(receiver.recv().unwrap())
     }
 
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    unsafe fn GetRenderbufferParameter(
+        &self,
+        _cx: *mut JSContext,
+        target: u32,
+        pname: u32
+    ) -> JSVal {
+        if self.bound_renderbuffer.get().is_none() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        }
+
+        let target_matches = target == constants::RENDERBUFFER;
+
+        let pname_matches = match pname {
+            constants::RENDERBUFFER_WIDTH |
+            constants::RENDERBUFFER_HEIGHT |
+            constants::RENDERBUFFER_INTERNAL_FORMAT |
+            constants::RENDERBUFFER_RED_SIZE |
+            constants::RENDERBUFFER_GREEN_SIZE |
+            constants::RENDERBUFFER_BLUE_SIZE |
+            constants::RENDERBUFFER_ALPHA_SIZE |
+            constants::RENDERBUFFER_DEPTH_SIZE |
+            constants::RENDERBUFFER_STENCIL_SIZE => true,
+            _ => false,
+        };
+
+        if !target_matches || !pname_matches {
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetRenderbufferParameter(target, pname, sender));
+
+        Int32Value(receiver.recv().unwrap())
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<DOMString> {
         match program.get_info_log() {
