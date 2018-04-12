@@ -571,8 +571,7 @@ interface WebGLRenderingContextBase
                                           GLenum pname);
     any getProgramParameter(WebGLProgram program, GLenum pname);
     DOMString? getProgramInfoLog(WebGLProgram program);
-    // FIXME: https://github.com/servo/servo/issues/20514
-    // any getRenderbufferParameter(GLenum target, GLenum pname);
+    any getRenderbufferParameter(GLenum target, GLenum pname);
     any getShaderParameter(WebGLShader shader, GLenum pname);
     WebGLShaderPrecisionFormat? getShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype);
     DOMString? getShaderInfoLog(WebGLShader shader);
