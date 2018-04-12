@@ -75,39 +75,6 @@ mod shorthand_serialization {
         block.to_css_string()
     }
 
-    // Add Test to show error if a longhand property is missing!!!!!!
-
-    mod overflow {
-        pub use super::*;
-        use style::properties::longhands::overflow_x::SpecifiedValue as OverflowValue;
-
-        #[test]
-        fn equal_overflow_properties_should_serialize_to_single_value() {
-            let mut properties = Vec::new();
-
-            let overflow = OverflowValue::Auto;
-            properties.push(PropertyDeclaration::OverflowX(overflow));
-            properties.push(PropertyDeclaration::OverflowY(overflow));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "overflow: auto;");
-        }
-
-        #[test]
-        fn different_overflow_properties_should_serialize_to_two_values() {
-            let mut properties = Vec::new();
-
-            let overflow_x = OverflowValue::Scroll;
-            properties.push(PropertyDeclaration::OverflowX(overflow_x));
-
-            let overflow_y = OverflowValue::Auto;
-            properties.push(PropertyDeclaration::OverflowY(overflow_y));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "overflow-x: scroll; overflow-y: auto;");
-        }
-    }
-
     mod four_sides_shorthands {
         pub use super::*;
 
