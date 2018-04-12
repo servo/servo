@@ -16,7 +16,7 @@ compositing = {path = "../compositing"}
 cssparser = "0.23.0"
 euclid = "0.17"
 fnv = "1.0"
-gleam = "0.4.29"
+gleam = "0.4.33"
 ipc-channel = "0.10"
 log = "0.4"
 num-traits = "0.1.32"
