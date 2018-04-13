@@ -75,10 +75,12 @@ impl FontWeight {
     }
 
     /// Convert from an Gecko weight
-    pub fn from_gecko_weight(weight: u16) -> Self {
+    #[cfg(feature = "gecko")]
+    pub fn from_gecko_weight(weight: structs::FontWeight) -> Self {
         // we allow a wider range of weights than is parseable
         // because system fonts may provide custom values
-        FontWeight(weight)
+        let weight = unsafe { bindings::Gecko_FontWeight_ToFloat(weight) };
+        FontWeight(weight as u16)
     }
 
     /// Weither this weight is bold
