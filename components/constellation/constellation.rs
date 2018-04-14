@@ -111,7 +111,7 @@ use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, Level, LevelFilter, Metadata, Record};
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, HistoryStateId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
@@ -1073,6 +1073,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got traverse history message from script");
                 self.handle_traverse_history_msg(source_top_ctx_id, direction);
             }
+            // Handle a push history state request.
+            FromScriptMsg::PushHistoryState(history_state_id) => {
+                debug!("constellation got push history state message from script");
+                self.handle_push_history_state_msg(source_pipeline_id, history_state_id);
+            }
+            FromScriptMsg::ReplaceHistoryState(history_state_id) => {
+                debug!("constellation got replace history state message from script");
+                self.handle_replace_history_state_msg(source_pipeline_id, history_state_id);
+            }
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(sender) => {
                 debug!("constellation got joint session history length message from script");
@@ -1929,6 +1938,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    direction: TraversalDirection)
     {
         let mut browsing_context_changes = HashMap::<BrowsingContextId, NeedsToReload>::new();
+        let mut pipeline_changes = HashMap::<PipelineId, Option<HistoryStateId>>::new();
         {
             let session_history = self.joint_session_histories
                 .entry(top_level_browsing_context_id).or_insert(JointSessionHistory::new());
@@ -1945,7 +1955,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         match diff {
                             SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_reloader, .. } => {
                                 browsing_context_changes.insert(browsing_context_id, new_reloader.clone());
-                            }
+                            },
+                            SessionHistoryDiff::PipelineDiff { ref pipeline_reloader, new_history_state_id, .. } => {
+                                if let NeedsToReload::No(pipeline_id) = *pipeline_reloader {
+                                    pipeline_changes.insert(pipeline_id, Some(new_history_state_id));
+                                }
+                            },
                         }
                         session_history.past.push(diff);
                     }
@@ -1961,7 +1976,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         match diff {
                             SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref old_reloader, .. } => {
                                 browsing_context_changes.insert(browsing_context_id, old_reloader.clone());
-                            }
+                            },
+                            SessionHistoryDiff::PipelineDiff { ref pipeline_reloader, old_history_state_id, .. } => {
+                                if let NeedsToReload::No(pipeline_id) = *pipeline_reloader {
+                                    pipeline_changes.insert(pipeline_id, old_history_state_id);
+                                }
+                            },
                         }
                         session_history.future.push(diff);
                     }
@@ -1971,6 +1991,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         for (browsing_context_id, pipeline_id) in browsing_context_changes.drain() {
             self.update_browsing_context(browsing_context_id, pipeline_id);
+        }
+
+        for (pipeline_id, history_state_id) in pipeline_changes.drain() {
+            self.update_pipeline(pipeline_id, history_state_id);
         }
 
         self.notify_history_changed(top_level_browsing_context_id);
@@ -2048,6 +2072,20 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    fn update_pipeline(&mut self, pipeline_id: PipelineId, history_state_id: Option<HistoryStateId>) {
+        let result = match self.pipelines.get_mut(&pipeline_id) {
+            None => return warn!("Pipeline {} history state updated after closure", pipeline_id),
+            Some(pipeline) => {
+                let msg = ConstellationControlMsg::UpdateHistoryStateId(pipeline_id, history_state_id);
+                pipeline.history_state_id = history_state_id;
+                pipeline.event_loop.send(msg)
+            },
+        };
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
+        }
+    }
+
     fn handle_joint_session_history_length(&self,
                                            top_level_browsing_context_id: TopLevelBrowsingContextId,
                                            sender: IpcSender<u32>)
@@ -2056,6 +2094,35 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .map(JointSessionHistory::history_length)
             .unwrap_or(1);
         let _ = sender.send(length as u32);
+    }
+
+    fn handle_push_history_state_msg(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
+        let (top_level_browsing_context_id, old_state_id) = match self.pipelines.get_mut(&pipeline_id) {
+            Some(pipeline) => {
+                let old_history_state_id = pipeline.history_state_id;
+                pipeline.history_state_id = Some(history_state_id);
+                pipeline.history_states.insert(history_state_id);
+                (pipeline.top_level_browsing_context_id, old_history_state_id)
+            }
+            None => return warn!("Push history state {} for closed pipeline {}", history_state_id, pipeline_id),
+        };
+
+        let session_history = self.get_joint_session_history(top_level_browsing_context_id);
+        let diff = SessionHistoryDiff::PipelineDiff {
+            pipeline_reloader: NeedsToReload::No(pipeline_id),
+            new_history_state_id: history_state_id,
+            old_history_state_id: old_state_id,
+        };
+        session_history.push_diff(diff);
+    }
+
+    fn handle_replace_history_state_msg(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
+        match self.pipelines.get_mut(&pipeline_id) {
+            Some(pipeline) => {
+                pipeline.history_state_id = Some(history_state_id);
+            }
+            None => return warn!("Replace history state {} for closed pipeline {}", history_state_id, pipeline_id),
+        }
     }
 
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
@@ -2311,38 +2378,44 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If LoadData was ignored, use the LoadData of the previous SessionHistoryEntry, which
         // is the LoadData of the parent browsing context.
         let resolve_load_data_future = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
-            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_reloader, .. } = *diff;
-
-            if browsing_context_id == top_level_browsing_context_id {
-                let load_data = match *new_reloader {
-                    NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
-                        Some(pipeline) => pipeline.load_data.clone(),
-                        None => previous_load_data.clone(),
-                    },
-                    NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
-                };
-                *previous_load_data = load_data.clone();
-                Some(load_data)
-            } else {
-                Some(previous_load_data.clone())
+            match *diff {
+                SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_reloader, .. } => {
+                    if browsing_context_id == top_level_browsing_context_id {
+                        let load_data = match *new_reloader {
+                            NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
+                                Some(pipeline) => pipeline.load_data.clone(),
+                                None => previous_load_data.clone(),
+                            },
+                            NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
+                        };
+                        *previous_load_data = load_data.clone();
+                        Some(load_data)
+                    } else {
+                        Some(previous_load_data.clone())
+                    }
+                },
+                SessionHistoryDiff::PipelineDiff { .. } => Some(previous_load_data.clone()),
             }
         };
 
         let resolve_load_data_past = |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| {
-            let SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref old_reloader, .. } = *diff;
-
-            if browsing_context_id == top_level_browsing_context_id {
-                let load_data = match *old_reloader {
-                    NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
-                        Some(pipeline) => pipeline.load_data.clone(),
-                        None => previous_load_data.clone(),
-                    },
-                    NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
-                };
-                *previous_load_data = load_data.clone();
-                Some(load_data)
-            } else {
-                Some(previous_load_data.clone())
+            match *diff {
+                SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref old_reloader, .. } => {
+                    if browsing_context_id == top_level_browsing_context_id {
+                        let load_data = match *old_reloader {
+                            NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
+                                Some(pipeline) => pipeline.load_data.clone(),
+                                None => previous_load_data.clone(),
+                            },
+                            NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
+                        };
+                        *previous_load_data = load_data.clone();
+                        Some(load_data)
+                    } else {
+                        Some(previous_load_data.clone())
+                    }
+                },
+                SessionHistoryDiff::PipelineDiff { .. } => Some(previous_load_data.clone()),
             }
         };
 
@@ -2433,7 +2506,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     };
 
                     session_history.push_diff(diff).into_iter()
-                        .map(|SessionHistoryDiff::BrowsingContextDiff { new_reloader, .. }| new_reloader)
+                        .filter_map(|diff| match diff {
+                            SessionHistoryDiff::BrowsingContextDiff { new_reloader, .. } => Some(new_reloader),
+                            SessionHistoryDiff::PipelineDiff { .. } => None,
+                        })
                         .filter_map(|pipeline_id| pipeline_id.alive_pipeline_id())
                         .collect::<Vec<_>>()
                 };

@@ -16,7 +16,7 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
@@ -104,6 +104,10 @@ pub enum ScriptMsg {
     PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
+    /// Inform the constellation of a pushed history state.
+    PushHistoryState(HistoryStateId),
+    /// Inform the constellation of a pushed history state.
+    ReplaceHistoryState(HistoryStateId),
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(IpcSender<u32>),
     /// Favicon detected

@@ -12,15 +12,20 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::HandleValue;
-use msg::constellation_msg::TraversalDirection;
+use msg::constellation_msg::{HistoryStateId, TraversalDirection};
+use net_traits::{CoreResourceMsg, IpcSend};
+use profile_traits::ipc;
 use profile_traits::ipc::channel;
 use script_traits::ScriptMsg;
+use std::cell::Cell;
 
 enum PushOrReplace {
     Push,
@@ -33,6 +38,7 @@ pub struct History {
     reflector_: Reflector,
     window: Dom<Window>,
     state: Heap<JSVal>,
+    state_id: Cell<Option<HistoryStateId>>,
 }
 
 impl History {
@@ -43,6 +49,7 @@ impl History {
             reflector_: Reflector::new(),
             window: Dom::from_ref(&window),
             state: state,
+            state_id: Cell::new(None),
         }
     }
 
@@ -63,6 +70,38 @@ impl History {
         Ok(())
     }
 
+    #[allow(unsafe_code)]
+    pub fn activate_state(&self, state_id: Option<HistoryStateId>) {
+        self.state_id.set(state_id);
+        let serialized_data = match state_id {
+            Some(state_id) => {
+                let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+                let _ = self.window
+                    .upcast::<GlobalScope>()
+                    .resource_threads()
+                    .send(CoreResourceMsg::GetHistoryState(state_id, tx));
+                rx.recv().unwrap()
+            },
+            None => None,
+        };
+
+        match serialized_data {
+            Some(serialized_data) => {
+                let global_scope = self.window.upcast::<GlobalScope>();
+                rooted!(in(global_scope.get_cx()) let mut state = UndefinedValue());
+                StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
+                self.state.set(state.get());
+            },
+            None => {
+                self.state.set(NullValue());
+            }
+        }
+
+        unsafe {
+            PopStateEvent::dispatch_jsval(self.window.upcast::<EventTarget>(), &*self.window, self.state.handle());
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     fn push_or_replace_state(&self,
@@ -70,7 +109,7 @@ impl History {
                              data: HandleValue,
                              _title: DOMString,
                              _url: Option<USVString>,
-                             _push_or_replace: PushOrReplace) -> ErrorResult {
+                             push_or_replace: PushOrReplace) -> ErrorResult {
         // Step 1
         let document = self.window.Document();
 
@@ -85,13 +124,40 @@ impl History {
         // TODO: Step 4
 
         // Step 5
-        let serialized_data = StructuredCloneData::write(cx, data)?;
+        let serialized_data = StructuredCloneData::write(cx, data)?.move_to_arraybuffer();
 
         // TODO: Steps 6-7 Url Handling
         // https://github.com/servo/servo/issues/19157
 
-        // TODO: Step 8 Push/Replace session history entry
-        // https://github.com/servo/servo/issues/19156
+        // Step 8
+        let state_id = match push_or_replace {
+            PushOrReplace::Push => {
+                let state_id = HistoryStateId::new();
+                self.state_id.set(Some(state_id));
+                let msg = ScriptMsg::PushHistoryState(state_id);
+                let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+                state_id
+            },
+            PushOrReplace::Replace => {
+                let state_id = match self.state_id.get() {
+                    Some(state_id) => state_id,
+                    None => {
+                        let state_id = HistoryStateId::new();
+                        self.state_id.set(Some(state_id));
+                        state_id
+                    },
+                };
+                let msg = ScriptMsg::ReplaceHistoryState(state_id);
+                let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+                state_id
+            },
+        };
+
+        let _ = self.window
+            .upcast::<GlobalScope>()
+            .resource_threads()
+            .send(CoreResourceMsg::SetHistoryState(state_id, serialized_data.clone()));
+
 
         // TODO: Step 9 Update current entry to represent a GET request
         // https://github.com/servo/servo/issues/19156
@@ -102,7 +168,7 @@ impl History {
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(cx) let mut state = UndefinedValue());
-        serialized_data.read(&global_scope, state.handle_mut());
+        StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
 
         // Step 12
         self.state.set(state.get());

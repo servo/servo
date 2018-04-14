@@ -76,7 +76,8 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
+use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -1168,6 +1169,7 @@ impl ScriptThread {
                     Navigate(id, ..) => Some(id),
                     PostMessage(id, ..) => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
+                    UpdateHistoryStateId(id, ..) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
                     WebDriverScriptCommand(id, ..) => Some(id),
                     TickAllAnimations(id) => Some(id),
@@ -1294,6 +1296,8 @@ impl ScriptThread {
                                                browsing_context_id,
                                                new_pipeline_id,
                                                reason),
+            ConstellationControlMsg::UpdateHistoryStateId(pipeline_id, history_state_id) =>
+                self.handle_update_history_state_id_msg(pipeline_id, history_state_id),
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
                 self.handle_focus_iframe_msg(parent_pipeline_id, frame_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
@@ -1669,6 +1673,13 @@ impl ScriptThread {
         let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id, reason);
+        }
+    }
+
+    fn handle_update_history_state_id_msg(&self, pipeline_id: PipelineId, history_state_id: Option<HistoryStateId>) {
+        match { self.documents.borrow().find_window(pipeline_id) } {
+            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            Some(window) => window.History().r().activate_state(history_state_id),
         }
     }
 
