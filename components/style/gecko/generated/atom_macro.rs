@@ -896,8 +896,6 @@ cfg_if! {
             pub static nsGkAtoms_flags: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4flexE"]
             pub static nsGkAtoms_flex: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms9flexgroupE"]
-            pub static nsGkAtoms_flexgroup: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4flipE"]
             pub static nsGkAtoms_flip: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8floatingE"]
@@ -6117,8 +6115,6 @@ cfg_if! {
             pub static nsGkAtoms_flags: *mut nsStaticAtom;
             #[link_name = "?flex@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_flex: *mut nsStaticAtom;
-            #[link_name = "?flexgroup@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_flexgroup: *mut nsStaticAtom;
             #[link_name = "?flip@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_flip: *mut nsStaticAtom;
             #[link_name = "?floating@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -11338,8 +11334,6 @@ cfg_if! {
             pub static nsGkAtoms_flags: *mut nsStaticAtom;
             #[link_name = "\x01?flex@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_flex: *mut nsStaticAtom;
-            #[link_name = "\x01?flexgroup@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_flexgroup: *mut nsStaticAtom;
             #[link_name = "\x01?flip@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_flip: *mut nsStaticAtom;
             #[link_name = "\x01?floating@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -16562,8 +16556,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flags as *mut _) } }};
 ("flex") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flex as *mut _) } }};
-("flexgroup") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flexgroup as *mut _) } }};
 ("flip") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flip as *mut _) } }};
 ("floating") =>
