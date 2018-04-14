@@ -131,6 +131,7 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         auth_cache: RwLock::new(auth_cache),
         http_cache: RwLock::new(http_cache),
         hsts_list: RwLock::new(hsts_list),
+        history_states: RwLock::new(HashMap::new()),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client),
     };
@@ -242,6 +243,14 @@ impl ResourceChannelManager {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
                 let cookies = cookie_jar.cookies_data_for_url(&url, source).map(Serde).collect();
                 consumer.send(cookies).unwrap();
+            }
+            CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
+                let history_states = http_state.history_states.read().unwrap();
+                consumer.send(history_states.get(&history_state_id).cloned()).unwrap();
+            }
+            CoreResourceMsg::SetHistoryState(history_state_id, history_state) => {
+                let mut history_states = http_state.history_states.write().unwrap();
+                history_states.insert(history_state_id, history_state);
             }
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());

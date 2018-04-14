@@ -52,6 +52,7 @@ password
 pause
 play
 playing
+popstate
 print
 progress
 radio

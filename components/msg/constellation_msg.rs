@@ -213,6 +213,13 @@ impl PipelineNamespace {
             index: BrowsingContextIndex(self.next_index()),
         }
     }
+
+    fn next_history_state_id(&mut self) -> HistoryStateId {
+        HistoryStateId {
+            namespace_id: self.id,
+            index: HistoryStateIndex(self.next_index()),
+        }
+    }
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
@@ -348,6 +355,35 @@ impl PartialEq<TopLevelBrowsingContextId> for BrowsingContextId {
 impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     fn eq(&self, rhs: &BrowsingContextId) -> bool {
         self.0.eq(rhs)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct HistoryStateIndex(pub NonZeroU32);
+malloc_size_of_is_0!(HistoryStateIndex);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct HistoryStateId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: HistoryStateIndex,
+}
+
+impl HistoryStateId {
+    pub fn new() -> HistoryStateId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_history_state_id = namespace.next_history_state_id();
+            tls.set(Some(namespace));
+            next_history_state_id
+        })
+    }
+}
+
+impl fmt::Display for HistoryStateId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let HistoryStateIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
     }
 }
 
