@@ -6,6 +6,7 @@
 
 extern crate base64;
 extern crate brotli;
+extern crate compositing;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
@@ -28,7 +29,6 @@ extern crate net_traits;
 extern crate openssl;
 #[macro_use]
 extern crate profile_traits;
-extern crate script_traits;
 #[macro_use] extern crate serde;
 extern crate serde_json;
 extern crate servo_allocator;
