@@ -25,7 +25,7 @@ impl<'a> ToNsCssValue for &'a FamilyName {
 
 impl ToNsCssValue for font_weight::T {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_integer(self.0 as i32)
+        nscssvalue.set_font_weight(self.0)
     }
 }
 
@@ -34,7 +34,7 @@ impl<'a> ToNsCssValue for &'a FontWeight {
         match *self {
             FontWeight::Normal => nscssvalue.set_enum(structs::NS_FONT_WEIGHT_NORMAL as i32),
             FontWeight::Bold => nscssvalue.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
-            FontWeight::Weight(weight) => nscssvalue.set_integer(weight.0 as i32),
+            FontWeight::Weight(weight) => nscssvalue.set_font_weight(weight.0),
         }
     }
 }

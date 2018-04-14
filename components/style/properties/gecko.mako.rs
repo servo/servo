@@ -25,6 +25,8 @@ use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
+use gecko_bindings::bindings::Gecko_FontWeight_SetFloat;
+use gecko_bindings::bindings::Gecko_FontWeight_ToFloat;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImageValue;
 use gecko_bindings::bindings::Gecko_StyleTransition_SetUnsupportedProperty;
@@ -2599,13 +2601,15 @@ fn static_assert() {
     }
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
-        self.gecko.mFont.weight = v.0;
+        unsafe { Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0 as f32) };
     }
     ${impl_simple_copy('font_weight', 'mFont.weight')}
 
     pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-        debug_assert!(self.gecko.mFont.weight <= ::std::u16::MAX);
-        longhands::font_weight::computed_value::T(self.gecko.mFont.weight)
+        let weight: f32 = unsafe { Gecko_FontWeight_ToFloat(self.gecko.mFont.weight) };
+        debug_assert!(weight >= 0.0 &&
+                      weight <= ::std::u16::MAX as f32);
+        longhands::font_weight::computed_value::T(weight as u16)
     }
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}

@@ -553,6 +553,9 @@ macro_rules! define_string_types {
             hdr: $StringRepr,
         }
 
+        unsafe impl Send for $String {}
+        unsafe impl Sync for $String {}
+
         impl $String {
             pub fn new() -> $String {
                 $String {

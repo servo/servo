@@ -17,6 +17,7 @@ use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::mozilla::dom::CallerType;
 use gecko_bindings::structs::mozilla::AnonymousCounterStyle;
 use gecko_bindings::structs::mozilla::AtomArray;
+use gecko_bindings::structs::mozilla::FontWeight;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::OriginFlags;
 use gecko_bindings::structs::mozilla::UniquePtr;
@@ -218,9 +219,6 @@ unsafe impl Sync for nsStyleUnit {}
 use gecko_bindings::structs::nsStyleUserInterface;
 unsafe impl Send for nsStyleUserInterface {}
 unsafe impl Sync for nsStyleUserInterface {}
-use gecko_bindings::structs::nsStyleVariables;
-unsafe impl Send for nsStyleVariables {}
-unsafe impl Sync for nsStyleVariables {}
 use gecko_bindings::structs::nsStyleVisibility;
 unsafe impl Send for nsStyleVisibility {}
 unsafe impl Sync for nsStyleVisibility {}
@@ -1192,7 +1190,7 @@ extern "C" {
     pub fn Gecko_CalcStyleDifference(
         old_style: ComputedStyleBorrowed,
         new_style: ComputedStyleBorrowed,
-        any_style_changed: *mut bool,
+        any_style_struct_changed: *mut bool,
         reset_only_changed: *mut bool,
     ) -> u32;
 }
@@ -1453,6 +1451,9 @@ extern "C" {
     pub fn Gecko_CSSValue_SetCalc(css_value: nsCSSValueBorrowedMut, calc: nsStyleCoord_CalcValue);
 }
 extern "C" {
+    pub fn Gecko_CSSValue_SetFontWeight(css_value: nsCSSValueBorrowedMut, weight: f32);
+}
+extern "C" {
     pub fn Gecko_CSSValue_SetFunction(css_value: nsCSSValueBorrowedMut, len: i32);
 }
 extern "C" {
@@ -1509,6 +1510,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_ReleaseCSSValueSharedListArbitraryThread(aPtr: *mut nsCSSValueSharedList);
+}
+extern "C" {
+    pub fn Gecko_FontWeight_ToFloat(aWeight: FontWeight) -> f32;
+}
+extern "C" {
+    pub fn Gecko_FontWeight_SetFloat(aWeight: *mut FontWeight, aFloatValue: f32);
 }
 extern "C" {
     pub fn Gecko_nsStyleFont_SetLang(font: *mut nsStyleFont, atom: *mut nsAtom);
@@ -1700,21 +1707,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleSVG(ptr: *mut nsStyleSVG);
-}
-extern "C" {
-    pub fn Gecko_Construct_Default_nsStyleVariables(
-        ptr: *mut nsStyleVariables,
-        pres_context: RawGeckoPresContextBorrowed,
-    );
-}
-extern "C" {
-    pub fn Gecko_CopyConstruct_nsStyleVariables(
-        ptr: *mut nsStyleVariables,
-        other: *const nsStyleVariables,
-    );
-}
-extern "C" {
-    pub fn Gecko_Destroy_nsStyleVariables(ptr: *mut nsStyleVariables);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleBackground(
@@ -1984,6 +1976,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed) -> bool;
+}
+extern "C" {
+    pub fn Servo_Element_IsDisplayContents(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
     pub fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element: RawGeckoElementBorrowed) -> bool;
@@ -3388,6 +3383,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_Property_IsShorthand(name: *const nsACString, found: *mut bool) -> bool;
+}
+extern "C" {
+    pub fn Servo_Property_IsInherited(name: *const nsACString) -> bool;
 }
 extern "C" {
     pub fn Servo_PseudoClass_GetStates(name: *const nsACString) -> u64;

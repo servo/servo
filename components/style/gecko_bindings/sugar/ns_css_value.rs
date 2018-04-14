@@ -177,6 +177,11 @@ impl nsCSSValue {
         self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_Local_Font);
     }
 
+    /// Set to a font weight
+    pub fn set_font_weight(&mut self, w: u16) {
+        unsafe { bindings::Gecko_CSSValue_SetFontWeight(self, w as f32) }
+    }
+
     fn set_int_internal(&mut self, value: i32, unit: nsCSSUnit) {
         unsafe { bindings::Gecko_CSSValue_SetInt(self, value, unit) }
     }
