@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
-use script_traits::FileManagerMsg;
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
@@ -19,7 +17,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::thread;
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use url::Url;
 use uuid::Uuid;
 
@@ -62,14 +59,14 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
-    constellation_chan: IpcSender<FileManagerMsg>,
+    embedder_proxy: EmbedderProxy,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new(constellation_chan: IpcSender<FileManagerMsg>) -> FileManager {
+    pub fn new(embedder_proxy: EmbedderProxy) -> FileManager {
         FileManager {
-            constellation_chan: constellation_chan,
+            embedder_proxy: embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
         }
     }
@@ -104,16 +101,16 @@ impl FileManager {
         match msg {
             FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
                 let store = self.store.clone();
-                let constellation_chan = self.constellation_chan.clone();
+                let embedder = self.embedder_proxy.clone();
                 thread::Builder::new().name("select file".to_owned()).spawn(move || {
-                    store.select_file(filter, sender, origin, opt_test_path, constellation_chan);
+                    store.select_file(filter, sender, origin, opt_test_path, embedder);
                 }).expect("Thread spawning failed");
             }
             FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
                 let store = self.store.clone();
-                let constellation_chan = self.constellation_chan.clone();
+                let embedder = self.embedder_proxy.clone();
                 thread::Builder::new().name("select files".to_owned()).spawn(move || {
-                    store.select_files(filter, sender, origin, opt_test_paths, constellation_chan);
+                    store.select_files(filter, sender, origin, opt_test_paths, embedder);
                 }).expect("Thread spawning failed");
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
@@ -218,18 +215,21 @@ impl FileManagerStore {
         }
     }
 
-    fn get_selected_files(&self,
-                            patterns: Vec<FilterPattern>,
-                            multiple_files: bool,
-                            constellation_chan: IpcSender<FileManagerMsg>) -> Option<Vec<String>> {
-        if opts::get().headless {
-            return None;
-        }
-
+    fn query_files_from_embedder(&self,
+                                 patterns: Vec<FilterPattern>,
+                                 multiple_files: bool,
+                                 embedder_proxy: EmbedderProxy) -> Option<Vec<String>> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = FileManagerMsg::OpenFileSelectDialog(patterns, multiple_files, ipc_sender);
+        let msg = EmbedderMsg::GetSelectedFiles(patterns, multiple_files, ipc_sender);
 
-        constellation_chan.send(msg).map(|_| ipc_receiver.recv().unwrap()).unwrap_or_default()
+        embedder_proxy.send(msg);
+        match ipc_receiver.recv() {
+            Ok(result) => result,
+            Err(e) => {
+                warn!("Failed to receive files from embedder ({}).", e);
+                None
+            }
+        }
     }
 
     fn select_file(&self,
@@ -237,14 +237,14 @@ impl FileManagerStore {
                     sender: IpcSender<FileManagerResult<SelectedFile>>,
                     origin: FileOrigin,
                     opt_test_path: Option<String>,
-                    constellation_chan: IpcSender<FileManagerMsg>) {
+                    embedder_proxy: EmbedderProxy) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
         let opt_s = if select_files_pref_enabled() {
             opt_test_path
         } else {
-            self.get_selected_files(patterns, false, constellation_chan).map(|mut x| x.pop().unwrap())
+            self.query_files_from_embedder(patterns, false, embedder_proxy).and_then(|mut x| x.pop())
         };
 
         match opt_s {
@@ -265,14 +265,14 @@ impl FileManagerStore {
                     sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
                     origin: FileOrigin,
                     opt_test_paths: Option<Vec<String>>,
-                    constellation_chan: IpcSender<FileManagerMsg>) {
+                    embedder_proxy: EmbedderProxy) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
         let opt_v = if select_files_pref_enabled() {
             opt_test_paths
         } else {
-            self.get_selected_files(patterns, true, constellation_chan)
+            self.query_files_from_embedder(patterns, true, embedder_proxy)
         };
 
         match opt_v {

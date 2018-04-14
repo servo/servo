@@ -15,6 +15,7 @@ doctest = false
 base64 = "0.6"
 brotli = "1.0.6"
 cookie = "0.10"
+compositing = {path = "../compositing"}
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"
@@ -34,7 +35,6 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 openssl = "0.9"
 profile_traits = {path = "../profile_traits"}
-script_traits = {path = "../script_traits"}
 serde = "1.0"
 serde_json = "1.0"
 servo_allocator = {path = "../allocator"}

@@ -19,7 +19,6 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TraversalDirection};
 use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
-use net_traits::filemanager_thread::FilterPattern;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
 use servo_url::ImmutableOrigin;
@@ -217,11 +216,4 @@ pub enum ServiceWorkerMsg {
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
     OwnSender(IpcSender<ServiceWorkerMsg>),
-}
-
-/// Messages outgoing from the File Manager thread to constellation
-#[derive(Deserialize, Serialize)]
-pub enum FileManagerMsg {
-    /// Requesting to open file select dialog
-    OpenFileSelectDialog(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>)
 }

@@ -13,6 +13,7 @@ use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use servo::net_traits::filemanager_thread::FilterPattern;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
+use servo::servo_config::opts;
 use servo::servo_config::prefs::PREFS;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
@@ -297,6 +298,9 @@ impl Browser {
                     platform_get_selected_devices(devices, sender);
                 },
                 EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender) => {
+                    if opts::get().headless {
+                        let _ = sender.send(None);
+                    }
                     platform_get_selected_files(patterns, multiple_files, sender);
                 }
                 EmbedderMsg::ShowIME(_browser_id, _kind) => {
@@ -374,7 +378,8 @@ fn platform_get_selected_files(patterns: Vec<FilterPattern>,
 fn platform_get_selected_files(_patterns: Vec<FilterPattern>,
                                _multiple_files: bool,
                                sender: IpcSender<Option<Vec<String>>>) {
-    sender.send(None);
+    warn!("File picker not implemented");
+    let _ = sender.send(None);
 }
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
+use compositing::compositor_thread::EmbedderProxy;
 use connector::{create_http_connector, create_ssl_client};
 use cookie;
 use cookie_rs;
@@ -28,7 +29,6 @@ use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::mem::{Report, ReportsChan, ReportKind};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
-use script_traits::FileManagerMsg;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use servo_allocator;
@@ -52,18 +52,19 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             time_profiler_chan: ProfilerChan,
                             mem_profiler_chan: MemProfilerChan,
+                            embedder_proxy: EmbedderProxy,
                             config_dir: Option<PathBuf>)
-                            -> (ResourceThreads, ResourceThreads, IpcSender<IpcSender<FileManagerMsg>>) {
-    let (public_core, private_core, constellation_sender) = new_core_resource_thread(
+                            -> (ResourceThreads, ResourceThreads) {
+    let (public_core, private_core) = new_core_resource_thread(
         user_agent,
         devtools_chan,
         time_profiler_chan,
         mem_profiler_chan,
+        embedder_proxy,
         config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone()),
-     ResourceThreads::new(private_core, storage),
-     constellation_sender)
+     ResourceThreads::new(private_core, storage))
 }
 
 
@@ -72,17 +73,16 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 time_profiler_chan: ProfilerChan,
                                 mem_profiler_chan: MemProfilerChan,
+                                embedder_proxy: EmbedderProxy,
                                 config_dir: Option<PathBuf>)
-                                -> (CoreResourceThread, CoreResourceThread, IpcSender<IpcSender<FileManagerMsg>>) {
+                                -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
     let (report_chan, report_port) = ipc::channel().unwrap();
-    let (constellation_sender, constellation_receiver) = ipc::channel().unwrap();
 
     thread::Builder::new().name("ResourceManager".to_owned()).spawn(move || {
-        let constellation_chan = constellation_receiver.recv().unwrap();
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, time_profiler_chan, constellation_chan
+            user_agent, devtools_chan, time_profiler_chan, embedder_proxy
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -101,7 +101,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
             |report_chan| report_chan);
 
     }).expect("Thread spawning failed");
-    (public_setup_chan, private_setup_chan, constellation_sender)
+    (public_setup_chan, private_setup_chan)
 }
 
 struct ResourceChannelManager {
@@ -377,12 +377,12 @@ impl CoreResourceManager {
     pub fn new(user_agent: Cow<'static, str>,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
                _profiler_chan: ProfilerChan,
-               constellation_chan: IpcSender<FileManagerMsg>) -> CoreResourceManager {
+               embedder_proxy: EmbedderProxy) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
             devtools_chan: devtools_channel,
             swmanager_chan: None,
-            filemanager: FileManager::new(constellation_chan),
+            filemanager: FileManager::new(embedder_proxy),
         }
     }
 
