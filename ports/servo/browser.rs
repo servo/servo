@@ -331,6 +331,7 @@ fn platform_get_selected_files(patterns: Vec<FilterPattern>,
 fn platform_get_selected_files(_patterns: Vec<FilterPattern>,
                                _multiple_files: bool,
                                sender: IpcSender<Option<Vec<String>>>) {
+    warn!("File picker not implemented");
     sender.send(None);
 }
 
