@@ -1359,15 +1359,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jemallocator"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "jpeg-decoder"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1528,6 +1519,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "leak 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "libc"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "libc"
@@ -2817,8 +2813,9 @@ dependencies = [
 name = "servo_allocator"
 version = "0.0.1"
 dependencies = [
- "jemallocator 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3906,7 +3903,6 @@ dependencies = [
 "checksum itertools 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)" = "b07332223953b5051bceb67e8c4700aa65291535568e1f12408c43c4a42c0394"
 "checksum itoa 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "eb2f404fbc66fd9aac13e998248505e7ecb2ad8e44ab6388684c5fb11c6c251c"
 "checksum jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "479294d130502fada93c7a957e8d059b632b03d6204aca37af557dee947f30a9"
-"checksum jemallocator 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "28b211ca65c440322b6d4d9b5b850b01e8e298393b7ebcb8205b7cbb14ea6329"
 "checksum jpeg-decoder 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "0dfe27a6c0dabd772d0f9b9f8701c4ca12c4d1eebcadf2be1f6f70396f6a1434"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
 "checksum khronos_api 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d9ef23fcc4059260c5936f638c9805ebfc87cb172fa6661d130cba7f97d58f55"
@@ -3915,6 +3911,7 @@ dependencies = [
 "checksum lazycell 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a6f08839bc70ef4a3fe1d566d5350f519c5912ea86be0df1740a7d247c7fc0ef"
 "checksum leak 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "bd100e01f1154f2908dfa7d02219aeab25d0b9c7fa955164192e3245255a0c73"
 "checksum leaky-cow 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "40a8225d44241fd324a8af2806ba635fc7c8a7e9a7de4d5cf3ef54e71f5926fc"
+"checksum libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "e32a70cf75e5846d53a673923498228bbec6a8624708a9ea5645f075d6276122"
 "checksum libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)" = "f54263ad99207254cf58b5f701ecb432c717445ea2ee8af387334bdd1a03fdff"
 "checksum libdbus-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8720f9274907052cb50313f91201597868da9d625f8dd125f2aca5bddb7e83a1"
 "checksum libloading 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9c3ad660d7cb8c5822cd83d10897b0f1f1526792737a179e73896152f85b88c2"
