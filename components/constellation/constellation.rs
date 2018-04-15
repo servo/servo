@@ -1612,9 +1612,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // the parent pipeline. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
-        if let Some(old_pipeline_id) = load_info.old_pipeline_id {
-            self.unload_document(old_pipeline_id);
-        }
         let (load_data, window_size, is_private) = {
             let old_pipeline = load_info.old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
@@ -1797,8 +1794,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 return None;
             }
         };
-        // Running the "unload" steps,
-        self.unload_document(source_id);
         match parent_info {
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
@@ -2415,6 +2410,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.notify_history_changed(change.top_level_browsing_context_id);
             },
             Some(old_pipeline_id) => {
+                // https://html.spec.whatwg.org/multipage/#unload-a-document
+                self.unload_document(old_pipeline_id);
                 // Deactivate the old pipeline, and activate the new one.
                 let pipelines_to_close = if let Some(replace_reloader) = change.replace {
                     let session_history = self.joint_session_histories
