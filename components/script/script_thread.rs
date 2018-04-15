@@ -1667,7 +1667,7 @@ impl ScriptThread {
     fn handle_unload_document(&self, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            document.unload();
+            document.unload(false, false);
         }
     }
 

@@ -10,7 +10,6 @@ use dom::attr::Attr;
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -372,7 +371,7 @@ pub struct Document {
     page_showing: Cell<bool>,
     /// Whether the document is salvageable.
     salvageable: Cell<bool>,
-    /// Wheter the unload event has already been fired.
+    /// Whether the unload event has already been fired.
     fired_unload: Cell<bool>,
 }
 
@@ -482,18 +481,21 @@ impl Document {
                 self.dirty_all_nodes();
                 self.window().reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
                 self.window().resume();
-                // html.spec.whatwg.org/multipage/browsing-the-web.html#history-traversal
-                // Step 6
+                // html.spec.whatwg.org/multipage/#history-traversal
+                // Step 4.6
                 if self.ready_state.get() == DocumentReadyState::Complete {
                     let document = Trusted::new(self);
                     self.window.dom_manipulation_task_source().queue(
                         task!(fire_pageshow_event: move || {
                             let document = document.root();
                             let window = document.window();
-                            if document.page_showing.get() || !window.is_alive() {
+                            // Step 4.6.1
+                            if document.page_showing.get() {
                                 return;
                             }
+                            // Step 4.6.2
                             document.page_showing.set(true);
+                            // Step 4.6.4
                             let event = PageTransitionEvent::new(
                                 window,
                                 atom!("pageshow"),
@@ -1612,9 +1614,12 @@ impl Document {
         ScriptThread::mark_document_with_no_blocked_loads(self);
     }
 
-    // https://html.spec.whatwg.org/multipage/#unloading-documents
-    pub fn prompt_to_unload(&self) -> bool {
+    // https://html.spec.whatwg.org/multipage/#prompt-to-unload-a-document
+    pub fn prompt_to_unload(&self, recursive_flag: bool) -> bool {
+        // TODO: Step 1, increase the event loop's termination nesting level by 1.
+        // Step 2
         self.incr_ignore_opens_during_unload_counter();
+        //Step 3-5.
         let document = Trusted::new(self);
         let beforeunload_event = BeforeUnloadEvent::new(&self.window,
                                            atom!("beforeunload"),
@@ -1622,38 +1627,42 @@ impl Document {
                                            EventCancelable::Cancelable);
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
-        let event_status = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+        self.window.upcast::<EventTarget>().dispatch_event_with_target(
             document.root().upcast(),
             &event,
         );
+        // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
         if event.get_cancel_state() == EventDefault::Handled {
             self.salvageable.set(false);
         }
         let mut can_unload = true;
-        if event_status == EventStatus::Canceled
-            || beforeunload_event.ReturnValue() == DOMString::from_string("".to_string()) {
-            // Step 8
-            // TODO: ask the user to confirm that they wish to unload the document.
-        }
-        self.decr_ignore_opens_during_unload_counter();
+        // TODO: Step 8 send a message to embedder to prompt user.
         // Step 9
-        for iframe in self.iter_iframes() {
-            if let Some(document) = iframe.GetContentDocument() {
-                if !document.prompt_to_unload() {
-                    self.salvageable.set(document.salvageable());
-                    can_unload = false;
-                    break;
+        if !recursive_flag {
+            for iframe in self.iter_iframes() {
+                // TODO: handle the case of cross origin iframes.
+                if let Some(document) = iframe.GetContentDocument() {
+                    if !document.prompt_to_unload(true) {
+                        self.salvageable.set(document.salvageable());
+                        can_unload = false;
+                        break;
+                    }
                 }
             }
         }
+        // Step 10
+        self.decr_ignore_opens_during_unload_counter();
         can_unload
     }
 
-    // https://html.spec.whatwg.org/multipage/#unloading-documents
-    pub fn unload(&self) {
+    // https://html.spec.whatwg.org/multipage/#unload-a-document
+    pub fn unload(&self, recursive_flag: bool, recycle: bool) {
+        // TODO: Step 1, increase the event loop's termination nesting level by 1.
+        // Step 2
         self.incr_ignore_opens_during_unload_counter();
         let document = Trusted::new(self);
+        // Step 3-6
         if self.page_showing.get() {
             self.page_showing.set(false);
             let event = PageTransitionEvent::new(
@@ -1669,13 +1678,16 @@ impl Document {
                 document.root().upcast(),
                 &event,
             );
+            // TODO Step 6, document visibility steps.
         }
+        let mut event_handled = false;
+        // Step 7
         if !self.fired_unload.get() {
             let event = Event::new(
                 &self.window.upcast(),
                 atom!("unload"),
-                EventBubbles::DoesNotBubble,
-                EventCancelable::NotCancelable,
+                EventBubbles::Bubbles,
+                EventCancelable::Cancelable,
             );
             event.set_trusted(true);
             let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
@@ -1683,24 +1695,33 @@ impl Document {
                 &event,
             );
             self.fired_unload.set(true);
-            let event_handled = event.get_cancel_state() == EventDefault::Handled;
-            self.salvageable.set(!event_handled);
+            event_handled = event.get_cancel_state() == EventDefault::Handled;
+        }
+        // TODO: Step 8, decrease the event loop's termination nesting level by 1.
+        // Step 9
+        self.salvageable.set(!event_handled);
+        // Step 10
+        if !self.salvageable.get() {
+            // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-document-cleanup-steps
+            // TODO: Step 2, make disappear webSockets.
+            // Step 3
+            self.window.upcast::<GlobalScope>().suspend();
         }
         // Step 13
-        for iframe in self.iter_iframes() {
-            if let Some(document) = iframe.GetContentDocument() {
-                document.unload();
-                if !document.salvageable() {
-                    self.salvageable.set(false);
+        if !recursive_flag {
+            for iframe in self.iter_iframes() {
+                // TODO: handle the case of cross origin iframes.
+                if let Some(document) = iframe.GetContentDocument() {
+                    document.unload(true, recycle);
+                    if !document.salvageable() {
+                        self.salvageable.set(false);
+                    }
                 }
             }
         }
+        // Step 14, TODO: discard pipeline via constellation if not salvageable.
+        // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
-        // unloading document cleanup steps.
-        if !self.salvageable.get() {
-            // TODO: empty the list of timers, vs suspend?
-            self.window.upcast::<GlobalScope>().suspend();
-        }
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end

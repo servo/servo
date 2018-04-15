@@ -1554,7 +1554,7 @@ impl Window {
         }
 
         // Step 7
-        if doc.prompt_to_unload() {
+        if doc.prompt_to_unload(false) {
             let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
             self.main_thread_script_chan().send(
                 MainThreadScriptMsg::Navigate(pipeline_id,
