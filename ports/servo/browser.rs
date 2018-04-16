@@ -293,7 +293,7 @@ impl Browser {
                 },
                 EmbedderMsg::Panic(_browser_id, _reason, _backtrace) => {
                 },
-                EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender) => {
+                EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
                     if opts::get().headless {
                         let _ = sender.send(None);
                     }
