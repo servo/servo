@@ -297,7 +297,7 @@ impl Browser {
                 EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
                     platform_get_selected_devices(devices, sender);
                 },
-                EmbedderMsg::GetSelectedFiles(patterns, multiple_files, sender) => {
+                EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
                     if opts::get().headless {
                         let _ = sender.send(None);
                     }

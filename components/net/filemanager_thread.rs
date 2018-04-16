@@ -220,7 +220,7 @@ impl FileManagerStore {
                                  multiple_files: bool,
                                  embedder_proxy: EmbedderProxy) -> Option<Vec<String>> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = EmbedderMsg::GetSelectedFiles(patterns, multiple_files, ipc_sender);
+        let msg = EmbedderMsg::SelectFiles(patterns, multiple_files, ipc_sender);
 
         embedder_proxy.send(msg);
         match ipc_receiver.recv() {

@@ -145,7 +145,7 @@ pub enum EmbedderMsg {
     /// Open dialog to select bluetooth device.
     GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    GetSelectedFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
+    SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
     /// Request to present an IME to the user when an editable element is focused.
     ShowIME(TopLevelBrowsingContextId, InputMethodType),
     /// Request to hide the IME when the editable element is blurred.
@@ -251,7 +251,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
-            EmbedderMsg::GetSelectedFiles(..) => write!(f, "GetSelectedFiles"),
+            EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
