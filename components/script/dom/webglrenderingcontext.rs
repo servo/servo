@@ -2143,6 +2143,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {},
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
         // From the GLES 2.0.25 spec, page 21:
         //
         //     "type must be one of UNSIGNED_BYTE or UNSIGNED_SHORT"
@@ -2175,35 +2183,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        if let Some(array_buffer) = self.bound_buffer_element_array.get() {
-            // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
-            let val = offset as u64 + (count as u64 * type_size as u64);
-            if val > array_buffer.capacity() as u64 {
+        if count > 0 {
+            if let Some(array_buffer) = self.bound_buffer_element_array.get() {
+                // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
+                let val = offset as u64 + (count as u64 * type_size as u64);
+                if val > array_buffer.capacity() as u64 {
+                    return self.webgl_error(InvalidOperation);
+                }
+            } else {
+                // From the WebGL spec
+                //
+                //      a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER binding point
+                //      or an INVALID_OPERATION error will be generated.
+                //
                 return self.webgl_error(InvalidOperation);
             }
-        } else {
-            // From the WebGL spec
-            //
-            //      a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER binding point
-            //      or an INVALID_OPERATION error will be generated.
-            //
-            return self.webgl_error(InvalidOperation);
         }
 
         if !self.validate_framebuffer_complete() {
             return;
         }
 
-        match mode {
-            constants::POINTS | constants::LINE_STRIP |
-            constants::LINE_LOOP | constants::LINES |
-            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {
-                self.send_command(WebGLCommand::DrawElements(mode, count, type_, offset));
-                self.mark_as_dirty();
-            },
-            _ => self.webgl_error(InvalidEnum),
-        }
+        self.send_command(WebGLCommand::DrawElements(mode, count, type_, offset));
+        self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
