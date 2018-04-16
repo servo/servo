@@ -2143,6 +2143,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
+        match mode {
+            constants::POINTS | constants::LINE_STRIP |
+            constants::LINE_LOOP | constants::LINES |
+            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
+            constants::TRIANGLES => {},
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
         // From the GLES 2.0.25 spec, page 21:
         //
         //     "type must be one of UNSIGNED_BYTE or UNSIGNED_SHORT"
@@ -2194,16 +2202,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return;
         }
 
-        match mode {
-            constants::POINTS | constants::LINE_STRIP |
-            constants::LINE_LOOP | constants::LINES |
-            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {
-                self.send_command(WebGLCommand::DrawElements(mode, count, type_, offset));
-                self.mark_as_dirty();
-            },
-            _ => self.webgl_error(InvalidEnum),
-        }
+        self.send_command(WebGLCommand::DrawElements(mode, count, type_, offset));
+        self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
