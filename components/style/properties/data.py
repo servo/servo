@@ -385,6 +385,7 @@ class Alias(object):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
+        self.original = original
         self.enabled_in = original.enabled_in
         self.servo_pref = original.servo_pref
         self.gecko_pref = gecko_pref
