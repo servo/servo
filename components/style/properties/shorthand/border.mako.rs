@@ -246,7 +246,8 @@ pub fn parse_border<'i, 't>(
 
 <%helpers:shorthand name="border-image" sub_properties="border-image-outset
     border-image-repeat border-image-slice border-image-source border-image-width"
-    extra_prefixes="moz webkit" spec="https://drafts.csswg.org/css-backgrounds-3/#border-image">
+    extra_prefixes="moz:layout.css.prefixes.border-image webkit"
+    spec="https://drafts.csswg.org/css-backgrounds-3/#border-image">
     use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
     use properties::longhands::{border_image_source, border_image_width};
 

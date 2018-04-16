@@ -145,6 +145,17 @@ def arg_to_bool(arg):
     return arg == "True"
 
 
+def parse_property_aliases(alias_list):
+    result = []
+    if alias_list:
+        for alias in alias_list.split():
+            (name, _, pref) = alias.partition(":")
+            if name.startswith("-webkit-") and not pref:
+                pref = "layout.css.prefixes.webkit"
+            result.append((name, pref))
+    return result
+
+
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, keyword=None,
                  predefined_type=None, servo_pref=None, gecko_pref=None,
@@ -178,8 +189,8 @@ class Longhand(object):
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
-        self.alias = alias.split() if alias else []
-        self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
+        self.alias = parse_property_aliases(alias)
+        self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.boxed = arg_to_bool(boxed)
         self.flags = flags.split() if flags else []
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
@@ -322,8 +333,8 @@ class Shorthand(object):
         self.sub_properties = sub_properties
         assert enabled_in in ["", "ua", "chrome", "content"]
         self.enabled_in = enabled_in
-        self.alias = alias.split() if alias else []
-        self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
+        self.alias = parse_property_aliases(alias)
+        self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
         self.flags = flags.split() if flags else []
 
@@ -373,13 +384,13 @@ class Shorthand(object):
 
 
 class Alias(object):
-    def __init__(self, name, original):
+    def __init__(self, name, original, gecko_pref):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.enabled_in = original.enabled_in
         self.servo_pref = original.servo_pref
-        self.gecko_pref = original.gecko_pref
+        self.gecko_pref = gecko_pref
         self.allowed_in_page_rule = original.allowed_in_page_rule
         self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
 
@@ -462,8 +473,12 @@ class PropertiesData(object):
         # FIXME Servo's DOM architecture doesn't support vendor-prefixed properties.
         #       See servo/servo#14941.
         if self.product == "gecko":
-            for prefix in property.extra_prefixes:
-                property.alias.append('-%s-%s' % (prefix, property.name))
+            for (prefix, pref) in property.extra_prefixes:
+                # All webkit prefixed properties are currently under
+                # control of this pref in Gecko currently.
+                if prefix == "webkit" and not pref:
+                    pref = "layout.css.prefixes.webkit"
+                property.alias.append(('-%s-%s' % (prefix, property.name), pref))
 
     def declare_longhand(self, name, products="gecko servo", **kwargs):
         products = products.split()
@@ -472,7 +487,7 @@ class PropertiesData(object):
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
         self.add_prefixed_aliases(longhand)
-        longhand.alias = list(map(lambda x: Alias(x, longhand), longhand.alias))
+        longhand.alias = list(map(lambda (x, p): Alias(x, longhand, p), longhand.alias))
         self.longhand_aliases += longhand.alias
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
@@ -488,7 +503,7 @@ class PropertiesData(object):
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.add_prefixed_aliases(shorthand)
-        shorthand.alias = list(map(lambda x: Alias(x, shorthand), shorthand.alias))
+        shorthand.alias = list(map(lambda (x, p): Alias(x, shorthand, p), shorthand.alias))
         self.shorthand_aliases += shorthand.alias
         self.shorthands.append(shorthand)
         return shorthand
