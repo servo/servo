@@ -2183,19 +2183,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        if let Some(array_buffer) = self.bound_buffer_element_array.get() {
-            // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
-            let val = offset as u64 + (count as u64 * type_size as u64);
-            if val > array_buffer.capacity() as u64 {
+        if count > 0 {
+            if let Some(array_buffer) = self.bound_buffer_element_array.get() {
+                // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
+                let val = offset as u64 + (count as u64 * type_size as u64);
+                if val > array_buffer.capacity() as u64 {
+                    return self.webgl_error(InvalidOperation);
+                }
+            } else {
+                // From the WebGL spec
+                //
+                //      a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER binding point
+                //      or an INVALID_OPERATION error will be generated.
+                //
                 return self.webgl_error(InvalidOperation);
             }
-        } else {
-            // From the WebGL spec
-            //
-            //      a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER binding point
-            //      or an INVALID_OPERATION error will be generated.
-            //
-            return self.webgl_error(InvalidOperation);
         }
 
         if !self.validate_framebuffer_complete() {
