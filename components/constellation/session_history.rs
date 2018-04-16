@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId};
 use script_traits::LoadData;
 use std::{fmt, mem};
 use std::cmp::PartialEq;
@@ -44,11 +44,21 @@ impl JointSessionHistory {
     }
 
     pub fn remove_entries_for_browsing_context(&mut self, context_id: BrowsingContextId) {
-        self.past.retain(|&SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. }| {
-            browsing_context_id != context_id
+        self.past.retain(|diff| {
+            match diff {
+                SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. } => {
+                    *browsing_context_id != context_id
+                },
+                SessionHistoryDiff::PipelineDiff { .. } => true,
+            }
         });
-        self.future.retain(|&SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. }| {
-            browsing_context_id != context_id
+        self.future.retain(|diff| {
+            match diff {
+                SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. } => {
+                    *browsing_context_id != context_id
+                },
+                SessionHistoryDiff::PipelineDiff { .. } => true,
+            }
         });
     }
 }
@@ -130,6 +140,15 @@ pub enum SessionHistoryDiff {
         /// The next pipeline (used when traversing into the future)
         new_reloader: NeedsToReload,
     },
+    /// Represents a diff where the active state of a pipeline changed.
+    PipelineDiff {
+        /// The pipeline whose history state changed.
+        pipeline_reloader: NeedsToReload,
+        /// The old history state id.
+        old_history_state_id: Option<HistoryStateId>,
+        /// The new history state id.
+        new_history_state_id: HistoryStateId,
+    },
 }
 
 impl SessionHistoryDiff {
@@ -141,7 +160,8 @@ impl SessionHistoryDiff {
                     NeedsToReload::No(pipeline_id) => Some(pipeline_id),
                     NeedsToReload::Yes(..) => None,
                 }
-            }
+            },
+            SessionHistoryDiff::PipelineDiff { .. } => None,
         }
     }
 
@@ -153,7 +173,8 @@ impl SessionHistoryDiff {
                     NeedsToReload::No(pipeline_id) => Some(pipeline_id),
                     NeedsToReload::Yes(..) => None,
                 }
-            }
+            },
+            SessionHistoryDiff::PipelineDiff { .. } => None,
         }
     }
 
@@ -166,6 +187,11 @@ impl SessionHistoryDiff {
                 }
                 if *new_reloader == *replaced_reloader {
                     *new_reloader = reloader.clone();
+                }
+            }
+            SessionHistoryDiff::PipelineDiff { ref mut pipeline_reloader, .. } => {
+                if *pipeline_reloader == *replaced_reloader {
+                    *pipeline_reloader = reloader.clone();
                 }
             }
         }

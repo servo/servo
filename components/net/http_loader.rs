@@ -32,7 +32,7 @@ use hyper::status::StatusCode;
 use hyper_openssl::OpensslClient;
 use hyper_serde::Serde;
 use log;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
@@ -40,7 +40,7 @@ use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::iter::FromIterator;
@@ -73,6 +73,7 @@ pub struct HttpState {
     pub cookie_jar: RwLock<CookieStorage>,
     pub http_cache: RwLock<HttpCache>,
     pub auth_cache: RwLock<AuthCache>,
+    pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub ssl_client: OpensslClient,
     pub connector: Pool<Connector>,
 }
@@ -83,6 +84,7 @@ impl HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::new()),
+            history_states: RwLock::new(HashMap::new()),
             http_cache: RwLock::new(HttpCache::new()),
             ssl_client: ssl_client.clone(),
             connector: create_http_connector(ssl_client),

@@ -16,7 +16,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
@@ -30,7 +31,7 @@ use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 #[cfg(not(windows))]
 use std::env;
 use std::ffi::OsStr;
@@ -92,6 +93,12 @@ pub struct Pipeline {
 
     /// The Load Data used to create this pipeline.
     pub load_data: LoadData,
+
+    /// The active history state for this pipeline.
+    pub history_state_id: Option<HistoryStateId>,
+
+    /// The history states owned by this pipeline.
+    pub history_states: HashSet<HistoryStateId>,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -156,7 +163,6 @@ pub struct InitialPipelineState {
 
     /// Information about the page to load.
     pub load_data: LoadData,
-
 
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
@@ -333,6 +339,8 @@ impl Pipeline {
             visible: visible,
             is_private: is_private,
             load_data: load_data,
+            history_state_id: None,
+            history_states: HashSet::new(),
         };
 
         pipeline.notify_visibility();
