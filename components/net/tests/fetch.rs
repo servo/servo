@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {DEFAULT_USER_AGENT, new_fetch_context, fetch, make_server};
+use {DEFAULT_USER_AGENT, new_fetch_context, create_embedder_proxy, fetch, make_server};
 use devtools_traits::DevtoolsControlMsg;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
@@ -124,7 +124,7 @@ fn test_fetch_blob() {
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
 
-    let context = new_fetch_context(None);
+    let context = new_fetch_context(None, None);
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
@@ -552,13 +552,12 @@ fn test_fetch_with_hsts() {
     let mut ca_content = String::new();
     File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
     let ssl_client = create_ssl_client(&ca_content);
-    let (sender, _) = channel();
 
-    let context =  FetchContext {
+    let context = FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(sender),
+        filemanager: FileManager::new(create_embedder_proxy()),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
     };
 
