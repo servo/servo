@@ -1700,13 +1700,6 @@ impl Document {
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
         // Step 9
         self.salvageable.set(!event_handled);
-        // Step 10
-        if !self.salvageable.get() {
-            // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-document-cleanup-steps
-            // TODO: Step 2, make disappear webSockets.
-            // Step 3
-            self.window.upcast::<GlobalScope>().suspend();
-        }
         // Step 13
         if !recursive_flag {
             for iframe in self.iter_iframes() {
@@ -1719,7 +1712,12 @@ impl Document {
                 }
             }
         }
-        // Step 14, TODO: discard pipeline via constellation if not salvageable.
+        // Step 10, 14
+        if !self.salvageable.get() {
+            // https://html.spec.whatwg.org/multipage/browsing-the-web.html#unloading-document-cleanup-steps
+            let msg = ScriptMsg::DiscardDocument;
+            let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+        }
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
     }

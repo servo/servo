@@ -1032,6 +1032,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
             }
+            FromScriptMsg::DiscardDocument => {
+                self.handle_discard_document(source_top_ctx_id, source_pipeline_id);
+            }
             FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
                 debug!("constellation got initiate navigate request message");
                 self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
@@ -2819,7 +2822,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         debug!("Closed browsing context children {}.", browsing_context_id);
     }
-
+    
+    // Discard the pipeline for a given document, udpdate the joint session history.
+    fn handle_discard_document(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId, pipeline_id: PipelineId) {
+        let load_data = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.load_data.clone(),
+            None => return
+        };
+        self.joint_session_histories
+            .entry(top_level_browsing_context_id).or_insert(JointSessionHistory::new())
+            .replace(NeedsToReload::No(pipeline_id), NeedsToReload::Yes(pipeline_id, load_data));
+       self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+    }
+    
     // Send a message to script requesting document associated with this pipeline runs the 'unload' algorithm
     fn unload_document(&self, pipeline_id: PipelineId) {
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {

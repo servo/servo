@@ -1659,12 +1659,8 @@ impl Window {
     }
 
     pub fn resume(&self) {
-        if let Some(document) = self.document.get() {
-            if document.salvageable() {
-                // Resume timer events.
-                self.upcast::<GlobalScope>().resume();
-            }
-        }
+        // Resume timer events.
+        self.upcast::<GlobalScope>().resume();
 
         // Set the window proxy to be this object.
         self.window_proxy().set_currently_active(self);
