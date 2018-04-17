@@ -5,7 +5,6 @@
 //! A struct to encapsulate all the style fixups and flags propagations
 //! a computed style needs in order for it to adhere to the CSS spec.
 
-use Atom;
 use app_units::Au;
 use dom::TElement;
 use properties::{self, CascadeFlags, ComputedValues, StyleBuilder};
@@ -52,6 +51,8 @@ fn is_effective_display_none_for_display_contents<E>(element: E) -> bool
 where
     E: TElement,
 {
+    use Atom;
+
     // FIXME(emilio): This should be an actual static.
     lazy_static! {
         static ref SPECIAL_HTML_ELEMENTS: [Atom; 16] = [

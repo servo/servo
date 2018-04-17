@@ -397,6 +397,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         unsafe { self.element.is_html_element() }
     }
 
+    fn is_mathml_element(&self) -> bool {
+        *self.element.namespace() == ns!(mathml)
+    }
+
+    fn is_svg_element(&self) -> bool {
+        *self.element.namespace() == ns!(svg)
+    }
+
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute()).as_ref().map(|x| x.borrow_arc())
