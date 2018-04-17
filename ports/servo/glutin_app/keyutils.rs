@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use servo::msg::constellation_msg::{self, Key, KeyModifiers};
-use winit::{self, VirtualKeyCode};
+use winit::VirtualKeyCode;
 
 bitflags! {
-    pub struct GlutinKeyModifiers: u8 {
+    pub struct WinitKeyModifiers: u8 {
         const LEFT_CONTROL = 1;
         const RIGHT_CONTROL = 2;
         const LEFT_SHIFT = 4;
@@ -131,7 +131,7 @@ pub fn char_to_script_key(c: char) -> Option<constellation_msg::Key> {
     }
 }
 
-pub fn glutin_key_to_script_key(key: winit::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
+pub fn winit_key_to_script_key(key: VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
     // TODO(negge): add more key mappings
     match key {
         VirtualKeyCode::A => Ok(Key::A),
@@ -242,18 +242,18 @@ pub fn glutin_key_to_script_key(key: winit::VirtualKeyCode) -> Result<constellat
     }
 }
 
-pub fn glutin_mods_to_script_mods(modifiers: GlutinKeyModifiers) -> constellation_msg::KeyModifiers {
+pub fn winit_mods_to_script_mods(modifiers: WinitKeyModifiers) -> constellation_msg::KeyModifiers {
     let mut result = constellation_msg::KeyModifiers::empty();
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_SHIFT | GlutinKeyModifiers::RIGHT_SHIFT) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_SHIFT | WinitKeyModifiers::RIGHT_SHIFT) {
         result.insert(KeyModifiers::SHIFT);
     }
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_CONTROL | GlutinKeyModifiers::RIGHT_CONTROL) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_CONTROL | WinitKeyModifiers::RIGHT_CONTROL) {
         result.insert(KeyModifiers::CONTROL);
     }
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_ALT | GlutinKeyModifiers::RIGHT_ALT) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_ALT | WinitKeyModifiers::RIGHT_ALT) {
         result.insert(KeyModifiers::ALT);
     }
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_SUPER | GlutinKeyModifiers::RIGHT_SUPER) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_SUPER | WinitKeyModifiers::RIGHT_SUPER) {
         result.insert(KeyModifiers::SUPER);
     }
     result
