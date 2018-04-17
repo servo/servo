@@ -11,7 +11,6 @@ use smallvec::SmallVec;
 use std::slice;
 use stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 use stylesheets::StylesheetInDocument;
-use stylesheets::import_rule::ImportSheet;
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>
