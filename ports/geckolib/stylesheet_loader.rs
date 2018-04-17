@@ -55,9 +55,8 @@ impl StyleStylesheetLoader for StylesheetLoader {
 
         debug_assert!(!child_sheet.is_null(),
                       "Import rules should always have a strong sheet");
-        let stylesheet = unsafe {
-            ImportSheet(GeckoStyleSheet::from_addrefed(child_sheet))
-        };
+        let sheet = unsafe { GeckoStyleSheet::from_addrefed(child_sheet) };
+        let stylesheet = ImportSheet::new(sheet);
         Arc::new(lock.wrap(ImportRule { url, source_location, stylesheet }))
     }
 }

@@ -674,11 +674,6 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn is_xul_element(&self) -> bool {
-        self.namespace_id() == (structs::root::kNameSpaceID_XUL as i32)
-    }
-
-    #[inline]
     fn has_id(&self) -> bool {
         self.as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementHasID)
@@ -826,7 +821,7 @@ impl<'le> GeckoElement<'le> {
         match self.parent_element() {
             Some(e) => {
                 e.local_name() == &*local_name!("use") &&
-                    e.namespace() == &*ns!("http://www.w3.org/2000/svg")
+                e.is_svg_element()
             },
             None => false,
         }
@@ -1058,7 +1053,22 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn is_html_element(&self) -> bool {
-        self.namespace_id() == (structs::root::kNameSpaceID_XHTML as i32)
+        self.namespace_id() == structs::kNameSpaceID_XHTML as i32
+    }
+
+    #[inline]
+    fn is_mathml_element(&self) -> bool {
+        self.namespace_id() == structs::kNameSpaceID_MathML as i32
+    }
+
+    #[inline]
+    fn is_svg_element(&self) -> bool {
+        self.namespace_id() == structs::kNameSpaceID_SVG as i32
+    }
+
+    #[inline]
+    fn is_xul_element(&self) -> bool {
+        self.namespace_id() == structs::root::kNameSpaceID_XUL as i32
     }
 
     /// Return the list of slotted nodes of this node.

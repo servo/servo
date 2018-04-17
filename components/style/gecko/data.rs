@@ -5,6 +5,7 @@
 //! Data needed to style a Gecko document.
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use context::QuirksMode;
 use dom::TElement;
 use gecko_bindings::bindings::{self, RawServoStyleSet};
 use gecko_bindings::structs::{self, RawGeckoPresContextOwned, ServoStyleSetSizes, ServoStyleSheet};
@@ -17,7 +18,7 @@ use properties::ComputedValues;
 use selector_parser::SnapshotMap;
 use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use stylesheets::{StylesheetContents, StylesheetInDocument};
+use stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
 use stylist::Stylist;
 
 /// Little wrapper to a Gecko style sheet.
@@ -58,6 +59,16 @@ impl GeckoStyleSheet {
             &*(self.raw()._base.mInner as *const StyleSheetInfo as *const ServoStyleSheetInner)
         }
     }
+
+    /// Gets the StylesheetContents for this stylesheet.
+    pub fn contents(&self) -> &StylesheetContents {
+        debug_assert!(!self.inner().mContents.mRawPtr.is_null());
+        unsafe {
+            let contents =
+                (&**StylesheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
+            &*contents
+        }
+    }
 }
 
 impl Drop for GeckoStyleSheet {
@@ -74,13 +85,12 @@ impl Clone for GeckoStyleSheet {
 }
 
 impl StylesheetInDocument for GeckoStyleSheet {
-    fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
-        debug_assert!(!self.inner().mContents.mRawPtr.is_null());
-        unsafe {
-            let contents =
-                (&**StylesheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
-            &*contents
-        }
+    fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
+        self.contents().origin
+    }
+
+    fn quirks_mode(&self, _guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.contents().quirks_mode
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
@@ -102,6 +112,11 @@ impl StylesheetInDocument for GeckoStyleSheet {
     // handled externally by Gecko.
     fn enabled(&self) -> bool {
         true
+    }
+
+    #[inline]
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.contents().rules(guard)
     }
 }
 

@@ -2048,7 +2048,7 @@ pub extern "C" fn Servo_ImportRule_GetSheet(
     rule: RawServoImportRuleBorrowed,
 ) -> *const ServoStyleSheet {
     read_locked_arc(rule, |rule: &ImportRule| {
-        rule.stylesheet.0.raw() as *const ServoStyleSheet
+        rule.stylesheet.as_sheet().unwrap().raw() as *const ServoStyleSheet
     })
 }
 

@@ -18478,7 +18478,7 @@ pub mod root {
         eCSSProperty_flex_grow = 105,
         eCSSProperty_flex_shrink = 106,
         eCSSProperty_flex_wrap = 107,
-        eCSSProperty_float_ = 108,
+        eCSSProperty_float = 108,
         eCSSProperty__moz_float_edge = 109,
         eCSSProperty_flood_color = 110,
         eCSSProperty_flood_opacity = 111,

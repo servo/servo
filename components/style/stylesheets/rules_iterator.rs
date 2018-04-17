@@ -9,7 +9,7 @@ use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use smallvec::SmallVec;
 use std::slice;
-use stylesheets::{CssRule, CssRules, DocumentRule, ImportRule, MediaRule, SupportsRule};
+use stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 use stylesheets::StylesheetInDocument;
 
 /// An iterator over a list of rules.
@@ -35,10 +35,10 @@ where
         device: &'a Device,
         quirks_mode: QuirksMode,
         guard: &'a SharedRwLockReadGuard<'b>,
-        rules: &'a CssRules,
+        rules: &'a [CssRule],
     ) -> Self {
         let mut stack = SmallVec::new();
-        stack.push(rules.0.iter());
+        stack.push(rules.iter());
         Self {
             device: device,
             quirks_mode: quirks_mode,
@@ -102,10 +102,7 @@ where
                         }
                         import_rule
                             .stylesheet
-                            .contents(self.guard)
-                            .rules
-                            .read_with(self.guard)
-                            .0
+                            .rules(self.guard)
                             .iter()
                     },
                     CssRule::Document(ref doc_rule) => {

@@ -434,6 +434,15 @@ pub trait TElement:
     /// Return whether this element is an element in the HTML namespace.
     fn is_html_element(&self) -> bool;
 
+    /// Return whether this element is an element in the MathML namespace.
+    fn is_mathml_element(&self) -> bool;
+
+    /// Return whether this element is an element in the SVG namespace.
+    fn is_svg_element(&self) -> bool;
+
+    /// Return whether this element is an element in the XUL namespace.
+    fn is_xul_element(&self) -> bool { false }
+
     /// Return the list of slotted nodes of this node.
     fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
         &[]

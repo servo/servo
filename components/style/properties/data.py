@@ -311,10 +311,7 @@ class Longhand(object):
         return "<{} as ToAnimatedValue>::AnimatedValue".format(computed)
 
     def nscsspropertyid(self):
-        ident = self.ident
-        if ident == "float":
-            ident = "float_"
-        return "nsCSSPropertyID::eCSSProperty_%s" % ident
+        return "nsCSSPropertyID::eCSSProperty_%s" % self.ident
 
 
 class Shorthand(object):

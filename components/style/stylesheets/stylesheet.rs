@@ -103,22 +103,10 @@ impl StylesheetContents {
         }
     }
 
-    /// Return an iterator using the condition `C`.
+    /// Returns a reference to the list of rules.
     #[inline]
-    pub fn iter_rules<'a, 'b, C>(
-        &'a self,
-        device: &'a Device,
-        guard: &'a SharedRwLockReadGuard<'b>,
-    ) -> RulesIterator<'a, 'b, C>
-    where
-        C: NestedRuleIterationCondition,
-    {
-        RulesIterator::new(
-            device,
-            self.quirks_mode,
-            guard,
-            &self.rules.read_with(guard),
-        )
+    pub fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        &self.rules.read_with(guard).0
     }
 
     /// Measure heap usage.
@@ -189,32 +177,20 @@ macro_rules! rule_filter {
 
 /// A trait to represent a given stylesheet in a document.
 pub trait StylesheetInDocument {
-    /// Get the contents of this stylesheet.
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents;
-
     /// Get the stylesheet origin.
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.contents(guard).origin
-    }
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin;
 
     /// Get the stylesheet quirks mode.
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.contents(guard).quirks_mode
-    }
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode;
+
+    /// Get whether this stylesheet is enabled.
+    fn enabled(&self) -> bool;
 
     /// Get the media associated with this stylesheet.
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList>;
 
-    /// Returns whether the style-sheet applies for the current device.
-    fn is_effective_for_device(&self, device: &Device, guard: &SharedRwLockReadGuard) -> bool {
-        match self.media(guard) {
-            Some(medialist) => medialist.evaluate(device, self.quirks_mode(guard)),
-            None => true,
-        }
-    }
-
-    /// Get whether this stylesheet is enabled.
-    fn enabled(&self) -> bool;
+    /// Returns a reference to the list of rules in this stylesheet.
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule];
 
     /// Return an iterator using the condition `C`.
     #[inline]
@@ -226,7 +202,15 @@ pub trait StylesheetInDocument {
     where
         C: NestedRuleIterationCondition,
     {
-        self.contents(guard).iter_rules(device, guard)
+        RulesIterator::new(device, self.quirks_mode(guard), guard, self.rules(guard))
+    }
+
+    /// Returns whether the style-sheet applies for the current device.
+    fn is_effective_for_device(&self, device: &Device, guard: &SharedRwLockReadGuard) -> bool {
+        match self.media(guard) {
+            Some(medialist) => medialist.evaluate(device, self.quirks_mode(guard)),
+            None => true,
+        }
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
@@ -255,8 +239,12 @@ pub trait StylesheetInDocument {
 }
 
 impl StylesheetInDocument for Stylesheet {
-    fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
-        &self.contents
+    fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
+        self.contents.origin
+    }
+
+    fn quirks_mode(&self, _guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.contents.quirks_mode
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
@@ -265,6 +253,11 @@ impl StylesheetInDocument for Stylesheet {
 
     fn enabled(&self) -> bool {
         !self.disabled()
+    }
+
+    #[inline]
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.contents.rules(guard)
     }
 }
 
@@ -289,8 +282,12 @@ impl ToMediaListKey for DocumentStyleSheet {
 }
 
 impl StylesheetInDocument for DocumentStyleSheet {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
-        self.0.contents(guard)
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
+        self.0.origin(guard)
+    }
+
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.0.quirks_mode(guard)
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
@@ -299,6 +296,11 @@ impl StylesheetInDocument for DocumentStyleSheet {
 
     fn enabled(&self) -> bool {
         self.0.enabled()
+    }
+
+    #[inline]
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.0.rules(guard)
     }
 }
 
