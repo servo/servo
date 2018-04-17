@@ -25,20 +25,35 @@ use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, Integer, NonNegativeLength, Number, ToComputedValue};
 use values::generics::font::{FeatureTagValue, FontSettings};
 use values::generics::font::{KeywordInfo as GenericKeywordInfo, VariationValue};
-use values::specified::font as specified;
+use values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::{FontSynthesis, MozScriptSizeMultiplier, XLang, XTextZoom};
 
-/// As of CSS Fonts Module Level 3, only the following values are
-/// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+/// A value for the font-weight property per:
 ///
-/// However, system fonts may provide other values. Pango
-/// may provide 350, 380, and 1000 (on top of the existing values), for example.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
+/// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+///
+/// This is effectively just a `Number`.
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct FontWeight(pub u16);
+pub struct FontWeight(pub Number);
+
+impl ToAnimatedValue for FontWeight {
+    type AnimatedValue = Number;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        FontWeight(animated.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
+    }
+}
 
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
          ToAnimatedZero, ToCss)]
@@ -57,21 +72,12 @@ pub type KeywordInfo = GenericKeywordInfo<NonNegativeLength>;
 impl FontWeight {
     /// Value for normal
     pub fn normal() -> Self {
-        FontWeight(400)
+        FontWeight(400.)
     }
 
     /// Value for bold
     pub fn bold() -> Self {
-        FontWeight(700)
-    }
-
-    /// Convert from an integer to Weight
-    pub fn from_int(n: i32) -> Result<Self, ()> {
-        if n >= 100 && n <= 900 && n % 100 == 0 {
-            Ok(FontWeight(n as u16))
-        } else {
-            Err(())
-        }
+        FontWeight(700.)
     }
 
     /// Convert from an Gecko weight
@@ -80,33 +86,39 @@ impl FontWeight {
         // we allow a wider range of weights than is parseable
         // because system fonts may provide custom values
         let weight = unsafe { bindings::Gecko_FontWeight_ToFloat(weight) };
-        FontWeight(weight as u16)
+        FontWeight(weight)
     }
 
     /// Weither this weight is bold
     pub fn is_bold(&self) -> bool {
-        self.0 > 500
+        self.0 > 500.
     }
 
-    /// Return the bolder weight
+    /// Return the bolder weight.
+    ///
+    /// See the table in:
+    /// https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
     pub fn bolder(self) -> Self {
-        if self.0 < 400 {
-            FontWeight(400)
-        } else if self.0 < 600 {
-            FontWeight(700)
+        if self.0 < 350. {
+            FontWeight(400.)
+        } else if self.0 < 550. {
+            FontWeight(700.)
         } else {
-            FontWeight(900)
+            FontWeight(self.0.max(900.))
         }
     }
 
-    /// Returns the lighter weight
+    /// Return the lighter weight.
+    ///
+    /// See the table in:
+    /// https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
     pub fn lighter(self) -> Self {
-        if self.0 < 600 {
-            FontWeight(100)
-        } else if self.0 < 800 {
-            FontWeight(400)
+        if self.0 < 550. {
+            FontWeight(self.0.min(100.))
+        } else if self.0 < 750. {
+            FontWeight(400.)
         } else {
-            FontWeight(700)
+            FontWeight(700.)
         }
     }
 }

@@ -873,20 +873,6 @@ impl ToAnimatedZero for MaxLength {
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
-/// <http://dev.w3.org/csswg/css-transitions/#animtype-font-weight>
-impl Animate for FontWeight {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let a = self.0 as f64;
-        let b = other.0 as f64;
-        const NORMAL: f64 = 400.;
-        let (this_weight, other_weight) = procedure.weights();
-        let weight = (a - NORMAL) * this_weight + (b - NORMAL) * other_weight + NORMAL;
-        let weight = (weight.max(100.).min(900.) / 100.).round() * 100.;
-        Ok(FontWeight(weight as u16))
-    }
-}
-
 impl ToAnimatedZero for FontWeight {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -897,8 +883,7 @@ impl ToAnimatedZero for FontWeight {
 /// <https://drafts.csswg.org/css-fonts/#font-stretch-prop>
 impl Animate for FontStretch {
     #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
-    {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let from = f64::from(*self);
         let to = f64::from(*other);
         let normal = f64::from(FontStretch::Normal);
