@@ -83,11 +83,7 @@ impl DeepCloneWithLock for ImportSheet {
     }
 }
 
-/// A sheet that is held from an import rule.
-#[cfg(feature = "servo")]
-#[derive(Debug)]
-pub struct ImportSheet(pub ::servo_arc::Arc<::stylesheets::Stylesheet>);
-
+#[cfg(feature = "gecko")]
 impl StylesheetInDocument for ImportSheet {
     fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
         match *self {
@@ -122,6 +118,34 @@ impl StylesheetInDocument for ImportSheet {
             ImportSheet::Sheet(ref s) => s.contents().rules(guard),
             ImportSheet::Pending(_) => &[],
         }
+    }
+}
+
+/// A sheet that is held from an import rule.
+#[cfg(feature = "servo")]
+#[derive(Debug)]
+pub struct ImportSheet(pub ::servo_arc::Arc<::stylesheets::Stylesheet>);
+
+#[cfg(feature = "servo")]
+impl StylesheetInDocument for ImportSheet {
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
+        self.0.origin(guard)
+    }
+
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.0.quirks_mode(guard)
+    }
+
+    fn enabled(&self) -> bool {
+        self.0.enabled()
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.0.media(guard)
+    }
+
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.0.rules(guard)
     }
 }
 
