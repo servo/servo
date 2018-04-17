@@ -5407,7 +5407,7 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
     stretch: nsCSSValueBorrowedMut,
     weight: nsCSSValueBorrowedMut
 ) -> bool {
-    use style::properties::longhands::{font_stretch, font_style};
+    use style::properties::longhands::font_style;
     use style::properties::shorthands::font;
     use style::values::specified::font::{FontFamily, FontWeight};
 
@@ -5438,10 +5438,11 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
         font_style::SpecifiedValue::Keyword(ref kw) => kw,
         font_style::SpecifiedValue::System(_) => return false,
     });
-    stretch.set_from(match font.font_stretch {
-        font_stretch::SpecifiedValue::Keyword(ref kw) => kw,
-        font_stretch::SpecifiedValue::System(_) => return false,
-    });
+
+    if font.font_stretch.get_system().is_some() {
+        return false;
+    }
+    stretch.set_from(&font.font_stretch);
 
     match font.font_weight {
         FontWeight::Absolute(w) => weight.set_font_weight(w.compute().0),
