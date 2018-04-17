@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use servo::msg::constellation_msg::{self, Key, KeyModifiers};
-use winit::{self, VirtualKeyCode};
+use winit::VirtualKeyCode;
 
 bitflags! {
-    pub struct GlutinKeyModifiers: u8 {
+    pub struct WinitKeyModifiers: u8 {
         const LEFT_CONTROL = 1;
         const RIGHT_CONTROL = 2;
         const LEFT_SHIFT = 4;
@@ -131,129 +131,132 @@ pub fn char_to_script_key(c: char) -> Option<constellation_msg::Key> {
     }
 }
 
-pub fn glutin_key_to_script_key(key: winit::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
+pub fn winit_key_to_script_key(
+    key: VirtualKeyCode
+) -> Result<constellation_msg::Key, ()> {
+    use winit::VirtualKeyCode::*;
     // TODO(negge): add more key mappings
     match key {
-        VirtualKeyCode::A => Ok(Key::A),
-        VirtualKeyCode::B => Ok(Key::B),
-        VirtualKeyCode::C => Ok(Key::C),
-        VirtualKeyCode::D => Ok(Key::D),
-        VirtualKeyCode::E => Ok(Key::E),
-        VirtualKeyCode::F => Ok(Key::F),
-        VirtualKeyCode::G => Ok(Key::G),
-        VirtualKeyCode::H => Ok(Key::H),
-        VirtualKeyCode::I => Ok(Key::I),
-        VirtualKeyCode::J => Ok(Key::J),
-        VirtualKeyCode::K => Ok(Key::K),
-        VirtualKeyCode::L => Ok(Key::L),
-        VirtualKeyCode::M => Ok(Key::M),
-        VirtualKeyCode::N => Ok(Key::N),
-        VirtualKeyCode::O => Ok(Key::O),
-        VirtualKeyCode::P => Ok(Key::P),
-        VirtualKeyCode::Q => Ok(Key::Q),
-        VirtualKeyCode::R => Ok(Key::R),
-        VirtualKeyCode::S => Ok(Key::S),
-        VirtualKeyCode::T => Ok(Key::T),
-        VirtualKeyCode::U => Ok(Key::U),
-        VirtualKeyCode::V => Ok(Key::V),
-        VirtualKeyCode::W => Ok(Key::W),
-        VirtualKeyCode::X => Ok(Key::X),
-        VirtualKeyCode::Y => Ok(Key::Y),
-        VirtualKeyCode::Z => Ok(Key::Z),
+        A => Ok(Key::A),
+        B => Ok(Key::B),
+        C => Ok(Key::C),
+        D => Ok(Key::D),
+        E => Ok(Key::E),
+        F => Ok(Key::F),
+        G => Ok(Key::G),
+        H => Ok(Key::H),
+        I => Ok(Key::I),
+        J => Ok(Key::J),
+        K => Ok(Key::K),
+        L => Ok(Key::L),
+        M => Ok(Key::M),
+        N => Ok(Key::N),
+        O => Ok(Key::O),
+        P => Ok(Key::P),
+        Q => Ok(Key::Q),
+        R => Ok(Key::R),
+        S => Ok(Key::S),
+        T => Ok(Key::T),
+        U => Ok(Key::U),
+        V => Ok(Key::V),
+        W => Ok(Key::W),
+        X => Ok(Key::X),
+        Y => Ok(Key::Y),
+        Z => Ok(Key::Z),
 
-        VirtualKeyCode::Numpad0 => Ok(Key::Kp0),
-        VirtualKeyCode::Numpad1 => Ok(Key::Kp1),
-        VirtualKeyCode::Numpad2 => Ok(Key::Kp2),
-        VirtualKeyCode::Numpad3 => Ok(Key::Kp3),
-        VirtualKeyCode::Numpad4 => Ok(Key::Kp4),
-        VirtualKeyCode::Numpad5 => Ok(Key::Kp5),
-        VirtualKeyCode::Numpad6 => Ok(Key::Kp6),
-        VirtualKeyCode::Numpad7 => Ok(Key::Kp7),
-        VirtualKeyCode::Numpad8 => Ok(Key::Kp8),
-        VirtualKeyCode::Numpad9 => Ok(Key::Kp9),
+        Numpad0 => Ok(Key::Kp0),
+        Numpad1 => Ok(Key::Kp1),
+        Numpad2 => Ok(Key::Kp2),
+        Numpad3 => Ok(Key::Kp3),
+        Numpad4 => Ok(Key::Kp4),
+        Numpad5 => Ok(Key::Kp5),
+        Numpad6 => Ok(Key::Kp6),
+        Numpad7 => Ok(Key::Kp7),
+        Numpad8 => Ok(Key::Kp8),
+        Numpad9 => Ok(Key::Kp9),
 
-        VirtualKeyCode::Key0 => Ok(Key::Num0),
-        VirtualKeyCode::Key1 => Ok(Key::Num1),
-        VirtualKeyCode::Key2 => Ok(Key::Num2),
-        VirtualKeyCode::Key3 => Ok(Key::Num3),
-        VirtualKeyCode::Key4 => Ok(Key::Num4),
-        VirtualKeyCode::Key5 => Ok(Key::Num5),
-        VirtualKeyCode::Key6 => Ok(Key::Num6),
-        VirtualKeyCode::Key7 => Ok(Key::Num7),
-        VirtualKeyCode::Key8 => Ok(Key::Num8),
-        VirtualKeyCode::Key9 => Ok(Key::Num9),
+        Key0 => Ok(Key::Num0),
+        Key1 => Ok(Key::Num1),
+        Key2 => Ok(Key::Num2),
+        Key3 => Ok(Key::Num3),
+        Key4 => Ok(Key::Num4),
+        Key5 => Ok(Key::Num5),
+        Key6 => Ok(Key::Num6),
+        Key7 => Ok(Key::Num7),
+        Key8 => Ok(Key::Num8),
+        Key9 => Ok(Key::Num9),
 
-        VirtualKeyCode::Return => Ok(Key::Enter),
-        VirtualKeyCode::Space => Ok(Key::Space),
-        VirtualKeyCode::Escape => Ok(Key::Escape),
-        VirtualKeyCode::Equals => Ok(Key::Equal),
-        VirtualKeyCode::Minus => Ok(Key::Minus),
-        VirtualKeyCode::Back => Ok(Key::Backspace),
-        VirtualKeyCode::PageDown => Ok(Key::PageDown),
-        VirtualKeyCode::PageUp => Ok(Key::PageUp),
+        Return => Ok(Key::Enter),
+        Space => Ok(Key::Space),
+        Escape => Ok(Key::Escape),
+        Equals => Ok(Key::Equal),
+        Minus => Ok(Key::Minus),
+        Back => Ok(Key::Backspace),
+        PageDown => Ok(Key::PageDown),
+        PageUp => Ok(Key::PageUp),
 
-        VirtualKeyCode::Insert => Ok(Key::Insert),
-        VirtualKeyCode::Home => Ok(Key::Home),
-        VirtualKeyCode::Delete => Ok(Key::Delete),
-        VirtualKeyCode::End => Ok(Key::End),
+        Insert => Ok(Key::Insert),
+        Home => Ok(Key::Home),
+        Delete => Ok(Key::Delete),
+        End => Ok(Key::End),
 
-        VirtualKeyCode::Left => Ok(Key::Left),
-        VirtualKeyCode::Up => Ok(Key::Up),
-        VirtualKeyCode::Right => Ok(Key::Right),
-        VirtualKeyCode::Down => Ok(Key::Down),
+        Left => Ok(Key::Left),
+        Up => Ok(Key::Up),
+        Right => Ok(Key::Right),
+        Down => Ok(Key::Down),
 
-        VirtualKeyCode::LShift => Ok(Key::LeftShift),
-        VirtualKeyCode::LControl => Ok(Key::LeftControl),
-        VirtualKeyCode::LAlt => Ok(Key::LeftAlt),
-        VirtualKeyCode::LWin => Ok(Key::LeftSuper),
-        VirtualKeyCode::RShift => Ok(Key::RightShift),
-        VirtualKeyCode::RControl => Ok(Key::RightControl),
-        VirtualKeyCode::RAlt => Ok(Key::RightAlt),
-        VirtualKeyCode::RWin => Ok(Key::RightSuper),
+        LShift => Ok(Key::LeftShift),
+        LControl => Ok(Key::LeftControl),
+        LAlt => Ok(Key::LeftAlt),
+        LWin => Ok(Key::LeftSuper),
+        RShift => Ok(Key::RightShift),
+        RControl => Ok(Key::RightControl),
+        RAlt => Ok(Key::RightAlt),
+        RWin => Ok(Key::RightSuper),
 
-        VirtualKeyCode::Apostrophe => Ok(Key::Apostrophe),
-        VirtualKeyCode::Backslash => Ok(Key::Backslash),
-        VirtualKeyCode::Comma => Ok(Key::Comma),
-        VirtualKeyCode::Grave => Ok(Key::GraveAccent),
-        VirtualKeyCode::LBracket => Ok(Key::LeftBracket),
-        VirtualKeyCode::Period => Ok(Key::Period),
-        VirtualKeyCode::RBracket => Ok(Key::RightBracket),
-        VirtualKeyCode::Semicolon => Ok(Key::Semicolon),
-        VirtualKeyCode::Slash => Ok(Key::Slash),
-        VirtualKeyCode::Tab => Ok(Key::Tab),
-        VirtualKeyCode::Subtract => Ok(Key::Minus),
+        Apostrophe => Ok(Key::Apostrophe),
+        Backslash => Ok(Key::Backslash),
+        Comma => Ok(Key::Comma),
+        Grave => Ok(Key::GraveAccent),
+        LBracket => Ok(Key::LeftBracket),
+        Period => Ok(Key::Period),
+        RBracket => Ok(Key::RightBracket),
+        Semicolon => Ok(Key::Semicolon),
+        Slash => Ok(Key::Slash),
+        Tab => Ok(Key::Tab),
+        Subtract => Ok(Key::Minus),
 
-        VirtualKeyCode::F1 => Ok(Key::F1),
-        VirtualKeyCode::F2 => Ok(Key::F2),
-        VirtualKeyCode::F3 => Ok(Key::F3),
-        VirtualKeyCode::F4 => Ok(Key::F4),
-        VirtualKeyCode::F5 => Ok(Key::F5),
-        VirtualKeyCode::F6 => Ok(Key::F6),
-        VirtualKeyCode::F7 => Ok(Key::F7),
-        VirtualKeyCode::F8 => Ok(Key::F8),
-        VirtualKeyCode::F9 => Ok(Key::F9),
-        VirtualKeyCode::F10 => Ok(Key::F10),
-        VirtualKeyCode::F11 => Ok(Key::F11),
-        VirtualKeyCode::F12 => Ok(Key::F12),
+        F1 => Ok(Key::F1),
+        F2 => Ok(Key::F2),
+        F3 => Ok(Key::F3),
+        F4 => Ok(Key::F4),
+        F5 => Ok(Key::F5),
+        F6 => Ok(Key::F6),
+        F7 => Ok(Key::F7),
+        F8 => Ok(Key::F8),
+        F9 => Ok(Key::F9),
+        F10 => Ok(Key::F10),
+        F11 => Ok(Key::F11),
+        F12 => Ok(Key::F12),
 
-        VirtualKeyCode::NavigateBackward => Ok(Key::NavigateBackward),
-        VirtualKeyCode::NavigateForward => Ok(Key::NavigateForward),
+        NavigateBackward => Ok(Key::NavigateBackward),
+        NavigateForward => Ok(Key::NavigateForward),
         _ => Err(()),
     }
 }
 
-pub fn glutin_mods_to_script_mods(modifiers: GlutinKeyModifiers) -> constellation_msg::KeyModifiers {
+pub fn winit_mods_to_script_mods(modifiers: WinitKeyModifiers) -> constellation_msg::KeyModifiers {
     let mut result = constellation_msg::KeyModifiers::empty();
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_SHIFT | GlutinKeyModifiers::RIGHT_SHIFT) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_SHIFT | WinitKeyModifiers::RIGHT_SHIFT) {
         result.insert(KeyModifiers::SHIFT);
     }
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_CONTROL | GlutinKeyModifiers::RIGHT_CONTROL) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_CONTROL | WinitKeyModifiers::RIGHT_CONTROL) {
         result.insert(KeyModifiers::CONTROL);
     }
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_ALT | GlutinKeyModifiers::RIGHT_ALT) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_ALT | WinitKeyModifiers::RIGHT_ALT) {
         result.insert(KeyModifiers::ALT);
     }
-    if modifiers.intersects(GlutinKeyModifiers::LEFT_SUPER | GlutinKeyModifiers::RIGHT_SUPER) {
+    if modifiers.intersects(WinitKeyModifiers::LEFT_SUPER | WinitKeyModifiers::RIGHT_SUPER) {
         result.insert(KeyModifiers::SUPER);
     }
     result
