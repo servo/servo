@@ -5,7 +5,7 @@
 //! Bindings for CSS Rule objects
 
 use byteorder::{BigEndian, WriteBytesExt};
-use computed_values::{font_stretch, font_style, font_weight};
+use computed_values::{font_stretch, font_style};
 use counter_style::{self, CounterBound};
 use cssparser::UnicodeRange;
 use font_face::{FontDisplay, FontWeight, Source};
@@ -15,6 +15,7 @@ use properties::longhands::font_language_override;
 use std::str;
 use values::computed::font::FamilyName;
 use values::generics::font::FontTag;
+use values::specified::font::AbsoluteFontWeight;
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 
 impl<'a> ToNsCssValue for &'a FamilyName {
@@ -23,19 +24,9 @@ impl<'a> ToNsCssValue for &'a FamilyName {
     }
 }
 
-impl ToNsCssValue for font_weight::T {
+impl<'a> ToNsCssValue for &'a AbsoluteFontWeight {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_font_weight(self.0)
-    }
-}
-
-impl<'a> ToNsCssValue for &'a FontWeight {
-    fn convert(self, nscssvalue: &mut nsCSSValue) {
-        match *self {
-            FontWeight::Normal => nscssvalue.set_enum(structs::NS_FONT_WEIGHT_NORMAL as i32),
-            FontWeight::Bold => nscssvalue.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
-            FontWeight::Weight(weight) => nscssvalue.set_font_weight(weight.0),
-        }
+        nscssvalue.set_font_weight(self.compute().0)
     }
 }
 
@@ -74,6 +65,28 @@ impl<'a> ToNsCssValue for &'a SpecifiedFontVariationSettings {
             value.set_number(entry.value.into());
             (entry.tag.into(), value)
         }))
+    }
+}
+
+impl<'a> ToNsCssValue for &'a FontWeight {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        let FontWeight(ref first, ref second) = *self;
+
+        let second = match *second {
+            None => {
+                nscssvalue.set_from(first);
+                return;
+            }
+            Some(ref second) => second,
+        };
+
+        let mut a = nsCSSValue::null();
+        let mut b = nsCSSValue::null();
+
+        a.set_from(first);
+        b.set_from(second);
+
+        nscssvalue.set_pair(&a, &b);
     }
 }
 

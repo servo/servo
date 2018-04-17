@@ -5395,10 +5395,9 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
         font_stretch::SpecifiedValue::Keyword(ref kw) => kw,
         font_stretch::SpecifiedValue::System(_) => return false,
     });
+
     match font.font_weight {
-        FontWeight::Weight(w) => weight.set_from(w),
-        FontWeight::Normal => weight.set_enum(structs::NS_FONT_WEIGHT_NORMAL as i32),
-        FontWeight::Bold => weight.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
+        FontWeight::Absolute(w) => weight.set_font_weight(w.compute().0),
         // Resolve relative font weights against the initial of font-weight
         // (normal, which is equivalent to 400).
         FontWeight::Bolder => weight.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),

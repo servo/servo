@@ -2607,9 +2607,7 @@ fn static_assert() {
 
     pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
         let weight: f32 = unsafe { Gecko_FontWeight_ToFloat(self.gecko.mFont.weight) };
-        debug_assert!(weight >= 0.0 &&
-                      weight <= ::std::u16::MAX as f32);
-        longhands::font_weight::computed_value::T(weight as u16)
+        longhands::font_weight::computed_value::T(weight)
     }
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}

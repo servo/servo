@@ -43,14 +43,16 @@ ${helpers.single_keyword_system("font-variant-caps",
                                 animation_value_type="discrete",
                                 servo_restyle_damage="rebuild_and_reflow")}
 
-${helpers.predefined_type("font-weight",
-                          "FontWeight",
-                          initial_value="computed::FontWeight::normal()",
-                          initial_specified_value="specified::FontWeight::Normal",
-                          animation_value_type="ComputedValue",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight",
-                          servo_restyle_damage="rebuild_and_reflow")}
+${helpers.predefined_type(
+    "font-weight",
+    "FontWeight",
+    initial_value="computed::FontWeight::normal()",
+    initial_specified_value="specified::FontWeight::normal()",
+    animation_value_type="Number",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 ${helpers.predefined_type("font-size",
                           "FontSize",

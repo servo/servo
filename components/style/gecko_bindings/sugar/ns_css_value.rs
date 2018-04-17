@@ -178,8 +178,8 @@ impl nsCSSValue {
     }
 
     /// Set to a font weight
-    pub fn set_font_weight(&mut self, w: u16) {
-        unsafe { bindings::Gecko_CSSValue_SetFontWeight(self, w as f32) }
+    pub fn set_font_weight(&mut self, w: f32) {
+        unsafe { bindings::Gecko_CSSValue_SetFontWeight(self, w) }
     }
 
     fn set_int_internal(&mut self, value: i32, unit: nsCSSUnit) {

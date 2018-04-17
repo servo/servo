@@ -27,29 +27,43 @@ use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
 const DEFAULT_SCRIPT_SIZE_MULTIPLIER: f64 = 0.71;
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
-/// A specified font-weight value
+/// The minimum font-weight value per:
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
+pub const MIN_FONT_WEIGHT: f32 = 1.;
+
+/// The maximum font-weight value per:
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
+pub const MAX_FONT_WEIGHT: f32 = 1000.;
+
+/// A specified font-weight value.
+///
+/// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum FontWeight {
-    /// Normal variant
-    Normal,
-    /// Bold variant
-    Bold,
+    /// `<font-weight-absolute>`
+    Absolute(AbsoluteFontWeight),
     /// Bolder variant
     Bolder,
     /// Lighter variant
     Lighter,
-    /// Computed weight variant
-    Weight(computed::FontWeight),
-    /// System font varaint
+    /// System font variant.
     System(SystemFont),
 }
 
 impl FontWeight {
+    /// `normal`
+    #[inline]
+    pub fn normal() -> Self {
+        FontWeight::Absolute(AbsoluteFontWeight::Normal)
+    }
+
     /// Get a specified FontWeight from a gecko keyword
     pub fn from_gecko_keyword(kw: u32) -> Self {
-        computed::FontWeight::from_int(kw as i32)
-            .map(FontWeight::Weight)
-            .expect("Found unexpected value in style struct for font-weight property")
+        debug_assert!(kw % 100 == 0);
+        debug_assert!(kw as f32 <= MAX_FONT_WEIGHT);
+        FontWeight::Absolute(AbsoluteFontWeight::Weight(Number::new(kw as f32)))
     }
 
     /// Get a specified FontWeight from a SystemFont
@@ -69,27 +83,17 @@ impl FontWeight {
 
 impl Parse for FontWeight {
     fn parse<'i, 't>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontWeight, ParseError<'i>> {
-        let result = match *input.next()? {
-            Token::Ident(ref ident) => {
-                match_ignore_ascii_case! { ident,
-                    "normal" => Ok(FontWeight::Normal),
-                    "bold" => Ok(FontWeight::Bold),
-                    "bolder" => Ok(FontWeight::Bolder),
-                    "lighter" => Ok(FontWeight::Lighter),
-                    _ => Err(()),
-                }
-            },
-            Token::Number {
-                int_value: Some(value),
-                ..
-            } => computed::FontWeight::from_int(value).map(FontWeight::Weight),
-            _ => Err(()),
-        };
+        if let Ok(absolute) = input.try(|input| AbsoluteFontWeight::parse(context, input)) {
+            return Ok(FontWeight::Absolute(absolute));
+        }
 
-        result.map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "bolder" => FontWeight::Bolder,
+            "lighter" => FontWeight::Lighter,
+        })
     }
 }
 
@@ -99,9 +103,7 @@ impl ToComputedValue for FontWeight {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            FontWeight::Weight(weight) => weight,
-            FontWeight::Normal => computed::FontWeight::normal(),
-            FontWeight::Bold => computed::FontWeight::bold(),
+            FontWeight::Absolute(ref abs) => abs.compute(),
             FontWeight::Bolder => context
                 .builder
                 .get_parent_font()
@@ -126,7 +128,64 @@ impl ToComputedValue for FontWeight {
 
     #[inline]
     fn from_computed_value(computed: &computed::FontWeight) -> Self {
-        FontWeight::Weight(*computed)
+        FontWeight::Absolute(AbsoluteFontWeight::Weight(
+            Number::from_computed_value(&computed.0)
+        ))
+    }
+}
+
+/// An absolute font-weight value for a @font-face rule.
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-weight-absolute-values
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub enum AbsoluteFontWeight {
+    /// A `<number>`, with the additional constraints specified in:
+    ///
+    ///   https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
+    Weight(Number),
+    /// Normal font weight. Same as 400.
+    Normal,
+    /// Bold font weight. Same as 700.
+    Bold,
+}
+
+impl AbsoluteFontWeight {
+    /// Returns the computed value for this absolute font weight.
+    pub fn compute(&self) -> computed::FontWeight {
+        match *self {
+            AbsoluteFontWeight::Weight(weight) => {
+                computed::FontWeight(
+                    weight.get().max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT)
+                )
+            },
+            AbsoluteFontWeight::Normal => computed::FontWeight::normal(),
+            AbsoluteFontWeight::Bold => computed::FontWeight::bold(),
+        }
+    }
+}
+
+impl Parse for AbsoluteFontWeight {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(number) = input.try(|input| Number::parse(context, input)) {
+            // We could add another AllowedNumericType value, but it doesn't
+            // seem worth it just for a single property with such a weird range,
+            // so we do the clamping here manually.
+            if !number.was_calc() &&
+                (number.get() < MIN_FONT_WEIGHT || number.get() > MAX_FONT_WEIGHT) {
+                return Err(input.new_custom_error(
+                    StyleParseErrorKind::UnspecifiedError
+                ))
+            }
+            return Ok(AbsoluteFontWeight::Weight(number))
+        }
+
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "normal" => AbsoluteFontWeight::Normal,
+            "bold" => AbsoluteFontWeight::Bold,
+        })
     }
 }
 
