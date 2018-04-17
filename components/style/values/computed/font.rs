@@ -29,6 +29,7 @@ use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::{FontSynthesis, MozScriptSizeMultiplier, XLang, XTextZoom};
+pub use values::computed::NonNegativePercentage as FontStretch;
 
 /// A value for the font-weight property per:
 ///

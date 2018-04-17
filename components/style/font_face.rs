@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 #[cfg(feature = "gecko")]
-use computed_values::{font_stretch, font_style};
+use computed_values::font_style;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
@@ -28,7 +28,7 @@ use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
-use values::specified::font::AbsoluteFontWeight;
+use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -108,6 +108,24 @@ impl Parse for FontWeight {
         let second =
             input.try(|input| AbsoluteFontWeight::parse(context, input)).ok();
         Ok(FontWeight(first, second))
+    }
+}
+
+/// The font-stretch descriptor:
+///
+/// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-stretch
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct FontStretch(pub SpecifiedFontStretch, pub Option<SpecifiedFontStretch>);
+
+impl Parse for FontStretch {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let first = SpecifiedFontStretch::parse(context, input)?;
+        let second =
+            input.try(|input| SpecifiedFontStretch::parse(context, input)).ok();
+        Ok(FontStretch(first, second))
     }
 }
 
@@ -387,16 +405,16 @@ font_face_descriptors! {
         "src" sources / mSrc: Vec<Source>,
     ]
     optional descriptors = [
-        /// The style of this font face
+        /// The style of this font face.
         "font-style" style / mStyle: font_style::T,
 
-        /// The weight of this font face
+        /// The weight of this font face.
         "font-weight" weight / mWeight: FontWeight,
 
-        /// The stretch of this font face
-        "font-stretch" stretch / mStretch: font_stretch::T,
+        /// The stretch of this font face.
+        "font-stretch" stretch / mStretch: FontStretch,
 
-        /// The display of this font face
+        /// The display of this font face.
         "font-display" display / mDisplay: FontDisplay,
 
         /// The ranges of code points outside of which this font face should not be used.

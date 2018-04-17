@@ -5,10 +5,10 @@
 //! Bindings for CSS Rule objects
 
 use byteorder::{BigEndian, WriteBytesExt};
-use computed_values::{font_stretch, font_style};
+use computed_values::font_style::T as ComputedFontStyle;
 use counter_style::{self, CounterBound};
 use cssparser::UnicodeRange;
-use font_face::{FontDisplay, FontWeight, Source};
+use font_face::{FontDisplay, FontWeight, FontStretch, Source};
 use gecko_bindings::structs::{self, nsCSSValue};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use properties::longhands::font_language_override;
@@ -16,11 +16,29 @@ use std::str;
 use values::computed::font::FamilyName;
 use values::generics::font::FontTag;
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
-use values::specified::font::AbsoluteFontWeight;
+use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
 
 impl<'a> ToNsCssValue for &'a FamilyName {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         nscssvalue.set_string_from_atom(&self.name)
+    }
+}
+
+impl<'a> ToNsCssValue for &'a SpecifiedFontStretch {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        use values::specified::font::FontStretchKeyword;
+        match *self {
+            SpecifiedFontStretch::Stretch(ref p) => nscssvalue.set_number(p.get()),
+            SpecifiedFontStretch::Keyword(ref kw) => {
+                // TODO(emilio): Use this branch instead.
+                if false {
+                    nscssvalue.set_number(kw.compute().0)
+                } else {
+                    nscssvalue.set_enum(FontStretchKeyword::gecko_keyword(kw.compute().0) as i32)
+                }
+            }
+            SpecifiedFontStretch::System(..) => unreachable!(),
+        }
     }
 }
 
@@ -68,27 +86,33 @@ impl<'a> ToNsCssValue for &'a SpecifiedFontVariationSettings {
     }
 }
 
-impl<'a> ToNsCssValue for &'a FontWeight {
-    fn convert(self, nscssvalue: &mut nsCSSValue) {
-        let FontWeight(ref first, ref second) = *self;
+macro_rules! descriptor_range_conversion {
+    ($name:ident) => {
+        impl<'a> ToNsCssValue for &'a $name {
+            fn convert(self, nscssvalue: &mut nsCSSValue) {
+                let $name(ref first, ref second) = *self;
+                let second = match *second {
+                    None => {
+                        nscssvalue.set_from(first);
+                        return;
+                    }
+                    Some(ref second) => second,
+                };
 
-        let second = match *second {
-            None => {
-                nscssvalue.set_from(first);
-                return;
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+
+                a.set_from(first);
+                b.set_from(second);
+
+                nscssvalue.set_pair(&a, &b);
             }
-            Some(ref second) => second,
-        };
-
-        let mut a = nsCSSValue::null();
-        let mut b = nsCSSValue::null();
-
-        a.set_from(first);
-        b.set_from(second);
-
-        nscssvalue.set_pair(&a, &b);
+        }
     }
 }
+
+descriptor_range_conversion!(FontWeight);
+descriptor_range_conversion!(FontStretch);
 
 impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
@@ -106,16 +130,16 @@ impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
 macro_rules! map_enum {
     (
         $(
-            $prop:ident {
+            $ty:ident {
                 $($servo:ident => $gecko:ident,)+
             }
         )+
     ) => {
         $(
-            impl<'a> ToNsCssValue for &'a $prop::T {
+            impl<'a> ToNsCssValue for &'a $ty {
                 fn convert(self, nscssvalue: &mut nsCSSValue) {
                     nscssvalue.set_enum(match *self {
-                        $( $prop::T::$servo => structs::$gecko as i32, )+
+                        $( $ty::$servo => structs::$gecko as i32, )+
                     })
                 }
             }
@@ -124,22 +148,10 @@ macro_rules! map_enum {
 }
 
 map_enum! {
-    font_style {
+    ComputedFontStyle {
         Normal => NS_FONT_STYLE_NORMAL,
         Italic => NS_FONT_STYLE_ITALIC,
         Oblique => NS_FONT_STYLE_OBLIQUE,
-    }
-
-    font_stretch {
-        Normal          => NS_FONT_STRETCH_NORMAL,
-        UltraCondensed  => NS_FONT_STRETCH_ULTRA_CONDENSED,
-        ExtraCondensed  => NS_FONT_STRETCH_EXTRA_CONDENSED,
-        Condensed       => NS_FONT_STRETCH_CONDENSED,
-        SemiCondensed   => NS_FONT_STRETCH_SEMI_CONDENSED,
-        SemiExpanded    => NS_FONT_STRETCH_SEMI_EXPANDED,
-        Expanded        => NS_FONT_STRETCH_EXPANDED,
-        ExtraExpanded   => NS_FONT_STRETCH_EXTRA_EXPANDED,
-        UltraExpanded   => NS_FONT_STRETCH_ULTRA_EXPANDED,
     }
 }
 

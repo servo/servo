@@ -17,11 +17,13 @@ use properties::longhands::system_font::SystemFont;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
+use values::computed::Percentage as ComputedPercentage;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{FamilyName, FontFamilyList, SingleFontFamily};
+use values::generics::NonNegative;
 use values::generics::font::{FeatureTagValue, FontSettings, FontTag};
 use values::generics::font::{KeywordInfo as GenericKeywordInfo, KeywordSize, VariationValue};
-use values::specified::{AllowQuirks, Integer, LengthOrPercentage, NoCalcLength, Number};
+use values::specified::{AllowQuirks, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
 use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
@@ -186,6 +188,120 @@ impl Parse for AbsoluteFontWeight {
             "normal" => AbsoluteFontWeight::Normal,
             "bold" => AbsoluteFontWeight::Bold,
         })
+    }
+}
+
+/// A value for the `font-stretch` property.
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub enum FontStretch {
+    Stretch(Percentage),
+    Keyword(FontStretchKeyword),
+    System(SystemFont),
+}
+
+/// A keyword value for `font-stretch`.
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[allow(missing_docs)]
+pub enum FontStretchKeyword {
+    Normal,
+    Condensed,
+    UltraCondensed,
+    ExtraCondensed,
+    SemiCondensed,
+    SemiExpanded,
+    Expanded,
+    ExtraExpanded,
+    UltraExpanded,
+}
+
+impl FontStretchKeyword {
+    /// Resolves the value of the keyword as specified in:
+    ///
+    /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
+    pub fn compute(&self) -> ComputedPercentage {
+        use self::FontStretchKeyword::*;
+        ComputedPercentage(match *self {
+            UltraCondensed => 0.5,
+            ExtraCondensed => 0.625,
+            Condensed => 0.75,
+            SemiCondensed => 0.875,
+            Normal => 1.,
+            SemiExpanded => 1.125,
+            Expanded => 1.25,
+            ExtraExpanded => 1.5,
+            UltraExpanded => 2.,
+        })
+    }
+}
+
+impl FontStretch {
+    /// `normal`.
+    pub fn normal() -> Self {
+        FontStretch::Keyword(FontStretchKeyword::Normal)
+    }
+
+    /// Get a specified FontStretch from a SystemFont.
+    ///
+    /// FIXME(emilio): All this system font stuff is copy-pasta. :(
+    pub fn system_font(f: SystemFont) -> Self {
+        FontStretch::System(f)
+    }
+
+    /// Retreive a SystemFont from FontStretch.
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontStretch::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl Parse for FontStretch {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // From https://drafts.csswg.org/css-fonts-4/#font-stretch-prop:
+        //
+        //    Values less than 0% are not allowed and are treated as parse
+        //    errors.
+        if let Ok(percentage) = input.try(|input| Percentage::parse_non_negative(context, input)) {
+            return Ok(FontStretch::Stretch(percentage));
+        }
+
+        Ok(FontStretch::Keyword(FontStretchKeyword::parse(input)?))
+    }
+}
+
+impl ToComputedValue for FontStretch {
+    type ComputedValue = NonNegative<ComputedPercentage>;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            FontStretch::Stretch(ref percentage) => {
+                NonNegative(percentage.to_computed_value(context))
+            },
+            FontStretch::Keyword(ref kw) => {
+                NonNegative(kw.compute())
+            },
+            #[cfg(feature = "gecko")]
+            FontStretch::System(_) => context
+                .cached_system_font
+                .as_ref()
+                .unwrap()
+                .font_stretch
+                .clone(),
+            #[cfg(not(feature = "gecko"))]
+            FontStretch::System(_) => unreachable!(),
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        FontStretch::Stretch(Percentage::from_computed_value(&computed.0))
     }
 }
 
