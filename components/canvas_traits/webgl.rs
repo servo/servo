@@ -275,6 +275,7 @@ pub enum WebGLCommand {
     DeleteVertexArray(WebGLVertexArrayId),
     BindVertexArray(Option<WebGLVertexArrayId>),
     AliasedPointSizeRange(WebGLSender<(f32, f32)>),
+    AliasedLineWidthRange(WebGLSender<(f32, f32)>),
 }
 
 macro_rules! define_resource_id_struct {
@@ -548,6 +549,7 @@ impl fmt::Debug for WebGLCommand {
             DeleteVertexArray(..) => "DeleteVertexArray",
             BindVertexArray(..) => "BindVertexArray",
             AliasedPointSizeRange(..) => "AliasedPointSizeRange",
+            AliasedLineWidthRange(..) => "AliasedLineWidthRange",
         };
 
         write!(f, "CanvasWebGLMsg::{}(..)", name)
