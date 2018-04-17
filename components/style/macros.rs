@@ -47,7 +47,7 @@ macro_rules! trivial_to_computed_value {
     };
 }
 
-/// A macro to parse an identifier, or return an `UnexpectedIndent` error
+/// A macro to parse an identifier, or return an `UnexpectedIdent` error
 /// otherwise.
 ///
 /// FIXME(emilio): The fact that `UnexpectedIdent` is a `SelectorParseError`
