@@ -2601,13 +2601,28 @@ fn static_assert() {
     }
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
-        unsafe { Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0 as f32) };
+        unsafe { Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0) };
     }
     ${impl_simple_copy('font_weight', 'mFont.weight')}
 
     pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
         let weight: f32 = unsafe { Gecko_FontWeight_ToFloat(self.gecko.mFont.weight) };
         longhands::font_weight::computed_value::T(weight)
+    }
+
+    pub fn set_font_stretch(&mut self, v: longhands::font_stretch::computed_value::T) {
+        unsafe { bindings::Gecko_FontStretch_SetFloat(&mut self.gecko.mFont.stretch, (v.0).0) };
+    }
+    ${impl_simple_copy('font_stretch', 'mFont.stretch')}
+
+    pub fn clone_font_stretch(&self) -> longhands::font_stretch::computed_value::T {
+        use values::computed::Percentage;
+        use values::generics::NonNegative;
+
+        let stretch = self.gecko.mFont.stretch as f32 / 100.;
+        debug_assert!(stretch >= 0.);
+
+        NonNegative(Percentage(stretch))
     }
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
