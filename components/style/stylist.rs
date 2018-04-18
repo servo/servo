@@ -23,7 +23,7 @@ use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
 use rule_cache::{RuleCache, RuleCacheConditions};
-use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
+use rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
 use selectors::NthIndexCache;
@@ -693,7 +693,7 @@ impl Stylist {
 
         match declarations {
             Some(decls) => self.rule_tree.insert_ordered_rules_with_important(
-                decls.into_iter().map(|a| (a.source.clone(), a.level())),
+                decls.into_iter().map(|a| a.clone().for_rule_tree()),
                 guards,
             ),
             None => self.rule_tree.root().clone(),
@@ -1020,7 +1020,7 @@ impl Stylist {
             );
             if !declarations.is_empty() {
                 let rule_node = self.rule_tree.insert_ordered_rules_with_important(
-                    declarations.drain().map(|a| a.order_and_level()),
+                    declarations.drain().map(|a| a.for_rule_tree()),
                     guards,
                 );
                 if rule_node != *self.rule_tree.root() {
@@ -1187,6 +1187,7 @@ impl Stylist {
                 context,
                 flags_setter,
                 CascadeLevel::UANormal,
+                0,
             );
         }
 
@@ -1208,6 +1209,7 @@ impl Stylist {
                     context,
                     flags_setter,
                     CascadeLevel::UserNormal,
+                    0,
                 );
             }
         }
@@ -1232,6 +1234,7 @@ impl Stylist {
         }
 
         let mut match_document_author_rules = matches_author_rules;
+        let mut shadow_cascade_order = 0;
 
         // XBL / Shadow DOM rules, which are author rules too.
         //
@@ -1249,9 +1252,11 @@ impl Stylist {
                             applicable_declarations,
                             context,
                             flags_setter,
-                            CascadeLevel::AuthorNormal,
+                            CascadeLevel::InnerShadowNormal,
+                            shadow_cascade_order,
                         );
                     });
+                    shadow_cascade_order += 1;
                 }
             }
 
@@ -1275,9 +1280,11 @@ impl Stylist {
                             applicable_declarations,
                             context,
                             flags_setter,
-                            CascadeLevel::AuthorNormal,
+                            CascadeLevel::InnerShadowNormal,
+                            shadow_cascade_order,
                         );
                     });
+                    shadow_cascade_order += 1;
                 }
             }
 
@@ -1291,9 +1298,11 @@ impl Stylist {
                             applicable_declarations,
                             context,
                             flags_setter,
-                            CascadeLevel::AuthorNormal,
+                            CascadeLevel::SameTreeAuthorNormal,
+                            shadow_cascade_order,
                         );
                     });
+                    shadow_cascade_order += 1;
                 }
 
                 match_document_author_rules = false;
@@ -1309,10 +1318,6 @@ impl Stylist {
                 if let Some(map) = cascade_data.normal_rules(pseudo_element) {
                     // NOTE(emilio): This is needed because the XBL stylist may
                     // think it has a different quirks mode than the document.
-                    //
-                    // FIXME(emilio): this should use the same VisitedMatchingMode
-                    // as `context`, write a test-case of :visited not working on
-                    // Shadow DOM and fix it!
                     let mut matching_context = MatchingContext::new(
                         context.matching_mode(),
                         context.bloom_filter,
@@ -1322,13 +1327,16 @@ impl Stylist {
                     matching_context.pseudo_element_matching_fn =
                         context.pseudo_element_matching_fn;
 
+                    // SameTreeAuthorNormal instead of InnerShadowNormal to
+                    // preserve behavior, though that's kinda fishy...
                     map.get_all_matching_rules(
                         element,
                         rule_hash_target,
                         applicable_declarations,
                         &mut matching_context,
                         flags_setter,
-                        CascadeLevel::AuthorNormal,
+                        CascadeLevel::SameTreeAuthorNormal,
+                        shadow_cascade_order,
                     );
                 }
             });
@@ -1344,7 +1352,8 @@ impl Stylist {
                     applicable_declarations,
                     context,
                     flags_setter,
-                    CascadeLevel::AuthorNormal,
+                    CascadeLevel::SameTreeAuthorNormal,
+                    shadow_cascade_order,
                 );
             }
         }
@@ -2172,6 +2181,7 @@ impl CascadeData {
                                         self.rules_source_order,
                                         CascadeLevel::UANormal,
                                         selector.specificity(),
+                                        0,
                                     ));
                                 continue;
                             }
@@ -2468,9 +2478,10 @@ impl Rule {
     pub fn to_applicable_declaration_block(
         &self,
         level: CascadeLevel,
+        shadow_cascade_order: ShadowCascadeOrder,
     ) -> ApplicableDeclarationBlock {
         let source = StyleSource::Style(self.style_rule.clone());
-        ApplicableDeclarationBlock::new(source, self.source_order, level, self.specificity())
+        ApplicableDeclarationBlock::new(source, self.source_order, level, self.specificity(), shadow_cascade_order)
     }
 
     /// Creates a new Rule.
