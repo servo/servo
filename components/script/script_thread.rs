@@ -1170,6 +1170,7 @@ impl ScriptThread {
                     PostMessage(id, ..) => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
                     UpdateHistoryStateId(id, ..) => Some(id),
+                    RemoveHistoryStates(id, ..) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
                     WebDriverScriptCommand(id, ..) => Some(id),
                     TickAllAnimations(id) => Some(id),
@@ -1298,6 +1299,8 @@ impl ScriptThread {
                                                reason),
             ConstellationControlMsg::UpdateHistoryStateId(pipeline_id, history_state_id) =>
                 self.handle_update_history_state_id_msg(pipeline_id, history_state_id),
+            ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) =>
+                self.handle_remove_history_states(pipeline_id, history_states),
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
                 self.handle_focus_iframe_msg(parent_pipeline_id, frame_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
@@ -1680,6 +1683,13 @@ impl ScriptThread {
         match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("update history state after pipeline {} closed.", pipeline_id),
             Some(window) => window.History().r().activate_state(history_state_id),
+        }
+    }
+
+    fn handle_remove_history_states(&self, pipeline_id: PipelineId, history_states: Vec<HistoryStateId>) {
+        match { self.documents.borrow().find_window(pipeline_id) } {
+            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            Some(window) => window.History().r().remove_states(history_states),
         }
     }
 

@@ -2490,15 +2490,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             Some(old_pipeline_id) => {
                 // Deactivate the old pipeline, and activate the new one.
-                let pipelines_to_close = if let Some(replace_reloader) = change.replace {
+                let (pipelines_to_close, states_to_close) = if let Some(replace_reloader) = change.replace {
                     let session_history = self.joint_session_histories
                         .entry(change.top_level_browsing_context_id).or_insert(JointSessionHistory::new());
                     session_history.replace(replace_reloader.clone(),
                         NeedsToReload::No(change.new_pipeline_id));
 
                     match replace_reloader {
-                        NeedsToReload::No(pipeline_id) => vec![pipeline_id],
-                        NeedsToReload::Yes(..) => vec![],
+                        NeedsToReload::No(pipeline_id) => (Some(vec![pipeline_id]), None),
+                        NeedsToReload::Yes(..) => (None, None),
                     }
                 } else {
                     let session_history = self.joint_session_histories
@@ -2509,20 +2509,50 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         old_reloader: NeedsToReload::No(old_pipeline_id),
                     };
 
-                    session_history.push_diff(diff).into_iter()
-                        .filter_map(|diff| match diff {
-                            SessionHistoryDiff::BrowsingContextDiff { new_reloader, .. } => Some(new_reloader),
-                            SessionHistoryDiff::PipelineDiff { .. } => None,
-                        })
-                        .filter_map(|pipeline_id| pipeline_id.alive_pipeline_id())
-                        .collect::<Vec<_>>()
+                    let mut pipelines_to_close = vec![];
+                    let mut states_to_close = HashMap::new();
+
+                    let diffs_to_close = session_history.push_diff(diff);
+
+                    for diff in diffs_to_close {
+                        match diff {
+                            SessionHistoryDiff::BrowsingContextDiff { new_reloader, .. } => {
+                                if let Some(pipeline_id) = new_reloader.alive_pipeline_id() {
+                                    pipelines_to_close.push(pipeline_id);
+                                }
+                            }
+                            SessionHistoryDiff::PipelineDiff { pipeline_reloader, new_history_state_id, .. } => {
+                                if let Some(pipeline_id) = pipeline_reloader.alive_pipeline_id() {
+                                    let states = states_to_close.entry(pipeline_id).or_insert(Vec::new());
+                                    states.push(new_history_state_id);
+                                }
+                            }
+                        }
+                    }
+
+                    (Some(pipelines_to_close), Some(states_to_close))
                 };
 
                 self.update_activity(old_pipeline_id);
                 self.update_activity(change.new_pipeline_id);
 
-                for pipeline_id in pipelines_to_close {
-                    self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                if let Some(states_to_close) = states_to_close {
+                    for (pipeline_id, states) in states_to_close {
+                        let msg = ConstellationControlMsg::RemoveHistoryStates(pipeline_id, states);
+                        let result = match self.pipelines.get(&pipeline_id) {
+                            None => return warn!("Pipeline {} removed history states after closure", pipeline_id),
+                            Some(pipeline) => pipeline.event_loop.send(msg),
+                        };
+                        if let Err(e) = result {
+                            self.handle_send_error(pipeline_id, e);
+                        }
+                    }
+                }
+
+                if let Some(pipelines_to_close) = pipelines_to_close {
+                    for pipeline_id in pipelines_to_close {
+                        self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                    }
                 }
 
                 self.notify_history_changed(change.top_level_browsing_context_id);

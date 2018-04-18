@@ -102,6 +102,13 @@ impl History {
         }
     }
 
+    pub fn remove_states(&self, states: Vec<HistoryStateId>) {
+        let _ = self.window
+            .upcast::<GlobalScope>()
+            .resource_threads()
+            .send(CoreResourceMsg::RemoveHistoryStates(states));
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     fn push_or_replace_state(&self,

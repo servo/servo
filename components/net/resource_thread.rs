@@ -252,6 +252,12 @@ impl ResourceChannelManager {
                 let mut history_states = http_state.history_states.write().unwrap();
                 history_states.insert(history_state_id, history_state);
             }
+            CoreResourceMsg::RemoveHistoryStates(states_to_remove) => {
+                let mut history_states = http_state.history_states.write().unwrap();
+                for history_state in states_to_remove {
+                    history_states.remove(&history_state);
+                }
+            }
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
