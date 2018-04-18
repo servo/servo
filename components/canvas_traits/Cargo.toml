@@ -13,11 +13,12 @@ path = "lib.rs"
 cssparser = "0.23.0"
 euclid = "0.17"
 ipc-channel = "0.10"
+gleam = "0.5"
 lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 nonzero = {path = "../nonzero"}
-offscreen_gl_context = { version = "0.15", features = ["serde"] }
+offscreen_gl_context = {version = "0.16", features = ["serde"]}
 serde = "1.0"
 serde_bytes = "0.10"
 servo_config = {path = "../config"}

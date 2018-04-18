@@ -16,7 +16,7 @@ default = []
 [dependencies]
 euclid = "0.17"
 gfx_traits = {path = "../gfx_traits"}
-gleam = { version = "0.4.34", optional = true }
+gleam = {version = "0.5", optional = true}
 image = "0.18"
 ipc-channel = "0.10"
 libc = "0.2"

@@ -276,7 +276,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         self.compositor_proxy.recomposite(CompositingReason::NewWebRenderFrame);
     }
 
-    fn new_document_ready(
+    fn new_frame_ready(
         &self,
         _document_id: webrender_api::DocumentId,
         scrolled: bool,

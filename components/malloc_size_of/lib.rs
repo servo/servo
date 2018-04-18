@@ -793,7 +793,7 @@ malloc_size_of_is_0!(webrender_api::GradientStop);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::GlyphInstance);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageBorder);
+malloc_size_of_is_0!(webrender_api::NinePatchBorder);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ImageKey);
 #[cfg(feature = "webrender_api")]

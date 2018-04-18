@@ -37,7 +37,7 @@ unstable = ["libservo/unstable"]
 backtrace = "0.3"
 bitflags = "1.0"
 euclid = "0.17"
-gleam = "0.4.34"
+gleam = "0.5"
 glutin = "0.13"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}

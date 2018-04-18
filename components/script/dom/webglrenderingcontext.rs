@@ -4,12 +4,13 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{WebGLCommand, WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{DOMToTextureCommand, Parameter, ProgramParameter};
+use canvas_traits::webgl::{ShaderParameter, VertexAttrib, WebGLCommand};
+use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLParameter, WebGLResult, WebGLSLVersion, WebGLVersion, WebVRCommand};
-use canvas_traits::webgl::DOMToTextureCommand;
+use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
+use canvas_traits::webgl::{WebVRCommand, webgl_channel};
 use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -1310,36 +1311,27 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return Int32Value(constants::UNSIGNED_BYTE as i32);
                 }
             }
-            constants::VIEWPORT => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetViewport(sender));
-                let (x, y, width, height) = receiver.recv().unwrap();
+            constants::VERSION => {
                 rooted!(in(cx) let mut rval = UndefinedValue());
-                [x, y, width, height].to_jsval(cx, rval.handle_mut());
+                "WebGL 1.0".to_jsval(cx, rval.handle_mut());
                 return rval.get();
             }
-            constants::ALIASED_POINT_SIZE_RANGE => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::AliasedPointSizeRange(sender));
-                let (width, height) = receiver.recv().unwrap();
+            constants::RENDERER | constants::VENDOR => {
                 rooted!(in(cx) let mut rval = UndefinedValue());
-                [width, height].to_jsval(cx, rval.handle_mut());
+                "Mozilla/Servo".to_jsval(cx, rval.handle_mut());
                 return rval.get();
             }
-            constants::ALIASED_LINE_WIDTH_RANGE => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::AliasedLineWidthRange(sender));
-                let (width, height) = receiver.recv().unwrap();
+            constants::SHADING_LANGUAGE_VERSION => {
                 rooted!(in(cx) let mut rval = UndefinedValue());
-                [width, height].to_jsval(cx, rval.handle_mut());
+                "WebGL GLSL ES 1.0".to_jsval(cx, rval.handle_mut());
                 return rval.get();
             }
-            _ => {
-                if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
-                    self.webgl_error(WebGLError::InvalidEnum);
-                    return NullValue();
-                }
-            }
+            _ => {}
+        }
+
+        if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
+            self.webgl_error(WebGLError::InvalidEnum);
+            return NullValue();
         }
 
         // Handle GetParameter getters injected via WebGL extensions
@@ -1355,20 +1347,38 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         }
 
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetParameter(parameter, sender));
-
-        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
-            WebGLParameter::Int(val) => Int32Value(val),
-            WebGLParameter::Bool(val) => BooleanValue(val),
-            WebGLParameter::Float(val) => DoubleValue(val as f64),
-            WebGLParameter::FloatArray(_) => panic!("Parameter should not be float array"),
-            WebGLParameter::String(val) => {
+        match handle_potential_webgl_error!(self, Parameter::from_u32(parameter), return NullValue()) {
+            Parameter::Bool(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterBool(param, sender));
+                BooleanValue(receiver.recv().unwrap())
+            }
+            Parameter::Int(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterInt(param, sender));
+                Int32Value(receiver.recv().unwrap())
+            }
+            Parameter::Int4(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterInt4(param, sender));
+                // FIXME(nox): https://github.com/servo/servo/issues/20655
                 rooted!(in(cx) let mut rval = UndefinedValue());
-                val.to_jsval(cx, rval.handle_mut());
+                receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());
                 rval.get()
             }
-            WebGLParameter::Invalid => NullValue(),
+            Parameter::Float(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterFloat(param, sender));
+                DoubleValue(receiver.recv().unwrap() as f64)
+            }
+            Parameter::Float2(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterFloat2(param, sender));
+                // FIXME(nox): https://github.com/servo/servo/issues/20655
+                rooted!(in(cx) let mut rval = UndefinedValue());
+                receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());
+                rval.get()
+            }
         }
     }
 
@@ -2400,16 +2410,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: &WebGLProgram, param_id: u32) -> JSVal {
-        match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
-            WebGLParameter::Int(val) => Int32Value(val),
-            WebGLParameter::Bool(val) => BooleanValue(val),
-            WebGLParameter::String(_) => panic!("Program parameter should not be string"),
-            WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
-            WebGLParameter::FloatArray(_) => {
-                panic!("Program paramenter should not be float array")
+    unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: &WebGLProgram, param: u32) -> JSVal {
+        match handle_potential_webgl_error!(self, ProgramParameter::from_u32(param), return NullValue()) {
+            ProgramParameter::Bool(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetProgramParameterBool(program.id(), param, sender));
+                BooleanValue(receiver.recv().unwrap())
             }
-            WebGLParameter::Invalid => NullValue(),
+            ProgramParameter::Int(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetProgramParameterInt(program.id(), param, sender));
+                Int32Value(receiver.recv().unwrap())
+            }
         }
     }
 
@@ -2420,16 +2432,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: &WebGLShader, param_id: u32) -> JSVal {
-        match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
-            WebGLParameter::Int(val) => Int32Value(val),
-            WebGLParameter::Bool(val) => BooleanValue(val),
-            WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
-            WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
-            WebGLParameter::FloatArray(_) => {
-                panic!("Shader paramenter should not be float array")
+    unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: &WebGLShader, param: u32) -> JSVal {
+        if shader.is_deleted() && !shader.is_attached() {
+            self.webgl_error(InvalidValue);
+            return NullValue();
+        }
+        match handle_potential_webgl_error!(self, ShaderParameter::from_u32(param), return NullValue()) {
+            ShaderParameter::Bool(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetShaderParameterBool(shader.id(), param, sender));
+                BooleanValue(receiver.recv().unwrap())
             }
-            WebGLParameter::Invalid => NullValue(),
+            ShaderParameter::Int(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetShaderParameterInt(shader.id(), param, sender));
+                Int32Value(receiver.recv().unwrap())
+            }
         }
     }
 
@@ -2474,8 +2492,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
-        if index == 0 && pname == constants::CURRENT_VERTEX_ATTRIB {
+    unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, param: u32) -> JSVal {
+        if index == 0 && param == constants::CURRENT_VERTEX_ATTRIB {
             rooted!(in(cx) let mut result = UndefinedValue());
             let (x, y, z, w) = self.current_vertex_attrib_0.get();
             let attrib = vec![x, y, z, w];
@@ -2483,7 +2501,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return result.get()
         }
 
-        if pname == constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING {
+        if param == constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING {
             rooted!(in(cx) let mut jsval = NullValue());
             if let Some(buffer) =  self.bound_attrib_buffers.borrow().get(&index) {
                 buffer.to_jsval(cx, jsval.handle_mut());
@@ -2491,20 +2509,28 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return jsval.get();
         }
 
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetVertexAttrib(index, pname, sender));
-
-        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
-            WebGLParameter::Int(val) => Int32Value(val),
-            WebGLParameter::Bool(val) => BooleanValue(val),
-            WebGLParameter::String(_) => panic!("Vertex attrib should not be string"),
-            WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),
-            WebGLParameter::FloatArray(val) => {
+        match handle_potential_webgl_error!(self, VertexAttrib::from_u32(param), return NullValue()) {
+            VertexAttrib::Bool(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetVertexAttribBool(index, param, sender));
+                let value = handle_potential_webgl_error!(self, receiver.recv().unwrap(), return NullValue());
+                BooleanValue(value)
+            }
+            VertexAttrib::Int(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetVertexAttribInt(index, param, sender));
+                let value = handle_potential_webgl_error!(self, receiver.recv().unwrap(), return NullValue());
+                Int32Value(value)
+            }
+            VertexAttrib::Float4(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetVertexAttribFloat4(index, param, sender));
+                let value = handle_potential_webgl_error!(self, receiver.recv().unwrap(), return NullValue());
+                // FIXME(nox): https://github.com/servo/servo/issues/20655
                 rooted!(in(cx) let mut result = UndefinedValue());
-                val.to_jsval(cx, result.handle_mut());
+                value.to_jsval(cx, result.handle_mut());
                 result.get()
             }
-            WebGLParameter::Invalid => NullValue(),
         }
     }
 

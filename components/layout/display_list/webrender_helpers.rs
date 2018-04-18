@@ -127,7 +127,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     BorderDetails::Normal(ref border) => {
                         webrender_api::BorderDetails::Normal(*border)
                     },
-                    BorderDetails::Image(ref image) => webrender_api::BorderDetails::Image(*image),
+                    BorderDetails::Image(ref image) => webrender_api::BorderDetails::NinePatch(*image),
                     BorderDetails::Gradient(ref gradient) => {
                         webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
                             gradient: builder.create_gradient(
