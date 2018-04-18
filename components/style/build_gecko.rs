@@ -33,8 +33,7 @@ mod common {
 #[cfg(feature = "bindgen")]
 mod bindings {
     use bindgen::{Builder, CodegenConfig};
-    use bindgen::callbacks::{EnumVariantCustomBehavior, EnumVariantValue, ParseCallbacks};
-    use regex::{Regex, RegexSet};
+    use regex::Regex;
     use std::cmp;
     use std::collections::{HashMap, HashSet};
     use std::env;
@@ -416,27 +415,6 @@ mod bindings {
     }
 
     fn generate_structs() {
-        #[derive(Debug)]
-        struct Callbacks(HashMap<String, RegexSet>);
-        impl ParseCallbacks for Callbacks {
-            fn enum_variant_behavior(
-                &self,
-                enum_name: Option<&str>,
-                variant_name: &str,
-                _variant_value: EnumVariantValue,
-            ) -> Option<EnumVariantCustomBehavior> {
-                enum_name
-                    .and_then(|enum_name| self.0.get(enum_name))
-                    .and_then(|regex| {
-                        if regex.is_match(variant_name) {
-                            Some(EnumVariantCustomBehavior::Constify)
-                        } else {
-                            None
-                        }
-                    })
-            }
-        }
-
         let builder = Builder::get_initial_builder()
             .enable_cxx_namespaces()
             .with_codegen_config(CodegenConfig {
@@ -452,21 +430,6 @@ mod bindings {
             .handle_str_items("whitelist-vars", |b, item| b.whitelist_var(item))
             .handle_str_items("whitelist-types", |b, item| b.whitelist_type(item))
             .handle_str_items("opaque-types", |b, item| b.opaque_type(item))
-            .handle_list("constified-enum-variants", |builder, iter| {
-                let mut map = HashMap::new();
-                for item in iter {
-                    let item = item.as_table().unwrap();
-                    let name = item["enum"].as_str().unwrap();
-                    let variants = item["variants"]
-                        .as_array()
-                        .unwrap()
-                        .as_slice()
-                        .iter()
-                        .map(|item| item.as_str().unwrap());
-                    map.insert(name.into(), RegexSet::new(variants).unwrap());
-                }
-                builder.parse_callbacks(Box::new(Callbacks(map)))
-            })
             .handle_table_items("mapped-generic-types", |builder, item| {
                 let generic = item["generic"].as_bool().unwrap();
                 let gecko = item["gecko"].as_str().unwrap();
