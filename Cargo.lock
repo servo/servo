@@ -179,9 +179,10 @@ version = "0.0.1"
 dependencies = [
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth_traits 0.0.1",
+ "compositing 0.0.1",
  "device 0.0.1 (git+https://github.com/servo/devices)",
  "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "script_traits 0.0.1",
+ "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "servo_rand 0.0.1",
  "uuid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",

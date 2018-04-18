@@ -5,9 +5,11 @@
 #[macro_use]
 extern crate bitflags;
 extern crate bluetooth_traits;
+extern crate compositing;
 extern crate device;
 extern crate ipc_channel;
-extern crate script_traits;
+#[macro_use]
+extern crate log;
 extern crate servo_config;
 extern crate servo_rand;
 extern crate uuid;
@@ -19,10 +21,10 @@ use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse, 
 use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use script_traits::BluetoothManagerMsg;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::Rng;
@@ -61,19 +63,23 @@ macro_rules! return_if_cached(
     );
 );
 
-pub fn new_bluetooth_thread() -> (IpcSender<BluetoothRequest>, IpcSender<IpcSender<BluetoothManagerMsg>>) {
-    let (sender, receiver) = ipc::channel().unwrap();
-    let (constellation_sender, constellation_receiver) = ipc::channel().unwrap();
-    let adapter = if Some(true) == PREFS.get("dom.bluetooth.enabled").as_boolean() {
-        BluetoothAdapter::init()
-    } else {
-        BluetoothAdapter::init_mock()
-    }.ok();
-    thread::Builder::new().name("BluetoothThread".to_owned()).spawn(move || {
-        let constellation_chan = constellation_receiver.recv().unwrap();
-        BluetoothManager::new(receiver, adapter, constellation_chan).start();
-    }).expect("Thread spawning failed");
-    (sender, constellation_sender)
+pub trait BluetoothThreadFactory {
+    fn new(embedder_proxy: EmbedderProxy) -> Self;
+}
+
+impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
+    fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let adapter = if Some(true) == PREFS.get("dom.bluetooth.enabled").as_boolean() {
+            BluetoothAdapter::init()
+        } else {
+            BluetoothAdapter::init_mock()
+        }.ok();
+        thread::Builder::new().name("BluetoothThread".to_owned()).spawn(move || {
+            BluetoothManager::new(receiver, adapter, embedder_proxy).start();
+        }).expect("Thread spawning failed");
+        sender
+    }
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#matches-a-filter
@@ -195,13 +201,13 @@ pub struct BluetoothManager {
     cached_characteristics: HashMap<String, BluetoothGATTCharacteristic>,
     cached_descriptors: HashMap<String, BluetoothGATTDescriptor>,
     allowed_services: HashMap<String, HashSet<String>>,
-    constellation_chan: IpcSender<BluetoothManagerMsg>,
+    embedder_proxy: EmbedderProxy,
 }
 
 impl BluetoothManager {
     pub fn new(receiver: IpcReceiver<BluetoothRequest>,
                adapter: Option<BluetoothAdapter>,
-               constellation_chan: IpcSender<BluetoothManagerMsg>) -> BluetoothManager {
+               embedder_proxy: EmbedderProxy) -> BluetoothManager {
         BluetoothManager {
             receiver: receiver,
             adapter: adapter,
@@ -214,7 +220,7 @@ impl BluetoothManager {
             cached_characteristics: HashMap::new(),
             cached_descriptors: HashMap::new(),
             allowed_services: HashMap::new(),
-            constellation_chan: constellation_chan,
+            embedder_proxy: embedder_proxy,
         }
     }
 
@@ -376,9 +382,16 @@ impl BluetoothManager {
         }
 
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = BluetoothManagerMsg::OpenDeviceSelectDialog(dialog_rows, ipc_sender);
+        let msg = EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender);
+        self.embedder_proxy.send(msg);
 
-        self.constellation_chan.send(msg).map(|_| ipc_receiver.recv().unwrap()).unwrap_or_default()
+        match ipc_receiver.recv() {
+            Ok(result) => result,
+            Err(e) => {
+                warn!("Failed to receive files from embedder ({}).", e);
+                None
+            }
+        }
     }
 
     fn generate_device_id(&mut self) -> String {

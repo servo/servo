@@ -213,10 +213,3 @@ pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
     OwnSender(IpcSender<ServiceWorkerMsg>),
 }
-
-/// Messages outgoing from the Bluetooth Manager thread to constellation
-#[derive(Deserialize, Serialize)]
-pub enum BluetoothManagerMsg {
-    /// Requesting to open device select dialog
-    OpenDeviceSelectDialog(Vec<String>, IpcSender<Option<String>>)
-}

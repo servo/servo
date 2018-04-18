@@ -123,12 +123,12 @@ use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
-use script_traits::{BluetoothManagerMsg, SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ScriptToConstellationChan, ServiceWorkerMsg, webdriver_msg};
+use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use script_traits::{WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
@@ -173,9 +173,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
     script_receiver: Receiver<Result<(PipelineId, FromScriptMsg), IpcError>>,
-
-    /// A channel for the constellation to receive messages from bluetooth threads.
-    bluetoothmanager_receiver: Receiver<Result<BluetoothManagerMsg, IpcError>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -549,22 +546,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
           STF: ScriptThreadFactory<Message=Message>
 {
     /// Create a new constellation thread.
-    pub fn start(state: InitialConstellationState)
-        -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>, IpcSender<BluetoothManagerMsg>) {
+    pub fn start(state: InitialConstellationState) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
         let (compositor_sender, compositor_receiver) = channel();
 
         // service worker manager to communicate with constellation
         let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
         let sw_mgr_clone = swmanager_sender.clone();
 
-        let (bluetoothmanager_sender, bluetoothmanager_receiver) = ipc::channel().expect("ipc channel failure");
-
         thread::Builder::new().name("Constellation".to_owned()).spawn(move || {
             let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
             let script_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_script_receiver);
-
-            let bluetoothmanager_receiver =
-                route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(bluetoothmanager_receiver);
 
             let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
             let layout_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_layout_receiver);
@@ -579,7 +570,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 script_sender: ipc_script_sender,
                 layout_sender: ipc_layout_sender,
                 script_receiver: script_receiver,
-                bluetoothmanager_receiver: bluetoothmanager_receiver,
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
                 network_listener_sender: network_listener_sender,
@@ -646,7 +636,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             constellation.run();
         }).expect("Thread spawning failed");
 
-        (compositor_sender, swmanager_sender, bluetoothmanager_sender)
+        (compositor_sender, swmanager_sender)
     }
 
     /// The main event loop for the constellation.
@@ -840,7 +830,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
-            FromBluetoothManager(BluetoothManagerMsg),
         }
 
         // Get one incoming request.
@@ -860,7 +849,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_layout = &self.layout_receiver;
             let receiver_from_network_listener = &self.network_listener_receiver;
             let receiver_from_swmanager = &self.swmanager_receiver;
-            let receiver_from_bluetoothmanager = &self.bluetoothmanager_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     msg.expect("Unexpected script channel panic in constellation").map(Request::Script),
@@ -873,9 +861,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         msg.expect("Unexpected network listener channel panic in constellation")
                     )),
                 msg = receiver_from_swmanager.recv() =>
-                    msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager),
-                msg = receiver_from_bluetoothmanager.recv() =>
-                    msg.expect("Unexpected bluetooth channel panic in constellation").map(Request::FromBluetoothManager)
+                    msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
             }
         };
 
@@ -899,9 +885,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
-            },
-            Request::FromBluetoothManager(message) => {
-                self.handle_request_from_bluetoothmanager(message);
             }
         }
     }
@@ -927,15 +910,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             SWManagerMsg::OwnSender(sw_sender) => {
                 // store service worker manager for communicating with it.
                 self.swmanager_chan = Some(sw_sender);
-            }
-        }
-    }
-
-    fn handle_request_from_bluetoothmanager(&mut self, message: BluetoothManagerMsg) {
-        match message {
-            BluetoothManagerMsg::OpenDeviceSelectDialog(devices, sender) => {
-                let msg = EmbedderMsg::GetSelectedBluetoothDevice(devices, sender);
-                self.embedder_proxy.send(msg);
             }
         }
     }
