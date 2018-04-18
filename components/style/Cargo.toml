@@ -60,7 +60,7 @@ serde = {version = "1.0", optional = true, features = ["derive"]}
 servo_arc = { path = "../servo_arc" }
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
-smallbitvec = "1.0.6"
+smallbitvec = "2.1.0"
 smallvec = "0.6"
 string_cache = { version = "0.7", optional = true }
 style_derive = {path = "../style_derive"}

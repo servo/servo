@@ -34,7 +34,7 @@ selectors = { path = "../selectors" }
 serde = { version = "1.0.27", optional = true }
 serde_bytes = { version = "0.10", optional = true }
 servo_arc = { path = "../servo_arc" }
-smallbitvec = "1.0.3"
+smallbitvec = "2.1.0"
 smallvec = "0.6"
 string_cache = { version = "0.7", optional = true }
 time = { version = "0.1.17", optional = true }
