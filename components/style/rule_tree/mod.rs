@@ -162,6 +162,16 @@ const FREE_LIST_SENTINEL: *mut RuleNode = 0x01 as *mut RuleNode;
 /// another thread is currently adding an entry). We spin if we find this value.
 const FREE_LIST_LOCKED: *mut RuleNode = 0x02 as *mut RuleNode;
 
+/// A counter to track how many inner shadow roots rules deep we are.
+///
+/// This is used to handle:
+///
+/// https://drafts.csswg.org/css-scoping/#shadow-cascading
+///
+/// In particular, it'd be `0` for the innermost shadow host, `1` for the next,
+/// and so on.
+pub type ShadowCascadeOrder = u32;
+
 impl RuleTree {
     /// Construct a new rule tree.
     pub fn new() -> Self {
@@ -198,7 +208,7 @@ impl RuleTree {
         guards: &StylesheetGuards,
     ) -> StrongRuleNode
     where
-        I: Iterator<Item = (StyleSource, CascadeLevel)>,
+        I: Iterator<Item = (StyleSource, CascadeLevel, ShadowCascadeOrder)>,
     {
         use self::CascadeLevel::*;
         let mut current = self.root.clone();
@@ -206,13 +216,18 @@ impl RuleTree {
 
         let mut found_important = false;
         let mut important_style_attr = None;
-        let mut important_author = SmallVec::<[StyleSource; 4]>::new();
+
+        let mut important_same_tree = SmallVec::<[StyleSource; 4]>::new();
+        let mut important_inner_shadow = SmallVec::<[SmallVec<[StyleSource; 4]>; 4]>::new();
+        important_inner_shadow.push(SmallVec::new());
+
         let mut important_user = SmallVec::<[StyleSource; 4]>::new();
         let mut important_ua = SmallVec::<[StyleSource; 4]>::new();
         let mut transition = None;
 
-        for (source, level) in iter {
-            debug_assert!(last_level <= level, "Not really ordered");
+        let mut last_cascade_order = 0;
+        for (source, level, shadow_cascade_order) in iter {
+            debug_assert!(level >= last_level, "Not really ordered");
             debug_assert!(!level.is_important(), "Important levels handled internally");
             let any_important = {
                 let pdb = source.read(level.guard(guards));
@@ -222,7 +237,22 @@ impl RuleTree {
             if any_important {
                 found_important = true;
                 match level {
-                    AuthorNormal => important_author.push(source.clone()),
+                    InnerShadowNormal => {
+                        debug_assert!(
+                            shadow_cascade_order >= last_cascade_order,
+                            "Not really ordered"
+                        );
+                        if shadow_cascade_order > last_cascade_order &&
+                            !important_inner_shadow.last().unwrap().is_empty()
+                        {
+                            last_cascade_order = shadow_cascade_order;
+                            important_inner_shadow.push(SmallVec::new());
+                        }
+                        important_inner_shadow.last_mut().unwrap().push(source.clone())
+                    }
+                    SameTreeAuthorNormal => {
+                        important_same_tree.push(source.clone())
+                    },
                     UANormal => important_ua.push(source.clone()),
                     UserNormal => important_user.push(source.clone()),
                     StyleAttributeNormal => {
@@ -265,12 +295,18 @@ impl RuleTree {
         // followed by any transition rule.
         //
 
-        for source in important_author.drain() {
-            current = current.ensure_child(self.root.downgrade(), source, AuthorImportant);
+        for source in important_same_tree.drain() {
+            current = current.ensure_child(self.root.downgrade(), source, SameTreeAuthorImportant);
         }
 
         if let Some(source) = important_style_attr {
             current = current.ensure_child(self.root.downgrade(), source, StyleAttributeImportant);
+        }
+
+        for mut list in important_inner_shadow.drain().rev() {
+            for source in list.drain() {
+                current = current.ensure_child(self.root.downgrade(), source, InnerShadowImportant);
+            }
         }
 
         for source in important_user.drain() {
@@ -295,9 +331,10 @@ impl RuleTree {
         applicable_declarations: &mut ApplicableDeclarationList,
         guards: &StylesheetGuards,
     ) -> StrongRuleNode {
-        let rules = applicable_declarations.drain().map(|d| d.order_and_level());
-        let rule_node = self.insert_ordered_rules_with_important(rules, guards);
-        rule_node
+        self.insert_ordered_rules_with_important(
+            applicable_declarations.drain().map(|d| d.for_rule_tree()),
+            guards,
+        )
     }
 
     /// Insert the given rules, that must be in proper order by specifity, and
@@ -381,8 +418,8 @@ impl RuleTree {
                 // also equally valid. This is less likely, and would require an
                 // in-place mutation of the source, which is, at best, fiddly,
                 // so let's skip it for now.
-                let is_here_already = match &current.get().source {
-                    &StyleSource::Declarations(ref already_here) => {
+                let is_here_already = match current.get().source {
+                    StyleSource::Declarations(ref already_here) => {
                         pdb.with_arc(|arc| Arc::ptr_eq(arc, already_here))
                     },
                     _ => unreachable!("Replacing non-declarations style?"),
@@ -500,9 +537,22 @@ const RULE_TREE_GC_INTERVAL: usize = 300;
 /// The order of variants declared here is significant, and must be in
 /// _ascending_ order of precedence.
 ///
+/// See also [4] for the Shadow DOM bits. We rely on the invariant that rules
+/// from outside the tree the element is in can't affect the element.
+///
+/// The opposite is not true (i.e., :host and ::slotted) from an "inner" shadow
+/// tree may affect an element connected to the document or an "outer" shadow
+/// tree.
+///
+/// We need to differentiate between rules from the same tree and "inner" shadow
+/// trees in order to be able to find the right position for the style attribute
+/// easily. Otherwise we wouldn't be able to avoid selector-matching when a
+/// style attribute is added or removed.
+///
 /// [1]: https://drafts.csswg.org/css-cascade/#cascade-origin
 /// [2]: https://drafts.csswg.org/css-cascade/#preshint
 /// [3]: https://html.spec.whatwg.org/multipage/#presentational-hints
+/// [4]: https://drafts.csswg.org/css-scoping/#shadow-cascading
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
@@ -513,18 +563,27 @@ pub enum CascadeLevel {
     UserNormal,
     /// Presentational hints.
     PresHints,
-    /// Author normal rules.
-    AuthorNormal,
+    /// Shadow DOM styles from "inner" shadow trees.
+    ///
+    /// See above for why this is needed instead of merging InnerShadowNormal,
+    /// SameTreeAuthorNormal and StyleAttributeNormal inside something like
+    /// AuthorNormal.
+    InnerShadowNormal,
+    /// Author normal rules from the same tree the element is in.
+    SameTreeAuthorNormal,
     /// Style attribute normal rules.
     StyleAttributeNormal,
     /// SVG SMIL animations.
     SMILOverride,
     /// CSS animations and script-generated animations.
     Animations,
-    /// Author-supplied important rules.
-    AuthorImportant,
+    /// Author-supplied important rules from the same tree the element came
+    /// from.
+    SameTreeAuthorImportant,
     /// Style attribute important rules.
     StyleAttributeImportant,
+    /// Shadow DOM important rules.
+    InnerShadowImportant,
     /// User important rules.
     UserImportant,
     /// User-agent important rules.
@@ -571,7 +630,8 @@ impl CascadeLevel {
     #[inline]
     pub fn is_important(&self) -> bool {
         match *self {
-            CascadeLevel::AuthorImportant |
+            CascadeLevel::SameTreeAuthorImportant |
+            CascadeLevel::InnerShadowImportant |
             CascadeLevel::StyleAttributeImportant |
             CascadeLevel::UserImportant |
             CascadeLevel::UAImportant => true,
@@ -1302,11 +1362,13 @@ impl StrongRuleNode {
                     },
                     // Author rules:
                     CascadeLevel::PresHints |
-                    CascadeLevel::AuthorNormal |
+                    CascadeLevel::SameTreeAuthorNormal |
+                    CascadeLevel::InnerShadowNormal |
                     CascadeLevel::StyleAttributeNormal |
                     CascadeLevel::SMILOverride |
                     CascadeLevel::Animations |
-                    CascadeLevel::AuthorImportant |
+                    CascadeLevel::SameTreeAuthorImportant |
+                    CascadeLevel::InnerShadowImportant |
                     CascadeLevel::StyleAttributeImportant |
                     CascadeLevel::Transitions => {
                         for (id, declaration) in longhands {

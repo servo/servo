@@ -14,7 +14,7 @@ use hash::{HashMap, HashSet};
 use hash::map as hash_map;
 use hashglobe::FailedAllocationError;
 use precomputed_hash::PrecomputedHash;
-use rule_tree::CascadeLevel;
+use rule_tree::{CascadeLevel, ShadowCascadeOrder};
 use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
@@ -163,6 +163,7 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
+        shadow_cascade_order: ShadowCascadeOrder,
     ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
@@ -185,6 +186,7 @@ impl SelectorMap<Rule> {
                     context,
                     flags_setter,
                     cascade_level,
+                    shadow_cascade_order,
                 )
             }
         }
@@ -198,6 +200,7 @@ impl SelectorMap<Rule> {
                     context,
                     flags_setter,
                     cascade_level,
+                    shadow_cascade_order,
                 )
             }
         });
@@ -210,6 +213,7 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
                 cascade_level,
+                shadow_cascade_order,
             )
         }
 
@@ -220,6 +224,7 @@ impl SelectorMap<Rule> {
             context,
             flags_setter,
             cascade_level,
+            shadow_cascade_order,
         );
 
         // Sort only the rules we just added.
@@ -235,6 +240,7 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
+        shadow_cascade_order: ShadowCascadeOrder,
     ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
@@ -248,7 +254,7 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
             ) {
-                matching_rules.push(rule.to_applicable_declaration_block(cascade_level));
+                matching_rules.push(rule.to_applicable_declaration_block(cascade_level, shadow_cascade_order));
             }
         }
     }

@@ -35,7 +35,7 @@ size_of_test!(test_size_of_element_data, ElementData, 24);
 
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
 
-size_of_test!(test_size_of_application_declaration_block, ApplicableDeclarationBlock, 24);
+size_of_test!(test_size_of_application_declaration_block, ApplicableDeclarationBlock, 32);
 size_of_test!(test_size_of_rule_node, RuleNode, 80);
 
 // This is huge, but we allocate it on the stack and then never move it,
