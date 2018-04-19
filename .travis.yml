@@ -22,6 +22,7 @@ matrix:
         - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
         - source ~/.profile
       script:
+         # see https://github.com/servo/servo/issues/20664
          #- ./mach cargo check -p compositing --no-default-features
          - ./mach build -d --verbose
          - ./mach test-unit
