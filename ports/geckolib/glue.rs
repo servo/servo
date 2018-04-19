@@ -5408,7 +5408,8 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
     weight: nsCSSValueBorrowedMut
 ) -> bool {
     use style::properties::shorthands::font;
-    use style::values::specified::font::{FontFamily, FontWeight, FontStyle};
+    use style::values::generics::font::FontStyle as GenericFontStyle;
+    use style::values::specified::font::{FontFamily, FontWeight, FontStyle, SpecifiedFontStyle};
 
     let string = unsafe { (*value).to_string() };
     let mut input = ParserInput::new(&string);
@@ -5433,14 +5434,18 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
         FontFamily::Values(list) => family.set_move(list.0),
         FontFamily::System(_) => return false,
     }
-    match font.font_style {
-        FontStyle::Normal => style.set_normal(),
-        FontStyle::Italic => style.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
-        FontStyle::Oblique(ref angle) => {
-            style.set_angle(FontStyle::compute_angle(angle))
-        }
+    let specified_font_style = match font.font_style {
+        FontStyle::Specified(ref s) => s,
         FontStyle::System(_) => return false,
     };
+
+    match *specified_font_style {
+        GenericFontStyle::Normal => style.set_normal(),
+        GenericFontStyle::Italic => style.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
+        GenericFontStyle::Oblique(ref angle) => {
+            style.set_angle(SpecifiedFontStyle::compute_angle(angle))
+        }
+    }
 
     if font.font_stretch.get_system().is_some() {
         return false;

@@ -25,7 +25,8 @@ use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
-use values::specified::font::FontStyle as SpecifiedFontStyle;
+use values::specified::font::SpecifiedFontStyle;
+use values::generics::font::FontStyle as GenericFontStyle;
 use values::specified::Angle;
 use values::specified::url::SpecifiedUrl;
 
@@ -145,16 +146,15 @@ impl Parse for FontStyle {
     ) -> Result<Self, ParseError<'i>> {
         let style = SpecifiedFontStyle::parse(context, input)?;
         Ok(match style {
-            SpecifiedFontStyle::Normal => FontStyle::Normal,
-            SpecifiedFontStyle::Italic => FontStyle::Italic,
-            SpecifiedFontStyle::Oblique(angle) => {
+            GenericFontStyle::Normal => FontStyle::Normal,
+            GenericFontStyle::Italic => FontStyle::Italic,
+            GenericFontStyle::Oblique(angle) => {
                 let second_angle = input.try(|input| {
                     SpecifiedFontStyle::parse_angle(context, input)
                 }).unwrap_or_else(|_| angle.clone());
 
                 FontStyle::Oblique(angle, second_angle)
             }
-            SpecifiedFontStyle::System(..) => unreachable!(),
         })
     }
 }

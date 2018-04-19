@@ -16,7 +16,7 @@ use values::computed::font::FamilyName;
 use values::generics::font::FontTag;
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
-use values::specified::font::FontStyle as SpecifiedFontStyle;
+use values::specified::font::SpecifiedFontStyle;
 
 impl<'a> ToNsCssValue for &'a FamilyName {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
