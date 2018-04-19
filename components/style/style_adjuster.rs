@@ -359,8 +359,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_mathvariant(&mut self) {
         use properties::longhands::_moz_math_variant::computed_value::T as MozMathVariant;
-        use properties::longhands::font_style::computed_value::T as FontStyle;
         use properties::longhands::font_weight::computed_value::T as FontWeight;
+        use values::generics::font::FontStyle;
         if self.style.get_font().clone__moz_math_variant() != MozMathVariant::None {
             let font_style = self.style.mutate_font();
             font_style.set_font_weight(FontWeight::normal());

@@ -18,8 +18,8 @@ ${helpers.predefined_type("font-family",
 ${helpers.predefined_type(
     "font-style",
     "FontStyle",
-    initial_value="computed::FontStyle::Normal",
-    initial_specified_value="specified::FontStyle::Normal",
+    initial_value="computed::FontStyle::normal()",
+    initial_specified_value="specified::FontStyle::normal()",
     # FIXME(emilio): This won't handle clamping correctly.
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",

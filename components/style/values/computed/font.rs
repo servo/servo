@@ -22,8 +22,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Angle, Context, Integer, NonNegativeLength, Number, ToComputedValue};
-use values::generics::font::{FeatureTagValue, FontSettings};
-use values::generics::font::{KeywordInfo as GenericKeywordInfo, VariationValue};
+use values::generics::font::{self as generics, FeatureTagValue, FontSettings, VariationValue};
 use values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
@@ -67,7 +66,7 @@ pub struct FontSize {
 }
 
 /// Additional information for computed keyword-derived font sizes.
-pub type KeywordInfo = GenericKeywordInfo<NonNegativeLength>;
+pub type KeywordInfo = generics::KeywordInfo<NonNegativeLength>;
 
 impl FontWeight {
     /// Value for normal
@@ -840,30 +839,22 @@ impl ToComputedValue for specified::MozScriptLevel {
 }
 
 /// The computed value of `font-style`.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
-         PartialEq)]
-#[allow(missing_docs)]
-pub enum FontStyle {
-    #[animation(error)]
-    Normal,
-    #[animation(error)]
-    Italic,
-    // FIXME(emilio): This needs to clamp really.
-    Oblique(Angle),
-}
-
-impl ToAnimatedZero for FontStyle {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        use num_traits::Zero;
-        Ok(FontStyle::Oblique(Angle::zero()))
-    }
-}
+///
+/// FIXME(emilio): Angle should be a custom type to handle clamping during
+/// animation.
+pub type FontStyle = generics::FontStyle<Angle>;
 
 impl FontStyle {
+    /// The `normal` value.
+    #[inline]
+    pub fn normal() -> Self {
+        generics::FontStyle::Normal
+    }
+
     /// The default angle for font-style: oblique. This is 20deg per spec:
     ///
     /// https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle
+    #[inline]
     pub fn default_angle() -> Angle {
         Angle::Deg(specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES)
     }
@@ -875,10 +866,10 @@ impl FontStyle {
         use gecko_bindings::structs;
 
         match kw as u32 {
-            structs::NS_STYLE_FONT_STYLE_NORMAL => FontStyle::Normal,
-            structs::NS_STYLE_FONT_STYLE_ITALIC => FontStyle::Italic,
+            structs::NS_STYLE_FONT_STYLE_NORMAL => generics::FontStyle::Normal,
+            structs::NS_STYLE_FONT_STYLE_ITALIC => generics::FontStyle::Italic,
             // FIXME(emilio): Grab the angle when we honor it :)
-            structs::NS_STYLE_FONT_STYLE_OBLIQUE => FontStyle::Oblique(Self::default_angle()),
+            structs::NS_STYLE_FONT_STYLE_OBLIQUE => generics::FontStyle::Oblique(Self::default_angle()),
             _ => unreachable!("Unknown font style"),
         }
     }
@@ -890,9 +881,9 @@ impl ToCss for FontStyle {
         W: fmt::Write,
     {
         match *self {
-            FontStyle::Normal => dest.write_str("normal"),
-            FontStyle::Italic => dest.write_str("italic"),
-            FontStyle::Oblique(ref angle) => {
+            generics::FontStyle::Normal => dest.write_str("normal"),
+            generics::FontStyle::Italic => dest.write_str("italic"),
+            generics::FontStyle::Oblique(ref angle) => {
                 dest.write_str("oblique")?;
                 if *angle != Self::default_angle() {
                     dest.write_char(' ')?;
