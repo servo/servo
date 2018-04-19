@@ -110,8 +110,7 @@ impl Angle {
     /// Returns the amount of degrees this angle represents.
     #[inline]
     pub fn degrees(self) -> f32 {
-        use std::f32::consts::PI;
-        self.radians() * 360. / (2. * PI)
+        self.value.degrees()
     }
 
     /// Returns `0deg`.

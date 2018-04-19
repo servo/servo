@@ -19,7 +19,7 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
-use values::computed::font::{FamilyName, FontFamilyList, SingleFontFamily};
+use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
 use values::generics::NonNegative;
 use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
 use values::generics::font::{KeywordInfo as GenericKeywordInfo, KeywordSize, VariationValue};
@@ -241,7 +241,7 @@ impl ToComputedValue for SpecifiedFontStyle {
             generics::FontStyle::Normal => generics::FontStyle::Normal,
             generics::FontStyle::Italic => generics::FontStyle::Italic,
             generics::FontStyle::Oblique(ref angle) => {
-                generics::FontStyle::Oblique(Self::compute_angle(angle))
+                generics::FontStyle::Oblique(FontStyleAngle(Self::compute_angle(angle)))
             }
         }
     }
@@ -251,7 +251,7 @@ impl ToComputedValue for SpecifiedFontStyle {
             generics::FontStyle::Normal => generics::FontStyle::Normal,
             generics::FontStyle::Italic => generics::FontStyle::Italic,
             generics::FontStyle::Oblique(ref angle) => {
-                generics::FontStyle::Oblique(Angle::from_computed_value(angle))
+                generics::FontStyle::Oblique(Angle::from_computed_value(&angle.0))
             }
         }
     }

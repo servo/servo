@@ -20,8 +20,7 @@ ${helpers.predefined_type(
     "FontStyle",
     initial_value="computed::FontStyle::normal()",
     initial_specified_value="specified::FontStyle::normal()",
-    # FIXME(emilio): This won't handle clamping correctly.
-    animation_value_type="ComputedValue",
+    animation_value_type="FontStyle",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
     servo_restyle_damage="rebuild_and_reflow",

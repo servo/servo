@@ -64,6 +64,12 @@ impl Angle {
         radians.min(f64::MAX).max(f64::MIN)
     }
 
+    /// Return the value in degrees.
+    pub fn degrees(&self) -> f32 {
+        use std::f32::consts::PI;
+        self.radians() * 360. / (2. * PI)
+    }
+
     /// <https://drafts.csswg.org/css-transitions/#animtype-number>
     #[inline]
     fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
