@@ -17,13 +17,13 @@ use properties::longhands::system_font::SystemFont;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
-use values::computed::Percentage as ComputedPercentage;
+use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{FamilyName, FontFamilyList, SingleFontFamily};
 use values::generics::NonNegative;
 use values::generics::font::{FeatureTagValue, FontSettings, FontTag};
 use values::generics::font::{KeywordInfo as GenericKeywordInfo, KeywordSize, VariationValue};
-use values::specified::{AllowQuirks, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
+use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
 use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
@@ -187,6 +187,166 @@ impl Parse for AbsoluteFontWeight {
         Ok(try_match_ident_ignore_ascii_case! { input,
             "normal" => AbsoluteFontWeight::Normal,
             "bold" => AbsoluteFontWeight::Bold,
+        })
+    }
+}
+
+/// A specified value for the `font-style` property.
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-style-prop
+///
+/// FIXME(emilio): It'd be nice to share more code with computed::FontStyle,
+/// except the system font stuff makes it kind of a pain.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+pub enum FontStyle {
+    Normal,
+    Italic,
+    Oblique(Angle),
+    System(SystemFont),
+}
+
+impl ToComputedValue for FontStyle {
+    type ComputedValue = computed::FontStyle;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            FontStyle::Normal => computed::FontStyle::Normal,
+            FontStyle::Italic => computed::FontStyle::Italic,
+            FontStyle::Oblique(ref angle) => {
+                computed::FontStyle::Oblique(angle.to_computed_value(context))
+            }
+            #[cfg(feature = "gecko")]
+            FontStyle::System(..) => context
+                .cached_system_font
+                .as_ref()
+                .unwrap()
+                .font_style
+                .clone(),
+            #[cfg(not(feature = "gecko"))]
+            FontStyle::System(_) => unreachable!(),
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            computed::FontStyle::Normal => FontStyle::Normal,
+            computed::FontStyle::Italic => FontStyle::Italic,
+            computed::FontStyle::Oblique(ref angle) => {
+                FontStyle::Oblique(Angle::from_computed_value(angle))
+            }
+        }
+    }
+}
+
+/// The default angle for `font-style: oblique`.
+///
+/// NOTE(emilio): As of right now this diverges from the spec, which specifies
+/// 20, because it's not updated yet to account for the resolution in:
+///
+///   https://github.com/w3c/csswg-drafts/issues/2295
+pub const DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES: f32 = 14.;
+
+/// From https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle:
+///
+///     Values less than -90deg or values greater than 90deg are
+///     invalid and are treated as parse errors.
+///
+/// The maximum angle value that `font-style: oblique` should compute to.
+pub const FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES: f32 = 90.;
+
+/// The minimum angle value that `font-style: oblique` should compute to.
+pub const FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES: f32 = -90.;
+
+impl FontStyle {
+    /// More system font copy-pasta.
+    pub fn system_font(f: SystemFont) -> Self {
+        FontStyle::System(f)
+    }
+
+    /// Retreive a SystemFont from FontStyle.
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontStyle::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    /// Gets a clamped angle from a specified Angle.
+    pub fn compute_angle(angle: &Angle) -> ComputedAngle {
+        ComputedAngle::Deg(
+            angle.degrees()
+                .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
+                .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
+        )
+    }
+
+    /// Parse a suitable angle for font-style: oblique.
+    pub fn parse_angle<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Angle, ParseError<'i>> {
+        let angle = Angle::parse(context, input)?;
+        if angle.was_calc() {
+            return Ok(angle);
+        }
+
+        let degrees = angle.degrees();
+        if degrees < FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES ||
+            degrees > FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES
+        {
+            return Err(input.new_custom_error(
+                StyleParseErrorKind::UnspecifiedError
+            ));
+        }
+        return Ok(angle)
+    }
+
+    /// The default angle for `font-style: oblique`.
+    pub fn default_angle() -> Angle {
+        Angle::from_degrees(
+            DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES,
+            /* was_calc = */ false,
+        )
+    }
+}
+
+impl ToCss for FontStyle {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            FontStyle::Normal => dest.write_str("normal"),
+            FontStyle::Italic => dest.write_str("italic"),
+            FontStyle::Oblique(ref angle) => {
+                dest.write_str("oblique")?;
+                if *angle != Self::default_angle() {
+                    dest.write_char(' ')?;
+                    angle.to_css(dest)?;
+                }
+                Ok(())
+            }
+            FontStyle::System(ref s) => s.to_css(dest),
+        }
+    }
+}
+
+impl Parse for FontStyle {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "normal" => FontStyle::Normal,
+            "italic" => FontStyle::Italic,
+            "oblique" => {
+                let angle = input.try(|input| Self::parse_angle(context, input))
+                    .unwrap_or_else(|_| Self::default_angle());
+
+                FontStyle::Oblique(angle)
+            }
         })
     }
 }

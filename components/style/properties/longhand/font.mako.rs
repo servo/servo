@@ -15,15 +15,16 @@ ${helpers.predefined_type("font-family",
                           spec="https://drafts.csswg.org/css-fonts/#propdef-font-family",
                           servo_restyle_damage="rebuild_and_reflow")}
 
-${helpers.single_keyword_system(
+${helpers.predefined_type(
     "font-style",
-    "normal italic oblique",
-    gecko_constant_prefix="NS_FONT_STYLE",
-    gecko_ffi_name="mFont.style",
-    spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
+    "FontStyle",
+    initial_value="computed::FontStyle::Normal",
+    initial_specified_value="specified::FontStyle::Normal",
+    # FIXME(emilio): This won't handle clamping correctly.
+    animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-    animation_value_type="discrete",
-    servo_restyle_damage="rebuild_and_reflow"
+    spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
+    servo_restyle_damage="rebuild_and_reflow",
 )}
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
@@ -289,12 +290,11 @@ ${helpers.predefined_type("-x-text-zoom",
                               -moz-window -moz-document -moz-workspace -moz-desktop
                               -moz-info -moz-dialog -moz-button -moz-pull-down-menu
                               -moz-list -moz-field""".split()
-            kw_font_props = """font_style font_variant_caps
+            kw_font_props = """font_variant_caps
                                font_kerning font_variant_position font_variant_ligatures
                                font_variant_east_asian font_variant_numeric
                                font_optical_sizing""".split()
-            kw_cast = """font_style font_variant_caps
-                         font_kerning font_variant_position
+            kw_cast = """font_variant_caps font_kerning font_variant_position
                          font_optical_sizing""".split()
         %>
         #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
@@ -330,7 +330,7 @@ ${helpers.predefined_type("-x-text-zoom",
                 use gecko_bindings::structs::{LookAndFeel_FontID, nsFont};
                 use std::mem;
                 use values::computed::Percentage;
-                use values::computed::font::{FontSize, FontFamilyList};
+                use values::computed::font::{FontSize, FontStyle, FontFamilyList};
                 use values::generics::NonNegative;
 
                 let id = match *self {
@@ -352,6 +352,7 @@ ${helpers.predefined_type("-x-text-zoom",
                 }
                 let font_weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
                 let font_stretch = NonNegative(Percentage(system.stretch as f32));
+                let font_style = FontStyle::from_gecko(system.style);
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(
                         FontFamilyList(
@@ -359,11 +360,12 @@ ${helpers.predefined_type("-x-text-zoom",
                         )
                     ),
                     font_size: FontSize {
-                            size: Au(system.size).into(),
-                            keyword_info: None
+                        size: Au(system.size).into(),
+                        keyword_info: None
                     },
                     font_weight,
                     font_stretch,
+                    font_style,
                     font_size_adjust: longhands::font_size_adjust::computed_value
                                                ::T::from_gecko_adjust(system.sizeAdjust),
                     % for kwprop in kw_font_props:
