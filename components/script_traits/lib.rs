@@ -291,6 +291,8 @@ pub enum ConstellationControlMsg {
     UpdatePipelineId(PipelineId, BrowsingContextId, PipelineId, UpdatePipelineIdReason),
     /// Updates the history state of a given pipeline.
     UpdateHistoryStateId(PipelineId, Option<HistoryStateId>),
+    /// Removes inaccesible history states.
+    RemoveHistoryStates(PipelineId, Vec<HistoryStateId>),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     FocusIFrame(PipelineId, BrowsingContextId),
@@ -346,6 +348,7 @@ impl fmt::Debug for ConstellationControlMsg {
             PostMessage(..) => "PostMessage",
             UpdatePipelineId(..) => "UpdatePipelineId",
             UpdateHistoryStateId(..) => "UpdateHistoryStateId",
+            RemoveHistoryStates(..) => "RemoveHistoryStates",
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
