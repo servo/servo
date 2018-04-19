@@ -20,10 +20,10 @@ pub use super::specified::{AlignSelf, JustifySelf};
 /// In particular, `justify-items` is a reset property, so we ought to be able
 /// to share its computed representation across elements as long as they match
 /// the same rules. Except that it's not true if the specified value for
-/// `justify-items` is `auto` and the computed value of the parent has the
+/// `justify-items` is `legacy` and the computed value of the parent has the
 /// `legacy` modifier.
 ///
-/// So instead of computing `auto` "normally" looking at get_parent_position(),
+/// So instead of computing `legacy` "normally" looking at get_parent_position(),
 /// marking it as uncacheable, we carry the specified value around and handle
 /// the special case in `StyleAdjuster` instead, only when the result of the
 /// computation would vary.
@@ -35,18 +35,21 @@ pub use super::specified::{AlignSelf, JustifySelf};
 /// See the discussion in https://bugzil.la/1384542.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub struct JustifyItems {
-    /// The specified value for the property. Can contain `auto`.
+    /// The specified value for the property. Can contain the bare `legacy`
+    /// keyword.
     #[css(skip)]
     pub specified: specified::JustifyItems,
-    /// The computed value for the property. Cannot contain `auto`.
+    /// The computed value for the property. Cannot contain the bare `legacy`
+    /// keyword, but note that it could contain it in combination with other
+    /// keywords like `left`, `right` or `center`.
     pub computed: specified::JustifyItems,
 }
 
 impl JustifyItems {
-    /// Returns the `auto` value.
-    pub fn auto() -> Self {
+    /// Returns the `legacy` value.
+    pub fn legacy() -> Self {
         Self {
-            specified: specified::JustifyItems::auto(),
+            specified: specified::JustifyItems::legacy(),
             computed: specified::JustifyItems::normal(),
         }
     }
@@ -59,13 +62,13 @@ impl ToComputedValue for specified::JustifyItems {
     fn to_computed_value(&self, _context: &Context) -> JustifyItems {
         use values::specified::align;
         let specified = *self;
-        let computed = if self.0 != align::AlignFlags::AUTO {
+        let computed = if self.0 != align::AlignFlags::LEGACY {
             *self
         } else {
             // If the inherited value of `justify-items` includes the
-            // `legacy` keyword, `auto` computes to the inherited value,
-            // but we assume it computes to `normal`, and handle that
-            // special-case in StyleAdjuster.
+            // `legacy` keyword, `legacy` computes to the inherited value, but
+            // we assume it computes to `normal`, and handle that special-case
+            // in StyleAdjuster.
             Self::normal()
         };
 

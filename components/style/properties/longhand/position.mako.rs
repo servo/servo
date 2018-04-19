@@ -118,11 +118,13 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
     #[cfg(feature = "gecko")]
     impl_align_conversions!(::values::specified::align::AlignItems);
 
-    ${helpers.predefined_type(name="justify-items",
-                              type="JustifyItems",
-                              initial_value="computed::JustifyItems::auto()",
-                              spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
-                              animation_value_type="discrete")}
+    ${helpers.predefined_type(
+        name="justify-items",
+        type="JustifyItems",
+        initial_value="computed::JustifyItems::legacy()",
+        spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
+        animation_value_type="discrete",
+    )}
 
     #[cfg(feature = "gecko")]
     impl_align_conversions!(::values::specified::align::JustifyItems);
