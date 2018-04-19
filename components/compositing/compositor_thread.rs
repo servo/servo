@@ -141,6 +141,8 @@ pub enum EmbedderMsg {
     LoadComplete(TopLevelBrowsingContextId),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(TopLevelBrowsingContextId, String, Option<String>),
+    /// Open dialog to select bluetooth device.
+    GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
     /// Servo has shut down
     Shutdown,
 }
@@ -241,6 +243,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
+            EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }

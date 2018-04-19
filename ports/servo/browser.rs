@@ -7,6 +7,7 @@ use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
 use servo::compositing::compositor_thread::EmbedderMsg;
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
+use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use servo::net_traits::pub_domains::is_reg_domain;
@@ -16,6 +17,8 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::mem;
 use std::rc::Rc;
+#[cfg(target_os = "linux")]
+use std::thread;
 use tinyfiledialogs;
 
 pub struct Browser {
@@ -288,11 +291,47 @@ impl Browser {
                     self.shutdown_requested = true;
                 },
                 EmbedderMsg::Panic(_browser_id, _reason, _backtrace) => {
+                },
+                EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
+                    platform_get_selected_devices(devices, sender);
                 }
             }
         }
     }
 
+}
+
+#[cfg(target_os = "linux")]
+fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<String>>) {
+    let picker_name = "Choose a device";
+
+    thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
+        let dialog_rows: Vec<&str> = devices.iter()
+            .map(|s| s.as_ref())
+            .collect();
+        let dialog_rows: Option<&[&str]> = Some(dialog_rows.as_slice());
+
+        match tinyfiledialogs::list_dialog("Choose a device", &["Id", "Name"], dialog_rows) {
+            Some(device) => {
+                // The device string format will be "Address|Name". We need the first part of it.
+                let address = device.split("|").next().map(|s| s.to_string());
+                let _ = sender.send(address);
+            },
+            None => {
+                let _ = sender.send(None);
+            }
+        }
+    }).expect("Thread spawning failed");
+}
+
+#[cfg(not(target_os = "linux"))]
+fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<String>>) {
+    for device in devices {
+        if let Some(address) = device.split("|").next().map(|s| s.to_string()) {
+            let _ = sender.send(Some(address));
+        }
+    }
+    let _ = sender.send(None);
 }
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {

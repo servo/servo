@@ -5,12 +5,13 @@
 #[macro_use]
 extern crate bitflags;
 extern crate bluetooth_traits;
+extern crate compositing;
 extern crate device;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate servo_config;
 extern crate servo_rand;
-#[cfg(target_os = "linux")]
-extern crate tinyfiledialogs;
 extern crate uuid;
 
 pub mod test;
@@ -20,10 +21,10 @@ use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse, 
 use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-#[cfg(target_os = "linux")]
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::Rng;
@@ -39,12 +40,6 @@ const MAXIMUM_TRANSACTION_TIME: u8 = 30;
 const CONNECTION_TIMEOUT_MS: u64 = 1000;
 // The discovery session needs some time to find any nearby devices
 const DISCOVERY_TIMEOUT_MS: u64 = 1500;
-#[cfg(target_os = "linux")]
-const DIALOG_TITLE: &'static str = "Choose a device";
-#[cfg(target_os = "linux")]
-const DIALOG_COLUMN_ID: &'static str = "Id";
-#[cfg(target_os = "linux")]
-const DIALOG_COLUMN_NAME: &'static str = "Name";
 
 bitflags! {
     struct Flags: u32 {
@@ -69,11 +64,11 @@ macro_rules! return_if_cached(
 );
 
 pub trait BluetoothThreadFactory {
-    fn new() -> Self;
+    fn new(embedder_proxy: EmbedderProxy) -> Self;
 }
 
 impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
-    fn new() -> IpcSender<BluetoothRequest> {
+    fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
         let adapter = if Some(true) == PREFS.get("dom.bluetooth.enabled").as_boolean() {
             BluetoothAdapter::init()
@@ -81,7 +76,7 @@ impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
             BluetoothAdapter::init_mock()
         }.ok();
         thread::Builder::new().name("BluetoothThread".to_owned()).spawn(move || {
-            BluetoothManager::new(receiver, adapter).start();
+            BluetoothManager::new(receiver, adapter, embedder_proxy).start();
         }).expect("Thread spawning failed");
         sender
     }
@@ -206,10 +201,13 @@ pub struct BluetoothManager {
     cached_characteristics: HashMap<String, BluetoothGATTCharacteristic>,
     cached_descriptors: HashMap<String, BluetoothGATTDescriptor>,
     allowed_services: HashMap<String, HashSet<String>>,
+    embedder_proxy: EmbedderProxy,
 }
 
 impl BluetoothManager {
-    pub fn new(receiver: IpcReceiver<BluetoothRequest>, adapter: Option<BluetoothAdapter>) -> BluetoothManager {
+    pub fn new(receiver: IpcReceiver<BluetoothRequest>,
+               adapter: Option<BluetoothAdapter>,
+               embedder_proxy: EmbedderProxy) -> BluetoothManager {
         BluetoothManager {
             receiver: receiver,
             adapter: adapter,
@@ -222,6 +220,7 @@ impl BluetoothManager {
             cached_characteristics: HashMap::new(),
             cached_descriptors: HashMap::new(),
             allowed_services: HashMap::new(),
+            embedder_proxy: embedder_proxy,
         }
     }
 
@@ -366,10 +365,9 @@ impl BluetoothManager {
         None
     }
 
-    #[cfg(target_os = "linux")]
     fn select_device(&mut self, devices: Vec<BluetoothDevice>, adapter: &BluetoothAdapter) -> Option<String> {
         if is_mock_adapter(adapter) || opts::get().headless {
-            for device in devices {
+            for device in &devices {
                 if let Ok(address) = device.get_address() {
                     return Some(address);
                 }
@@ -382,28 +380,18 @@ impl BluetoothManager {
             dialog_rows.extend_from_slice(&[device.get_address().unwrap_or("".to_string()),
                                             device.get_name().unwrap_or("".to_string())]);
         }
-        let dialog_rows: Vec<&str> = dialog_rows.iter()
-                                                .map(|s| s.as_ref())
-                                                .collect();
-        let dialog_rows: &[&str] = dialog_rows.as_slice();
 
-        if let Some(device) = tinyfiledialogs::list_dialog(DIALOG_TITLE,
-                                                           &[DIALOG_COLUMN_ID, DIALOG_COLUMN_NAME],
-                                                           Some(dialog_rows)) {
-            // The device string format will be "Address|Name". We need the first part of it.
-            return device.split("|").next().map(|s| s.to_string());
-        }
-        None
-    }
+        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let msg = EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender);
+        self.embedder_proxy.send(msg);
 
-    #[cfg(not(target_os = "linux"))]
-    fn select_device(&mut self, devices: Vec<BluetoothDevice>, _adapter: &BluetoothAdapter) -> Option<String> {
-        for device in devices {
-            if let Ok(address) = device.get_address() {
-                return Some(address);
+        match ipc_receiver.recv() {
+            Ok(result) => result,
+            Err(e) => {
+                warn!("Failed to receive files from embedder ({}).", e);
+                None
             }
         }
-        None
     }
 
     fn generate_device_id(&mut self) -> String {

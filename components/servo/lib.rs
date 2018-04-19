@@ -458,7 +458,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         webrender_api_sender: webrender_api::RenderApiSender,
                         window_gl: Rc<gl::Gl>)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
-    let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
+    let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let (public_resource_threads, private_resource_threads) =
         new_resource_threads(user_agent,
