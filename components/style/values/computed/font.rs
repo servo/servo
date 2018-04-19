@@ -838,11 +838,34 @@ impl ToComputedValue for specified::MozScriptLevel {
     }
 }
 
+/// A wrapper over an `Angle`, that handles clamping to the appropriate range
+/// for `font-style` animation.
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub struct FontStyleAngle(pub Angle);
+
+impl ToAnimatedValue for FontStyleAngle {
+    type AnimatedValue = Angle;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        FontStyleAngle(Angle::Deg(
+            animated.degrees()
+                .min(specified::FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
+                .max(specified::FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
+        ))
+    }
+}
+
 /// The computed value of `font-style`.
 ///
 /// FIXME(emilio): Angle should be a custom type to handle clamping during
 /// animation.
-pub type FontStyle = generics::FontStyle<Angle>;
+pub type FontStyle = generics::FontStyle<FontStyleAngle>;
 
 impl FontStyle {
     /// The `normal` value.
@@ -855,8 +878,8 @@ impl FontStyle {
     ///
     /// https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle
     #[inline]
-    pub fn default_angle() -> Angle {
-        Angle::Deg(specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES)
+    fn default_angle() -> FontStyleAngle {
+        FontStyleAngle(Angle::Deg(specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES))
     }
 
 
