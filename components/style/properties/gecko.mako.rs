@@ -1806,7 +1806,7 @@ fn static_assert() {
     }
 
     pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
-        debug_assert_ne!(v.0, ::values::specified::align::AlignFlags::AUTO);
+        debug_assert_ne!(v.0, ::values::specified::align::AlignFlags::LEGACY);
         self.gecko.mJustifyItems = v.into();
     }
 
