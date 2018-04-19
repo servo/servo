@@ -2625,7 +2625,7 @@ fn static_assert() {
     }
 
     pub fn set_font_style(&mut self, v: longhands::font_style::computed_value::T) {
-        use values::computed::font::FontStyle;
+        use values::generics::font::FontStyle;
         self.gecko.mFont.style = match v {
             FontStyle::Normal => structs::NS_STYLE_FONT_STYLE_NORMAL,
             FontStyle::Italic => structs::NS_STYLE_FONT_STYLE_ITALIC,
