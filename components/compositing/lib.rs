@@ -6,7 +6,9 @@
 
 extern crate euclid;
 extern crate gfx_traits;
+#[cfg(feature = "gleam")]
 extern crate gleam;
+#[cfg(feature = "gleam")]
 extern crate image;
 extern crate ipc_channel;
 extern crate libc;
@@ -38,6 +40,8 @@ use style_traits::CSSPixel;
 
 mod compositor;
 pub mod compositor_thread;
+#[cfg(feature = "gleam")]
+mod gl;
 mod touch;
 pub mod windowing;
 

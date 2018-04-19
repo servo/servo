@@ -8,12 +8,16 @@ use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg};
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
-use gleam::gl;
-use image::{DynamicImage, ImageFormat, RgbImage};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+#[cfg(feature = "gleam")]
+use gl;
+#[cfg(feature = "gleam")]
+use image::{DynamicImage, ImageFormat};
+use ipc_channel::ipc;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
-use net_traits::image::base::{Image, PixelFormat};
+use net_traits::image::base::Image;
+#[cfg(feature = "gleam")]
+use net_traits::image::base::PixelFormat;
 use nonzero::NonZeroU32;
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
@@ -21,7 +25,7 @@ use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, To
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use servo_config::opts;
-use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
+use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
 use std::env;
 use std::fs::{File, create_dir_all};
@@ -38,6 +42,7 @@ use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollEventPhase, ScrollLocation};
 use windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
+
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -176,9 +181,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The webrender interface, if enabled.
     webrender_api: webrender_api::RenderApi,
 
-    /// GL functions interface (may be GL or GLES)
-    gl: Rc<gl::Gl>,
-
     /// Map of the pending paint metrics per layout thread.
     /// The layout thread for each specific pipeline expects the compositor to
     /// paint frames with specific given IDs (epoch). Once the compositor paints
@@ -254,58 +256,6 @@ enum CompositeTarget {
     PngFile
 }
 
-struct RenderTargetInfo {
-    framebuffer_ids: Vec<gl::GLuint>,
-    renderbuffer_ids: Vec<gl::GLuint>,
-    texture_ids: Vec<gl::GLuint>,
-}
-
-impl RenderTargetInfo {
-    fn empty() -> RenderTargetInfo {
-        RenderTargetInfo {
-            framebuffer_ids: Vec::new(),
-            renderbuffer_ids: Vec::new(),
-            texture_ids: Vec::new(),
-        }
-    }
-}
-
-fn initialize_png(gl: &gl::Gl, width: DeviceUintLength, height: DeviceUintLength) -> RenderTargetInfo {
-    let framebuffer_ids = gl.gen_framebuffers(1);
-    gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
-
-    let texture_ids = gl.gen_textures(1);
-    gl.bind_texture(gl::TEXTURE_2D, texture_ids[0]);
-
-    gl.tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as gl::GLint, width.get() as gl::GLsizei,
-                    height.get() as gl::GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
-    gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as gl::GLint);
-    gl.tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::GLint);
-
-    gl.framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
-                              texture_ids[0], 0);
-
-    gl.bind_texture(gl::TEXTURE_2D, 0);
-
-    let renderbuffer_ids = gl.gen_renderbuffers(1);
-    let depth_rb = renderbuffer_ids[0];
-    gl.bind_renderbuffer(gl::RENDERBUFFER, depth_rb);
-    gl.renderbuffer_storage(gl::RENDERBUFFER,
-                            gl::DEPTH_COMPONENT24,
-                            width.get() as gl::GLsizei,
-                            height.get() as gl::GLsizei);
-    gl.framebuffer_renderbuffer(gl::FRAMEBUFFER,
-                                gl::DEPTH_ATTACHMENT,
-                                gl::RENDERBUFFER,
-                                depth_rb);
-
-    RenderTargetInfo {
-        framebuffer_ids: framebuffer_ids,
-        renderbuffer_ids: renderbuffer_ids,
-        texture_ids: texture_ids,
-    }
-}
-
 #[derive(Clone)]
 pub struct RenderNotifier {
     compositor_proxy: CompositorProxy,
@@ -343,17 +293,15 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {
-    fn new(window: Rc<Window>, state: InitialCompositorState)
-           -> IOCompositor<Window> {
+    fn new(window: Rc<Window>, state: InitialCompositorState) -> Self {
         let composite_target = match opts::get().output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window
         };
 
         IOCompositor {
-            gl: window.gl(),
             embedder_coordinates: window.get_coordinates(),
-            window: window,
+            window,
             port: state.receiver,
             root_pipeline: None,
             pipeline_details: HashMap::new(),
@@ -362,7 +310,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
             waiting_for_results_of_scroll: false,
-            composite_target: composite_target,
+            composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: TypedScale::new(1.0),
             viewport_zoom: PinchZoomFactor::new(1.0),
@@ -384,7 +332,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn create(window: Rc<Window>, state: InitialCompositorState) -> IOCompositor<Window> {
+    pub fn create(window: Rc<Window>, state: InitialCompositorState) -> Self {
         let mut compositor = IOCompositor::new(window, state);
 
         // Set the size of the root layer.
@@ -567,9 +515,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// Sets or unsets the animations-running flag for the given pipeline, and schedules a
     /// recomposite if necessary.
-    fn change_running_animations_state(&mut self,
-                                       pipeline_id: PipelineId,
-                                       animation_state: AnimationState) {
+    fn change_running_animations_state(
+        &mut self,
+        pipeline_id: PipelineId,
+        animation_state: AnimationState,
+    ) {
         match animation_state {
             AnimationState::AnimationsPresent => {
                 let visible = self.pipeline_details(pipeline_id).visible;
@@ -1285,9 +1235,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         }
 
-        let render_target_info = match target {
-            CompositeTarget::Window => RenderTargetInfo::empty(),
-            _ => initialize_png(&*self.gl, width, height)
+        let rt_info = match target {
+            #[cfg(feature = "gleam")]
+            CompositeTarget::Window => {
+                gl::RenderTargetInfo::default()
+            }
+            #[cfg(feature = "gleam")]
+            CompositeTarget::WindowAndPng |
+            CompositeTarget::PngFile => {
+                gl::initialize_png(&*self.window.gl(), width, height)
+            }
+            #[cfg(not(feature = "gleam"))]
+            _ => ()
         };
 
         profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
@@ -1332,24 +1291,25 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let rv = match target {
             CompositeTarget::Window => None,
+            #[cfg(feature = "gleam")]
             CompositeTarget::WindowAndPng => {
-                let img = self.draw_img(render_target_info,
-                                        width,
-                                        height);
+                let img = gl::draw_img(&*self.window.gl(), rt_info, width, height);
                 Some(Image {
                     width: img.width(),
                     height: img.height(),
                     format: PixelFormat::RGB8,
-                    bytes: IpcSharedMemory::from_bytes(&*img),
+                    bytes: ipc::IpcSharedMemory::from_bytes(&*img),
                     id: None,
                 })
             }
+            #[cfg(feature = "gleam")]
             CompositeTarget::PngFile => {
+                let gl = &*self.window.gl();
                 profile(ProfilerCategory::ImageSaving, None, self.time_profiler_chan.clone(), || {
                     match opts::get().output_file.as_ref() {
                         Some(path) => match File::create(path) {
                             Ok(mut file) => {
-                                let img = self.draw_img(render_target_info, width, height);
+                                let img = gl::draw_img(gl, rt_info, width, height);
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
                                 if let Err(e) = dynamic_image.save(&mut file, ImageFormat::PNG) {
                                     error!("Failed to save {} ({}).", path, e);
@@ -1362,6 +1322,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 });
                 None
             }
+            #[cfg(not(feature = "gleam"))]
+            _ => None,
         };
 
         // Perform the page flip. This will likely block for a while.
@@ -1376,44 +1338,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.waiting_for_results_of_scroll = false;
 
         Ok(rv)
-    }
-
-    fn draw_img(&self,
-                render_target_info: RenderTargetInfo,
-                width: DeviceUintLength,
-                height: DeviceUintLength)
-                -> RgbImage {
-        let width = width.get() as usize;
-        let height = height.get() as usize;
-        // For some reason, OSMesa fails to render on the 3rd
-        // attempt in headless mode, under some conditions.
-        // I think this can only be some kind of synchronization
-        // bug in OSMesa, but explicitly un-binding any vertex
-        // array here seems to work around that bug.
-        // See https://github.com/servo/servo/issues/18606.
-        self.gl.bind_vertex_array(0);
-
-        let mut pixels = self.gl.read_pixels(0, 0,
-                                             width as gl::GLsizei,
-                                             height as gl::GLsizei,
-                                             gl::RGB, gl::UNSIGNED_BYTE);
-
-        self.gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
-
-        self.gl.delete_buffers(&render_target_info.texture_ids);
-        self.gl.delete_renderbuffers(&render_target_info.renderbuffer_ids);
-        self.gl.delete_framebuffers(&render_target_info.framebuffer_ids);
-
-        // flip image vertically (texture is upside down)
-        let orig_pixels = pixels.clone();
-        let stride = width * 3;
-        for y in 0..height {
-            let dst_start = y * stride;
-            let src_start = (height - y - 1) * stride;
-            let src_slice = &orig_pixels[src_start .. src_start + stride];
-            (&mut pixels[dst_start .. dst_start + stride]).clone_from_slice(&src_slice[..stride]);
-        }
-        RgbImage::from_raw(width as u32, height as u32, pixels).expect("Flipping image failed!")
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
