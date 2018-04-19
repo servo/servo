@@ -3820,7 +3820,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
         FontStyle => {
-            ToComputedValue::from_computed_value(&longhands::font_style::computed_value::T::from_gecko_keyword(value))
+            ToComputedValue::from_computed_value(&longhands::font_style::computed_value::T::from_gecko(value as u8))
         },
         FontWeight => longhands::font_weight::SpecifiedValue::from_gecko_keyword(value),
         ListStyleType => Box::new(longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value)),
@@ -5407,9 +5407,8 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
     stretch: nsCSSValueBorrowedMut,
     weight: nsCSSValueBorrowedMut
 ) -> bool {
-    use style::properties::longhands::font_style;
     use style::properties::shorthands::font;
-    use style::values::specified::font::{FontFamily, FontWeight};
+    use style::values::specified::font::{FontFamily, FontWeight, FontStyle};
 
     let string = unsafe { (*value).to_string() };
     let mut input = ParserInput::new(&string);
@@ -5434,10 +5433,14 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
         FontFamily::Values(list) => family.set_move(list.0),
         FontFamily::System(_) => return false,
     }
-    style.set_from(match font.font_style {
-        font_style::SpecifiedValue::Keyword(ref kw) => kw,
-        font_style::SpecifiedValue::System(_) => return false,
-    });
+    match font.font_style {
+        FontStyle::Normal => style.set_normal(),
+        FontStyle::Italic => style.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
+        FontStyle::Oblique(ref angle) => {
+            style.set_angle(FontStyle::compute_angle(angle))
+        }
+        FontStyle::System(_) => return false,
+    };
 
     if font.font_stretch.get_system().is_some() {
         return false;

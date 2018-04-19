@@ -6,10 +6,6 @@
 //!
 //! [ff]: https://drafts.csswg.org/css-fonts/#at-font-face-rule
 
-#![deny(missing_docs)]
-
-#[cfg(feature = "gecko")]
-use computed_values::font_style;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
@@ -29,6 +25,8 @@ use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
+use values::specified::font::FontStyle as SpecifiedFontStyle;
+use values::specified::Angle;
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -126,6 +124,62 @@ impl Parse for FontStretch {
         let second =
             input.try(|input| SpecifiedFontStretch::parse(context, input)).ok();
         Ok(FontStretch(first, second))
+    }
+}
+
+/// The font-style descriptor:
+///
+/// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-style
+#[derive(Clone, Debug, PartialEq)]
+#[allow(missing_docs)]
+pub enum FontStyle {
+    Normal,
+    Italic,
+    Oblique(Angle, Angle),
+}
+
+impl Parse for FontStyle {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let style = SpecifiedFontStyle::parse(context, input)?;
+        Ok(match style {
+            SpecifiedFontStyle::Normal => FontStyle::Normal,
+            SpecifiedFontStyle::Italic => FontStyle::Italic,
+            SpecifiedFontStyle::Oblique(angle) => {
+                let second_angle = input.try(|input| {
+                    SpecifiedFontStyle::parse_angle(context, input)
+                }).unwrap_or_else(|_| angle.clone());
+
+                FontStyle::Oblique(angle, second_angle)
+            }
+            SpecifiedFontStyle::System(..) => unreachable!(),
+        })
+    }
+}
+
+impl ToCss for FontStyle {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match *self {
+            FontStyle::Normal => dest.write_str("normal"),
+            FontStyle::Italic => dest.write_str("italic"),
+            FontStyle::Oblique(ref first, ref second) => {
+                dest.write_str("oblique")?;
+                if *first != SpecifiedFontStyle::default_angle() || first != second {
+                    dest.write_char(' ')?;
+                    first.to_css(dest)?;
+                }
+                if first != second {
+                    dest.write_char(' ')?;
+                    second.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
     }
 }
 
@@ -406,7 +460,7 @@ font_face_descriptors! {
     ]
     optional descriptors = [
         /// The style of this font face.
-        "font-style" style / mStyle: font_style::T,
+        "font-style" style / mStyle: FontStyle,
 
         /// The weight of this font face.
         "font-weight" weight / mWeight: FontWeight,
