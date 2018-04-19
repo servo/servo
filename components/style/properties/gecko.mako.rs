@@ -2614,7 +2614,6 @@ fn static_assert() {
         unsafe { bindings::Gecko_FontStretch_SetFloat(&mut self.gecko.mFont.stretch, (v.0).0) };
     }
     ${impl_simple_copy('font_stretch', 'mFont.stretch')}
-
     pub fn clone_font_stretch(&self) -> longhands::font_stretch::computed_value::T {
         use values::computed::Percentage;
         use values::generics::NonNegative;
@@ -2623,6 +2622,21 @@ fn static_assert() {
         debug_assert!(stretch >= 0.);
 
         NonNegative(Percentage(stretch))
+    }
+
+    pub fn set_font_style(&mut self, v: longhands::font_style::computed_value::T) {
+        use values::computed::font::FontStyle;
+        self.gecko.mFont.style = match v {
+            FontStyle::Normal => structs::NS_STYLE_FONT_STYLE_NORMAL,
+            FontStyle::Italic => structs::NS_STYLE_FONT_STYLE_ITALIC,
+            // FIXME(emilio): Honor the angle.
+            FontStyle::Oblique(ref _angle) => structs::NS_STYLE_FONT_STYLE_OBLIQUE,
+        } as u8;
+    }
+    ${impl_simple_copy('font_style', 'mFont.style')}
+    pub fn clone_font_style(&self) -> longhands::font_style::computed_value::T {
+        use values::computed::font::FontStyle;
+        FontStyle::from_gecko(self.gecko.mFont.style)
     }
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}

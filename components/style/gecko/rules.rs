@@ -5,10 +5,9 @@
 //! Bindings for CSS Rule objects
 
 use byteorder::{BigEndian, WriteBytesExt};
-use computed_values::font_style::T as ComputedFontStyle;
 use counter_style::{self, CounterBound};
 use cssparser::UnicodeRange;
-use font_face::{FontDisplay, FontWeight, FontStretch, Source};
+use font_face::{FontDisplay, FontWeight, FontStretch, FontStyle, Source};
 use gecko_bindings::structs::{self, nsCSSValue};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use properties::longhands::font_language_override;
@@ -17,6 +16,7 @@ use values::computed::font::FamilyName;
 use values::generics::font::FontTag;
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
+use values::specified::font::FontStyle as SpecifiedFontStyle;
 
 impl<'a> ToNsCssValue for &'a FamilyName {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
@@ -114,6 +114,24 @@ macro_rules! descriptor_range_conversion {
 descriptor_range_conversion!(FontWeight);
 descriptor_range_conversion!(FontStretch);
 
+impl<'a> ToNsCssValue for &'a FontStyle {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        match *self {
+            FontStyle::Normal => nscssvalue.set_normal(),
+            FontStyle::Italic => nscssvalue.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
+            FontStyle::Oblique(ref first, ref second) => {
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+
+                a.set_angle(SpecifiedFontStyle::compute_angle(first));
+                b.set_angle(SpecifiedFontStyle::compute_angle(second));
+
+                nscssvalue.set_pair(&a, &b);
+            }
+        }
+    }
+}
+
 impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         match *self {
@@ -124,34 +142,6 @@ impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
             // This path is unreachable because the descriptor is only specified by the user.
             font_language_override::SpecifiedValue::System(_) => unreachable!(),
         }
-    }
-}
-
-macro_rules! map_enum {
-    (
-        $(
-            $ty:ident {
-                $($servo:ident => $gecko:ident,)+
-            }
-        )+
-    ) => {
-        $(
-            impl<'a> ToNsCssValue for &'a $ty {
-                fn convert(self, nscssvalue: &mut nsCSSValue) {
-                    nscssvalue.set_enum(match *self {
-                        $( $ty::$servo => structs::$gecko as i32, )+
-                    })
-                }
-            }
-        )+
-    }
-}
-
-map_enum! {
-    ComputedFontStyle {
-        Normal => NS_FONT_STYLE_NORMAL,
-        Italic => NS_FONT_STYLE_ITALIC,
-        Oblique => NS_FONT_STYLE_OBLIQUE,
     }
 }
 

@@ -21,7 +21,7 @@ use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
-use values::computed::{Context, Integer, NonNegativeLength, Number, ToComputedValue};
+use values::computed::{Angle, Context, Integer, NonNegativeLength, Number, ToComputedValue};
 use values::generics::font::{FeatureTagValue, FontSettings};
 use values::generics::font::{KeywordInfo as GenericKeywordInfo, VariationValue};
 use values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
@@ -836,5 +836,70 @@ impl ToComputedValue for specified::MozScriptLevel {
 
     fn from_computed_value(other: &i8) -> Self {
         specified::MozScriptLevel::MozAbsolute(*other as i32)
+    }
+}
+
+/// The computed value of `font-style`.
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq)]
+#[allow(missing_docs)]
+pub enum FontStyle {
+    #[animation(error)]
+    Normal,
+    #[animation(error)]
+    Italic,
+    // FIXME(emilio): This needs to clamp really.
+    Oblique(Angle),
+}
+
+impl ToAnimatedZero for FontStyle {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        use num_traits::Zero;
+        Ok(FontStyle::Oblique(Angle::zero()))
+    }
+}
+
+impl FontStyle {
+    /// The default angle for font-style: oblique. This is 20deg per spec:
+    ///
+    /// https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle
+    pub fn default_angle() -> Angle {
+        Angle::Deg(specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES)
+    }
+
+
+    /// Get the font style from Gecko's nsFont struct.
+    #[cfg(feature = "gecko")]
+    pub fn from_gecko(kw: u8) -> Self {
+        use gecko_bindings::structs;
+
+        match kw as u32 {
+            structs::NS_STYLE_FONT_STYLE_NORMAL => FontStyle::Normal,
+            structs::NS_STYLE_FONT_STYLE_ITALIC => FontStyle::Italic,
+            // FIXME(emilio): Grab the angle when we honor it :)
+            structs::NS_STYLE_FONT_STYLE_OBLIQUE => FontStyle::Oblique(Self::default_angle()),
+            _ => unreachable!("Unknown font style"),
+        }
+    }
+}
+
+impl ToCss for FontStyle {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match *self {
+            FontStyle::Normal => dest.write_str("normal"),
+            FontStyle::Italic => dest.write_str("italic"),
+            FontStyle::Oblique(ref angle) => {
+                dest.write_str("oblique")?;
+                if *angle != Self::default_angle() {
+                    dest.write_char(' ')?;
+                    angle.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
     }
 }

@@ -41,13 +41,19 @@ impl ToCss for Angle {
     }
 }
 
+// FIXME(emilio): Probably computed angles shouldn't preserve the unit and
+// should serialize to degrees per:
+//
+// https://drafts.csswg.org/css-values/#compat
 impl ToComputedValue for Angle {
     type ComputedValue = ComputedAngle;
 
+    #[inline]
     fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
         self.value
     }
 
+    #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         Angle {
             value: *computed,
@@ -87,6 +93,12 @@ impl Angle {
             value: ComputedAngle::Rad(value),
             was_calc,
         }
+    }
+
+    /// Whether this specified angle came from a `calc()` expression.
+    #[inline]
+    pub fn was_calc(&self) -> bool {
+        self.was_calc
     }
 
     /// Returns the amount of radians this angle represents.
