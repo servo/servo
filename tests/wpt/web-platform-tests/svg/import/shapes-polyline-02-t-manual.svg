@@ -39,7 +39,7 @@ The test is passed if each shape seems to have a double stroke, dark green and l
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
 
-    <g stroke="#070" stroke-width="8">    
+    <g stroke="#070" stroke-width="8">
     <!-- Open sawtooth line. -->
     <polyline id="polyline-01" fill="none"   points="10,50,35,150,60,50,85,150,110,50,135,150"/>
     <!-- Closed pentagon shaped polyline (5 segments). -->
@@ -50,11 +50,11 @@ The test is passed if each shape seems to have a double stroke, dark green and l
     <polyline id="polyline-04" fill="none"  points="59,185,98,203,108,245,82,279,39,280,11,247,19,205"/>
     <!-- Same shape, filled, shows difference with 'polygon'. -->
     <polyline id="polyline-05" fill="#396"  points="189,185,228,203,238,245,212,279,169,280,141,247,149,205"/>
-    <polyline id="polyline-06" fill="#396" 
-    points="270,225 300,245 320,225 340,245 280,280                   
+    <polyline id="polyline-06" fill="#396"
+    points="270,225 300,245 320,225 340,245 280,280
     390,280 420,240 280,185"/>
     </g>
-    
+
     <!-- now the equivalent paths-->
     <g stroke="#3C6" stroke-width="3" fill="none">
       <path d="M10,50 L35,150,60,50,85,150,110,50,135,150"/>
@@ -62,7 +62,7 @@ The test is passed if each shape seems to have a double stroke, dark green and l
       <path d="M310,50 L335,150,360,50,385,150,410,50,435,150"/>
       <path d="M59,185 L98,203,108,245,82,279,39,280,11,247,19,205"/>
       <path d="M189,185 L228,203,238,245,212,279,169,280,141,247,149,205"/>
-      <path d="M270,225 L300,245 320,225 340,245 280,280                   
+      <path d="M270,225 L300,245 320,225 340,245 280,280
         390,280 420,240 280,185"/>
     </g>
   </g>

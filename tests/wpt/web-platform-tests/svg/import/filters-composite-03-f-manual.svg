@@ -13,7 +13,7 @@
     version="$Revision: 1.4 $" testname="$RCSfile: filters-composite-03-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feCompositeElement">
       <p>
-        Tests the arithmetic operator in feComposite. 
+        Tests the arithmetic operator in feComposite.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -53,7 +53,7 @@
         <feComposite operator="arithmetic" in="FillPaint" in2="StrokePaint" k1="0" k2="10" k3="20" k4="0"/>
       </filter>
     </defs>
-    
+
     <g transform="translate(100 30)">
       <rect id="reference1" fill="lime" width="120" height="120"/>
       <rect fill="red" stroke="red" filter="url(#composite-ident)" x="10" y="10" width="100" height="100"/>

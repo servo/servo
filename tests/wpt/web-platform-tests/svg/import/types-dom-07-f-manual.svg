@@ -53,7 +53,7 @@
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
 
     <text x='210' y='55' text-anchor='end'>animVal is read only:</text>
- 
+
     <g font-size='14' transform='translate(500)rotate(90)'>
       <rect id='r1a' x='40' y='60' width='20' height='20'/>
       <text x='70' y='75'>SVGAnimatedNumberList</text>

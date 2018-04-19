@@ -18,12 +18,6 @@
 [Global=Window, Exposed=Window]
 interface Window {
 };
-
-interface Event {
-};
-
-interface EventInit {
-};
 </pre>
 
 <pre id='idl'>
@@ -64,18 +58,26 @@ dictionary StorageEventInit : EventInit {
 </pre>
 
 <script>
-
-(function() {
+function do_test([html, dom]) {
   var idl_array = new IdlArray();
 
+  idl_array.add_untested_idls(dom, { only: ['Event', 'EventInit'] });
+  idl_array.add_untested_idls(html, { only: ['EventStorageInit'] });
   idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
   idl_array.add_idls(document.getElementById("idl").textContent);
 
   idl_array.add_objects({Storage: ["window.localStorage"]});
 
   idl_array.test();
-})();
+}
 
+function fetch_text(url) {
+  return fetch(url).then(response => response.text());
+}
+
+promise_test(function () {
+  return Promise.all(['/interfaces/html.idl', '/interfaces/dom.idl'].map(fetch_text)).then(do_test);
+}, 'webstorage interfaces');
 </script>
 </body>
 </html>

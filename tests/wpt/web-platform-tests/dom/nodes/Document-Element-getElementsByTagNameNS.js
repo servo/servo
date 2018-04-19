@@ -125,4 +125,19 @@ function test_getElementsByTagNameNS(context, element) {
     assert_array_equals(context.getElementsByTagNameNS(null, "0"), []);
     assert_array_equals(context.getElementsByTagNameNS(null, "div"), []);
   }, "Empty lists")
+
+  test(function() {
+    var t1 = element.appendChild(document.createElementNS("test", "abc"));
+    this.add_cleanup(function() {element.removeChild(t1)});
+
+    var l = context.getElementsByTagNameNS("test", "abc");
+    assert_true(l instanceof HTMLCollection);
+    assert_equals(l.length, 1);
+
+    var t2 = element.appendChild(document.createElementNS("test", "abc"));
+    assert_equals(l.length, 2);
+
+    element.removeChild(t2);
+    assert_equals(l.length, 1);
+  }, "getElementsByTagNameNS() should be a live collection");
 }

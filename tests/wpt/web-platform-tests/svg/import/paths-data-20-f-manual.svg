@@ -41,26 +41,26 @@
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
 
-    <!-- no commawsp between arc flags --> 
+    <!-- no commawsp between arc flags -->
     <path d="M120,120 h25 a25,25 0 1,0 -25,25 z" fill="red" stroke="lime"/>
     <path d="M120,120 h25 a25,25 0 10 -25,25z" fill="lime"/>
 
     <!-- no commawsp between arc flags and no commawsp after arc flags -->
     <path d="M200,120 h-25 a25,25 0 1,1 25,25 z" fill="red" stroke="lime"/>
     <path d="M200,120 h-25 a25,25 0 1125,25 z" fill="lime"/>
-  
+
     <!-- out of range large-arc-flag value -->
     <path d="M280,120 h25 a25,25 0 1,0 -25,25 z" fill="lime" stroke="lime"/>
     <path d="M280,120 h25 a25,25 0 6 0 -25,25 z" fill="red"/>
-  
+
     <!-- negative sweep-flag value -->
     <path d="M360,120 h-25 a25,25 0 1,1 25,25 z" fill="lime" stroke="lime"/>
     <path d="M360,120 h-25 a25,25 0 1 -1 25,25 z" fill="red"/>
-   
+
     <!-- no commawsp between sweep-flag and following coordinate-pair -->
     <path d="M120,200 h25 a25,25 0 1,1 -25,-25 z" fill="red" stroke="lime"/>
     <path d="M120,200 h25 a25,25 0 1 1-25,-25 z" fill="lime"/>
-  
+
     <!-- no commawsp before arc flags -->
     <path d="M200,200 h-25 a25,25 0 1,0 25,-25 z" fill="lime" stroke="lime"/>
     <path d="M200,200 h-25 a25,2501 025,-25 z" fill="red"/>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing box-shadow with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#box-shadow">
+<meta name="assert" content="box-shadow supports the full grammar 'none | <shadow>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("box-shadow", "none");
+test_valid_value("box-shadow", "1px 2px");
+test_valid_value("box-shadow", "red 1px 2px 3px -4px inset"); // Edge serializes as "inset 1px 2px 3px -4px red"
+test_valid_value("box-shadow", "inset 1px 2px red", "red 1px 2px inset");
+test_valid_value("box-shadow", "1px -2px inset, red -3px 4px"); // Edge serializes as "inset 1px -2px, -3px 4px red"
+test_valid_value("box-shadow", "inset 1px -2px, -3px 4px red", "1px -2px inset, red -3px 4px");
+</script>
+</body>
+</html>

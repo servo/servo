@@ -145,7 +145,7 @@
         <text y="150">accessKey()</text>
         <text y="175">wallclock()</text>
       </g>
-      
+
       <g id="timeMarkersText" transform="translate(100, -15)" text-anchor="middle" font-size="8">
         <text>0s</text>
         <text x="12">1s</text>

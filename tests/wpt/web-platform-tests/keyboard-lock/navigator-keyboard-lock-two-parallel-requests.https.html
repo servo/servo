@@ -5,11 +5,9 @@
 'use strict';
 
 promise_test((t) => {
-  const p1 = navigator.keyboard.lock(['a', 'b']);
-  const p2 = navigator.keyboard.lock(['c', 'd']);
-  return promise_rejects(t, null, p2,
-      'keyboard.lock() should only be ' +
-      'executed if another request has finished.');
+  const p1 = navigator.keyboard.lock(["KeyA", "KeyB"]);
+  const p2 = navigator.keyboard.lock(["KeyC", "KeyD"]);
+  return Promise.all([promise_rejects(t, "AbortError", p1), p2]);
 }, '[Keyboard Lock] keyboard.lock twice in parallel');
 
 </script>

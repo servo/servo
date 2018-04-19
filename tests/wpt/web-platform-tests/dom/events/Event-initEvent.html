@@ -12,18 +12,20 @@ booleans.forEach(function(bubbles) {
       var e = document.createEvent("Event")
       e.initEvent("type", bubbles, cancelable)
 
-      // Step 3.
+      // Step 2.
       // Stop (immediate) propagation flag is tested later
       assert_equals(e.defaultPrevented, false, "defaultPrevented")
-      // Step 4.
+      assert_equals(e.returnValue, true, "returnValue")
+      // Step 3.
       assert_equals(e.isTrusted, false, "isTrusted")
-      // Step 5.
+      // Step 4.
       assert_equals(e.target, null, "target")
-      // Step 6.
+      assert_equals(e.srcElement, null, "srcElement")
+      // Step 5.
       assert_equals(e.type, "type", "type")
-      // Step 7.
+      // Step 6.
       assert_equals(e.bubbles, bubbles, "bubbles")
-      // Step 8.
+      // Step 7.
       assert_equals(e.cancelable, cancelable, "cancelable")
     }, "Properties of initEvent(type, " + bubbles + ", " + cancelable + ")")
   })

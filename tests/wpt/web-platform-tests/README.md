@@ -110,7 +110,7 @@ line syntax is:
 **On Windows**: You will need to preceed the prior command with
 `python` or the path to the python binary.
 ```bash
-python wpt product [tests]
+python wpt run product [tests]
 ```
 
 where `product` is currently `firefox` or `chrome` and `[tests]` is a
@@ -271,7 +271,7 @@ will be `C:\\OpenSSL-Win32\\bin\\openssl.cfg`).
 ### Trusting Root CA
 
 To prevent browser SSL warnings when running HTTPS tests locally, the
-web-platform-tests Root CA file `rootca.pem` in [tools/certs](tools/certs)
+web-platform-tests Root CA file `cacert.pem` in [tools/certs](tools/certs)
 must be added as a trusted certificate in your OS/browser.
 
 Publication

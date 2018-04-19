@@ -12,6 +12,12 @@
 <script>
 'use strict';
 
+runPropertyTests('offset-rotate', [
+  { syntax: 'auto' },
+  { syntax: 'reverse' },
+  { syntax: '<angle>' },
+]);
+
 runUnsupportedPropertyTests('offset-rotate', [
   'auto 90deg',
   'reverse -90deg',

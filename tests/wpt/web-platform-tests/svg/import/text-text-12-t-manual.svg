@@ -14,7 +14,7 @@
     template-version="1.4" reviewer="SVGWG" author="VH" status="issue"
     version="$Revision: 1.1 $" testname="$RCSfile: text-text-12-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextElement">
-    		<p>ISSUE: the glyphs don't cover the entire em-cell, and the spec doesn't require visual alignment - text adjustments are based on advances</p>
+        <p>ISSUE: the glyphs don't cover the entire em-cell, and the spec doesn't require visual alignment - text adjustments are based on advances</p>
         <p>
           The purpose of this test is to validate the interaction of text-anchor
           and x/y glyph positioning.
@@ -86,77 +86,77 @@
         <text y="240">4.x 2.y</text>
         <text y="270">2.x 2.y</text>
       </g>
-			
-			<defs>
-	      <g id="textContent">
-	        <!-- 1.x 1.y -->
-	        <use y="30" xlink:href="#marker" fill="#8888ff"/>
-	        <text x="0" y="30" font-family="embeded" font-size="10">1234</text>
-	
-	        <!-- 4.x 1.y : four text chunks -->
-	        <use x="10" y="60" xlink:href="#marker" fill="#8888ff"/>
-	        <use x="20" y="60" xlink:href="#marker" fill="#8888ff"/>
-	        <use x="30" y="60" xlink:href="#marker" fill="#8888ff"/>
-	        <use x="40" y="60" xlink:href="#marker" fill="#8888ff"/>
-	        <text x="10 20 30 40" y="60" font-family="embeded" font-size="10">1234</text>
-	
-	        <!-- 2.x 1.y : two text chunks -->
-	        <use x="10" y="90" xlink:href="#marker" fill="#8888ff"/>
-	        <use x="60" y="90" xlink:href="#marker" fill="#8888ff"/>
-	        <text x="10 60" y="90" font-family="embeded" font-size="10">1234</text>
-	
-	        <!-- 1.x 4.y : four text chunks -->
-	        <g transform="translate(0, 120)">
-	          <use x="0" y="-10" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="15" y="-5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="30" y="5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="45" y="10" xlink:href="#marker" fill="#8888ff"/>
-	          <text x="0" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
-	        </g>
-	
-	        <!-- 4.x 4.y : four text chunks -->
-	        <g transform="translate(0, 150)">
-	          <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="30" y="5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="40" y="10" xlink:href="#marker" fill="#8888ff"/>
-	          <text x="10 20 30 40" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
-	        </g>
-	
-	        <!-- 2.x 4.y : four text chunks -->
-	        <g transform="translate(0, 180)">
-	          <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="35" y="5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="50" y="10" xlink:href="#marker" fill="#8888ff"/>
-	          <text x="10 20" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
-	        </g>
-	
-	        <!-- 1.x 2.y : two text chunks -->
-	        <g transform="translate(0, 210)">
-	          <use x="0" y="-10" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="15" y="5" xlink:href="#marker" fill="#8888ff"/>
-	          <text x="0" y="-10 5" font-family="embeded" font-size="10">1234</text>
-	        </g>
-	
-	        <!-- 4.x 2.y : four text chunks -->
-	        <g transform="translate(0, 240)">
-	          <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="30" y="-5" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="40" y="-5" xlink:href="#marker" fill="#8888ff"/>
-	          <text x="10 20 30 40" y="-10 -5" font-family="embeded" font-size="10">1234</text>
-	        </g>
-	
-	        <!-- 2.x 2.y : two text chunks -->
-	        <g transform="translate(0, 270)">
-	          <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
-	          <use x="60" y="-5" xlink:href="#marker" fill="#8888ff"/>
-	          <text x="10 60" y="-10 -5" font-family="embeded" font-size="10">1234</text>
-	        </g>
-	      </g>
-			</defs>
-			
+
+      <defs>
+        <g id="textContent">
+          <!-- 1.x 1.y -->
+          <use y="30" xlink:href="#marker" fill="#8888ff"/>
+          <text x="0" y="30" font-family="embeded" font-size="10">1234</text>
+
+          <!-- 4.x 1.y : four text chunks -->
+          <use x="10" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <use x="20" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <use x="30" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <use x="40" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <text x="10 20 30 40" y="60" font-family="embeded" font-size="10">1234</text>
+
+          <!-- 2.x 1.y : two text chunks -->
+          <use x="10" y="90" xlink:href="#marker" fill="#8888ff"/>
+          <use x="60" y="90" xlink:href="#marker" fill="#8888ff"/>
+          <text x="10 60" y="90" font-family="embeded" font-size="10">1234</text>
+
+          <!-- 1.x 4.y : four text chunks -->
+          <g transform="translate(0, 120)">
+            <use x="0" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="15" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="30" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="45" y="10" xlink:href="#marker" fill="#8888ff"/>
+            <text x="0" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 4.x 4.y : four text chunks -->
+          <g transform="translate(0, 150)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="30" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="40" y="10" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 20 30 40" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 2.x 4.y : four text chunks -->
+          <g transform="translate(0, 180)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="35" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="50" y="10" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 20" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 1.x 2.y : two text chunks -->
+          <g transform="translate(0, 210)">
+            <use x="0" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="15" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <text x="0" y="-10 5" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 4.x 2.y : four text chunks -->
+          <g transform="translate(0, 240)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="30" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="40" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 20 30 40" y="-10 -5" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 2.x 2.y : two text chunks -->
+          <g transform="translate(0, 270)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="60" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 60" y="-10 -5" font-family="embeded" font-size="10">1234</text>
+          </g>
+        </g>
+      </defs>
+
       <g id="anchorMiddle" text-anchor="middle" transform="translate(250, 40)">
         <text y="-17" text-anchor="middle">text-anchor</text>
         <text y="-3" text-anchor="middle">middle</text>

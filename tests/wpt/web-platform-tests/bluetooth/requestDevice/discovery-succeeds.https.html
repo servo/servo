@@ -8,7 +8,7 @@
 'use strict';
 const test_desc = 'Discover a device using alias, name, or UUID.';
 
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
     // Chrome will always close the previous chooser in the process of handling
     // a user gesture for the next request, so these need to be done
     // sequentially.

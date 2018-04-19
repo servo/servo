@@ -15,10 +15,10 @@
     version="$Revision: 1.5 $" testname="$RCSfile: paths-data-13-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#PathData">
         <p>
-          Test multiple coordinates for V and H. 
+          Test multiple coordinates for V and H.
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
       Run the test. No interaction required.
       </p>

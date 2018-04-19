@@ -32,7 +32,10 @@ def setup_logging(prefix=False):
     if logger is None:
         logger = logging.getLogger(os.path.basename(os.path.splitext(__file__)[0]))
         handler = logging.StreamHandler(sys.stdout)
-        logger.addHandler(handler)
+        # Only add a handler if the parent logger is missing a handler
+        if logger.parent and len(logger.parent.handlers) == 0:
+            handler = logging.StreamHandler(sys.stdout)
+            logger.addHandler(handler)
     if prefix:
         format = logging.BASIC_FORMAT
     else:

@@ -560,13 +560,18 @@ class TestRunnerManager(threading.Thread):
                                     expected=expected,
                                     stack=result.stack)
 
-        # TODO: consider changing result if there is a crash dump file
-
-        # Write the result of the test harness
+        # We have a couple of status codes that are used internally, but not exposed to the
+        # user. These are used to indicate that some possibly-broken state was reached
+        # and we should restart the runner before the next test.
+        # INTERNAL-ERROR indicates a Python exception was caught in the harness
+        # EXTERNAL-TIMEOUT indicates we had to forcibly kill the browser from the harness
+        # because the test didn't return a result after reaching the test-internal timeout
+        status_subns = {"INTERNAL-ERROR": "ERROR",
+                        "EXTERNAL-TIMEOUT": "TIMEOUT"}
         expected = test.expected()
-        status = file_result.status if file_result.status != "EXTERNAL-TIMEOUT" else "TIMEOUT"
+        status = status_subns.get(file_result.status, file_result.status)
 
-        if file_result.status in ("TIMEOUT", "EXTERNAL-TIMEOUT"):
+        if file_result.status in ("TIMEOUT", "EXTERNAL-TIMEOUT", "INTERNAL-ERROR"):
             if self.browser.check_for_crashes():
                 status = "CRASH"
 
@@ -585,7 +590,7 @@ class TestRunnerManager(threading.Thread):
                              extra=file_result.extra)
 
         restart_before_next = (test.restart_after or
-                               file_result.status in ("CRASH", "EXTERNAL-TIMEOUT") or
+                               file_result.status in ("CRASH", "EXTERNAL-TIMEOUT", "INTERNAL-ERROR") or
                                ((subtest_unexpected or is_unexpected) and
                                 self.restart_on_unexpected))
 

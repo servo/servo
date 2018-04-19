@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://w3c.github.io/payment-handler/">
+<title>Test for untrusted event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+
+async function getResultFromSW(serviceWorkerContainer) {
+  return new Promise((resolve, reject) => {
+    serviceWorkerContainer.addEventListener('message', listener = e => {
+      serviceWorkerContainer.removeEventListener('message', listener);
+      if (e.data) {
+        resolve(e.data);
+      } else {
+        reject();
+      }
+    });
+  });
+}
+
+promise_test(async t => {
+  const registration = await service_worker_unregister_and_register(
+      t, 'untrusted-event.js', 'payment-app/');
+  await wait_for_state(t, registration.installing, 'activated');
+
+  const controlled_window = (await with_iframe('payment-app/payment.html')).contentWindow;
+
+  // Test for untrusted PaymentRequestEvent
+  {
+    const result = getResultFromSW(controlled_window.navigator.serviceWorker);
+    controlled_window.navigator.serviceWorker.controller.postMessage('paymentrequest');
+
+    const expected = [
+      "InvalidStateError", /* respondWith */
+      "InvalidStateError"  /* openWindow */
+    ];
+
+    assert_array_equals(await result, expected);
+  }
+
+  // Test for untrusted CanMakePaymentEvent
+  {
+    const result = getResultFromSW(controlled_window.navigator.serviceWorker);
+    controlled_window.navigator.serviceWorker.controller.postMessage('canmakepayment');
+
+    const expected = [
+      "InvalidStateError", /* respondWith */
+    ];
+
+    assert_array_equals(await result, expected);
+  }
+});
+
+</script>
