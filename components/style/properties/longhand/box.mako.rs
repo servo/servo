@@ -410,7 +410,8 @@ ${helpers.predefined_type(
     extra_prefixes=transform_extra_prefixes,
     animation_value_type="ComputedValue",
     gecko_ffi_name="mSpecifiedTransform",
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB GETCS_NEEDS_LAYOUT_FLUSH",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB \
+           GETCS_NEEDS_LAYOUT_FLUSH CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
     servo_restyle_damage="reflow_out_of_flow"
 )}

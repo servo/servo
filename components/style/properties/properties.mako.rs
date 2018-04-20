@@ -788,6 +788,8 @@ bitflags! {
         /// This property's getComputedStyle implementation requires layout
         /// to be flushed.
         const GETCS_NEEDS_LAYOUT_FLUSH = 0;
+        /// This property can be animated on the compositor.
+        const CAN_ANIMATE_ON_COMPOSITOR = 0;
     }
 }
 
