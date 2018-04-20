@@ -39229,6 +39229,12 @@
      {}
     ]
    ],
+   "mozilla/webgl/clear.html": [
+    [
+     "/_mozilla/mozilla/webgl/clear.html",
+     {}
+    ]
+   ],
    "mozilla/webgl/context_creation_error.html": [
     [
      "/_mozilla/mozilla/webgl/context_creation_error.html",
@@ -70862,6 +70868,10 @@
   ],
   "mozilla/webgl/bufferSubData.html": [
    "c333c7b99156d63fcd3ad28014c7915a12cf8169",
+   "testharness"
+  ],
+  "mozilla/webgl/clear.html": [
+   "14cc534be5da96b0cc128d5c44f662b2fdfb294c",
    "testharness"
   ],
   "mozilla/webgl/clearcolor.html": [

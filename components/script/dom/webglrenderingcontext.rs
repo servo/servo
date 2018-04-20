@@ -1866,6 +1866,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if !self.validate_framebuffer_complete() {
             return;
         }
+        // GL_INVALID_VALUE is generated if any bit other than the following is set in mask:
+        //   - DEPTH_BUFFER_BIT
+        //   - STENCIL_BUFFER_BIT
+        //   - COLOR_BUFFER_BIT
+        match mask & !(constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT | constants::COLOR_BUFFER_BIT) {
+            0 => (),
+            _ => {
+                self.webgl_error(InvalidValue);
+                return;
+            }
+        }
 
         self.send_command(WebGLCommand::Clear(mask));
         self.mark_as_dirty();
