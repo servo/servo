@@ -1866,6 +1866,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if !self.validate_framebuffer_complete() {
             return;
         }
+        if mask & !(constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT | constants::COLOR_BUFFER_BIT) != 0 {
+            return self.webgl_error(InvalidValue);
+        }
 
         self.send_command(WebGLCommand::Clear(mask));
         self.mark_as_dirty();
