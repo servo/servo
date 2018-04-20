@@ -32,6 +32,7 @@ from .protocol import (BaseProtocolPart,
                        StorageProtocolPart,
                        SelectorProtocolPart,
                        ClickProtocolPart,
+                       SendKeysProtocolPart,
                        TestDriverProtocolPart)
 from ..testrunner import Stop
 from ..webdriver_server import GeckoDriverServer
@@ -307,6 +308,12 @@ class MarionetteClickProtocolPart(ClickProtocolPart):
     def element(self, element):
         return element.click()
 
+class MarionetteSendKeysProtocolPart(SendKeysProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def send_keys(self, element, keys):
+        return element.send_keys(keys)
 
 class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
     def setup(self):
@@ -329,6 +336,7 @@ class MarionetteProtocol(Protocol):
                   MarionetteStorageProtocolPart,
                   MarionetteSelectorProtocolPart,
                   MarionetteClickProtocolPart,
+                  MarionetteSendKeysProtocolPart,
                   MarionetteTestDriverProtocolPart]
 
     def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1):
@@ -395,7 +403,7 @@ class MarionetteProtocol(Protocol):
                 self.prefs.set(name, value)
 
         for name, value in new_environment.get("prefs", {}).iteritems():
-            self.executor.original_pref_values[name] = self.get_pref(name)
+            self.executor.original_pref_values[name] = self.prefs.get(name)
             self.prefs.set(name, value)
 
 
@@ -446,7 +454,7 @@ class ExecuteAsyncScriptRun(object):
             # We didn't get any data back from the test, so check if the
             # browser is still responsive
             if self.protocol.is_alive:
-                self.result = False, ("ERROR", None)
+                self.result = False, ("INTERNAL-ERROR", None)
             else:
                 self.result = False, ("CRASH", None)
         return self.result
@@ -467,7 +475,7 @@ class ExecuteAsyncScriptRun(object):
             if message:
                 message += "\n"
             message += traceback.format_exc(e)
-            self.result = False, ("ERROR", e)
+            self.result = False, ("INTERNAL-ERROR", e)
 
         finally:
             self.result_flag.set()

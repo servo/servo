@@ -308,6 +308,20 @@ test(() => {
    + ' specified');
 
 test(() => {
+  const test_error = { name: 'test' };
+  const bad_keyframe = { get left() { throw test_error; } };
+  assert_throws(test_error, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px' } },
+      { done: false, value: bad_keyframe },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'If a keyframe throws for an animatable property, that exception should be'
+    + ' propagated');
+
+test(() => {
   assert_throws({ name: 'TypeError' }, () => {
     new KeyframeEffect(null, createIterable([
       { done: false, value: { left: '100px' } },
@@ -321,6 +335,36 @@ test(() => {
 
 test(() => {
   const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false },  // No value member; keyframe is undefined.
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: null },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: null },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: null },
+  ]);
+}, 'An undefined keyframe returned from a custom iterator should be treated as a'
+    + ' default keyframe');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false, value: null },
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: null },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: null },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: null },
+  ]);
+}, 'A null keyframe returned from a custom iterator should be treated as a'
+    + ' default keyframe');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
     { done: false, value: { left: ['100px', '200px'] } },
     { done: true },
   ]));
@@ -328,6 +372,44 @@ test(() => {
     { offset: null, computedOffset: 1, easing: 'linear', composite: null }
   ]);
 }, 'A list of values returned from a custom iterator should be ignored');
+
+test(() => {
+  const test_error = { name: 'test' };
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      return { next() { throw test_error; } };
+    },
+  };
+  assert_throws(test_error, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'If a custom iterator throws from next(), the exception should be rethrown');
+
+// Test handling of invalid Symbol.iterator
+
+test(() => {
+  const test_error = { name: 'test' };
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      throw test_error;
+    },
+  };
+  assert_throws(test_error, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'Accessing a Symbol.iterator property that throws should rethrow');
+
+test(() => {
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      return 42;  // Not an object.
+    },
+  };
+  assert_throws({ name: 'TypeError' }, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'A non-object returned from the Symbol.iterator property should cause a'
+    + ' TypeError to be thrown');
 
 test(() => {
   const keyframe = {};

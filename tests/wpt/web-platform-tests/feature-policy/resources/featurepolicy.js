@@ -393,8 +393,10 @@ function test_subframe_header_policy(
 //     test_expect: boolean value of whether the feature should be allowed.
 //     allow: optional, the allow attribute (container policy) of the iframe.
 //     allowfullscreen: optional, boolean value of allowfullscreen attribute.
+//     sandbox: optional boolean. If true, the frame will be sandboxed (with
+//         allow-scripts, so that tests can run in it.)
 function test_frame_policy(
-    feature, src, test_expect, allow, allowfullscreen) {
+    feature, src, test_expect, allow, allowfullscreen, sandbox) {
   let frame = document.createElement('iframe');
   document.body.appendChild(frame);
   // frame_policy should be dynamically updated as allow and allowfullscreen is
@@ -405,6 +407,9 @@ function test_frame_policy(
   }
   if (!!allowfullscreen) {
     frame.setAttribute('allowfullscreen', true);
+  }
+  if (!!sandbox) {
+    frame.setAttribute('sandbox', 'allow-scripts');
   }
   frame.src = src;
   if (test_expect) {

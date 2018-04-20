@@ -3,10 +3,10 @@
 cookie_test(async t => {
   let eventPromise = observeNextCookieChangeEvent();
   await cookieStore.set('', 'first-value');
-  const actual1 =
-      (await cookieStore.getAll('')).map(({ value }) => value).join(';');
-  const expected1 = 'first-value';
-  assert_equals(actual1, expected1);
+  assert_equals(
+    (await cookieStore.getAll('')).map(({ value }) => value).join(';'),
+    'first-value',
+    'Cookie with no name and normal value should have been set');
   await verifyCookieChangeEvent(
     eventPromise, {changed: [{name: '', value: 'first-value'}]},
     'Observed no-name change');
@@ -16,31 +16,26 @@ cookie_test(async t => {
     new TypeError(),
     cookieStore.set('', 'suspicious-value=resembles-name-and-value'),
     'Expected promise rejection when setting a cookie with' +
-      ' no name and "=" in value');
+      ' no name and "=" in value (via arguments)');
 
-  const actual2 =
-        (await cookieStore.getAll('')).map(({ value }) => value).join(';');
-  const expected2 = 'first-value';
-  assert_equals(actual2, expected2);
+  await promise_rejects(
+    t,
+    new TypeError(),
+    cookieStore.set(
+      {name: '', value: 'suspicious-value=resembles-name-and-value'}),
+    'Expected promise rejection when setting a cookie with' +
+      ' no name and "=" in value (via options)');
+
   assert_equals(
-    await getCookieString(),
+    (await cookieStore.getAll('')).map(({ value }) => value).join(';'),
     'first-value',
-    'Earlier cookie jar after rejected');
+    'Cookie with no name should still have previous value');
 
   eventPromise = observeNextCookieChangeEvent();
   await cookieStore.delete('');
   await verifyCookieChangeEvent(
-    eventPromise, {deleted: [{name: '', value: ''}]},
+    eventPromise, {deleted: [{name: ''}]},
     'Observed no-name deletion');
-
-  assert_equals(
-    await getCookieString(),
-    undefined,
-    'Empty cookie jar after cleanup');
-  assert_equals(
-    await getCookieStringHttp(),
-    undefined,
-    'Empty HTTP cookie jar after cleanup');
 
 }, "Verify that attempting to set a cookie with no name and with '=' in" +
              " the value does not work.");

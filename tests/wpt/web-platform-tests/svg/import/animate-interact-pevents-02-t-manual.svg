@@ -107,7 +107,7 @@
       fill="black">$Revision: 1.3 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
-  <!-- comment out this watermark once the test is approved 
+  <!-- comment out this watermark once the test is approved
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
     <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"

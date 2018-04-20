@@ -60,19 +60,19 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-    	<p>
+      <p>
         Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>The test is passed if:</p>
       <ul>
-      	<li>the scale of the upper leftmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the upper leftmost yellow rectangle</li>
-      	<li>the scale and rotation of the second upper grey rectangle from the left is smoothly animated over the course of 5 seconds to fill the second upper yellow rectangle from the left</li>
-      	<li>the scale of the upper third grey rectangle from the left is smoothly animated over the course of 2.5 seconds to completely fill the upper third yellow rectangle from the left, and then repeated once so that at time t=5 seconds it completely fills the same yellow rectangle</li>
-      	<li>the scale of the upper rightmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the upper rightmost yellow rectangle</li>
-      	<li>the scale of the lower leftmost grey rectangle is smoothly animated over the course of 2.5 seconds to completely fill the lower leftmost yellow rectangle, and then repeated once so that at time t=5 seconds it completely fills the same yellow rectangle</li>
-      	<li>the scale of the lower rightmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the lower rightmost yellow rectangle</li>
+        <li>the scale of the upper leftmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the upper leftmost yellow rectangle</li>
+        <li>the scale and rotation of the second upper grey rectangle from the left is smoothly animated over the course of 5 seconds to fill the second upper yellow rectangle from the left</li>
+        <li>the scale of the upper third grey rectangle from the left is smoothly animated over the course of 2.5 seconds to completely fill the upper third yellow rectangle from the left, and then repeated once so that at time t=5 seconds it completely fills the same yellow rectangle</li>
+        <li>the scale of the upper rightmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the upper rightmost yellow rectangle</li>
+        <li>the scale of the lower leftmost grey rectangle is smoothly animated over the course of 2.5 seconds to completely fill the lower leftmost yellow rectangle, and then repeated once so that at time t=5 seconds it completely fills the same yellow rectangle</li>
+        <li>the scale of the lower rightmost grey rectangle is smoothly animated over the course of 5 seconds to completely fill the lower rightmost yellow rectangle</li>
       </ul>
     </d:passCriteria>
   </d:SVGTestCase>

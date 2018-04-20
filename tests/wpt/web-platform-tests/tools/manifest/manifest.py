@@ -225,6 +225,9 @@ def load(tests_root, manifest):
                 rv = Manifest.from_json(tests_root, json.load(f))
         except IOError:
             return None
+        except ValueError:
+            logger.warning("%r may be corrupted", manifest)
+            return None
         return rv
 
     return Manifest.from_json(tests_root, json.load(manifest))

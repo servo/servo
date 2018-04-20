@@ -32,7 +32,7 @@
       <p>The test passes if:</p>
       <ul>
         <li>each of the seven shapes rotates clockwise, then anti-clockwise, then clockwise again,</li>
-	<li>and the circle is scaled down, then up, then down again</li>
+  <li>and the circle is scaled down, then up, then down again</li>
       </ul>
       <p>over the course of three seconds.</p>
       <p>The static reference image shows the final state of the animation.</p>

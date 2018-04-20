@@ -20,6 +20,7 @@ promise_test(async () => {
   idlArray.add_untested_idls('interface CredentialCreationOptions {};');
   idlArray.add_untested_idls('interface CredentialRequestOptions {};');
   idlArray.add_untested_idls("interface Navigator { };");
+  idlArray.add_untested_idls("interface Credential { };");
   // TODO: change to "tested" for real browsers?
   idlArray.add_untested_idls("partial interface Navigator { readonly attribute WebAuthentication authentication; };");
   idlArray.add_objects({

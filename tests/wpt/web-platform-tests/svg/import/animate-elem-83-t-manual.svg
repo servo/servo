@@ -79,11 +79,11 @@
       gray shapes morphs appropriately according to the following descriptions:</p>
       <ol>
         <li>The gray shape must morph from the diamond to the flower-like shape.</li>
-	<li>The gray shape must morph just like sub-test #1, from the diamond to the flower-like shape.</li>
-	<li>The gray shape must morph from the diamond, to the flower-like shape, and then to the large, rounded diamond shape.</li>
-	<li>The gray shape must morph from the lower-right pointing kite shape to the upper-left pointing kite shape.</li>
-	<li>The gray shape must morph from the tall shape to the wide shape.</li>
-	<li>The gray shape must morph from the wide "D" shape to the narrow "D" shape.</li>
+  <li>The gray shape must morph just like sub-test #1, from the diamond to the flower-like shape.</li>
+  <li>The gray shape must morph from the diamond, to the flower-like shape, and then to the large, rounded diamond shape.</li>
+  <li>The gray shape must morph from the lower-right pointing kite shape to the upper-left pointing kite shape.</li>
+  <li>The gray shape must morph from the tall shape to the wide shape.</li>
+  <li>The gray shape must morph from the wide "D" shape to the narrow "D" shape.</li>
       </ol>
       <p>In addition, during the animations whenever the gray shape has the same shape as
       a reference shape, the stroke of the reference shape must be shown thicker momentarily.</p>

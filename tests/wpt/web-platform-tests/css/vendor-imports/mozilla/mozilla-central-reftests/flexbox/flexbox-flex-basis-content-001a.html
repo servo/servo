@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>
+    CSS Test: Testing "flex-basis: content" in a row-oriented flex container
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#propdef-flex-basis">
+  <link rel="match" href="flexbox-flex-basis-content-001-ref.html">
+  <link rel="stylesheet" type="text/css" href="support/ahem.css">
+  <style>
+  .container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    border: 2px solid purple;
+    padding: 2px;
+    margin-bottom: 2em;
+    height: 50px;
+    width: 200px;
+  }
+
+  .container > * {
+    /* All flex items have "flex-basis: content" (and zero flex-shrink and
+       min-main-size, to avoid any influence from those). */
+    flex-basis: content;
+    flex-shrink: 0;
+    min-width: 0;
+    border: 2px solid teal;
+  }
+
+  .smallText { font: 10px Ahem; }
+  .bigText   { font: 20px Ahem; }
+  .spacerChild::before {
+    content: '';
+    display: block;
+    background: brown;
+    height: 10px;
+    width: 10px;
+  }
+  .justPadding {
+    /* Empty div with 5px padding on each side */
+    padding: 5px;
+    background: cyan;
+  }
+  canvas { background: fuchsia }
+  </style>
+</head>
+<body>
+<!-- Flex items have unspecified size properties: -->
+<div class="container">
+  <div class="smallText">a b</div>
+  <div class="bigText">c</div>
+  <div class="spacerChild"></div>
+  <div class="justPadding"></div>
+  <canvas width="20"></canvas>
+</div>
+
+<!-- Various specified main-size values (should be ignored): -->
+<div class="container">
+  <div class="smallText"    style="width: 0px">a b</div>
+  <div class="bigText"      style="width: 40px">c</div>
+  <div class="spacerChild"  style="width: 20px"></div>
+  <div class="justPadding"  style="width: 10px"></div>
+  <canvas width="20"        style="width: 8px"></canvas>
+</div>
+
+<!-- Various specified cross-size values (should be honored): -->
+<div class="container">
+  <div class="smallText"    style="height: 0px">a b</div>
+  <div class="bigText"      style="height: 40px">c</div>
+  <div class="spacerChild"  style="height: 20px"></div>
+  <div class="justPadding"  style="height: 10px"></div>
+  <canvas width="20"        style="height: 8px"></canvas>
+</div>
+
+</body>
+</html>

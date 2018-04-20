@@ -226,6 +226,12 @@ partial interface Gamepad {
         idl_array.add_untested_idls("interface HTMLIFrameElement {};");
         idl_array.add_untested_idls("interface Gamepad {};");
 
+        idl_array.add_untested_idls(`dictionary EventInit {
+          boolean bubbles = false;
+          boolean cancelable = false;
+          boolean composed = false;
+        };`);
+
         idl_array.add_idls(document.getElementById("webvr_idl").textContent);
 
         idl_array.test();

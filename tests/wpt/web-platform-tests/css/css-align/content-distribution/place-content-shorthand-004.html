@@ -14,11 +14,6 @@
     }
 
     test(function() {
-        checkInvalidValues("safe center")
-        checkInvalidValues("unsafe center")
-    }, "Verify overflow keywords are invalid");
-
-    test(function() {
         checkInvalidValues("center space-between start")
     }, "Verify fallback values are invalid");
 
@@ -29,8 +24,6 @@
     }, "Verify 'left' and 'right' values are invalid for block/cross axis alignment");
 
     test(function() {
-        checkInvalidValues("baseline")
-        checkInvalidValues("first baseline")
         checkInvalidValues("start baseline")
         checkInvalidValues("end last baseline")
     }, "Verify <baseline-position> values are invalid for the justify-content property");

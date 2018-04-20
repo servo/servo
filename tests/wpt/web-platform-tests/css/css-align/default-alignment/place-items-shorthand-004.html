@@ -14,11 +14,6 @@
     }
 
     test(function() {
-        checkInvalidValues("safe center")
-        checkInvalidValues("unsafe center")
-    }, "Verify overflow keywords are invalid");
-
-    test(function() {
         checkInvalidValues("center space-between start")
     }, "Verify fallback values are invalid");
 
@@ -32,23 +27,6 @@
         checkInvalidValues("10px left")
         checkInvalidValues("right 10%")
     }, "Verify numeric values are invalid");
-
-    test(function() {
-       checkInvalidValues("auto")
-       checkInvalidValues("auto right")
-       checkInvalidValues("auto auto")
-       checkInvalidValues("center auto")
-    }, "Verify 'auto' value is invalid.");
-
-    test(function() {
-       checkInvalidValues("legacy")
-       checkInvalidValues("legacy start")
-       checkInvalidValues("end legacy")
-       checkInvalidValues("legacy left")
-       checkInvalidValues("center legacy")
-       checkInvalidValues("start legacy center")
-    }, "Verify 'legacy' value is invalid.");
-
 
     test(function() {
         checkInvalidValues("")
