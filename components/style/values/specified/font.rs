@@ -418,6 +418,41 @@ impl FontStretchKeyword {
             UltraExpanded => 2.,
         })
     }
+
+    /// Does the opposite operation to `compute`, in order to serialize keywords
+    /// if possible.
+    pub fn from_percentage(percentage: f32) -> Option<Self> {
+        use self::FontStretchKeyword::*;
+        // NOTE(emilio): Can't use `match` because of rust-lang/rust#41620.
+        if percentage == 0.5 {
+            return Some(UltraCondensed);
+        }
+        if percentage == 0.625 {
+            return Some(ExtraCondensed);
+        }
+        if percentage == 0.75 {
+            return Some(Condensed);
+        }
+        if percentage == 0.875 {
+            return Some(SemiCondensed);
+        }
+        if percentage == 1. {
+            return Some(Normal);
+        }
+        if percentage == 1.125 {
+            return Some(SemiExpanded);
+        }
+        if percentage == 1.25 {
+            return Some(Expanded);
+        }
+        if percentage == 1.5 {
+            return Some(ExtraExpanded);
+        }
+        if percentage == 2. {
+            return Some(UltraExpanded);
+        }
+        None
+    }
 }
 
 impl FontStretch {
