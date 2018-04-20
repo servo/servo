@@ -27,6 +27,7 @@
     use properties::longhands::system_font::SystemFont;
     use values::specified::text::LineHeight;
     use values::specified::FontSize;
+    use values::specified::font::{FontStretch, FontStretchKeyword};
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -94,8 +95,8 @@
                 }
             }
             if stretch.is_none() {
-                if let Ok(value) = input.try(|input| font_stretch::parse(context, input)) {
-                    stretch = Some(value);
+                if let Ok(value) = input.try(FontStretchKeyword::parse) {
+                    stretch = Some(FontStretch::Keyword(value));
                     continue
                 }
             }
@@ -180,14 +181,30 @@
             % endfor
             % endif
 
-            // In case of serialization for canvas font, we need to drop
-            // initial values of properties other than size and family.
-            % for name in "style variant_caps weight stretch".split():
+            // Only font-stretch keywords are allowed as part as the font
+            // shorthand.
+            let font_stretch = match *self.font_stretch {
+                FontStretch::Keyword(kw) => kw,
+                FontStretch::Stretch(percentage) => {
+                    match FontStretchKeyword::from_percentage(percentage.get()) {
+                        Some(kw) => kw,
+                        None => return Ok(()),
+                    }
+                }
+                FontStretch::System(..) => return Ok(()),
+            };
+
+            % for name in "style variant_caps weight".split():
                 if self.font_${name} != &font_${name}::get_initial_specified_value() {
                     self.font_${name}.to_css(dest)?;
                     dest.write_str(" ")?;
                 }
             % endfor
+
+            if font_stretch != FontStretchKeyword::Normal {
+                font_stretch.to_css(dest)?;
+                dest.write_str(" ")?;
+            }
 
             self.font_size.to_css(dest)?;
 
