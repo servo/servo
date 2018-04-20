@@ -403,14 +403,17 @@ ${helpers.predefined_type(
 
 <% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
 
-${helpers.predefined_type("transform", "Transform",
-                          "generics::transform::Transform::none()",
-                          extra_prefixes=transform_extra_prefixes,
-                          animation_value_type="ComputedValue",
-                          gecko_ffi_name="mSpecifiedTransform",
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "transform",
+    "Transform",
+    "generics::transform::Transform::none()",
+    extra_prefixes=transform_extra_prefixes,
+    animation_value_type="ComputedValue",
+    gecko_ffi_name="mSpecifiedTransform",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB GETCS_NEEDS_LAYOUT_FLUSH",
+    spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
 
 ${helpers.predefined_type("rotate", "Rotate",
                           "generics::transform::Rotate::None",
@@ -430,14 +433,17 @@ ${helpers.predefined_type("scale", "Scale",
                           spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
                           servo_restyle_damage = "reflow_out_of_flow")}
 
-${helpers.predefined_type("translate", "Translate",
-                          "generics::transform::Translate::None",
-                          animation_value_type="ComputedValue",
-                          boxed=True,
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          gecko_pref="layout.css.individual-transform.enabled",
-                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "translate",
+    "Translate",
+    "generics::transform::Translate::None",
+    animation_value_type="ComputedValue",
+    boxed=True,
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB GETCS_NEEDS_LAYOUT_FLUSH",
+    gecko_pref="layout.css.individual-transform.enabled",
+    spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
 
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
@@ -529,14 +535,17 @@ ${helpers.predefined_type(
     servo_restyle_damage = "reflow_out_of_flow",
 )}
 
-${helpers.predefined_type("perspective-origin",
-                          "position::Position",
-                          "computed::position::Position::center()",
-                          boxed=True,
-                          extra_prefixes=transform_extra_prefixes,
-                          spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
-                          animation_value_type="ComputedValue",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "perspective-origin",
+    "position::Position",
+    "computed::position::Position::center()",
+    boxed=True,
+    extra_prefixes=transform_extra_prefixes,
+    spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
+    flags="GETCS_NEEDS_LAYOUT_FLUSH",
+    animation_value_type="ComputedValue",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
 
 ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
@@ -565,15 +574,18 @@ ${helpers.predefined_type(
     servo_restyle_damage = "reflow_out_of_flow",
 )}
 
-${helpers.predefined_type("transform-origin",
-                          "TransformOrigin",
-                          "computed::TransformOrigin::initial_value()",
-                          animation_value_type="ComputedValue",
-                          extra_prefixes=transform_extra_prefixes,
-                          gecko_ffi_name="mTransformOrigin",
-                          boxed=True,
-                          spec="https://drafts.csswg.org/css-transforms/#transform-origin-property",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "transform-origin",
+    "TransformOrigin",
+    "computed::TransformOrigin::initial_value()",
+    animation_value_type="ComputedValue",
+    extra_prefixes=transform_extra_prefixes,
+    gecko_ffi_name="mTransformOrigin",
+    boxed=True,
+    flags="GETCS_NEEDS_LAYOUT_FLUSH",
+    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
 
 ${helpers.predefined_type("contain",
                           "Contain",

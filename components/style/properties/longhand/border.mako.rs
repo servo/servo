@@ -43,17 +43,19 @@
         needs_context=False,
     )}
 
-    ${helpers.predefined_type("border-%s-width" % side_name,
-                              "BorderSideWidth",
-                              "::values::computed::NonNegativeLength::new(3.)",
-                              computed_type="::values::computed::NonNegativeLength",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
-                              spec=maybe_logical_spec(side, "width"),
-                              animation_value_type="NonNegativeLength",
-                              logical=is_logical,
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              allow_quirks=not is_logical,
-                              servo_restyle_damage = "reflow rebuild_and_reflow_inline")}
+    ${helpers.predefined_type(
+        "border-%s-width" % side_name,
+        "BorderSideWidth",
+        "::values::computed::NonNegativeLength::new(3.)",
+        computed_type="::values::computed::NonNegativeLength",
+        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
+        spec=maybe_logical_spec(side, "width"),
+        animation_value_type="NonNegativeLength",
+        logical=is_logical,
+        flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
+        allow_quirks=not is_logical,
+        servo_restyle_damage="reflow rebuild_and_reflow_inline"
+    )}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',

@@ -10,18 +10,28 @@
 
 // "top" / "left" / "bottom" / "right"
 % for side in PHYSICAL_SIDES:
-    ${helpers.predefined_type(side, "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Auto",
-                              spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
-                              animation_value_type="ComputedValue",
-                              allow_quirks=True, servo_restyle_damage = "reflow_out_of_flow")}
+    ${helpers.predefined_type(
+        side,
+        "LengthOrPercentageOrAuto",
+        "computed::LengthOrPercentageOrAuto::Auto",
+        spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        animation_value_type="ComputedValue",
+        allow_quirks=True,
+        servo_restyle_damage="reflow_out_of_flow"
+    )}
 % endfor
 // offset-* logical properties, map to "top" / "left" / "bottom" / "right"
 % for side in LOGICAL_SIDES:
-    ${helpers.predefined_type("offset-%s" % side, "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Auto",
-                              spec="https://drafts.csswg.org/css-logical-props/#propdef-offset-%s" % side,
-                              animation_value_type="ComputedValue", logical=True)}
+    ${helpers.predefined_type(
+        "offset-%s" % side,
+        "LengthOrPercentageOrAuto",
+        "computed::LengthOrPercentageOrAuto::Auto",
+        spec="https://drafts.csswg.org/css-logical-props/#propdef-offset-%s" % side,
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        animation_value_type="ComputedValue",
+        logical=True,
+    )}
 % endfor
 
 #[cfg(feature = "gecko")]
@@ -213,7 +223,8 @@ ${helpers.predefined_type(
             allow_quirks=not logical,
             spec=spec % size,
             animation_value_type="MozLength",
-            servo_restyle_damage = "reflow"
+            flags="GETCS_NEEDS_LAYOUT_FLUSH",
+            servo_restyle_damage="reflow"
         )}
         // min-width, min-height, min-block-size, min-inline-size,
         ${helpers.predefined_type(
@@ -318,13 +329,16 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               boxed=True)}
 
-    ${helpers.predefined_type("grid-template-%ss" % kind,
-                              "GridTemplateComponent",
-                              "specified::GenericGridTemplateComponent::None",
-                              products="gecko",
-                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
-                              boxed=True,
-                              animation_value_type="discrete")}
+    ${helpers.predefined_type(
+        "grid-template-%ss" % kind,
+        "GridTemplateComponent",
+        "specified::GenericGridTemplateComponent::None",
+        products="gecko",
+        spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
+        boxed=True,
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        animation_value_type="discrete"
+    )}
 
 % endfor
 
