@@ -116,7 +116,7 @@ impl ApplicableDeclarationBlock {
         level: CascadeLevel,
     ) -> Self {
         ApplicableDeclarationBlock {
-            source: StyleSource::Declarations(declarations),
+            source: StyleSource::from_declarations(declarations),
             bits: ApplicableDeclarationBits::new(0, level, 0),
             specificity: 0,
         }

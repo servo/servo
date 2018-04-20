@@ -137,7 +137,7 @@ use style::properties::{parse_one_declaration_into, parse_style_attribute};
 use style::properties::animated_properties::AnimationValue;
 use style::properties::animated_properties::compare_property_priority;
 use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::{CascadeLevel, StrongRuleNode, StyleSource};
+use style::rule_tree::{CascadeLevel, StrongRuleNode};
 use style::selector_parser::{PseudoElementCascadeType, SelectorImpl};
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::{Atom, WeakAtom};
@@ -3123,8 +3123,8 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
 
     let mut result = SmallVec::<[_; 10]>::new();
     for node in rule_node.self_and_ancestors() {
-        let style_rule = match *node.style_source() {
-            StyleSource::Style(ref rule) => rule,
+        let style_rule = match node.style_source().and_then(|x| x.as_rule()) {
+            Some(rule) => rule,
             _ => continue,
         };
 
@@ -3141,9 +3141,11 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
 
     unsafe { rules.set_len(result.len() as u32) };
     for (ref src, ref mut dest) in result.into_iter().zip(rules.iter_mut()) {
-        src.with_raw_offset_arc(|arc| {
-            **dest = *Locked::<StyleRule>::arc_as_borrowed(arc);
-        })
+        src.with_arc(|a| {
+            a.with_raw_offset_arc(|arc| {
+                **dest = *Locked::<StyleRule>::arc_as_borrowed(arc);
+            })
+        });
     }
 }
 

@@ -3424,7 +3424,7 @@ where
             let source = node.style_source();
 
             let declarations = if source.is_some() {
-                source.read(cascade_level.guard(guards)).declaration_importance_iter()
+                source.as_ref().unwrap().read(cascade_level.guard(guards)).declaration_importance_iter()
             } else {
                 // The root node has no style source.
                 DeclarationImportanceIterator::new(&[], &empty)
