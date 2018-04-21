@@ -1,1 +1,1 @@
-testServerTiming(document.currentScript.src, [{"name":"metric"}])
+testServerTiming(document.currentScript, [{"name":"metric"}])

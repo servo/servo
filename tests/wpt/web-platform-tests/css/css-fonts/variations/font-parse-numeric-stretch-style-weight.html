@@ -20,6 +20,8 @@ var styleValidTests = {
     '850.3',
     'calc(100 + 300)',
     'calc(0.2 + 205.5)',
+    'calc(0 - 100)',
+    'calc(200 + 801)',
   ],
   'stretch': ['51%', '199%', 'calc(10% + 20%)'],
   'style' : [ 'normal', 'italic', 'oblique', 'oblique 50deg', 'oblique -90deg', 'oblique 90deg',
@@ -27,7 +29,7 @@ var styleValidTests = {
 };
 
 var styleInvalidTests = {
-  'weight': ['100 400', 'calc(0 - 100)', 'calc(200 + 801)'],
+  'weight': ['100 400'],
   'stretch': ['100% 110%', '0%', '100% 150%', 'calc(1 + 10%)'],
   'style' : [ 'normal 10deg', 'italic 10deg', 'oblique -91deg', 'oblique 91deg', 'oblique calc(90deg + 20deg)']
 };

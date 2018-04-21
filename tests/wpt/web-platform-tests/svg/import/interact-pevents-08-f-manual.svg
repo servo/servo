@@ -65,7 +65,7 @@
       {
         document.getElementById(id).setAttribute("fill-opacity", "0.4");
       }
-      
+
       function hide(id)
       {
         document.getElementById(id).setAttribute("fill-opacity", "0");
@@ -181,5 +181,5 @@
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
     <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
-  </g>--> 
+  </g>-->
 </svg>

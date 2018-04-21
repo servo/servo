@@ -12,6 +12,7 @@ test(function() {
     assert_false(called);
     called = true;
     assert_equals(ev.target, element);
+    assert_equals(ev.srcElement, element);
   }));
   doc.body.appendChild(element);
 

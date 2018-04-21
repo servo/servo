@@ -67,18 +67,18 @@
         <text id="TestStatus" x="333" y="350" font-size="40">failed</text>
       </g>
     </g>
-    
+
         <script><![CDATA[
       var svg_ns = "http://www.w3.org/2000/svg";
       var xlink_ns = "http://www.w3.org/1999/xlink";
-  
+
       var count=0;
       var topsvg = document.documentElement;
       var startY = 80;
       var rowHeight = 12;
       var fontSize = "10";
       var isPassed = true;
-  
+
       function drawString( text, color )
       {
         node_to_insert=document.createElementNS(svg_ns,"text");
@@ -89,10 +89,10 @@
         node_to_insert.setAttributeNS(null, "y",  yVal.toString());
         node_to_insert.setAttributeNS(null, "fill",  color  );
         node_to_insert.appendChild(document.createTextNode(text));
-        document.getElementById( "test-body-content" ).appendChild(node_to_insert);          
-       
+        document.getElementById( "test-body-content" ).appendChild(node_to_insert);
+
       }
-  
+
       function verifyBBox( bbox, x, y, width, height, epsilon )
       {
         if
@@ -100,7 +100,7 @@
           ( Math.abs(bbox.x - x ) < epsilon ) &&
           ( Math.abs(bbox.y - y ) < epsilon ) &&
           ( Math.abs(bbox.width - width ) < epsilon ) &&
-          ( Math.abs(bbox.height - height ) < epsilon ) 
+          ( Math.abs(bbox.height - height ) < epsilon )
         )
         {
           return "green";
@@ -112,28 +112,28 @@
           return "red";
         }
       }
-  
+
       function displayGetBBox( )
       {
-        drawString( "getBBox()", "black" );             
+        drawString( "getBBox()", "black" );
         var bbox = document.getElementById( "group1" ).getBBox( );
-        drawString( "[group1] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, -70, -60, 230, 200, 1 / 65535 ) );            
-  
+        drawString( "[group1] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, -70, -60, 230, 200, 1 / 65535 ) );
+
         bbox = document.getElementById( "rect1" ).getBBox( );
         drawString( "[rect1] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, 10, 10, 50, 50, 1 / 65535 ));
-  
+
         bbox = document.getElementById( "rect2" ).getBBox( );
         drawString( "[rect2] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, 10, 10, 100, 100, 1 / 65535 ));
-  
+
         bbox = document.getElementById( "group2" ).getBBox( );
         drawString( "[group2] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, -80, -80, 230, 200, 1 / 65535 ));
-  
+
         bbox = document.getElementById( "rect3" ).getBBox( );
         drawString( "[rect3] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height ,  verifyBBox( bbox, 0, 10, 150, 50, 1 / 65535 ));
-  
+
         bbox = document.getElementById( "circle1" ).getBBox( );
         drawString( "[circle1] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, -80, -80, 200, 200, 1 / 65535 ));
-        
+
         bbox = document.getElementById( "rect4" ).getBBox( );
         drawString( "[rect4] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height, verifyBBox( bbox, 10, 10, 400, 0, 1 / 65535 ));
 
@@ -144,9 +144,9 @@
         drawString( "[thickLine] " + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height , verifyBBox( bbox, 0, 0, 100, 0, 1 / 65535 ));
 
       }
-  
+
       displayGetBBox();
-  
+
       // remove from tree, get bbox
       drawString( "node removed from tree, should still have bounding box", "black" );
       circle = document.getElementById( "circle2" );
@@ -165,7 +165,6 @@
         isPassed = false;
         drawString( "Results do not match expected values (null)" , "red");
       }
-
 
       if( isPassed )
       {

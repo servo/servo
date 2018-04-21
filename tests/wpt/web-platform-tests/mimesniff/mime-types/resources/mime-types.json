@@ -32,6 +32,12 @@
     "navigable": true,
     "encoding": "GBK"
   },
+  {
+    "input": "text/html;charset=();charset=GBK",
+    "output": "text/html;charset=\"()\"",
+    "navigable": true,
+    "encoding": null
+  },
   "Spaces",
   {
     "input": "text/html;charset =gbk",
@@ -57,6 +63,12 @@
     "navigable": true,
     "encoding": "GBK"
   },
+  {
+    "input": "text/html;charset= \"gbk\"",
+    "output": "text/html;charset=\" \\\"gbk\\\"\"",
+    "navigable": true,
+    "encoding": null
+  },
   "Single quotes are a token, not a delimiter",
   {
     "input": "text/html;charset='gbk'",
@@ -73,6 +85,12 @@
   {
     "input": "text/html;charset=gbk'",
     "output": "text/html;charset=gbk'",
+    "navigable": true,
+    "encoding": null
+  },
+  {
+    "input": "text/html;charset=';charset=GBK",
+    "output": "text/html;charset='",
     "navigable": true,
     "encoding": null
   },
@@ -113,6 +131,18 @@
     "navigable": true,
     "encoding": "GBK"
   },
+  {
+    "input": "text/html;charset= \"\u007F;charset=GBK",
+    "output": "text/html;charset=GBK",
+    "navigable": true,
+    "encoding": "GBK"
+  },
+  {
+    "input": "text/html;charset=\"\u007F;charset=foo\";charset=GBK",
+    "output": "text/html;charset=GBK",
+    "navigable": true,
+    "encoding": "GBK"
+  },
   "Double quotes",
   {
     "input": "text/html;charset=\"gbk\"",
@@ -139,6 +169,12 @@
     "encoding": "GBK"
   },
   {
+    "input": "text/html;charset=\"gbk \"",
+    "output": "text/html;charset=\"gbk \"",
+    "navigable": true,
+    "encoding": "GBK"
+  },
+  {
     "input": "text/html;charset=\"\\ gbk\"",
     "output": "text/html;charset=\" gbk\"",
     "navigable": true,
@@ -155,6 +191,18 @@
     "output": "text/html;charset=gbk",
     "navigable": true,
     "encoding": "GBK"
+  },
+  {
+    "input": "text/html;charset=\"\";charset=GBK",
+    "output": "text/html;charset=GBK",
+    "navigable": true,
+    "encoding": "GBK"
+  },
+  {
+    "input": "text/html;charset=\";charset=GBK",
+    "output": "text/html;charset=\";charset=GBK\"",
+    "navigable": true,
+    "encoding": null
   },
   "Unexpected code points",
   {
@@ -224,6 +272,10 @@
     "output": null
   },
   {
+    "input": "/",
+    "output": null
+  },
+  {
     "input": "bogus",
     "output": null
   },
@@ -245,6 +297,10 @@
   },
   {
     "input": "(/)",
+    "output": null
+  },
+  {
+    "input": "ÿ/ÿ",
     "output": null
   },
   {

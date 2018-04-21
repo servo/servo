@@ -14,7 +14,7 @@ function doTest([generic_sensor, geolocation_sensor]) {
   const idl_array = new IdlArray();
   idl_array.add_untested_idls('interface EventTarget {};');
   idl_array.add_untested_idls('interface EventHandler {};');
-  idl_array.add_idls(generic_sensor, { only: ['Sensor'] });
+  idl_array.add_idls(generic_sensor, { only: ['Sensor', 'SensorOptions'] });
   idl_array.add_idls(geolocation_sensor);
   idl_array.add_objects({
     GeolocationSensor: ['new GeolocationSensor'],

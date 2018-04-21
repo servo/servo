@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focus - key events</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#focus">
+<meta assert="flag" content="interact">
+<meta assert="assert" content="Check if the key events received by document are targeted at the element when no element is focused">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="log"></div>
+<script>
+
+var t1 = async_test("The keydown event must be targeted at the body element"),
+    t2 = async_test("The keypress event must be targeted at the body element"),
+    t3 = async_test("The keyup event must be targeted at the body element");
+
+setup({timeout: 10000});
+
+document.onkeydown = t1.step_func_done(function(evt){
+  assert_equals(evt.target, document.body, "The keydown events must be targeted at the document's body.");
+});
+
+document.onkeypress = t2.step_func_done(function(evt){
+  assert_equals(evt.target, document.body, "The keypress events must be targeted at the document's body.");
+});
+
+document.onkeyup = t3.step_func_done(function(evt){
+  assert_equals(evt.target, document.body, "The keyup events must be targeted at the document's body.");
+});
+
+t1.step(function() {
+  test_driver.send_keys(document.body, "a");
+});
+
+</script>

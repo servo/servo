@@ -20,10 +20,10 @@
 <script>
   "use strict";
 
-  function doIdlTest(idlText) {
+  function doIdlTest([dom, idlText]) {
     const MDI_idl = new IdlArray();
 
-    MDI_idl.add_untested_idls("interface Event {};");
+    MDI_idl.add_untested_idls(dom, { only: ['Event', 'EventInit'] });
     MDI_idl.add_untested_idls("interface EventTarget {};");
     MDI_idl.add_untested_idls("interface Navigator {};");
     MDI_idl.add_idls(idlText);
@@ -59,8 +59,11 @@
   }
 
   promise_test(() => {
-    return fetch('/interfaces/mediacapture-main.idl')
-      .then(response => response.text())
+      return Promise.all(
+        [
+          '/interfaces/dom.idl',
+          '/interfaces/mediacapture-main.idl',
+        ].map(url => fetch(url).then(r => r.text())))
       .then(doIdlTest);
 
   }, "Test MediaDevices.enumerateDevices call and result. Types only.");

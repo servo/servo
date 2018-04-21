@@ -9,13 +9,13 @@
 <script>
 'use strict';
 
-function doTest(idls) {
+function doTest(idl, dom) {
   var idl_array = new IdlArray();
   idl_array.add_untested_idls('interface Navigator {};');
   idl_array.add_untested_idls('interface EventTarget {};');
-  for (let idl of idls) {
-    idl_array.add_idls(idl);
-  }
+  idl_array.add_untested_idls('dictionary PermissionDescriptor {};');
+  idl_array.add_untested_idls(dom, { only: ['Event', 'EventInit'] });
+  idl_array.add_idls(idl);
   idl_array.add_objects({
     Navigator: ['navigator'],
     Clipboard: ['navigator.clipboard'],
@@ -29,7 +29,11 @@ function fetchText(url) {
 }
 
 promise_test(() => {
-  return Promise.all(["/interfaces/clipboard-apis.idl"].map(fetchText))
-    .then(doTest);
+  return Promise.all(
+    [
+      "/interfaces/clipboard-apis.idl",
+      "/interfaces/dom.idl",
+    ].map(fetchText))
+    .then(([idl, dom]) => doTest(idl, dom));
 }, "Test driver");
 </script>

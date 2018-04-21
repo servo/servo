@@ -44,7 +44,7 @@ def run(path, server_config, session_config, timeout=0):
     os.environ["WD_HOST"] = session_config["host"]
     os.environ["WD_PORT"] = str(session_config["port"])
     os.environ["WD_CAPABILITIES"] = json.dumps(session_config["capabilities"])
-    os.environ["WD_SERVER_CONFIG"] = json.dumps(server_config)
+    os.environ["WD_SERVER_CONFIG"] = json.dumps(server_config.as_dict())
 
     harness = HarnessResultRecorder()
     subtests = SubtestResultRecorder()
@@ -62,7 +62,7 @@ def run(path, server_config, session_config, timeout=0):
                          path],
                         plugins=[harness, subtests])
         except Exception as e:
-            harness.outcome = ("ERROR", str(e))
+            harness.outcome = ("INTERNAL-ERROR", str(e))
 
     return (harness.outcome, subtests.results)
 

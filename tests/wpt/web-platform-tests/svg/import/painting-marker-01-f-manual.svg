@@ -15,7 +15,7 @@
     version="$Revision: 1.7 $" testname="$RCSfile: painting-marker-01-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#Markers">
         <p>
-          Tests the basic support for markers. 
+          Tests the basic support for markers.
         </p>
         <p>
           The top test examines the basic support for the marker element and style. The markers are purple rectangles.
@@ -43,9 +43,9 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        For the three tests, there should be two identical paths with markers drawn. 
-        The path on the left is rendered using the marker elements. The path on the 
-        right is rendered using the equivalent SVG, showing what the marked path should 
+        For the three tests, there should be two identical paths with markers drawn.
+        The path on the left is rendered using the marker elements. The path on the
+        right is rendered using the equivalent SVG, showing what the marked path should
         look like.
       </p>
       <p>

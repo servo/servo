@@ -33,7 +33,7 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         The test has passed if a triangle is animated smoothly along the path indicated by the black line, and
-        it passes over the pink rectangles at the indicated times. 
+        it passes over the pink rectangles at the indicated times.
         When the animation starts the triangle should be positioned on top of the leftmost pink rectangle, after
         3 seconds it should reach the middle pink rectangle, and after 6 seconds it should be positioned on top
         of the rightmost pink rectangle where it should stop.
