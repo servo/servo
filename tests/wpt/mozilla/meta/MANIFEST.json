@@ -39217,6 +39217,12 @@
      {}
     ]
    ],
+   "mozilla/webgl/bindBuffer.html": [
+    [
+     "/_mozilla/mozilla/webgl/bindBuffer.html",
+     {}
+    ]
+   ],
    "mozilla/webgl/bufferData.html": [
     [
      "/_mozilla/mozilla/webgl/bufferData.html",
@@ -70854,6 +70860,10 @@
   ],
   "mozilla/weakref.html": [
    "bc2a964c294e678b3c0e98ba83ce30a59a8bee3f",
+   "testharness"
+  ],
+  "mozilla/webgl/bindBuffer.html": [
+   "659d53041373a6e40b9ab4cbf7e2afad45048377",
    "testharness"
   ],
   "mozilla/webgl/bufferData.html": [

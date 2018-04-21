@@ -77,6 +77,9 @@ impl WebGLBuffer {
 
     // NB: Only valid buffer targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
+        if self.is_deleted() || self.is_pending_delete() {
+            return Err(WebGLError::InvalidOperation);
+        }
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
@@ -139,6 +142,10 @@ impl WebGLBuffer {
 
     pub fn set_pending_delete(&self) {
         self.pending_delete.set(true);
+    }
+
+    pub fn is_pending_delete(&self) -> bool {
+        self.pending_delete.get()
     }
 
     pub fn add_vao_reference(&self, id: WebGLVertexArrayId) {
