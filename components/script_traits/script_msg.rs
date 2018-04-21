@@ -17,7 +17,7 @@ use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TraversalDirection};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
@@ -163,6 +163,10 @@ pub enum ScriptMsg {
     GetScreenSize(IpcSender<(DeviceUintSize)>),
     /// Get the available screen size (pixel)
     GetScreenAvailSize(IpcSender<(DeviceUintSize)>),
+    /// Request to present an IME to the user when an editable element is focused.
+    ShowIME(InputMethodType),
+    /// Request to hide the IME when the editable element is blurred.
+    HideIME,
     /// Requests that the compositor shut down.
     Exit,
 }

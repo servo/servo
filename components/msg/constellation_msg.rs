@@ -401,3 +401,23 @@ pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
 #[cfg(feature = "unstable")]
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
     BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };
+
+// Used to specify the kind of input method editor appropriate to edit a field.
+// This is a subset of htmlinputelement::InputType because some variants of InputType
+// don't make sense in this context.
+#[derive(Deserialize, Serialize)]
+pub enum InputMethodType {
+    Color,
+    Date,
+    DatetimeLocal,
+    Email,
+    Month,
+    Number,
+    Password,
+    Search,
+    Tel,
+    Text,
+    Time,
+    Url,
+    Week,
+}
