@@ -232,6 +232,7 @@ use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::LoaderReusableStyleSheets;
 use gecko_bindings::structs::SheetLoadData;
+use gecko_bindings::structs::SheetLoadDataHolder;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::ServoComputedData;
 use gecko_bindings::structs::ComputedStyleStrong;
@@ -628,16 +629,34 @@ extern "C" {
     ) -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
+    pub fn Gecko_AddRefSheetLoadDataHolderArbitraryThread(aPtr: *mut SheetLoadDataHolder);
+}
+extern "C" {
+    pub fn Gecko_ReleaseSheetLoadDataHolderArbitraryThread(aPtr: *mut SheetLoadDataHolder);
+}
+extern "C" {
+    pub fn Gecko_StyleSheet_FinishAsyncParse(
+        data: *mut SheetLoadDataHolder,
+        sheet_contents: RawServoStyleSheetContentsStrong,
+    );
+}
+extern "C" {
     pub fn Gecko_LoadStyleSheet(
         loader: *mut Loader,
         parent: *mut ServoStyleSheet,
         parent_load_data: *mut SheetLoadData,
         reusable_sheets: *mut LoaderReusableStyleSheets,
-        base_url_data: *mut RawGeckoURLExtraData,
-        url_bytes: *const u8,
-        url_length: u32,
+        url: ServoBundledURI,
         media_list: RawServoMediaListStrong,
     ) -> *mut ServoStyleSheet;
+}
+extern "C" {
+    pub fn Gecko_LoadStyleSheetAsync(
+        parent_data: *mut SheetLoadDataHolder,
+        url: ServoBundledURI,
+        media_list: RawServoMediaListStrong,
+        import_rule: RawServoImportRuleStrong,
+    );
 }
 extern "C" {
     pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u64;
@@ -1996,14 +2015,23 @@ extern "C" {
         loader: *mut Loader,
         gecko_stylesheet: *mut ServoStyleSheet,
         load_data: *mut SheetLoadData,
-        data: *const u8,
-        data_len: usize,
+        bytes: *const nsACString,
         parsing_mode: SheetParsingMode,
         extra_data: *mut RawGeckoURLExtraData,
         line_number_offset: u32,
         quirks_mode: nsCompatibility,
         reusable_sheets: *mut LoaderReusableStyleSheets,
     ) -> RawServoStyleSheetContentsStrong;
+}
+extern "C" {
+    pub fn Servo_StyleSheet_FromUTF8BytesAsync(
+        load_data: *mut SheetLoadDataHolder,
+        extra_data: *mut RawGeckoURLExtraData,
+        bytes: *const nsACString,
+        parsing_mode: SheetParsingMode,
+        line_number_offset: u32,
+        quirks_mode: nsCompatibility,
+    );
 }
 extern "C" {
     pub fn Servo_StyleSheet_Empty(
@@ -2513,10 +2541,20 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
+    pub fn Servo_StyleRule_SetSelectorText(
+        sheet: RawServoStyleSheetContentsBorrowed,
+        rule: RawServoStyleRuleBorrowed,
+        text: *const nsAString,
+    ) -> bool;
+}
+extern "C" {
     pub fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, result: *mut nsAString);
 }
 extern "C" {
     pub fn Servo_ImportRule_GetSheet(rule: RawServoImportRuleBorrowed) -> *const ServoStyleSheet;
+}
+extern "C" {
+    pub fn Servo_ImportRule_SetSheet(rule: RawServoImportRuleBorrowed, sheet: *mut ServoStyleSheet);
 }
 extern "C" {
     pub fn Servo_Keyframe_GetKeyText(keyframe: RawServoKeyframeBorrowed, result: *mut nsAString);
