@@ -8,7 +8,7 @@ use SendableFrameTree;
 use compositor::CompositingReason;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
@@ -143,6 +143,10 @@ pub enum EmbedderMsg {
     Panic(TopLevelBrowsingContextId, String, Option<String>),
     /// Open dialog to select bluetooth device.
     GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
+    /// Request to present an IME to the user when an editable element is focused.
+    ShowIME(TopLevelBrowsingContextId, InputMethodType),
+    /// Request to hide the IME when the editable element is blured.
+    HideIME(TopLevelBrowsingContextId),
     /// Servo has shut down
     Shutdown,
 }
@@ -244,6 +248,8 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
+            EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
+            EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }

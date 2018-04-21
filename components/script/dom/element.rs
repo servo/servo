@@ -83,6 +83,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
+use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
@@ -1085,6 +1086,22 @@ impl Element {
             }
         }
         None
+    }
+
+    // Returns the kind of IME control needed for a focusable element, if any.
+    pub fn input_method_type(&self) -> Option<InputMethodType> {
+        if !self.is_focusable_area() {
+            return None;
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            input.input_type().as_ime_type()
+        } else if let Some(_textarea) = self.downcast::<HTMLTextAreaElement>() {
+            Some(InputMethodType::Text)
+        } else {
+            // Other focusable elements that are not input fields.
+            None
+        }
     }
 
     pub fn is_focusable_area(&self) -> bool {
