@@ -27,7 +27,8 @@ use style_traits::{StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
 #[cfg(feature = "gecko")]
-use values::specified::font::{AbsoluteFontWeight, SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
+use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
+use values::specified::font::AbsoluteFontWeight;
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.

@@ -154,19 +154,12 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn boldness(&self) -> FontWeight {
-        if let Some(os2) = self.os2_table() {
-            let weight = os2.us_weight_class as i32;
-
-            if weight < 10 {
-                FontWeight::from_int(weight * 100).unwrap()
-            } else if weight >= 100 && weight < 1000 {
-                FontWeight::from_int(weight / 100 * 100).unwrap()
-            } else {
-                FontWeight::normal()
-            }
-        } else {
-            FontWeight::normal()
-        }
+        let os2 = match self.os2_table() {
+            None => return FontWeight::normal(),
+            Some(os2) => os2,
+        };
+        let weight = os2.us_weight_class as f32;
+        FontWeight(weight.max(1.).min(1000.))
     }
 
     fn stretchiness(&self) -> FontStretch {
