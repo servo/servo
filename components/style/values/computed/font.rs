@@ -15,7 +15,6 @@ use gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
-#[cfg(feature = "gecko")]
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
@@ -120,6 +119,16 @@ impl FontWeight {
         } else {
             FontWeight(700.)
         }
+    }
+}
+
+impl Hash for FontWeight {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        // We hash the floating point number with four decimal places.
+        state.write_u32((self.0 * 10000.).trunc() as u32)
     }
 }
 

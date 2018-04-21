@@ -20,7 +20,7 @@ use style::values::computed::font::FontWeight;
 /// to be expanded or refactored when we support more of the font styling parameters.
 ///
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct FontTemplateDescriptor {
     pub weight: FontWeight,
     pub stretch: FontStretch,
@@ -29,12 +29,15 @@ pub struct FontTemplateDescriptor {
 
 impl FontTemplateDescriptor {
     #[inline]
-    pub fn new(weight: FontWeight, stretch: FontStretch, italic: bool)
-               -> FontTemplateDescriptor {
-        FontTemplateDescriptor {
-            weight: weight,
-            stretch: stretch,
-            italic: italic,
+    pub fn new(
+        weight: FontWeight,
+        stretch: FontStretch,
+        italic: bool,
+    ) -> Self {
+        Self {
+            weight,
+            stretch,
+            italic,
         }
     }
 
