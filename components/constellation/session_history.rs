@@ -4,6 +4,7 @@
 
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId};
 use script_traits::LoadData;
+use servo_url::ServoUrl;
 use std::{fmt, mem};
 use std::cmp::PartialEq;
 
@@ -37,9 +38,29 @@ impl JointSessionHistory {
         mem::replace(&mut self.future, vec![])
     }
 
-    pub fn replace(&mut self, old_reloader: NeedsToReload, new_reloader: NeedsToReload) {
+    pub fn replace_reloader(&mut self, old_reloader: NeedsToReload, new_reloader: NeedsToReload) {
         for diff in self.past.iter_mut().chain(self.future.iter_mut()) {
-            diff.replace(&old_reloader, &new_reloader);
+            diff.replace_reloader(&old_reloader, &new_reloader);
+        }
+    }
+
+    pub fn replace_history_state(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId, url: ServoUrl) {
+        if let Some(SessionHistoryDiff::PipelineDiff { ref mut new_history_state_id, ref mut new_url, .. }) =
+            self.past.iter_mut().find(|diff| match diff {
+                SessionHistoryDiff::PipelineDiff { pipeline_reloader: NeedsToReload::No(id), .. } => pipeline_id == *id,
+                _ => false,
+        }) {
+            *new_history_state_id = history_state_id;
+            *new_url = url.clone();
+        }
+
+        if let Some(SessionHistoryDiff::PipelineDiff { ref mut old_history_state_id, ref mut old_url, .. }) =
+            self.future.iter_mut().find(|diff| match diff {
+                SessionHistoryDiff::PipelineDiff { pipeline_reloader: NeedsToReload::No(id), .. } => pipeline_id == *id,
+                _ => false,
+        }) {
+            *old_history_state_id = Some(history_state_id);
+            *old_url = url;
         }
     }
 
@@ -146,8 +167,12 @@ pub enum SessionHistoryDiff {
         pipeline_reloader: NeedsToReload,
         /// The old history state id.
         old_history_state_id: Option<HistoryStateId>,
+        /// The old url
+        old_url: ServoUrl,
         /// The new history state id.
         new_history_state_id: HistoryStateId,
+        /// The new url
+        new_url: ServoUrl,
     },
 }
 
@@ -179,7 +204,7 @@ impl SessionHistoryDiff {
     }
 
     /// Replaces all occurances of the replaced pipeline with a new pipeline
-    pub fn replace(&mut self, replaced_reloader: &NeedsToReload, reloader: &NeedsToReload) {
+    pub fn replace_reloader(&mut self, replaced_reloader: &NeedsToReload, reloader: &NeedsToReload) {
         match *self {
             SessionHistoryDiff::BrowsingContextDiff { ref mut old_reloader, ref mut new_reloader, .. } => {
                 if *old_reloader == *replaced_reloader {

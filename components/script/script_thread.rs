@@ -1169,7 +1169,7 @@ impl ScriptThread {
                     Navigate(id, ..) => Some(id),
                     PostMessage(id, ..) => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
-                    UpdateHistoryStateId(id, ..) => Some(id),
+                    UpdateHistoryState(id, ..) => Some(id),
                     RemoveHistoryStates(id, ..) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
                     WebDriverScriptCommand(id, ..) => Some(id),
@@ -1297,8 +1297,8 @@ impl ScriptThread {
                                                browsing_context_id,
                                                new_pipeline_id,
                                                reason),
-            ConstellationControlMsg::UpdateHistoryStateId(pipeline_id, history_state_id) =>
-                self.handle_update_history_state_id_msg(pipeline_id, history_state_id),
+            ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url) =>
+                self.handle_update_history_state_msg(pipeline_id, history_state_id, url),
             ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) =>
                 self.handle_remove_history_states(pipeline_id, history_states),
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
@@ -1679,10 +1679,14 @@ impl ScriptThread {
         }
     }
 
-    fn handle_update_history_state_id_msg(&self, pipeline_id: PipelineId, history_state_id: Option<HistoryStateId>) {
+    fn handle_update_history_state_msg(
+        &self, pipeline_id: PipelineId,
+        history_state_id: Option<HistoryStateId>,
+        url: ServoUrl,
+    ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("update history state after pipeline {} closed.", pipeline_id),
-            Some(window) => window.History().r().activate_state(history_state_id),
+            Some(window) => window.History().r().activate_state(history_state_id, url),
         }
     }
 

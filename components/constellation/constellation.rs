@@ -140,6 +140,7 @@ use session_history::{JointSessionHistory, NeedsToReload, SessionHistoryChange, 
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
 use std::marker::PhantomData;
+use std::mem::replace;
 use std::process;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
@@ -1074,13 +1075,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_traverse_history_msg(source_top_ctx_id, direction);
             }
             // Handle a push history state request.
-            FromScriptMsg::PushHistoryState(history_state_id) => {
+            FromScriptMsg::PushHistoryState(history_state_id, url) => {
                 debug!("constellation got push history state message from script");
-                self.handle_push_history_state_msg(source_pipeline_id, history_state_id);
+                self.handle_push_history_state_msg(source_pipeline_id, history_state_id, url);
             }
-            FromScriptMsg::ReplaceHistoryState(history_state_id) => {
+            FromScriptMsg::ReplaceHistoryState(history_state_id, url) => {
                 debug!("constellation got replace history state message from script");
-                self.handle_replace_history_state_msg(source_pipeline_id, history_state_id);
+                self.handle_replace_history_state_msg(source_pipeline_id, history_state_id, url);
             }
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(sender) => {
@@ -1938,11 +1939,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    direction: TraversalDirection)
     {
         let mut browsing_context_changes = HashMap::<BrowsingContextId, NeedsToReload>::new();
-        let mut pipeline_changes = HashMap::<PipelineId, Option<HistoryStateId>>::new();
+        let mut pipeline_changes = HashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::new();
+        let mut url_to_load = HashMap::<PipelineId, ServoUrl>::new();
         {
-            let session_history = self.joint_session_histories
-                .entry(top_level_browsing_context_id).or_insert(JointSessionHistory::new());
-
+            let session_history = self.get_joint_session_history(top_level_browsing_context_id);
             match direction {
                 TraversalDirection::Forward(forward) => {
                     let future_length = session_history.future.len();
@@ -1955,12 +1955,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         match diff {
                             SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_reloader, .. } => {
                                 browsing_context_changes.insert(browsing_context_id, new_reloader.clone());
-                            },
-                            SessionHistoryDiff::PipelineDiff { ref pipeline_reloader, new_history_state_id, .. } => {
-                                // TODO(cbrewster): Handle the case where the pipeline needs to be reloaded.
-                                // We should use the history state URL to change the URL that is reloaded.
-                                if let NeedsToReload::No(pipeline_id) = *pipeline_reloader {
-                                    pipeline_changes.insert(pipeline_id, Some(new_history_state_id));
+                            }
+                            SessionHistoryDiff::PipelineDiff {
+                                ref pipeline_reloader,
+                                new_history_state_id,
+                                ref new_url,
+                                ..
+                            } => match *pipeline_reloader {
+                                NeedsToReload::No(pipeline_id) => {
+                                    pipeline_changes.insert(pipeline_id, (Some(new_history_state_id), new_url.clone()));
+                                }
+                                NeedsToReload::Yes(pipeline_id, ..) => {
+                                    url_to_load.insert(pipeline_id, new_url.clone());
                                 }
                             },
                         }
@@ -1979,11 +1985,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref old_reloader, .. } => {
                                 browsing_context_changes.insert(browsing_context_id, old_reloader.clone());
                             },
-                            SessionHistoryDiff::PipelineDiff { ref pipeline_reloader, old_history_state_id, .. } => {
-                                // TODO(cbrewster): Handle the case where the pipeline needs to be reloaded.
-                                // We should use the history state URL to change the URL that is reloaded.
-                                if let NeedsToReload::No(pipeline_id) = *pipeline_reloader {
-                                    pipeline_changes.insert(pipeline_id, old_history_state_id);
+                            SessionHistoryDiff::PipelineDiff {
+                                ref pipeline_reloader,
+                                old_history_state_id,
+                                ref old_url,
+                                ..
+                            } => match *pipeline_reloader {
+                                NeedsToReload::No(pipeline_id) => {
+                                    pipeline_changes.insert(pipeline_id, (old_history_state_id, old_url.clone()));
+                                }
+                                NeedsToReload::Yes(pipeline_id, ..) => {
+                                    url_to_load.insert(pipeline_id, old_url.clone());
                                 }
                             },
                         }
@@ -1993,12 +2005,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        for (browsing_context_id, pipeline_id) in browsing_context_changes.drain() {
-            self.update_browsing_context(browsing_context_id, pipeline_id);
+        for (browsing_context_id, mut pipeline_reloader) in browsing_context_changes.drain() {
+            if let NeedsToReload::Yes(pipeline_id, ref mut load_data) = pipeline_reloader {
+                if let Some(url) = url_to_load.get(&pipeline_id) {
+                    load_data.url = url.clone();
+                }
+            }
+            self.update_browsing_context(browsing_context_id, pipeline_reloader);
         }
 
-        for (pipeline_id, history_state_id) in pipeline_changes.drain() {
-            self.update_pipeline(pipeline_id, history_state_id);
+        for (pipeline_id, (history_state_id, url)) in pipeline_changes.drain() {
+            self.update_pipeline(pipeline_id, history_state_id, url);
         }
 
         self.notify_history_changed(top_level_browsing_context_id);
@@ -2076,12 +2093,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn update_pipeline(&mut self, pipeline_id: PipelineId, history_state_id: Option<HistoryStateId>) {
+    fn update_pipeline(&mut self, pipeline_id: PipelineId, history_state_id: Option<HistoryStateId>, url: ServoUrl) {
         let result = match self.pipelines.get_mut(&pipeline_id) {
             None => return warn!("Pipeline {} history state updated after closure", pipeline_id),
             Some(pipeline) => {
-                let msg = ConstellationControlMsg::UpdateHistoryStateId(pipeline_id, history_state_id);
+                let msg = ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url.clone());
                 pipeline.history_state_id = history_state_id;
+                pipeline.url = url;
                 pipeline.event_loop.send(msg)
             },
         };
@@ -2100,13 +2118,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let _ = sender.send(length as u32);
     }
 
-    fn handle_push_history_state_msg(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
-        let (top_level_browsing_context_id, old_state_id) = match self.pipelines.get_mut(&pipeline_id) {
+    fn handle_push_history_state_msg(
+        &mut self,
+        pipeline_id: PipelineId,
+        history_state_id: HistoryStateId,
+        url: ServoUrl)
+    {
+        let (top_level_browsing_context_id, old_state_id, old_url) = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
                 let old_history_state_id = pipeline.history_state_id;
+                let old_url = replace(&mut pipeline.url, url.clone());
                 pipeline.history_state_id = Some(history_state_id);
                 pipeline.history_states.insert(history_state_id);
-                (pipeline.top_level_browsing_context_id, old_history_state_id)
+                (pipeline.top_level_browsing_context_id, old_history_state_id, old_url)
             }
             None => return warn!("Push history state {} for closed pipeline {}", history_state_id, pipeline_id),
         };
@@ -2115,18 +2139,30 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let diff = SessionHistoryDiff::PipelineDiff {
             pipeline_reloader: NeedsToReload::No(pipeline_id),
             new_history_state_id: history_state_id,
+            new_url: url,
             old_history_state_id: old_state_id,
+            old_url: old_url,
         };
         session_history.push_diff(diff);
     }
 
-    fn handle_replace_history_state_msg(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
-        match self.pipelines.get_mut(&pipeline_id) {
+    fn handle_replace_history_state_msg(
+        &mut self,
+        pipeline_id: PipelineId,
+        history_state_id: HistoryStateId,
+        url: ServoUrl)
+    {
+        let top_level_browsing_context_id = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
                 pipeline.history_state_id = Some(history_state_id);
+                pipeline.url = url.clone();
+                pipeline.top_level_browsing_context_id
             }
             None => return warn!("Replace history state {} for closed pipeline {}", history_state_id, pipeline_id),
-        }
+        };
+
+        let session_history = self.get_joint_session_history(top_level_browsing_context_id);
+        session_history.replace_history_state(pipeline_id, history_state_id, url);
     }
 
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
@@ -2493,7 +2529,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let (pipelines_to_close, states_to_close) = if let Some(replace_reloader) = change.replace {
                     let session_history = self.joint_session_histories
                         .entry(change.top_level_browsing_context_id).or_insert(JointSessionHistory::new());
-                    session_history.replace(replace_reloader.clone(),
+                    session_history.replace_reloader(replace_reloader.clone(),
                         NeedsToReload::No(change.new_pipeline_id));
 
                     match replace_reloader {
@@ -2595,7 +2631,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let mut dead_pipelines = vec![];
         for evicted_id in pipelines_to_evict {
             let load_data = match self.pipelines.get(&evicted_id) {
-                Some(pipeline) => pipeline.load_data.clone(),
+                Some(pipeline) => {
+                    let mut load_data = pipeline.load_data.clone();
+                    load_data.url = pipeline.url.clone();
+                    load_data
+                },
                 None => continue,
             };
 
@@ -2606,7 +2646,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
         for (alive_id, dead) in dead_pipelines {
-            session_history.replace(NeedsToReload::No(alive_id), dead);
+            session_history.replace_reloader(NeedsToReload::No(alive_id), dead);
         }
     }
 
