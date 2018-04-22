@@ -576,6 +576,19 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed,
 }
 
+/// Specifies the information required to load an auxiliary browsing context.
+#[derive(Deserialize, Serialize)]
+pub struct AuxiliaryBrowsingContextLoadInfo {
+    /// The pipeline opener browsing context.
+    pub opener_pipeline_id: PipelineId,
+    /// The new top-level ID for the auxiliary.
+    pub new_top_level_browsing_context_id: TopLevelBrowsingContextId,
+    /// The new browsing context ID.
+    pub new_browsing_context_id: BrowsingContextId,
+    /// The new pipeline ID for the auxiliary.
+    pub new_pipeline_id: PipelineId,
+}
+
 /// Specifies the information required to load an iframe.
 #[derive(Deserialize, Serialize)]
 pub struct IFrameLoadInfo {
