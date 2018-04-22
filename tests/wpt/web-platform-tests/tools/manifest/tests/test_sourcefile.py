@@ -395,7 +395,7 @@ def test_testharness_svg():
     assert not s.name_is_worker
     assert not s.name_is_reference
 
-    assert s.root
+    assert s.root is not None
     assert s.content_is_testharness
 
     assert items(s) == [("testharness", "/" + filename)]
@@ -424,7 +424,7 @@ def test_relative_testharness_svg():
     assert not s.name_is_worker
     assert not s.name_is_reference
 
-    assert s.root
+    assert s.root is not None
     assert not s.content_is_testharness
 
     assert items(s) == []

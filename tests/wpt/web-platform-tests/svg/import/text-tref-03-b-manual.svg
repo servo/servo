@@ -25,7 +25,7 @@
           The test case consists of one sub-test; it results in the word "Flattened" being displayed.
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         Run the test. No interaction required.
       </p>
@@ -53,9 +53,8 @@
     </text>
 <!-- now make a new SVG document fragment, and hide it from being rendered -->
 <defs>
-	<text id="hello">F<tspan fill="blue">l</tspan><tspan fill="red" font-size="100">a</tspan><tspan fill="yellow">t<tspan fill="lime">t</tspan></tspan><tspan fill="orange" dx="50">e</tspan><tspan fill="purple">n</tspan><tspan fill="red">e</tspan><tspan fill="black">d</tspan></text>
+  <text id="hello">F<tspan fill="blue">l</tspan><tspan fill="red" font-size="100">a</tspan><tspan fill="yellow">t<tspan fill="lime">t</tspan></tspan><tspan fill="orange" dx="50">e</tspan><tspan fill="purple">n</tspan><tspan fill="red">e</tspan><tspan fill="black">d</tspan></text>
 </defs>
-
 
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">

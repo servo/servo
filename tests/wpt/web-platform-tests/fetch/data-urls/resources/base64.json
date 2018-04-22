@@ -49,6 +49,7 @@
   ["ab=c=", null],
   ["abc=d", null],
   ["abc=d=", null],
+  ["ab\u000Bcd", null],
   ["ab\tcd", [105, 183, 29]],
   ["ab\ncd", [105, 183, 29]],
   ["ab\fcd", [105, 183, 29]],

@@ -14,15 +14,16 @@
 <script>
 // The following were supported in an earlier version of the spec.
 // https://github.com/w3c/csswg-drafts/issues/2140
-// Deprecated in Blink with support to be removed in M68, around July 2018.
 test_invalid_value("shape-outside", "circle(at center left 1px)");
 test_invalid_value("shape-outside", "circle(at center top 2px)");
 test_invalid_value("shape-outside", "circle(at right 3% center)");
 test_invalid_value("shape-outside", "circle(at left 4px top)");
-test_invalid_value("shape-outside", "circle(at right top 5px)");
-test_invalid_value("shape-outside", "circle(at bottom 6% center)");
-test_invalid_value("shape-outside", "circle(at bottom 7% left)");
-test_invalid_value("shape-outside", "circle(at bottom right 8%)");
+test_invalid_value("shape-outside", "circle(at right 5px top)");
+test_invalid_value("shape-outside", "ellipse(at right top 5px)");
+test_invalid_value("shape-outside", "ellipse(at bottom 6% center)");
+test_invalid_value("shape-outside", "ellipse(at bottom 7% left)");
+test_invalid_value("shape-outside", "ellipse(at bottom right 8%)");
+test_invalid_value("shape-outside", "ellipse(at right 10px top)");
 </script>
 </body>
 </html>

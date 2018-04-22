@@ -18,7 +18,7 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Mouseover the blue rect, then the green rect and then away from the rects.
+        Mouseover the blue rect, then the green rect and then away from the rects.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
@@ -40,18 +40,18 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-  	<defs>
-  		<rect id="r1" x="10" y="20" width="90" height="65" visibility="inherit" fill="inherit"/>
-  	</defs>
-  	
-		<g id="g1" transform="translate( 0,  0)" visibility="visible">
-      <use xlink:href="#r1" visibility="inherit" fill="blue" 
+    <defs>
+      <rect id="r1" x="10" y="20" width="90" height="65" visibility="inherit" fill="inherit"/>
+    </defs>
+
+    <g id="g1" transform="translate( 0,  0)" visibility="visible">
+      <use xlink:href="#r1" visibility="inherit" fill="blue"
            onmouseover="g3.setAttribute('visibility', 'visible')"
            onmouseout="g3.setAttribute('visibility', 'hidden')"/>
     </g>
-    <g id="g2" transform="translate(90,  0)" visibility="visible" 
-    	 onmouseover="g4.setAttribute('visibility', 'visible')"
-    	 onmouseout="g4.setAttribute('visibility', 'hidden')">
+    <g id="g2" transform="translate(90,  0)" visibility="visible"
+       onmouseover="g4.setAttribute('visibility', 'visible')"
+       onmouseout="g4.setAttribute('visibility', 'hidden')">
       <use xlink:href="#r1" visibility="inherit" fill="green"/>
     </g>
     <g id="g3" transform="translate( 0, 65)" visibility="hidden">

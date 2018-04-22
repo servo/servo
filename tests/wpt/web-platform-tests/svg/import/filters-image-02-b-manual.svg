@@ -13,15 +13,15 @@
     version="$Revision: 1.9 $" testname="$RCSfile: filters-image-02-b.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feImage">
       <p>
-        Tests the animatability of 'xlink:href' on the 'feImage' element. 
-        The test will first show two blue images that should look exactly the same, 
+        Tests the animatability of 'xlink:href' on the 'feImage' element.
+        The test will first show two blue images that should look exactly the same,
         then after two seconds both images should simultaneously change to show two
         pink images that also look exactly the same.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-      <p>Run the test. No interaction required. 
-        
+      <p>Run the test. No interaction required.
+
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
@@ -58,7 +58,7 @@
     <image xlink:href="../images/bluesquidj.png" x="260" y="60" width="150" height="200">
       <set attributeName="xlink:href" to="../images/pinksquidj.png" begin="2s"/>
     </image>
-    
+
     <g text-anchor="middle">
       <text x="50%" y="60" font-size="30">Animation in filters</text>
       <text x="145" y="220">'feImage'</text>

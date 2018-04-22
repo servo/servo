@@ -21,7 +21,7 @@
         The bottom subtest tests that not specifying the 'xChannelSelector' attribute has the same effect as if 'A' was specified.
       </p>
       <p>
-        In both cases the filter input image consists of a gradient that is rendered using the default 'color-interpolation' which is 'sRGB'. 
+        In both cases the filter input image consists of a gradient that is rendered using the default 'color-interpolation' which is 'sRGB'.
         The default colorspace for filter primitives is 'linearRGB'. The filtering operation happens in 'linearRGB' space and the
         result is then transformed back to 'sRGB' space for display.
       </p>

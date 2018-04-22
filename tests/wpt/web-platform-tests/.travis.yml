@@ -64,8 +64,6 @@ matrix:
       env: JOB=tools_unittest TOXENV=py27 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
     - python: 3.6
       env: JOB=tools_unittest TOXENV=py36 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
-    - python: pypy-5.4
-      env: JOB=tools_unittest TOXENV=pypy HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
     - python: 2.7
       env: JOB=resources_unittest TOXENV=py27 SCRIPT=tools/ci/ci_resources_unittest.sh
     - python: 2.7

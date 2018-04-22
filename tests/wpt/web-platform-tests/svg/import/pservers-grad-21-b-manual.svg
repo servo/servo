@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -14,7 +14,7 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
       <p>
         Test the inheritance of radial gradient attributes. The test has six ellipses with blue stroke, each filled
-        with two gradients. 
+        with two gradients.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -59,7 +59,7 @@
         <stop offset="1" stop-opacity="0"/>
       </radialGradient>
       <radialGradient id="grad6" xlink:href="#grad5" cx="0%"/>
-      
+
       <radialGradient id="grad1-ref" cx="100%" r="20%">
         <stop offset="0" stop-color="black" />
         <stop offset="1" stop-opacity="0"/>
@@ -85,7 +85,7 @@
         <stop offset="1" stop-opacity="0"/>
       </radialGradient>
     </defs>
-    
+
     <g transform="translate(100 60)">
       <!-- first line of tests -->
       <rect fill="url(#grad1)" x="-60" width="120" height="90"/>
@@ -105,7 +105,7 @@
         <rect fill="url(#grad4)" x="60" width="120" height="90"/>
         <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
       </g>
-      
+
       <!-- reference for second line -->
       <g transform="translate(100 50)">
         <rect fill="url(#grad3-ref)" x="-60" width="120" height="90"/>
@@ -119,28 +119,28 @@
         <rect fill="url(#grad6)" x="60" width="120" height="90"/>
         <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
       </g>
-      
+
       <!-- reference for third line -->
       <g transform="translate(100 100)">
         <rect fill="url(#grad5-ref)" x="-60" width="120" height="90"/>
         <rect fill="url(#grad6-ref)" x="60" width="120" height="90"/>
         <ellipse cx="60" cy="45" rx="24" ry="18" fill="none" stroke="blue"/>
       </g>
-      
+
       <rect x="120" y="20" width="80" height="200" fill="none" stroke="green"/>
-      <text y="200" x="160" text-anchor="middle" font-size="12">Reference</text> 
+      <text y="200" x="160" text-anchor="middle" font-size="12">Reference</text>
     </g>
-    
+
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
-  <text id="revision" x="10" y="340" stroke="none" 
+  <text id="revision" x="10" y="340" stroke="none"
     fill="black">$Revision: 1.4 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
   <!-- comment out this watermark once the test is approved
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>-->
 </svg>

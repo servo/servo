@@ -534,65 +534,6 @@ var validPositions = [
     ["60% center", "60% 50%"],
     ["60u1 center", "60u1 50%"],
 
-////// [ keyword | keyword percent ], [ keyword | keyword length ] x 5 keywords
-    ["center top 50%", "50% 50%"],
-    ["center top 50u1", "50% 50u1"],
-    ["center left 50%", "50% 50%"],
-    ["center left 50u1", "50u1 50%"],
-    ["center right 70%", "30% 50%"],
-    ["center right 70u1", "right 70u1 top 50%"],
-    ["center bottom 70%", "50% 30%"],
-    ["center bottom 70u1", "left 50% bottom 70u1"],
-
-    ["left top 50%", "0% 50%"],
-    ["left top 50u1", "0% 50u1"],
-    ["left bottom 70%", "0% 30%"],
-    ["left bottom 70u1", "left 0% bottom 70u1"],
-
-    ["top left 50%", "50% 0%"],
-    ["top left 50u1", "50u1 0%"],
-    ["top right 70%", "30% 0%"],
-    ["top right 70u1", "right 70u1 top 0%"],
-
-    ["bottom left 50%", "50% 100%"],
-    ["bottom left 50u1", "50u1 100%"],
-    ["bottom right 70%", "30% 100%"],
-    ["bottom right 70u1", "right 70u1 top 100%"],
-
-    ["right bottom 70%", "100% 30%"],
-    ["right bottom 70u1", "left 100% bottom 70u1"],
-    ["right top 50%", "100% 50%"],
-    ["right top 50u1", "100% 50u1"],
-
-////// [ keyword percent | keyword], [ keyword length | keyword ] x 5 keywords
-    ["left 50% center", "50% 50%"],
-    ["left 50u1 center", "50u1 50%"],
-    ["left 50% top", "50% 0%"],
-    ["left 50u1 top", "50u1 0%"],
-    ["left 50% bottom", "50% 100%"],
-    ["left 50u1 bottom", "50u1 100%"],
-
-    ["top 50% center", "50% 50%"],
-    ["top 50u1 center", "50% 50u1"],
-    ["top 50% left", "0% 50%"],
-    ["top 50u1 left", "0% 50u1"],
-    ["top 50% right", "100% 50%"],
-    ["top 50u1 right", "100% 50u1"],
-
-    ["bottom 70% center", "50% 30%"],
-    ["bottom 70u1 center", "left 50% bottom 70u1"],
-    ["bottom 70% left", "0% 30%"],
-    ["bottom 70u1 left", "left 0% bottom 70u1"],
-    ["bottom 70% right", "100% 30%"],
-    ["bottom 70u1 right", "left 100% bottom 70u1"],
-
-    ["right 80% center", "20% 50%"],
-    ["right 80u1 center", "right 80u1 top 50%"],
-    ["right 80% bottom", "20% 100%"],
-    ["right 80u1 bottom", "right 80u1 top 100%"],
-    ["right 80% top", "20% 0%"],
-    ["right 80u1 top", "right 80u1 top 0%"],
-
 ////// [ keyword percent |  keyword percent], [ keyword percent |  keyword length],
 ////// [ keyword length | keyword length],  [ keyword length | keyword percent] x 5 keywords
     ["left 50% top 50%", "50% 50%"],

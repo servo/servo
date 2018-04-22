@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>CSS Test: Box Shadow Syntax: Reordering Components</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-box-shadow"/>
+<meta name="assert" content="Box shadow color, inset, and length parameters can be mixed in any order, but lengths must stay adjacent." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+<script>
+  // color only
+  test_valid_value("box-shadow", "4px 4px green", "green 4px 4px");
+  test_valid_value("box-shadow", "green -4px 4px", "green -4px 4px");
+  test_valid_value("box-shadow", "-4px 4px 0 green", "green -4px 4px 0px");
+  test_valid_value("box-shadow", "green -4px 4px 0", "green -4px 4px 0px");
+  test_valid_value("box-shadow", "-4px 4px 0 0 green", "green -4px 4px 0px 0px");
+  test_valid_value("box-shadow", "green -4px 4px 0 0", "green -4px 4px 0px 0px");
+
+  // inset only
+  test_valid_value("box-shadow", "4px -4px inset", "4px -4px inset");
+  test_valid_value("box-shadow", "inset 4px -4px", "4px -4px inset");
+  test_valid_value("box-shadow", "4px -4px 0 inset", "4px -4px 0px inset");
+  test_valid_value("box-shadow", "inset 4px -4px 0", "4px -4px 0px inset");
+  test_valid_value("box-shadow", "4px -4px 0 0 inset", "4px -4px 0px 0px inset");
+  test_valid_value("box-shadow", "inset 4px -4px 0 0", "4px -4px 0px 0px inset");
+
+  // color and inset
+  test_valid_value("box-shadow", "4px -4px green inset", "green 4px -4px inset");
+  test_valid_value("box-shadow", "4px -4px inset green", "green 4px -4px inset");
+  test_valid_value("box-shadow", "inset green 4px -4px", "green 4px -4px inset");
+  test_valid_value("box-shadow", "green inset 4px -4px", "green 4px -4px inset");
+  test_valid_value("box-shadow", "green 4px -4px inset", "green 4px -4px inset");
+  test_valid_value("box-shadow", "inset 4px -4px green", "green 4px -4px inset");
+  test_valid_value("box-shadow", "inset green 4px -4px 0", "green 4px -4px 0px inset");
+  test_valid_value("box-shadow", "green inset 4px -4px 0", "green 4px -4px 0px inset");
+  test_valid_value("box-shadow", "4px -4px 0 green inset", "green 4px -4px 0px inset");
+  test_valid_value("box-shadow", "4px -4px 0 inset green", "green 4px -4px 0px inset");
+  test_valid_value("box-shadow", "green 4px -4px 0 inset", "green 4px -4px 0px inset");
+  test_valid_value("box-shadow", "inset 4px -4px 0 green", "green 4px -4px 0px inset");
+  test_valid_value("box-shadow", "inset green 4px -4px 0 0", "green 4px -4px 0px 0px inset");
+  test_valid_value("box-shadow", "green inset 4px -4px 0 0", "green 4px -4px 0px 0px inset");
+  test_valid_value("box-shadow", "4px -4px 0 0 green inset", "green 4px -4px 0px 0px inset");
+  test_valid_value("box-shadow", "4px -4px 0 0 inset green", "green 4px -4px 0px 0px inset");
+  test_valid_value("box-shadow", "green 4px -4px 0 0 inset", "green 4px -4px 0px 0px inset");
+  test_valid_value("box-shadow", "inset 4px -4px 0 0 green", "green 4px -4px 0px 0px inset");
+
+  test_invalid_value("box-shadow", "red");
+  test_invalid_value("box-shadow", "4px red");
+  test_invalid_value("box-shadow", "red 4px");
+  test_invalid_value("box-shadow", "-4px red 4px");
+  test_invalid_value("box-shadow", "red -4px 4px red");
+  test_invalid_value("box-shadow", "-4px 4px red 0");
+  test_invalid_value("box-shadow", "-4px 4px 0 red 0");
+  test_invalid_value("box-shadow", "inset");
+  test_invalid_value("box-shadow", "inset 4px");
+  test_invalid_value("box-shadow", "4px inset");
+  test_invalid_value("box-shadow", "4px inset -4px");
+  test_invalid_value("box-shadow", "inset 4px -4px inset");
+  test_invalid_value("box-shadow", "4px -4px inset 0");
+  test_invalid_value("box-shadow", "4px -4px 0 inset 0");
+  test_invalid_value("box-shadow", "red inset");
+  test_invalid_value("box-shadow", "inset red");
+  test_invalid_value("box-shadow", "4px red inset");
+  test_invalid_value("box-shadow", "red inset 4px");
+  test_invalid_value("box-shadow", "4px inset red");
+  test_invalid_value("box-shadow", "inset red 4px");
+  test_invalid_value("box-shadow", "4px red inset -4px");
+  test_invalid_value("box-shadow", "4px inset red -4px");
+  test_invalid_value("box-shadow", "inset 4px red -4px");
+  test_invalid_value("box-shadow", "4px red 4px inset");
+  test_invalid_value("box-shadow", "red 4px inset -4px");
+  test_invalid_value("box-shadow", "4px inset -4px red");
+  test_invalid_value("box-shadow", "4px -4px red inset 0");
+  test_invalid_value("box-shadow", "4px -4px inset red 0");
+  test_invalid_value("box-shadow", "inset 4px -4px red 0");
+  test_invalid_value("box-shadow", "4px -4px red 0 inset");
+  test_invalid_value("box-shadow", "red 4px -4px inset 0");
+  test_invalid_value("box-shadow", "4px -4px inset 0 red");
+</script>
+</html>

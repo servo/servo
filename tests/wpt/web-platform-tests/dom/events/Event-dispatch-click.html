@@ -94,9 +94,11 @@ async_test(function(t) {
   var clickEvent = new MouseEvent("click")
   input.onchange = t.step_func_done(function() {
     assert_false(clickEvent.defaultPrevented)
+    assert_true(clickEvent.returnValue)
     assert_equals(clickEvent.eventPhase, 0)
     assert_equals(clickEvent.currentTarget, null)
     assert_equals(clickEvent.target, input)
+    assert_equals(clickEvent.srcElement, input)
     assert_equals(clickEvent.composedPath().length, 0)
   })
   input.dispatchEvent(clickEvent)
@@ -110,6 +112,7 @@ async_test(function(t) {
   var finalTarget = document.createElement("doesnotmatter")
   finalTarget.onclick = t.step_func_done(function() {
     assert_equals(clickEvent.target, finalTarget)
+    assert_equals(clickEvent.srcElement, finalTarget)
   })
   input.onchange = t.step_func(function() {
     finalTarget.dispatchEvent(clickEvent)

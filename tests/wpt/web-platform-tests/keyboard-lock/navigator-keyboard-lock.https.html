@@ -5,7 +5,7 @@
 'use strict';
 
 promise_test(() => {
-  const p = navigator.keyboard.lock(['a', 'b']);
+  const p = navigator.keyboard.lock(["KeyA", "KeyB"]);
   assert_true(p instanceof Promise);
   return p;
 }, '[Keyboard Lock] keyboard.lock');

@@ -7,6 +7,10 @@
  * avoids issues around caching of sheets based on URL.
  */
 
+// Our URLs are random, so we don't use them in error messages by
+// default, but enable doing it if someone wants to debug things.
+const DEBUG_URLS = false;
+
 var isHttps = location.protocol == "https:";
 
 var tests = [
@@ -113,12 +117,13 @@ for (var test of tests) {
   var t = async_test(description);
   var link = document.createElement("link");
   link.rel = "stylesheet";
+  hrefString = DEBUG_URLS ? `: ${href}` : "";
   if (success) {
     link.onload = t.step_func_done(() => {});
-    link.onerror = t.step_func_done(() => assert_unreached(`error fired when load expected: ${href}`) );
+    link.onerror = t.step_func_done(() => assert_unreached(`error fired when load expected${hrefString}`) );
   } else {
     link.onerror = t.step_func_done(() => {});
-    link.onload = t.step_func_done(() => assert_unreached(`load fired when error expected: ${href}`) );
+    link.onload = t.step_func_done(() => assert_unreached(`load fired when error expected${hrefString}`) );
   }
   link.href = href;
   document.head.appendChild(link);

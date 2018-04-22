@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/">
+<meta name="assert" content="This test checks that browser doesn't crash when the layout() function is used with multicol." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<style>
+#test {
+  display: layout('test');
+  columns: 2;
+}
+</style>
+
+<div id="test"></div>
+
+<script>
+promise_test(async function() {
+  await importWorklet(CSS.layoutWorklet, {url: 'support/layout-position-child-worklet.js'});
+});
+</script>

@@ -17,7 +17,7 @@
     document.body.appendChild(element);
 
     let classes = Object.assign({"Normal":"normal", "Stretch":"stretch", "Left":"left", "Right":"right"},
-                                selfPositionClasses, baselineClasses, overflowClasses);
+                                selfPositionClasses, baselineClasses, overflowClasses, legacyClasses);
 
     for (var key in classes) {
         let specifiedValue = classes[key];

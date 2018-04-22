@@ -16,9 +16,6 @@ function dispatchEventWithEventLog(shadow, target, event) {
                 eventPath.push(this.label);
                 relatedTargets.push(event.relatedTarget ? event.relatedTarget.label : null);
 
-                if (!event.composedPath) // Don't fail all tests just for the lack of composedPath.
-                    return;
-
                 pathAtTargets.push(event.composedPath().map(function (node) { return node.label; }));
                 targets.push(event.target);
             }).bind(node));

@@ -27,6 +27,8 @@ customising the test run, see `./wpt run --help`.
 
 Additional browser-specific documentation:
 
+  * [Chrome][chrome]
+
   * [Chrome for Android][chrome android]
 
   * [Safari][safari]
@@ -69,6 +71,7 @@ channel `#testing`). It's possible edge-case behavior isn't properly
 documented!
 
 
+[chrome]: {{ site.baseurl }}{% link _running-tests/chrome.md %}
 [chrome android]: {{ site.baseurl }}{% link _running-tests/chrome_android.md %}
 [safari]: {{ site.baseurl }}{% link _running-tests/safari.md %}
 [public-test-infra]: https://lists.w3.org/Archives/Public/public-test-infra/

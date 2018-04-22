@@ -60,7 +60,7 @@
         }
         catch(ex)
         {
-            alert("ERROR: " + ex.message);   
+            alert("ERROR: " + ex.message);
         }]]>
     </script>
   </g>
