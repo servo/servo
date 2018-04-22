@@ -84,6 +84,10 @@ pub enum EmbedderMsg {
     Alert(String, IpcSender<()>),
     /// Wether or not to follow a link
     AllowNavigation(ServoUrl, IpcSender<bool>),
+    /// Whether or not to allow script to open a new tab/browser
+    AllowOpeningBrowser(IpcSender<bool>),
+    /// A new browser was created by script
+    BrowserCreated(TopLevelBrowsingContextId),
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -143,6 +147,8 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
+            EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
+            EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated")
         }
     }
 }

@@ -535,6 +535,15 @@ impl WindowMethods for Window {
         receiver.recv().unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-open
+    fn Open(&self,
+            url: DOMString,
+            target: DOMString,
+            features: DOMString)
+            -> Option<DomRoot<WindowProxy>> {
+        self.window_proxy().open(url, target, features)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
     fn Closed(&self) -> bool {
         self.window_proxy.get()

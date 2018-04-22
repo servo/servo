@@ -718,6 +718,18 @@ impl ScriptThread {
         }))
     }
 
+    pub fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
+        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
+            let script_thread = unsafe { &*script_thread };
+            for (_, proxy) in script_thread.window_proxies.borrow().iter() {
+                if proxy.get_name() == *name {
+                    return Some(DomRoot::from_ref(&**proxy))
+                }
+            }
+            None
+        }))
+    }
+
     pub fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
