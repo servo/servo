@@ -71,10 +71,7 @@ impl ClippingAndScrolling {
         }
     }
 
-    pub fn new(
-        scrolling: ClipScrollNodeIndex,
-        clipping: ClipScrollNodeIndex,
-    ) -> ClippingAndScrolling {
+    pub fn new(scrolling: ClipScrollNodeIndex, clipping: ClipScrollNodeIndex) -> Self {
         ClippingAndScrolling {
             scrolling,
             clipping: Some(clipping),
