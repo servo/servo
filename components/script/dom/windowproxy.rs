@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::error::{Error, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
@@ -197,6 +198,61 @@ impl WindowProxy {
             debug!("Initializing reflector of {:p} to {:p}.", window_proxy, js_proxy.get());
             window_proxy.reflector.set_jsobject(js_proxy.get());
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
+    pub fn choose_browsing_context(&self, name: DOMString, _noopener: bool) -> Option<DomRoot<Window>> {
+        match name.as_ref() {
+            "" | "_self" => {
+                // Step 3.
+                self.currently_active.get()
+                    .and_then(|id| ScriptThread::find_document(id))
+                    .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+            },
+            "_parent" => {
+                // Step 4
+                self.parent()
+                    .and_then(|proxy| proxy.currently_active.get())
+                    .and_then(|id| ScriptThread::find_document(id))
+                    .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+            },
+            "_top" => {
+                // Step 5
+                self.top().currently_active.get()
+                    .and_then(|id| ScriptThread::find_document(id))
+                    .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+            },
+            "_blank" => {
+                // Step 7. Blocked by https://github.com/servo/servo/issues/13241
+                None
+            },
+            _ => {
+                // Step 6.
+                // TODO: expand the search to all 'familiar' bc
+                // https://html.spec.whatwg.org/multipage/#familiar-with
+                self.currently_active.get()
+                    .and_then(|id| ScriptThread::find_document(id))
+                    .and_then(|doc| doc.iter_iframes()
+                        .map(|iframe| iframe.GetContentWindow()
+                            .and_then(|proxy| {
+                                println!("{:?} {:?}", name, proxy.get_name());
+                                if proxy.get_name() == name {
+                                    println!("found name match");
+                                    return iframe.GetContentDocument()
+                                        .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+                                }
+                                return None
+                            }))
+                        .filter(|item| item.is_some())
+                        .last()
+                        // TODO: Select one in some arbitrary consistent manner,
+                        // such as the most recently opened, most recently focused, or more closely related
+                        .unwrap_or_else(|| {
+                            // Step 7. Blocked by https://github.com/servo/servo/issues/13241
+                            None
+                        }))
+            }
         }
     }
 
