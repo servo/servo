@@ -41,6 +41,7 @@ use dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
 use dom::node::{document_from_node, window_from_node};
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, Prefix};
@@ -337,10 +338,22 @@ impl HTMLFormElement {
         let scheme = action_components.scheme().to_owned();
         let enctype = submitter.enctype();
         let method = submitter.method();
-        let _target = submitter.target();
-        // TODO: Handle browsing contexts, partially loaded documents (step 16-17)
 
-        let mut load_data = LoadData::new(action_components, None, doc.get_referrer_policy(), Some(doc.url()));
+        // Step 16, 17
+        let target_attribute_value = submitter.target();
+        let source = doc.browsing_context().unwrap();
+        let (maybe_chosen, _new) = source.choose_browsing_context(target_attribute_value, false);
+        let chosen = match maybe_chosen {
+            Some(proxy) => proxy,
+            None => return
+        };
+        let target_document = chosen.document().unwrap();
+        let target_window = target_document.window();
+
+        let mut load_data = LoadData::new(action_components,
+                                          None,
+                                          target_document.get_referrer_policy(),
+                                          Some(target_document.url()));
 
         // Step 18
         match (&*scheme, method) {
@@ -351,17 +364,17 @@ impl HTMLFormElement {
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
             ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) | ("data", FormMethod::FormGet) => {
                 load_data.headers.set(ContentType::form_url_encoded());
-                self.mutate_action_url(&mut form_data, load_data, encoding);
+                self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
             }
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Method::Post;
-                self.submit_entity_body(&mut form_data, load_data, enctype, encoding);
+                self.submit_entity_body(&mut form_data, load_data, enctype, encoding, &target_window);
             }
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) | ("about", _) | ("data", FormMethod::FormPost) |
             ("ftp", _) | ("javascript", _) => {
-                self.plan_to_navigate(load_data);
+                self.plan_to_navigate(load_data, &target_window);
             }
             ("mailto", FormMethod::FormPost) => {
                 // TODO: Mail as body
@@ -371,12 +384,15 @@ impl HTMLFormElement {
                 // TODO: Mail with headers
                 // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
             }
-            _ => return,
-        }
+        };
     }
 
     // https://html.spec.whatwg.org/multipage/#submit-mutate-action
-    fn mutate_action_url(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData, encoding: &'static Encoding) {
+    fn mutate_action_url(&self,
+                         form_data: &mut Vec<FormDatum>,
+                         mut load_data: LoadData,
+                         encoding: &'static Encoding,
+                         target: &Window) {
         let charset = encoding.name();
 
         self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
@@ -384,12 +400,16 @@ impl HTMLFormElement {
             .extend_pairs(form_data.into_iter()
                                     .map(|field| (field.name.clone(), field.replace_value(charset))));
 
-        self.plan_to_navigate(load_data);
+        self.plan_to_navigate(load_data, target);
     }
 
     // https://html.spec.whatwg.org/multipage/#submit-body
-    fn submit_entity_body(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData,
-                          enctype: FormEncType, encoding: &'static Encoding) {
+    fn submit_entity_body(&self,
+                          form_data: &mut Vec<FormDatum>,
+                          mut load_data: LoadData,
+                          enctype: FormEncType,
+                          encoding: &'static Encoding,
+                          target: &Window) {
         let boundary = generate_boundary();
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
@@ -415,7 +435,7 @@ impl HTMLFormElement {
         };
 
         load_data.data = Some(bytes);
-        self.plan_to_navigate(load_data);
+        self.plan_to_navigate(load_data, target);
     }
 
     fn set_encoding_override<'a>(&self, mut serializer: Serializer<UrlQuery<'a>>)
@@ -426,9 +446,7 @@ impl HTMLFormElement {
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, load_data: LoadData) {
-        let window = window_from_node(self);
-
+    fn plan_to_navigate(&self, load_data: LoadData, target: &Window) {
         // Step 1
         // Each planned navigation task is tagged with a generation ID, and
         // before the task is handled, it first checks whether the HTMLFormElement's
@@ -437,8 +455,8 @@ impl HTMLFormElement {
         self.generation_id.set(generation_id);
 
         // Step 2.
-        let pipeline_id = window.upcast::<GlobalScope>().pipeline_id();
-        let script_chan = window.main_thread_script_chan().clone();
+        let pipeline_id = target.upcast::<GlobalScope>().pipeline_id();
+        let script_chan = target.main_thread_script_chan().clone();
         let this = Trusted::new(self);
         let task = task!(navigate_to_form_planned_navigation: move || {
             if generation_id != this.root().generation_id.get() {
@@ -452,7 +470,7 @@ impl HTMLFormElement {
         });
 
         // Step 3.
-        window.dom_manipulation_task_source().queue(task, window.upcast()).unwrap();
+        target.dom_manipulation_task_source().queue(task, target.upcast()).unwrap();
     }
 
     /// Interactively validate the constraints of form elements

@@ -574,45 +574,61 @@ impl Activatable for HTMLAnchorElement {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name>
-fn is_current_browsing_context(target: DOMString) -> bool {
-    target.is_empty() || target == "_self"
-}
-
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
 pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, referrer_policy: Option<ReferrerPolicy>) {
-    // Step 1: replace.
-    // Step 2: source browsing context.
-    // Step 3: target browsing context.
-    let target = subject.get_attribute(&ns!(), &local_name!("target"));
+    // Step 1: TODO: If subject cannot navigate, then return.
+    // Step 2, done in Step 7.
 
-    // Step 4: disown target's opener if needed.
-    let attribute = subject.get_attribute(&ns!(), &local_name!("href")).unwrap();
-    let mut href = attribute.Value();
-
-    // Step 7: append a hyperlink suffix.
-    // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
-    if let Some(suffix) = hyperlink_suffix {
-        href.push_str(&suffix);
-    }
-
-    // Step 5: parse the URL.
-    // Step 6: navigate to an error document if parsing failed.
     let document = document_from_node(subject);
-    let url = match document.url().join(&href) {
-        Ok(url) => url,
-        Err(_) => return,
+    let window = document.window();
+
+    // Step 3: source browsing context.
+    let source = document.browsing_context().unwrap();
+
+    // Step 4-5: target attribute.
+    let target_attribute_value = subject.get_attribute(&ns!(), &local_name!("target"));
+
+    // Step 6.
+    let noopener = if let Some(link_types) = subject.get_attribute(&ns!(), &local_name!("rel")) {
+        let values = link_types.Value();
+        let contains_noopener = values.contains("noopener");
+        let contains_noreferrer = values.contains("noreferrer");
+        contains_noreferrer || contains_noopener
+    } else {
+        false
     };
 
-    // Step 8: navigate to the URL.
-    if let Some(target) = target {
-        if !is_current_browsing_context(target.Value()) {
-            // https://github.com/servo/servo/issues/13241
+    // Step 7.
+    let (maybe_chosen, replace) = match target_attribute_value {
+          Some(name) => source.choose_browsing_context(name.Value(), noopener),
+          None => (Some(window.window_proxy()), false)
+    };
+    let chosen = match maybe_chosen {
+        Some(proxy) => proxy,
+        None => return,
+    };
+    if let Some(target_document) = chosen.document() {
+        let target_window = target_document.window();
+
+        // Step 9, dis-owning target's opener, if necessary
+        // will have been done as part of Step 7 above
+        // in choose_browsing_context/create_auxiliary_browsing_context.
+
+        // Step 10, 11, 12, 13. TODO: if parsing the URL failed, navigate to error page.
+        let attribute = subject.get_attribute(&ns!(), &local_name!("href")).unwrap();
+        let mut href = attribute.Value();
+        // Step 12: append a hyperlink suffix.
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
+        if let Some(suffix) = hyperlink_suffix {
+            href.push_str(&suffix);
         }
-    }
+        let url = match document.url().join(&href) {
+            Ok(url) => url,
+            Err(_) => return,
+        };
 
-    debug!("following hyperlink to {}", url);
-
-    let window = document.window();
-    window.load_url(url, false, false, referrer_policy);
+        // Step 13, 14.
+        debug!("following hyperlink to {}", url);
+        target_window.load_url(url, replace, false, referrer_policy);
+    };
 }

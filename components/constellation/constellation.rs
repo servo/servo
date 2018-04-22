@@ -123,7 +123,7 @@ use network_listener::NetworkListener;
 use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
+use script_traits::{AnimationState, AuxiliaryBrowsingContextLoadInfo, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg};
@@ -1047,6 +1047,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::ScriptNewIFrame(load_info, layout_sender) => {
                 self.handle_script_new_iframe(load_info, layout_sender);
             }
+            FromScriptMsg::ScriptNewAuxiliary(load_info, layout_sender) => {
+                self.handle_script_new_auxiliary(load_info, layout_sender);
+            }
             FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
             }
@@ -1654,6 +1657,62 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
+            new_pipeline_id: new_pipeline_id,
+            replace: None,
+        });
+    }
+
+    fn handle_script_new_auxiliary(&mut self,
+                                load_info: AuxiliaryBrowsingContextLoadInfo,
+                                layout_sender: IpcSender<LayoutControlMsg>) {
+        let AuxiliaryBrowsingContextLoadInfo {
+            opener_pipeline_id,
+            new_top_level_browsing_context_id,
+            new_browsing_context_id,
+            new_pipeline_id,
+        } = load_info;
+
+        let url = ServoUrl::parse("about:blank").expect("infallible");
+
+        // TODO: Referrer?
+        let load_data = LoadData::new(url.clone(), None, None, None);
+
+        let pipeline = {
+            let opener_pipeline = match self.pipelines.get(&opener_pipeline_id) {
+                Some(parent_pipeline) => parent_pipeline,
+                None => return warn!("Auxiliary loaded url in closed pipeline {}.", opener_pipeline_id),
+            };
+            let opener_host = match reg_host(&opener_pipeline.url) {
+                Some(host) => host,
+                None => return warn!("Auxiliary loaded pipeline with no url {}.", opener_pipeline_id),
+            };
+            let script_sender = opener_pipeline.event_loop.clone();
+            // https://html.spec.whatwg.org/multipage/#unit-of-related-similar-origin-browsing-contexts
+            // If the auxiliary shares the host/scheme with the creator, they share an event-loop.
+            // So the first entry for the auxiliary, itself currently "about:blank",
+            // is the event-loop for the current host of the creator.
+            self.event_loops.entry(new_top_level_browsing_context_id)
+                .or_insert_with(HashMap::new)
+                .insert(opener_host, Rc::downgrade(&script_sender));
+            Pipeline::new(new_pipeline_id,
+                          new_browsing_context_id,
+                          new_top_level_browsing_context_id,
+                          None,
+                          script_sender,
+                          layout_sender,
+                          self.compositor_proxy.clone(),
+                          opener_pipeline.is_private,
+                          url,
+                          opener_pipeline.visible,
+                          load_data)
+        };
+
+        assert!(!self.pipelines.contains_key(&new_pipeline_id));
+        self.pipelines.insert(new_pipeline_id, pipeline);
+        self.joint_session_histories.insert(new_top_level_browsing_context_id, JointSessionHistory::new());
+        self.add_pending_change(SessionHistoryChange {
+            top_level_browsing_context_id: new_top_level_browsing_context_id,
+            browsing_context_id: new_browsing_context_id,
             new_pipeline_id: new_pipeline_id,
             replace: None,
         });
