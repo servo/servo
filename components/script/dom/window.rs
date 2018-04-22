@@ -563,6 +563,14 @@ impl WindowMethods for Window {
         // TODO: Cancel ongoing navigation.
         let doc = self.Document();
         doc.abort();
+
+    // https://html.spec.whatwg.org/multipage/#dom-open
+    fn Open(&self,
+            url: DOMString,
+            target: DOMString,
+            features: DOMString)
+            -> Option<DomRoot<WindowProxy>> {
+        self.window_proxy().open(url, target, features)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
