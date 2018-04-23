@@ -330,8 +330,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the webvr thread.
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
-    /// An Id for the next canvas to use.
-    canvas_id: CanvasId,
+    /// A channel through which messages can be sent to the canvas paint thread.
+    canvas_chan: IpcSender<CanvasMsg>,
 }
 
 /// State needed to construct a constellation.
@@ -630,7 +630,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }),
                 webgl_threads: state.webgl_threads,
                 webvr_chan: state.webvr_chan,
-                canvas_id: CanvasId(0),
+                canvas_chan: CanvasPaintThread::start(),
             };
 
             constellation.run();
@@ -2286,11 +2286,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             &mut self,
             size: &Size2D<i32>,
             response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>) {
-        self.canvas_id.0 += 1;
         let webrender_api = self.webrender_api_sender.clone();
-        let sender = CanvasPaintThread::start(*size, webrender_api,
-                                              opts::get().enable_canvas_antialiasing, self.canvas_id.clone());
-        if let Err(e) = response_sender.send((sender, self.canvas_id.clone())) {
+        let sender = self.canvas_chan.clone();
+        let (canvas_id_sender, canvas_id_receiver) = ipc::channel::<CanvasId>().unwrap();
+
+        sender.send(CanvasMsg::Create(canvas_id_sender,
+                                      *size,
+                                      webrender_api,
+                                      opts::get().enable_canvas_antialiasing
+                                      )).unwrap();
+
+        let canvas_id = canvas_id_receiver.recv().unwrap();
+        if let Err(e) = response_sender.send((sender, canvas_id.clone())) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }
