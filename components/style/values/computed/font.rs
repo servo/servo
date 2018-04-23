@@ -885,16 +885,20 @@ impl FontStyle {
 
     /// Get the font style from Gecko's nsFont struct.
     #[cfg(feature = "gecko")]
-    pub fn from_gecko(kw: u8) -> Self {
-        use gecko_bindings::structs;
-
-        match kw as u32 {
-            structs::NS_STYLE_FONT_STYLE_NORMAL => generics::FontStyle::Normal,
-            structs::NS_STYLE_FONT_STYLE_ITALIC => generics::FontStyle::Italic,
-            // FIXME(emilio): Grab the angle when we honor it :)
-            structs::NS_STYLE_FONT_STYLE_OBLIQUE => generics::FontStyle::Oblique(Self::default_angle()),
-            _ => unreachable!("Unknown font style"),
+    pub fn from_gecko(style: structs::FontSlantStyle) -> Self {
+        let mut angle = 0.;
+        let mut italic = false;
+        let mut normal = false;
+        unsafe {
+            bindings::Gecko_FontSlantStyle_Get(style, &mut normal, &mut italic, &mut angle);
         }
+        if normal {
+            return generics::FontStyle::Normal;
+        }
+        if italic {
+            return generics::FontStyle::Italic;
+        }
+        generics::FontStyle::Oblique(FontStyleAngle(Angle::Deg(angle)))
     }
 }
 
