@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS 2.1 Test Suite: handling of blocks inside inlines</title>
+<link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu">
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="match" href="remove-from-split-inline-4-noib-ref.html">
+<style>
+  body > span { border: 3px solid blue }
+</style>
+<body>
+  <span>
+    One
+    Two
+    <div>Three</div>
+    Four
+  </span>
+</body>

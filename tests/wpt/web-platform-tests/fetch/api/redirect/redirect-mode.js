@@ -3,15 +3,22 @@ if (this.document === undefined) {
   importScripts("/common/get-host-info.sub.js")
 }
 
-function redirectMode(desc, redirectUrl, redirectLocation, redirectStatus, redirectMode) {
-  var url = redirectUrl;
+var redirectLocation = "cors-top.txt";
+
+function testRedirect(origin, redirectStatus, redirectMode, corsMode) {
+  var url = new URL("../resources/redirect.py", self.location);
+  if (origin === "cross-origin") {
+    url.host = get_host_info().REMOTE_HOST;
+  }
+
   var urlParameters = "?redirect_status=" + redirectStatus;
   urlParameters += "&location=" + encodeURIComponent(redirectLocation);
 
-  var requestInit = {"redirect": redirectMode};
+  var requestInit = {redirect: redirectMode, mode: corsMode};
 
   promise_test(function(test) {
-    if (redirectMode === "error")
+    if (redirectMode === "error" ||
+        (corsMode === "no-cors" && redirectMode !== "follow" && origin !== "same-origin"))
       return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit));
     if (redirectMode === "manual")
       return fetch(url + urlParameters, requestInit).then(function(resp) {
@@ -22,20 +29,24 @@ function redirectMode(desc, redirectUrl, redirectLocation, redirectStatus, redir
       });
     if (redirectMode === "follow")
       return fetch(url + urlParameters, requestInit).then(function(resp) {
-        assert_true(new URL(resp.url).pathname.endsWith(locationUrl), "Response's url should be the redirected one");
-        assert_equals(resp.status, 200, "Response's status is 200");
+        if (corsMode !== "no-cors" || origin === "same-origin") {
+          assert_true(new URL(resp.url).pathname.endsWith(redirectLocation), "Response's url should be the redirected one");
+          assert_equals(resp.status, 200, "Response's status is 200");
+        } else {
+          assert_equals(resp.type, "opaque", "Response is opaque");
+        }
       });
     assert_unreached(redirectMode + " is no a valid redirect mode");
-  }, desc);
+  }, origin + " redirect " + redirectStatus + " in " + redirectMode + " redirect and " + corsMode + " mode");
 }
 
-var redirUrl = get_host_info().HTTP_ORIGIN + "/fetch/api/resources/redirect.py";
-var locationUrl = "top.txt";
-
-for (var statusCode of [301, 302, 303, 307, 308]) {
-  redirectMode("Redirect " + statusCode + " in \"error\" mode ", redirUrl, locationUrl, statusCode, "error");
-  redirectMode("Redirect " + statusCode + " in \"follow\" mode ", redirUrl, locationUrl, statusCode, "follow");
-  redirectMode("Redirect " + statusCode + " in \"manual\" mode ", redirUrl, locationUrl, statusCode, "manual");
+for (var origin of ["same-origin", "cross-origin"]) {
+  for (var statusCode of [301, 302, 303, 307, 308]) {
+    for (var redirect of ["error", "manual", "follow"]) {
+      for (var mode of ["cors", "no-cors"])
+        testRedirect(origin, statusCode, redirect, mode);
+    }
+  }
 }
 
 done();

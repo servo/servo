@@ -40,18 +40,18 @@ The test is passed if each shape seems to have a double stroke, dark green and l
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
 
     <g transform="translate(0,400)">
-        <g stroke="#070" stroke-width="8">  
-            <polyline fill="#396" 
-                points="270,-225 300,-245 320,-225 340,-245 280,-280                   
+        <g stroke="#070" stroke-width="8">
+            <polyline fill="#396"
+                points="270,-225 300,-245 320,-225 340,-245 280,-280
                 390,-280 420,-240 280,-185"/>
-            <polygon fill="#5F9"    
+            <polygon fill="#5F9"
                 points="179,-185,218,-203,228,-245,202,-279,159,-280,131,-247,139,-205"/>
         </g>
         <g stroke="#3C6" stroke-width="3" fill="none">
-           <polyline 
-                points="270-225 300-245 320-225 340-245 280-280                   
+           <polyline
+                points="270-225 300-245 320-225 340-245 280-280
                 390-280 420-240 280-185"/>
-            <polygon     
+            <polygon
                 points="179-185,218-203,228-245,202-279,159-280,131-247,139-205"/>
         </g>
     </g>

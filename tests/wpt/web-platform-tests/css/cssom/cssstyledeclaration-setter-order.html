@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<title>CSSOM test: order of declarations after setting via CSSOM</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#set-a-css-declaration-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  function generateCSSDeclBlock(props) {
+    let elem = document.createElement("div");
+    let cssText = props.map(([prop, value]) => `${prop}: ${value};`).join(" ");
+    elem.setAttribute("style", cssText);
+    return elem.style;
+  }
+  function checkOrder(block, props, msg) {
+    assert_array_equals(Array.from(block), props, `Property order should match ${msg}`);
+  }
+  function arrayWithItemsAtEnd(array, items) {
+    let result = array.filter(item => !items.includes(item));
+    return result.concat(items);
+  }
+
+  const SUBPROPS = {
+    "margin": ["margin-top", "margin-right", "margin-bottom", "margin-left"],
+    "padding": ["padding-top", "padding-right", "padding-bottom", "padding-left"],
+  };
+
+  test(function() {
+    let block = generateCSSDeclBlock([
+      ["top", "1px"],
+      ["bottom", "2px"],
+      ["left", "3px"],
+      ["right", "4px"],
+    ]);
+    let expectedOrder = ["top", "bottom", "left", "right"];
+    checkOrder(block, expectedOrder, "in initial block");
+
+    block.setProperty("top", "5px");
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, ["top"]);
+    checkOrder(block, expectedOrder, "after setting existing property");
+
+    block.setProperty("bottom", "2px");
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, ["bottom"]);
+    checkOrder(block, expectedOrder, "after setting existing property with identical value");
+  }, "setProperty with existing longhand should change order");
+
+  test(function() {
+    let block = generateCSSDeclBlock([
+      ["top", "1px"],
+      ["bottom", "2px"],
+      ["left", "3px"],
+      ["right", "4px"],
+    ]);
+    let expectedOrder = ["top", "bottom", "left", "right"];
+    checkOrder(block, expectedOrder, "in initial block");
+
+    block.top = "5px";
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, ["top"]);
+    checkOrder(block, expectedOrder, "after setting existing property");
+
+    block.bottom = "2px";
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, ["bottom"]);
+    checkOrder(block, expectedOrder, "after setting existing property with identical value");
+  }, "invoke property setter with existing longhand should change order");
+
+  test(function() {
+    let block = generateCSSDeclBlock([
+      ["margin", "1px"],
+      ["top", "2px"],
+      ["padding", "3px"],
+    ]);
+    let expectedOrder = SUBPROPS["margin"].concat(["top"]).concat(SUBPROPS["padding"]);
+    checkOrder(block, expectedOrder, "in initial block");
+
+    block.setProperty("margin", "4px");
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, SUBPROPS["margin"]);
+    checkOrder(block, expectedOrder, "after setting an existing shorthand");
+
+    block.setProperty("padding", "3px");
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, SUBPROPS["padding"]);
+    checkOrder(block, expectedOrder, "after setting an existing shorthand with identical value");
+
+    block.setProperty("margin-bottom", "5px");
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, ["margin-bottom"]);
+    checkOrder(block, expectedOrder, "after setting a longhand in an existing shorthand");
+  }, "setProperty with existing shorthand should change order");
+
+  test(function() {
+    let block = generateCSSDeclBlock([
+      ["margin", "1px"],
+      ["top", "2px"],
+      ["padding", "3px"],
+    ]);
+    let expectedOrder = SUBPROPS["margin"].concat(["top"]).concat(SUBPROPS["padding"]);
+    checkOrder(block, expectedOrder, "in initial block");
+
+    block.margin = "4px";
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, SUBPROPS["margin"]);
+    checkOrder(block, expectedOrder, "after setting an existing shorthand");
+
+    block.padding = "3px";
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, SUBPROPS["padding"]);
+    checkOrder(block, expectedOrder, "after setting an existing shorthand with identical value");
+
+    block.marginBottom = "5px";
+    expectedOrder = arrayWithItemsAtEnd(expectedOrder, ["margin-bottom"]);
+    checkOrder(block, expectedOrder, "after setting a longhand in an existing shorthand");
+  }, "invoke property setter with existing shorthand should change order");
+</script>

@@ -4,6 +4,8 @@ def main(request, response):
     request header was received or not.
     """
 
+    response.headers.append("Access-Control-Allow-Origin", "*")
+
     if "device-memory" in request.headers:
             response.headers.set("device-memory-received", "true")
     if "dpr" in request.headers:

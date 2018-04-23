@@ -16,9 +16,9 @@
         An element with 'display' set to 'none' or an element whose parent has 'display' set to 'none' is not a target of pointer events.
       </p>
       <p>
-        Stack a 'circle' element with 'display' equal to 'none' on another 'circle' element. 
-        Specify an 'onclick' event handler on the 'circle' with 'display' set to 'none' that will change the 'visibility' of 'FAIL' text to 'visible'. 
-        Verify that the event handler does not fire which clicking on the top 'circle' element. 
+        Stack a 'circle' element with 'display' equal to 'none' on another 'circle' element.
+        Specify an 'onclick' event handler on the 'circle' with 'display' set to 'none' that will change the 'visibility' of 'FAIL' text to 'visible'.
+        Verify that the event handler does not fire which clicking on the top 'circle' element.
         Repeat with another set of 'circle' elements with the parent of one of the 'circle' elements having its 'display' set to 'none'.
       </p>
     </d:testDescription>

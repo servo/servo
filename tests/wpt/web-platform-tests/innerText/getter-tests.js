@@ -326,7 +326,7 @@ testText("<div><select class='poke-rp'></select>", "", "<rp> in a <select>");
 
 /**** Shadow DOM ****/
 
-if ("createShadowRoot" in document.body) {
+if ("attachShadow" in document.body) {
   testText("<div class='shadow'>", "", "Shadow DOM contents ignored");
   testText("<div><div class='shadow'>", "", "Shadow DOM contents ignored");
 }

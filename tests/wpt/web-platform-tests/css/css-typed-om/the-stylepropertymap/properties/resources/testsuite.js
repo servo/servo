@@ -16,6 +16,10 @@ function assert_is_equal_with_range_handling(input, result) {
     assert_style_value_equals(result, input);
 }
 
+function assert_is_unsupported(result) {
+  assert_class_string(result, 'CSSStyleValue');
+}
+
 const gCssWideKeywordsExamples = [
   {
     description: 'initial keyword',
@@ -102,7 +106,9 @@ const gTestSyntaxExamples = {
       },
       {
         description: "negative milliseconds",
-        input: new CSSUnitValue(-3.14, 'ms')
+        input: new CSSUnitValue(-3.14, 'ms'),
+        // Computed values use canonical units
+        defaultComputed: (_, result) => assert_style_value_equals(result, new CSSUnitValue(-0.00314, 's'))
       },
       {
         description: "positive seconds",
@@ -116,6 +122,79 @@ const gTestSyntaxExamples = {
         defaultSpecified: (_, result) => assert_is_calc_sum(result),
         defaultComputed: (_, result) => assert_is_unit('s', result)
       }
+    ],
+  },
+  '<time>': {
+    description: 'a time',
+    examples: [
+      {
+        description: "zero seconds",
+        input: new CSSUnitValue(0, 's')
+      },
+      {
+        description: "negative milliseconds",
+        input: new CSSUnitValue(-3.14, 'ms'),
+        // Computed values use canonical units
+        defaultComputed: (_, result) => assert_style_value_equals(result, new CSSUnitValue(-0.00314, 's'))
+      },
+      {
+        description: "positive seconds",
+        input: new CSSUnitValue(3.14, 's')
+      },
+      {
+        description: "a calc time",
+        input: new CSSMathSum(new CSSUnitValue(0, 's'), new CSSUnitValue(0, 'ms')),
+        // Specified/computed calcs are usually simplified.
+        // FIXME: Test this properly
+        defaultSpecified: (_, result) => assert_is_calc_sum(result),
+        defaultComputed: (_, result) => assert_is_unit('s', result)
+      }
+    ],
+  },
+  '<angle>': {
+    description: 'an angle',
+    examples: [
+      {
+        description: "zero degrees",
+        input: new CSSUnitValue(0, 'deg')
+      },
+      {
+        description: "positive radians",
+        input: new CSSUnitValue(3.14, 'rad'),
+        // Computed values use canonical units
+        defaultComputed: (_, result) => assert_style_value_equals(result, new CSSUnitValue(179.908752, 'deg'))
+      },
+      {
+        description: "negative degrees",
+        input: new CSSUnitValue(-3.14, 'deg')
+      },
+      {
+        description: "a calc angle",
+        input: new CSSMathSum(new CSSUnitValue(0, 'rad'), new CSSUnitValue(0, 'deg')),
+        // Specified/computed calcs are usually simplified.
+        // FIXME: Test this properly
+        defaultSpecified: (_, result) => assert_is_calc_sum(result),
+        defaultComputed: (_, result) => assert_is_unit('deg', result)
+      }
+    ],
+  },
+  '<flex>': {
+    description: 'a flexible length',
+    examples: [
+      {
+        description: "zero fractions",
+        input: new CSSUnitValue(0, 'fr')
+      },
+      {
+        description: "one fraction",
+        input: new CSSUnitValue(0, 'fr')
+      },
+      {
+        description: "negative fraction",
+        input: new CSSUnitValue(-3.14, 'fr')
+      },
+      // TODO(https://github.com/w3c/css-houdini-drafts/issues/734):
+      // Add calc tests involving 'fr' when that is spec'd in CSS.
     ],
   },
   '<number>': {
@@ -299,6 +378,11 @@ function testUnsupportedValue(propertyName, cssText) {
     element2.attributeStyleMap.set(propertyName, result);
     assert_equals(element2.style[propertyName], element1.style[propertyName],
       'Unsupported value can be set on different element');
+
+    const resultAll = element2.attributeStyleMap.getAll(propertyName);
+    assert_style_value_equals(resultAll[0], result,
+      `getAll() with single unsupported value returns single-item list ` +
+      `with same result as get()`);
   }, `'${propertyName}' does not supported '${cssText}'`);
 }
 
@@ -359,7 +443,7 @@ function runPropertyTests(propertyName, testCases) {
 
     // Retrieve test examples for this test case's syntax. If the syntax
     // looks like a keyword, then create an example on the fly.
-    const syntaxExamples = testCase.syntax.toLowerCase().match(/^[a-z\-]+$/) ?
+    const syntaxExamples = testCase.syntax.toLowerCase().match(/^[a-z0-9\-]+$/) ?
       createKeywordExample(testCase.syntax) :
       gTestSyntaxExamples[testCase.syntax];
 

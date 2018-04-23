@@ -8,17 +8,17 @@
   <!--======================================================================-->
   <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" reviewer="CL" author="Microsoft" status="reviewed" version="$Revision: 1.5 $" testname="$RCSfile: imp-path-01-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/implnote.html#PathElementImplementationNotes">
-			<p>
+      <p>
         Tests that markers are drawn on zero-length 'path' and 'line' segments.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-			<p>Run the test. No interaction required.</p>
+      <p>Run the test. No interaction required.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         Test passes if there are two blue boxes, positioned as in the reference image.
-      </p>  
+      </p>
     </d:passCriteria>
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: imp-path-01-f.svg,v $</title>

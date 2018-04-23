@@ -28,19 +28,18 @@
       </p>
       <p>
         In the top test, the opacities of the group and the individual rectangles are
-        all set to 1. 
+        all set to 1.
       </p>
       <p>
-        In the second test, the group is given an opacity of 0.5. 
+        In the second test, the group is given an opacity of 0.5.
       </p>
       <p>
         In the third test, the group maintains a group opacity of 1 whereas each individual
-        rectangle is given an opacity of 0.5 in the group. 
+        rectangle is given an opacity of 0.5 in the group.
       </p>
       <p>
         Lastly, the group and individual rectangles are all given an opacity of 0.5.
       </p>
-
 
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">

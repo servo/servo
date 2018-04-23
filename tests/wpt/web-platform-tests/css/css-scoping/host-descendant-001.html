@@ -1,0 +1,16 @@
+<!doctype html>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<link rel="match" href="reference/green-box.html">
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host"><div></div></div>
+<script>
+  let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <style>
+      :host ::slotted(div) { width: 100px; height: 100px; background: green; }
+      * :host ::slotted(div) { background: red; }
+    </style>
+    <slot></slot>
+  `;
+</script>

@@ -9,7 +9,7 @@
 const test_desc = 'A device disconnecting after the BluetoothDevice object ' +
     'has been GC\'ed should not access freed memory.';
 
-bluetooth_test(() => getHealthThermometerDevice()
+bluetooth_test(() => getConnectedHealthThermometerDevice()
   .then(({fake_peripheral}) => {
     // 1. Disconnect.
     fake_peripheral.simulateGATTDisconnection();

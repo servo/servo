@@ -121,4 +121,21 @@ async_test(t => {
   }
 }, 'BroadcastChannel created after a worker self.close()');
 
+async_test(t => {
+  function workerCode() {
+    close();
+    var bc = new BroadcastChannel('worker-test-after-close');
+    bc.postMessage(true);
+  }
+
+  var bc = new BroadcastChannel('worker-test-after-close');
+  bc.onmessage = function(e) {
+    assert_true(e.data, "BroadcastChannel created on worker shutdown.");
+    t.done();
+  }
+
+  var workerBlob = new Blob([workerCode.toString() + ";workerCode();"], {type:"application/javascript"});
+  new Worker(URL.createObjectURL(workerBlob));
+}, 'BroadcastChannel used after a worker self.close()');
+
 </script>

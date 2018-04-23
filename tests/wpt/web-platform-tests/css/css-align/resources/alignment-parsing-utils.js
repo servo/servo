@@ -3,7 +3,7 @@ var contentPositionClasses = {"Start":"start", "End":"end", "Center":"center", "
 var distributionClasses = {"Stretch":"stretch", "SpaceAround":"space-around", "SpaceBetween":"space-between", "SpaceEvenly":"space-evenly"};
 var baselineClasses = {"Baseline":"baseline", "FirstBaseline":"first baseline", "LastBaseline":"last baseline"};
 var overflowClasses = {"SafeFlexEnd":"safe flex-end", "UnsafeEnd":"unsafe end", "SafeEnd":"safe end", "UnsafeFlexStart":"unsafe flex-start", "SafeCenter":"safe center"};
-var legacyClasses = {"LegacyLeft":"legacy left", "LegacyCenter":"legacy center", "LegacyRight":"legacy right", "LeftLegacy":"left legacy", "CenterLegacy":"center legacy", "RightLegacy":"right legacy", "Legacy":"legacy"};
+var legacyClasses = {"LegacyLeft":"legacy left", "LegacyCenter":"legacy center", "LegacyRight":"legacy right"};
 
 var invalidPositionValues = ["auto safe", "auto left", "normal unsafe", "normal stretch", "baseline normal",
                              "baseline center", "first baseline center", "last baseline center", "baseline last",

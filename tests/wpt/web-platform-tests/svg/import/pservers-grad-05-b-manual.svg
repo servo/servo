@@ -42,7 +42,7 @@
         Also a stop opacity is given to the colors in the following order: 1, 0.2, 0.5, 0, 0.8, 1
       </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>Run the test. No interaction required.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">

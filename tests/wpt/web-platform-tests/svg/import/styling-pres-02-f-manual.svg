@@ -64,7 +64,7 @@
     <text x='10' y='20'>Testing inapplicable presentation attributes</text>
 
     <g visibility='hidden'>
-    	<path id="path" d="M0,0"/>
+      <path id="path" d="M0,0"/>
       <image id='image' xlink:href='../images/20x20.png' width='10' height='10' fill='rgb(0, 0, 255)'/>
       <rect id='rect' width='10' height='10' font-size='123px'/>
       <circle id='circle' r='10' font-style='italic'/>
@@ -129,7 +129,7 @@
         }
         return hex;
       }
-  
+
       function checkSVGColor(e, p, r, g, b) {
         var v;
         try {
@@ -190,7 +190,7 @@
       report(5, checkSVGColor($('text'), 'stop-color', 0, 255, 0));
       report(6, checkIdent($('ellipse'), 'font-variant', 'small-caps'));
       report(7, checkPx($('polyline'), 'letter-spacing', '20px'));
-      
+
       report(11, checkSVGColor($('tref'), 'flood-color', 255, 0, 0));
       report(12, checkFloat($('textPath'), 'flood-opacity', 0.25));
       report(13, checkIdent($('altGlyph'), 'color-interpolation-filters', 'auto'));

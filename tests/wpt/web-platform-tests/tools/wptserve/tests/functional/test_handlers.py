@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import unittest
 import uuid
 
@@ -228,6 +229,7 @@ class TestJSONHandler(TestUsingServer):
         self.assertEqual("test-value", resp.info()["test-header"])
         self.assertEqual({"data": "test data"}, json.load(resp))
 
+
 class TestPythonHandler(TestUsingServer):
     def test_string(self):
         resp = self.request("/test_string.py")
@@ -248,6 +250,17 @@ class TestPythonHandler(TestUsingServer):
         self.assertEqual("Giraffe", resp.msg)
         self.assertEqual("text/html", resp.info()["Content-Type"])
         self.assertEqual("PASS", resp.info()["X-Test"])
+        self.assertEqual("PASS", resp.read())
+
+    def test_import(self):
+        dir_name = os.path.join(doc_root, "subdir")
+        assert dir_name not in sys.path
+        assert "test_module" not in sys.modules
+        resp = self.request("/subdir/import_handler.py")
+        assert dir_name not in sys.path
+        assert "test_module" not in sys.modules
+        self.assertEqual(200, resp.getcode())
+        self.assertEqual("text/plain", resp.info()["Content-Type"])
         self.assertEqual("PASS", resp.read())
 
     def test_no_main(self):

@@ -22,14 +22,13 @@
       <p>
         The test consists of a set of black circles with a  blue stroke.
       </p>
-     
-      
+
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         After the initial picture is displayed, the user should attempt to use
         the magnify controls that are required on conforming Dynamic SVG
-        viewers. 
+        viewers.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
