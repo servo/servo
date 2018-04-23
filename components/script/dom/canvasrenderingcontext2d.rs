@@ -371,20 +371,17 @@ impl CanvasRenderingContext2D {
                 None => return Err(Error::InvalidState),
             };
 
-            let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageInOther(
-                self.ipc_renderer.clone(),
                 self.get_canvas_id(),
                 image_size,
                 dest_rect,
                 source_rect,
-                smoothing_enabled,
-                sender),
+                smoothing_enabled
+                ),
                 context.get_canvas_id());
 
             let renderer = context.get_ipc_renderer();
             renderer.send(msg).unwrap();
-            receiver.recv().unwrap();
         };
 
         self.mark_as_dirty();
