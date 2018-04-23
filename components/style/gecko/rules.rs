@@ -26,19 +26,12 @@ impl<'a> ToNsCssValue for &'a FamilyName {
 
 impl<'a> ToNsCssValue for &'a SpecifiedFontStretch {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        use values::specified::font::FontStretchKeyword;
-        match *self {
-            SpecifiedFontStretch::Stretch(ref p) => nscssvalue.set_number(p.get()),
-            SpecifiedFontStretch::Keyword(ref kw) => {
-                // TODO(emilio): Use this branch instead.
-                if false {
-                    nscssvalue.set_number(kw.compute().0)
-                } else {
-                    nscssvalue.set_enum(FontStretchKeyword::gecko_keyword(kw.compute().0) as i32)
-                }
-            }
+        let number = match *self {
+            SpecifiedFontStretch::Stretch(ref p) => p.get(),
+            SpecifiedFontStretch::Keyword(ref kw) => kw.compute().0,
             SpecifiedFontStretch::System(..) => unreachable!(),
-        }
+        };
+        nscssvalue.set_font_stretch(number);
     }
 }
 
@@ -123,8 +116,8 @@ impl<'a> ToNsCssValue for &'a FontStyle {
                 let mut a = nsCSSValue::null();
                 let mut b = nsCSSValue::null();
 
-                a.set_angle(SpecifiedFontStyle::compute_angle(first));
-                b.set_angle(SpecifiedFontStyle::compute_angle(second));
+                a.set_font_style(SpecifiedFontStyle::compute_angle(first).degrees());
+                b.set_font_style(SpecifiedFontStyle::compute_angle(second).degrees());
 
                 nscssvalue.set_pair(&a, &b);
             }

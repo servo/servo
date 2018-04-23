@@ -3801,6 +3801,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands;
     use style::values::specified::BorderStyle;
+    use style::values::generics::font::FontStyle;
 
     let long = get_longhand_from_id!(property);
     let value = value as u32;
@@ -3820,7 +3821,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
         FontStyle => {
-            ToComputedValue::from_computed_value(&longhands::font_style::computed_value::T::from_gecko(value as u8))
+            let val = if value == structs::NS_FONT_STYLE_ITALIC {
+                FontStyle::Italic
+            } else {
+                debug_assert_eq!(value, structs::NS_FONT_STYLE_NORMAL);
+                FontStyle::Normal
+            };
+
+            ToComputedValue::from_computed_value(&val)
         },
         FontWeight => longhands::font_weight::SpecifiedValue::from_gecko_keyword(value),
         ListStyleType => Box::new(longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value)),
@@ -5434,16 +5442,16 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
         FontFamily::Values(list) => family.set_move(list.0),
         FontFamily::System(_) => return false,
     }
+
     let specified_font_style = match font.font_style {
         FontStyle::Specified(ref s) => s,
         FontStyle::System(_) => return false,
     };
-
     match *specified_font_style {
         GenericFontStyle::Normal => style.set_normal(),
         GenericFontStyle::Italic => style.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
         GenericFontStyle::Oblique(ref angle) => {
-            style.set_angle(SpecifiedFontStyle::compute_angle(angle))
+            style.set_font_style(SpecifiedFontStyle::compute_angle(angle).degrees())
         }
     }
 

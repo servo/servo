@@ -167,14 +167,24 @@ impl nsCSSValue {
         unsafe { bindings::Gecko_CSSValue_SetAtomIdent(self, s.into_addrefed()) }
     }
 
-    /// Set to a font format
+    /// Set to a font format.
     pub fn set_font_format(&mut self, s: &str) {
         self.set_string_internal(s, nsCSSUnit::eCSSUnit_Font_Format);
     }
 
-    /// Set to a local font value
+    /// Set to a local font value.
     pub fn set_local_font(&mut self, s: &Atom) {
         self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_Local_Font);
+    }
+
+    /// Set to a font stretch.
+    pub fn set_font_stretch(&mut self, s: f32) {
+        unsafe { bindings::Gecko_CSSValue_SetFontStretch(self, s) }
+    }
+
+    /// Set to a font style
+    pub fn set_font_style(&mut self, s: f32) {
+        unsafe { bindings::Gecko_CSSValue_SetFontSlantStyle(self, s) }
     }
 
     /// Set to a font weight

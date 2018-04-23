@@ -350,7 +350,9 @@ ${helpers.predefined_type("-x-text-zoom",
                     )
                 }
                 let font_weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
-                let font_stretch = NonNegative(Percentage(system.stretch as f32));
+                let font_stretch = NonNegative(Percentage(unsafe {
+                    bindings::Gecko_FontStretch_ToFloat(system.stretch)
+                }));
                 let font_style = FontStyle::from_gecko(system.style);
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(
