@@ -812,6 +812,11 @@ impl Document {
             elem.set_focus_state(false);
             // FIXME: pass appropriate relatedTarget
             self.fire_focus_event(FocusEventType::Blur, node, None);
+
+            // Notify the embedder to hide the input method.
+            if elem.input_method_type().is_some() {
+                self.send_to_constellation(ScriptMsg::HideIME);
+            }
         }
 
         self.focused.set(self.possibly_focused.get().r());
@@ -825,6 +830,11 @@ impl Document {
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
                 self.send_to_constellation(ScriptMsg::Focus);
+            }
+
+            // Notify the embedder to display an input method.
+            if let Some(kind) = elem.input_method_type() {
+                self.send_to_constellation(ScriptMsg::ShowIME(kind));
             }
         }
     }

@@ -1247,6 +1247,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::SetFullscreenState(state) => {
                 self.embedder_proxy.send(EmbedderMsg::SetFullscreenState(source_top_ctx_id, state));
             }
+            FromScriptMsg::ShowIME(kind) => {
+                debug!("constellation got ShowIME message");
+                self.embedder_proxy.send(EmbedderMsg::ShowIME(source_top_ctx_id, kind));
+            }
+            FromScriptMsg::HideIME => {
+                debug!("constellation got HideIME message");
+                self.embedder_proxy.send(EmbedderMsg::HideIME(source_top_ctx_id));
+            }
         }
     }
 

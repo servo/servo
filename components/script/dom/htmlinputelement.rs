@@ -40,6 +40,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use mime_guess;
+use msg::constellation_msg::InputMethodType;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
@@ -135,6 +136,25 @@ impl InputType {
             InputType::Time => "time",
             InputType::Url => "url",
             InputType::Week => "week",
+        }
+    }
+
+    pub fn as_ime_type(&self) -> Option<InputMethodType> {
+        match *self {
+            InputType::Color => Some(InputMethodType::Color),
+            InputType::Date => Some(InputMethodType::Date),
+            InputType::DatetimeLocal => Some(InputMethodType::DatetimeLocal),
+            InputType::Email => Some(InputMethodType::Email),
+            InputType::Month => Some(InputMethodType::Month),
+            InputType::Number => Some(InputMethodType::Number),
+            InputType::Password => Some(InputMethodType::Password),
+            InputType::Search => Some(InputMethodType::Search),
+            InputType::Tel => Some(InputMethodType::Tel),
+            InputType::Text => Some(InputMethodType::Text),
+            InputType::Time => Some(InputMethodType::Time),
+            InputType::Url => Some(InputMethodType::Url),
+            InputType::Week => Some(InputMethodType::Week),
+            _ => None,
         }
     }
 }
