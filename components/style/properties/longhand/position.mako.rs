@@ -302,13 +302,6 @@ ${helpers.predefined_type("object-position",
                           animation_value_type="ComputedValue")}
 
 % for kind in ["row", "column"]:
-    ${helpers.predefined_type("grid-%s-gap" % kind,
-                              "NonNegativeLengthOrPercentage",
-                              "computed::NonNegativeLengthOrPercentage::zero()",
-                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
-                              animation_value_type="NonNegativeLengthOrPercentage",
-                              products="gecko")}
-
     % for range in ["start", "end"]:
         ${helpers.predefined_type("grid-%s-%s" % (kind, range),
                                   "GridLine",
@@ -355,3 +348,23 @@ ${helpers.predefined_type("grid-template-areas",
                           products="gecko",
                           animation_value_type="discrete",
                           spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas")}
+
+${helpers.predefined_type("column-gap",
+                          "length::NonNegativeLengthOrPercentageOrNormal",
+                          "Either::Second(Normal)",
+                          alias="grid-column-gap",
+                          extra_prefixes="moz",
+                          servo_pref="layout.columns.enabled",
+                          spec="https://drafts.csswg.org/css-align-3/#propdef-column-gap",
+                          animation_value_type="NonNegativeLengthOrPercentageOrNormal",
+                          servo_restyle_damage = "reflow")}
+
+// no need for -moz- prefixed alias for this property
+${helpers.predefined_type("row-gap",
+                          "length::NonNegativeLengthOrPercentageOrNormal",
+                          "Either::Second(Normal)",
+                          alias="grid-row-gap",
+                          servo_pref="layout.columns.enabled",
+                          spec="https://drafts.csswg.org/css-align-3/#propdef-row-gap",
+                          animation_value_type="NonNegativeLengthOrPercentageOrNormal",
+                          servo_restyle_damage = "reflow")}
