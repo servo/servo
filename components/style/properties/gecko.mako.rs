@@ -25,8 +25,6 @@ use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
-use gecko_bindings::bindings::Gecko_FontWeight_SetFloat;
-use gecko_bindings::bindings::Gecko_FontWeight_ToFloat;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImageValue;
 use gecko_bindings::bindings::Gecko_StyleTransition_SetUnsupportedProperty;
@@ -2601,12 +2599,14 @@ fn static_assert() {
     }
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
-        unsafe { Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0) };
+        unsafe { bindings::Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0) };
     }
     ${impl_simple_copy('font_weight', 'mFont.weight')}
 
     pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-        let weight: f32 = unsafe { Gecko_FontWeight_ToFloat(self.gecko.mFont.weight) };
+        let weight: f32 = unsafe {
+            bindings::Gecko_FontWeight_ToFloat(self.gecko.mFont.weight)
+        };
         longhands::font_weight::computed_value::T(weight)
     }
 
@@ -2618,7 +2618,8 @@ fn static_assert() {
         use values::computed::Percentage;
         use values::generics::NonNegative;
 
-        let stretch = self.gecko.mFont.stretch as f32 / 100.;
+        let stretch =
+            unsafe { bindings::Gecko_FontStretch_ToFloat(self.gecko.mFont.stretch) };
         debug_assert!(stretch >= 0.);
 
         NonNegative(Percentage(stretch))
@@ -2626,12 +2627,16 @@ fn static_assert() {
 
     pub fn set_font_style(&mut self, v: longhands::font_style::computed_value::T) {
         use values::generics::font::FontStyle;
-        self.gecko.mFont.style = match v {
-            FontStyle::Normal => structs::NS_STYLE_FONT_STYLE_NORMAL,
-            FontStyle::Italic => structs::NS_STYLE_FONT_STYLE_ITALIC,
-            // FIXME(emilio): Honor the angle.
-            FontStyle::Oblique(ref _angle) => structs::NS_STYLE_FONT_STYLE_OBLIQUE,
-        } as u8;
+        let s = &mut self.gecko.mFont.style;
+        unsafe {
+            match v {
+                FontStyle::Normal => bindings::Gecko_FontSlantStyle_SetNormal(s),
+                FontStyle::Italic => bindings::Gecko_FontSlantStyle_SetItalic(s),
+                FontStyle::Oblique(ref angle) => {
+                    bindings::Gecko_FontSlantStyle_SetOblique(s, angle.0.degrees())
+                }
+            }
+        }
     }
     ${impl_simple_copy('font_style', 'mFont.style')}
     pub fn clone_font_style(&self) -> longhands::font_style::computed_value::T {
