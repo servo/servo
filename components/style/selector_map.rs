@@ -454,13 +454,7 @@ fn specific_bucket_for<'a>(component: &'a Component<SelectorImpl>) -> Bucket<'a>
         //
         // So inserting `span` in the rule hash makes sense since we want to
         // match the slotted <span>.
-        //
-        // FIXME(emilio, bug 1426516): The line below causes valgrind failures
-        // and it's probably a false positive, we should uncomment whenever
-        // jseward is back to confirm / whitelist it.
-        //
-        // Meanwhile taking the code path below is slower, but still correct.
-        // Component::Slotted(ref selector) => find_bucket(selector.iter()),
+        Component::Slotted(ref selector) => find_bucket(selector.iter()),
         Component::Host(Some(ref selector)) => find_bucket(selector.iter()),
         _ => Bucket::Universal,
     }
