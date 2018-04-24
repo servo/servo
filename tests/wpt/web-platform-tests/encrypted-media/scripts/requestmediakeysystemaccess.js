@@ -91,10 +91,12 @@ function runTest(config, qualifier) {
         initDataTypes: [config.initDataType],
         audioCapabilities: [{contentType: config.audioType}],
         videoCapabilities: [{contentType: config.videoType}],
+        label: 'abcd',
     }], {
         initDataTypes: [config.initDataType],
         audioCapabilities: [{contentType: config.audioType}],
         videoCapabilities: [{contentType: config.videoType}],
+        label: 'abcd',
     }, 'Basic supported configuration');
 
     expect_config(config.keysystem, [{

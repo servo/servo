@@ -52,9 +52,8 @@ for (const {cssText: xCssText, x, type: xType} of gXTestCases) {
   for (const {cssText: yCssText, y, type: yType} of gYTestCases) {
     const cssText = xCssText + ' ' + yCssText;
 
-    // Can't have things like left 10px 20px
-    if ((xType == 'offset' && yType == 'length') ||
-        (xType == 'length' && yType == 'offset'))
+    // Can't have position values with 3 parts
+    if ((xType === 'offset') !== (yType === 'offset'))
       continue;
 
     test(t => {

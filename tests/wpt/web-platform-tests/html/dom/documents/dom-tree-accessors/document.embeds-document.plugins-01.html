@@ -52,4 +52,36 @@ test(function() {
   assert_equals(document.embeds, document.plugins,
                 "embeds should be the same as plugins");
 }, "Two plugins");
+
+test(function() {
+  var embed1 = document.createElement("embed"),
+      embed2 = document.createElement("embed");
+  document.body.appendChild(embed1);
+  this.add_cleanup(function() { document.body.removeChild(embed1) });
+  var embeds = document.embeds;
+  assert_true(embeds instanceof HTMLCollection);
+  assert_equals(embeds.length, 1);
+
+  document.body.appendChild(embed2);
+  assert_equals(embeds.length, 2);
+
+  document.body.removeChild(embed2);
+  assert_equals(embeds.length, 1);
+}, "Document.embeds should be a live collection");
+
+test(function() {
+  var embed1 = document.createElement("embed"),
+      embed2 = document.createElement("embed");
+  document.body.appendChild(embed1);
+  this.add_cleanup(function() { document.body.removeChild(embed1) });
+  var pls = document.plugins;
+  assert_true(pls instanceof HTMLCollection);
+  assert_equals(pls.length, 1);
+
+  document.body.appendChild(embed2);
+  assert_equals(pls.length, 2);
+
+  document.body.removeChild(embed2);
+  assert_equals(pls.length, 1);
+}, "Document.plugins should be a live collection");
 </script>

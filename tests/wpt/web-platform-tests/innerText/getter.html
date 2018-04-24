@@ -49,7 +49,7 @@ function textTextInContainer(cont, html, expectedPlain, msg) {
     });
     var shadows = document.getElementsByClassName('shadow');
     for (var i = 0; i < shadows.length; ++i) {
-      var s = shadows[i].createShadowRoot();
+      var s = shadows[i].attachShadow({ mode: "open" });
       s.textContent = 'abc';
     }
     while (e && e.nodeType != Node.ELEMENT_NODE) {

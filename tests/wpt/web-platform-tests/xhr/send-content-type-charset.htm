@@ -15,7 +15,7 @@
         test(function() {
         var client = new XMLHttpRequest()
         client.open("POST", "resources/content.py", false)
-        if(input)
+        if(input !== null)
           client.setRequestHeader("Content-Type", input)
         client.send("TEST")
         assert_equals(client.responseText, "TEST")
@@ -29,6 +29,11 @@
         "header with invalid MIME type is not changed"
       )
       request(
+        "",
+        "",
+        "header with invalid MIME type (empty string) is not changed"
+      )
+      request(
         "charset=ascii",
         "charset=ascii",
         "known charset but bogus header - missing MIME type"
@@ -40,7 +45,7 @@
       )
       request(
         "text/plain;charset=utf-8",
-        "text/plain;charset=utf-8",
+        "text/plain;charset=UTF-8",
         "Correct text/plain MIME with charset"
       )
       request(
@@ -54,13 +59,18 @@
         "If no charset= param is given, implementation should not add one - known MIME"
       )
       request(
+        "text/plain;  hi=bye",
+        "text/plain;  hi=bye",
+        "If no charset= param is given, implementation should not add one - known MIME, unknown param, two spaces"
+      )
+      request(
         "text/x-thepiano;charset= waddup",
         "text/x-thepiano;charset=UTF-8",
         "charset given but wrong, fix it (unknown MIME, bogus charset)"
       )
       request(
         "text/plain;charset=utf-8;charset=waddup",
-        "text/plain;charset=utf-8;charset=UTF-8",
+        "text/plain;charset=UTF-8",
         "charset given but wrong, fix it (known MIME, bogus charset)"
       )
       request(
@@ -70,14 +80,34 @@
       )
       request(
         "text/x-pink-unicorn; charset=windows-1252; charset=bogus; notrelated; charset=ascii",
-        "text/x-pink-unicorn; charset=UTF-8; charset=UTF-8; notrelated; charset=UTF-8",
-        "If multiple charset parameters are given, all should be rewritten"
+        "text/x-pink-unicorn;charset=UTF-8",
+        "Multiple charset parameters deduplicate, bogus parameter dropped"
       )
       request(
         null,
         "text/plain;charset=UTF-8",
         "No content type set, give MIME and charset"
       )
+      request(
+        "text/plain;charset= utf-8",
+        "text/plain;charset=UTF-8",
+        "charset with space")
+      request(
+        "text/plain;charset=\"utf-8\"",
+        "text/plain;charset=UTF-8",
+        "charset in double quotes")
+      request(
+        "text/plain;charset=\" utf-8\"",
+        "text/plain;charset=UTF-8",
+        "charset in double quotes with space")
+      request(
+        "text/plain;charset=\"u\\t\\f-8\"",
+        "text/plain;charset=UTF-8",
+        "charset in double quotes with backslashes")
+      request(
+        "YO/yo;charset=x;yo=YO; X=y",
+        "yo/yo;charset=UTF-8;yo=YO;x=y",
+        "unknown parameters need to be preserved")
     </script>
   </body>
 </html>

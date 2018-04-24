@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the compat spec.
+// See https://compat.spec.whatwg.org/
+
+partial interface Window {
+    readonly attribute short orientation;
+    attribute EventHandler onorientationchange;
+};
+
+partial interface HTMLBodyElement {
+    attribute EventHandler onorientationchange;
+};

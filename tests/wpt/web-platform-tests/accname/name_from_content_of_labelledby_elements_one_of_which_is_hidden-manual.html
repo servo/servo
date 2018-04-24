@@ -62,7 +62,10 @@
   </head>
   <body>
   <p>This test examines the ARIA properties for Name from content of labelledby elements one of which is hidden.</p>
-    <div>
+    <style>
+    .hidden { display: none; }
+  </style>
+  <div>
     <input id="test" type="text" aria-labelledby="lbl1 lbl2" aria-describedby="descId" />
     <span>
       <span aria-hidden="true" id="lbl1">Important</span>

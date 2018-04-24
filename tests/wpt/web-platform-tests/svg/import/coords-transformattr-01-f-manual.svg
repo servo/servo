@@ -15,7 +15,7 @@
       <p>
         Tests that separating transform definitions by whitespace and/or a comma is supported. The test draws a red 'rect' element with a valid, non-delimited transform list. It overlays it with an identical black rectangle with
         equivalent transform list delimted by commas and numerical Unicode references of space (U+0020), tab (U+0009), carriage
-        return (U+000D), line feed (U+000A), and combination of all five, 
+        return (U+000D), line feed (U+000A), and combination of all five,
 so that no red is visible.
       </p>
     </d:testDescription>

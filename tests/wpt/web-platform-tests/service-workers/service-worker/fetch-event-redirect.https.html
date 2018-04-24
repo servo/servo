@@ -229,10 +229,14 @@ promise_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
+    // This should succeed because its redirecting from same-origin to
+    // cross-origin.  Since the same-origin URL provides the location
+    // header the manual redirect mode should result in an opaqueredirect
+    // response.
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'no-cors without credentials should succeed interception ' +
+   'no-cors without credentials should succeed opaqueredirect interception ' +
    'and response should not be redirected');
 
 promise_test(function(t) {
@@ -246,10 +250,14 @@ promise_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
+    // This should succeed because its redirecting from same-origin to
+    // cross-origin.  Since the same-origin URL provides the location
+    // header the manual redirect mode should result in an opaqueredirect
+    // response.
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'cors without credentials should succeed interception ' +
+   'cors without credentials should succeed opaqueredirect interception ' +
    'and response should not be redirected');
 
 promise_test(function(t) {
@@ -382,10 +390,14 @@ promise_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
+    // This should succeed because its redirecting from same-origin to
+    // cross-origin.  Since the same-origin URL provides the location
+    // header the manual redirect mode should result in an opaqueredirect
+    // response.
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'no-cors with credentials should succeed interception ' +
+   'no-cors with credentials should succeed opaqueredirect interception ' +
    'and response should not be redirected');
 
 promise_test(function(t) {
@@ -399,10 +411,14 @@ promise_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
+    // This should succeed because its redirecting from same-origin to
+    // cross-origin.  Since the same-origin URL provides the location
+    // header the manual redirect mode should result in an opaqueredirect
+    // response.
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'cors with credentials should succeed interception ' +
+   'cors with credentials should succeed opaqueredirect interception ' +
    'and response should not be redirected');
 
 promise_test(function(t) {

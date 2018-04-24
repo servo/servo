@@ -5,8 +5,6 @@
 == perspective-zero.html reference/green.html
 == perspective-zero-2.html perspective-zero-2-ref.html
 
-# stylo-vs-gecko comparison fails since we support individual transform on new
-# style system only.
 == individual-transform-1.html individual-transform-1-ref.html
 == individual-transform-2a.html individual-transform-2-ref.html
 == individual-transform-2b.html individual-transform-2-ref.html

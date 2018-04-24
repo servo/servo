@@ -14,7 +14,7 @@
     template-version="1.4" reviewer="CL" author="CN" status="issue"
     version="$Revision: 1.10 $" testname="$RCSfile: text-align-08-b.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlignmentProperties">
-    	<p>ISSUE - http://www.w3.org/2011/02/27-svg-irc#T22-20-51</p>
+      <p>ISSUE - http://www.w3.org/2011/02/27-svg-irc#T22-20-51</p>
       <p>
         Test horizontal baselines across script and font size changes. It uses an SVG Font, where
         the Latin letter "a" is a rectangle, the Japanese letter "犜" is an upward-pointing triangle,

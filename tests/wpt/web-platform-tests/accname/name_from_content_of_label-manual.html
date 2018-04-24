@@ -22,7 +22,7 @@
                   "property",
                   "name",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ],
             "AXAPI" : [
@@ -30,7 +30,7 @@
                   "property",
                   "AXDescription",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ],
             "IAccessible2" : [
@@ -38,7 +38,7 @@
                   "property",
                   "accName",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ],
             "UIA" : [
@@ -46,7 +46,7 @@
                   "property",
                   "Name",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ]
          },
@@ -62,7 +62,10 @@
   </head>
   <body>
   <p>This test examines the ARIA properties for Name from content of label.</p>
-    <input type="text" id="test" />
+    <style>
+    .hidden { display: none; }
+  </style>
+  <input type="text" id="test" />
   <label for="test" id="label">
     <span aria-hidden="true"><i> Hello, </i></span>
     <span>My</span> name is

@@ -225,8 +225,9 @@ class SourceFile(object):
         # wdspec tests are in subdirectories of /webdriver excluding __init__.py
         # files.
         rel_dir_tree = self.rel_path.split(os.path.sep)
-        return (rel_dir_tree[0] == "webdriver" and
-                len(rel_dir_tree) > 1 and
+        return (((rel_dir_tree[0] == "webdriver" and len(rel_dir_tree) > 1) or
+                 (rel_dir_tree[:2] == ["infrastructure", "webdriver"] and
+                  len(rel_dir_tree) > 2)) and
                 self.filename not in ("__init__.py", "conftest.py") and
                 fnmatch(self.filename, wd_pattern))
 

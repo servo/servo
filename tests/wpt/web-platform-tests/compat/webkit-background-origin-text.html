@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>webkit-background-origin should not accept text as value</title>
+<link rel="author" title="Rob Buis" href="rob.buis@chromium.org">
+<link rel="match" href="webkit-background-origin-text-ref.html">
+<style>
+#target {
+  width: 0px;
+  background-image: linear-gradient(green, green 50%, red 50%, red);
+  background-size: 200px 200px;
+  background-origin: border-box;
+  -webkit-background-origin: text;
+  padding: 25px;
+  border: 25px solid transparent;
+}
+</style>
+<p>There should be a green square below and no red.</p>
+<div id="target"></div>

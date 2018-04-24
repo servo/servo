@@ -16,7 +16,7 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#Markers">
         <p>
           Tests the rendering of markers, specifically property inheritance. For the four tests, there should
-          be two identical paths with markers drawn. 
+          be two identical paths with markers drawn.
         </p>
         <p>
           The top two tests examine the rendering of markers when the marker and the path
@@ -47,9 +47,9 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The path on the left is rendered using the marker elements. 
-        The path on the right is rendered using the equivalent SVG, 
-        showing what the marked path should look like.  These should be 
+        The path on the left is rendered using the marker elements.
+        The path on the right is rendered using the equivalent SVG,
+        showing what the marked path should look like.  These should be
         identical and match the image to the right.
       </p>
     </d:passCriteria>

@@ -1,8 +1,8 @@
-marionette_driver == 2.5.0
-mozprofile == 0.29
+marionette_driver==2.6.0
+mozprofile==1.0.0
 mozprocess == 0.26
 mozcrash == 1.0
-mozrunner == 6.14
+mozrunner==6.15
 mozleak == 0.1
 mozinstall == 1.15
 mozdownload == 1.23

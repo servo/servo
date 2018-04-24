@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing border-color with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-color">
+<meta name="assert" content="border-color supports only the grammar '<color>{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("border-color", "auto");
+
+test_invalid_value("border-color", "black, white");
+
+test_invalid_value("border-color", "black white red green blue");
+</script>
+</body>
+</html>

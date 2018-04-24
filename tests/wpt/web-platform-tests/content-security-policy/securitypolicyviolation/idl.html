@@ -21,9 +21,6 @@
       long           lineNumber;
       long           columnNumber;
   };
-
-  interface Event {
-  };
 </script>
 <script type="text/plain" id="tested">
   [Constructor(DOMString type, optional SecurityPolicyViolationEventInit eventInitDict)]
@@ -42,11 +39,16 @@
   };
 </script>
 <script>
-    var idl_array = new IdlArray();
+  promise_test(async function() {
+    const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+
+    const idl_array = new IdlArray();
     idl_array.add_untested_idls(document.querySelector('#untested').textContent);
+    idl_array.add_untested_idls(dom, { only: ['Event', 'EventInit'] });
     idl_array.add_idls(document.querySelector('#tested').textContent);
     idl_array.add_objects({
-      SecurityPolicyViolationEvent: ['new SecurityPolicyViolationEvent({})']      
+      SecurityPolicyViolationEvent: ['new SecurityPolicyViolationEvent({})']
     });
     idl_array.test();
+  })
 </script>

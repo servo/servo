@@ -28,6 +28,24 @@
     test_frame_policy('fullscreen', cross_origin_src, false);
   }, 'Test frame policy on cross origin iframe inherit from header policy.');
 
+  // Test that frame policy can be used for sandboxed frames
+  test(function() {
+    test_frame_policy(
+      'fullscreen', same_origin_src, false, undefined, false, true);
+    }, 'Test frame policy on sandboxed iframe with no allow attribute.');
+  test(function() {
+    test_frame_policy(
+      'fullscreen', same_origin_src, true, 'fullscreen', false, true);
+    }, 'Test frame policy on sandboxed iframe with allow="fullscreen".');
+  test(function() {
+    test_frame_policy(
+      'fullscreen', same_origin_src, true, 'fullscreen \'src\'', false, true);
+    }, 'Test frame policy on sandboxed iframe with allow="fullscreen \'src\'".');
+  test(function() {
+    test_frame_policy(
+      'fullscreen', cross_origin_src, false, 'fullscreen ' + cross_origin, false, true);
+    }, 'Test frame policy on sandboxed iframe with allow="fullscreen ' + cross_origin + '".');
+
   // Test frame policy with allow attribute set to be one of the policies above.
   for (var i = 0; i < policies.length; i++) {
     test(function() {
