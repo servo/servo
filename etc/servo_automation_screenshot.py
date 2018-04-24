@@ -89,11 +89,11 @@ def main(argv):  # take inputs from command line by considering the options para
     except getopt.GetoptError:
         # an error is generated if the options provided in commandline are wrong.
         # The help statement is printed on how to input command line arguments.
-        print('python3 ./etc/servo_automation_screenshot.py -u <url> -p <port> -i <html_file_url> -r <resolution> -n <numOfFiles>')
+        print('Enter the correct command to run this file')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':  # -h means help. Displays how to input command line arguments
-            print('python3 etc/servo_automation_screenshot.py -u <url> -p <port> -i <html_file_url> -r <resolution> -n <numOfFiles>')
+            print('Enter the correct command to run this file')
             sys.exit()
         elif opt in ("-p", "--port"):  # store the value provided with the option -p in port variable.
             port = arg
@@ -122,8 +122,7 @@ def main(argv):  # take inputs from command line by considering the options para
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print('Argument input is required in the format')
-        print('python3 ./etc/servo_automation_screenshot.py -u <url> -p <port> -i <html_file_url> -r <resolution> -n <numOfFiles>')
+        print('Enter the correct command to run this file')
 
         sys.exit()
     else:
