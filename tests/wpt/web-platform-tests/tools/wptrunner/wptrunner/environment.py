@@ -94,8 +94,6 @@ class TestEnvironment(object):
 
         self.config = self.load_config()
         self.setup_server_logging()
-        ports = serve.get_ports(self.config, self.ssl_env)
-        self.config = serve.normalise_config(self.config, ports)
 
         assert self.env_extras_cms is None, (
             "A TestEnvironment object cannot be nested")
@@ -137,43 +135,37 @@ class TestEnvironment(object):
 
     def load_config(self):
         default_config_path = os.path.join(serve_path(self.test_paths), "config.default.json")
-        local_config = {
-            "ports": {
-                "http": [8000, 8001],
-                "https": [8443],
-                "ws": [8888]
-            },
-            "check_subdomains": False,
-            "ssl": {}
-        }
-
-        if "browser_host" in self.options:
-            local_config["browser_host"] = self.options["browser_host"]
-
-        if "bind_address" in self.options:
-            local_config["bind_address"] = self.options["bind_address"]
+        override_path = os.path.join(serve_path(self.test_paths), "config.json")
 
         with open(default_config_path) as f:
             default_config = json.load(f)
 
-        local_config["server_host"] = self.options.get("server_host", None)
-        local_config["ssl"]["encrypt_after_connect"] = self.options.get("encrypt_after_connect", False)
+        config = serve.Config(override_ssl_env=self.ssl_env, **default_config)
 
-        config = serve.merge_json(default_config, local_config)
-        config["doc_root"] = serve_path(self.test_paths)
+        config.ports = {
+            "http": [8000, 8001],
+            "https": [8443],
+            "ws": [8888],
+            "wss": [8889],
+        }
 
-        if not self.ssl_env.ssl_enabled:
-            config["ports"]["https"] = [None]
+        if os.path.exists(override_path):
+            with open(override_path) as f:
+                override_obj = json.load(f)
+            config.update(override_obj)
 
-        host = config["browser_host"]
-        hosts = [host]
-        hosts.extend("%s.%s" % (item[0], host) for item in serve.get_subdomains(host).values())
-        key_file, certificate = self.ssl_env.host_cert_path(hosts)
+        config.check_subdomains = False
+        config.ssl = {}
 
-        config["key_file"] = key_file
-        config["certificate"] = certificate
+        if "browser_host" in self.options:
+            config.browser_host = self.options["browser_host"]
 
-        serve.set_computed_defaults(config)
+        if "bind_address" in self.options:
+            config.bind_address = self.options["bind_address"]
+
+        config.server_host = self.options.get("server_host", None)
+        config.ssl["encrypt_after_connect"] = self.options.get("encrypt_after_connect", False)
+        config.doc_root = serve_path(self.test_paths)
 
         return config
 

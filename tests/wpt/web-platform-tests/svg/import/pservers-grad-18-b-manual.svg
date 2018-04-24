@@ -19,27 +19,27 @@
           Several gradients are defined, with two stops:
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         For the top-left rectangle's gradient:
         The first stop defines a fully-opaque green color.
-        The second stop explicitly inherits (i.e. using the 'inherit' keyword) its stop-color.        
+        The second stop explicitly inherits (i.e. using the 'inherit' keyword) its stop-color.
       </p>
       <p>
         For the top-right rectangle's gradient:
         The first stop defines a fully-opaque green color.
-        The second stop defines a green stop-color but explicitly inherits (i.e. using the 'inherit' keyword) the stop-opacity.        
+        The second stop defines a green stop-color but explicitly inherits (i.e. using the 'inherit' keyword) the stop-opacity.
       </p>
       <p>
         For the bottom-left rectangle's gradient:
         The first stop defines a fully-opaque green color.
         The second stop does not specify the stop-color and the stop-opacity.
-        Since both properties are not inherited, the initial value should be used.        
+        Since both properties are not inherited, the initial value should be used.
       </p>
       <p>
         For the bottom-right rectangle's gradient:
         The first stop defines a fully-opaque green color.
-        The second stop specifies the stop-color using the 'currentColor' keyword.        
+        The second stop specifies the stop-color using the 'currentColor' keyword.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">

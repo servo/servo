@@ -21,7 +21,7 @@
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         First click once on "fade in" and
-        then, once the animation has completed, click once on "fade out". 
+        then, once the animation has completed, click once on "fade out".
         </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
@@ -43,7 +43,7 @@
         should remain looking the same way indefinitely, until another
         link is activated.
       </p>
-      	<!--
+        <!--
         With a second click on "fade in", however, the behavior might
         be different. In the case of having a first click on "fade in",
         waiting three seconds, and then immediately perform a first click

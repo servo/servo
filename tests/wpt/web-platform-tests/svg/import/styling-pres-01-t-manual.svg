@@ -15,7 +15,7 @@
     version="$Revision: 1.7 $" testname="$RCSfile: styling-pres-01-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/styling.html#UsingPresentationAttributes">
       <p>
-				Tests that !important in a presentation attribute is an unsupported value
+        Tests that !important in a presentation attribute is an unsupported value
       </p>
       <p>
         A fill attribute is set to red with !important. This is an unsupported attribute value,
@@ -30,7 +30,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-				The rectangle should be filled with black, with a lime green border.
+        The rectangle should be filled with black, with a lime green border.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

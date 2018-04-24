@@ -26,7 +26,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test has passed if the shaded arcs are displayed only on the side indicated by the arrows. 
+        The test has passed if the shaded arcs are displayed only on the side indicated by the arrows.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -62,12 +62,12 @@
           <feDistantLight azimuth="270" elevation="30"/>
         </feSpecularLighting>
       </filter>
-    
+
       <marker id="arrow" markerWidth="10" markerHeight="10" viewBox="0 0 10 40" overflow="visible" orient="auto">
         <path d="M-1 5l10 -5l-10 -5z"/>
       </marker>
     </defs>
-    
+
     <text x="50%" y="3em" style="font-size:18px; text-anchor:middle">'feDistantLight' azimuth</text>
 
     <g transform="scale(4) translate(0 50)">
@@ -81,7 +81,7 @@
     <line marker-end="url(#arrow)" x1="0" y1="-25" x2="0" y2="25" stroke="black" stroke-width="3" transform="rotate(90) translate(200 -350)"/>
     <line marker-end="url(#arrow)" x1="0" y1="-25" x2="0" y2="25" stroke="black" stroke-width="3" transform="rotate(180) translate(-440 -225)"/>
     <line marker-end="url(#arrow)" x1="0" y1="-25" x2="0" y2="25" stroke="black" stroke-width="3" transform="rotate(270) translate(-200 50)"/>
-    
+
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none"

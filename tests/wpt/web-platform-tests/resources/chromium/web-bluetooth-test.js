@@ -393,6 +393,30 @@ class FakeRemoteGATTCharacteristic {
     if (!success) throw 'setNextSubscribeToNotificationsResponse failed';
   }
 
+  // Sets the next unsubscribe to notifications response for characteristic with
+  // |characteristic_id| in |service_id| and in |peripheral_address| to
+  // |code|. |code| could be a GATT Error Response from BT 4.2 Vol 3 Part F
+  // 3.4.1.1 Error Response or a number outside that range returned by
+  // specific platforms e.g. Android returns 0x101 to signal a GATT failure.
+  async setNextUnsubscribeFromNotificationsResponse(gatt_code) {
+    let {success} =
+      await this.fake_central_ptr_.setNextUnsubscribeFromNotificationsResponse(
+        gatt_code, ...this.ids_);
+
+    if (!success) throw 'setNextUnsubscribeToNotificationsResponse failed';
+  }
+
+  // Returns true if notifications from the characteristic have been subscribed
+  // to.
+  async isNotifying() {
+    let {success, isNotifying} =
+        await this.fake_central_ptr_.isNotifying(...this.ids_);
+
+    if (!success) throw 'isNotifying failed';
+
+    return isNotifying;
+  }
+
   // Gets the last successfully written value to the characteristic.
   // Returns null if no value has yet been written to the characteristic.
   async getLastWrittenValue() {

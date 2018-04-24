@@ -23,7 +23,7 @@ var target;
 runTestCycle(function() {
   var shadowHost = document.getElementById("host");
   assert_true(!!shadowHost, "Host exists");
-  var shadowRoot = shadowHost.createShadowRoot();
+  var shadowRoot = shadowHost.attachShadow({ mode: "open" });
   assert_true(!!shadowRoot, "Shadow root exists");
   shadowRoot.innerHTML = "<div id='target' style='width: 100px; height: 100px; background-color: green;'></div>";
   target = shadowRoot.getElementById("target");

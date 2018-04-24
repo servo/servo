@@ -65,6 +65,7 @@ function test_rellist(tag_name, rel_table) {
   let supported = rel_table['supported'];
   for (let link_type in supported) {
     assert_true(element.relList.supports(supported[link_type]), 'tag = ' + tag + ', link type = ' + supported[link_type] + ' must be supported');
+    assert_true(element.relList.supports(supported[link_type].toUpperCase()), 'tag = ' + tag + ', link type = ' + supported[link_type].toUpperCase() + ' must be supported');
   }
   let unsupported = rel_table['unsupported'];
   for (let link_type in unsupported) {

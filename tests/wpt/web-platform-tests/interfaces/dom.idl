@@ -3,7 +3,9 @@
 interface Event {
   readonly attribute DOMString type;
   readonly attribute EventTarget? target;
+  readonly attribute EventTarget? srcElement;
   readonly attribute EventTarget? currentTarget;
+  sequence<EventTarget> composedPath();
 
   const unsigned short NONE = 0;
   const unsigned short CAPTURING_PHASE = 1;
@@ -16,8 +18,10 @@ interface Event {
 
   readonly attribute boolean bubbles;
   readonly attribute boolean cancelable;
+           attribute boolean returnValue;
   void preventDefault();
   readonly attribute boolean defaultPrevented;
+  readonly attribute boolean composed;
 
   [Unforgeable] readonly attribute boolean isTrusted;
   readonly attribute DOMTimeStamp timeStamp;

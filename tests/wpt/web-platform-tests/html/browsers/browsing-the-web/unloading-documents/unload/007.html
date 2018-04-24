@@ -4,17 +4,17 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-var t = async_test(undefined, {timeout:2000});
+var t = async_test();
 
 var loaded = false;
 var unload_fired = false;
 var timeout_fired = false;
 
 function start_test() {
-  setTimeout(t.step_func(function() {
-                           assert_true(unload_fired);
-                           assert_false(timeout_fired);
-                           t.done()
+  step_timeout(t.step_func(function() {
+                             assert_true(unload_fired);
+                             assert_false(timeout_fired);
+                             t.done()
                          }), 1000);
 }
 

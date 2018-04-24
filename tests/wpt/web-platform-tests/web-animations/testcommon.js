@@ -88,7 +88,7 @@ function createStyle(test, rules, doc) {
 }
 
 // Create a pseudo element
-function createPseudo(test, type) {
+function getPseudoElement(test, type) {
   createStyle(test, { '@keyframes anim': '',
                       [`.pseudo::${type}`]: 'animation: anim 10s; ' +
                                             'content: \'\';'  });
@@ -97,8 +97,6 @@ function createPseudo(test, type) {
   const anims = document.getAnimations();
   assert_true(anims.length >= 1);
   const anim = anims[anims.length - 1];
-  assert_equals(anim.effect.target.parentElement, div);
-  assert_equals(anim.effect.target.type, `::${type}`);
   anim.cancel();
   return anim.effect.target;
 }

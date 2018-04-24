@@ -102,7 +102,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         if kwargs["binary_args"]:
             options["args"] = kwargs["binary_args"]
         options["prefs"] = {
-            "network.dns.localDomains": ",".join(server_config['domains'].values())
+            "network.dns.localDomains": ",".join(server_config.domains.itervalues())
         }
         capabilities["moz:firefoxOptions"] = options
     if kwargs["certutil_binary"] is None:
@@ -133,8 +133,8 @@ def run_info_extras(**kwargs):
 
 
 def update_properties():
-    return (["debug", "stylo", "e10s", "os", "version", "processor", "bits"],
-            {"debug", "e10s", "stylo"})
+    return (["debug", "webrender", "e10s", "os", "version", "processor", "bits"],
+            {"debug", "e10s", "webrender"})
 
 
 class FirefoxBrowser(Browser):
@@ -198,7 +198,7 @@ class FirefoxBrowser(Browser):
         self.profile = FirefoxProfile(preferences=preferences)
         self.profile.set_preferences({"marionette.port": self.marionette_port,
                                       "dom.disable_open_during_load": False,
-                                      "network.dns.localDomains": ",".join(self.config['domains'].values()),
+                                      "network.dns.localDomains": ",".join(self.config.domains.itervalues()),
                                       "network.proxy.type": 0,
                                       "places.history.enabled": False,
                                       "dom.send_after_paint_to_content": True,

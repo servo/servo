@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>import() inside compiled strings inside a classic script</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/3163">
+<link rel="help" href="https://github.com/tc39/ecma262/issues/871#issuecomment-292493142">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+self.ran = false;
+
+promise_test(t => {
+  t.add_cleanup(() => {
+    self.ran = false;
+  })
+
+  return Promise.resolve(`import("../imports-a.js?1").then(() => { self.ran = true; })`)
+    .then(eval)
+    .then(() => {
+      assert_true(self.ran);
+    });
+}, "Evaled the script via eval, successful import");
+
+promise_test(t => {
+  t.add_cleanup(() => {
+    self.ran = false;
+  })
+
+  return Promise.resolve(`import("bad-specifier?1").catch(() => { self.ran = true; })`)
+    .then(eval)
+    .then(() => {
+      assert_true(self.ran);
+    });
+}, "Evaled the script via eval, failed import");
+
+promise_test(t => {
+  t.add_cleanup(() => {
+    self.ran = false;
+  })
+
+  return Promise.resolve(`return import("../imports-a.js?2").then(() => { self.ran = true; })`)
+    .then(Function)
+    .then(Function.prototype.call.bind(Function.prototype.call))
+    .then(() => {
+      assert_true(self.ran);
+    });
+}, "Evaled the script via Function, successful import");
+
+promise_test(t => {
+  t.add_cleanup(() => {
+    self.ran = false;
+  })
+
+  return Promise.resolve(`return import("bad-specifier?2").catch(() => { self.ran = true; })`)
+    .then(Function)
+    .then(Function.prototype.call.bind(Function.prototype.call))
+    .then(() => {
+      assert_true(self.ran);
+    });
+}, "Evaled the script via Function, failed import");
+</script>

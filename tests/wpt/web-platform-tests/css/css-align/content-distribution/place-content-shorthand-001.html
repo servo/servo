@@ -8,7 +8,7 @@
 <script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
 <div id="log"></div>
 <script>
-    let classes = Object.assign({"Normal":"normal"}, contentPositionClasses, distributionClasses);
+    let classes = Object.assign({"Normal":"normal"}, contentPositionClasses, distributionClasses, overflowClasses);
     for (var key in classes) {
         let value = classes[key];
         test(function() {

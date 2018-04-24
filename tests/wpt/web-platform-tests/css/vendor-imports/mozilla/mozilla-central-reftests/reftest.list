@@ -40,6 +40,9 @@ include flexbox/reftest.list
 # Fonts Level 3
 include fonts3/reftest.list
 
+# block-inside-inline splits
+include ib-split/reftest.list
+
 # Image Values and Replaced Content Level 3
 include images3/reftest.list
 

@@ -1,0 +1,1 @@
+{{$first:host}} {{$second:ports[http][0]}} A {{$second}} B {{$first}} C

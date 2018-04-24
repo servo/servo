@@ -179,22 +179,70 @@ class Firefox(Browser):
     def find_webdriver(self):
         return find_executable("geckodriver")
 
-    def install_prefs(self, dest=None):
+    def get_version_number(self, binary):
+        version_re = re.compile("Mozilla Firefox (\d+\.\d+(?:\.\d+)?)(a|b)?")
+        proc = subprocess.Popen([binary, "--version"], stdout=subprocess.PIPE)
+        stdout, _ = proc.communicate()
+        stdout.strip()
+        m = version_re.match(stdout)
+        if not m:
+            return None, "nightly"
+        version, status = m.groups()
+        channel = {"a": "nightly", "b": "beta"}
+        return version, channel.get(status, "stable")
+
+    def get_prefs_url(self, version, channel):
+        if channel == "stable":
+            repo = "https://hg.mozilla.org/releases/mozilla-release"
+            tag = "FIREFOX_%s_RELEASE" % version.replace(".", "_")
+        else:
+            repo = "https://hg.mozilla.org/mozilla-central"
+            if channel == "beta":
+                tag = "FIREFOX_%s_BETA" % version.split(".", 1)[0]
+            else:
+                # Always use tip as the tag for nightly; this isn't quite right
+                # but to do better we need the actual build revision, which we
+                # can get if we have an application.ini file
+                tag = "tip"
+
+        return "%s/raw-file/%s/testing/profiles/prefs_general.js" % (repo, tag)
+
+    def install_prefs(self, binary, dest=None):
+        version, channel = self.get_version_number(binary)
+
         if dest is None:
             dest = os.pwd
 
         dest = os.path.join(dest, "profiles")
         if not os.path.exists(dest):
             os.makedirs(dest)
-        prefs_path = os.path.join(dest, "prefs_general.js")
+        prefs_file = os.path.join(dest, "prefs_general.js")
+        cache_file = os.path.join(dest,
+                                  "%s-%s.cache" % (version, channel)
+                                  if channel != "nightly"
+                                  else "nightly.cache")
 
-        now = datetime.now()
-        if (not os.path.exists(prefs_path) or
-            (datetime.fromtimestamp(os.stat(prefs_path).st_mtime) <
-             now - timedelta(days=2))):
-            with open(prefs_path, "wb") as f:
-                resp = get("https://hg.mozilla.org/mozilla-central/raw-file/tip/testing/profiles/prefs_general.js")
+        have_cache = False
+        if os.path.exists(cache_file):
+            if channel != "nightly":
+                have_cache = True
+            else:
+                now = datetime.now()
+                have_cache = (datetime.fromtimestamp(os.stat(cache_file).st_mtime) >
+                              now - timedelta(days=1))
+
+        # If we don't have a recent download, grab the url
+        if not have_cache:
+            url = self.get_prefs_url(version, channel)
+
+            with open(cache_file, "wb") as f:
+                print("Installing test prefs from %s" % url)
+                resp = get(url)
                 f.write(resp.content)
+        else:
+            print("Using cached test prefs from %s" % cache_file)
+
+        shutil.copyfile(cache_file, prefs_file)
 
         return dest
 

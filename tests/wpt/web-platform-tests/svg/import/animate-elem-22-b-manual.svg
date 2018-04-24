@@ -40,9 +40,9 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>The test is passed if:</p>
       <ul>
-      	<li>At the start of the animation the innermost rectangle is filled by a yellow semitransparent color</li>
-      	<li>Over the course of three seconds the yellow rect smoothly animates its width and height so that at time t=3s fully fills the middle rectangle</li>
-      	<li>The animation then continues in the same fashion and at time t=9s fully fills the largest rectangle with blue stroke</li>
+        <li>At the start of the animation the innermost rectangle is filled by a yellow semitransparent color</li>
+        <li>Over the course of three seconds the yellow rect smoothly animates its width and height so that at time t=3s fully fills the middle rectangle</li>
+        <li>The animation then continues in the same fashion and at time t=9s fully fills the largest rectangle with blue stroke</li>
       </ul>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -70,10 +70,10 @@
       <animate attributeName="width" attributeType="XML" begin="0s" dur="9s" fill="freeze" from="50" to="400"/>
       <animate attributeName="height" attributeType="XML" begin="0s" dur="9s" fill="freeze" from="50" to="240"/>
     </rect>
-    <!-- Set up a new user coordinate system so that the text string's 
-			origin is at (0,0), allowing rotation and scale relative to 
-			the new origin 
-		-->
+    <!-- Set up a new user coordinate system so that the text string's
+      origin is at (0,0), allowing rotation and scale relative to
+      the new origin
+    -->
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
