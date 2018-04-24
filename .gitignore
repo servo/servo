@@ -23,7 +23,9 @@ Servo.app
 .config.mk.last
 /glfw
 capture_webrender/
-
+/screenshots
+distribute_setup.py
+get-pip.py
 # Editors
 
 # IntelliJ
