@@ -8,6 +8,8 @@ sys.path.insert(0, join(dirname(__file__), "..", "..", ".."))
 
 sauce = pytest.importorskip("wptrunner.browsers.sauce")
 
+from wptserve.config import Config
+
 
 def test_sauceconnect_success():
     with mock.patch.object(sauce.SauceConnect, "upload_prerun_exec"),\
@@ -25,9 +27,7 @@ def test_sauceconnect_success():
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = {
-            "domains": {"": "example.net"}
-        }
+        env_config = Config(browser_host="example.net")
         sauce_connect(None, env_config)
         with sauce_connect:
             pass
@@ -56,9 +56,7 @@ def test_sauceconnect_failure_exit(readyfile, returncode):
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = {
-            "domains": {"": "example.net"}
-        }
+        env_config = Config(browser_host="example.net")
         sauce_connect(None, env_config)
         with pytest.raises(sauce.SauceException):
             with sauce_connect:
@@ -83,9 +81,7 @@ def test_sauceconnect_failure_never_ready():
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = {
-            "domains": {"": "example.net"}
-        }
+        env_config = Config(browser_host="example.net")
         sauce_connect(None, env_config)
         with pytest.raises(sauce.SauceException):
             with sauce_connect:
@@ -113,9 +109,9 @@ def test_sauceconnect_tunnel_domains():
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = {
-            "domains": {"foo": "foo.bar.example.com", "": "example.net"}
-        }
+        env_config = Config(browser_host="example.net",
+                            subdomains={"a", "b"},
+                            not_subdomains={"x", "y"})
         sauce_connect(None, env_config)
         with sauce_connect:
             Popen.assert_called_once()
@@ -127,4 +123,6 @@ def test_sauceconnect_tunnel_domains():
             assert len(rest) >= 1
             if len(rest) > 1:
                 assert rest[1].startswith("-"), "--tunnel-domains takes a comma separated list (not a space separated list)"
-            assert set(rest[0].split(",")) == {"foo.bar.example.com", "example.net"}
+            assert set(rest[0].split(",")) == {'example.net',
+                                               'a.example.net',
+                                               'b.example.net'}

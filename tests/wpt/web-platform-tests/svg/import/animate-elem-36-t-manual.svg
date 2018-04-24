@@ -100,7 +100,6 @@
         <text y="60" text-anchor="middle">&lt;switch&gt;</text>
       </g>
 
-
       <g transform="translate(60,220)">
         <a id="animatedAnchor" xlink:href="" fill="rgb(230,230,230)" stroke="rgb(255,180,0)">
           <g>
@@ -129,7 +128,6 @@
 
         <text id="textID" fill="rgb(230,230,230)" stroke="rgb(255,180,0)" font-family="MyDecFont" font-size="40" text-anchor="middle">123</text>
         <animateTransform attributeName="transform" xlink:href="#textID" type="rotate" values="0;360;180;360" dur="3s"/>
-
 
         <text y="60" text-anchor="middle">&lt;text&gt;</text>
       </g>

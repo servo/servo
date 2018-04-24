@@ -87,11 +87,11 @@
     </g>
     <!-- THIRD TEST-->
     <!-- The length of the lines in the polyline (motionpath) are 100,50 and 100.
-		 The animated circle starts at the midpoint of one of the "legs" and also pass 
-		 this point at time 1.4 since 
-		 1.4 = 4*(0.25) + (4*(0.75-0.25))*(1/5).
-		 Where 0.25 is the time at keyPoint 1 (2nd) and 1/5 since the control circle is at 
-		 1/5 of the distance between keyPoint 1 and 0 (2nd and 3rd).-->
+     The animated circle starts at the midpoint of one of the "legs" and also pass
+     this point at time 1.4 since
+     1.4 = 4*(0.25) + (4*(0.75-0.25))*(1/5).
+     Where 0.25 is the time at keyPoint 1 (2nd) and 1/5 since the control circle is at
+     1/5 of the distance between keyPoint 1 and 0 (2nd and 3rd).-->
     <g transform="translate(110, 180) scale(0.6)">
       <text x="-115" y="-30" font-size="30" stroke="none" fill="#ccc">3</text>
       <text x="-85" y="-60" font-size="30" stroke="none" fill="#ccc">2.6</text>

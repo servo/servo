@@ -48,7 +48,7 @@
             var testElement = document.getElementById("test");
             var svgList = testElement.rotate.baseVal;
             var passingTests = 0;
-             
+
             try
             {
                 svgList.getItem(5);

@@ -6,22 +6,31 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var check = function(element, selectors) {
+var check = function(element, selectors, qsRoot) {
   for (var i = 0; i < selectors.length; ++i) {
     var selector = selectors[i][0];
     var expected = selectors[i][1];
     test(function() {
       assert_equals(expected, element.matches(selector));
+
+      if (qsRoot) {
+        assert_equals(expected, element === qsRoot.querySelector(selector));
+        var qsa = qsRoot.querySelectorAll(selector);
+        assert_equals(expected, !!qsa.length && element === qsa[0]);
+      }
     }, "Expected " + element.tagName + " element to " +
-         (expected ? "match " : "not match ") + selector);
+         (expected ? "match " : "not match ") + selector + " with matches" +
+         (qsRoot ? ", querySelector(), and querySelectorAll()" : ""));
   }
 }
 
 var rootOfSubtreeSelectors = [
   [ ":first-child", true ],
   [ ":last-child", true ],
+  [ ":only-child", true ],
   [ ":first-of-type", true ],
   [ ":last-of-type", true ],
+  [ ":only-of-type", true ],
   [ ":nth-child(1)", true ],
   [ ":nth-child(n)", true ],
   [ ":nth-last-child(1)", true ],
@@ -36,6 +45,11 @@ var rootOfSubtreeSelectors = [
   [ ":nth-last-of-type(2)", false],
 ];
 
-check(document.documentElement, rootOfSubtreeSelectors);
+check(document.documentElement, rootOfSubtreeSelectors, document);
 check(document.createElement('div'), rootOfSubtreeSelectors);
+
+var fragment = document.createDocumentFragment();
+var div = document.createElement('div');
+fragment.appendChild(div);
+check(div, rootOfSubtreeSelectors, fragment);
 </script>

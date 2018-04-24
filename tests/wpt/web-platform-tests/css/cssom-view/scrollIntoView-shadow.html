@@ -14,7 +14,7 @@ add_completion_callback(() => document.getElementById("container").remove());
 
 test(t => {
   var shadow = document.getElementById("shadow");
-  var shadowRoot = shadow.createShadowRoot();
+  var shadowRoot = shadow.attachShadow({ mode: "open" });
   var shadowDiv = document.createElement("div");
   shadowDiv.style.height = "200px";
   shadowDiv.style.width = "200px";

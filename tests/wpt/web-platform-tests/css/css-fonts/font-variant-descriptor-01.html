@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant: normal; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-rend-desc">
+<link rel="match" href="font-variant-descriptor-01-ref.html">
+<meta name="assert" content="These descriptors define initial settings that apply when the font defined by an @font-face rule is rendered">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  @font-face {
+    font-family: fwf2;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+    font-variant: common-ligatures  discretionary-ligatures historical-ligatures contextual oldstyle-nums small-caps jis90;
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 2.4em;
+	  line-height: 1.1;
+    color: purple;
+  }
+  .property {
+    font-variant-ligatures: common-ligatures  discretionary-ligatures historical-ligatures contextual;
+    font-variant-numeric: oldstyle-nums;
+    font-variant-caps: small-caps;
+    font-variant-east-asian: jis90;
+  }
+  .test>p.descriptor {
+    font-family: fwf2;
+  }
+  .child {
+    color: green;
+  }
+</style>
+
+<body>
+<p>Test passes if the three lines below are identical, with (in purple) eight check marks (✓)</p>
+<section class="test">
+    <p class="descriptor">CDGFEJQa</p>
+	<p class="property">CDGFEJQa</p>
+	<p class="ref">AAAAAAAA</p>
+</section>

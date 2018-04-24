@@ -43,7 +43,7 @@
             //not equals: cannot guess formData exact value
             assert_true( bodyAsText.search(expectedTextBody) > -1, "Retrieve and verify request body");
           });
-        }, "Initialize Request's body with " + bodyType);
+        }, `Initialize Request's body with "${body}", ${bodyType}`);
       }
 
       var blob = new Blob(["This is a blob"], {type: "application/octet-binary"});
@@ -56,6 +56,7 @@
       checkRequestInit(blob, "application/octet-binary", "This is a blob");
       checkRequestInit(formaData, "multipart/form-data", "name=\"name\"\r\n\r\nvalue");
       checkRequestInit(usvString, "text/plain;charset=UTF-8", "This is a USVString");
+      checkRequestInit({toString: () => "hi!"}, "text/plain;charset=UTF-8", "hi!");
 
       // Ensure test does not time out in case of missing URLSearchParams support.
       if (window.URLSearchParams) {
