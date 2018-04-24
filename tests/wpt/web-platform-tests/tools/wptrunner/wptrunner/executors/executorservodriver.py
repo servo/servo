@@ -109,7 +109,7 @@ class ServoWebDriverRun(object):
             if message:
                 message += "\n"
             message += traceback.format_exc(e)
-            self.result = False, ("ERROR", e)
+            self.result = False, ("INTERNAL-ERROR", e)
         finally:
             self.result_flag.set()
 
@@ -214,7 +214,7 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
             if message:
                 message += "\n"
             message += traceback.format_exc(e)
-            return test.result_cls("ERROR", message), []
+            return test.result_cls("INTERNAL-ERROR", message), []
 
     def screenshot(self, test, viewport_size, dpi):
         # https://github.com/w3c/wptrunner/issues/166

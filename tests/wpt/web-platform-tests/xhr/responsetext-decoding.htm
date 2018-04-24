@@ -82,6 +82,7 @@
       request("text/plain", "%EF%BB%BF", "", "text");
       request("text/plain", "%EF%BB%BF%EF%BB%BF", "\uFEFF", "text");
       request("text/plain", "%C2", "\uFFFD", "text");
+      request("text/plain;charset=bogus", "%C2", "\uFFFD", "text");
       request("text/xml", "%FE%FF", "", "text");
       request("text/xml", "%FE%FF%FE%FF", "\uFEFF", "text");
       request("text/xml", "%EF%BB%BF", "", "text");

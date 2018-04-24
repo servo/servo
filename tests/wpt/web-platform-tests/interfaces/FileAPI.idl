@@ -1,29 +1,34 @@
-// https://w3c.github.io/FileAPI/#idl-index
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the FileAPI spec.
+// See https://w3c.github.io/FileAPI/
 
-[Constructor(optional sequence<BlobPart> blobParts, optional BlobPropertyBag options),
-Exposed=(Window,Worker)]
+[Constructor(optional sequence<BlobPart> blobParts,
+             optional BlobPropertyBag options),
+ Exposed=(Window,Worker), Serializable]
 interface Blob {
 
   readonly attribute unsigned long long size;
   readonly attribute DOMString type;
 
-  //slice Blob into byte-ranged chunks
-
+  // slice Blob into byte-ranged chunks
   Blob slice([Clamp] optional long long start,
             [Clamp] optional long long end,
             optional DOMString contentType);
 };
 
+enum EndingType { "transparent", "native" };
+
 dictionary BlobPropertyBag {
   DOMString type = "";
+  EndingType endings = "transparent";
 };
 
 typedef (BufferSource or Blob or USVString) BlobPart;
 
 [Constructor(sequence<BlobPart> fileBits,
-            [EnsureUTF16] DOMString fileName,
-            optional FilePropertyBag options),
-Exposed=(Window,Worker)]
+             USVString fileName,
+             optional FilePropertyBag options),
+ Exposed=(Window,Worker), Serializable]
 interface File : Blob {
   readonly attribute DOMString name;
   readonly attribute long long lastModified;
@@ -33,7 +38,7 @@ dictionary FilePropertyBag : BlobPropertyBag {
   long long lastModified;
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker), Serializable]
 interface FileList {
   getter File? item(unsigned long index);
   readonly attribute unsigned long length;
@@ -55,7 +60,6 @@ interface FileReader: EventTarget {
   const unsigned short LOADING = 1;
   const unsigned short DONE = 2;
 
-
   readonly attribute unsigned short readyState;
 
   // File or Blob data
@@ -73,7 +77,7 @@ interface FileReader: EventTarget {
 
 };
 
-[Constructor, Exposed=Worker]
+[Constructor, Exposed=(DedicatedWorker,SharedWorker)]
 interface FileReaderSync {
   // Synchronously return strings
 

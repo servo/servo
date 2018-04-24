@@ -60,4 +60,14 @@
         window.opener.postMessage({"type": "action", "action": "click", "selector": selector}, "*");
         return pending_promise;
     };
+
+    window.test_driver_internal.send_keys = function(element, keys) {
+        const selector = get_selector(element);
+        const pending_promise = new Promise(function(resolve, reject) {
+            pending_resolve = resolve;
+            pending_reject = reject;
+        });
+        window.opener.postMessage({"type": "action", "action": "send_keys", "selector": selector, "keys": keys}, "*");
+        return pending_promise;
+    };
 })();

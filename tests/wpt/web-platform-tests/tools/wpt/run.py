@@ -98,7 +98,6 @@ def check_environ(product):
     if product not in ("firefox", "servo"):
         config = serve.load_config(os.path.join(wpt_root, "config.default.json"),
                                    os.path.join(wpt_root, "config.json"))
-        config = serve.normalise_config(config, {})
         expected_hosts = (set(config["domains"].itervalues()) ^
                           set(config["not_domains"].itervalues()))
         missing_hosts = set(expected_hosts)
@@ -202,8 +201,7 @@ Consider installing certutil via your OS package manager or directly.""")
                 kwargs["test_types"].remove("wdspec")
 
         if kwargs["prefs_root"] is None:
-            print("Downloading gecko prefs")
-            prefs_root = self.browser.install_prefs(self.venv.path)
+            prefs_root = self.browser.install_prefs(kwargs["binary"], self.venv.path)
             kwargs["prefs_root"] = prefs_root
 
 

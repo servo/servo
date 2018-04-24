@@ -22,7 +22,7 @@
                   "property",
                   "description",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ],
             "AXAPI" : [
@@ -30,7 +30,7 @@
                   "property",
                   "AXHelp",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ],
             "IAccessible2" : [
@@ -38,7 +38,7 @@
                   "property",
                   "accDescription",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ],
             "UIA" : [
@@ -46,7 +46,7 @@
                   "property",
                   "Description",
                   "is",
-                  "My name is Garaventa the weird. (QED) Where are my marbles?"
+                  "My name is Eli the weird. (QED) Where are my marbles?"
                ]
             ]
          },
@@ -62,7 +62,10 @@
   </head>
   <body>
   <p>This test examines the ARIA properties for Description from content of describedby element.</p>
-    <input id="test" type="text" aria-label="Important stuff" aria-describedby="descId" />
+    <style>
+    .hidden { display: none; }
+  </style>
+  <input id="test" type="text" aria-label="Important stuff" aria-describedby="descId" />
   <div>
     <div id="descId">
       <span aria-hidden="true"><i> Hello, </i></span>

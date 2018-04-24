@@ -206,7 +206,7 @@
         <text y="75" text-anchor="middle">linear translation</text>
 
       </g>
-      
+
       <g transform="translate(60,220)">
         <rect x="-15" y="-15" width="30" height="30" stroke="none" fill="rgb(230,230,230)">
           <animateTransform attributeName="transform" attributeType="XML" type="scale" values="1,2;3,2;1,1" dur="3s" calcMode="paced" fill="freeze"/>
@@ -284,7 +284,6 @@
 
         <text y="75" text-anchor="middle">linear rotation</text>
       </g>
-
 
     </g>
   </g>

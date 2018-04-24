@@ -425,7 +425,7 @@ const gCSSProperties = {
       { type: 'discrete', options: [ [ '"a"', '"b"' ] ] }
     ],
     setup: t => {
-      return createPseudo(t, 'before');
+      return getPseudoElement(t, 'before');
     }
   },
   'counter-increment': {

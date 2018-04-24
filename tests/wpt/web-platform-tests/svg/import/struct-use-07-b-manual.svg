@@ -16,8 +16,8 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#UseElement">
       <p>
         This tests interactivity and event handlers on use elements. It also tests
-        that the <code>SVGElementInstance.correspondingElement</code> property and the 
-        <code>CSSStyleDeclaration.setProperty()</code> method defined in 
+        that the <code>SVGElementInstance.correspondingElement</code> property and the
+        <code>CSSStyleDeclaration.setProperty()</code> method defined in
         DOM Level 2 Style. By testing different ways of setting the fill on a rectangle
         it verifies that the result is consistent, and that CSS properly overrides
         the specified values.
@@ -34,7 +34,7 @@
         If the useragent doesn't support CSS, this test does not apply.
       </p>
       <p>
-        The test has passed if when clicking each of the rects the clicked rect turns blue - 
+        The test has passed if when clicking each of the rects the clicked rect turns blue -
         note that only the clicked rect must turn blue, if any other rect turns blue too then the test has failed.
       </p>
       <p>

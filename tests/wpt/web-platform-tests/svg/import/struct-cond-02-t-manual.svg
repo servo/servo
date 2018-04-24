@@ -21,7 +21,7 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Run the test. No interaction required.
+        Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
@@ -84,14 +84,14 @@
           <text x="20" y="220" xml:lang="bn" font-family="'Arial Unicode MS','UT Bengali Khulna'" font-size="28">ওরা েকন বাংলা বলেত পাের না ?</text>
           <text x="230" y="150" xml:lang="en">Bengali</text>
         </g>
-        <!-- 
-Tibetan needs complex layout: this will not work correctly though the font has the right glyphs: 
+        <!--
+Tibetan needs complex layout: this will not work correctly though the font has the right glyphs:
 <g systemLanguage="bo">
-					<text x="20" y="220" xml:lang="bo" font-family="'Arial Unicode MS'" font-size="18">
-						
+          <text x="20" y="220" xml:lang="bo" font-family="'Arial Unicode MS'" font-size="18">
+
 ག་རེ་བྱས་ཁོ་རང་ཚོས་ བོད་ སྐད་ཆ་དེ་ག་རང་བཤད་ཀྱི་མ་རེད།</text>
-					<text x="230" y="150" xml:lang="en">Tibetan</text>
-				</g>-->
+          <text x="230" y="150" xml:lang="en">Tibetan</text>
+        </g>-->
         <g systemLanguage="ca">
           <text x="20" y="220" xml:lang="bg" font-size="20">Per què no poden simplement parlar en català ?</text>
           <text x="230" y="150" xml:lang="en">Catalan</text>
@@ -186,10 +186,10 @@ Tibetan needs complex layout: this will not work correctly though the font has t
           <text x="230" y="150" xml:lang="en">Italian</text>
         </g>
         <g systemLanguage="iu">
-          <!-- unable to distinguish North Baffin Island Inuktitut from 
-			     South/Central Baffin Island Inuktitut
-			     because ISO 3166 codes do not offer any finer 
-			     resolution than 'Canadian' -->
+          <!-- unable to distinguish North Baffin Island Inuktitut from
+           South/Central Baffin Island Inuktitut
+           because ISO 3166 codes do not offer any finer
+           resolution than 'Canadian' -->
           <text x="20" y="220" xml:lang="iu" font-family="NunacomU,'Ballymun RO','Arial Unicode MS'" font-size="28">ᓱᒻᒪᓂᒃᑯᐊ ᐃᓄᒃᑎᑐ ᑐᐃᓐᓇᔭᙱᓚᑦ</text>
           <text x="230" y="150" xml:lang="en">Inuktitut</text>
         </g>
@@ -281,8 +281,8 @@ Tibetan needs complex layout: this will not work correctly though the font has t
         <g systemLanguage="si">
           <text x="20" y="220" xml:lang="si" font-family="'Andale Mono WT J'" font-size="26">අැයි ඔවුන්ට ඉංගරිස කතා ෛනබ ?</text>
           <text x="230" y="150" xml:lang="en">Sinhalese</text>
-          <!-- Sinhalese needs somewhat complex layout (many paired special cases, see 
-http://www-texdev.mpce.mq.edu.au/l2h/indic/Sinhala/lreport/node1.html 
+          <!-- Sinhalese needs somewhat complex layout (many paired special cases, see
+http://www-texdev.mpce.mq.edu.au/l2h/indic/Sinhala/lreport/node1.html
 so this 'chart' font is not entirely suitable-->
         </g>
         <g systemLanguage="sl">
@@ -369,10 +369,10 @@ so this 'chart' font is not entirely suitable-->
         </g>
       </switch>
       <!-- action item was to make a switch "for all ISO 639-1 language codes",
-     a large task not completed. But there is enough here to make a good test case, 
+     a large task not completed. But there is enough here to make a good test case,
      including 19 of the top 20 langiuages by number of speakers (except Punjabi).
-     
-     Here is the full list (trailing * indicates language included in this test), 
+
+     Here is the full list (trailing * indicates language included in this test),
      accurate as of October 22, 2002 from the registration authority:
       http://lcweb.loc.gov/standards/iso639-2/langcodes.html
 
@@ -397,7 +397,7 @@ so this 'chart' font is not entirely suitable-->
   bs Bosnian
 
   ca Catalan *
-  ce Chechen 
+  ce Chechen
   ch Chamorro
   co Corsican
   cs Czech *
@@ -493,7 +493,7 @@ so this 'chart' font is not entirely suitable-->
   no Norwegian *
   nr Ndebele, South
   nv Navajo
-  ny Chichewa~@Nyanja  
+  ny Chichewa~@Nyanja
 
   oc Occitan (post 1500); Provencal
   om Oromo [Afan]
@@ -541,7 +541,7 @@ so this 'chart' font is not entirely suitable-->
   ti Tigrinya
   tk Turkmen
   tl Tagalog *
-  tn Tswana [Setswana]  
+  tn Tswana [Setswana]
   to Tonga
   tr Turkish *
   ts Tsonga

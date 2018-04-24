@@ -58,6 +58,9 @@ below to fix all errors reported.
   element whose `content` attribute has a malformed value; **fix**: ensure
   the value of the `content` attribute starts with `?` or `#` or is empty.
 
+* **MISSING-LINK**: CSS test file is missing a link to a spec. **fix**: Ensure that there is a `<link rel="help" src="[url]">` for the spec.
+  * Note: `MISSING-LINK` is designed to ensure that the CSS build tool can find the tests. Note that the CSS build system is primarily used by [test.csswg.org/](http://test.csswg.org/), which doesn't use `wptserve`, so `*.any.js` and similar tests won't work there; stick with the `.html` equivalent.
+
 * **MISSING-TESTHARNESSREPORT**: Test file is missing an instance of
   `<script src='/resources/testharnessreport.js'>`; **fix**: ensure each
   test file contains `<script src='/resources/testharnessreport.js'>`.

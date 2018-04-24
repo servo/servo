@@ -17,11 +17,18 @@
 <script>
 "use strict";
 
-function doTest([html, dom, cssom, geometry, cssom_view]) {
+function doTest([html, dom, uievents, cssom, geometry, cssom_view]) {
 
   var idlArray = new IdlArray();
   var svg = "interface SVGElement : Element {};";
   idlArray.add_untested_idls(html + dom + svg + cssom + geometry);
+  idlArray.add_untested_idls(uievents, { only: [
+    'UIEvent',
+    'UIEventInit',
+    'MouseEvent',
+    'MouseEventInit',
+    'EventModifierInit']
+  });
   idlArray.add_idls(cssom_view);
 
   idlArray.add_objects({
@@ -57,6 +64,7 @@ promise_test(function() {
   // Have to wait for onload
   return Promise.all([fetchData("/interfaces/html.idl"),
                       fetchData("/interfaces/dom.idl"),
+                      fetchData("/interfaces/uievents.idl"),
                       fetchData("/interfaces/cssom.idl"),
                       fetchData("/interfaces/geometry.idl"),
                       fetchData("/interfaces/cssom-view.idl"),

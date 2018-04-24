@@ -14,7 +14,7 @@ setup({explicit_done:true});
 function check(p, iframe) {
   var current = p.firstElementChild;
   var ref_sizes = current.getAttribute('sizes');
-  var expect = p.firstElementChild.currentSrc;
+  var expect = current.currentSrc;
   if (expect) {
     expect = expect.split('?')[0];
   }

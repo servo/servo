@@ -48,7 +48,7 @@
         <text x="50%" y="55%" text-anchor="middle" font-size="48">ABC</text>
       </mask>
     </defs>
-    
+
     <image xlink:href="../images/DisplaceChecker.png" x="140" y="80" width="200" height="200"/>
     <rect width="100" height="100" x="190" y="130" fill="blue" mask="url(#maskedtext)"/>
 

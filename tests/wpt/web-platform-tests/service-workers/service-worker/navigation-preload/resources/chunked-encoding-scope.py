@@ -1,7 +1,7 @@
 import time
 
 def main(request, response):
-    body = "hello\nworld\n\n"
+    use_broken_body = 'use_broken_body' in request.GET
 
     response.add_required_headers = False
     response.writer.write_status(200)
@@ -10,7 +10,10 @@ def main(request, response):
     response.writer.end_headers()
 
     for idx in range(10):
-        response.writer.write("%s\r\n%s\r\n" % (len(str(idx)), idx))
+        if use_broken_body:
+            response.writer.write("%s\n%s\n" % (len(str(idx)), idx))
+        else:
+            response.writer.write("%s\r\n%s\r\n" % (len(str(idx)), idx))
         response.writer.flush()
         time.sleep(0.001)
 

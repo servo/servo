@@ -71,5 +71,14 @@ function load_audio(url, cross_origin) {
   audio.src = url;
   document.body.appendChild(audio);
 }
+
+function load_video(url, cross_origin) {
+  var video = document.createElement('video');
+  if (cross_origin != '') {
+    video.crossOrigin = cross_origin;
+  }
+  video.src = url;
+  document.body.appendChild(video);
+}
 </script>
 </body>

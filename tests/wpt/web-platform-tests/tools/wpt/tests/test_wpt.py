@@ -183,13 +183,14 @@ def test_files_changed_ignore_rules():
 def test_tests_affected(capsys, manifest_dir):
     # This doesn't really work properly for random commits because we test the files in
     # the current working directory for references to the changed files, not the ones at
-    # that specific commit. But we can at least test it returns something sensible
-    commit = "9047ac1d9f51b1e9faa4f9fad9c47d109609ab09"
+    # that specific commit. But we can at least test it returns something sensible.
+    # The test will fail if the file we assert is renamed, so we choose a stable one.
+    commit = "3a055e818218f548db240c316654f3cc1aeeb733"
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["tests-affected", "--metadata", manifest_dir, "%s~..%s" % (commit, commit)])
     assert excinfo.value.code == 0
     out, err = capsys.readouterr()
-    assert "html/browsers/offline/appcache/workers/appcache-worker.html" in out
+    assert "infrastructure/reftest-wait.html" in out
 
 
 @pytest.mark.slow

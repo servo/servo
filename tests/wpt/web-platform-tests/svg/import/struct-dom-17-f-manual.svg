@@ -69,13 +69,13 @@
             // Test that "getElementById" on svgTree1 can't access children in other subtrees
             if (null == svgTree1.getElementById("subElem2"))
             {
-                passedCount++;    
+                passedCount++;
             }
 
             // Test that "getElementById" on svgTree1 can't access elements that are not its children
             if (null == svgTree1.getElementById("siblingElem1"))
             {
-                passedCount++;    
+                passedCount++;
             }
 
             if (4 == passedCount)

@@ -109,4 +109,9 @@ test(function() {
                   "display: contents in " + pseudo + " should reflect other non-inherited properties in CSSOM");
   });
 }, "display: contents on pseudo-elements");
+test(function() {
+  var div = document.getElementById('test');
+  assert_throws(new TypeError(), () => getComputedStyle(div, "totallynotapseudo"),
+                "getComputedStyle with an unknown pseudo-element throws");
+}, "Unknown pseudo-elements throw");
 </script>

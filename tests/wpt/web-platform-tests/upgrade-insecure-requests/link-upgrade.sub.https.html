@@ -2,6 +2,7 @@
 <html>
 
   <head>
+    <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
   </head>
@@ -56,7 +57,7 @@
           });
         });
 
-        test.step_timeout(function(){test.force_timeout()}, 5000);
+        test.step_timeout(function(){test.force_timeout()}, 10000);
       }
     </script>
   </body>
