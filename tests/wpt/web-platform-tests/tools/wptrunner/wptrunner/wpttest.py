@@ -36,7 +36,7 @@ class SubtestResult(object):
 
 class TestharnessResult(Result):
     default_expected = "OK"
-    statuses = set(["OK", "ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = set(["OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
 
 
 class TestharnessSubtestResult(SubtestResult):
@@ -46,12 +46,13 @@ class TestharnessSubtestResult(SubtestResult):
 
 class ReftestResult(Result):
     default_expected = "PASS"
-    statuses = set(["PASS", "FAIL", "ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = set(["PASS", "FAIL", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT",
+                    "CRASH"])
 
 
 class WdspecResult(Result):
     default_expected = "OK"
-    statuses = set(["OK", "ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = set(["OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
 
 
 class WdspecSubtestResult(SubtestResult):

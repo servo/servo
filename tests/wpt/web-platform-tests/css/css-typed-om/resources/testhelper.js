@@ -9,6 +9,9 @@ function assert_style_value_equals(a, b) {
   assert_equals(a.constructor.name, b.constructor.name);
   const className = a.constructor.name;
   switch (className) {
+    case 'CSSStyleValue':
+      assert_equals(a.toString(), b.toString());
+      break;
     case 'CSSKeywordValue':
       assert_equals(a.value, b.value);
       break;

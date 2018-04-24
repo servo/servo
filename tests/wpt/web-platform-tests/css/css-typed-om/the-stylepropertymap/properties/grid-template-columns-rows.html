@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'grid-template-columns' and 'grid-template-rows' properties</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+for (const suffix of ['columns', 'rows']) {
+  runPropertyTests(`grid-template-${suffix}`, [
+    { syntax: 'none' },
+  ]);
+
+  runUnsupportedPropertyTests(`grid-template-${suffix}`, [
+    '[linename1] 100px [linename2 linename3]',
+    '200px repeat(auto-fill, 100px) 300px'
+  ]);
+}
+
+</script>

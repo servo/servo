@@ -80,14 +80,14 @@
            xlink:href="../images/smiley.png"/>
       </filter>
     </defs>
-    
+
     <text text-anchor="middle" x="240" y="40" font-size="16">primitiveUnits = "objectBoundingBox"</text>
     <g transform="translate(60 100)">
       <rect fill="red" width="50" height="50" filter="url(#default)"/>
       <rect fill="red" x="100" width="50" height="50" filter="url(#all_specified_relative)"/>
       <rect fill="red" x="200" width="50" height="50" filter="url(#all_specified_absolute)"/>
       <rect fill="red" x="300" width="50" height="50" filter="url(#y_specified)"/>
-      
+
       <rect fill="red" y="100" width="50" height="50" filter="url(#width_specified)"/>
       <rect fill="red" x="100" y="100" width="50" height="50" filter="url(#height_specified)"/>
       <rect fill="red" x="200" y="100" width="50" height="50" filter="url(#width_height_specified)"/>

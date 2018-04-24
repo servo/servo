@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test that contentDocument/getSVGDocument() return null for a cross-origin document.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<object data='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><rect height="100" width="100"/></svg>'></object>
+<script>
+const object = document.querySelector('object');
+var t1 = async_test('HTMLObjectElement.contentDocument for cross-origin document');
+window.addEventListener(
+    'load', t1.step_func_done(() => { assert_equals(object.contentDocument, null); }));
+var t2 = async_test('HTMLObjectElement.getSVGDocument() for cross-origin document');
+window.addEventListener(
+    'load', t2.step_func_done(() => { assert_equals(object.getSVGDocument(), null); }));
+</script>
+</body>

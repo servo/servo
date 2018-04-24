@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>createImageBitmap transferring test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script src="/common/namespaces.js"></script>
+<script src="common.sub.js"></script>
+<div id=log></div>
+<script>
+let worker, continuations = {};
+setup(function() {
+    worker = new Worker("transfer-worker.js");
+    worker.addEventListener("message", function(event) {
+        let { name, bitmap } = event.data;
+        if (continuations.hasOwnProperty(name)) {
+            continuations[name](bitmap);
+        }
+    });
+});
+
+for (let { name, factory } of imageSourceTypes) {
+    promise_test(function(t) {
+        return factory().then(createImageBitmap).then(function(bitmap) {
+            assert_equals(bitmap.width, 20);
+            assert_equals(bitmap.height, 20);
+
+            worker.postMessage({ name: t.name, bitmap: bitmap }, [bitmap]);
+
+            assert_equals(bitmap.width, 0);
+            assert_equals(bitmap.height, 0);
+
+            return new Promise(function(resolve) {
+                continuations[t.name] = resolve;
+            });
+        }).then(function(bitmap) {
+            assert_class_string(bitmap, "ImageBitmap");
+            assert_equals(bitmap.width, 20);
+            assert_equals(bitmap.height, 20);
+        });
+    }, `Transfer ImageBitmap created from ${name}`);
+}
+</script>

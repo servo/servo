@@ -35,8 +35,8 @@ checkEquals("ellipse(closest-side farthest-side)",
             "ellipse(closest-side farthest-side at 50% 50%)");
 
 
-checkEquals("circle(at right 5px top)", "circle(at right 5px top 0%)");
-checkEquals("ellipse(at right 10px top)", "ellipse(at right 10px top 0%)");
+checkEquals("circle(at top 0% right 5px)", "circle(at right 5px top 0%)");
+checkEquals("ellipse(at top 0% right 10px)", "ellipse(at right 10px top 0%)");
 // Remove defaults like closest-side
 checkEquals("circle(closest-side at center)",
             "circle(at 50% 50%)");

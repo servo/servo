@@ -52,7 +52,7 @@ You should see some shapes that have a black border, three circles and three rec
     <defs>
       <filter id="light-primobjbbox" primitiveUnits="objectBoundingBox">
           <feSpecularLighting lighting-color="blue" surfaceScale="5" specularConstant="10" specularExponent="6">
-            <!-- Note: for z this assumes that the scalefactor is 
+            <!-- Note: for z this assumes that the scalefactor is
                        sqrt(bbox.width*bbox.width + bbox.height*bbox.height)/sqrt(2) -->
             <fePointLight x="0.875" y="0.875" z="-0.0625"/>
           </feSpecularLighting>
@@ -86,7 +86,7 @@ You should see some shapes that have a black border, three circles and three rec
       <rect width="40" height="20" filter="url(#light-primobjbbox-rect)" fill="black" transform="translate(-20 60)"/>
       <rect width="40" height="20" fill="none" transform="translate(-20 60)"/>
       <text y="100" font-size="8" stroke="none" text-anchor="middle">primitiveUnits="objectBoundingBox"</text>
-			<circle cx="30" cy="30" r="5" fill="white"/>
+      <circle cx="30" cy="30" r="5" fill="white"/>
     </g>
 
     <g stroke="black" transform="translate(245 100)">
@@ -121,4 +121,3 @@ You should see some shapes that have a black border, three circles and three rec
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>-->
 </svg>
-

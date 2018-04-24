@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://w3c.github.io/payment-handler/">
+<title>Test for [SameObject] attributes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+
+promise_test(async t => {
+  const registration = await service_worker_unregister_and_register(
+      t, 'basic-card.js', 'payment-app/');
+  await wait_for_state(t, registration.installing, 'activated');
+
+  assert_equals(registration.paymentManager, registration.paymentManager);
+  assert_equals(registration.paymentManager.instruments, registration.paymentManager.instruments);
+});
+
+</script>

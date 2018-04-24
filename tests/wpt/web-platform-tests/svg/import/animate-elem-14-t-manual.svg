@@ -28,12 +28,12 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Run the test. No interaction required.
-      </p>      
+        Run the test. No interaction required.
+      </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The right edge of the blue rectangle should line up with the ruler lines at the indicated times, and should jump directly to each position with no animation in between.  
+        The right edge of the blue rectangle should line up with the ruler lines at the indicated times, and should jump directly to each position with no animation in between.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

@@ -11,7 +11,7 @@
     assert_no_message_from(i, t);
 
     i.onload = t.step_func_done(_ => {
-      assert_throws("SecurityError", function () { return i.contentDocument; });
+      assert_equals(i.contentDocument, null);
       i.remove();
     });
 
@@ -25,7 +25,7 @@
     assert_no_message_from(i, t);
 
     i.onload = t.step_func_done(_ => {
-      assert_throws("SecurityError", function () { return i.contentDocument; });
+      assert_equals(i.contentDocument, null);
       i.remove();
     });
 

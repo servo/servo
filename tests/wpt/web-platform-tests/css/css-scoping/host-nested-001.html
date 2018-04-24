@@ -1,0 +1,29 @@
+<!doctype html>
+<title>CSS Test: :host doesn't match nested shadow hosts.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<link rel="match" href="reference/green-box.html">
+<style>
+  #host {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host">FAIL</div>
+<script>
+  let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <style>
+      div {
+        background: green;
+        width: 100px;
+        height: 100px;
+      }
+      :host { background: red !important }
+      div:host { background: red !important }
+    </style>
+    <div id="nested-host">FAIL - nested shadow host</div>
+  `;
+  root.getElementById("nested-host").attachShadow({ mode: "open" });
+</script>

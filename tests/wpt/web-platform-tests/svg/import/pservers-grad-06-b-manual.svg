@@ -38,7 +38,7 @@
         consists of a 2 by 2 array of colored rectangles.
       </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>Run the test. No interaction required.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">

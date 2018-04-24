@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test BiquadFilter getFrequencyResponse() functionality
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/biquad-filters.js"></script>
+    <script src="/webaudio/resources/biquad-testing.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      // Test the frequency response of a biquad filter.  We compute the
+      // frequency response for a simple peaking biquad filter and compare it
+      // with the expected frequency response.  The actual filter used doesn't
+      // matter since we're testing getFrequencyResponse and not the actual
+      // filter output. The filters are extensively tested in other biquad
+      // tests.
+
+      // The magnitude response of the biquad filter.
+      let magResponse;
+
+      // The phase response of the biquad filter.
+      let phaseResponse;
+
+      // Number of frequency samples to take.
+      let numberOfFrequencies = 1000;
+
+      // The filter parameters.
+      let filterCutoff = 1000;  // Hz.
+      let filterQ = 1;
+      let filterGain = 5;  // Decibels.
+
+      // The maximum allowed error in the magnitude response.
+      let maxAllowedMagError = 9.775e-7;
+
+      // The maximum allowed error in the phase response.
+      let maxAllowedPhaseError = 5.4187e-8;
+
+      // The magnitudes and phases of the reference frequency response.
+      let expectedMagnitudes;
+      let expectedPhases;
+
+      // Convert frequency in Hz to a normalized frequency between 0 to 1 with 1
+      // corresponding to the Nyquist frequency.
+      function normalizedFrequency(freqHz, sampleRate) {
+        let nyquist = sampleRate / 2;
+        return freqHz / nyquist;
+      }
+
+      // Get the filter response at a (normalized) frequency |f| for the filter
+      // with coefficients |coef|.
+      function getResponseAt(coef, f) {
+        let b0 = coef.b0;
+        let b1 = coef.b1;
+        let b2 = coef.b2;
+        let a1 = coef.a1;
+        let a2 = coef.a2;
+
+        // H(z) = (b0 + b1 / z + b2 / z^2) / (1 + a1 / z + a2 / z^2)
+        //
+        // Compute H(exp(i * pi * f)).  No native complex numbers in javascript,
+        // so break H(exp(i * pi * // f)) in to the real and imaginary parts of
+        // the numerator and denominator.  Let omega = pi * f. Then the
+        // numerator is
+        //
+        // b0 + b1 * cos(omega) + b2 * cos(2 * omega) - i * (b1 * sin(omega) +
+        // b2 * sin(2 * omega))
+        //
+        // and the denominator is
+        //
+        // 1 + a1 * cos(omega) + a2 * cos(2 * omega) - i * (a1 * sin(omega) + a2
+        // * sin(2 * omega))
+        //
+        // Compute the magnitude and phase from the real and imaginary parts.
+
+        let omega = Math.PI * f;
+        let numeratorReal =
+            b0 + b1 * Math.cos(omega) + b2 * Math.cos(2 * omega);
+        let numeratorImag = -(b1 * Math.sin(omega) + b2 * Math.sin(2 * omega));
+        let denominatorReal =
+            1 + a1 * Math.cos(omega) + a2 * Math.cos(2 * omega);
+        let denominatorImag =
+            -(a1 * Math.sin(omega) + a2 * Math.sin(2 * omega));
+
+        let magnitude = Math.sqrt(
+            (numeratorReal * numeratorReal + numeratorImag * numeratorImag) /
+            (denominatorReal * denominatorReal +
+             denominatorImag * denominatorImag));
+        let phase = Math.atan2(numeratorImag, numeratorReal) -
+            Math.atan2(denominatorImag, denominatorReal);
+
+        if (phase >= Math.PI) {
+          phase -= 2 * Math.PI;
+        } else if (phase <= -Math.PI) {
+          phase += 2 * Math.PI;
+        }
+
+        return {magnitude: magnitude, phase: phase};
+      }
+
+      // Compute the reference frequency response for the biquad filter |filter|
+      // at the frequency samples given by |frequencies|.
+      function frequencyResponseReference(filter, frequencies) {
+        let sampleRate = filter.context.sampleRate;
+        let normalizedFreq =
+            normalizedFrequency(filter.frequency.value, sampleRate);
+        let filterCoefficients = createFilter(
+            filter.type, normalizedFreq, filter.Q.value, filter.gain.value);
+
+        let magnitudes = [];
+        let phases = [];
+
+        for (let k = 0; k < frequencies.length; ++k) {
+          let response = getResponseAt(
+              filterCoefficients,
+              normalizedFrequency(frequencies[k], sampleRate));
+          magnitudes.push(response.magnitude);
+          phases.push(response.phase);
+        }
+
+        return {magnitudes: magnitudes, phases: phases};
+      }
+
+      // Compute a set of linearly spaced frequencies.
+      function createFrequencies(nFrequencies, sampleRate) {
+        let frequencies = new Float32Array(nFrequencies);
+        let nyquist = sampleRate / 2;
+        let freqDelta = nyquist / nFrequencies;
+
+        for (let k = 0; k < nFrequencies; ++k) {
+          frequencies[k] = k * freqDelta;
+        }
+
+        return frequencies;
+      }
+
+      function linearToDecibels(x) {
+        if (x) {
+          return 20 * Math.log(x) / Math.LN10;
+        } else {
+          return -1000;
+        }
+      }
+
+      // Look through the array and find any NaN or infinity. Returns the index
+      // of the first occurence or -1 if none.
+      function findBadNumber(signal) {
+        for (let k = 0; k < signal.length; ++k) {
+          if (!isValidNumber(signal[k])) {
+            return k;
+          }
+        }
+        return -1;
+      }
+
+      // Compute absolute value of the difference between phase angles, taking
+      // into account the wrapping of phases.
+      function absolutePhaseDifference(x, y) {
+        let diff = Math.abs(x - y);
+
+        if (diff > Math.PI) {
+          diff = 2 * Math.PI - diff;
+        }
+        return diff;
+      }
+
+      // Compare the frequency response with our expected response.
+      function compareResponses(
+          should, filter, frequencies, magResponse, phaseResponse) {
+        let expectedResponse = frequencyResponseReference(filter, frequencies);
+
+        expectedMagnitudes = expectedResponse.magnitudes;
+        expectedPhases = expectedResponse.phases;
+
+        let n = magResponse.length;
+        let badResponse = false;
+
+        let maxMagError = -1;
+        let maxMagErrorIndex = -1;
+
+        let k;
+        let hasBadNumber;
+
+        hasBadNumber = findBadNumber(magResponse);
+        badResponse = !should(
+                           hasBadNumber >= 0 ? 1 : 0,
+                           'Number of non-finite values in magnitude response')
+                           .beEqualTo(0);
+
+        hasBadNumber = findBadNumber(phaseResponse);
+        badResponse = !should(
+                           hasBadNumber >= 0 ? 1 : 0,
+                           'Number of non-finte values in phase response')
+                           .beEqualTo(0);
+
+        // These aren't testing the implementation itself.  Instead, these are
+        // sanity checks on the reference.  Failure here does not imply an error
+        // in the implementation.
+        hasBadNumber = findBadNumber(expectedMagnitudes);
+        badResponse =
+            !should(
+                 hasBadNumber >= 0 ? 1 : 0,
+                 'Number of non-finite values in the expected magnitude response')
+                 .beEqualTo(0);
+
+        hasBadNumber = findBadNumber(expectedPhases);
+        badResponse =
+            !should(
+                 hasBadNumber >= 0 ? 1 : 0,
+                 'Number of non-finite values in expected phase response')
+                 .beEqualTo(0);
+
+        // If we found a NaN or infinity, the following tests aren't very
+        // helpful, especially for NaN. We run them anyway, after printing a
+        // warning message.
+        should(
+            !badResponse,
+            'Actual and expected results contained only finite values')
+            .beTrue();
+
+        for (k = 0; k < n; ++k) {
+          let error = Math.abs(
+              linearToDecibels(magResponse[k]) -
+              linearToDecibels(expectedMagnitudes[k]));
+          if (error > maxMagError) {
+            maxMagError = error;
+            maxMagErrorIndex = k;
+          }
+        }
+
+        should(
+            linearToDecibels(maxMagError),
+            'Max error (' + linearToDecibels(maxMagError) +
+                ' dB) of magnitude response at frequency ' +
+                frequencies[maxMagErrorIndex] + ' Hz')
+            .beLessThanOrEqualTo(linearToDecibels(maxAllowedMagError));
+        let maxPhaseError = -1;
+        let maxPhaseErrorIndex = -1;
+
+        for (k = 0; k < n; ++k) {
+          let error =
+              absolutePhaseDifference(phaseResponse[k], expectedPhases[k]);
+          if (error > maxPhaseError) {
+            maxPhaseError = error;
+            maxPhaseErrorIndex = k;
+          }
+        }
+
+        should(
+            radToDegree(maxPhaseError),
+            'Max error (' + radToDegree(maxPhaseError) +
+                ' deg) in phase response at frequency ' +
+                frequencies[maxPhaseErrorIndex] + ' Hz')
+            .beLessThanOrEqualTo(radToDegree(maxAllowedPhaseError));
+      }
+
+      function radToDegree(rad) {
+        // Radians to degrees
+        return rad * 180 / Math.PI;
+      }
+
+      audit.define(
+          {label: 'test', description: 'Biquad frequency response'},
+          function(task, should) {
+            context = new AudioContext();
+
+            filter = context.createBiquadFilter();
+
+            // Arbitrarily test a peaking filter, but any kind of filter can be
+            // tested.
+            filter.type = 'peaking';
+            filter.frequency.value = filterCutoff;
+            filter.Q.value = filterQ;
+            filter.gain.value = filterGain;
+
+            let frequencies =
+                createFrequencies(numberOfFrequencies, context.sampleRate);
+            magResponse = new Float32Array(numberOfFrequencies);
+            phaseResponse = new Float32Array(numberOfFrequencies);
+
+            filter.getFrequencyResponse(
+                frequencies, magResponse, phaseResponse);
+            compareResponses(
+                should, filter, frequencies, magResponse, phaseResponse);
+
+            task.done();
+          });
+
+      audit.define(
+          {
+            label: 'getFrequencyResponse',
+            description: 'Test out-of-bounds frequency values'
+          },
+          (task, should) => {
+            let context = new OfflineAudioContext(1, 1, sampleRate);
+            let filter = new BiquadFilterNode(context);
+
+            // Frequencies to test.  These are all outside the valid range of
+            // frequencies of 0 to Nyquist.
+            let freq = new Float32Array(2);
+            freq[0] = -1;
+            freq[1] = context.sampleRate / 2 + 1;
+
+            let mag = new Float32Array(freq.length);
+            let phase = new Float32Array(freq.length);
+
+            filter.getFrequencyResponse(freq, mag, phase);
+
+            // Verify that the returned magnitude and phase entries are alL NaN
+            // since the frequencies are outside the valid range
+            for (let k = 0; k < mag.length; ++k) {
+              should(mag[k],
+                  'Magnitude response at frequency ' + freq[k])
+                  .beNaN();
+            }
+
+            for (let k = 0; k < phase.length; ++k) {
+              should(phase[k],
+                  'Phase response at frequency ' + freq[k])
+                  .beNaN();
+            }
+
+            task.done();
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

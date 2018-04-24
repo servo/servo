@@ -13,7 +13,7 @@ const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
     '/bluetooth/resources/health-thermometer-iframe.html'
 let iframe = document.createElement('iframe');
 
-bluetooth_test(() => setUpConnectableHealthThermometerDevice()
+bluetooth_test(() => setUpHealthThermometerDevice()
     // 1. Load the iframe.
     .then(() => new Promise(resolve => {
       iframe.src = cross_origin_src;

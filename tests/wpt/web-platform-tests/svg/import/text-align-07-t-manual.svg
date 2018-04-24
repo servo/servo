@@ -14,13 +14,13 @@
     template-version="1.4" reviewer="AG" author="CN" status="issue"
     version="$Revision: 1.9 $" testname="$RCSfile: text-align-07-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlignmentProperties">
-    		<p>ISSUE - http://www.w3.org/2011/02/27-svg-irc#T22-20-51</p>
+        <p>ISSUE - http://www.w3.org/2011/02/27-svg-irc#T22-20-51</p>
         <p>
           Test horizontal baselines across script and font size changes.
         </p>
         <p>
           Original test authored by Rodney Hardy at CISRA and modified by
-          Anthony Grasso. 
+          Anthony Grasso.
         </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">

@@ -27,6 +27,7 @@ test(function(t) {
             t.step(function() {
                 assert_equals(evt.type, event);
                 assert_equals(evt.target, target);
+                assert_equals(evt.srcElement, target);
                 assert_equals(that, event_listener);
             });
         }

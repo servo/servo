@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Taking the sole box after a spanner out of flow, then remove it</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/" title="CSS Multi-column Layout Module Level 1">
+<meta name="assert" content="An absolutely positioned box is still contained by the multicol container if its containing block is inside the multicol container">
+<div id="multicol" style="columns:3;">
+  <div style="position:relative;">
+    <div style="column-span:all;"></div>
+    <div id="victim" style="width:100%; height:300px;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  var multicol = document.getElementById("multicol");
+  var victim = document.getElementById("victim");
+  assert_equals(multicol.getBoundingClientRect().height, 100);
+  victim.style.position = "absolute";
+  assert_equals(multicol.getBoundingClientRect().height, 100);
+  victim.style.display = "none";
+  assert_equals(multicol.getBoundingClientRect().height, 0);
+}, "Going out of flow and still fragmented");
+</script>
