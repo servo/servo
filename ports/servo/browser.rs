@@ -108,7 +108,7 @@ impl Browser {
             (CMD_OR_CONTROL, Some('q'), _) => {
                 self.event_queue.push(WindowEvent::Quit);
             }
-            (_, Some('3'), _) => if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT {
+            (_, Some('3'), _) if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT => {
                 self.event_queue.push(WindowEvent::CaptureWebRender);
             }
             (KeyModifiers::CONTROL, None, Key::F10) => {
