@@ -14,10 +14,10 @@ The script is intended to start servo on localhost:7002
 """
 import subprocess
 
-
 def start_servo(port, resolution):
-    cmds = ['cd ..', './mach run --webdriver ' + port + ' --resolution ' + resolution]
-    p = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    for cmd in cmds:
-        p.stdin.write(cmd + "\n")
-    return p
+
+    #Use the below command if you are running this script on windows
+    #cmds = 'mach.bat run --webdriver ' + port + ' --resolution ' + resolution
+    cmds = './mach run --webdriver ' + port + ' --resolution ' + resolution
+    process = subprocess.Popen(cmds, shell=True,stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return process
