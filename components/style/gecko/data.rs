@@ -94,15 +94,15 @@ impl StylesheetInDocument for GeckoStyleSheet {
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        use gecko_bindings::structs::ServoMediaList;
+        use gecko_bindings::structs::mozilla::dom::MediaList as DomMediaList;
         use std::mem;
 
         unsafe {
-            let servo_media_list = self.raw()._base.mMedia.mRawPtr as *const ServoMediaList;
-            if servo_media_list.is_null() {
+            let dom_media_list = self.raw()._base.mMedia.mRawPtr as *const DomMediaList;
+            if dom_media_list.is_null() {
                 return None;
             }
-            let raw_list = &*(*servo_media_list).mRawList.mRawPtr;
+            let raw_list = &*(*dom_media_list).mRawList.mRawPtr;
             let list = Locked::<MediaList>::as_arc(mem::transmute(&raw_list));
             Some(list.read_with(guard))
         }
