@@ -157,10 +157,7 @@ impl FontInfo {
             },
         };
 
-        let weight =
-            StyleFontWeight::from_int(
-                min(9, max(1, weight_val as i32 / 100)) * 100
-            ).unwrap();
+        let weight = StyleFontWeight(weight_val as f32);
 
         let stretch = match min(9, max(1, width_val)) {
             1 => StyleFontStretch::UltraCondensed,
@@ -184,28 +181,28 @@ impl FontInfo {
         Ok(FontInfo {
             family_name: family,
             face_name: face,
-            weight: weight,
-            stretch: stretch,
-            style: style,
+            weight,
+            stretch,
+            style,
         })
     }
 
     fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
         let style = font.style();
         let weight = StyleFontWeight(match font.weight() {
-            FontWeight::Thin => 100,
-            FontWeight::ExtraLight => 200,
-            FontWeight::Light => 300,
+            FontWeight::Thin => 100.,
+            FontWeight::ExtraLight => 200.,
+            FontWeight::Light => 300.,
             // slightly grayer gray
-            FontWeight::SemiLight => 300,
-            FontWeight::Regular => 400,
-            FontWeight::Medium => 500,
-            FontWeight::SemiBold => 600,
-            FontWeight::Bold => 700,
-            FontWeight::ExtraBold => 800,
-            FontWeight::Black => 900,
+            FontWeight::SemiLight => 300.,
+            FontWeight::Regular => 400.,
+            FontWeight::Medium => 500.,
+            FontWeight::SemiBold => 600.,
+            FontWeight::Bold => 700.,
+            FontWeight::ExtraBold => 800.,
+            FontWeight::Black => 900.,
             // slightly blacker black
-            FontWeight::ExtraBlack => 900,
+            FontWeight::ExtraBlack => 1000.,
         });
         let stretch = match font.stretch() {
             FontStretch::Undefined => StyleFontStretch::Normal,
@@ -223,9 +220,9 @@ impl FontInfo {
         Ok(FontInfo {
             family_name: font.family_name(),
             face_name: font.face_name(),
-            style: style,
-            weight: weight,
-            stretch: stretch,
+            style,
+            weight,
+            stretch,
         })
     }
 }
