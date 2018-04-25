@@ -9,7 +9,7 @@
 use app_units::Au;
 use dwrote;
 use dwrote::{Font, FontFace, FontFile};
-use dwrote::{FontWeight, FontStretch, FontStyle};
+use dwrote::{FontWeight, FontStretch};
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
 use platform::font_template::FontTemplateData;
@@ -19,6 +19,8 @@ use servo_atoms::Atom;
 use std::sync::Arc;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
+use style::values::computed::font::FontStyle;
+use style::values::generics::font::FontStyle as GenericFontStyle;
 use text::glyph::GlyphId;
 use truetype;
 
@@ -173,9 +175,9 @@ impl FontInfo {
         };
 
         let style = if italic_bool {
-            FontStyle::Italic
+            GenericFontStyle::Italic
         } else {
-            FontStyle::Normal
+            GenericFontStyle::Normal
         };
 
         Ok(FontInfo {
@@ -294,11 +296,8 @@ impl FontHandleMethods for FontHandle {
         Some(self.info.face_name.clone())
     }
 
-    fn is_italic(&self) -> bool {
-        match self.info.style {
-            FontStyle::Normal => false,
-            FontStyle::Oblique | FontStyle::Italic => true,
-        }
+    fn style(&self) -> FontStyle {
+        self.info.style
     }
 
     fn boldness(&self) -> StyleFontWeight {

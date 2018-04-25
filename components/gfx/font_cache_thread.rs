@@ -25,7 +25,7 @@ use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::u32;
+use std::f32;
 use style::font_face::{EffectiveSources, Source};
 use style::values::computed::font::{SingleFontFamily, FamilyName};
 use webrender_api;
@@ -63,7 +63,7 @@ impl FontTemplates {
 
         // We didn't find an exact match. Do more expensive fuzzy matching.
         // TODO(#190): Do a better job.
-        let (mut best_template_data, mut best_distance) = (None, u32::MAX);
+        let (mut best_template_data, mut best_distance) = (None, f32::MAX);
         for template in &mut self.templates {
             if let Some((template_data, distance)) =
                     template.data_for_approximate_descriptor(fctx, desc) {

@@ -238,6 +238,7 @@ impl ToCss for KeywordSize {
 #[allow(missing_docs)]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
          PartialEq, ToAnimatedValue, ToAnimatedZero)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub enum FontStyle<Angle> {
     #[animation(error)]
     Normal,
