@@ -6,8 +6,8 @@
 
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
-use values::animated::ToAnimatedValue;
 use values::{serialize_percentage, CSSFloat};
+use values::animated::ToAnimatedValue;
 use values::generics::NonNegative;
 
 /// A computed percentage.
