@@ -15,6 +15,7 @@ use gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
+#[cfg(feature = "gecko")]
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
@@ -119,16 +120,6 @@ impl FontWeight {
         } else {
             FontWeight(700.)
         }
-    }
-}
-
-impl Hash for FontWeight {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        // We hash the floating point number with four decimal places.
-        state.write_u32((self.0 * 10000.).trunc() as u32)
     }
 }
 
@@ -841,6 +832,7 @@ impl ToComputedValue for specified::MozScriptLevel {
 /// A wrapper over an `Angle`, that handles clamping to the appropriate range
 /// for `font-style` animation.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontStyleAngle(pub Angle);
 
 impl ToAnimatedValue for FontStyleAngle {
@@ -878,7 +870,7 @@ impl FontStyle {
     ///
     /// https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle
     #[inline]
-    fn default_angle() -> FontStyleAngle {
+    pub fn default_angle() -> FontStyleAngle {
         FontStyleAngle(Angle::Deg(specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES))
     }
 

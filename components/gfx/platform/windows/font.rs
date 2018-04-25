@@ -19,6 +19,10 @@ use servo_atoms::Atom;
 use std::sync::Arc;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
+use style::values::computed::font::FontStyle as StyleFontStyle;
+use style::values::generics::NonNegative;
+use style::values::generics::font::FontStyle as GenericFontStyle;
+use style::values::specified::font::FontStretchKeyword;
 use text::glyph::GlyphId;
 use truetype;
 
@@ -98,7 +102,7 @@ struct FontInfo {
     face_name: String,
     weight: StyleFontWeight,
     stretch: StyleFontStretch,
-    style: FontStyle,
+    style: StyleFontStyle,
 }
 
 impl FontInfo {
@@ -159,23 +163,23 @@ impl FontInfo {
 
         let weight = StyleFontWeight(weight_val as f32);
 
-        let stretch = match min(9, max(1, width_val)) {
-            1 => StyleFontStretch::UltraCondensed,
-            2 => StyleFontStretch::ExtraCondensed,
-            3 => StyleFontStretch::Condensed,
-            4 => StyleFontStretch::SemiCondensed,
-            5 => StyleFontStretch::Normal,
-            6 => StyleFontStretch::SemiExpanded,
-            7 => StyleFontStretch::Expanded,
-            8 => StyleFontStretch::ExtraExpanded,
-            9 => StyleFontStretch::UltraExpanded,
+        let stretch = NonNegative(match min(9, max(1, width_val)) {
+            1 => FontStretchKeyword::UltraCondensed,
+            2 => FontStretchKeyword::ExtraCondensed,
+            3 => FontStretchKeyword::Condensed,
+            4 => FontStretchKeyword::SemiCondensed,
+            5 => FontStretchKeyword::Normal,
+            6 => FontStretchKeyword::SemiExpanded,
+            7 => FontStretchKeyword::Expanded,
+            8 => FontStretchKeyword::ExtraExpanded,
+            9 => FontStretchKeyword::UltraExpanded,
             _ => return Err(()),
-        };
+        }.compute());
 
         let style = if italic_bool {
-            FontStyle::Italic
+            GenericFontStyle::Italic
         } else {
-            FontStyle::Normal
+            GenericFontStyle::Normal
         };
 
         Ok(FontInfo {
@@ -188,7 +192,11 @@ impl FontInfo {
     }
 
     fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
-        let style = font.style();
+        let style = match font.style() {
+            FontStyle::Normal => GenericFontStyle::Normal,
+            FontStyle::Oblique => GenericFontStyle::Oblique(StyleFontStyle::default_angle()),
+            FontStyle::Italic => GenericFontStyle::Italic,
+        };
         let weight = StyleFontWeight(match font.weight() {
             FontWeight::Thin => 100.,
             FontWeight::ExtraLight => 200.,
@@ -204,18 +212,18 @@ impl FontInfo {
             // slightly blacker black
             FontWeight::ExtraBlack => 1000.,
         });
-        let stretch = match font.stretch() {
-            FontStretch::Undefined => StyleFontStretch::Normal,
-            FontStretch::UltraCondensed => StyleFontStretch::UltraCondensed,
-            FontStretch::ExtraCondensed => StyleFontStretch::ExtraCondensed,
-            FontStretch::Condensed => StyleFontStretch::Condensed,
-            FontStretch::SemiCondensed => StyleFontStretch::SemiCondensed,
-            FontStretch::Normal => StyleFontStretch::Normal,
-            FontStretch::SemiExpanded => StyleFontStretch::SemiExpanded,
-            FontStretch::Expanded => StyleFontStretch::Expanded,
-            FontStretch::ExtraExpanded => StyleFontStretch::ExtraExpanded,
-            FontStretch::UltraExpanded => StyleFontStretch::UltraExpanded,
-        };
+        let stretch = NonNegative(match font.stretch() {
+            FontStretch::Undefined => FontStretchKeyword::Normal,
+            FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
+            FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
+            FontStretch::Condensed => FontStretchKeyword::Condensed,
+            FontStretch::SemiCondensed => FontStretchKeyword::SemiCondensed,
+            FontStretch::Normal => FontStretchKeyword::Normal,
+            FontStretch::SemiExpanded => FontStretchKeyword::SemiExpanded,
+            FontStretch::Expanded => FontStretchKeyword::Expanded,
+            FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
+            FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
+        }.compute());
 
         Ok(FontInfo {
             family_name: font.family_name(),
@@ -294,11 +302,8 @@ impl FontHandleMethods for FontHandle {
         Some(self.info.face_name.clone())
     }
 
-    fn is_italic(&self) -> bool {
-        match self.info.style {
-            FontStyle::Normal => false,
-            FontStyle::Oblique | FontStyle::Italic => true,
-        }
+    fn style(&self) -> StyleFontStyle {
+        self.info.style
     }
 
     fn boldness(&self) -> StyleFontWeight {

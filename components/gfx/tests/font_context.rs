@@ -22,12 +22,13 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::rc::Rc;
-use style::properties::longhands::font_stretch::computed_value::T as FontStretch;
-use style::properties::longhands::font_style::computed_value::T as FontStyle;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::values::computed::Percentage;
 use style::values::computed::font::{FamilyName, FamilyNameSyntax, FontFamily, FontFamilyList, FontSize};
 use style::values::computed::font::{FontWeight, SingleFontFamily};
+use style::values::generics::NonNegative;
+use style::values::generics::font::FontStyle;
 
 struct TestFontSource {
     handle: FontContextHandle,
@@ -108,7 +109,7 @@ fn style() -> FontStyleStruct {
         font_variant_caps: FontVariantCaps::Normal,
         font_weight: FontWeight::normal(),
         font_size: FontSize::medium(),
-        font_stretch: FontStretch::Normal,
+        font_stretch: NonNegative(Percentage(1.)),
         hash: 0,
     };
     style.compute_font_hash();
