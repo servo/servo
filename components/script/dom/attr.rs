@@ -185,7 +185,7 @@ impl Attr {
         let mutation = Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
-            old_value: old_value.clone(),
+            old_value: Some(old_value.clone()),
         };
 
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
