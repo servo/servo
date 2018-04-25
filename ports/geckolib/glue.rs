@@ -3800,8 +3800,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
 ) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands;
-    use style::values::specified::BorderStyle;
     use style::values::generics::font::FontStyle;
+    use style::values::specified::BorderStyle;
 
     let long = get_longhand_from_id!(property);
     let value = value as u32;
