@@ -754,6 +754,8 @@ impl WebGLImpl {
                 Self::active_uniform(ctx.gl(), program_id, index, chan),
             WebGLCommand::GetAttribLocation(program_id, name, chan) =>
                 Self::attrib_location(ctx.gl(), program_id, name, chan),
+            WebGLCommand::GetRenderbufferParameter(target, pname, chan) =>
+                Self::get_renderbuffer_parameter(ctx.gl(), target, pname, chan),
             WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, chan) =>
                 Self::get_framebuffer_attachment_parameter(ctx.gl(), target, attachment, pname, chan),
             WebGLCommand::GetVertexAttrib(index, pname, chan) =>
@@ -1185,6 +1187,17 @@ impl WebGLImpl {
         chan: WebGLSender<i32>
     ) {
         let parameter = gl.get_framebuffer_attachment_parameter_iv(target, attachment, pname);
+        chan.send(parameter).unwrap();
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    fn get_renderbuffer_parameter(
+        gl: &gl::Gl,
+        target: u32,
+        pname: u32,
+        chan: WebGLSender<i32>
+    ) {
+        let parameter = gl.get_renderbuffer_parameter_iv(target, pname);
         chan.send(parameter).unwrap();
     }
 
