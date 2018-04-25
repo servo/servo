@@ -164,7 +164,7 @@ use style::values::generics::rect::Rect;
 use style::values::specified;
 use style::values::specified::gecko::{IntersectionObserverRootMargin, PixelOrPercentage};
 use style::values::specified::source_size_list::SourceSizeList;
-use style_traits::{CssWriter, ParsingMode, StyleParseErrorKind, ToCss};
+use style_traits::{CssType, CssWriter, ParsingMode, StyleParseErrorKind, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::{AsyncStylesheetParser, StylesheetLoader};
 
@@ -972,6 +972,35 @@ pub unsafe extern "C" fn Servo_Property_IsInherited(
         PropertyId::ShorthandAlias(id, _) => id.longhands().next().unwrap(),
     };
     longhand_id.inherited()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_Property_SupportsType(
+    prop_name: *const nsACString,
+    ty: u32,
+    found: *mut bool,
+) -> bool {
+    let prop_id = PropertyId::parse(prop_name.as_ref().unwrap().as_str_unchecked());
+    let prop_id = match prop_id {
+        Ok(ref p) if p.enabled_for_all_content() => p,
+        _ => {
+            *found = false;
+            return false;
+        }
+    };
+
+    *found = true;
+    // This should match the constants in InspectorUtils.
+    // (Let's don't bother importing InspectorUtilsBinding into bindings
+    // because it is not used anywhere else, and issue here would be
+    // caught by the property-db test anyway.)
+    let ty = match ty {
+        1 => CssType::COLOR,
+        2 => CssType::GRADIENT,
+        3 => CssType::TIMING_FUNCTION,
+        _ => unreachable!("unknown CSS type {}", ty),
+    };
+    prop_id.supports_type(ty)
 }
 
 #[no_mangle]
