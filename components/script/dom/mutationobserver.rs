@@ -30,7 +30,8 @@ pub struct MutationObserver {
 }
 
 pub enum Mutation<'a> {
-    Attribute { name: LocalName, namespace: Namespace, old_value: DOMString },
+    Attribute { name: LocalName, namespace: Namespace, old_value: Option<DOMString> },
+    CharacterData { old_value: DOMString },
     ChildList { added: Option<&'a [&'a Node]>, removed: Option<&'a [&'a Node]>,
                 prev: Option<&'a Node>, next: Option<&'a Node> },
 }
@@ -135,6 +136,26 @@ impl MutationObserver {
                         }
                         // Step 3.1.2
                         let paired_string = if registered.options.attribute_old_value {
+                            old_value.clone()
+                        } else {
+                            None
+                        };
+                        // Step 3.1.1
+                        let idx = interestedObservers.iter().position(|&(ref o, _)|
+                            &**o as *const _ == &*registered.observer as *const _);
+                        if let Some(idx) = idx {
+                            interestedObservers[idx].1 = paired_string;
+                        } else {
+                            interestedObservers.push((DomRoot::from_ref(&*registered.observer),
+                                                      paired_string));
+                        }
+                    },
+                    Mutation::CharacterData { ref old_value } => {
+                        if !registered.options.character_data {
+                            continue;
+                        }
+                        // Step 3.1.2
+                        let paired_string = if registered.options.character_data_old_value {
                             Some(old_value.clone())
                         } else {
                             None
@@ -171,6 +192,9 @@ impl MutationObserver {
                     };
                     MutationRecord::attribute_mutated(target, name, namespace, paired_string.clone())
                 },
+                Mutation::CharacterData { .. } => {
+                    MutationRecord::character_data_mutated(target, paired_string.clone())
+                }
                 Mutation::ChildList { ref added, ref removed, ref next, ref prev } => {
                     MutationRecord::child_list_mutated(target, *added, *removed, *next, *prev)
                 }
@@ -264,5 +288,12 @@ impl MutationObserverMethods for MutationObserver {
         }
 
         Ok(())
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-mutationobserver-takerecords
+    fn TakeRecords(&self) -> Vec<DomRoot<MutationRecord>> {
+        let records: Vec<DomRoot<MutationRecord>> = self.record_queue.borrow().clone();
+        self.record_queue.borrow_mut().clear();
+        records
     }
 }

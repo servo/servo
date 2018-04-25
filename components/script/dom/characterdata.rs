@@ -17,6 +17,7 @@ use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::element::Element;
+use dom::mutationobserver::{Mutation, MutationObserver};
 use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
@@ -91,12 +92,9 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(&self, data: DOMString) {
-        let old_length = self.Length();
-        let new_length = data.encode_utf16().count() as u32;
-        *self.data.borrow_mut() = data;
-        self.content_changed();
-        let node = self.upcast::<Node>();
-        node.ranges().replace_code_units(node, 0, old_length, new_length);
+        // Reusing ReplaceData to ensure we will also trigger
+        // mutation observers.
+        self.ReplaceData(0, self.Length(), data).unwrap_or(());
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
@@ -193,6 +191,12 @@ impl CharacterDataMethods for CharacterData {
                 }
             };
             // Step 4: Mutation observers.
+            let mutation = Mutation::CharacterData {
+                old_value: self.data.borrow().clone(),
+            };
+
+            MutationObserver::queue_a_mutation_record(self.upcast::<Node>(), mutation);
+
             // Step 5 to 7.
             new_data = String::with_capacity(
                 prefix.len() +

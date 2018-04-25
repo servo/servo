@@ -43,6 +43,21 @@ impl MutationRecord {
         reflect_dom_object(record, &*window_from_node(target), MutationRecordBinding::Wrap)
     }
 
+    pub fn character_data_mutated(target: &Node,
+                                  old_value: Option<DOMString>) -> DomRoot<MutationRecord> {
+        reflect_dom_object(
+            Box::new(MutationRecord::new_inherited(
+                "characterData",
+                target,
+                None, None,
+                old_value,
+                None, None, None, None
+            )),
+            &*window_from_node(target),
+            MutationRecordBinding::Wrap
+        )
+    }
+
     pub fn child_list_mutated(target: &Node,
                               added_nodes: Option<&[&Node]>,
                               removed_nodes: Option<&[&Node]>,
