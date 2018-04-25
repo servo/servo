@@ -21,8 +21,8 @@ use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage}
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
 use values::generics::NonNegative;
+use values::generics::font::{KeywordSize, VariationValue};
 use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
-use values::generics::font::{KeywordInfo as GenericKeywordInfo, KeywordSize, VariationValue};
 use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
 use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 
@@ -684,7 +684,7 @@ impl Parse for FontSizeAdjust {
 }
 
 /// Additional information for specified keyword-derived font sizes.
-pub type KeywordInfo = GenericKeywordInfo<NonNegativeLength>;
+pub type KeywordInfo = generics::KeywordInfo<NonNegativeLength>;
 
 impl KeywordInfo {
     /// Computes the final size for this font-size keyword, accounting for

@@ -22,12 +22,12 @@ use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
-#[cfg(feature = "gecko")]
-use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
-use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
-use values::specified::font::SpecifiedFontStyle;
 use values::generics::font::FontStyle as GenericFontStyle;
 use values::specified::Angle;
+use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
+#[cfg(feature = "gecko")]
+use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
+use values::specified::font::SpecifiedFontStyle;
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
