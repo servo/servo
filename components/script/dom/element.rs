@@ -1163,16 +1163,16 @@ impl Element {
     pub fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let value = DOMString::from(&**attr.value());
         let mutation = Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
-            old_value: value.clone(),
+            old_value: None,
         };
 
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
         if self.get_custom_element_definition().is_some() {
+            let value = DOMString::from(&**attr.value());
             let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
@@ -1311,7 +1311,7 @@ impl Element {
             let mutation = Mutation::Attribute {
                 name: name.clone(),
                 namespace: namespace.clone(),
-                old_value: old_value.clone(),
+                old_value: Some(old_value.clone()),
             };
 
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
