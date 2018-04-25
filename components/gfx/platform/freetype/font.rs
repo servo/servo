@@ -169,8 +169,8 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn stretchiness(&self) -> FontStretch {
-        use style::values::specified::font::FontStretchKeyword;
         use style::values::generics::NonNegative;
+        use style::values::specified::font::FontStretchKeyword;
         let percentage = if let Some(os2) = self.os2_table() {
             match os2.us_width_class {
                 1 => FontStretchKeyword::UltraCondensed,
