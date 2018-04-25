@@ -7,7 +7,7 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
@@ -165,3 +165,5 @@ impl ToCss for Time {
         Ok(())
     }
 }
+
+impl SpecifiedValueInfo for Time {}

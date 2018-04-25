@@ -104,7 +104,7 @@ pub fn parse_line_names<'i, 't>(
 /// The type of `repeat` function (only used in parsing).
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-repeat>
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 enum RepeatType {
     /// [`<auto-repeat>`](https://drafts.csswg.org/css-grid/#typedef-auto-repeat)

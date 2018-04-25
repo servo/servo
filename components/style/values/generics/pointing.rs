@@ -9,8 +9,9 @@ use style_traits::{CssWriter, ToCss};
 use style_traits::cursor::CursorKind;
 
 /// A generic value for the `caret-color` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub enum CaretColor<Color> {
     /// An explicit color.
     Color(Color),
@@ -21,7 +22,8 @@ pub enum CaretColor<Color> {
 /// A generic value for the `cursor` property.
 ///
 /// https://drafts.csswg.org/css-ui/#cursor
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct Cursor<Image> {
     /// The parsed images for the cursor.
     pub images: Box<[Image]>,
@@ -54,7 +56,8 @@ impl<Image: ToCss> ToCss for Cursor<Image> {
 }
 
 /// A generic value for item of `image cursors`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct CursorImage<ImageUrl, Number> {
     /// The url to parse images from.
     pub url: ImageUrl,

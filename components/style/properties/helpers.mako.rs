@@ -164,7 +164,7 @@
         % if separator == "Comma":
         #[css(comma)]
         % endif
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
         pub struct SpecifiedValue(
             % if not allow_empty:
             #[css(iterable)]
@@ -396,8 +396,8 @@
 
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse)]
-            #[derive(PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse,
+                     PartialEq, SpecifiedValueInfo, ToCss)]
             pub enum T {
             % for value in keyword.values_for(product):
                 ${to_camel_case(value)},
@@ -408,7 +408,7 @@
         }
 
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             System(SystemFont),
@@ -558,7 +558,8 @@
         </%def>
         % if extra_specified:
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+                     SpecifiedValueInfo, ToCss)]
             pub enum SpecifiedValue {
                 ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
             }
@@ -569,7 +570,7 @@
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
             #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
             % if not extra_specified:
-            #[derive(Parse, ToComputedValue)]
+            #[derive(Parse, SpecifiedValueInfo, ToComputedValue)]
             % endif
             pub enum T {
                 ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}
@@ -634,7 +635,7 @@
         #[allow(unused_imports)]
         use style_traits::{ParseError, StyleParseErrorKind};
         #[allow(unused_imports)]
-        use style_traits::{CssWriter, ToCss};
+        use style_traits::{CssWriter, SpecifiedValueInfo, ToCss};
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -740,6 +741,26 @@
                 % endif
                 % endfor
             })
+        }
+
+        <%
+            sub_properties_for_value_info = shorthand.sub_properties
+            if shorthand.name == "border":
+                # border-image subproperties are simply reset by border
+                # shorthand, so border cannot accept values of them.
+                # XXX We may want a better mechanism for this, but this
+                # is probably fine for now.
+                sub_properties_for_value_info = [
+                    subprop for subprop in shorthand.sub_properties
+                    if not subprop.name.startswith("border-image")
+                ]
+        %>
+        impl SpecifiedValueInfo for Longhands {
+            const SUPPORTED_TYPES: u8 = 0
+                % for subprop in sub_properties_for_value_info:
+                | <longhands::${subprop.ident}::SpecifiedValue as SpecifiedValueInfo>::SUPPORTED_TYPES
+                % endfor
+                ;
         }
 
         ${caller.body()}

@@ -48,7 +48,8 @@ impl BackgroundSize {
 }
 
 /// One of the keywords for `background-repeat`.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[allow(missing_docs)]
 pub enum BackgroundRepeatKeyword {
     Repeat,
@@ -60,7 +61,8 @@ pub enum BackgroundRepeatKeyword {
 /// The specified value for the `background-repeat` property.
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 pub enum BackgroundRepeat {
     /// `repeat-x`
     RepeatX,

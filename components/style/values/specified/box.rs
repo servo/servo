@@ -9,9 +9,8 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::CustomIdent;
-use values::KeyframesName;
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use values::{CustomIdent, KeyframesName};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
@@ -19,7 +18,8 @@ use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// Defines an element’s display type, which consists of
 /// the two basic qualities of how an element generates boxes
@@ -296,7 +296,8 @@ impl AnimationIterationCount {
 }
 
 /// A value for the `animation-name` property.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct AnimationName(pub Option<KeyframesName>);
 
 impl AnimationName {
@@ -339,7 +340,8 @@ impl Parse for AnimationName {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum ScrollSnapType {
     None,
     Mandatory,
@@ -348,7 +350,8 @@ pub enum ScrollSnapType {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -357,13 +360,15 @@ pub enum OverscrollBehavior {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum OverflowClipBox {
     PaddingBox,
     ContentBox,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// Provides a rendering hint to the user agent,
 /// stating what kinds of changes the author expects
 /// to perform on the element
@@ -488,6 +493,8 @@ impl Parse for TouchAction {
     }
 }
 
+impl SpecifiedValueInfo for TouchAction {}
+
 #[cfg(feature = "gecko")]
 impl_bitflags_conversions!(TouchAction);
 
@@ -597,6 +604,8 @@ impl Parse for Contain {
         }
     }
 }
+
+impl SpecifiedValueInfo for Contain {}
 
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;

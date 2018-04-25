@@ -34,7 +34,7 @@ pub type HorizontalPosition = PositionComponent<X>;
 pub type VerticalPosition = PositionComponent<Y>;
 
 /// The specified value of a component of a CSS `<position>`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum PositionComponent<S> {
     /// `center`
     Center,
@@ -45,7 +45,8 @@ pub enum PositionComponent<S> {
 }
 
 /// A keyword for the X direction.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[allow(missing_docs)]
 pub enum X {
     Left,
@@ -53,7 +54,8 @@ pub enum X {
 }
 
 /// A keyword for the Y direction.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[allow(missing_docs)]
 pub enum Y {
     Top,
@@ -409,7 +411,8 @@ impl ToCss for LegacyPosition {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// Auto-placement algorithm Option
 pub enum AutoFlow {
     /// The auto-placement algorithm places items by filling each row in turn,
@@ -420,7 +423,8 @@ pub enum AutoFlow {
     Column,
 }
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 /// Controls how the auto-placement algorithm works
 /// specifying exactly how auto-placed items get flowed into the grid
 pub struct GridAutoFlow {
@@ -533,7 +537,7 @@ impl From<GridAutoFlow> for u8 {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
     /// `named area` containing for each template area
@@ -639,7 +643,8 @@ impl Parse for TemplateAreas {
 }
 
 /// Arc type for `Arc<TemplateAreas>`
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
 
 impl Parse for TemplateAreasArc {
@@ -654,7 +659,7 @@ impl Parse for TemplateAreasArc {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo)]
 /// Not associated with any particular grid item, but can
 /// be referenced from the grid-placement properties.
 pub struct NamedArea {

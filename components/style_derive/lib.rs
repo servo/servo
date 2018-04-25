@@ -16,6 +16,7 @@ mod animate;
 mod cg;
 mod compute_squared_distance;
 mod parse;
+mod specified_value_info;
 mod to_animated_value;
 mod to_animated_zero;
 mod to_computed_value;
@@ -61,4 +62,10 @@ pub fn derive_to_computed_value(stream: TokenStream) -> TokenStream {
 pub fn derive_to_css(stream: TokenStream) -> TokenStream {
     let input = syn::parse(stream).unwrap();
     to_css::derive(input).into()
+}
+
+#[proc_macro_derive(SpecifiedValueInfo, attributes(css))]
+pub fn derive_specified_value_info(stream: TokenStream) -> TokenStream {
+    let input = syn::parse(stream).unwrap();
+    specified_value_info::derive(input).into()
 }

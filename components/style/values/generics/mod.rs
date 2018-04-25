@@ -79,7 +79,8 @@ impl SymbolsType {
 /// Since wherever <counter-style> is used, 'none' is a valid value as
 /// well, we combine them into one type to make code simpler.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq, SpecifiedValueInfo, ToComputedValue,
+         ToCss)]
 pub enum CounterStyleOrNone {
     /// `none`
     None,
@@ -139,12 +140,14 @@ impl Parse for CounterStyleOrNone {
 
 /// A wrapper of Non-negative values.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, PartialOrd, SpecifiedValueInfo, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub struct NonNegative<T>(pub T);
 
 /// A wrapper of greater-than-or-equal-to-one values.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, PartialOrd, SpecifiedValueInfo, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub struct GreaterThanOrEqualToOne<T>(pub T);

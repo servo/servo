@@ -15,7 +15,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem;
-use style_traits::ParseError;
+use style_traits::{ParseError, SpecifiedValueInfo};
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
@@ -120,8 +120,10 @@ impl MallocSizeOf for CssUrl {
     }
 }
 
+impl SpecifiedValueInfo for CssUrl {}
+
 /// A specified url() value for general usage.
-#[derive(Clone, Debug, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct SpecifiedUrl {
     /// The specified url value.
     pub url: CssUrl,
@@ -179,7 +181,7 @@ impl MallocSizeOf for SpecifiedUrl {
 /// A specified url() value for image.
 ///
 /// This exists so that we can construct `ImageValue` and reuse it.
-#[derive(Clone, Debug, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct SpecifiedImageUrl {
     /// The specified url value.
     pub url: CssUrl,

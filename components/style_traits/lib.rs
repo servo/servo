@@ -73,11 +73,13 @@ pub enum CSSPixel {}
 //     / desktop_zoom => CSSPixel
 
 pub mod cursor;
+pub mod specified_value_info;
 #[macro_use]
 pub mod values;
 #[macro_use]
 pub mod viewport;
 
+pub use specified_value_info::{CssType, SpecifiedValueInfo};
 pub use values::{Comma, CommaWithSpace, CssWriter, OneOrMoreSeparated, Separator, Space, ToCss};
 
 /// The error type for all CSS parsing routines.

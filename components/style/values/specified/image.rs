@@ -17,7 +17,8 @@ use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::f32::consts::PI;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssType, CssWriter, ParseError, StyleParseErrorKind};
+use style_traits::{SpecifiedValueInfo, ToCss};
 use values::{Either, None_};
 #[cfg(feature = "gecko")]
 use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
@@ -53,6 +54,10 @@ pub type Gradient = generic::Gradient<
     RGBAColor,
     Angle,
 >;
+
+impl SpecifiedValueInfo for Gradient {
+    const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
+}
 
 /// A specified gradient kind.
 #[cfg(not(feature = "gecko"))]

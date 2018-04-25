@@ -15,7 +15,8 @@ use values::generics::CounterStyleOrNone;
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub enum ListStyleType {
     /// <counter-style> | none
     CounterStyle(CounterStyleOrNone),
@@ -77,7 +78,8 @@ impl Parse for ListStyleType {
 ///
 /// FIXME(emilio): It's a shame that this allocates all the time it's computed,
 /// probably should just be refcounted.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct Quotes(pub Box<[(Box<str>, Box<str>)]>);
 
 impl ToCss for Quotes {

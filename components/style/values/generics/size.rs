@@ -8,7 +8,7 @@ use cssparser::Parser;
 use euclid::Size2D;
 use parser::ParserContext;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use values::animated::ToAnimatedValue;
 
 /// A generic size, for `border-*-radius` longhand properties, or
@@ -92,4 +92,8 @@ where
             L::from_animated_value(animated.0.height),
         ))
     }
+}
+
+impl<L: SpecifiedValueInfo> SpecifiedValueInfo for Size<L> {
+    const SUPPORTED_TYPES: u8 = L::SUPPORTED_TYPES;
 }

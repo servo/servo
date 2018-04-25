@@ -7,7 +7,7 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
 use values::computed::angle::Angle as ComputedAngle;
@@ -203,3 +203,5 @@ impl Angle {
         }.map_err(|()| input.new_unexpected_token_error(token.clone()))
     }
 }
+
+impl SpecifiedValueInfo for Angle {}

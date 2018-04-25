@@ -4,7 +4,7 @@
 
 //! A list of common mouse cursors per CSS3-UI § 8.1.1.
 
-use super::{CssWriter, ToCss};
+use super::{CssWriter, SpecifiedValueInfo, ToCss};
 
 macro_rules! define_cursor {
     (
@@ -57,6 +57,8 @@ macro_rules! define_cursor {
                 }
             }
         }
+
+        impl SpecifiedValueInfo for CursorKind {}
     }
 }
 

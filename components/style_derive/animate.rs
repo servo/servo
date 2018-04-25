@@ -68,7 +68,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
 }
 
 fn derive_variant_arm(variant: &VariantInfo) -> Result<Tokens, ()> {
-    let variant_attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
+    let variant_attrs = cg::parse_variant_attrs_from_ast::<AnimationVariantAttrs>(&variant.ast());
     if variant_attrs.error {
         return Err(());
     }

@@ -296,7 +296,8 @@ ${helpers.predefined_type("-x-text-zoom",
             kw_cast = """font_variant_caps font_kerning font_variant_position
                          font_optical_sizing""".split()
         %>
-        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq,
+                 SpecifiedValueInfo, ToCss)]
         pub enum SystemFont {
             % for font in system_fonts:
                 ${to_camel_case(font)},

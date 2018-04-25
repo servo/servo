@@ -15,7 +15,7 @@ use values::specified::Angle;
 
 /// The specified value of the `image-orientation` property.
 /// https://drafts.csswg.org/css-images/#propdef-image-orientation
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
 pub struct ImageOrientation {
     /// The angle specified, if any
     pub angle: Option<Angle>,

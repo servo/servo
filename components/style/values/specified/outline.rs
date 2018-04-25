@@ -10,8 +10,8 @@ use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
 use values::specified::BorderStyle;
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd, ToComputedValue,
-         ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// <https://drafts.csswg.org/css-ui/#propdef-outline-style>
 pub enum OutlineStyle {
     /// auto

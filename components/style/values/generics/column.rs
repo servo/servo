@@ -5,8 +5,9 @@
 //! Generic types for the column properties.
 
 /// A generic type for `column-count` values.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub enum ColumnCount<PositiveInteger> {
     /// A positive integer.
     Integer(PositiveInteger),

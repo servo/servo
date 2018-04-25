@@ -10,7 +10,8 @@ use values::generics::rect::Rect;
 use values::generics::size::Size;
 
 /// A generic value for a single side of a `border-image-width` property.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub enum BorderImageSideWidth<LengthOrPercentage, Number> {
     /// `<length-or-percentage>`
     Length(LengthOrPercentage),
@@ -21,7 +22,8 @@ pub enum BorderImageSideWidth<LengthOrPercentage, Number> {
 }
 
 /// A generic value for the `border-image-slice` property.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct BorderImageSlice<NumberOrPercentage> {
     /// The offsets.
     pub offsets: Rect<NumberOrPercentage>,
@@ -30,8 +32,8 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 }
 
 /// A generic value for the `border-*-radius` longhand properties.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct BorderCornerRadius<L>(#[css(field_bound)] pub Size<L>);
 
 impl<L> BorderCornerRadius<L> {
@@ -42,8 +44,9 @@ impl<L> BorderCornerRadius<L> {
 }
 
 /// A generic value for the `border-spacing` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub struct BorderSpacing<L>(#[css(field_bound)] pub Size<L>);
 
 impl<L> BorderSpacing<L> {
@@ -56,8 +59,8 @@ impl<L> BorderSpacing<L> {
 /// A generic value for `border-radius`, `outline-radius` and `inset()`.
 ///
 /// <https://drafts.csswg.org/css-backgrounds-3/#border-radius>
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct BorderRadius<LengthOrPercentage> {
     /// The top left radius.
     pub top_left: BorderCornerRadius<LengthOrPercentage>,

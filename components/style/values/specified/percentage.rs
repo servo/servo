@@ -7,7 +7,7 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::{serialize_percentage, CSSFloat};
 use values::computed::{Context, ToComputedValue};
@@ -158,3 +158,5 @@ impl ToComputedValue for Percentage {
         Percentage::new(computed.0)
     }
 }
+
+impl SpecifiedValueInfo for Percentage {}

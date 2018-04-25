@@ -9,7 +9,7 @@
 use cssparser::{AngleOrNumber, NumberOrPercentage, Parser, Token};
 use parser::ParserContext;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::{CSSFloat, CSSInteger};
 use values::computed;
@@ -149,6 +149,8 @@ impl ToCss for CalcLengthOrPercentage {
         dest.write_str(")")
     }
 }
+
+impl SpecifiedValueInfo for CalcLengthOrPercentage {}
 
 impl CalcNode {
     /// Tries to parse a single element in the expression, that is, a

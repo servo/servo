@@ -75,7 +75,7 @@ fn derive_variant_arm(
     let bindings = variant.bindings();
     let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
     let ast = variant.ast();
-    let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
+    let variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&ast);
     let separator = if variant_attrs.comma { ", " } else { " " };
 
     if variant_attrs.dimension {
@@ -207,12 +207,12 @@ fn derive_single_field_expr(
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromDeriveInput)]
-struct CssInputAttrs {
-    derive_debug: bool,
+pub struct CssInputAttrs {
+    pub derive_debug: bool,
     // Here because structs variants are also their whole type definition.
-    function: Option<Override<String>>,
+    pub function: Option<Override<String>>,
     // Here because structs variants are also their whole type definition.
-    comma: bool,
+    pub comma: bool,
 }
 
 #[darling(attributes(css), default)]
@@ -227,10 +227,10 @@ pub struct CssVariantAttrs {
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromField)]
-struct CssFieldAttrs {
-    if_empty: Option<String>,
-    field_bound: bool,
-    iterable: bool,
-    skip: bool,
-    skip_if: Option<Path>,
+pub struct CssFieldAttrs {
+    pub if_empty: Option<String>,
+    pub field_bound: bool,
+    pub iterable: bool,
+    pub skip: bool,
+    pub skip_if: Option<Path>,
 }

@@ -20,6 +20,7 @@ use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
 use std::ops::Deref;
+use style_traits::SpecifiedValueInfo;
 
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
@@ -415,3 +416,5 @@ impl From<String> for Atom {
 }
 
 malloc_size_of_is_0!(Atom);
+
+impl SpecifiedValueInfo for Atom {}

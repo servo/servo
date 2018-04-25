@@ -916,7 +916,8 @@ pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPerce
 /// block-size, and inline-size.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToCss)]
 pub enum ExtremumLength {
     MozMaxContent,
     MozMinContent,
