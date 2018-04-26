@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: paint containment on ruby-text</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="paint containment does not apply to ruby-text">
+  <link rel="match" href="reference/contain-paint-008-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-paint">
+
+<style>
+rt {
+  contain: paint;
+  display: ruby-text;
+  font-size: 1rem;
+}
+rt::after {
+  content: "PASS";
+
+  /* Doing the following instead of position:absolute to move it out into the area that would be clipped
+     because Firefox clips absolutely positioned content of rt even though it does not support
+     containment.
+     Since this technique works also, not need to trigger a false negative.
+   */
+  position: relative;
+  left: 4ch;
+  font-family: monospace;
+}
+</style>
+
+<p>This test passes if you can see the word PASS below.
+<div><ruby><rt></rt></ruby></div>

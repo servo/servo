@@ -594,7 +594,8 @@ class TestRunnerManager(threading.Thread):
                                ((subtest_unexpected or is_unexpected) and
                                 self.restart_on_unexpected))
 
-        if (self.pause_after_test or
+        if (not file_result.status == "CRASH" and
+            self.pause_after_test or
             (self.pause_on_unexpected and (subtest_unexpected or is_unexpected))):
             self.logger.info("Pausing until the browser exits")
             self.send_message("wait")

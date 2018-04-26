@@ -5,7 +5,6 @@ env:
   SCCACHE_IDLE_TIMEOUT: "1200"
 
 mac-rel-wpt1:
-  - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach run -r -o output.png
@@ -17,7 +16,6 @@ mac-rel-wpt1:
   - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-wpt2:
-  - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
@@ -25,7 +23,6 @@ mac-rel-wpt2:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build-geckolib --release
 
 mac-rel-wpt3:
-  - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
@@ -41,7 +38,6 @@ mac-rel-wpt4:
   - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --tracker-api default --reporter-api default
 
 mac-dev-unit:
-  - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
@@ -52,7 +48,6 @@ mac-dev-unit:
   - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-css1:
-  - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 5 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
@@ -61,14 +56,12 @@ mac-rel-css1:
   - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-css2:
-  - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-nightly:
-  - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach package --release

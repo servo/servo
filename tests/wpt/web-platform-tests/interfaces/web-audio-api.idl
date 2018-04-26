@@ -167,9 +167,15 @@ dictionary AudioNodeOptions {
   ChannelInterpretation channelInterpretation;
 };
 
+enum AutomationRate {
+  "a-rate",
+  "k-rate"
+};
+
 [Exposed=Window]
 interface AudioParam {
   attribute float value;
+  attribute AutomationRate automationRate;
   readonly attribute float defaultValue;
   readonly attribute float minValue;
   readonly attribute float maxValue;

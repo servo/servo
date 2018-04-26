@@ -15,10 +15,13 @@ test(t => {
 
   const ct = effect.getComputedTiming();
   assert_equals(ct.delay, 0, 'computed delay');
+  assert_equals(ct.endDelay, 0, 'computed endDelay');
   assert_equals(ct.fill, 'none', 'computed fill');
+  assert_equals(ct.iterationStart, 0.0, 'computed iterationStart');
   assert_equals(ct.iterations, 1.0, 'computed iterations');
   assert_equals(ct.duration, 0, 'computed duration');
   assert_equals(ct.direction, 'normal', 'computed direction');
+  assert_equals(ct.easing, 'linear', 'computed easing');
 }, 'values of getComputedTiming() when a KeyframeEffect is ' +
    'constructed without any KeyframeEffectOptions object');
 
@@ -28,15 +31,21 @@ const gGetComputedTimingTests = [
     expected: { } },
   { desc:     'a normal KeyframeEffectOptions object',
     input:    { delay: 1000,
+                endDelay: 2000,
                 fill: 'auto',
+                iterationStart: 0.5,
                 iterations: 5.5,
                 duration: 'auto',
-                direction: 'alternate' },
+                direction: 'alternate',
+                easing: 'steps(2)' },
     expected: { delay: 1000,
+                endDelay: 2000,
                 fill: 'none',
+                iterationStart: 0.5,
                 iterations: 5.5,
                 duration: 0,
-                direction: 'alternate' } },
+                direction: 'alternate',
+                easing: 'steps(2)' } },
   { desc:     'a double value',
     input:    3000,
     timing:   { duration: 3000 },
@@ -78,14 +87,20 @@ for (const stest of gGetComputedTimingTests) {
     const ct = effect.getComputedTiming();
     assert_equals(ct.delay, expected('delay', 0),
                   'computed delay');
+    assert_equals(ct.endDelay, expected('endDelay', 0),
+                  'computed endDelay');
     assert_equals(ct.fill, expected('fill', 'none'),
                   'computed fill');
+    assert_equals(ct.iterationStart, expected('iterationStart', 0),
+                  'computed iterations');
     assert_equals(ct.iterations, expected('iterations', 1),
                   'computed iterations');
     assert_equals(ct.duration, expected('duration', 0),
                   'computed duration');
     assert_equals(ct.direction, expected('direction', 'normal'),
                   'computed direction');
+    assert_equals(ct.easing, expected('easing', 'linear'),
+                  'computed easing');
 
   }, 'values of getComputedTiming() when a KeyframeEffect is'
      + ` constructed by ${stest.desc}`);

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<body>
+<script>
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "./support/redirect.py?value=DENY&url=/x-frame-options/support/xfo.py%3Fvalue%3DALLOWALL";
+
+    wait_for_message_from(i, t)
+      .then(t.step_func_done(e => {
+        assert_equals(e.data, "Loaded");
+        i.remove();
+      }));
+
+    document.body.appendChild(i);
+  }, "XFO on redirect responses is ignored.");
+</script>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests cookie attribute functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "attribute0001", name: "Ignore cookie for Secure attribute."},
+        {file: "attribute0002", name: "Ignore cookie for seCURe attribute."},
+        {file: "attribute0003", name: "Set cookie for \"Secure\" attribute."},
+        {file: "attribute0004", name: "Ignore cookie for for Secure= attribute."},
+        {file: "attribute0005", name: "Ignore cookie for Secure=aaaa"},
+        {file: "attribute0006", name: "Set cookie for Secure qux"},
+        {file: "attribute0007", name: "Ignore cookie for Secure space equals."},
+        {file: "attribute0008", name: "Ignore cookie for Secure equals space"},
+        {file: "attribute0009", name: "Ignore cookie for Secure separated."},
+        {file: "attribute0010", name: "Ignore cookie for Secure separated v2."},
+        {file: "attribute0011", name: "Ignore cookie for Secure separated v2."},
+        {file: "attribute0012", name: "Ignore cookie for spaced Secure"},
+        {file: "attribute0013", name: "Ignore cookie for space Secure with ;."},
+        {file: "attribute0014", name: "Set cookie for Path."},
+        {file: "attribute0015", name: "Set cookie for Path=."},
+        {file: "attribute0016", name: "Set cookie for Path=/."},
+        {file: "attribute0017", name: "Ignore cookie for invalid path."},
+        {file: "attribute0018", name: "Ignore cookie for spaced invalid path."},
+        {file: "attribute0019", name: "Ignore cookie for spaced invalid path v2."},
+        {file: "attribute0020", name: "Ignore cookie for invalid path and attribute."},
+        {file: "attribute0021", name: "Ignore cookie for invalid and root path."},
+        {file: "attribute0022", name: "Set cookie for root and invalid path."},
+        {file: "attribute0023", name: "Set cookie for invalid and sane path."},
+        {file: "attribute0024", name: "Ignore cookie for sane and invalid path."},
+        {file: "attribute0025", name: "Ignore cookie for invalid + Secure."},
+        {file: "attribute0026", name: "Ignore cookie for quoted invalid attribute."},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

@@ -43,7 +43,7 @@
             { value: "oblique calc(900 + 300) 24px Arial",                  isValid:true,  expectedStyle: "oblique",         expectedWeight:"1000",  message: "'oblique' followed by a to-be-clamped calc() weight" },
             { value: "calc(200 + 300) oblique 24px Arial",                  isValid:true,  expectedStyle: "oblique",         expectedWeight:"500",   message: "calc() weight folowed by 'oblique'" },
             { value: "calc(200 + 300) oblique 45deg 24px Arial",            isValid:true,  expectedStyle: "oblique 45deg",   expectedWeight:"500",   message: "calc() weight folowed by 'oblique' and slant angle" },
-            { value: "calc(900 + 300) oblique 45deg 24px Arial",            isValid:true,  expectedStyle: "oblique",         expectedWeight:"1000",  message: "To-be-clamped calc() weight folowed by 'oblique' and slant angle" },
+            { value: "calc(900 + 300) oblique 45deg 24px Arial",            isValid:true,  expectedStyle: "oblique 45deg",   expectedWeight:"1000",  message: "To-be-clamped calc() weight folowed by 'oblique' and slant angle" },
         ];
 
         testFontShorthand.forEach(function (testCase) {

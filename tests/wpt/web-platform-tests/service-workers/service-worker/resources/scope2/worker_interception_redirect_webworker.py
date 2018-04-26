@@ -1,5 +1,6 @@
 import os
-import sys
+import imp
 # Use the file from the parent directory.
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from worker_interception_redirect_webworker import main
+mod = imp.load_source("_parent", os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                              os.path.basename(__file__)))
+main = mod.main

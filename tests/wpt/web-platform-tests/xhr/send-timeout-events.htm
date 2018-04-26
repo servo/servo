@@ -4,66 +4,52 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <title>XMLHttpRequest: The send() method: timeout is not 0 </title>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-timeout-attribute" data-tested-assertations="following::ol[1]/li[2]" />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dt[5] following::a[contains(@href,'#timeout-error')]/.." />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#timeout-error" data-tested-assertations=".." />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#request-error" data-tested-assertations="following::ol[1]/li[4] following::ol[1]/li[6] following::ol[1]/li[7]/ol/li[3] following::ol[1]/li[7]/ol/li[4] following::ol[1]/li[9] following::ol[1]/li[10]" />
 </head>
 
 <body>
     <div id="log"></div>
 
     <script type="text/javascript">
-        var test = async_test();
+        async_test(t => {
+            const xhr = new XMLHttpRequest(),
+                  expect = [4, "", "upload.timeout", "upload.loadend", "timeout", "loadend"];
+            let actual = [];
 
-        test.step(function()
-        {
-            var xhr = new XMLHttpRequest();
-            var expect = [4, "", "upload.timeout", "upload.loadend", "timeout", "loadend"];
-            var actual = [];
-
-            xhr.onreadystatechange = test.step_func(function()
-            {
-                if (xhr.readyState == 4)
-                {
+            xhr.onreadystatechange = t.step_func(() => {
+                if (xhr.readyState == 4) {
                     actual.push(xhr.readyState, xhr.response);
                 }
             });
 
-            xhr.onloadend = test.step_func_done(function(e)
-            {
+            xhr.onloadend = t.step_func_done(e => {
                 assert_equals(e.loaded, 0);
                 assert_equals(e.total, 0);
                 actual.push(e.type);
                 assert_array_equals(actual, expect);
             });
 
-            xhr.ontimeout = test.step_func(function(e)
-            {
+            xhr.ontimeout = t.step_func(e => {
                 assert_equals(e.loaded, 0);
                 assert_equals(e.total, 0);
                 actual.push(e.type);
             });
 
 
-            xhr.upload.onloadend = test.step_func(function(e)
-            {
+            xhr.upload.onloadend = t.step_func(e => {
                 assert_equals(e.loaded, 0);
                 assert_equals(e.total, 0);
                 actual.push("upload." + e.type);
             });
 
-            xhr.upload.ontimeout = test.step_func(function(e)
-            {
+            xhr.upload.ontimeout = t.step_func(e => {
                 assert_equals(e.loaded, 0);
                 assert_equals(e.total, 0);
                 actual.push("upload." + e.type);
             });
 
 
-            var content = "";
-            for (var i = 0; i < 121026; i++)
-            {
+            let content = "";
+            for (var i = 0; i < 121026; i++) {
                 content += "[" + i + "]";
             }
 

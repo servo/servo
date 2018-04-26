@@ -21,6 +21,8 @@
   ['DOMMatrix', 'rotateAxisAngleBy'],
   ['DOMMatrix', 'skewXBy'],
   ['DOMMatrix', 'skewYBy'],
+  // https://github.com/w3c/fxtf-drafts/commit/555a8c0beb1b7b809ccebd861a0352df31530b56
+  ['DOMQuad', 'bounds'],
 ].forEach(([interf, member]) => {
   test(() => {
     assert_true(interf in self, `${interf} should exist`);

@@ -1,9 +1,4 @@
 def main(request, response):
-    if "logout" in request.GET:
-        return ((401, "Unauthorized"),
-                [("WWW-Authenticate", 'Basic realm="test"')],
-                "Logged out, hopefully")
-
     session_user = request.auth.username
     session_pass = request.auth.password
     expected_user_name = request.headers.get("X-User", None)

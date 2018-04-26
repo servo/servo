@@ -129,15 +129,6 @@
             return q;
         }, initial, 'boundsAttribute0');
 
-        checkDOMQuad(function() {
-            var q = new DOMQuad({}, {}, {}, {});
-            q.bounds.x = 10;
-            q.bounds.y = 10;
-            q.bounds.width = 100;
-            q.bounds.height = 100;
-            return q;
-        }, initial, 'boundsAttribute1');
-
         function checkDOMQuad(createQuad, exp, name) {
             test(function() {
                 var q = createQuad();
@@ -161,10 +152,10 @@
 
             test(function() {
                 var q = createQuad();
-                assert_equals(q.bounds.x, exp.bounds.x, "Expected value for bounds.x is " + exp.bounds.x);
-                assert_equals(q.bounds.y, exp.bounds.y, "Expected value for bounds.y is " + exp.bounds.y);
-                assert_equals(q.bounds.width, exp.bounds.width, "Expected value for bounds.width is " + exp.bounds.width);
-                assert_equals(q.bounds.height, exp.bounds.height, "Expected value for bounds.height is " + exp.bounds.height);
+                assert_equals(q.getBounds().x, exp.bounds.x, "Expected value for getBounds().x is " + exp.bounds.x);
+                assert_equals(q.getBounds().y, exp.bounds.y, "Expected value for getBounds().y is " + exp.bounds.y);
+                assert_equals(q.getBounds().width, exp.bounds.width, "Expected value for getBounds().width is " + exp.bounds.width);
+                assert_equals(q.getBounds().height, exp.bounds.height, "Expected value for getBounds().height is " + exp.bounds.height);
             }, name + ": bounds");
         }
     </script>

@@ -57,7 +57,7 @@ function runTest() {
     // we automatically assume navigation succeeded after 100 ms. A sibling test will test this
     // particular Firefox bug.
     await navigateAndWaitForChange(frameWindow, w => w.history.forward(),
-      { assumeSuccessAfter: 100 });
+      { assumeSuccessAfter: 500 });
 
     assert_equals(frameWindow.location.hash, "#cat");
     assert_equals(frameWindow.history.length, afterThreeNavigations,

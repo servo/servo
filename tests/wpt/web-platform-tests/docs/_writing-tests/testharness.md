@@ -59,13 +59,11 @@ This test could then be run from `FileAPI/FileReaderSync.worker.html`.
 
 ### Multi-global tests
 
-Tests for features that exist in multiple global scopes can be written
-in a way that they are automatically run in a window scope and a
-worker scope.
+Tests for features that exist in multiple global scopes can be written in a way
+that they are automatically run in several scopes. In this case, the test is a
+JavaScript file with extension `.any.js`, which can use all the usual APIs.
 
-In this case, the test is a JavaScript file with extension `.any.js`.
-The test can then use all the usual APIs, and can be run from the path to the
-JavaScript file with the `.js` replaced by `.worker.html` or `.html`.
+By default, the test runs in a window scope and a dedicated worker scope.
 
 For example, one could write a test for the `Blob` constructor by
 creating a `FileAPI/Blob-constructor.any.js` as follows:
@@ -79,6 +77,30 @@ creating a `FileAPI/Blob-constructor.any.js` as follows:
 
 This test could then be run from `FileAPI/Blob-constructor.any.worker.html` as well
 as `FileAPI/Blob-constructor.any.html`.
+
+It is possible to customize the set of scopes with a metadata comment, such as
+
+    // META: global=sharedworker
+    //       ==> would run in the default window and dedicated worker scopes,
+    //           as well as the shared worker scope
+    // META: global=!default,serviceworker
+    //       ==> would only run in the service worker scope
+    // META: global=!window
+    //       ==> would run in the default dedicated worker scope, but not the
+    //           window scope
+    // META: global=worker
+    //       ==> would run in the default window scope, as well as in the
+    //           dedicated, shared and service worker scopes
+
+For a test file <code><var>x</var>.any.js</code>, the available scope keywords
+are:
+
+* `window` (default): to be run at <code><var>x</var>.any.html</code>
+* `dedicatedworker` (default): to be run at <code><var>x</var>.any.worker.html</code>
+* `serviceworker`: to be run at <code><var>x</var>.https.any.serviceworker.html</code>
+* `sharedworker`: to be run at <code><var>x</var>.any.sharedworker.html</code>
+* `default`: shorthand for the default scopes
+* `worker`: shorthand for the dedicated, shared and service worker scopes
 
 To check if your test is run from a window or worker you can use the following two methods that will
 be made available by the framework:
@@ -98,6 +120,13 @@ can be used to include both the global and a local `utils.js` in a test.
 ### Specifying a timeout of long in auto-generated boilerplate tests
 
 Use `// META: timeout=long` at the beginning of the resource.
+
+### Specifying test variants in auto-generated boilerplate tests
+
+Use `// META: variant=url-suffix` at the beginning of the resource. For example,
+
+    // META: variant=
+    // META: variant=?wss
 
 
 [general guidelines]: {{ site.baseurl }}{% link _writing-tests/general-guidelines.md %}

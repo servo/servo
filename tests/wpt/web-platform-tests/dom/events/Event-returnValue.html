@@ -53,7 +53,7 @@ test(function() {
   assert_true(ev.returnValue, "returnValue");
 }, "initEvent should unset returnValue.");
 test(function() {
-  var ev = new Event("foo");
+  var ev = new Event("foo", {"cancelable": true});
   ev.preventDefault();
   ev.returnValue = true;// no-op
   assert_true(ev.defaultPrevented);

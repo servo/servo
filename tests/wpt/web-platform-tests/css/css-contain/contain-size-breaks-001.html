@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: size containment and fragmentation</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="ahem">
+  <meta name=assert content="size containment makes element monolithic">
+  <link rel="match" href="reference/contain-size-breaks-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-style">
+  <link rel=help href="https://drafts.csswg.org/css-break-3/#monolithic">
+
+<style>
+article {
+  height: 2.5em;
+  column-gap: 0;
+  columns: 3 1em;
+  width: 3em;
+  column-fill: auto;
+
+  font-size: 40px;
+  font-family: ahem;
+  line-height: 1;
+}
+div {
+  contain: size;
+  height: 5em;
+  color: orange;
+}
+</style>
+
+<p>This test passes if there is an orange rectangle below. If the shape is not a rectangle, the test fails.
+
+<article>
+<div>A A A A A</div>
+</article>
+
+<!--
+If the element is monolythic, it may:
+* overflow and be a 1x5 em rectangle
+* be sliced and be 2 contigious 1x2.5 em rectangles, appearing as a single
+  2x2.5 em rectangle.
+Either way, it will always appear as a single rectangle.
+
+If the element is not monolithic, it will fit 2 As in the first column, 2 in
+the second column, and the fith will be overflowing the div, either into the
+thrid column, or into the bottom of the second one.
+Either way, this will not look like a rectangle.
+-->
