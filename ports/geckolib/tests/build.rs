@@ -49,7 +49,16 @@ fn main() {
                 // Which is not a problem, but would cause this to not compile.
                 //
                 // Skip this until libclang is updated there.
-                if &cap[1] == "InvalidateStyleForDocStateChanges" {
+                //
+                // Also skip Servo_Element_IsDisplayContents because we
+                // forward-declare it in Element.h without the type bindgen uses
+                // to replace it by a reference, and it depends on the include
+                // order in ServoBindings.h. We have the same problem for
+                // ComputedStyle_{AddRef / Release}, we just don't hit it
+                // because they're included later...
+                if &cap[1] == "InvalidateStyleForDocStateChanges" ||
+                    &cap[1] == "Element_IsDisplayContents"
+                {
                     continue;
                 }
                 w.write_all(format!("    [ Servo_{0}, bindings::Servo_{0} ];\n", &cap[1]).as_bytes()).unwrap();
