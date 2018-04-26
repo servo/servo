@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: style containment and subtree root</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="When considering the effects of the scoped property on elements inside the subtree, the element at the base of the subtree is treated as if it was the root of the document">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-style">
+  <link rel="match" href="reference/counter-scoping-003-ref.html">
+
+<style>
+div {
+  contain: style;
+  counter-increment: c 123;
+}
+span::before {
+  content: counter(c);
+  counter-increment: c 1;
+}
+</style>
+
+<p>Test passes if the text below is "1 2" (not including the quotation marks).<p>
+<div>
+  <span></span>
+  <span></span>
+</div>
+

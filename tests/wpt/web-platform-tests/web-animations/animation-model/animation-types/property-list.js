@@ -529,8 +529,8 @@ const gCSSProperties = {
     ]
   },
   'font-stretch': {
-    // https://drafts.csswg.org/css-fonts-3/#propdef-font-stretch
-    types: [ 'fontStretch' ]
+    // https://drafts.csswg.org/css-fonts-4/#propdef-font-stretch
+    types: [ 'percentage' ]
   },
   'font-style': {
     // https://drafts.csswg.org/css-fonts/#propdef-font-style

@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=/common/utils.js
 // META: script=../request/request-error.js
 

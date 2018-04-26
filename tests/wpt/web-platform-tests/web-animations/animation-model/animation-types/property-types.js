@@ -2566,54 +2566,6 @@ const dasharrayType = {
   },
 }
 
-const fontStretchType = {
-  testInterpolation: (property, setup) => {
-    test(t => {
-      const idlName = propertyToIDL(property);
-      const target = createTestElement(t, setup);
-      const animation =
-        target.animate({ [idlName]: ['ultra-condensed', 'extra-condensed'] },
-                       { duration: 1000, fill: 'both' });
-      testAnimationSamples(animation, idlName,
-                           [{ time: 499,  expected: 'ultra-condensed' },
-                            { time: 500,  expected: 'extra-condensed' }]);
-    }, `${property} supports animating as a font-stretch (adjacent values)`);
-
-    test(t => {
-      const idlName = propertyToIDL(property);
-      const target = createTestElement(t, setup);
-      const animation =
-        target.animate({ [idlName]: ['ultra-condensed', 'condensed'] },
-                       { duration: 1000, fill: 'both' });
-      testAnimationSamples(animation, idlName,
-                           [{ time: 500,  expected: 'extra-condensed' }]);
-    }, `${property} supports animating as a font-stretch (between value)`);
-  },
-
-  testAdditionOrAccumulation: (property, setup, composite) => {
-    test(t => {
-      const idlName = propertyToIDL(property);
-      const target = createTestElement(t, setup);
-      target.style[idlName] = 'condensed';
-      const animation =
-        target.animate({ [idlName]: ['expanded', 'ultra-expanded'] },
-                       { duration: 1000, composite });
-      testAnimationSamples(animation, idlName,
-                           [{ time: 0, expected: 'normal' },
-                            { time: 250, expected: 'semi-expanded' }]);
-    },
-    `${property} uses font-stretch behavior for composite type ${composite}`);
-  },
-
-  testAddition: function(property, setup) {
-    this.testAdditionOrAccumulation(property, setup, 'add');
-  },
-
-  testAccumulation: function(property, setup) {
-    this.testAdditionOrAccumulation(property, setup, 'accumulate');
-  },
-}
-
 const fontVariationSettingsType = {
   testInterpolation: (property, setup) => {
     test(t => {
@@ -2701,6 +2653,5 @@ const types = {
   rect: rectType,
   position: positionType,
   dasharray: dasharrayType,
-  fontStretch: fontStretchType,
   fontVariationSettings: fontVariationSettingsType,
 };

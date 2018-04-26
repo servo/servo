@@ -18,7 +18,7 @@ from .. import localpaths
 from ..gitignore.gitignore import PathFilter
 from ..wpt import testfiles
 
-from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars
+from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars, get_any_variants, get_default_any_variants
 from six import binary_type, iteritems, itervalues
 from six.moves import range
 from six.moves.urllib.parse import urlsplit, urljoin
@@ -616,6 +616,31 @@ broken_js_metadata = re.compile(b"//\s*META:")
 broken_python_metadata = re.compile(b"#\s*META:")
 
 
+def check_global_metadata(value):
+    global_values = {item.strip() for item in value.split(b",") if item.strip()}
+
+    included_variants = set.union(get_default_any_variants(),
+                                  *(get_any_variants(v) for v in global_values if not v.startswith(b"!")))
+
+    for global_value in global_values:
+        if global_value.startswith(b"!"):
+            excluded_value = global_value[1:]
+            if not get_any_variants(excluded_value):
+                yield ("UNKNOWN-GLOBAL-METADATA", "Unexpected value for global metadata")
+
+            elif excluded_value in global_values:
+                yield ("BROKEN-GLOBAL-METADATA", "Cannot specify both %s and %s" % (global_value, excluded_value))
+
+            else:
+                excluded_variants = get_any_variants(excluded_value)
+                if not (excluded_variants & included_variants):
+                    yield ("BROKEN-GLOBAL-METADATA", "Cannot exclude %s if it is not included" % (excluded_value,))
+
+        else:
+            if not get_any_variants(global_value):
+                yield ("UNKNOWN-GLOBAL-METADATA", "Unexpected value for global metadata")
+
+
 def check_script_metadata(repo_root, path, f):
     if path.endswith((".worker.js", ".any.js")):
         meta_re = js_meta_re
@@ -634,7 +659,9 @@ def check_script_metadata(repo_root, path, f):
         m = meta_re.match(line)
         if m:
             key, value = m.groups()
-            if key == b"timeout":
+            if key == b"global":
+                errors.extend((kind, message, path, idx + 1) for (kind, message) in check_global_metadata(value))
+            elif key == b"timeout":
                 if value != b"long":
                     errors.append(("UNKNOWN-TIMEOUT-METADATA", "Unexpected value for timeout metadata", path, idx + 1))
             elif key == b"script":

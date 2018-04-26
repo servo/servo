@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test k-rate AudioParam of ConstantSourceNode</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+
+  <body>
+    <script>
+      let audit = Audit.createTaskRunner();
+
+      audit.define('ConstantSource k-rate offset', (task, should) => {
+        // Arbitrary sample rate and duration.
+        let sampleRate = 8000;
+
+        // Only new a few render quanta to verify things are working.
+        let testDuration = 4 * 128 / sampleRate;
+
+        let context = new OfflineAudioContext({
+          numberOfChannels: 3,
+          sampleRate: sampleRate,
+          length: testDuration * sampleRate
+        });
+
+        let merger = new ChannelMergerNode(
+            context, {numberOfInputs: context.numberOfChannels});
+        merger.connect(context.destination);
+        let inverter = new GainNode(context, {gain: -1});
+        inverter.connect(merger, 0, 2);
+
+        let kRateNode = new ConstantSourceNode(context);
+        let aRateNode = new ConstantSourceNode(context);
+
+        kRateNode.connect(merger, 0, 0);
+        aRateNode.connect(merger, 0, 1);
+
+        kRateNode.connect(merger, 0, 2);
+        aRateNode.connect(inverter);
+
+        // Set the rate
+        kRateNode.offset.automationRate = 'k-rate';
+
+        // Automate the offset
+        kRateNode.offset.setValueAtTime(0, 0);
+        kRateNode.offset.linearRampToValueAtTime(10, testDuration);
+
+        aRateNode.offset.setValueAtTime(0, 0);
+        aRateNode.offset.linearRampToValueAtTime(10, testDuration);
+
+        kRateNode.start();
+        aRateNode.start();
+
+        context.startRendering()
+            .then(audioBuffer => {
+              let kRateOut = audioBuffer.getChannelData(0);
+              let aRateOut = audioBuffer.getChannelData(1);
+              let diff = audioBuffer.getChannelData(2);
+
+              // Verify that the outputs are different.
+              should(diff, 'Difference between a-rate and k-rate outputs')
+                  .notBeConstantValueOf(0);
+
+              // Verify that the constant source node output is step-wise
+              // constant.
+              for (let k = 0; k < kRateOut.length; k += 128) {
+                should(
+                    kRateOut.slice(k, k + 128),
+                    `k-rate output [${k}: ${k + 127}]`)
+                    .beConstantValueOf(kRateOut[k]);
+              }
+            })
+            .then(() => task.done());
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

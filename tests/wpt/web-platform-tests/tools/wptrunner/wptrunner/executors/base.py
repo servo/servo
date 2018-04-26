@@ -153,10 +153,10 @@ class TestExecutor(object):
         :param test: The test to run"""
         if test.environment != self.last_environment:
             self.on_environment_change(test.environment)
-
         try:
             result = self.do_test(test)
         except Exception as e:
+            self.logger.warning(traceback.format_exc(e))
             result = self.result_from_exception(test, e)
 
         if result is Stop:
@@ -547,6 +547,7 @@ class CallbackHandler(object):
     def _send_message(self, message_type, status, message=None):
         self.protocol.testdriver.send_message(message_type, status, message=message)
 
+
 class ClickAction(object):
     def __init__(self, logger, protocol):
         self.logger = logger
@@ -561,6 +562,7 @@ class ClickAction(object):
             raise ValueError("Selector matches multiple elements")
         self.logger.debug("Clicking element: %s" % selector)
         self.protocol.click.element(elements[0])
+
 
 class SendKeysAction(object):
     def __init__(self, logger, protocol):

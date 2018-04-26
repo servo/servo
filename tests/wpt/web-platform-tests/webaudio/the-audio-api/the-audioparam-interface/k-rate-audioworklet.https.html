@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test k-rate AudioParam of AudioWorkletNode</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+
+  <body>
+    <script>
+      const audit = Audit.createTaskRunner();
+
+      // Use the worklet gain node to test k-rate parameters.
+      const filePath =
+          '../the-audioworklet-interface/processors/gain-processor.js';
+
+      // Context for testing
+      let context;
+
+      audit.define('Create Test Worklet', (task, should) => {
+
+        // Arbitrary sample rate and duration.
+        const sampleRate = 8000;
+
+        // Only new a few render quanta to verify things are working.
+        const testDuration = 4 * 128 / sampleRate;
+
+        context = new OfflineAudioContext({
+          numberOfChannels: 3,
+          sampleRate: sampleRate,
+          length: testDuration * sampleRate
+        });
+
+        should(
+            context.audioWorklet.addModule(filePath),
+            'Construction of AudioWorklet')
+            .beResolved()
+            .then(() => task.done());
+      });
+
+      audit.define('AudioWorklet k-rate AudioParam', (task, should) => {
+        let src = new ConstantSourceNode(context);
+
+        let kRateNode = new AudioWorkletNode(context, 'gain');
+
+        src.connect(kRateNode).connect(context.destination);
+
+        let kRateParam = kRateNode.parameters.get('gain');
+        kRateParam.automationRate = 'k-rate';
+
+        // Automate the gain
+        kRateParam.setValueAtTime(0, 0);
+        kRateParam.linearRampToValueAtTime(
+            10, context.length / context.sampleRate);
+
+        src.start();
+
+        context.startRendering()
+            .then(audioBuffer => {
+              let output = audioBuffer.getChannelData(0);
+
+              // Verify that the output from the worklet is step-wise
+              // constant.
+              for (let k = 0; k < output.length; k += 128) {
+                should(
+                    output.slice(k, k + 128),
+                    ` k-rate output [${k}: ${k + 127}]`)
+                    .beConstantValueOf(output[k]);
+              }
+            })
+            .then(() => task.done());
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

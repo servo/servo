@@ -33,6 +33,10 @@ function encode(input, output, desc) {
 
 // test ASCII - test separately for chars that aren't escaped
 for (var a = 0; a < 0x7f; a++) {
+  // The first 3 are stripped from URLs and the last is # which introduces a new URL segment
+  if (a === 0x09 || a === 0x0a || a === 0x0d || a === 0x23) {
+    continue;
+  }
   hex = a.toString(16).toUpperCase();
   while (hex.length < 2) {
     hex = "0" + hex;

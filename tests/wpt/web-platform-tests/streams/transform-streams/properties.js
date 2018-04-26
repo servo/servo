@@ -182,10 +182,10 @@ for (const method in transformerMethods) {
     }
     const transformer = new Proxy({}, handler);
     const ts = new TransformStream(transformer, undefined, { highWaterMark: Infinity });
-    assert_array_equals(touchedProperties, ['readableType', 'writableType', 'transform', 'flush', 'start'],
+    assert_array_equals(touchedProperties, ['writableType', 'readableType', 'transform', 'flush', 'start'],
                         'expected properties should be got');
     return trigger(ts).then(() => {
-      assert_array_equals(touchedProperties, ['readableType', 'writableType', 'transform', 'flush', 'start'],
+      assert_array_equals(touchedProperties, ['writableType', 'readableType', 'transform', 'flush', 'start'],
                           'no properties should be accessed on method call');
     });
   }, `unexpected properties should not be accessed when calling transformer method ${method}`);

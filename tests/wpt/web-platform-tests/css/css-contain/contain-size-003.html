@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: size containment on ruby-base-container</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="size containment does not to apply ruby-base-container, which is an internatl ruby element">
+  <link rel="match" href="reference/contain-size-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel=help href="https://drafts.csswg.org/css-display-3/#internal-ruby-element">
+
+<style>
+div {
+  overflow: hidden;
+  position: absolute;
+}
+rbc {
+  contain: size;
+  display: ruby-base-container;
+}
+</style>
+
+<p>This test passes if you can see the word PASS below.
+<div><ruby><rbc>PASS</rbc></ruby></div>

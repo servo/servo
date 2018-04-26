@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/vertical-scroll.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+iframe {
+  width: 95%;
+  height: 95%;
+  overflow: scroll;
+  margin-top: 200%;
+}
+
+.spacer {
+  width: 100%;
+  height: 100%;
+  margin-top: 100%;
+  margin-bottom: 100%;
+}
+
+</style>
+<p> An &lt;iframe&gt; further below which is not allowed to block scroll.</p>
+<div class="spacer"></div>
+<iframe></iframe>
+<p> Making sure there is room for vertical scroll </p>
+<script>
+  "use strict";
+
+  let url = url_base + "vertical-scroll-scrollintoview.html";
+  let iframeElement = document.querySelector("iframe");
+
+  function iframeBounds() {
+    return iframeElement.getBoundingClientRect();
+  }
+
+  // Enabled 'vertical-scroll': scrollIntoView should work in all frames.
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+    await loadUrlInIframe(iframeElement, url);
+
+    await sendMessageAndGetResponse(
+      iframeElement.contentWindow,
+      {type: "scrolling-element-bounds"}).then((response) => {
+        let iframeBoundsAtOrigin = {
+          x: 0,
+          y: 0,
+          width: iframeBounds().width,
+          height: iframeBounds().height};
+          let scrollingElementBounds = response.bounds;
+          assert_false(
+            rects_intersect(iframeBoundsAtOrigin, scrollingElementBounds),
+            "Scrolling element should not be visible in <iframe>." +
+            `Scrolling element's bounds is: ${rectToString(response.bounds)}  ` +
+            "but <iframe>'s size is:" +
+            `${iframeBounds().width}x${iframeBounds().height}.`);
+      });
+
+    // Scroll the scrolling element inside the <iframe>.
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                   {type: "scroll"});
+    // The page should have scrolled vertically.
+      assert_greater_than(window.scrollY,
+                          0,
+                          "Main frame must scroll vertically.");
+    }, "Calling 'scrollIntoView()' inside a <iframe> will propagate up by" +
+       " default('vertical-scroll' enabled).");
+
+  // Disabled 'vertical-scroll': The scope of scrollIntoView is within the set
+  // of disabled frames (does not propagate to main frame).
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+    iframeElement.allow = "vertical-scroll 'none';";
+    await loadUrlInIframe(iframeElement, url);
+
+    await sendMessageAndGetResponse(
+      iframeElement.contentWindow,
+      {type: "scrolling-element-bounds"}).then((response) => {
+      let iframeBoundsAtOrigin = {
+        x: 0,
+        y: 0,
+        width: iframeBounds().width,
+        height: iframeBounds().height};
+      let scrollingElementBounds = response.bounds;
+      assert_false(rects_intersect(iframeBoundsAtOrigin, scrollingElementBounds),
+            "Scrolling element should not be visible in <iframe>." +
+            `Scrolling element's bounds is: ${rectToString(response.bounds)}` +
+            "but <iframe>'s size is:" +
+            `${iframeBounds().width}x${iframeBounds().height}.`);
+      });
+
+    // Scroll scrolling element inside the <iframe>.
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+      {type: "scroll"}).then((response) => {
+      // Make sure the nested <iframe> is visible.
+      let scrollingElementBounds = response.bounds;
+      let iframeBoundsAtOrigin = {
+          x: 0,
+          y: 0,
+          width: iframeBounds().width,
+          height: iframeBounds().height};
+      // The scrolling element should be visible inside <iframe>.
+      assert_true(rects_intersect(iframeBoundsAtOrigin, scrollingElementBounds),
+          "Scrolling element should be visible in <iframe>." +
+          `Scrolling element's bounds is: ${rectToString(response.bounds)}` +
+          "but <iframe>'s size is:" +
+          `${iframeBounds().width}, ${iframeBounds().height}.`);
+      // The page however should not have scrolled.
+      assert_equals(window.scrollY, 0, "Main frame must not scroll vertically.");
+    });
+    }, "Calling 'scrollIntoView()' inside a <iframe> with" +
+       " 'vertical-scroll none;'will not propagate upwards.");
+</script>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: layout containment and forced breaks</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="forced breaks within layout containment do not propagate to the parent.">
+  <link rel="match" href="reference/contain-layout-breaks-002-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-layout">
+  <link rel=help href="https://drafts.csswg.org/css-break-3/#forced-break">
+
+<style>
+article {
+  columns: 2 20px;
+  float: left;
+  height: 50px;
+  column-fill: auto;
+}
+div > div {
+  border-top: 20px solid orange;
+  break-before: column;
+}
+article > div {
+  border-top: 20px solid orange;
+  contain: layout;
+}
+</style>
+
+<p>Test passes if there are two orange boxes below.
+<article>
+  <div>
+    <div></div>
+  </div>
+</article>
