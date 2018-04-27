@@ -12,7 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::settings_stack::AutoEntryScript;
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::trace::RootedTraceableBox;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -327,6 +327,11 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                              0 /* navigation start is not used in workers */,
                              self.navigation_start_precise)
         })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-origin
+    fn Origin(&self) -> USVString {
+        USVString(self.upcast::<GlobalScope>().origin().immutable().ascii_serialization())
     }
 }
 

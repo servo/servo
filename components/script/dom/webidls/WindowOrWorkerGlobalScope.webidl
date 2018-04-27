@@ -9,7 +9,7 @@
 
 [NoInterfaceObject, Exposed=(Window,Worker)]
 interface WindowOrWorkerGlobalScope {
-  // [Replaceable] readonly attribute USVString origin;
+  [Replaceable] readonly attribute USVString origin;
 
   // base64 utility methods
   [Throws] DOMString btoa(DOMString data);
