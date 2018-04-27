@@ -1,4 +1,4 @@
 {
-    "message":  "Unexpected value in enum"
+    "message":  "Got an error during or right after parsing `enum foo`: Unexpected value in enum"
 ,   "line":     1
 }

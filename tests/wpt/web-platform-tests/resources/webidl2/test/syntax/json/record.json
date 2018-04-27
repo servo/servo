@@ -12,6 +12,7 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -25,17 +26,20 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": true,
                             "generic": "sequence",
                             "nullable": false,
                             "union": false,
                             "idlType": {
+                                "type": "argument-type",
                                 "sequence": false,
                                 "generic": "record",
                                 "nullable": false,
                                 "union": false,
                                 "idlType": [
                                     {
+                                        "type": "argument-type",
                                         "sequence": false,
                                         "generic": null,
                                         "nullable": false,
@@ -43,6 +47,7 @@
                                         "idlType": "ByteString"
                                     },
                                     {
+                                        "type": "argument-type",
                                         "sequence": false,
                                         "generic": null,
                                         "nullable": false,
@@ -65,12 +70,14 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": "record",
                     "nullable": false,
                     "union": false,
                     "idlType": [
                         {
+                            "type": "return-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
@@ -78,12 +85,14 @@
                             "idlType": "DOMString"
                         },
                         {
+                            "type": "return-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": true,
                             "union": true,
                             "idlType": [
                                 {
+                                    "type": null,
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
@@ -91,6 +100,7 @@
                                     "idlType": "float"
                                 },
                                 {
+                                    "type": null,
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
@@ -113,6 +123,7 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -134,12 +145,14 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": "record",
                             "nullable": false,
                             "union": false,
                             "idlType": [
                                 {
+                                    "type": "argument-type",
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
@@ -147,6 +160,7 @@
                                     "idlType": "USVString"
                                 },
                                 {
+                                    "type": "argument-type",
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
@@ -176,12 +190,14 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": "record",
                     "nullable": false,
                     "union": false,
                     "idlType": [
                         {
+                            "type": "return-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
@@ -189,6 +205,7 @@
                             "idlType": "DOMString"
                         },
                         {
+                            "type": "return-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,

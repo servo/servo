@@ -12,6 +12,7 @@
                 "static": false,
                 "stringifier": true,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,

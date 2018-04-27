@@ -11,6 +11,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -27,6 +28,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -44,6 +46,7 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -67,6 +70,7 @@
                             }
                         ],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,

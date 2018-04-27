@@ -1,4 +1,4 @@
 {
-    "message": "Promise type cannot have extended attribute",
+    "message": "Got an error during or right after parsing `interface Foo`: Promise type cannot have extended attribute",
     "line": 2
 }

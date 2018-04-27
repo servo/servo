@@ -22,7 +22,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
@@ -1037,6 +1037,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-name
     fn Name(&self) -> DOMString {
         self.window_proxy().get_name()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-origin
+    fn Origin(&self) -> USVString {
+        USVString(self.origin().immutable().ascii_serialization())
     }
 }
 
