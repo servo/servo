@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate embedder_traits;
 extern crate servo_config;
 
+use embedder_traits::resources::register_resources_for_tests;
 use servo_config::basedir;
-use servo_config::prefs::{PREFS, PrefValue, read_prefs_from_file};
+use servo_config::prefs::{PREFS, PrefValue, read_prefs};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 
@@ -17,7 +19,7 @@ fn test_create_pref() {
   \"shell.homepage\": \"https://servo.org\"\
 }";
 
-    let prefs = read_prefs_from_file(json_str.as_bytes());
+    let prefs = read_prefs(json_str);
     assert!(prefs.is_ok());
     let prefs = prefs.unwrap();
 
@@ -26,6 +28,7 @@ fn test_create_pref() {
 
 #[test]
 fn test_get_set_reset_extend() {
+    register_resources_for_tests();
     let json_str = "{\
   \"layout.writing-mode.enabled\": true,\
   \"extra.stuff\": false,\
@@ -41,7 +44,7 @@ fn test_get_set_reset_extend() {
     PREFS.reset("shell.homepage");
     assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("https://servo.org".to_owned()));
 
-    let extension = read_prefs_from_file(json_str.as_bytes()).unwrap();
+    let extension = read_prefs(json_str).unwrap();
     PREFS.extend(extension);
     assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("https://google.com".to_owned()));
     assert_eq!(*PREFS.get("layout.writing-mode.enabled"), PrefValue::Boolean(true));

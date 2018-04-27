@@ -25,6 +25,8 @@ extern crate euclid;
 #[cfg(target_os = "windows")] extern crate gdi32;
 extern crate gleam;
 extern crate glutin;
+#[cfg(not(target_os = "android"))]
+#[macro_use] extern crate lazy_static;
 // The window backed by glutin
 #[macro_use] extern crate log;
 #[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
@@ -38,6 +40,7 @@ extern crate winit;
 #[cfg(target_os = "windows")] extern crate user32;
 
 mod glutin_app;
+mod resources;
 
 use backtrace::Backtrace;
 use servo::Servo;
@@ -99,14 +102,16 @@ fn install_crash_handler() {}
 fn main() {
     install_crash_handler();
 
+    resources::init();
+
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
 
     let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
         Some(token)
     } else {
-        if opts::get().is_running_problem_test && ::std::env::var("RUST_LOG").is_err() {
-            ::std::env::set_var("RUST_LOG", "compositing::constellation");
+        if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
+            env::set_var("RUST_LOG", "compositing::constellation");
         }
 
         None
@@ -217,7 +222,7 @@ fn main() {
 #[cfg(target_os = "android")]
 fn setup_logging() {
     // Piping logs from stdout/stderr to logcat happens in android_injected_glue.
-    ::std::env::set_var("RUST_LOG", "error");
+    env::set_var("RUST_LOG", "error");
 
     unsafe { android_injected_glue::ffi::app_dummy() };
 }
@@ -263,7 +268,6 @@ fn args() -> Vec<String> {
 
 #[cfg(not(target_os = "android"))]
 fn args() -> Vec<String> {
-    use std::env;
     env::args().collect()
 }
 

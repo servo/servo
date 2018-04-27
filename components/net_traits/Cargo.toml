@@ -13,6 +13,7 @@ doctest = false
 
 [dependencies]
 cookie = "0.10"
+embedder_traits = { path = "../embedder_traits" }
 hyper = "0.10"
 hyper_serde = "0.8"
 image = "0.18"

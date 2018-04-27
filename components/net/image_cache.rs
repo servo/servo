@@ -2,20 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use embedder_traits::resources::{self, Resource};
 use immeta::load_from_buf;
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
-use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::fs::File;
-use std::io::{self, Read};
+use std::io;
 use std::mem;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use webrender_api;
@@ -42,11 +40,8 @@ fn decode_bytes_sync(key: LoadKey, bytes: &[u8]) -> DecoderMsg {
     }
 }
 
-fn get_placeholder_image(webrender_api: &webrender_api::RenderApi, path: &PathBuf) -> io::Result<Arc<Image>> {
-    let mut file = File::open(path)?;
-    let mut image_data = vec![];
-    file.read_to_end(&mut image_data)?;
-    let mut image = load_from_memory(&image_data).unwrap();
+fn get_placeholder_image(webrender_api: &webrender_api::RenderApi, data: &[u8]) -> io::Result<Arc<Image>> {
+    let mut image = load_from_memory(&data).unwrap();
     set_webrender_image_key(webrender_api, &mut image);
     Ok(Arc::new(image))
 }
@@ -403,15 +398,14 @@ impl ImageCache for ImageCacheImpl {
     fn new(webrender_api: webrender_api::RenderApi) -> ImageCacheImpl {
         debug!("New image cache");
 
-        let mut placeholder_path = resources_dir_path().expect("Can't figure out resources path.");
-        placeholder_path.push("rippy.png");
+        let rippy_data = resources::read_bytes(Resource::RippyPNG);
 
         ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
-                placeholder_image: get_placeholder_image(&webrender_api, &placeholder_path).ok(),
-                placeholder_url: ServoUrl::from_file_path(&placeholder_path).unwrap(),
+                placeholder_image: get_placeholder_image(&webrender_api, &rippy_data).ok(),
+                placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 webrender_api: webrender_api,
             }))
         }

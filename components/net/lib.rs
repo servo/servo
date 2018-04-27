@@ -8,6 +8,7 @@ extern crate base64;
 extern crate brotli;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
+extern crate embedder_traits;
 extern crate flate2;
 extern crate hyper;
 extern crate hyper_openssl;
@@ -44,7 +45,6 @@ extern crate webrender_api;
 extern crate websocket;
 
 mod blob_loader;
-mod chrome_loader;
 pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
@@ -68,7 +68,6 @@ pub mod fetch {
 
 /// A module for re-exports of items used in unit tests.
 pub mod test {
-    pub use chrome_loader::resolve_chrome_url;
     pub use http_loader::HttpState;
     pub use hosts::{replace_host_table, parse_hostsfile};
 }

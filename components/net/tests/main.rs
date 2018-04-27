@@ -6,6 +6,7 @@
 
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
+extern crate embedder_traits;
 extern crate flate2;
 extern crate hyper;
 extern crate hyper_openssl;
@@ -15,13 +16,11 @@ extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
-extern crate servo_config;
 extern crate servo_url;
 extern crate time;
 extern crate unicase;
 extern crate url;
 
-mod chrome_loader;
 mod cookie;
 mod cookie_http_state;
 mod data_loader;
@@ -35,6 +34,7 @@ mod resource_thread;
 mod subresource_integrity;
 
 use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::resources::{self, Resource};
 use hyper::server::{Handler, Listening, Server};
 use net::connector::create_ssl_client;
 use net::fetch::cors_cache::CorsCache;
@@ -44,7 +44,6 @@ use net::test::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
-use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, channel};
@@ -56,8 +55,7 @@ struct FetchResponseCollector {
 }
 
 fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
-    let ca_file = resources_dir_path().unwrap().join("certs");
-    let ssl_client = create_ssl_client(&ca_file);
+    let ssl_client = create_ssl_client(&resources::read_string(Resource::SSLCertificates));
     FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),

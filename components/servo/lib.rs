@@ -33,6 +33,7 @@ pub extern crate constellation;
 pub extern crate debugger;
 pub extern crate devtools;
 pub extern crate devtools_traits;
+pub extern crate embedder_traits;
 pub extern crate euclid;
 pub extern crate gfx;
 pub extern crate ipc_channel;
@@ -95,7 +96,6 @@ use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
-use servo_config::resource_files::resources_dir_path;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
@@ -154,9 +154,6 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             devtools::start_server(port)
         });
 
-        let mut resource_path = resources_dir_path().unwrap();
-        resource_path.push("shaders");
-
         let coordinates = window.get_coordinates();
 
         let (mut webrender, webrender_api_sender) = {
@@ -181,7 +178,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
             webrender::Renderer::new(window.gl(), render_notifier, webrender::RendererOptions {
                 device_pixel_ratio: coordinates.hidpi_factor.get(),
-                resource_override_path: Some(resource_path),
+                resource_override_path: opts.shaders_dir.clone(),
                 enable_aa: opts.enable_text_antialiasing,
                 debug_flags: debug_flags,
                 recorder: recorder,

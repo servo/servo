@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{self, SourceLocation};
+use embedder_traits::resources::register_resources_for_tests;
 use html5ever::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
@@ -321,6 +322,7 @@ impl ParseErrorReporter for TestingErrorReporter {
 
 #[test]
 fn test_report_error_stylesheet() {
+    register_resources_for_tests();
     PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
     let css = r"
     div {
