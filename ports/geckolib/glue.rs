@@ -4,7 +4,6 @@
 
 use cssparser::{ParseErrorKind, Parser, ParserInput, SourceLocation};
 use cssparser::ToCss as ParserToCss;
-use env_logger::Builder;
 use malloc_size_of::MallocSizeOfOps;
 use nsstring::nsCString;
 use selectors::{NthIndexCache, SelectorList};
@@ -12,7 +11,6 @@ use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use smallvec::SmallVec;
 use std::cell::RefCell;
-use std::env;
 use std::fmt::Write;
 use std::iter;
 use std::mem;
@@ -183,14 +181,6 @@ static mut DUMMY_URL_DATA: *mut URLExtraData = 0 as *mut URLExtraData;
 #[no_mangle]
 pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     use style::gecko_bindings::sugar::origin_flags;
-
-    // Initialize logging.
-    let mut builder = Builder::new();
-    let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
-    match env::var("RUST_LOG") {
-      Ok(v) => builder.parse(&v).init(),
-      _ => builder.parse(default_level).init(),
-    };
 
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
     thread_state::initialize(thread_state::ThreadState::LAYOUT);
