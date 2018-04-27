@@ -1646,15 +1646,15 @@ impl Document {
                                            EventCancelable::Cancelable);
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
-        self.window.upcast::<EventTarget>().dispatch_event_with_target(
+        let event_target = self.window.upcast::<EventTarget>();
+        let has_listeners = event.has_listeners_for(&event_target, &atom!("beforeunload"));
+        event_target.dispatch_event_with_target(
             document.root().upcast(),
             &event,
         );
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
-        if event.get_cancel_state() != EventDefault::Allowed {
-            self.salvageable.set(false);
-        }
+        self.salvageable.set(!has_listeners);
         let mut can_unload = true;
         // TODO: Step 8 send a message to embedder to prompt user.
         // Step 9
@@ -1698,7 +1698,6 @@ impl Document {
             );
             // TODO Step 6, document visibility steps.
         }
-        let mut event_handled = false;
         // Step 7
         if !self.fired_unload.get() {
             let event = Event::new(
@@ -1708,16 +1707,18 @@ impl Document {
                 EventCancelable::Cancelable,
             );
             event.set_trusted(true);
-            let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+            let event_target = self.window.upcast::<EventTarget>();
+            let has_listeners = event.has_listeners_for(&event_target, &atom!("unload"));
+            let _ = event_target.dispatch_event_with_target(
                 document.root().upcast(),
                 &event,
             );
             self.fired_unload.set(true);
-            event_handled = event.get_cancel_state() != EventDefault::Allowed;
+            // Step 9
+            self.salvageable.set(!has_listeners);
         }
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
-        // Step 9
-        self.salvageable.set(!event_handled);
+
         // Step 13
         if !recursive_flag {
             for iframe in self.iter_iframes() {
