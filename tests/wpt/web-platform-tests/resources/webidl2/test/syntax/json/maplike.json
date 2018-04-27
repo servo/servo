@@ -8,6 +8,7 @@
                 "type": "maplike",
                 "idlType": [
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -15,6 +16,7 @@
                         "idlType": "long"
                     },
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -38,6 +40,7 @@
                 "type": "maplike",
                 "idlType": [
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -45,6 +48,7 @@
                         "idlType": "long"
                     },
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -68,6 +72,7 @@
                 "type": "maplike",
                 "idlType": [
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -83,6 +88,7 @@
                         ]
                     },
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -106,4 +112,3 @@
         "extAttrs": []
     }
 ]
-

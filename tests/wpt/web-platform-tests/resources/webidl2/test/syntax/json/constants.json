@@ -7,7 +7,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "boolean",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "boolean"
+                },
                 "name": "DEBUG",
                 "value": {
                     "type": "boolean",
@@ -18,7 +21,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "short",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "short"
+                },
                 "name": "negative",
                 "value": {
                     "type": "number",
@@ -29,7 +35,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "octet",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "octet"
+                },
                 "name": "LF",
                 "value": {
                     "type": "number",
@@ -40,7 +49,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "unsigned long",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "unsigned long"
+                },
                 "name": "BIT_MASK",
                 "value": {
                     "type": "number",
@@ -51,7 +63,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "float",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "float"
+                },
                 "name": "AVOGADRO",
                 "value": {
                     "type": "number",
@@ -62,7 +77,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "unrestricted float",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "unrestricted float"
+                },
                 "name": "sobig",
                 "value": {
                     "type": "Infinity",
@@ -73,7 +91,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "unrestricted double",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "unrestricted double"
+                },
                 "name": "minusonedividedbyzero",
                 "value": {
                     "type": "Infinity",
@@ -84,7 +105,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "short",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "short"
+                },
                 "name": "notanumber",
                 "value": {
                     "type": "NaN"

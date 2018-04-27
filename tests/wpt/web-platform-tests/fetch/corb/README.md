@@ -26,18 +26,8 @@ Tests that cover behavior that is changed by CORB have to be marked as
 is included in the official
 [Fetch spec](https://fetch.spec.whatwg.org/).  Such tests may fail unless
 CORB is enabled.  In practice this means that:
-* Such tests will fail in default Chromium and have to be listed
-  in `third_party/WebKit/LayoutTests/TestExpectations` and associated
-  with https://crbug.com/802835.
-* Such tests will pass in Chromium when either
-  1) CORB is explicitly, manually enabled by passing extra cmdline flags to
-     `run-webkit-tests`:
-     `--additional-driver-flag=--enable-features=CrossSiteDocumentBlockingAlways` and
-     `--additional-expectations=third_party/WebKit/LayoutTests/FlagExpectations/site-per-process`.
-  2) CORB is implicitly enabled via Site Isolation (e.g. in
-     `site_per_process_webkit_layout_tests` step on the test bots).  The
-     expectations that the tests pass in this mode is controlled by the
-     `third_party/WebKit/LayoutTests/FlagExpectations/site-per-process` file.
+* Such tests will pass in Chromium
+  (where CORB is enabled by default [since M68](https://crrev.com/553830)).
 * Such tests may fail in other browsers.
 
 

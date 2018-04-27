@@ -1,33 +1,82 @@
 "use strict";
 
 (() => {
+  // These regular expressions use the sticky flag so they will only match at
+  // the current location (ie. the offset of lastIndex).
+  const tokenRe = {
+    // This expression uses a lookahead assertion to catch false matches
+    // against integers early.
+    "float": /-?(?=[0-9]*\.|[0-9]+[eE])(([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+)/y,
+    "integer": /-?(0([Xx][0-9A-Fa-f]+|[0-7]*)|[1-9][0-9]*)/y,
+    "identifier": /[A-Z_a-z][0-9A-Z_a-z-]*/y,
+    "string": /"[^"]*"/y,
+    "whitespace": /[\t\n\r ]+/y,
+    "comment": /((\/(\/.*|\*([^*]|\*[^\/])*\*\/)[\t\n\r ]*)+)/y,
+    "other": /[^\t\n\r 0-9A-Z_a-z]/y
+  };
+
+  function attemptTokenMatch(str, type, re, lastIndex, tokens) {
+    re.lastIndex = lastIndex;
+    const result = re.exec(str);
+    if (result) {
+      tokens.push({ type, value: result[0] });
+      return re.lastIndex;
+    }
+    return -1;
+  }
+
   function tokenise(str) {
     const tokens = [];
-    const re = {
-      "float": /^-?(([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([Ee][-+]?[0-9]+)?|[0-9]+[Ee][-+]?[0-9]+)/,
-      "integer": /^-?(0([Xx][0-9A-Fa-f]+|[0-7]*)|[1-9][0-9]*)/,
-      "identifier": /^[A-Z_a-z][0-9A-Z_a-z-]*/,
-      "string": /^"[^"]*"/,
-      "whitespace": /^(?:[\t\n\r ]+|[\t\n\r ]*((\/\/.*|\/\*(.|\n|\r)*?\*\/)[\t\n\r ]*))+/,
-      "other": /^[^\t\n\r 0-9A-Z_a-z]/
-    };
-    const types = ["float", "integer", "identifier", "string", "whitespace", "other"];
-    while (str.length > 0) {
-      let matched = false;
-      for (var i in types) {
-        const type = types[i];
-        str = str.replace(re[type], tok => {
-          tokens.push({ type, value: tok });
-          matched = true;
-          return "";
-        });
-        if (matched) break;
+    let lastIndex = 0;
+    while (lastIndex < str.length) {
+      const nextChar = str.charAt(lastIndex);
+      let result = -1;
+      if (/[-0-9.]/.test(nextChar)) {
+        result = attemptTokenMatch(str, "float", tokenRe.float, lastIndex,
+                                   tokens);
+        if (result === -1) {
+          result = attemptTokenMatch(str, "integer", tokenRe.integer, lastIndex,
+                                     tokens);
+        }
+        if (result === -1) {
+          // '-' and '.' can also match "other".
+          result = attemptTokenMatch(str, "other", tokenRe.other,
+                                     lastIndex, tokens);
+        }
+      } else if (/[A-Z_a-z]/.test(nextChar)) {
+        result = attemptTokenMatch(str, "identifier", tokenRe.identifier,
+                                   lastIndex, tokens);
+      } else if (nextChar === '"') {
+        result = attemptTokenMatch(str, "string", tokenRe.string,
+                                   lastIndex, tokens);
+        if (result === -1) {
+          // '"' can also match "other".
+          result = attemptTokenMatch(str, "other", tokenRe.other,
+                                     lastIndex, tokens);
+        }
+      } else if (/[\t\n\r ]/.test(nextChar)) {
+        result = attemptTokenMatch(str, "whitespace", tokenRe.whitespace,
+                                   lastIndex, tokens);
+      } else if (nextChar === '/') {
+        // The parser expects comments to be labelled as "whitespace".
+        result = attemptTokenMatch(str, "whitespace", tokenRe.comment,
+                                   lastIndex, tokens);
+        if (result === -1) {
+          // '/' can also match "other".
+          result = attemptTokenMatch(str, "other", tokenRe.other,
+                                     lastIndex, tokens);
+        }
+      } else {
+        result = attemptTokenMatch(str, "other", tokenRe.other,
+                                   lastIndex, tokens);
       }
-      if (matched) continue;
-      throw new Error("Token stream not progressing");
+      if (result === -1) {
+        throw new Error("Token stream not progressing");
+      }
+      lastIndex = result;
     }
     return tokens;
-  };
+  }
 
   class WebIDLParseError {
     constructor(str, line, input, tokens) {
@@ -46,6 +95,7 @@
     let line = 1;
     tokens = tokens.slice();
     const names = new Map();
+    let current = null;
 
     const FLOAT = "float";
     const INT = "integer";
@@ -58,7 +108,7 @@
       getter: false,
       setter: false,
       deleter: false,
-      "static": false,
+      static: false,
       stringifier: false
     });
 
@@ -70,8 +120,18 @@
         tok += tokens[numTokens].value;
         numTokens++;
       }
-      throw new WebIDLParseError(str, line, tok, tokens.slice(0, maxTokens));
-    };
+      
+      let message;
+      if (current) {
+        message = `Got an error during or right after parsing \`${current.partial ? "partial " : ""}${current.type} ${current.name}\`: ${str}`
+      }
+      else {
+        // throwing before any valid definition
+        message = `Got an error before parsing any named definition: ${str}`;
+      }
+
+      throw new WebIDLParseError(message, line, tok, tokens.slice(0, maxTokens));
+    }
 
     function sanitize_name(name, type) {
       if (names.has(name)) {
@@ -87,23 +147,34 @@
       if (!tokens.length || tokens[0].type !== type) return;
       if (typeof value === "undefined" || tokens[0].value === value) {
         last_token = tokens.shift();
-        if (type === ID) last_token.value = last_token.value.replace(/^_/, "");
+        if (type === ID && last_token.value.startsWith('_'))
+          last_token.value = last_token.value.substring(1);
         return last_token;
       }
-    };
+    }
+
+    function count(str, char) {
+      let total = 0;
+      for (let i = str.indexOf(char); i !== -1; i = str.indexOf(char, i + 1)) {
+        ++total;
+      }
+      return total;
+    }
 
     function ws() {
       if (!tokens.length) return;
       if (tokens[0].type === "whitespace") {
         const t = tokens.shift();
-        t.value.replace(/\n/g, m => {
-          line++;
-          return m;
-        });
+        line += count(t.value, '\n');
         return t;
       }
-    };
+    }
 
+    const all_ws_re = {
+      "ws": /([\t\n\r ]+)/y,
+      "line-comment": /\/\/(.*)\r?\n?/y,
+      "multiline-comment": /\/\*((?:[^*]|\*[^/])*)\*\//y
+    };
     function all_ws(store, pea) { // pea == post extended attribute, tpea = same for types
       const t = { type: "whitespace", value: "" };
       while (true) {
@@ -114,31 +185,30 @@
       if (t.value.length > 0) {
         if (store) {
           let w = t.value;
-          const re = {
-            "ws": /^([\t\n\r ]+)/,
-            "line-comment": /^\/\/(.*)\r?\n?/,
-            "multiline-comment": /^\/\*((?:.|\n|\r)*?)\*\//
-          };
-          const wsTypes = [];
-          for (var k in re) wsTypes.push(k);
-          while (w.length) {
+          let lastIndex = 0;
+          while (lastIndex < w.length) {
             let matched = false;
-            for (var i in wsTypes) {
-              const type = wsTypes[i];
-              w = w.replace(re[type], (tok, m1) => {
-                store.push({ type: type + (pea ? ("-" + pea) : ""), value: m1 });
+            // Servo doesn't support using "const" in this construction yet.
+            // See https://github.com/servo/servo/issues/20231.
+            // |type| can be made const once Servo supports it.
+            for (let type in all_ws_re) {
+              const re = all_ws_re[type];
+              re.lastIndex = lastIndex;
+              const result = re.exec(w);
+              if (result) {
+                store.push({ type: type + (pea ? ("-" + pea) : ""), value: result[1] });
                 matched = true;
-                return "";
-              });
-              if (matched) break;
+                lastIndex = re.lastIndex;
+                break;
+              }
             }
-            if (matched) continue;
-            throw new Error("Surprising white space construct."); // this shouldn't happen
+            if (!matched)
+              throw new Error("Surprising white space construct."); // this shouldn't happen
           }
         }
         return t;
       }
-    };
+    }
 
     function integer_type() {
       let ret = "";
@@ -153,7 +223,7 @@
         return ret;
       }
       if (ret) error("Failed to parse integer type");
-    };
+    }
 
     function float_type() {
       let ret = "";
@@ -163,7 +233,7 @@
       if (consume(ID, "float")) return ret + "float";
       if (consume(ID, "double")) return ret + "double";
       if (ret) error("Failed to parse float type");
-    };
+    }
 
     function primitive_type() {
       const num_type = integer_type() || float_type();
@@ -172,7 +242,7 @@
       if (consume(ID, "boolean")) return "boolean";
       if (consume(ID, "byte")) return "byte";
       if (consume(ID, "octet")) return "octet";
-    };
+    }
 
     function const_value() {
       if (consume(ID, "true")) return { type: "boolean", value: true };
@@ -187,7 +257,7 @@
         if (consume(ID, "Infinity")) return { type: "Infinity", negative: true };
         else tokens.unshift(tok);
       }
-    };
+    }
 
     function type_suffix(obj) {
       while (true) {
@@ -197,11 +267,11 @@
           obj.nullable = true;
         } else return;
       }
-    };
+    }
 
-    function single_type() {
+    function single_type(typeName) {
       const prim = primitive_type();
-      const ret = { sequence: false, generic: null, nullable: false, union: false };
+      const ret = { type: typeName || null, sequence: false, generic: null, nullable: false, union: false };
       let name;
       let value;
       if (prim) {
@@ -219,7 +289,7 @@
           const types = [];
           do {
             all_ws();
-            types.push(type_with_extended_attributes() || error("Error parsing generic type " + value));
+            types.push(type_with_extended_attributes(typeName) || error("Error parsing generic type " + value));
             all_ws();
           }
           while (consume(OTHER, ","));
@@ -248,12 +318,12 @@
       type_suffix(ret);
       if (ret.nullable && ret.idlType === "any") error("Type any cannot be made nullable");
       return ret;
-    };
+    }
 
-    function union_type() {
+    function union_type(typeName) {
       all_ws();
       if (!consume(OTHER, "(")) return;
-      const ret = { sequence: false, generic: null, nullable: false, union: true, idlType: [] };
+      const ret = { type: typeName || null, sequence: false, generic: null, nullable: false, union: true, idlType: [] };
       const fst = type_with_extended_attributes() || error("Union type with no content");
       ret.idlType.push(fst);
       while (true) {
@@ -265,18 +335,18 @@
       if (!consume(OTHER, ")")) error("Unterminated union type");
       type_suffix(ret);
       return ret;
-    };
+    }
 
-    function type() {
-      return single_type() || union_type();
-    };
+    function type(typeName) {
+      return single_type(typeName) || union_type(typeName);
+    }
 
-    function type_with_extended_attributes() {
+    function type_with_extended_attributes(typeName) {
       const extAttrs = extended_attrs();
-      const ret = single_type() || union_type();
+      const ret = single_type(typeName) || union_type(typeName);
       if (extAttrs.length && ret) ret.extAttrs = extAttrs;
       return ret;
-    };
+    }
 
     function argument(store) {
       const ret = { optional: false, variadic: false };
@@ -287,7 +357,7 @@
         ret.optional = true;
         all_ws();
       }
-      ret.idlType = type_with_extended_attributes();
+      ret.idlType = type_with_extended_attributes("argument-type");
       if (!ret.idlType) {
         if (opt_token) tokens.unshift(opt_token);
         return;
@@ -322,7 +392,7 @@
         }
       }
       return ret;
-    };
+    }
 
     function argument_list(store) {
       const ret = [];
@@ -335,7 +405,7 @@
         const nxt = argument(store ? ret : null) || error("Trailing comma in arguments list");
         ret.push(nxt);
       }
-    };
+    }
 
     function simple_extended_attr(store) {
       all_ws();
@@ -386,7 +456,7 @@
         consume(OTHER, ")") || error("Unexpected token in extended attribute argument list");
       }
       return ret;
-    };
+    }
 
     // Note: we parse something simpler than the official syntax. It's all that ever
     // seems to be used
@@ -406,7 +476,7 @@
       all_ws();
       consume(OTHER, "]") || error("No end of extended attribute");
       return eas;
-    };
+    }
 
     function default_() {
       all_ws();
@@ -420,11 +490,11 @@
           return { type: "sequence", value: [] };
         } else {
           const str = consume(STR) || error("No value for default");
-          str.value = str.value.replace(/^"/, "").replace(/"$/, "");
+          str.value = str.value.slice(1, -1);
           return str;
         }
       }
-    };
+    }
 
     function const_(store) {
       all_ws(store, "pea");
@@ -436,7 +506,7 @@
         typ = consume(ID) || error("No type for const");
         typ = typ.value;
       }
-      ret.idlType = typ;
+      ret.idlType = { type: "const-type", idlType: typ };
       all_ws();
       if (consume(OTHER, "?")) {
         ret.nullable = true;
@@ -453,7 +523,7 @@
       all_ws();
       consume(OTHER, ";") || error("Unterminated const");
       return ret;
-    };
+    }
 
     function inheritance() {
       all_ws();
@@ -462,7 +532,7 @@
         const inh = consume(ID) || error("No type in inheritance");
         return inh.value;
       }
-    };
+    }
 
     function operation_rest(ret, store) {
       all_ws();
@@ -477,7 +547,7 @@
       all_ws();
       consume(OTHER, ";") || error("Unterminated operation");
       return ret;
-    };
+    }
 
     function callback(store) {
       all_ws(store, "pea");
@@ -486,12 +556,11 @@
       all_ws();
       const tok = consume(ID, "interface");
       if (tok) {
-        ret = interface_rest();
-        ret.type = "callback interface";
+        ret = interface_rest(false, store, "callback interface");
         return ret;
       }
       const name = consume(ID) || error("No name for callback");
-      ret = { type: "callback", name: sanitize_name(name.value, "callback") };
+      ret = current = { type: "callback", name: sanitize_name(name.value, "callback") };
       all_ws();
       consume(OTHER, "=") || error("No assignment in callback");
       all_ws();
@@ -504,14 +573,14 @@
       all_ws();
       consume(OTHER, ";") || error("Unterminated callback");
       return ret;
-    };
+    }
 
     function attribute(store) {
       all_ws(store, "pea");
       const grabbed = [];
       const ret = {
         type: "attribute",
-        "static": false,
+        static: false,
         stringifier: false,
         inherit: false,
         readonly: false
@@ -519,7 +588,7 @@
       const w = all_ws();
       if (w) grabbed.push(w);
       if (consume(ID, "inherit")) {
-        if (ret["static"] || ret.stringifier) error("Cannot have a static or stringifier inherit");
+        if (ret.static || ret.stringifier) error("Cannot have a static or stringifier inherit");
         ret.inherit = true;
         grabbed.push(last_token);
         const w = all_ws();
@@ -536,14 +605,14 @@
         tokens = grabbed.concat(tokens);
       }
       return rest;
-    };
+    }
 
     function attribute_rest(ret) {
       if (!consume(ID, "attribute")) {
         return;
       }
       all_ws();
-      ret.idlType = type_with_extended_attributes() || error("No type in attribute");
+      ret.idlType = type_with_extended_attributes("attribute-type") || error("No type in attribute");
       if (ret.idlType.sequence) error("Attributes cannot accept sequence types");
       if (ret.idlType.generic === "record") error("Attributes cannot accept record types");
       all_ws();
@@ -552,17 +621,17 @@
       all_ws();
       consume(OTHER, ";") || error("Unterminated attribute");
       return ret;
-    };
+    }
 
     function return_type() {
-      const typ = type();
+      const typ = type("return-type");
       if (!typ) {
         if (consume(ID, "void")) {
           return "void";
         } else error("No return type");
       }
       return typ;
-    };
+    }
 
     function operation(store) {
       all_ws(store, "pea");
@@ -582,24 +651,9 @@
       }
       ret.idlType = return_type();
       all_ws();
-      if (consume(ID, "iterator")) {
-        all_ws();
-        ret.type = "iterator";
-        if (consume(ID, "object")) {
-          ret.iteratorObject = "object";
-        } else if (consume(OTHER, "=")) {
-          all_ws();
-          var name = consume(ID) || error("No right hand side in iterator");
-          ret.iteratorObject = name.value;
-        }
-        all_ws();
-        consume(OTHER, ";") || error("Unterminated iterator");
-        return ret;
-      } else {
-        operation_rest(ret, store);
-        return ret;
-      }
-    };
+      operation_rest(ret, store);
+      return ret;
+    }
 
     function static_member(store) {
       all_ws(store, "pea");
@@ -631,7 +685,7 @@
           arr.push(name.value);
         } else break;
       }
-    };
+    }
 
     function iterable_type() {
       if (consume(ID, "iterable")) return "iterable";
@@ -639,13 +693,13 @@
       else if (consume(ID, "maplike")) return "maplike";
       else if (consume(ID, "setlike")) return "setlike";
       else return;
-    };
+    }
 
     function readonly_iterable_type() {
       if (consume(ID, "maplike")) return "maplike";
       else if (consume(ID, "setlike")) return "setlike";
       else return;
-    };
+    }
 
     function iterable(store) {
       all_ws(store, "pea");
@@ -672,17 +726,14 @@
         delete ret.readonly;
       all_ws();
       if (consume(OTHER, "<")) {
-        ret.idlType = type_with_extended_attributes() || error(`Error parsing ${ittype} declaration`);
+        ret.idlType = [type_with_extended_attributes()] || error(`Error parsing ${ittype} declaration`);
         all_ws();
         if (secondTypeAllowed) {
-          let type2 = null;
           if (consume(OTHER, ",")) {
             all_ws();
-            type2 = type_with_extended_attributes();
+            ret.idlType.push(type_with_extended_attributes());
             all_ws();
           }
-          if (type2)
-            ret.idlType = [ret.idlType, type2];
           else if (secondTypeRequired)
             error(`Missing second type argument in ${ittype} declaration`);
         }
@@ -693,16 +744,16 @@
         error(`Error parsing ${ittype} declaration`);
 
       return ret;
-    };
+    }
 
-    function interface_rest(isPartial, store) {
+    function interface_rest(isPartial, store, typeName = "interface") {
       all_ws();
       const name = consume(ID) || error("No name for interface");
       const mems = [];
-      const ret = {
-        type: "interface",
+      const ret = current = {
+        type: typeName,
         name: isPartial ? name.value : sanitize_name(name.value, "interface"),
-        partial: false,
+        partial: isPartial,
         members: mems
       };
       if (!isPartial) ret.inheritance = inheritance() || null;
@@ -733,7 +784,7 @@
         mem.extAttrs = ea;
         ret.members.push(mem);
       }
-    };
+    }
 
     function mixin_rest(isPartial, store) {
       all_ws();
@@ -741,10 +792,10 @@
       all_ws();
       const name = consume(ID) || error("No name for interface mixin");
       const mems = [];
-      const ret = {
+      const ret = current = {
         type: "interface mixin",
         name: isPartial ? name.value : sanitize_name(name.value, "interface mixin"),
-        partial: false,
+        partial: isPartial,
         members: mems
       };
       all_ws();
@@ -787,7 +838,7 @@
       all_ws();
       const name = consume(ID) || error("No name for namespace");
       const mems = [];
-      const ret = {
+      const ret = current = {
         type: "namespace",
         name: isPartial ? name.value : sanitize_name(name.value, "namespace"),
         partial: isPartial,
@@ -817,7 +868,7 @@
       const grabbed = [];
       const ret = {
         type: "attribute",
-        "static": false,
+        static: false,
         stringifier: false,
         inherit: false,
         readonly: false
@@ -856,9 +907,8 @@
         interface_(true, store) ||
         namespace(true, store) ||
         error("Partial doesn't apply to anything");
-      thing.partial = true;
       return thing;
-    };
+    }
 
     function dictionary(isPartial, store) {
       all_ws(isPartial ? null : store, "pea");
@@ -866,10 +916,10 @@
       all_ws();
       const name = consume(ID) || error("No name for dictionary");
       const mems = [];
-      const ret = {
+      const ret = current = {
         type: "dictionary",
         name: isPartial ? name.value : sanitize_name(name.value, "dictionary"),
-        partial: false,
+        partial: isPartial,
         members: mems
       };
       if (!isPartial) ret.inheritance = inheritance() || null;
@@ -885,7 +935,7 @@
         const ea = extended_attrs(store ? mems : null);
         all_ws(store ? mems : null, "pea");
         const required = consume(ID, "required");
-        const typ = type_with_extended_attributes() || error("No type for dictionary member");
+        const typ = type_with_extended_attributes("dictionary-type") || error("No type for dictionary member");
         all_ws();
         const name = consume(ID) || error("No name for dictionary member");
         const dflt = default_();
@@ -904,7 +954,7 @@
         all_ws();
         consume(OTHER, ";") || error("Unterminated dictionary member");
       }
-    };
+    }
 
     function enum_(store) {
       all_ws(store, "pea");
@@ -912,7 +962,7 @@
       all_ws();
       const name = consume(ID) || error("No name for enum");
       const vals = [];
-      const ret = {
+      const ret = current = {
         type: "enum",
         name: sanitize_name(name.value, "enum"),
         values: vals
@@ -928,7 +978,7 @@
           return ret;
         }
         const val = consume(STR) || error("Unexpected value in enum");
-        val.value = val.value.replace(/"/g, "");
+        val.value = val.value.slice(1, -1);
         ret.values.push(val);
         all_ws(store ? vals : null);
         if (consume(OTHER, ",")) {
@@ -939,7 +989,7 @@
           saw_comma = false;
         }
       }
-    };
+    }
 
     function typedef(store) {
       all_ws(store, "pea");
@@ -948,14 +998,15 @@
         type: "typedef"
       };
       all_ws();
-      ret.idlType = type_with_extended_attributes() || error("No type in typedef");
+      ret.idlType = type_with_extended_attributes("typedef-type") || error("No type in typedef");
       all_ws();
       const name = consume(ID) || error("No name in typedef");
       ret.name = sanitize_name(name.value, "typedef");
+      current = ret;
       all_ws();
       consume(OTHER, ";") || error("Unterminated typedef");
       return ret;
-    };
+    }
 
     function implements_(store) {
       all_ws(store, "pea");
@@ -978,7 +1029,7 @@
         tokens.unshift(w);
         tokens.unshift(target);
       }
-    };
+    }
 
     function includes(store) {
       all_ws(store, "pea");
@@ -1001,7 +1052,7 @@
         tokens.unshift(w);
         tokens.unshift(target);
       }
-    };
+    }
 
     function definition(store) {
       return callback(store) ||
@@ -1013,7 +1064,7 @@
         implements_(store) ||
         includes(store) ||
         namespace(false, store);
-    };
+    }
 
     function definitions(store) {
       if (!tokens.length) return [];
@@ -1029,11 +1080,11 @@
         defs.push(def);
       }
       return defs;
-    };
+    }
     const res = definitions(opt.ws);
     if (tokens.length) error("Unrecognised tokens");
     return res;
-  };
+  }
 
   const obj = {
     parse(str, opt) {
