@@ -11,7 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
@@ -103,6 +103,36 @@ impl Event {
         self.cancelable.set(cancelable);
     }
 
+    // Determine if there are any listeners for a given target and type.
+    // See https://github.com/whatwg/dom/issues/453
+    pub fn has_listeners_for(&self, target: &EventTarget, type_: &Atom) -> bool {
+        // TODO: take 'removed' into account? Not implemented in Servo yet.
+        // https://dom.spec.whatwg.org/#event-listener-removed
+        let mut event_path = self.construct_event_path(&target);
+        event_path.push(DomRoot::from_ref(target));
+        event_path.iter().any(|target| target.has_listeners_for(type_))
+    }
+
+    // https://dom.spec.whatwg.org/#event-path
+    fn construct_event_path(&self, target: &EventTarget) -> Vec<DomRoot<EventTarget>> {
+        let mut event_path = vec![];
+        // The "invoke" algorithm is only used on `target` separately,
+        // so we don't put it in the path.
+        if let Some(target_node) = target.downcast::<Node>() {
+            for ancestor in target_node.ancestors() {
+                event_path.push(DomRoot::from_ref(ancestor.upcast::<EventTarget>()));
+            }
+            let top_most_ancestor_or_target =
+                event_path.last().cloned().unwrap_or(DomRoot::from_ref(target));
+            if let Some(document) = DomRoot::downcast::<Document>(top_most_ancestor_or_target) {
+                if self.type_() != atom!("load") && document.browsing_context().is_some() {
+                    event_path.push(DomRoot::from_ref(document.window().upcast()));
+                }
+            }
+        }
+        event_path
+    }
+
     // https://dom.spec.whatwg.org/#concept-event-dispatch
     pub fn dispatch(&self,
                     target: &EventTarget,
@@ -130,24 +160,9 @@ impl Event {
             return self.status();
         }
 
-        // Step 3. The "invoke" algorithm is only used on `target` separately,
-        // so we don't put it in the path.
-        rooted_vec!(let mut event_path);
-
-        // Step 4.
-        if let Some(target_node) = target.downcast::<Node>() {
-            for ancestor in target_node.ancestors() {
-                event_path.push(Dom::from_ref(ancestor.upcast::<EventTarget>()));
-            }
-            let top_most_ancestor_or_target =
-                DomRoot::from_ref(event_path.r().last().cloned().unwrap_or(target));
-            if let Some(document) = DomRoot::downcast::<Document>(top_most_ancestor_or_target) {
-                if self.type_() != atom!("load") && document.browsing_context().is_some() {
-                    event_path.push(Dom::from_ref(document.window().upcast()));
-                }
-            }
-        }
-
+        // Step 3-4.
+        let path = self.construct_event_path(&target);
+        rooted_vec!(let event_path <- path.into_iter());
         // Steps 5-9. In a separate function to short-circuit various things easily.
         dispatch_to_listeners(self, target, event_path.r());
 
@@ -482,14 +497,7 @@ fn invoke(window: Option<&Window>,
     event.current_target.set(Some(object));
 
     // Step 5.
-    if inner_invoke(window, object, event, &listeners) {
-        // <https://html.spec.whatwg.org/multipage/#unload-a-document>
-        // Step 9.
-        // Required to establish the 'salvageable' state of document as part of unloading.
-        if event.canceled.get() != EventDefault::Prevented {
-            event.mark_as_handled();
-        }
-    }
+    inner_invoke(window, object, event, &listeners);
 
     // TODO: step 6.
 }

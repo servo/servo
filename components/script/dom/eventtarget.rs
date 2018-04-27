@@ -277,6 +277,12 @@ impl EventListeners {
             }
         }).collect()
     }
+
+    fn has_listeners(&self) -> bool {
+        // TODO: add, and take into account, a 'removed' field?
+        // https://dom.spec.whatwg.org/#event-listener-removed
+        self.0.len() > 0
+    }
 }
 
 #[dom_struct]
@@ -301,6 +307,15 @@ impl EventTarget {
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<EventTarget>> {
         Ok(EventTarget::new(global))
+    }
+
+    pub fn has_listeners_for(&self,
+                             type_: &Atom)
+                             -> bool {
+        match self.handlers.borrow().get(type_) {
+            Some(listeners) => listeners.has_listeners(),
+            None => false
+        }
     }
 
     pub fn get_listeners_for(&self,
