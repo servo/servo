@@ -310,7 +310,6 @@ A typedef looks like this:
 ```JS
 {
   "type": "typedef",
-  "typeExtAttrs": [],
   "idlType": {
     "sequence": true,
     "generic": "sequence",
@@ -336,8 +335,6 @@ The fields are as follows:
 * `name`: The typedef's name.
 * `idlType`: An [IDL Type](#idl-type) describing what typedef's type.
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
-* `typeExtAttrs`: A list of [extended attributes](#extended-attributes) that apply to the
-type rather than to the typedef as a whole.
 
 ### Implements
 
@@ -489,34 +486,6 @@ The fields are as follows:
 * `value`: The constant value as described by [Const Values](#default-and-const-values)
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 
-### Iterator Member
-
-Iterator members look like this
-
-```JS
-{
-  "type": "iterator",
-  "getter": false,
-  "setter": false,
-  "deleter": false,
-  "static": false,
-  "stringifier": false,
-  "idlType": {
-    "sequence": false,
-    "generic": null,
-    "nullable": false,
-    "union": false,
-    "idlType": "Session2"
-  },
-  "iteratorObject": "SessionIterator",
-  "extAttrs": []
-}
-```
-
-* `type`: Always "iterator".
-* `iteratorObject`: The string on the right-hand side; absent if there isn't one.
-* the rest: same as on [operations](#operation-member).
-
 ### Arguments
 
 The arguments (e.g. for an operation) look like this:
@@ -611,7 +580,7 @@ These appear as members of interfaces that look like this:
 The fields are as follows:
 
 * `type`: Always one of "iterable", "legacyiterable", "maplike" or "setlike".
-* `idlType`: An [IDL Type](#idl-type) (or an array of two types) representing the declared type arguments.
+* `idlType`: An array with one or more [IDL Types](#idl-type) representing the declared type arguments.
 * `readonly`: Whether the maplike or setlike is declared as read only.
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 

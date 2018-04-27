@@ -248,7 +248,3 @@ function queryScript(url, callback) {
 function SanityChecker() {}
 SanityChecker.prototype.checkScenario = function() {};
 SanityChecker.prototype.checkSubresourceResult = function() {};
-
-// TODO(kristijanburnik): document.origin is supported since Chrome 41,
-// other browsers still don't support it. Remove once they do.
-document.origin = document.origin || (location.protocol + "//" + location.host);

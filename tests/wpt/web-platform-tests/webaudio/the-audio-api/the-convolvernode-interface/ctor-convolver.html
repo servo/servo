@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: Convolver
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let context;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('initialize', (task, should) => {
+        context = initializeContext(should);
+        task.done();
+      });
+
+      audit.define('invalid constructor', (task, should) => {
+        testInvalidConstructor(should, 'ConvolverNode', context);
+        task.done();
+      });
+
+      audit.define('default constructor', (task, should) => {
+        let prefix = 'node0';
+        let node = testDefaultConstructor(should, 'ConvolverNode', context, {
+          prefix: prefix,
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          channelCount: 2,
+          channelCountMode: 'clamped-max',
+          channelInterpretation: 'speakers'
+        });
+
+        testDefaultAttributes(
+            should, node, prefix,
+            [{name: 'normalize', value: true}, {name: 'buffer', value: null}]);
+
+        task.done();
+      });
+
+      audit.define('test AudioNodeOptions', (task, should) => {
+        testAudioNodeOptions(should, context, 'ConvolverNode', {
+          channelCount:
+              {value: 2, isFixed: true, errorType: 'NotSupportedError'},
+          channelCountMode: {
+            value: 'clamped-max',
+            isFixed: true,
+            errorType: 'NotSupportedError'
+          },
+        });
+        task.done();
+      });
+
+      audit.define('nullable buffer', (task, should) => {
+        let node;
+        let options = {buffer: null};
+
+        should(
+            () => {
+              node = new ConvolverNode(context, options);
+            },
+            'node1 = new ConvolverNode(c, ' + JSON.stringify(options))
+            .notThrow();
+
+        should(node.buffer, 'node1.buffer').beEqualTo(null);
+
+        task.done();
+      });
+
+      audit.define('construct with options', (task, should) => {
+        let buf = context.createBuffer(1, 1, context.sampleRate);
+        let options = {buffer: buf, disableNormalization: false};
+
+        let message =
+            'node = new ConvolverNode(c, ' + JSON.stringify(options) + ')';
+
+        let node;
+        should(() => {
+          node = new ConvolverNode(context, options);
+        }, message).notThrow();
+
+        should(node instanceof ConvolverNode, 'node1 instanceOf ConvolverNode')
+            .beEqualTo(true);
+        should(node.buffer === options.buffer, 'node1.buffer === <buf>')
+            .beEqualTo(true);
+        should(node.normalize, 'node1.normalize')
+            .beEqualTo(!options.disableNormalization);
+
+        options.buffer = null;
+        options.disableNormalization = true;
+
+        message =
+            'node2 = new ConvolverNode(, ' + JSON.stringify(options) + ')';
+
+        should(() => {
+          node = new ConvolverNode(context, options);
+        }, message).notThrow();
+        should(node.buffer, 'node2.buffer').beEqualTo(null);
+        should(node.normalize, 'node2.normalize')
+            .beEqualTo(!options.disableNormalization);
+
+        options.disableNormalization = false;
+        message = 'node3 = new ConvolverNode(context, ' +
+            JSON.stringify(options) + ')';
+
+        should(() => {
+          node = new ConvolverNode(context, options);
+        }, message).notThrow();
+        should(node.buffer, 'node3.buffer').beEqualTo(null);
+        should(node.normalize, 'node3.normalize')
+            .beEqualTo(!options.disableNormalization);
+
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

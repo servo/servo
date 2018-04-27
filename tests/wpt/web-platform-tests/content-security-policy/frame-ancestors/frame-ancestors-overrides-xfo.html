@@ -10,7 +10,7 @@
             var i = document.createElement('iframe');
             i.src = "support/frame-ancestors-and-x-frame-options.sub.html?policy='self'&xfo=DENY";
             i.onload = t.step_func_done(function () {
-                assert_equals(i.contentDocument.origin, document.origin, "The same-origin page loaded.");
+                assert_equals(i.contentWindow.origin, window.origin, "The same-origin page loaded.");
             });
             document.body.appendChild(i);
         }, "A 'frame-ancestors' CSP directive overrides an 'x-frame-options' header which would block the page.");

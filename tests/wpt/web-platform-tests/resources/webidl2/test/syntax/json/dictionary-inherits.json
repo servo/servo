@@ -9,6 +9,7 @@
                 "name": "fillPattern",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": true,
@@ -26,6 +27,7 @@
                 "name": "strokePattern",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": true,
@@ -42,6 +44,7 @@
                 "name": "position",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -64,6 +67,7 @@
                 "name": "hydrometry",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,

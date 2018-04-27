@@ -1,4 +1,4 @@
 {
-    "message": "Record key must be DOMString, USVString, or ByteString",
+    "message": "Got an error during or right after parsing `interface Foo`: Record key must be DOMString, USVString, or ByteString",
     "line": 2
 }
