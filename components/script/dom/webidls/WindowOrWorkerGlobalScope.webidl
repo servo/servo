@@ -4,6 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#windoworworkerglobalscope
 
+// FIXME(nox): https://github.com/servo/servo/issues/20700
 // typedef (DOMString or Function) TimerHandler;
 
 [NoInterfaceObject, Exposed=(Window,Worker)]
@@ -11,14 +12,18 @@ interface WindowOrWorkerGlobalScope {
   // [Replaceable] readonly attribute USVString origin;
 
   // base64 utility methods
-  // DOMString btoa(DOMString data);
-  // DOMString atob(DOMString data);
+  [Throws] DOMString btoa(DOMString data);
+  [Throws] DOMString atob(DOMString data);
 
   // timers
-  // long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
-  // void clearTimeout(optional long handle = 0);
-  // long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
-  // void clearInterval(optional long handle = 0);
+  // FIXME(nox): https://github.com/servo/servo/issues/20700
+  long setTimeout(Function handler, optional long timeout = 0, any... arguments);
+  long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
+  void clearTimeout(optional long handle = 0);
+  // FIXME(nox): https://github.com/servo/servo/issues/20700
+  long setInterval(Function handler, optional long timeout = 0, any... arguments);
+  long setInterval(DOMString handler, optional long timeout = 0, any... arguments);
+  void clearInterval(optional long handle = 0);
 
   // ImageBitmap
   // Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options);

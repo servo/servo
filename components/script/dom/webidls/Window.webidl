@@ -75,28 +75,6 @@ Window implements WindowEventHandlers;
 [NoInterfaceObject]
 interface WindowProxy {};
 
-// https://html.spec.whatwg.org/multipage/#timers
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowTimers {
-  long setTimeout(Function handler, optional long timeout = 0, any... arguments);
-  long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
-  void clearTimeout(optional long handle = 0);
-  long setInterval(Function handler, optional long timeout = 0, any... arguments);
-  long setInterval(DOMString handler, optional long timeout = 0, any... arguments);
-  void clearInterval(optional long handle = 0);
-};
-Window implements WindowTimers;
-
-// https://html.spec.whatwg.org/multipage/#atob
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowBase64 {
-  [Throws]
-  DOMString btoa(DOMString btoa);
-  [Throws]
-  DOMString atob(DOMString atob);
-};
-Window implements WindowBase64;
-
 // https://html.spec.whatwg.org/multipage/#Window-partial
 partial interface Window {
   void captureEvents();
