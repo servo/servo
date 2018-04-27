@@ -39235,6 +39235,12 @@
      {}
     ]
    ],
+   "mozilla/webgl/getFramebufferAttachmentParameter.html": [
+    [
+     "/_mozilla/mozilla/webgl/getFramebufferAttachmentParameter.html",
+     {}
+    ]
+   ],
    "mozilla/webgl/get_supported_extensions.html": [
     [
      "/_mozilla/mozilla/webgl/get_supported_extensions.html",
@@ -70883,6 +70889,10 @@
   "mozilla/webgl/draw_arrays_simple_ref.html": [
    "a163189d8674be83c9e8c9055da31a1c5ed46be5",
    "support"
+  ],
+  "mozilla/webgl/getFramebufferAttachmentParameter.html": [
+   "4988cc350db4fc40e4bf708dd835eb7c7c652424",
+   "testharness"
   ],
   "mozilla/webgl/get_supported_extensions.html": [
    "719c7c4cb91f3c1b2bbc4cbe35285fc63ce6263f",
