@@ -2166,7 +2166,7 @@ IdlInterface.prototype.test_member_iterable = function(member)
 //@{
 {
     var interfaceName = this.name;
-    var isPairIterator = member.idlType instanceof Array;
+    var isPairIterator = member.idlType.length === 2;
     test(function()
     {
         var descriptor = Object.getOwnPropertyDescriptor(self[interfaceName].prototype, Symbol.iterator);

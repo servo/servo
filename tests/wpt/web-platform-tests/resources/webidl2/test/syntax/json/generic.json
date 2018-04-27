@@ -12,21 +12,25 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
+                        "type": "return-type",
                         "sequence": false,
                         "generic": "ResponsePromise",
                         "nullable": false,
                         "union": false,
                         "idlType": {
+                            "type": "return-type",
                             "sequence": true,
                             "generic": "sequence",
                             "nullable": false,
                             "union": false,
                             "idlType": {
+                                "type": "return-type",
                                 "sequence": false,
                                 "generic": null,
                                 "nullable": true,
@@ -47,11 +51,13 @@
                 "inherit": false,
                 "readonly": true,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
+                        "type": "attribute-type",
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -79,11 +85,13 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
+                        "type": "return-type",
                         "sequence": false,
                         "generic": null,
                         "nullable": true,
@@ -103,11 +111,13 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
+                        "type": "return-type",
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -136,11 +146,13 @@
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": "ResponsePromise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
+                        "type": "return-type",
                         "sequence": false,
                         "generic": null,
                         "nullable": false,

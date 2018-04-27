@@ -6,13 +6,16 @@
         "members": [
             {
                 "type": "iterable",
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "union": false,
-                    "idlType": "long"
-                },
+                "idlType": [
+                    {
+                        "type": null,
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "union": false,
+                        "idlType": "long"
+                    }
+                ],
                 "extAttrs": []
             }
         ],
@@ -28,6 +31,7 @@
                 "type": "iterable",
                 "idlType": [
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
@@ -35,6 +39,7 @@
                         "idlType": "short"
                     },
                     {
+                        "type": null,
                         "sequence": false,
                         "generic": null,
                         "nullable": true,
@@ -55,21 +60,24 @@
         "members": [
             {
                 "type": "iterable",
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "union": false,
-                    "idlType": "long",
-                    "extAttrs": [
-                        {
-                            "name": "XAttr",
-                            "arguments": null,
-                            "type": "extended-attribute",
-                            "rhs": null
-                        }
-                    ]
-                },
+                "idlType": [
+                    {
+                        "type": null,
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "union": false,
+                        "idlType": "long",
+                        "extAttrs": [
+                            {
+                                "name": "XAttr",
+                                "arguments": null,
+                                "type": "extended-attribute",
+                                "rhs": null
+                            }
+                        ]
+                    }
+                ],
                 "extAttrs": []
             }
         ],
@@ -77,4 +85,3 @@
         "extAttrs": []
     }
 ]
-
