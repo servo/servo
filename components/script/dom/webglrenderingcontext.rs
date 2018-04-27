@@ -2339,7 +2339,36 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => false
         };
 
-        if !target_matches || !attachment_matches || !pname_matches {
+        let bound_attachment_matches = match self.bound_framebuffer.get().unwrap().attachment(attachment) {
+            Some(attachment_root) => {
+                match attachment_root {
+                    WebGLFramebufferAttachmentRoot::Renderbuffer(_) => {
+                        match pname {
+                            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
+                            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME => true,
+                            _ => false
+                        }
+                    },
+                    WebGLFramebufferAttachmentRoot::Texture(_) => {
+                        match pname {
+                            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
+                            constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
+                            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL |
+                            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE => true,
+                            _ => false
+                        }
+                    }
+                }
+            },
+            _ => {
+                match pname {
+                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE => true,
+                    _ => false
+                }
+            }
+        };
+
+        if !target_matches || !attachment_matches || !pname_matches || !bound_attachment_matches {
             self.webgl_error(InvalidEnum);
             return NullValue();
         }
