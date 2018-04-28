@@ -19,6 +19,7 @@
                                     ${'font-language-override' if product == 'gecko' else ''}
                                     ${'font-feature-settings' if product == 'gecko' else ''}
                                     ${'font-variation-settings' if product == 'gecko' else ''}"
+                    derive_value_info="False"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use parser::Parse;
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
@@ -257,6 +258,29 @@
             }
         }
         % endif
+    }
+
+    <%
+        subprops_for_value_info = ["font_style", "font_weight", "font_stretch",
+                                   "font_variant_caps", "font_size", "font_family"]
+        subprops_for_value_info = [
+            "<longhands::{}::SpecifiedValue as SpecifiedValueInfo>".format(p)
+            for p in subprops_for_value_info
+        ]
+    %>
+    impl SpecifiedValueInfo for Longhands {
+        const SUPPORTED_TYPES: u8 = 0
+            % for p in subprops_for_value_info:
+            | ${p}::SUPPORTED_TYPES
+            % endfor
+            ;
+
+        fn collect_completion_keywords(f: KeywordsCollectFn) {
+            % for p in subprops_for_value_info:
+            ${p}::collect_completion_keywords(f);
+            % endfor
+            <longhands::system_font::SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
+        }
     }
 </%helpers:shorthand>
 

@@ -619,9 +619,14 @@
     % endif
 </%def>
 
-<%def name="shorthand(name, sub_properties, derive_serialize=False, **kwargs)">
+<%def name="shorthand(name, sub_properties, derive_serialize=False,
+                      derive_value_info=True, **kwargs)">
 <%
     shorthand = data.declare_shorthand(name, sub_properties.split(), **kwargs)
+    # mako doesn't accept non-string value in parameters with <% %> form, so
+    # we have to workaround it this way.
+    if not isinstance(derive_value_info, bool):
+        derive_value_info = eval(derive_value_info)
 %>
     % if shorthand:
     /// ${shorthand.spec}
@@ -636,8 +641,11 @@
         #[allow(unused_imports)]
         use style_traits::{ParseError, StyleParseErrorKind};
         #[allow(unused_imports)]
-        use style_traits::{CssWriter, SpecifiedValueInfo, ToCss};
+        use style_traits::{CssWriter, KeywordsCollectFn, SpecifiedValueInfo, ToCss};
 
+        % if derive_value_info:
+        #[derive(SpecifiedValueInfo)]
+        % endif
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
                 pub ${sub_property.ident}:
@@ -742,26 +750,6 @@
                 % endif
                 % endfor
             })
-        }
-
-        <%
-            sub_properties_for_value_info = shorthand.sub_properties
-            if shorthand.name == "border":
-                # border-image subproperties are simply reset by border
-                # shorthand, so border cannot accept values of them.
-                # XXX We may want a better mechanism for this, but this
-                # is probably fine for now.
-                sub_properties_for_value_info = [
-                    subprop for subprop in shorthand.sub_properties
-                    if not subprop.name.startswith("border-image")
-                ]
-        %>
-        impl SpecifiedValueInfo for Longhands {
-            const SUPPORTED_TYPES: u8 = 0
-                % for subprop in sub_properties_for_value_info:
-                | <longhands::${subprop.ident}::SpecifiedValue as SpecifiedValueInfo>::SUPPORTED_TYPES
-                % endfor
-                ;
         }
 
         ${caller.body()}
