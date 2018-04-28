@@ -41,7 +41,8 @@ use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
-use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
+use script_traits::{MsDuration, TimerEvent};
+use script_traits::{ScriptToConstellationChan, ScriptToEmbedderChan};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
@@ -97,7 +98,11 @@ pub struct GlobalScope {
     /// For sending messages to the time profiler.
     #[ignore_malloc_size_of = "channels are hard"]
     time_profiler_chan: time::ProfilerChan,
-
+    
+    /// A handle for communicating messages to the embedder.
+    #[ignore_malloc_size_of = "channels are hard"]
+    script_to_embedder_chan: ScriptToEmbedderChan,
+    
     /// A handle for communicating messages to the constellation thread.
     #[ignore_malloc_size_of = "channels are hard"]
     script_to_constellation_chan: ScriptToConstellationChan,
@@ -137,6 +142,7 @@ impl GlobalScope {
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
+        script_to_embedder_chan: ScriptToEmbedderChan,
         script_to_constellation_chan: ScriptToConstellationChan,
         scheduler_chan: IpcSender<TimerSchedulerMsg>,
         resource_threads: ResourceThreads,
@@ -154,6 +160,7 @@ impl GlobalScope {
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
+            script_to_embedder_chan,
             script_to_constellation_chan,
             scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
@@ -269,7 +276,12 @@ impl GlobalScope {
     pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
         &self.time_profiler_chan
     }
-
+    
+    /// Get a sender to the constellation thread.
+    pub fn script_to_embedder_chan(&self) -> &ScriptToEmbedderChan {
+        &self.script_to_embedder_chan
+    }
+    
     /// Get a sender to the constellation thread.
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
         &self.script_to_constellation_chan

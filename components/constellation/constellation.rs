@@ -732,6 +732,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             layout_to_constellation_chan: self.layout_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
+            embedder_proxy: self.embedder_proxy.clone(),
             devtools_chan: self.devtools_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
             swmanager_thread: self.swmanager_sender.clone(),
