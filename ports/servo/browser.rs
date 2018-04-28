@@ -5,7 +5,7 @@
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
-use servo::compositing::compositor_thread::EmbedderMsg;
+use servo::embedder_traits::EmbedderMsg;
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
@@ -260,6 +260,12 @@ impl Browser {
                 EmbedderMsg::ResizeTo(_browser_id, size) => {
                     self.window.set_inner_size(size);
                 }
+                EmbedderMsg::Alert(browser_id, _message, response_chan) => {
+                    if let Err(e) = response_chan.send(true) {
+                        warn!("Failed to send alert response: {}", e);
+                        self.event_queue.push(WindowEvent::CloseBrowser(browser_id));
+                    };
+                }
                 EmbedderMsg::AllowNavigation(_browser_id, _url, response_chan) => {
                     if let Err(e) = response_chan.send(true) {
                         warn!("Failed to send allow_navigation() response: {}", e);
@@ -277,8 +283,8 @@ impl Browser {
                 EmbedderMsg::HeadParsed(_browser_id, ) => {
                     self.loading_state = Some(LoadingState::Loading);
                 }
-                EmbedderMsg::HistoryChanged(_browser_id, entries, current) => {
-                    self.current_url = Some(entries[current].url.clone());
+                EmbedderMsg::HistoryChanged(_browser_id, urls, current) => {
+                    self.current_url = Some(urls[current].clone());
                 }
                 EmbedderMsg::SetFullscreenState(_browser_id, state) => {
                     self.window.set_fullscreen(state);
