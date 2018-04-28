@@ -187,18 +187,21 @@ impl<Length> SpecifiedValueInfo for KeywordInfo<Length> {
 
 /// CSS font keywords
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedValue, ToAnimatedZero, SpecifiedValueInfo)]
+         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToCss)]
 #[allow(missing_docs)]
 pub enum KeywordSize {
+    #[css(keyword = "xx-small")]
     XXSmall,
     XSmall,
     Small,
     Medium,
     Large,
     XLarge,
+    #[css(keyword = "xx-large")]
     XXLarge,
     // This is not a real font keyword and will not parse
     // HTML font-size 7 corresponds to this value
+    #[css(skip)]
     XXXLarge,
 }
 
@@ -213,30 +216,6 @@ impl KeywordSize {
 impl Default for KeywordSize {
     fn default() -> Self {
         KeywordSize::Medium
-    }
-}
-
-impl ToCss for KeywordSize {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str(match *self {
-            KeywordSize::XXSmall => "xx-small",
-            KeywordSize::XSmall => "x-small",
-            KeywordSize::Small => "small",
-            KeywordSize::Medium => "medium",
-            KeywordSize::Large => "large",
-            KeywordSize::XLarge => "x-large",
-            KeywordSize::XXLarge => "xx-large",
-            KeywordSize::XXXLarge => {
-                debug_assert!(
-                    false,
-                    "We should never serialize specified values set via HTML presentation attributes"
-                );
-                "-servo-xxx-large"
-            },
-        })
     }
 }
 
