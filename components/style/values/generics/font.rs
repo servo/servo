@@ -186,8 +186,9 @@ impl<Length> SpecifiedValueInfo for KeywordInfo<Length> {
 }
 
 /// CSS font keywords
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         Parse, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero,
+         ToCss)]
 #[allow(missing_docs)]
 pub enum KeywordSize {
     #[css(keyword = "xx-small")]

@@ -715,21 +715,6 @@ impl KeywordInfo {
     }
 }
 
-impl KeywordSize {
-    /// Parses a keyword size.
-    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            "xx-small" => Ok(KeywordSize::XXSmall),
-            "x-small" => Ok(KeywordSize::XSmall),
-            "small" => Ok(KeywordSize::Small),
-            "medium" => Ok(KeywordSize::Medium),
-            "large" => Ok(KeywordSize::Large),
-            "x-large" => Ok(KeywordSize::XLarge),
-            "xx-large" => Ok(KeywordSize::XXLarge),
-        }
-    }
-}
-
 /// This is the ratio applied for font-size: larger
 /// and smaller by both Firefox and Chrome
 const LARGER_FONT_SIZE_RATIO: f32 = 1.2;

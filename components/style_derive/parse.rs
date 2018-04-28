@@ -20,6 +20,10 @@ pub fn derive(input: DeriveInput) -> Tokens {
         );
 
         let variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
+        if variant_attrs.skip {
+            return match_body;
+        }
+
         let identifier = cg::to_css_identifier(
             &variant_attrs.keyword.unwrap_or(variant.ast().ident.as_ref().into()),
         );
