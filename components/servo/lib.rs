@@ -73,13 +73,13 @@ use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
 use compositing::{IOCompositor, ShutdownState, RenderNotifier};
-use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
-use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
+use compositing::compositor_thread::{CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use constellation::content_process_sandbox_profile;
+use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Length;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
@@ -346,6 +346,13 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                     warn!("Sending CloseBrowser message to constellation failed ({}).", e);
                 }
             }
+
+            WindowEvent::SendError(ctx, e) => {
+                let msg = ConstellationMsg::SendError(ctx, e);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending CloseBrowser message to constellation failed ({}).", e);
+                }
+            }
         }
     }
 
@@ -417,7 +424,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
     }
 }
 
-fn create_embedder_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
+fn create_embedder_channel(event_loop_waker: Box<EventLoopWaker>)
     -> (EmbedderProxy, EmbedderReceiver) {
     let (sender, receiver) = channel();
     (EmbedderProxy {
@@ -429,7 +436,7 @@ fn create_embedder_channel(event_loop_waker: Box<compositor_thread::EventLoopWak
      })
 }
 
-fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
+fn create_compositor_channel(event_loop_waker: Box<EventLoopWaker>)
     -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = channel();
     (CompositorProxy {

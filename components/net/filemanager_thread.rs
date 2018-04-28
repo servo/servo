@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
-use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
+use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;

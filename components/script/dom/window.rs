@@ -48,6 +48,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
 use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D};
 use fetch;
 use ipc_channel::ipc::IpcSender;
@@ -58,7 +59,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::{ResourceThreads, ReferrerPolicy};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
@@ -114,8 +115,6 @@ use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, TimerCallback};
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
 use webrender_api::{ExternalScrollId, DeviceIntPoint, DeviceUintSize, DocumentId};
@@ -356,6 +355,11 @@ impl Window {
         self.parent_info
     }
 
+    pub fn top_level_browsing_context_id(&self) -> TopLevelBrowsingContextId {
+        let window_proxy = self.window_proxy.get().unwrap();
+         window_proxy.top_level_browsing_context_id()
+    }
+
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
         (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
@@ -444,18 +448,6 @@ impl Window {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn display_alert_dialog(message: &str) {
-    if !opts::get().headless {
-        tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
-    }
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn display_alert_dialog(_message: &str) {
-    // tinyfiledialogs not supported on Android
-}
-
 // https://html.spec.whatwg.org/multipage/#atob
 pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
@@ -541,14 +533,12 @@ impl WindowMethods for Window {
             stdout.flush().unwrap();
             stderr.flush().unwrap();
         }
-
         let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.send_to_constellation(ScriptMsg::Alert(s.to_string(), sender));
-
-        let should_display_alert_dialog = receiver.recv().unwrap();
-        if should_display_alert_dialog {
-            display_alert_dialog(&s);
-        }
+        let window_proxy = self.window_proxy.get().unwrap();
+        let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
+        let msg = EmbedderMsg::Alert(top_level_browsing_context_id, s.to_string(), sender);
+        self.send_to_embedder(msg);
+        receiver.recv().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
@@ -937,7 +927,8 @@ impl WindowMethods for Window {
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let size = TypedSize2D::new(width, height).to_f32() * dpr;
-        self.send_to_constellation(ScriptMsg::ResizeTo(size.to_u32()));
+        let top_level_browsing_context_id = self.top_level_browsing_context_id();
+        self.send_to_embedder(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size.to_u32()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -953,7 +944,10 @@ impl WindowMethods for Window {
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let point = TypedPoint2D::new(x, y).to_f32() * dpr;
-        self.send_to_constellation(ScriptMsg::MoveTo(point.to_i32()));
+        let window_proxy = self.window_proxy.get().unwrap();
+        let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
+        let msg = EmbedderMsg::MoveTo(top_level_browsing_context_id, point.to_i32());
+        self.send_to_embedder(msg);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -1742,7 +1736,11 @@ impl Window {
         self.navigation_start_precise.set(time::precise_time_ns());
     }
 
-    fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub fn send_to_embedder(&self, msg: EmbedderMsg) {
+        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+    }
+
+    pub fn send_to_constellation(&self, msg: ScriptMsg) {
         self.upcast::<GlobalScope>()
             .script_to_constellation_chan()
             .send(msg)
