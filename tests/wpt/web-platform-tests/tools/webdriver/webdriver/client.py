@@ -557,17 +557,23 @@ class Session(object):
         return self.send_session_command("GET", url, {})
 
     @command
-    def set_cookie(self, name, value, path=None, domain=None, secure=None, expiry=None):
-        body = {"name": name,
-                "value": value}
-        if path is not None:
-            body["path"] = path
+    def set_cookie(self, name, value, path=None, domain=None,
+            secure=None, expiry=None, http_only=None):
+        body = {
+            "name": name,
+            "value": value,
+        }
+
         if domain is not None:
             body["domain"] = domain
-        if secure is not None:
-            body["secure"] = secure
         if expiry is not None:
             body["expiry"] = expiry
+        if http_only is not None:
+            body["httpOnly"] = http_only
+        if path is not None:
+            body["path"] = path
+        if secure is not None:
+            body["secure"] = secure
         self.send_session_command("POST", "cookie", {"cookie": body})
 
     def delete_cookie(self, name=None):
