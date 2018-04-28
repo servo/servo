@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use create_embedder_proxy;
+use embedder_traits::FilterPattern;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
-use net_traits::filemanager_thread::{FilterPattern, FileManagerThreadMsg, FileManagerThreadError, ReadFileProgress};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerThreadError, ReadFileProgress};
 use servo_config::prefs::{PrefValue, PREFS};
 use std::fs::File;
 use std::io::Read;

@@ -88,6 +88,7 @@ use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
 use fetch::FetchCanceller;
@@ -855,7 +856,8 @@ impl Document {
 
             // Notify the embedder to hide the input method.
             if elem.input_method_type().is_some() {
-                self.send_to_constellation(ScriptMsg::HideIME);
+                let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
+                self.send_to_embedder(EmbedderMsg::HideIME(top_level_browsing_context_id));
             }
         }
 
@@ -869,12 +871,13 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                self.send_to_constellation(ScriptMsg::Focus);
+                self.window().send_to_constellation(ScriptMsg::Focus);
             }
 
             // Notify the embedder to display an input method.
             if let Some(kind) = elem.input_method_type() {
-                self.send_to_constellation(ScriptMsg::ShowIME(kind));
+                let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
+                self.send_to_embedder(EmbedderMsg::ShowIME(top_level_browsing_context_id, kind));
             }
         }
     }
@@ -882,14 +885,23 @@ impl Document {
     /// Handles any updates when the document's title has changed.
     pub fn title_changed(&self) {
         if self.browsing_context().is_some() {
-            self.send_title_to_constellation();
+            self.send_title_to_embedder();
         }
     }
 
     /// Sends this document's title to the constellation.
-    pub fn send_title_to_constellation(&self) {
-        let title = Some(String::from(self.Title()));
-        self.send_to_constellation(ScriptMsg::SetTitle(title));
+    pub fn send_title_to_embedder(&self) {
+        let window = self.window();
+        if window.is_top_level() {
+            let title = Some(String::from(self.Title()));
+            let top_level_browsing_context_id = window.top_level_browsing_context_id();
+            self.send_to_embedder(EmbedderMsg::ChangePageTitle(top_level_browsing_context_id, title));
+        }
+    }
+
+    fn send_to_embedder(&self, msg: EmbedderMsg) {
+        let window = self.window();
+        window.send_to_embedder(msg);
     }
 
     pub fn dirty_all_nodes(&self) {
@@ -1352,8 +1364,9 @@ impl Document {
         }
 
         if cancel_state == EventDefault::Allowed {
-            let msg = ScriptMsg::SendKeyEvent(ch, key, state, modifiers);
-            self.send_to_constellation(msg);
+            let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
+            let msg = EmbedderMsg::KeyEvent(Some(top_level_browsing_context_id), ch, key, state, modifiers);
+            self.send_to_embedder(msg);
 
             // This behavior is unspecced
             // We are supposed to dispatch synthetic click activation for Space and/or Return,
@@ -1488,7 +1501,7 @@ impl Document {
             // repeated rAF.
 
             let event = ScriptMsg::ChangeRunningAnimationsState(AnimationState::AnimationCallbacksPresent);
-            self.send_to_constellation(event);
+            self.window().send_to_constellation(event);
         }
 
         ident
@@ -1559,7 +1572,7 @@ impl Document {
                 );
             }
             let event = ScriptMsg::ChangeRunningAnimationsState(AnimationState::NoAnimationCallbacksPresent);
-            self.send_to_constellation(event);
+            self.window().send_to_constellation(event);
         }
 
         // Update the counter of spurious animation frames.
@@ -2009,7 +2022,7 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        self.send_to_constellation(ScriptMsg::LoadComplete);
+        self.window().send_to_constellation(ScriptMsg::LoadComplete);
     }
 
     pub fn set_current_parser(&self, script: Option<&ServoParser>) {
@@ -2165,11 +2178,6 @@ impl Document {
         let registry = self.window.CustomElements();
 
         registry.lookup_definition(local_name, is)
-    }
-
-    fn send_to_constellation(&self, msg: ScriptMsg) {
-        let global_scope = self.window.upcast::<GlobalScope>();
-        global_scope.script_to_constellation_chan().send(msg).unwrap();
     }
 
     pub fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
@@ -2787,8 +2795,9 @@ impl Document {
         let window = self.window();
         // Step 6
         if !error {
-            let event = ScriptMsg::SetFullscreenState(true);
-            self.send_to_constellation(event);
+            let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
+            let event = EmbedderMsg::SetFullscreenState(top_level_browsing_context_id, true);
+            self.send_to_embedder(event);
         }
 
         let pipeline_id = self.window().pipeline_id();
@@ -2822,8 +2831,9 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = ScriptMsg::SetFullscreenState(false);
-        self.send_to_constellation(event);
+        let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
+        let event = EmbedderMsg::SetFullscreenState(top_level_browsing_context_id, true);
+        self.send_to_embedder(event);
 
         // Step 9
         let trusted_element = Trusted::new(element.r());

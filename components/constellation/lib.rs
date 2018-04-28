@@ -14,7 +14,7 @@ extern crate clipboard;
 extern crate compositing;
 extern crate debugger;
 extern crate devtools_traits;
-#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
+#[cfg(not(target_os = "ios"))]
 extern crate embedder_traits;
 extern crate euclid;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]

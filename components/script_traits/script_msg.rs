@@ -12,11 +12,11 @@ use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TraversalDirection};
-use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
@@ -68,6 +68,8 @@ pub enum LogEntry {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Forward a message to the embedder.
+    ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
     /// for cross-origin loads
     InitiateNavigateRequest(RequestInit, /* cancellation_chan */ IpcReceiver<()>),
@@ -89,8 +91,6 @@ pub enum ScriptMsg {
     GetParentInfo(PipelineId, IpcSender<Option<PipelineId>>),
     /// Get the nth child browsing context ID for a given browsing context, sorted in tree order.
     GetChildBrowsingContextId(BrowsingContextId, usize, IpcSender<Option<BrowsingContextId>>),
-    /// <head> tag finished parsing
-    HeadParsed,
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete,
@@ -109,10 +109,6 @@ pub enum ScriptMsg {
     ReplaceHistoryState(HistoryStateId, ServoUrl),
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(IpcSender<u32>),
-    /// Favicon detected
-    NewFavicon(ServoUrl),
-    /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
-    NodeStatus(Option<String>),
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
     RemoveIFrame(BrowsingContextId, IpcSender<Vec<PipelineId>>),
@@ -132,17 +128,6 @@ pub enum ScriptMsg {
     SetDocumentState(DocumentState),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
-    /// Check if an alert dialog box should be presented
-    Alert(String, IpcSender<bool>),
-    /// Set title of current page
-    /// <https://html.spec.whatwg.org/multipage/#document.title>
-    SetTitle(Option<String>),
-    /// Send a key event
-    SendKeyEvent(Option<char>, Key, KeyState, KeyModifiers),
-    /// Move the window to a point
-    MoveTo(DeviceIntPoint),
-    /// Resize the window to size
-    ResizeTo(DeviceUintSize),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// A log entry, with the top-level browsing context id and thread name
@@ -156,18 +141,12 @@ pub enum ScriptMsg {
     ForwardDOMMessage(DOMMessage, ServoUrl),
     /// Store the data required to activate a service worker for the given scope
     RegisterServiceWorker(ScopeThings, ServoUrl),
-    /// Enter or exit fullscreen
-    SetFullscreenState(bool),
     /// Get Window Informations size and position
     GetClientWindow(IpcSender<(DeviceUintSize, DeviceIntPoint)>),
     /// Get the screen size (pixel)
     GetScreenSize(IpcSender<(DeviceUintSize)>),
     /// Get the available screen size (pixel)
     GetScreenAvailSize(IpcSender<(DeviceUintSize)>),
-    /// Request to present an IME to the user when an editable element is focused.
-    ShowIME(InputMethodType),
-    /// Request to hide the IME when the editable element is blurred.
-    HideIME,
     /// Requests that the compositor shut down.
     Exit,
 }

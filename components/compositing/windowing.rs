@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_thread::EventLoopWaker;
+use embedder_traits::EventLoopWaker;
 use euclid::TypedScale;
 #[cfg(feature = "gleam")]
 use gleam::gl;
@@ -78,6 +78,8 @@ pub enum WindowEvent {
     NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
     /// Close a top level browsing context
     CloseBrowser(TopLevelBrowsingContextId),
+    /// Panic a top level browsing context.
+    SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
     SelectBrowser(TopLevelBrowsingContextId),
@@ -106,6 +108,7 @@ impl Debug for WindowEvent {
             WindowEvent::Quit => write!(f, "Quit"),
             WindowEvent::Reload(..) => write!(f, "Reload"),
             WindowEvent::NewBrowser(..) => write!(f, "NewBrowser"),
+            WindowEvent::SendError(..) => write!(f, "SendError"),
             WindowEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
             WindowEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
             WindowEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
