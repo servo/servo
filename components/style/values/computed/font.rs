@@ -912,7 +912,10 @@ impl ToCss for FontStyle {
             generics::FontStyle::Italic => dest.write_str("italic"),
             generics::FontStyle::Oblique(ref angle) => {
                 dest.write_str("oblique")?;
-                if *angle != Self::default_angle() {
+                // Use `degrees` instead of just comparing Angle because
+                // `degrees` can return slightly different values due to
+                // floating point conversions.
+                if angle.0.degrees() != Self::default_angle().0.degrees() {
                     dest.write_char(' ')?;
                     angle.to_css(dest)?;
                 }
