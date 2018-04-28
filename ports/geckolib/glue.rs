@@ -5,12 +5,13 @@
 use cssparser::{ParseErrorKind, Parser, ParserInput, SourceLocation};
 use cssparser::ToCss as ParserToCss;
 use malloc_size_of::MallocSizeOfOps;
-use nsstring::nsCString;
+use nsstring::{nsCString, nsStringRepr};
 use selectors::{NthIndexCache, SelectorList};
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use smallvec::SmallVec;
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::iter;
 use std::mem;
@@ -928,20 +929,36 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(
     }
 }
 
+macro_rules! parse_enabled_property_name {
+    ($prop_name:ident, $found:ident, $default:expr) => {{
+        let prop_name = $prop_name.as_ref().unwrap().as_str_unchecked();
+        // XXX This can be simplified once Option::filter is stable.
+        let prop_id = PropertyId::parse(prop_name).ok().and_then(|p| {
+            if p.enabled_for_all_content() {
+                Some(p)
+            } else {
+                None
+            }
+        });
+        match prop_id {
+            Some(p) => {
+                *$found = true;
+                p
+            }
+            None => {
+                *$found = false;
+                return $default;
+            }
+        }
+    }}
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn Servo_Property_IsShorthand(
     prop_name: *const nsACString,
     found: *mut bool
 ) -> bool {
-    let prop_id = PropertyId::parse(prop_name.as_ref().unwrap().as_str_unchecked());
-    let prop_id = match prop_id {
-        Ok(ref p) if p.enabled_for_all_content() => p,
-        _ => {
-            *found = false;
-            return false;
-        }
-    };
-    *found = true;
+    let prop_id = parse_enabled_property_name!(prop_name, found, false);
     prop_id.is_shorthand()
 }
 
@@ -970,16 +987,7 @@ pub unsafe extern "C" fn Servo_Property_SupportsType(
     ty: u32,
     found: *mut bool,
 ) -> bool {
-    let prop_id = PropertyId::parse(prop_name.as_ref().unwrap().as_str_unchecked());
-    let prop_id = match prop_id {
-        Ok(ref p) if p.enabled_for_all_content() => p,
-        _ => {
-            *found = false;
-            return false;
-        }
-    };
-
-    *found = true;
+    let prop_id = parse_enabled_property_name!(prop_name, found, false);
     // This should match the constants in InspectorUtils.
     // (Let's don't bother importing InspectorUtilsBinding into bindings
     // because it is not used anywhere else, and issue here would be
@@ -991,6 +999,24 @@ pub unsafe extern "C" fn Servo_Property_SupportsType(
         _ => unreachable!("unknown CSS type {}", ty),
     };
     prop_id.supports_type(ty)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_Property_GetCSSValuesForProperty(
+    prop_name: *const nsACString,
+    found: *mut bool,
+    result: *mut nsTArray<nsStringRepr>,
+) {
+    let prop_id = parse_enabled_property_name!(prop_name, found, ());
+    // Use B-tree set for unique and sorted result.
+    let mut values = BTreeSet::<&'static str>::new();
+    prop_id.collect_property_completion_keywords(&mut |list| values.extend(list.iter()));
+
+    let result = result.as_mut().unwrap();
+    bindings::Gecko_ResizeTArrayForStrings(result, values.len() as u32);
+    for (src, dest) in values.iter().zip(result.iter_mut()) {
+        dest.write_str(src).unwrap();
+    }
 }
 
 #[no_mangle]

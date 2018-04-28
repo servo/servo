@@ -42,7 +42,7 @@ use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
-use style_traits::{CssWriter, ParseError, ParsingMode};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
@@ -560,6 +560,25 @@ impl NonCustomPropertyId {
         ];
         SUPPORTED_TYPES[self.0]
     }
+
+    /// See PropertyId::collect_property_completion_keywords.
+    fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
+        const COLLECT_FUNCTIONS: [&Fn(KeywordsCollectFn);
+                                  ${len(data.longhands) + len(data.shorthands)}] = [
+            % for prop in data.longhands:
+                &<${prop.specified_type()} as SpecifiedValueInfo>::collect_completion_keywords,
+            % endfor
+            % for prop in data.shorthands:
+            % if prop.name == "all":
+                &|_f| {}, // 'all' accepts no value other than CSS-wide keywords
+            % else:
+                &<shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::
+                    collect_completion_keywords,
+            % endif
+            % endfor
+        ];
+        COLLECT_FUNCTIONS[self.0](f);
+    }
 }
 
 impl From<LonghandId> for NonCustomPropertyId {
@@ -743,7 +762,8 @@ impl LonghandIdSet {
 }
 
 /// An enum to represent a CSS Wide keyword.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
     Initial,
@@ -1711,6 +1731,18 @@ impl PropertyId {
         })
     }
 
+    /// Returns non-alias NonCustomPropertyId corresponding to this
+    /// property id.
+    fn non_custom_non_alias_id(&self) -> Option<NonCustomPropertyId> {
+        Some(match *self {
+            PropertyId::Custom(_) => return None,
+            PropertyId::Shorthand(id) => id.into(),
+            PropertyId::Longhand(id) => id.into(),
+            PropertyId::ShorthandAlias(id, _) => id.into(),
+            PropertyId::LonghandAlias(id, _) => id.into(),
+        })
+    }
+
     /// Whether the property is enabled for all content regardless of the
     /// stylesheet it was declared on (that is, in practice only checks prefs).
     #[inline]
@@ -1736,14 +1768,19 @@ impl PropertyId {
     /// Whether the property supports the given CSS type.
     /// `ty` should a bitflags of constants in style_traits::CssType.
     pub fn supports_type(&self, ty: u8) -> bool {
-        let non_custom_id: NonCustomPropertyId = match *self {
-            PropertyId::Custom(_) => return false,
-            PropertyId::Shorthand(id) => id.into(),
-            PropertyId::Longhand(id) => id.into(),
-            PropertyId::ShorthandAlias(id, _) => id.into(),
-            PropertyId::LonghandAlias(id, _) => id.into(),
-        };
-        non_custom_id.supported_types() & ty != 0
+        let id = self.non_custom_non_alias_id();
+        id.map_or(0, |id| id.supported_types()) & ty != 0
+    }
+
+    /// Collect supported starting word of values of this property.
+    ///
+    /// See style_traits::SpecifiedValueInfo::collect_completion_keywords for more
+    /// details.
+    pub fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
+        if let Some(id) = self.non_custom_non_alias_id() {
+            id.collect_property_completion_keywords(f);
+        }
+        CSSWideKeyword::collect_completion_keywords(f);
     }
 }
 

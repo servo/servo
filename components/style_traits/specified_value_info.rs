@@ -23,6 +23,9 @@ pub mod CssType {
     pub const TIMING_FUNCTION: u8 = 1 << 2;
 }
 
+/// See SpecifiedValueInfo::collect_completion_keywords.
+pub type KeywordsCollectFn<'a> = &'a mut FnMut(&[&'static str]);
+
 /// Information of values of a given specified value type.
 pub trait SpecifiedValueInfo {
     /// Supported CssTypes by the given value type.
@@ -30,6 +33,15 @@ pub trait SpecifiedValueInfo {
     /// XXX This should be typed CssType when that becomes a bitflags.
     /// Currently we cannot do so since bitflags cannot be used in constant.
     const SUPPORTED_TYPES: u8 = 0;
+
+    /// Collect value starting words for the given specified value type.
+    /// This includes keyword and function names which can appear at the
+    /// beginning of a value of this type.
+    ///
+    /// Caller should pass in a callback function to accept the list of
+    /// values. The callback function can be called multiple times, and
+    /// some values passed to the callback may be duplicate.
+    fn collect_completion_keywords(_f: KeywordsCollectFn) {}
 }
 
 impl SpecifiedValueInfo for bool {}
@@ -44,16 +56,25 @@ impl SpecifiedValueInfo for String {}
 
 impl<T: SpecifiedValueInfo + ?Sized> SpecifiedValueInfo for Box<T> {
     const SUPPORTED_TYPES: u8 = T::SUPPORTED_TYPES;
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        T::collect_completion_keywords(f);
+    }
 }
 
 impl<T: SpecifiedValueInfo> SpecifiedValueInfo for [T] {
     const SUPPORTED_TYPES: u8 = T::SUPPORTED_TYPES;
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        T::collect_completion_keywords(f);
+    }
 }
 
 macro_rules! impl_generic_specified_value_info {
     ($ty:ident<$param:ident>) => {
         impl<$param: SpecifiedValueInfo> SpecifiedValueInfo for $ty<$param> {
             const SUPPORTED_TYPES: u8 = $param::SUPPORTED_TYPES;
+            fn collect_completion_keywords(f: KeywordsCollectFn) {
+                $param::collect_completion_keywords(f);
+            }
         }
     }
 }
@@ -68,4 +89,9 @@ where
     T2: SpecifiedValueInfo,
 {
     const SUPPORTED_TYPES: u8 = T1::SUPPORTED_TYPES | T2::SUPPORTED_TYPES;
+
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        T1::collect_completion_keywords(f);
+        T2::collect_completion_keywords(f);
+    }
 }
