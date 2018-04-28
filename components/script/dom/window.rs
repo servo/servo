@@ -48,6 +48,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
 use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D};
 use fetch;
 use ipc_channel::ipc::IpcSender;
@@ -115,7 +116,6 @@ use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
 use webrender_api::{ExternalScrollId, DeviceIntPoint, DeviceUintSize, DocumentId};
@@ -444,18 +444,6 @@ impl Window {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn display_alert_dialog(message: &str) {
-    if !opts::get().headless {
-        tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
-    }
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn display_alert_dialog(_message: &str) {
-    // tinyfiledialogs not supported on Android
-}
-
 // https://html.spec.whatwg.org/multipage/#atob
 pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
@@ -541,14 +529,10 @@ impl WindowMethods for Window {
             stdout.flush().unwrap();
             stderr.flush().unwrap();
         }
-
-        let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.send_to_constellation(ScriptMsg::Alert(s.to_string(), sender));
-
-        let should_display_alert_dialog = receiver.recv().unwrap();
-        if should_display_alert_dialog {
-            display_alert_dialog(&s);
-        }
+        let window_proxy = self.window_proxy.get().unwrap();
+        let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
+        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(EmbedderMsg::Alert(top_level_browsing_context_id,
+                                                                                   s.to_string())));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed

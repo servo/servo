@@ -11,7 +11,7 @@ use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use servo::compositing::compositor_thread::EventLoopWaker;
+use servo::embedder_traits::EventLoopWaker;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::msg::constellation_msg::{Key, KeyState};

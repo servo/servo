@@ -5,7 +5,7 @@
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
-use servo::compositing::compositor_thread::EmbedderMsg;
+use servo::embedder_traits::EmbedderMsg;
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
@@ -21,7 +21,7 @@ use std::mem;
 use std::rc::Rc;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::thread;
-use tinyfiledialogs;
+use tinyfiledialogs::{self, MessageBoxIcon};
 
 pub struct Browser {
     current_url: Option<ServoUrl>,
@@ -260,6 +260,9 @@ impl Browser {
                 EmbedderMsg::ResizeTo(_browser_id, size) => {
                     self.window.set_inner_size(size);
                 }
+                EmbedderMsg::Alert(_browser_id, _message) => {
+                    display_alert_dialog(&message);
+                }
                 EmbedderMsg::AllowNavigation(_browser_id, _url, response_chan) => {
                     if let Err(e) = response_chan.send(true) {
                         warn!("Failed to send allow_navigation() response: {}", e);
@@ -277,8 +280,8 @@ impl Browser {
                 EmbedderMsg::HeadParsed(_browser_id, ) => {
                     self.loading_state = Some(LoadingState::Loading);
                 }
-                EmbedderMsg::HistoryChanged(_browser_id, entries, current) => {
-                    self.current_url = Some(entries[current].url.clone());
+                EmbedderMsg::HistoryChanged(_browser_id, urls, current) => {
+                    self.current_url = Some(urls[current].clone());
                 }
                 EmbedderMsg::SetFullscreenState(_browser_id, state) => {
                     self.window.set_fullscreen(state);
@@ -313,6 +316,18 @@ impl Browser {
         }
     }
 
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+fn display_alert_dialog(message: &str) {
+    if !opts::get().headless {
+        tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+fn display_alert_dialog(_message: &str) {
+    // tinyfiledialogs not supported on Android
 }
 
 #[cfg(target_os = "linux")]
