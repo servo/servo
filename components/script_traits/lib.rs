@@ -13,6 +13,7 @@ extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
+extern crate embedder_traits;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate hyper;
@@ -702,6 +703,8 @@ pub enum ConstellationMsg {
     NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
     /// Close a top level browsing context.
     CloseBrowser(TopLevelBrowsingContextId),
+    /// Panic a top level browsing context.
+    SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make browser visible.
     SelectBrowser(TopLevelBrowsingContextId),
     /// Forward an event to the script task of the given pipeline.
@@ -730,6 +733,7 @@ impl fmt::Debug for ConstellationMsg {
             WebVREvents(..) => "WebVREvents",
             NewBrowser(..) => "NewBrowser",
             CloseBrowser(..) => "CloseBrowser",
+            SendError(..) => "SendError",
             SelectBrowser(..) => "SelectBrowser",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",

@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+extern crate embedder_traits;
 extern crate euclid;
 extern crate gfx_traits;
 #[cfg(feature = "gleam")]
