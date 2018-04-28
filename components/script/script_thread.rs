@@ -62,6 +62,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worker::TrustedWorkerAddress;
 use dom::worklet::WorkletThreadPool;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
+use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Vector2D, Rect};
 use fetch::FetchCanceller;
 use hyper::header::{ContentType, HttpDate, Headers, LastModified};
@@ -1812,7 +1813,7 @@ impl ScriptThread {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
-        document.send_title_to_constellation();
+        document.send_title_to_embedder();
     }
 
     /// Handles a request to exit a pipeline and shut down layout.
@@ -2272,6 +2273,8 @@ impl ScriptThread {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
+                let window = document.window();
+                let top_level_browsing_context_id = window.top_level_browsing_context_id();
 
                 // Get the previous target temporarily
                 let prev_mouse_over_target = self.topmost_mouse_over_target.get();
@@ -2300,9 +2303,8 @@ impl ScriptThread {
                                                let url = document.url();
                                                url.join(&value).map(|url| url.to_string()).ok()
                                            });
-
-                        let event = ScriptMsg::NodeStatus(status);
-                        self.script_sender.send((pipeline_id, event)).unwrap();
+                        let event = EmbedderMsg::Status(top_level_browsing_context_id, status);
+                        window.send_to_embedder(event);
 
                         state_already_changed = true;
                     }
@@ -2315,8 +2317,8 @@ impl ScriptThread {
                                                .inclusive_ancestors()
                                                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                                                .next() {
-                            let event = ScriptMsg::NodeStatus(None);
-                            self.script_sender.send((pipeline_id, event)).unwrap();
+                            let event = EmbedderMsg::Status(top_level_browsing_context_id, None);
+                            window.send_to_embedder(event);
                         }
                     }
                 }

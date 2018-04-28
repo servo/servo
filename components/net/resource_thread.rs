@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use compositing::compositor_thread::EmbedderProxy;
 use connector::{create_http_connector, create_ssl_client};
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
 use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::EmbedderProxy;
 use embedder_traits::resources::{self, Resource};
 use fetch::cors_cache::CorsCache;
 use fetch::methods::{CancellationListener, FetchContext, fetch};

@@ -5,12 +5,10 @@
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
-use servo::compositing::compositor_thread::EmbedderMsg;
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
-use servo::ipc_channel::ipc::IpcSender;
+use servo::embedder_traits::{EmbedderMsg, FilterPattern};
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
-use servo::net_traits::filemanager_thread::FilterPattern;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
@@ -21,7 +19,7 @@ use std::mem;
 use std::rc::Rc;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::thread;
-use tinyfiledialogs;
+use tinyfiledialogs::{self, MessageBoxIcon};
 
 pub struct Browser {
     current_url: Option<ServoUrl>,
@@ -260,6 +258,13 @@ impl Browser {
                 EmbedderMsg::ResizeTo(_browser_id, size) => {
                     self.window.set_inner_size(size);
                 }
+                EmbedderMsg::Alert(browser_id, message, sender) => {
+                    display_alert_dialog(message.to_owned());
+                    if let Err(e) = sender.send(()) {
+                        let reason = format!("Failed to send Alert response: {}", e);
+                        self.event_queue.push(WindowEvent::SendError(Some(browser_id), reason));
+                    }
+                }
                 EmbedderMsg::AllowNavigation(_browser_id, _url, response_chan) => {
                     if let Err(e) = response_chan.send(true) {
                         warn!("Failed to send allow_navigation() response: {}", e);
@@ -277,8 +282,8 @@ impl Browser {
                 EmbedderMsg::HeadParsed(_browser_id, ) => {
                     self.loading_state = Some(LoadingState::Loading);
                 }
-                EmbedderMsg::HistoryChanged(_browser_id, entries, current) => {
-                    self.current_url = Some(entries[current].url.clone());
+                EmbedderMsg::HistoryChanged(_browser_id, urls, current) => {
+                    self.current_url = Some(urls[current].clone());
                 }
                 EmbedderMsg::SetFullscreenState(_browser_id, state) => {
                     self.window.set_fullscreen(state);
@@ -295,13 +300,22 @@ impl Browser {
                 EmbedderMsg::Panic(_browser_id, _reason, _backtrace) => {
                 },
                 EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
-                    platform_get_selected_devices(devices, sender);
+                    let selected = platform_get_selected_devices(devices);
+                    if let Err(e) = sender.send(selected) {
+                        let reason = format!("Failed to send GetSelectedBluetoothDevice response: {}", e);
+                        self.event_queue.push(WindowEvent::SendError(None, reason));
+                    };
                 },
                 EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
-                    if opts::get().headless {
-                        let _ = sender.send(None);
-                    }
-                    platform_get_selected_files(patterns, multiple_files, sender);
+                    let res = match (opts::get().headless,
+                                     platform_get_selected_files(patterns, multiple_files)) {
+                        (true, _) | (false, None) => sender.send(None),
+                        (false, Some(files)) => sender.send(Some(files))
+                    };
+                    if let Err(e) = res {
+                        let reason = format!("Failed to send SelectFiles response: {}", e);
+                        self.event_queue.push(WindowEvent::SendError(None, reason));
+                    };
                 }
                 EmbedderMsg::ShowIME(_browser_id, _kind) => {
                     debug!("ShowIME received");
@@ -315,8 +329,22 @@ impl Browser {
 
 }
 
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+fn display_alert_dialog(message: String) {
+    if !opts::get().headless {
+        let _ = thread::Builder::new().name("display alert dialog".to_owned()).spawn(move || {
+            tinyfiledialogs::message_box_ok("Alert!", &message, MessageBoxIcon::Warning);
+        }).unwrap().join();
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+fn display_alert_dialog(_message: &str) {
+    // tinyfiledialogs not supported on Android
+}
+
 #[cfg(target_os = "linux")]
-fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<String>>) {
+fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
     let picker_name = "Choose a device";
 
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
@@ -328,58 +356,54 @@ fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<
         match tinyfiledialogs::list_dialog("Choose a device", &["Id", "Name"], dialog_rows) {
             Some(device) => {
                 // The device string format will be "Address|Name". We need the first part of it.
-                let address = device.split("|").next().map(|s| s.to_string());
-                let _ = sender.send(address);
+                device.split("|").next().map(|s| s.to_string())
             },
             None => {
-                let _ = sender.send(None);
+                None
             }
         }
-    }).expect("Thread spawning failed");
+    }).unwrap().join().unwrap()
 }
 
 #[cfg(not(target_os = "linux"))]
-fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<String>>) {
+fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
     for device in devices {
         if let Some(address) = device.split("|").next().map(|s| s.to_string()) {
-            let _ = sender.send(Some(address));
+            return Some(address)
         }
     }
-    let _ = sender.send(None);
+    None
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 fn platform_get_selected_files(patterns: Vec<FilterPattern>,
-                               multiple_files: bool,
-                               sender: IpcSender<Option<Vec<String>>>) {
+                               multiple_files: bool)
+                               -> Option<Vec<String>> {
     let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
-
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
-        let mut filter = vec![];
+        let mut filters = vec![];
         for p in patterns {
             let s = "*.".to_string() + &p.0;
-            filter.push(s)
+            filters.push(s)
         }
-
-        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
+        let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+        let filter_opt = if filters.len() > 0 { Some((filter_ref, "")) } else { None };
 
         if multiple_files {
-            let files = tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt);
-            let _ = sender.send(files);
+            tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt)
         } else {
             let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
-            let _ = sender.send(file.map(|x| vec![x]));
+            file.map(|x| vec![x])
         }
-    }).expect("Thread spawning failed");
+    }).unwrap().join().unwrap()
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 fn platform_get_selected_files(_patterns: Vec<FilterPattern>,
-                               _multiple_files: bool,
-                               sender: IpcSender<Option<Vec<String>>>) {
+                               _multiple_files: bool)
+                               -> Option<Vec<String>> {
     warn!("File picker not implemented");
-    let _ = sender.send(None);
+    None
 }
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {
