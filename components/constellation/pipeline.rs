@@ -5,7 +5,7 @@
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing::CompositionPipeline;
-use compositing::CompositorProxy;
+use compositing::compositor_thread::{CompositorProxy, EmbedderProxy};
 use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::{TypedSize2D, TypedScale};
@@ -127,6 +127,9 @@ pub struct InitialPipelineState {
 
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    
+    /// A channel to the embedder.
+    pub embedder_proxy: EmbedderProxy,
 
     /// A channel to the compositor.
     pub compositor_proxy: CompositorProxy,
@@ -257,6 +260,7 @@ impl Pipeline {
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
                     parent_info: state.parent_info,
+                    embedder_proxy: state.embedder_proxy,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
                     scheduler_chan: state.scheduler_chan,
                     devtools_chan: script_to_devtools_chan,
@@ -447,6 +451,7 @@ pub struct UnprivilegedPipelineContent {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     browsing_context_id: BrowsingContextId,
     parent_info: Option<PipelineId>,
+    embedder_proxy: EmbedderProxy,
     script_to_constellation_chan: ScriptToConstellationChan,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
@@ -493,6 +498,7 @@ impl UnprivilegedPipelineContent {
             parent_info: self.parent_info,
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
+            embedder_proxy: self.embedder_proxy,
             script_to_constellation_chan: self.script_to_constellation_chan.clone(),
             layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan,

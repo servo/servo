@@ -11,6 +11,7 @@
 
 extern crate bluetooth_traits;
 extern crate canvas_traits;
+extern crate compositing;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate euclid;
@@ -40,6 +41,7 @@ pub mod webdriver_msg;
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use gfx_traits::Epoch;
@@ -521,6 +523,8 @@ pub struct InitialScriptState {
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
     pub control_port: IpcReceiver<ConstellationControlMsg>,
+    /// A channel to the embedder.
+    pub embedder_proxy: EmbedderProxy,
     /// A channel on which messages can be sent to the constellation from script.
     pub script_to_constellation_chan: ScriptToConstellationChan,
     /// A sender for the layout thread to communicate to the constellation.
@@ -805,5 +809,21 @@ impl ScriptToConstellationChan {
     /// Send ScriptMsg and attach the pipeline_id to the message.
     pub fn send(&self, msg: ScriptMsg) -> Result<(), IpcError> {
         self.sender.send((self.pipeline_id, msg))
+    }
+}
+
+/// A Script to Embedder channel.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ScriptToEmbedderChan {
+    /// Sender for communicating with constellation thread.
+    pub proxy: EmbedderProxy,
+    /// The top level ancestor browsing context.
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+}
+
+impl ScriptToEmbedderChan {
+    /// Send ScriptMsg and attach the pipeline_id to the message.
+    pub fn send(&self, msg: EmbedderMsg) {
+        self.proxy.send((self.top_level_browsing_context_id, msg))
     }
 }

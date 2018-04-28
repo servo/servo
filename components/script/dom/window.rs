@@ -76,7 +76,8 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventC
 use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use script_thread::{ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
-use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEvent, TimerEventId};
+use script_traits::{ScriptToConstellationChan, ScriptToEmbedderChan};
+use script_traits::{ScriptMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
@@ -1762,6 +1763,7 @@ impl Window {
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        embedder_chan: ScriptToEmbedderChan,
         constellation_chan: ScriptToConstellationChan,
         control_chan: IpcSender<ConstellationControlMsg>,
         scheduler_chan: IpcSender<TimerSchedulerMsg>,
@@ -1793,6 +1795,7 @@ impl Window {
                 devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
+                embedder_chan,
                 constellation_chan,
                 scheduler_chan,
                 resource_threads,

@@ -21,6 +21,7 @@ extern crate itertools;
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
 use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -93,7 +94,8 @@ use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
 use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFactory};
-use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
+use script_traits::{ScriptToConstellationChan, ScriptToEmbedderChan};
+use script_traits::{TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
@@ -848,6 +850,7 @@ impl ScriptThread {
 
             control_chan: state.control_chan,
             control_port: control_port,
+            embedder_proxy: state.embedder_proxy,
             script_sender: state.script_to_constellation_chan.sender.clone(),
             time_profiler_chan: state.time_profiler_chan.clone(),
             mem_profiler_chan: state.mem_profiler_chan,
@@ -2099,6 +2102,11 @@ impl ScriptThread {
             sender: self.script_sender.clone(),
             pipeline_id: incomplete.pipeline_id,
         };
+        
+        let script_to_embedder_chan = ScriptToEmbedderChan {
+            sender: self.embedder_proxy.clone(),
+            top_level_browsing_context_id: incomplete.top_level_browsing_context_id,
+        };
 
         // Create the window and document objects.
         let window = Window::new(
@@ -2117,6 +2125,7 @@ impl ScriptThread {
             self.mem_profiler_chan.clone(),
             self.time_profiler_chan.clone(),
             self.devtools_chan.clone(),
+            script_to_embedder_chan,
             script_to_constellation_chan,
             self.control_chan.clone(),
             self.scheduler_chan.clone(),
