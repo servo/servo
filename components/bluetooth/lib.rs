@@ -5,8 +5,8 @@
 #[macro_use]
 extern crate bitflags;
 extern crate bluetooth_traits;
-extern crate compositing;
 extern crate device;
+extern crate embedder_traits;
 extern crate ipc_channel;
 #[macro_use]
 extern crate log;
@@ -21,7 +21,7 @@ use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse, 
 use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
-use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};

@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_thread::EventLoopWaker;
+use embedder_traits::EventLoopWaker;
 use euclid::TypedScale;
 #[cfg(feature = "gleam")]
 use gleam::gl;

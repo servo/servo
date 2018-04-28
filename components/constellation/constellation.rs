@@ -98,10 +98,11 @@ use canvas_traits::canvas::CanvasId;
 use canvas_traits::canvas::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
-use compositing::compositor_thread::{CompositorProxy, EmbedderMsg, EmbedderProxy};
+use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use euclid::{Size2D, TypedSize2D, TypedScale};
 use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
@@ -1029,6 +1030,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .unwrap_or(false);
 
         match content {
+            FromScriptMsg::Forward(embedder_msg) => {
+                self.embedder_proxy.send(embedder_msg);
+            }
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
             }
@@ -1173,10 +1177,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::SetDocumentState(state) => {
                 debug!("constellation got SetDocumentState message");
                 self.document_states.insert(source_pipeline_id, state);
-            }
-            FromScriptMsg::Alert(message, sender) => {
-                debug!("constellation got Alert message");
-                self.handle_alert(source_top_ctx_id, message, sender);
             }
 
             FromScriptMsg::MoveTo(point) => {
@@ -1763,23 +1763,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         };
         if let Err(e) = result {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    fn handle_alert(&mut self,
-                    top_level_browsing_context_id: TopLevelBrowsingContextId,
-                    _message: String,
-                    sender: IpcSender<bool>) {
-        // FIXME: forward alert event to embedder
-        // https://github.com/servo/servo/issues/19992
-        let result = sender.send(true);
-        if let Err(e) = result {
-            let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
-            let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
-                Some(ctx) => ctx.pipeline_id,
-                None => return warn!("Alert sent for unknown browsing context."),
-            };
             self.handle_send_error(pipeline_id, e);
         }
     }
@@ -2456,8 +2439,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         entries.extend(session_history.future.iter().rev()
             .scan(current_load_data.clone(), &resolve_load_data_future));
-
-        let msg = EmbedderMsg::HistoryChanged(top_level_browsing_context_id, entries, current_index);
+        let urls = entries.iter().map(|entry| entry.url.clone()).collect();
+        let msg = EmbedderMsg::HistoryChanged(top_level_browsing_context_id, urls, current_index);
         self.embedder_proxy.send(msg);
     }
 

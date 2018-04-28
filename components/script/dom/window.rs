@@ -48,6 +48,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
 use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D};
 use fetch;
 use ipc_channel::ipc::IpcSender;
@@ -543,7 +544,11 @@ impl WindowMethods for Window {
         }
 
         let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.send_to_constellation(ScriptMsg::Alert(s.to_string(), sender));
+        let window_proxy = self.window_proxy.get().unwrap();
+        let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
+        self.send_to_constellation(ScriptMsg::Forward(EmbedderMsg::Alert(top_level_browsing_context_id,
+                                                                         s.to_string(),
+                                                                         sender)));
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {

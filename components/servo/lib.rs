@@ -73,8 +73,8 @@ use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
 use compositing::{IOCompositor, ShutdownState, RenderNotifier};
-use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
-use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
+use compositing::compositor_thread::{CompositorProxy, CompositorReceiver, InitialCompositorState};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
@@ -417,7 +417,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
     }
 }
 
-fn create_embedder_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
+fn create_embedder_channel(event_loop_waker: Box<EventLoopWaker>)
     -> (EmbedderProxy, EmbedderReceiver) {
     let (sender, receiver) = channel();
     (EmbedderProxy {
@@ -429,7 +429,7 @@ fn create_embedder_channel(event_loop_waker: Box<compositor_thread::EventLoopWak
      })
 }
 
-fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
+fn create_compositor_channel(event_loop_waker: Box<EventLoopWaker>)
     -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = channel();
     (CompositorProxy {

@@ -13,6 +13,7 @@ extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
+extern crate embedder_traits;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate hyper;

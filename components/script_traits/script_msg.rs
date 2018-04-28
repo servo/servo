@@ -13,6 +13,7 @@ use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
 use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use embedder_traits::{EmbedderMsg};
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -69,6 +70,8 @@ pub enum LogEntry {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Forward a message to the embedder.
+    Forward(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
     /// for cross-origin loads
     InitiateNavigateRequest(RequestInit, /* cancellation_chan */ IpcReceiver<()>),
@@ -133,8 +136,6 @@ pub enum ScriptMsg {
     SetDocumentState(DocumentState),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
-    /// Check if an alert dialog box should be presented
-    Alert(String, IpcSender<bool>),
     /// Set title of current page
     /// <https://html.spec.whatwg.org/multipage/#document.title>
     SetTitle(Option<String>),
