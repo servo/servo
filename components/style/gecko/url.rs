@@ -15,11 +15,11 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem;
-use style_traits::{ParseError, SpecifiedValueInfo};
+use style_traits::ParseError;
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 pub struct CssUrl {
     /// The URL in unresolved string form.
     ///
@@ -119,8 +119,6 @@ impl MallocSizeOf for CssUrl {
         0
     }
 }
-
-impl SpecifiedValueInfo for CssUrl {}
 
 /// A specified url() value for general usage.
 #[derive(Clone, Debug, SpecifiedValueInfo, ToComputedValue, ToCss)]

@@ -27,7 +27,7 @@ use smallvec::SmallVec;
 use std::{cmp, ptr};
 use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
-use style_traits::{ParseError, SpecifiedValueInfo};
+use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo};
 use super::ComputedValues;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
@@ -172,7 +172,14 @@ impl From<nsCSSPropertyID> for TransitionProperty {
     }
 }
 
-impl SpecifiedValueInfo for TransitionProperty {}
+impl SpecifiedValueInfo for TransitionProperty {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        // `transition-property` can actually accept all properties and
+        // arbitrary identifiers, but `all` is a special one we'd like
+        // to list.
+        f(&["all"]);
+    }
+}
 
 /// Returns true if this nsCSSPropertyID is one of the transitionable properties.
 #[cfg(feature = "gecko")]

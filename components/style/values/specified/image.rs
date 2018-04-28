@@ -17,8 +17,8 @@ use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::f32::consts::PI;
 use std::fmt::{self, Write};
-use style_traits::{CssType, CssWriter, ParseError, StyleParseErrorKind};
-use style_traits::{SpecifiedValueInfo, ToCss};
+use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{StyleParseErrorKind, SpecifiedValueInfo, ToCss};
 use values::{Either, None_};
 #[cfg(feature = "gecko")]
 use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
@@ -57,6 +57,25 @@ pub type Gradient = generic::Gradient<
 
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
+
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        // This list here should keep sync with that in Gradient::parse.
+        f(&[
+          "linear-gradient",
+          "-webkit-linear-gradient",
+          "-moz-linear-gradient",
+          "repeating-linear-gradient",
+          "-webkit-repeating-linear-gradient",
+          "-moz-repeating-linear-gradient",
+          "radial-gradient",
+          "-webkit-radial-gradient",
+          "-moz-radial-gradient",
+          "repeating-radial-gradient",
+          "-webkit-repeating-radial-gradient",
+          "-moz-repeating-radial-gradient",
+          "-webkit-gradient",
+        ]);
+    }
 }
 
 /// A specified gradient kind.

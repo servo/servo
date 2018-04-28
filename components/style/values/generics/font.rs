@@ -11,7 +11,8 @@ use num_traits::One;
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use std::io::Cursor;
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
@@ -181,8 +182,10 @@ where
     }
 }
 
-impl<Length> SpecifiedValueInfo for KeywordInfo<Length> {
-    const SUPPORTED_TYPES: u8 = <KeywordSize as SpecifiedValueInfo>::SUPPORTED_TYPES;
+impl<L> SpecifiedValueInfo for KeywordInfo<L> {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        <KeywordSize as SpecifiedValueInfo>::collect_completion_keywords(f);
+    }
 }
 
 /// CSS font keywords
