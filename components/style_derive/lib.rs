@@ -64,7 +64,7 @@ pub fn derive_to_css(stream: TokenStream) -> TokenStream {
     to_css::derive(input).into()
 }
 
-#[proc_macro_derive(SpecifiedValueInfo, attributes(css))]
+#[proc_macro_derive(SpecifiedValueInfo, attributes(css, value_info))]
 pub fn derive_specified_value_info(stream: TokenStream) -> TokenStream {
     let input = syn::parse(stream).unwrap();
     specified_value_info::derive(input).into()

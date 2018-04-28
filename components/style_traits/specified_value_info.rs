@@ -27,6 +27,36 @@ pub mod CssType {
 pub type KeywordsCollectFn<'a> = &'a mut FnMut(&[&'static str]);
 
 /// Information of values of a given specified value type.
+///
+/// This trait is derivable with `#[derive(SpecifiedValueInfo)]`.
+///
+/// The algorithm traverses the type definition. For `SUPPORTED_TYPES`,
+/// it puts an or'ed value of `SUPPORTED_TYPES` of all types it finds.
+/// For `collect_completion_keywords`, it recursively invokes this
+/// method on types found, and lists all keyword values and function
+/// names following the same rule as `ToCss` in that method.
+///
+/// Some attributes of `ToCss` can affect the behavior, specifically:
+/// * If `#[css(function)]` is found, the content inside the annotated
+///   variant (or the whole type) isn't traversed, only the function
+///   name is listed in `collect_completion_keywords`.
+/// * If `#[css(skip)]` is found, the content inside the variant or
+///   field is ignored.
+/// * Values listed in `#[css(if_empty)]`, `#[css(aliases)]`, and
+///   `#[css(keyword)]` are added into `collect_completion_keywords`.
+///
+/// In addition to `css` attributes, it also has `value_info` helper
+/// attributes, including:
+/// * `#[value_info(ty = "TYPE")]` can be used to specify a constant
+///   from `CssType` to `SUPPORTED_TYPES`.
+/// * `#[value_info(other_values = "value1,value2")]` can be used to
+///   add other values related to a field, variant, or the type itself
+///   into `collect_completion_keywords`.
+/// * `#[value_info(starts_with_keyword)]` can be used on variants to
+///   add the name of a non-unit variant (serialized like `ToCss`) into
+///   `collect_completion_keywords`.
+/// * `#[value_info(represents_keyword)]` can be used on fields into
+///   `collect_completion_keywords`.
 pub trait SpecifiedValueInfo {
     /// Supported CssTypes by the given value type.
     ///

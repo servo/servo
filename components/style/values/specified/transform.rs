@@ -7,7 +7,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
-use style_traits::{CssType, ParseError, SpecifiedValueInfo, StyleParseErrorKind};
+use style_traits::{ParseError, StyleParseErrorKind};
 use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
@@ -245,10 +245,6 @@ pub enum OriginComponent<S> {
 
 /// A specified timing function.
 pub type TimingFunction = generic::TimingFunction<Integer, Number>;
-
-impl SpecifiedValueInfo for TimingFunction {
-    const SUPPORTED_TYPES: u8 = CssType::TIMING_FUNCTION;
-}
 
 impl Parse for TransformOrigin {
     fn parse<'i, 't>(

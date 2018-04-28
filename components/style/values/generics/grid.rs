@@ -198,10 +198,12 @@ pub enum TrackSize<L> {
     /// and a flexible `<track-breadth>`
     ///
     /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax>
+    #[css(function)]
     Minmax(TrackBreadth<L>, TrackBreadth<L>),
     /// A `fit-content` function.
     ///
     /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content>
+    #[css(function)]
     FitContent(L),
 }
 
@@ -346,8 +348,7 @@ where
 /// The initial argument of the `repeat` function.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-repeat>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum RepeatCount<Integer> {
     /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
     Number(Integer),
@@ -384,6 +385,7 @@ impl Parse for RepeatCount<specified::Integer> {
 /// values in its computed form.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
          ToComputedValue)]
+#[css(function = "repeat")]
 pub struct TrackRepeat<L, I> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
     pub count: RepeatCount<I>,
@@ -481,8 +483,7 @@ pub enum TrackListValue<LengthOrPercentage, Integer> {
 /// The type of a `<track-list>` as determined during parsing.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 pub enum TrackListType {
     /// [`<auto-track-list>`](https://drafts.csswg.org/css-grid/#typedef-auto-track-list)
     ///
@@ -510,6 +511,7 @@ pub struct TrackList<LengthOrPercentage, Integer> {
     ///
     /// In order to avoid parsing the same value multiple times, this does a single traversal
     /// and arrives at the type of value it has parsed (or bails out gracefully with an error).
+    #[css(skip)]
     pub list_type: TrackListType,
     /// A vector of `<track-size> | <track-repeat>` values.
     pub values: Vec<TrackListValue<LengthOrPercentage, Integer>>,

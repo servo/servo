@@ -4,17 +4,17 @@
 
 use cg;
 use quote::Tokens;
-use syn::{Data, DeriveInput, Fields, Type};
+use syn::{Data, DeriveInput, Fields, Ident,Type};
 use to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
-    let attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
+    let css_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
     let mut types = vec![];
     let mut values = vec![];
 
     let input_ident = input.ident;
     let input_name = || cg::to_css_identifier(input_ident.as_ref());
-    if let Some(function) = attrs.function {
+    if let Some(function) = css_attrs.function {
         values.push(function.explicit().unwrap_or_else(input_name));
         // If the whole value is wrapped in a function, value types of
         // its fields should not be propagated.
@@ -31,21 +31,32 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         match input.data {
             Data::Enum(ref e) => {
                 for v in e.variants.iter() {
-                    let attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&v);
-                    if attrs.skip {
+                    let css_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&v);
+                    let info_attrs = cg::parse_variant_attrs::<ValueInfoVariantAttrs>(&v);
+                    if css_attrs.skip {
                         continue;
                     }
-                    if let Some(aliases) = attrs.aliases {
+                    if let Some(aliases) = css_attrs.aliases {
                         for alias in aliases.split(",") {
                             values.push(alias.to_string());
                         }
                     }
-                    if let Some(keyword) = attrs.keyword {
+                    if let Some(other_values) = info_attrs.other_values {
+                        for value in other_values.split(",") {
+                            values.push(value.to_string());
+                        }
+                    }
+                    let ident = &v.ident;
+                    let variant_name = || cg::to_css_identifier(ident.as_ref());
+                    if info_attrs.starts_with_keyword {
+                        values.push(variant_name());
+                        continue;
+                    }
+                    if let Some(keyword) = css_attrs.keyword {
                         values.push(keyword);
                         continue;
                     }
-                    let variant_name = || cg::to_css_identifier(v.ident.as_ref());
-                    if let Some(function) = attrs.function {
+                    if let Some(function) = css_attrs.function {
                         values.push(function.explicit().unwrap_or_else(variant_name));
                     } else {
                         if !derive_struct_fields(&v.fields, &mut types, &mut values) {
@@ -63,6 +74,13 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         }
     }
 
+    let info_attrs = cg::parse_input_attrs::<ValueInfoInputAttrs>(&input);
+    if let Some(other_values) = info_attrs.other_values {
+        for value in other_values.split(",") {
+            values.push(value.to_string());
+        }
+    }
+
     let mut types_value = quote!(0);
     types_value.append_all(types.iter().map(|ty| quote! {
         | <#ty as ::style_traits::SpecifiedValueInfo>::SUPPORTED_TYPES
@@ -72,6 +90,12 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     nested_collects.append_all(types.iter().map(|ty| quote! {
         <#ty as ::style_traits::SpecifiedValueInfo>::collect_completion_keywords(_f);
     }));
+
+    if let Some(ty) = info_attrs.ty {
+        types_value.append_all(quote! {
+            | ::style_traits::CssType::#ty
+        });
+    }
 
     let append_values = if values.is_empty() {
         quote!()
@@ -110,15 +134,48 @@ fn derive_struct_fields<'a>(
         Fields::Unnamed(ref fields) => fields.unnamed.iter(),
     };
     types.extend(fields.filter_map(|field| {
-        let attrs = cg::parse_field_attrs::<CssFieldAttrs>(field);
-        if let Some(if_empty) = attrs.if_empty {
+        let info_attrs = cg::parse_field_attrs::<ValueInfoFieldAttrs>(field);
+        if let Some(other_values) = info_attrs.other_values {
+            for value in other_values.split(",") {
+                values.push(value.to_string());
+            }
+        }
+        if info_attrs.represents_keyword {
+            let ident = field.ident.as_ref()
+                .expect("only named field should use represents_keyword");
+            values.push(cg::to_css_identifier(ident.as_ref()));
+            return None;
+        }
+        let css_attrs = cg::parse_field_attrs::<CssFieldAttrs>(field);
+        if let Some(if_empty) = css_attrs.if_empty {
             values.push(if_empty);
         }
-        if !attrs.skip {
+        if !css_attrs.skip {
             Some(&field.ty)
         } else {
             None
         }
     }));
     true
+}
+
+#[darling(attributes(value_info), default)]
+#[derive(Default, FromDeriveInput)]
+struct ValueInfoInputAttrs {
+    ty: Option<Ident>,
+    other_values: Option<String>,
+}
+
+#[darling(attributes(value_info), default)]
+#[derive(Default, FromVariant)]
+struct ValueInfoVariantAttrs {
+    starts_with_keyword: bool,
+    other_values: Option<String>,
+}
+
+#[darling(attributes(value_info), default)]
+#[derive(Default, FromField)]
+struct ValueInfoFieldAttrs {
+    represents_keyword: bool,
+    other_values: Option<String>,
 }

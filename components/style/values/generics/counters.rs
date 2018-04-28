@@ -59,7 +59,7 @@ impl<I> Deref for CounterReset<I> {
 /// Keyword `none` is represented by an empty vector.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
          ToComputedValue)]
-pub struct Counters<I>(Box<[(CustomIdent, I)]>);
+pub struct Counters<I>(#[css(if_empty = "none")] Box<[(CustomIdent, I)]>);
 
 impl<I> Default for Counters<I> {
     #[inline]

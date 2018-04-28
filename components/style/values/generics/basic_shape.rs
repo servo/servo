@@ -69,6 +69,7 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-inset>
 #[allow(missing_docs)]
+#[css(function = "inset")]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
          SpecifiedValueInfo, ToComputedValue)]
 pub struct InsetRect<LengthOrPercentage> {
@@ -78,6 +79,7 @@ pub struct InsetRect<LengthOrPercentage> {
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
 #[allow(missing_docs)]
+#[css(function)]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
          PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct Circle<H, V, LengthOrPercentage> {
@@ -87,6 +89,7 @@ pub struct Circle<H, V, LengthOrPercentage> {
 
 /// <https://drafts.csswg.org/css-shapes/#funcdef-ellipse>
 #[allow(missing_docs)]
+#[css(function)]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
          PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct Ellipse<H, V, LengthOrPercentage> {
@@ -110,6 +113,7 @@ pub enum ShapeRadius<LengthOrPercentage> {
 /// A generic type for representing the `polygon()` function
 ///
 /// <https://drafts.csswg.org/css-shapes/#funcdef-polygon>
+#[css(function)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
          ToComputedValue)]
 pub struct Polygon<LengthOrPercentage> {

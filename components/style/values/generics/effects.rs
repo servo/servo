@@ -19,6 +19,7 @@ pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
     pub spread: ShapeLength,
     /// Whether this is an inset box shadow.
     #[animation(constant)]
+    #[value_info(represents_keyword)]
     pub inset: bool,
 }
 

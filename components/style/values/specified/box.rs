@@ -9,7 +9,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{CustomIdent, KeyframesName};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
@@ -298,6 +298,7 @@ impl AnimationIterationCount {
 /// A value for the `animation-name` property.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo,
          ToComputedValue)]
+#[value_info(other_values = "none")]
 pub struct AnimationName(pub Option<KeyframesName>);
 
 impl AnimationName {
@@ -420,8 +421,9 @@ impl Parse for WillChange {
 
 bitflags! {
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(ToComputedValue)]
+    #[derive(SpecifiedValueInfo, ToComputedValue)]
     /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
     pub struct TouchAction: u8 {
         /// `none` variant
         const TOUCH_ACTION_NONE = 1 << 0;
@@ -493,8 +495,6 @@ impl Parse for TouchAction {
     }
 }
 
-impl SpecifiedValueInfo for TouchAction {}
-
 #[cfg(feature = "gecko")]
 impl_bitflags_conversions!(TouchAction);
 
@@ -522,7 +522,8 @@ pub fn assert_touch_action_matches() {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, ToComputedValue)]
+    #[derive(MallocSizeOf, ToComputedValue, SpecifiedValueInfo)]
+    #[value_info(other_values = "none,strict,layout,style,paint")]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
         /// `layout` variant, turns on layout containment
@@ -604,8 +605,6 @@ impl Parse for Contain {
         }
     }
 }
-
-impl SpecifiedValueInfo for Contain {}
 
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;

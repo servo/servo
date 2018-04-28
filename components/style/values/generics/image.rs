@@ -26,6 +26,7 @@ pub enum Image<Gradient, MozImageRect, ImageUrl> {
     /// A `-moz-image-rect` image.  Also fairly large and rare.
     Rect(Box<MozImageRect>),
     /// A `-moz-element(# <element-id>)`
+    #[css(function = "-moz-element")]
     Element(Atom),
     /// A paint worklet image.
     /// <https://drafts.css-houdini.org/css-paint-api/>

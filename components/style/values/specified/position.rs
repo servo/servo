@@ -431,6 +431,7 @@ pub struct GridAutoFlow {
     /// Specifiy how auto-placement algorithm fills each `row` or `column` in turn
     pub autoflow: AutoFlow,
     /// Specify use `dense` packing algorithm or not
+    #[value_info(represents_keyword)]
     pub dense: bool,
 }
 
