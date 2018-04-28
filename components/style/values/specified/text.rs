@@ -355,13 +355,17 @@ impl Parse for TextDecorationLine {
 }
 
 macro_rules! define_text_align_keyword {
-    ($($name: ident => $discriminant: expr,)+) => {
+    ($(
+        $(#[$($meta:tt)+])*
+        $name: ident => $discriminant: expr,
+    )+) => {
         /// Specified value of text-align keyword value.
         #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
                  SpecifiedValueInfo, ToComputedValue, ToCss)]
         #[allow(missing_docs)]
         pub enum TextAlignKeyword {
             $(
+                $(#[$($meta)+])*
                 $name = $discriminant,
             )+
         }
@@ -392,6 +396,7 @@ define_text_align_keyword! {
     MozCenter => 6,
     MozLeft => 7,
     MozRight => 8,
+    #[css(skip)]
     Char => 10,
 }
 
@@ -418,7 +423,7 @@ impl TextAlignKeyword {
 
 /// Specified value of text-align property.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextAlign {
     /// Keyword value of text-align property.
     Keyword(TextAlignKeyword),
@@ -430,6 +435,7 @@ pub enum TextAlign {
     /// only set directly on the elements and it has a different handling
     /// unlike other values.
     #[cfg(feature = "gecko")]
+    #[css(skip)]
     MozCenterOrInherit,
 }
 
@@ -450,21 +456,6 @@ impl Parse for TextAlign {
         #[cfg(feature = "servo")]
         {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-    }
-}
-
-impl ToCss for TextAlign {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            TextAlign::Keyword(key) => key.to_css(dest),
-            #[cfg(feature = "gecko")]
-            TextAlign::MatchParent => dest.write_str("match-parent"),
-            #[cfg(feature = "gecko")]
-            TextAlign::MozCenterOrInherit => Ok(()),
         }
     }
 }
