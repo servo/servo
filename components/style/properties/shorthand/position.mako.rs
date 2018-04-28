@@ -108,30 +108,30 @@
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="grid-gap" sub_properties="grid-row-gap grid-column-gap"
-                    spec="https://drafts.csswg.org/css-grid/#propdef-grid-gap"
+<%helpers:shorthand name="gap" alias="grid-gap" sub_properties="row-gap column-gap"
+                    spec="https://drafts.csswg.org/css-align-3/#gap-shorthand"
                     products="gecko">
-  use properties::longhands::{grid_row_gap, grid_column_gap};
+  use properties::longhands::{row_gap, column_gap};
 
   pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<Longhands, ParseError<'i>> {
-      let row_gap = grid_row_gap::parse(context, input)?;
-      let column_gap = input.try(|input| grid_column_gap::parse(context, input)).unwrap_or(row_gap.clone());
+      let r_gap = row_gap::parse(context, input)?;
+      let c_gap = input.try(|input| column_gap::parse(context, input)).unwrap_or(r_gap.clone());
 
       Ok(expanded! {
-        grid_row_gap: row_gap,
-        grid_column_gap: column_gap,
+        row_gap: r_gap,
+        column_gap: c_gap,
       })
   }
 
   impl<'a> ToCss for LonghandsToSerialize<'a>  {
       fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-          if self.grid_row_gap == self.grid_column_gap {
-            self.grid_row_gap.to_css(dest)
+          if self.row_gap == self.column_gap {
+            self.row_gap.to_css(dest)
           } else {
-            self.grid_row_gap.to_css(dest)?;
+            self.row_gap.to_css(dest)?;
             dest.write_str(" ")?;
-            self.grid_column_gap.to_css(dest)
+            self.column_gap.to_css(dest)
           }
       }
   }

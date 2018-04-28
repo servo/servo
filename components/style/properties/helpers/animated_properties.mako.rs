@@ -19,7 +19,6 @@ use num_traits::Zero;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
-use properties::longhands::font_stretch::computed_value::T as FontStretch;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::PropertyId;
 use properties::{LonghandId, ShorthandId};
@@ -873,80 +872,10 @@ impl ToAnimatedZero for MaxLength {
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
-/// <http://dev.w3.org/csswg/css-transitions/#animtype-font-weight>
-impl Animate for FontWeight {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let a = self.0 as f64;
-        let b = other.0 as f64;
-        const NORMAL: f64 = 400.;
-        let (this_weight, other_weight) = procedure.weights();
-        let weight = (a - NORMAL) * this_weight + (b - NORMAL) * other_weight + NORMAL;
-        let weight = (weight.max(100.).min(900.) / 100.).round() * 100.;
-        Ok(FontWeight(weight as u16))
-    }
-}
-
 impl ToAnimatedZero for FontWeight {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Ok(FontWeight::normal())
-    }
-}
-
-/// <https://drafts.csswg.org/css-fonts/#font-stretch-prop>
-impl Animate for FontStretch {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
-    {
-        let from = f64::from(*self);
-        let to = f64::from(*other);
-        let normal = f64::from(FontStretch::Normal);
-        let (this_weight, other_weight) = procedure.weights();
-        let result = (from - normal) * this_weight + (to - normal) * other_weight + normal;
-        Ok(result.into())
-    }
-}
-
-impl ComputeSquaredDistance for FontStretch {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        f64::from(*self).compute_squared_distance(&(*other).into())
-    }
-}
-
-impl ToAnimatedZero for FontStretch {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
-}
-
-/// We should treat font stretch as real number in order to interpolate this property.
-/// <https://drafts.csswg.org/css-fonts-3/#font-stretch-animation>
-impl From<FontStretch> for f64 {
-    fn from(stretch: FontStretch) -> f64 {
-        use self::FontStretch::*;
-        match stretch {
-            UltraCondensed => 1.0,
-            ExtraCondensed => 2.0,
-            Condensed => 3.0,
-            SemiCondensed => 4.0,
-            Normal => 5.0,
-            SemiExpanded => 6.0,
-            Expanded => 7.0,
-            ExtraExpanded => 8.0,
-            UltraExpanded => 9.0,
-        }
-    }
-}
-
-impl Into<FontStretch> for f64 {
-    fn into(self) -> FontStretch {
-        use properties::longhands::font_stretch::computed_value::T::*;
-        let index = (self + 0.5).floor().min(9.0).max(1.0);
-        static FONT_STRETCH_ENUM_MAP: [FontStretch; 9] =
-            [ UltraCondensed, ExtraCondensed, Condensed, SemiCondensed, Normal,
-              SemiExpanded, Expanded, ExtraExpanded, UltraExpanded ];
-        FONT_STRETCH_ENUM_MAP[(index - 1.0) as usize]
     }
 }
 

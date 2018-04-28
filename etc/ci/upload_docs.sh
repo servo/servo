@@ -23,11 +23,6 @@ env CC=gcc-5 CXX=g++-5 ./mach doc
 # when it encounters directories.
 cp -r etc/doc.servo.org/* target/doc/
 
-./mach cargo-geckolib doc
-# Use recursive copy here to avoid `cp` returning an error code
-# when it encounters directories.
-cp -r target/geckolib/doc/* target/doc/geckolib/
-
 python components/style/properties/build.py servo html regular
 
 cd components/script

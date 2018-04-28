@@ -6,10 +6,6 @@
 //!
 //! [ff]: https://drafts.csswg.org/css-fonts/#at-font-face-rule
 
-#![deny(missing_docs)]
-
-#[cfg(feature = "gecko")]
-use computed_values::{font_stretch, font_style, font_weight};
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
@@ -26,8 +22,12 @@ use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
+use values::generics::font::FontStyle as GenericFontStyle;
+use values::specified::Angle;
+use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
+use values::specified::font::SpecifiedFontStyle;
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -92,38 +92,94 @@ pub enum FontDisplay {
     Optional,
 }
 
-/// A font-weight value for a @font-face rule.
-/// The font-weight CSS property specifies the weight or boldness of the font.
-#[cfg(feature = "gecko")]
-#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
-pub enum FontWeight {
-    /// Numeric font weights for fonts that provide more than just normal and bold.
-    Weight(font_weight::T),
-    /// Normal font weight. Same as 400.
-    Normal,
-    /// Bold font weight. Same as 700.
-    Bold,
-}
+/// The font-weight descriptor:
+///
+/// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-weight
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct FontWeight(pub AbsoluteFontWeight, pub Option<AbsoluteFontWeight>);
 
-#[cfg(feature = "gecko")]
 impl Parse for FontWeight {
     fn parse<'i, 't>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<FontWeight, ParseError<'i>> {
-        let result = input.try(|input| {
-            let ident = input.expect_ident().map_err(|_| ())?;
-            match_ignore_ascii_case! { &ident,
-                "normal" => Ok(FontWeight::Normal),
-                "bold" => Ok(FontWeight::Bold),
-                _ => Err(())
+    ) -> Result<Self, ParseError<'i>> {
+        let first = AbsoluteFontWeight::parse(context, input)?;
+        let second =
+            input.try(|input| AbsoluteFontWeight::parse(context, input)).ok();
+        Ok(FontWeight(first, second))
+    }
+}
+
+/// The font-stretch descriptor:
+///
+/// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-stretch
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct FontStretch(pub SpecifiedFontStretch, pub Option<SpecifiedFontStretch>);
+
+impl Parse for FontStretch {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let first = SpecifiedFontStretch::parse(context, input)?;
+        let second =
+            input.try(|input| SpecifiedFontStretch::parse(context, input)).ok();
+        Ok(FontStretch(first, second))
+    }
+}
+
+/// The font-style descriptor:
+///
+/// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-style
+#[derive(Clone, Debug, PartialEq)]
+#[allow(missing_docs)]
+pub enum FontStyle {
+    Normal,
+    Italic,
+    Oblique(Angle, Angle),
+}
+
+impl Parse for FontStyle {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let style = SpecifiedFontStyle::parse(context, input)?;
+        Ok(match style {
+            GenericFontStyle::Normal => FontStyle::Normal,
+            GenericFontStyle::Italic => FontStyle::Italic,
+            GenericFontStyle::Oblique(angle) => {
+                let second_angle = input.try(|input| {
+                    SpecifiedFontStyle::parse_angle(context, input)
+                }).unwrap_or_else(|_| angle.clone());
+
+                FontStyle::Oblique(angle, second_angle)
             }
-        });
-        result.or_else(|_| {
-            font_weight::T::from_int(input.expect_integer()?)
-                .map(FontWeight::Weight)
-                .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         })
+    }
+}
+
+impl ToCss for FontStyle {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match *self {
+            FontStyle::Normal => dest.write_str("normal"),
+            FontStyle::Italic => dest.write_str("italic"),
+            FontStyle::Oblique(ref first, ref second) => {
+                dest.write_str("oblique")?;
+                if *first != SpecifiedFontStyle::default_angle() || first != second {
+                    dest.write_char(' ')?;
+                    first.to_css(dest)?;
+                }
+                if first != second {
+                    dest.write_char(' ')?;
+                    second.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
     }
 }
 
@@ -403,16 +459,16 @@ font_face_descriptors! {
         "src" sources / mSrc: Vec<Source>,
     ]
     optional descriptors = [
-        /// The style of this font face
-        "font-style" style / mStyle: font_style::T,
+        /// The style of this font face.
+        "font-style" style / mStyle: FontStyle,
 
-        /// The weight of this font face
+        /// The weight of this font face.
         "font-weight" weight / mWeight: FontWeight,
 
-        /// The stretch of this font face
-        "font-stretch" stretch / mStretch: font_stretch::T,
+        /// The stretch of this font face.
+        "font-stretch" stretch / mStretch: FontStretch,
 
-        /// The display of this font face
+        /// The display of this font face.
         "font-display" display / mDisplay: FontDisplay,
 
         /// The ranges of code points outside of which this font face should not be used.

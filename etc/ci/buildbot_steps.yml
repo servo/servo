@@ -22,7 +22,6 @@ mac-rel-wpt2:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build-geckolib --release
 
 mac-rel-wpt3:
   - ./mach clean-nightlies --keep 3 --force
@@ -47,7 +46,6 @@ mac-dev-unit:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
   - python ./etc/memory_reports_over_time.py --test
   - ./mach package --dev
-  - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
@@ -113,8 +111,6 @@ linux-dev:
     - python ./etc/memory_reports_over_time.py --test
     - ./mach package --dev
     - ./mach build --dev --no-default-features --features default-except-unstable
-    - ./mach build-geckolib
-    - ./mach test-stylo
     - bash ./etc/ci/lockfile_changed.sh
     - bash ./etc/ci/manifest_changed.sh
     - bash ./etc/ci/check_no_panic.sh
@@ -145,8 +141,6 @@ linux-rel-css:
     - ./mach build --release --with-debug-assertions
     - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-    - ./mach build-geckolib --release
-    - ./mach test-stylo --release
     - bash ./etc/ci/lockfile_changed.sh
     - bash ./etc/ci/manifest_changed.sh
     - ./etc/ci/clean_build_artifacts.sh
@@ -201,8 +195,6 @@ windows-msvc-dev:
   - mach.bat build --dev
   - mach.bat test-unit
   - mach.bat package --dev
-  - mach.bat build-geckolib
-  - mach.bat test-stylo
 
 windows-msvc-nightly:
   env:

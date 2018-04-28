@@ -11,8 +11,11 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 
 fn main() {
+    // https://github.com/rust-lang/cargo/issues/3544
+    let style_out_dir = env::var_os("DEP_FOR SOME REASON THE LINKS KEY IS REQUIRED \
+                                     TO PASS DATA AROUND BETWEEN BUILD SCRIPTS_OUT_DIR").unwrap();
     let root_path = Path::new("../../../");
-    let bindings_file = root_path.join("components/style/gecko/generated/bindings.rs");
+    let bindings_file = Path::new(&style_out_dir).join("gecko/bindings.rs");
     let glue_file = root_path.join("ports/geckolib/glue.rs");
 
     println!("cargo:rerun-if-changed=build.rs");
@@ -70,9 +73,6 @@ fn main() {
         }
     }
 
-    // https://github.com/rust-lang/cargo/issues/3544
-    let style_out_dir = env::var_os("DEP_FOR SOME REASON THE LINKS KEY IS REQUIRED \
-                                     TO PASS DATA AROUND BETWEEN BUILD SCRIPTS_OUT_DIR").unwrap();
     File::create(out_dir.join("bindings.rs"))
         .unwrap()
         .write_all(format!("include!(concat!({:?}, \"/gecko/structs.rs\"));",

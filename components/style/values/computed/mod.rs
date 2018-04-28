@@ -39,8 +39,8 @@ pub use self::angle::Angle;
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
-pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontVariantAlternates, FontWeight};
-pub use self::font::{FontFamily, FontLanguageOverride, FontVariantEastAsian, FontVariationSettings};
+pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontVariantAlternates, FontWeight};
+pub use self::font::{FontFamily, FontLanguageOverride, FontStyle, FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
@@ -66,7 +66,7 @@ pub use self::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;
-pub use self::percentage::Percentage;
+pub use self::percentage::{Percentage, NonNegativePercentage};
 pub use self::pointing::{CaretColor, Cursor};
 #[cfg(feature = "gecko")]
 pub use self::pointing::CursorImage;

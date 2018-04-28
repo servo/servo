@@ -21,7 +21,7 @@ RE_PYTHON_ADDR = re.compile(r'<.+? object at 0x[0-9a-fA-F]+>')
 
 
 def main():
-    usage = "Usage: %s [ servo | gecko ] [ style-crate | html ]" % sys.argv[0]
+    usage = "Usage: %s [ servo | gecko ] [ style-crate | geckolib <template> | html ]" % sys.argv[0]
     if len(sys.argv) < 3:
         abort(usage)
     product = sys.argv[1]
@@ -39,6 +39,12 @@ def main():
             template = os.path.join(BASE, "gecko.mako.rs")
             rust = render(template, data=properties)
             write(os.environ["OUT_DIR"], "gecko_properties.rs", rust)
+    elif output == "geckolib":
+        if len(sys.argv) < 4:
+            abort(usage)
+        template = sys.argv[3]
+        header = render(template, data=properties)
+        sys.stdout.write(header)
     elif output == "html":
         write_html(properties)
 

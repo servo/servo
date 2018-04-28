@@ -17,79 +17,108 @@ use properties::longhands::system_font::SystemFont;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
+use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
-use values::computed::font::{FamilyName, FontFamilyList, SingleFontFamily};
-use values::generics::font::{FeatureTagValue, FontSettings, FontTag};
-use values::generics::font::{KeywordInfo as GenericKeywordInfo, KeywordSize, VariationValue};
-use values::specified::{AllowQuirks, Integer, LengthOrPercentage, NoCalcLength, Number};
+use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
+use values::generics::NonNegative;
+use values::generics::font::{KeywordSize, VariationValue};
+use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
+use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
 use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
+
+// FIXME(emilio): The system font code is copy-pasta, and should be cleaned up.
+macro_rules! system_font_methods {
+    ($ty:ident, $field:ident) => {
+        system_font_methods!($ty);
+
+        fn compute_system(&self, _context: &Context) -> <$ty as ToComputedValue>::ComputedValue {
+            debug_assert!(matches!(*self, $ty::System(..)));
+            #[cfg(feature = "gecko")]
+            {
+                _context.cached_system_font.as_ref().unwrap().$field.clone()
+            }
+            #[cfg(feature = "servo")]
+            {
+                unreachable!()
+            }
+        }
+    };
+
+    ($ty:ident) => {
+        /// Get a specified value that represents a system font.
+        pub fn system_font(f: SystemFont) -> Self {
+            $ty::System(f)
+        }
+
+        /// Retreive a SystemFont from the specified value.
+        pub fn get_system(&self) -> Option<SystemFont> {
+            if let $ty::System(s) = *self {
+                Some(s)
+            } else {
+                None
+            }
+        }
+    }
+}
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
 const DEFAULT_SCRIPT_SIZE_MULTIPLIER: f64 = 0.71;
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
-/// A specified font-weight value
+/// The minimum font-weight value per:
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
+pub const MIN_FONT_WEIGHT: f32 = 1.;
+
+/// The maximum font-weight value per:
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
+pub const MAX_FONT_WEIGHT: f32 = 1000.;
+
+/// A specified font-weight value.
+///
+/// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum FontWeight {
-    /// Normal variant
-    Normal,
-    /// Bold variant
-    Bold,
+    /// `<font-weight-absolute>`
+    Absolute(AbsoluteFontWeight),
     /// Bolder variant
     Bolder,
     /// Lighter variant
     Lighter,
-    /// Computed weight variant
-    Weight(computed::FontWeight),
-    /// System font varaint
+    /// System font variant.
     System(SystemFont),
 }
 
 impl FontWeight {
+    system_font_methods!(FontWeight, font_weight);
+
+    /// `normal`
+    #[inline]
+    pub fn normal() -> Self {
+        FontWeight::Absolute(AbsoluteFontWeight::Normal)
+    }
+
     /// Get a specified FontWeight from a gecko keyword
     pub fn from_gecko_keyword(kw: u32) -> Self {
-        computed::FontWeight::from_int(kw as i32)
-            .map(FontWeight::Weight)
-            .expect("Found unexpected value in style struct for font-weight property")
-    }
-
-    /// Get a specified FontWeight from a SystemFont
-    pub fn system_font(f: SystemFont) -> Self {
-        FontWeight::System(f)
-    }
-
-    /// Retreive a SystemFont from FontWeight
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontWeight::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
+        debug_assert!(kw % 100 == 0);
+        debug_assert!(kw as f32 <= MAX_FONT_WEIGHT);
+        FontWeight::Absolute(AbsoluteFontWeight::Weight(Number::new(kw as f32)))
     }
 }
 
 impl Parse for FontWeight {
     fn parse<'i, 't>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontWeight, ParseError<'i>> {
-        let result = match *input.next()? {
-            Token::Ident(ref ident) => {
-                match_ignore_ascii_case! { ident,
-                    "normal" => Ok(FontWeight::Normal),
-                    "bold" => Ok(FontWeight::Bold),
-                    "bolder" => Ok(FontWeight::Bolder),
-                    "lighter" => Ok(FontWeight::Lighter),
-                    _ => Err(()),
-                }
-            },
-            Token::Number {
-                int_value: Some(value),
-                ..
-            } => computed::FontWeight::from_int(value).map(FontWeight::Weight),
-            _ => Err(()),
-        };
+        if let Ok(absolute) = input.try(|input| AbsoluteFontWeight::parse(context, input)) {
+            return Ok(FontWeight::Absolute(absolute));
+        }
 
-        result.map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "bolder" => FontWeight::Bolder,
+            "lighter" => FontWeight::Lighter,
+        })
     }
 }
 
@@ -99,9 +128,7 @@ impl ToComputedValue for FontWeight {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            FontWeight::Weight(weight) => weight,
-            FontWeight::Normal => computed::FontWeight::normal(),
-            FontWeight::Bold => computed::FontWeight::bold(),
+            FontWeight::Absolute(ref abs) => abs.compute(),
             FontWeight::Bolder => context
                 .builder
                 .get_parent_font()
@@ -112,21 +139,365 @@ impl ToComputedValue for FontWeight {
                 .get_parent_font()
                 .clone_font_weight()
                 .lighter(),
-            #[cfg(feature = "gecko")]
-            FontWeight::System(_) => context
-                .cached_system_font
-                .as_ref()
-                .unwrap()
-                .font_weight
-                .clone(),
-            #[cfg(not(feature = "gecko"))]
-            FontWeight::System(_) => unreachable!(),
+            FontWeight::System(_) => self.compute_system(context),
         }
     }
 
     #[inline]
     fn from_computed_value(computed: &computed::FontWeight) -> Self {
-        FontWeight::Weight(*computed)
+        FontWeight::Absolute(AbsoluteFontWeight::Weight(
+            Number::from_computed_value(&computed.0)
+        ))
+    }
+}
+
+/// An absolute font-weight value for a @font-face rule.
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-weight-absolute-values
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub enum AbsoluteFontWeight {
+    /// A `<number>`, with the additional constraints specified in:
+    ///
+    ///   https://drafts.csswg.org/css-fonts-4/#font-weight-numeric-values
+    Weight(Number),
+    /// Normal font weight. Same as 400.
+    Normal,
+    /// Bold font weight. Same as 700.
+    Bold,
+}
+
+impl AbsoluteFontWeight {
+    /// Returns the computed value for this absolute font weight.
+    pub fn compute(&self) -> computed::FontWeight {
+        match *self {
+            AbsoluteFontWeight::Weight(weight) => {
+                computed::FontWeight(
+                    weight.get().max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT)
+                )
+            },
+            AbsoluteFontWeight::Normal => computed::FontWeight::normal(),
+            AbsoluteFontWeight::Bold => computed::FontWeight::bold(),
+        }
+    }
+}
+
+impl Parse for AbsoluteFontWeight {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(number) = input.try(|input| Number::parse(context, input)) {
+            // We could add another AllowedNumericType value, but it doesn't
+            // seem worth it just for a single property with such a weird range,
+            // so we do the clamping here manually.
+            if !number.was_calc() &&
+                (number.get() < MIN_FONT_WEIGHT || number.get() > MAX_FONT_WEIGHT) {
+                return Err(input.new_custom_error(
+                    StyleParseErrorKind::UnspecifiedError
+                ))
+            }
+            return Ok(AbsoluteFontWeight::Weight(number))
+        }
+
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "normal" => AbsoluteFontWeight::Normal,
+            "bold" => AbsoluteFontWeight::Bold,
+        })
+    }
+}
+
+/// The specified value of the `font-style` property, without the system font
+/// crap.
+pub type SpecifiedFontStyle = generics::FontStyle<Angle>;
+
+impl ToCss for SpecifiedFontStyle {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            generics::FontStyle::Normal => dest.write_str("normal"),
+            generics::FontStyle::Italic => dest.write_str("italic"),
+            generics::FontStyle::Oblique(ref angle) => {
+                dest.write_str("oblique")?;
+                if *angle != Self::default_angle() {
+                    dest.write_char(' ')?;
+                    angle.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Parse for SpecifiedFontStyle {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "normal" => generics::FontStyle::Normal,
+            "italic" => generics::FontStyle::Italic,
+            "oblique" => {
+                let angle = input.try(|input| Self::parse_angle(context, input))
+                    .unwrap_or_else(|_| Self::default_angle());
+
+                generics::FontStyle::Oblique(angle)
+            }
+        })
+    }
+}
+
+impl ToComputedValue for SpecifiedFontStyle {
+    type ComputedValue = computed::FontStyle;
+
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        match *self {
+            generics::FontStyle::Normal => generics::FontStyle::Normal,
+            generics::FontStyle::Italic => generics::FontStyle::Italic,
+            generics::FontStyle::Oblique(ref angle) => {
+                generics::FontStyle::Oblique(FontStyleAngle(Self::compute_angle(angle)))
+            }
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            generics::FontStyle::Normal => generics::FontStyle::Normal,
+            generics::FontStyle::Italic => generics::FontStyle::Italic,
+            generics::FontStyle::Oblique(ref angle) => {
+                generics::FontStyle::Oblique(Angle::from_computed_value(&angle.0))
+            }
+        }
+    }
+}
+
+
+/// The default angle for `font-style: oblique`.
+///
+/// NOTE(emilio): As of right now this diverges from the spec, which specifies
+/// 20, because it's not updated yet to account for the resolution in:
+///
+///   https://github.com/w3c/csswg-drafts/issues/2295
+pub const DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES: f32 = 14.;
+
+/// From https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle:
+///
+///     Values less than -90deg or values greater than 90deg are
+///     invalid and are treated as parse errors.
+///
+/// The maximum angle value that `font-style: oblique` should compute to.
+pub const FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES: f32 = 90.;
+
+/// The minimum angle value that `font-style: oblique` should compute to.
+pub const FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES: f32 = -90.;
+
+impl SpecifiedFontStyle {
+    /// Gets a clamped angle from a specified Angle.
+    pub fn compute_angle(angle: &Angle) -> ComputedAngle {
+        ComputedAngle::Deg(
+            angle.degrees()
+                .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
+                .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
+        )
+    }
+
+    /// Parse a suitable angle for font-style: oblique.
+    pub fn parse_angle<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Angle, ParseError<'i>> {
+        let angle = Angle::parse(context, input)?;
+        if angle.was_calc() {
+            return Ok(angle);
+        }
+
+        let degrees = angle.degrees();
+        if degrees < FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES ||
+            degrees > FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES
+        {
+            return Err(input.new_custom_error(
+                StyleParseErrorKind::UnspecifiedError
+            ));
+        }
+        return Ok(angle)
+    }
+
+    /// The default angle for `font-style: oblique`.
+    pub fn default_angle() -> Angle {
+        Angle::from_degrees(
+            DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES,
+            /* was_calc = */ false,
+        )
+    }
+}
+
+/// The specified value of the `font-style` property.
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[allow(missing_docs)]
+pub enum FontStyle {
+    Specified(SpecifiedFontStyle),
+    System(SystemFont),
+}
+
+impl FontStyle {
+    /// Return the `normal` value.
+    #[inline]
+    pub fn normal() -> Self {
+        FontStyle::Specified(generics::FontStyle::Normal)
+    }
+
+    system_font_methods!(FontStyle, font_style);
+}
+
+impl ToComputedValue for FontStyle {
+    type ComputedValue = computed::FontStyle;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            FontStyle::Specified(ref specified) => specified.to_computed_value(context),
+            FontStyle::System(..) => self.compute_system(context),
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        FontStyle::Specified(SpecifiedFontStyle::from_computed_value(computed))
+    }
+}
+
+impl Parse for FontStyle {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(FontStyle::Specified(SpecifiedFontStyle::parse(context, input)?))
+    }
+}
+
+/// A value for the `font-stretch` property.
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub enum FontStretch {
+    Stretch(Percentage),
+    Keyword(FontStretchKeyword),
+    System(SystemFont),
+}
+
+/// A keyword value for `font-stretch`.
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[allow(missing_docs)]
+pub enum FontStretchKeyword {
+    Normal,
+    Condensed,
+    UltraCondensed,
+    ExtraCondensed,
+    SemiCondensed,
+    SemiExpanded,
+    Expanded,
+    ExtraExpanded,
+    UltraExpanded,
+}
+
+impl FontStretchKeyword {
+    /// Resolves the value of the keyword as specified in:
+    ///
+    /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
+    pub fn compute(&self) -> ComputedPercentage {
+        use self::FontStretchKeyword::*;
+        ComputedPercentage(match *self {
+            UltraCondensed => 0.5,
+            ExtraCondensed => 0.625,
+            Condensed => 0.75,
+            SemiCondensed => 0.875,
+            Normal => 1.,
+            SemiExpanded => 1.125,
+            Expanded => 1.25,
+            ExtraExpanded => 1.5,
+            UltraExpanded => 2.,
+        })
+    }
+
+    /// Does the opposite operation to `compute`, in order to serialize keywords
+    /// if possible.
+    pub fn from_percentage(percentage: f32) -> Option<Self> {
+        use self::FontStretchKeyword::*;
+        // NOTE(emilio): Can't use `match` because of rust-lang/rust#41620.
+        if percentage == 0.5 {
+            return Some(UltraCondensed);
+        }
+        if percentage == 0.625 {
+            return Some(ExtraCondensed);
+        }
+        if percentage == 0.75 {
+            return Some(Condensed);
+        }
+        if percentage == 0.875 {
+            return Some(SemiCondensed);
+        }
+        if percentage == 1. {
+            return Some(Normal);
+        }
+        if percentage == 1.125 {
+            return Some(SemiExpanded);
+        }
+        if percentage == 1.25 {
+            return Some(Expanded);
+        }
+        if percentage == 1.5 {
+            return Some(ExtraExpanded);
+        }
+        if percentage == 2. {
+            return Some(UltraExpanded);
+        }
+        None
+    }
+}
+
+impl FontStretch {
+    /// `normal`.
+    pub fn normal() -> Self {
+        FontStretch::Keyword(FontStretchKeyword::Normal)
+    }
+
+    system_font_methods!(FontStretch, font_stretch);
+}
+
+impl Parse for FontStretch {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // From https://drafts.csswg.org/css-fonts-4/#font-stretch-prop:
+        //
+        //    Values less than 0% are not allowed and are treated as parse
+        //    errors.
+        if let Ok(percentage) = input.try(|input| Percentage::parse_non_negative(context, input)) {
+            return Ok(FontStretch::Stretch(percentage));
+        }
+
+        Ok(FontStretch::Keyword(FontStretchKeyword::parse(input)?))
+    }
+}
+
+impl ToComputedValue for FontStretch {
+    type ComputedValue = NonNegative<ComputedPercentage>;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            FontStretch::Stretch(ref percentage) => {
+                NonNegative(percentage.to_computed_value(context))
+            },
+            FontStretch::Keyword(ref kw) => {
+                NonNegative(kw.compute())
+            },
+            FontStretch::System(_) => self.compute_system(context),
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        FontStretch::Stretch(Percentage::from_computed_value(&computed.0))
     }
 }
 
@@ -171,19 +542,7 @@ pub enum FontFamily {
 }
 
 impl FontFamily {
-    /// Get `font-family` with system font
-    pub fn system_font(f: SystemFont) -> Self {
-        FontFamily::System(f)
-    }
-
-    /// Get system font
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontFamily::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontFamily, font_family);
 
     /// Parse a specified font-family value
     pub fn parse_specified<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -205,19 +564,10 @@ impl FontFamily {
 impl ToComputedValue for FontFamily {
     type ComputedValue = computed::FontFamily;
 
-    fn to_computed_value(&self, _cx: &Context) -> Self::ComputedValue {
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             FontFamily::Values(ref v) => computed::FontFamily(v.clone()),
-            FontFamily::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    _cx.cached_system_font.as_ref().unwrap().font_family.clone()
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontFamily::System(_) => self.compute_system(context),
         }
     }
 
@@ -287,19 +637,7 @@ impl FontSizeAdjust {
         FontSizeAdjust::None
     }
 
-    /// Get font-size-adjust with SystemFont
-    pub fn system_font(f: SystemFont) -> Self {
-        FontSizeAdjust::System(f)
-    }
-
-    /// Get SystemFont variant
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontSizeAdjust::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontSizeAdjust, font_size_adjust);
 }
 
 impl ToComputedValue for FontSizeAdjust {
@@ -311,20 +649,7 @@ impl ToComputedValue for FontSizeAdjust {
             FontSizeAdjust::Number(ref n) => {
                 computed::FontSizeAdjust::Number(n.to_computed_value(context))
             },
-            FontSizeAdjust::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_size_adjust
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontSizeAdjust::System(_) => self.compute_system(context),
         }
     }
 
@@ -359,7 +684,7 @@ impl Parse for FontSizeAdjust {
 }
 
 /// Additional information for specified keyword-derived font sizes.
-pub type KeywordInfo = GenericKeywordInfo<NonNegativeLength>;
+pub type KeywordInfo = generics::KeywordInfo<NonNegativeLength>;
 
 impl KeywordInfo {
     /// Computes the final size for this font-size keyword, accounting for
@@ -648,22 +973,10 @@ impl ToComputedValue for FontSize {
 }
 
 impl FontSize {
-    /// Construct a system font value.
-    pub fn system_font(f: SystemFont) -> Self {
-        FontSize::System(f)
-    }
+    system_font_methods!(FontSize);
 
-    /// Obtain the system font, if any
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontSize::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
     /// Get initial value for specified font size.
+    #[inline]
     pub fn medium() -> Self {
         FontSize::Keyword(KeywordInfo::medium())
     }
@@ -828,42 +1141,16 @@ impl FontVariantAlternates {
         FontVariantAlternates::Value(VariantAlternatesList(vec![].into_boxed_slice()))
     }
 
-    /// Get FontVariantAlternates with system font
-    pub fn system_font(f: SystemFont) -> Self {
-        FontVariantAlternates::System(f)
-    }
-
-    /// Get SystemFont of FontVariantAlternates
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontVariantAlternates::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontVariantAlternates, font_variant_alternates);
 }
 
 impl ToComputedValue for FontVariantAlternates {
     type ComputedValue = computed::FontVariantAlternates;
 
-    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantAlternates {
+    fn to_computed_value(&self, context: &Context) -> computed::FontVariantAlternates {
         match *self {
             FontVariantAlternates::Value(ref v) => v.clone(),
-            FontVariantAlternates::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    _context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_variant_alternates
-                        .clone()
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontVariantAlternates::System(_) => self.compute_system(context),
         }
     }
 
@@ -1105,42 +1392,16 @@ impl FontVariantEastAsian {
         FontVariantEastAsian::Value(VariantEastAsian::empty())
     }
 
-    /// Get `font-variant-east-asian` with system font
-    pub fn system_font(f: SystemFont) -> Self {
-        FontVariantEastAsian::System(f)
-    }
-
-    /// Get system font
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontVariantEastAsian::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontVariantEastAsian, font_variant_east_asian);
 }
 
 impl ToComputedValue for FontVariantEastAsian {
     type ComputedValue = computed::FontVariantEastAsian;
 
-    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantEastAsian {
+    fn to_computed_value(&self, context: &Context) -> computed::FontVariantEastAsian {
         match *self {
             FontVariantEastAsian::Value(ref v) => v.clone(),
-            FontVariantEastAsian::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    _context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_variant_east_asian
-                        .clone()
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontVariantEastAsian::System(_) => self.compute_system(context),
         }
     }
 
@@ -1351,22 +1612,10 @@ pub enum FontVariantLigatures {
 }
 
 impl FontVariantLigatures {
-    /// Get `font-variant-ligatures` with system font
-    pub fn system_font(f: SystemFont) -> Self {
-        FontVariantLigatures::System(f)
-    }
+    system_font_methods!(FontVariantLigatures, font_variant_ligatures);
 
-    /// Get system font
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontVariantLigatures::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
     /// Default value of `font-variant-ligatures` as `empty`
+    #[inline]
     pub fn empty() -> FontVariantLigatures {
         FontVariantLigatures::Value(VariantLigatures::empty())
     }
@@ -1381,24 +1630,10 @@ impl FontVariantLigatures {
 impl ToComputedValue for FontVariantLigatures {
     type ComputedValue = computed::FontVariantLigatures;
 
-    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantLigatures {
+    fn to_computed_value(&self, context: &Context) -> computed::FontVariantLigatures {
         match *self {
             FontVariantLigatures::Value(ref v) => v.clone(),
-            FontVariantLigatures::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    _context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_variant_ligatures
-                        .clone()
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontVariantLigatures::System(_) => self.compute_system(context),
         }
     }
 
@@ -1611,42 +1846,16 @@ impl FontVariantNumeric {
         FontVariantNumeric::Value(VariantNumeric::empty())
     }
 
-    /// Get `font-variant-numeric` with system font
-    pub fn system_font(f: SystemFont) -> Self {
-        FontVariantNumeric::System(f)
-    }
-
-    /// Get system font
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontVariantNumeric::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontVariantNumeric, font_variant_numeric);
 }
 
 impl ToComputedValue for FontVariantNumeric {
     type ComputedValue = computed::FontVariantNumeric;
 
-    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantNumeric {
+    fn to_computed_value(&self, context: &Context) -> computed::FontVariantNumeric {
         match *self {
             FontVariantNumeric::Value(ref v) => v.clone(),
-            FontVariantNumeric::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    _context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_variant_numeric
-                        .clone()
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontVariantNumeric::System(_) => self.compute_system(context),
         }
     }
 
@@ -1744,19 +1953,7 @@ impl FontFeatureSettings {
         FontFeatureSettings::Value(FontSettings::normal())
     }
 
-    /// Get `font-feature-settings` with system font
-    pub fn system_font(f: SystemFont) -> Self {
-        FontFeatureSettings::System(f)
-    }
-
-    /// Get system font
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontFeatureSettings::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontFeatureSettings, font_feature_settings);
 }
 
 impl ToComputedValue for FontFeatureSettings {
@@ -1765,21 +1962,7 @@ impl ToComputedValue for FontFeatureSettings {
     fn to_computed_value(&self, context: &Context) -> computed::FontFeatureSettings {
         match *self {
             FontFeatureSettings::Value(ref v) => v.to_computed_value(context),
-            FontFeatureSettings::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_feature_settings
-                        .clone()
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontFeatureSettings::System(_) => self.compute_system(context),
         }
     }
 
@@ -1919,26 +2102,14 @@ impl FontLanguageOverride {
         FontLanguageOverride::Normal
     }
 
-    /// Get `font-language-override` with `system font`
-    pub fn system_font(f: SystemFont) -> Self {
-        FontLanguageOverride::System(f)
-    }
-
-    /// Get system font
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontLanguageOverride::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontLanguageOverride, font_language_override);
 }
 
 impl ToComputedValue for FontLanguageOverride {
     type ComputedValue = computed::FontLanguageOverride;
 
     #[inline]
-    fn to_computed_value(&self, _context: &Context) -> computed::FontLanguageOverride {
+    fn to_computed_value(&self, context: &Context) -> computed::FontLanguageOverride {
         match *self {
             FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
             FontLanguageOverride::Override(ref lang) => {
@@ -1952,20 +2123,7 @@ impl ToComputedValue for FontLanguageOverride {
                 let bytes = computed_lang.into_bytes();
                 computed::FontLanguageOverride(BigEndian::read_u32(&bytes))
             },
-            FontLanguageOverride::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    _context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_language_override
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontLanguageOverride::System(_) => self.compute_system(context),
         }
     }
     #[inline]
@@ -2026,19 +2184,7 @@ impl FontVariationSettings {
         FontVariationSettings::Value(FontSettings::normal())
     }
 
-    /// Get `font-variation-settings` with system font
-    pub fn system_font(f: SystemFont) -> Self {
-        FontVariationSettings::System(f)
-    }
-
-    /// Get system font
-    pub fn get_system(&self) -> Option<SystemFont> {
-        if let FontVariationSettings::System(s) = *self {
-            Some(s)
-        } else {
-            None
-        }
-    }
+    system_font_methods!(FontVariationSettings, font_variation_settings);
 }
 
 impl ToComputedValue for FontVariationSettings {
@@ -2047,21 +2193,7 @@ impl ToComputedValue for FontVariationSettings {
     fn to_computed_value(&self, context: &Context) -> computed::FontVariationSettings {
         match *self {
             FontVariationSettings::Value(ref v) => v.to_computed_value(context),
-            FontVariationSettings::System(_) => {
-                #[cfg(feature = "gecko")]
-                {
-                    context
-                        .cached_system_font
-                        .as_ref()
-                        .unwrap()
-                        .font_variation_settings
-                        .clone()
-                }
-                #[cfg(feature = "servo")]
-                {
-                    unreachable!()
-                }
-            },
+            FontVariationSettings::System(_) => self.compute_system(context),
         }
     }
 

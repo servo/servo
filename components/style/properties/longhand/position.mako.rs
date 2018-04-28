@@ -10,18 +10,28 @@
 
 // "top" / "left" / "bottom" / "right"
 % for side in PHYSICAL_SIDES:
-    ${helpers.predefined_type(side, "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Auto",
-                              spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
-                              animation_value_type="ComputedValue",
-                              allow_quirks=True, servo_restyle_damage = "reflow_out_of_flow")}
+    ${helpers.predefined_type(
+        side,
+        "LengthOrPercentageOrAuto",
+        "computed::LengthOrPercentageOrAuto::Auto",
+        spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        animation_value_type="ComputedValue",
+        allow_quirks=True,
+        servo_restyle_damage="reflow_out_of_flow"
+    )}
 % endfor
 // offset-* logical properties, map to "top" / "left" / "bottom" / "right"
 % for side in LOGICAL_SIDES:
-    ${helpers.predefined_type("offset-%s" % side, "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Auto",
-                              spec="https://drafts.csswg.org/css-logical-props/#propdef-offset-%s" % side,
-                              animation_value_type="ComputedValue", logical=True)}
+    ${helpers.predefined_type(
+        "offset-%s" % side,
+        "LengthOrPercentageOrAuto",
+        "computed::LengthOrPercentageOrAuto::Auto",
+        spec="https://drafts.csswg.org/css-logical-props/#propdef-offset-%s" % side,
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        animation_value_type="ComputedValue",
+        logical=True,
+    )}
 % endfor
 
 #[cfg(feature = "gecko")]
@@ -118,11 +128,13 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
     #[cfg(feature = "gecko")]
     impl_align_conversions!(::values::specified::align::AlignItems);
 
-    ${helpers.predefined_type(name="justify-items",
-                              type="JustifyItems",
-                              initial_value="computed::JustifyItems::auto()",
-                              spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
-                              animation_value_type="discrete")}
+    ${helpers.predefined_type(
+        name="justify-items",
+        type="JustifyItems",
+        initial_value="computed::JustifyItems::legacy()",
+        spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
+        animation_value_type="discrete",
+    )}
 
     #[cfg(feature = "gecko")]
     impl_align_conversions!(::values::specified::align::JustifyItems);
@@ -211,7 +223,8 @@ ${helpers.predefined_type(
             allow_quirks=not logical,
             spec=spec % size,
             animation_value_type="MozLength",
-            servo_restyle_damage = "reflow"
+            flags="GETCS_NEEDS_LAYOUT_FLUSH",
+            servo_restyle_damage="reflow"
         )}
         // min-width, min-height, min-block-size, min-inline-size,
         ${helpers.predefined_type(
@@ -289,13 +302,6 @@ ${helpers.predefined_type("object-position",
                           animation_value_type="ComputedValue")}
 
 % for kind in ["row", "column"]:
-    ${helpers.predefined_type("grid-%s-gap" % kind,
-                              "NonNegativeLengthOrPercentage",
-                              "computed::NonNegativeLengthOrPercentage::zero()",
-                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
-                              animation_value_type="NonNegativeLengthOrPercentage",
-                              products="gecko")}
-
     % for range in ["start", "end"]:
         ${helpers.predefined_type("grid-%s-%s" % (kind, range),
                                   "GridLine",
@@ -316,13 +322,16 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               boxed=True)}
 
-    ${helpers.predefined_type("grid-template-%ss" % kind,
-                              "GridTemplateComponent",
-                              "specified::GenericGridTemplateComponent::None",
-                              products="gecko",
-                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
-                              boxed=True,
-                              animation_value_type="discrete")}
+    ${helpers.predefined_type(
+        "grid-template-%ss" % kind,
+        "GridTemplateComponent",
+        "specified::GenericGridTemplateComponent::None",
+        products="gecko",
+        spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
+        boxed=True,
+        flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        animation_value_type="discrete"
+    )}
 
 % endfor
 
@@ -339,3 +348,23 @@ ${helpers.predefined_type("grid-template-areas",
                           products="gecko",
                           animation_value_type="discrete",
                           spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas")}
+
+${helpers.predefined_type("column-gap",
+                          "length::NonNegativeLengthOrPercentageOrNormal",
+                          "Either::Second(Normal)",
+                          alias="grid-column-gap" if product == "gecko" else "",
+                          extra_prefixes="moz",
+                          servo_pref="layout.columns.enabled",
+                          spec="https://drafts.csswg.org/css-align-3/#propdef-column-gap",
+                          animation_value_type="NonNegativeLengthOrPercentageOrNormal",
+                          servo_restyle_damage = "reflow")}
+
+// no need for -moz- prefixed alias for this property
+${helpers.predefined_type("row-gap",
+                          "length::NonNegativeLengthOrPercentageOrNormal",
+                          "Either::Second(Normal)",
+                          alias="grid-row-gap",
+                          products="gecko",
+                          spec="https://drafts.csswg.org/css-align-3/#propdef-row-gap",
+                          animation_value_type="NonNegativeLengthOrPercentageOrNormal",
+                          servo_restyle_damage = "reflow")}

@@ -109,7 +109,6 @@ mod border;
 mod box_;
 mod column;
 mod effects;
-mod font;
 mod image;
 mod inherited_text;
 mod length;

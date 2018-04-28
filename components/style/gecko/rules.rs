@@ -5,17 +5,18 @@
 //! Bindings for CSS Rule objects
 
 use byteorder::{BigEndian, WriteBytesExt};
-use computed_values::{font_stretch, font_style, font_weight};
 use counter_style::{self, CounterBound};
 use cssparser::UnicodeRange;
-use font_face::{FontDisplay, FontWeight, Source};
+use font_face::{FontDisplay, FontWeight, FontStretch, FontStyle, Source};
 use gecko_bindings::structs::{self, nsCSSValue};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use properties::longhands::font_language_override;
 use std::str;
 use values::computed::font::FamilyName;
 use values::generics::font::FontTag;
+use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
+use values::specified::font::SpecifiedFontStyle;
 
 impl<'a> ToNsCssValue for &'a FamilyName {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
@@ -23,19 +24,20 @@ impl<'a> ToNsCssValue for &'a FamilyName {
     }
 }
 
-impl ToNsCssValue for font_weight::T {
+impl<'a> ToNsCssValue for &'a SpecifiedFontStretch {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_font_weight(self.0)
+        let number = match *self {
+            SpecifiedFontStretch::Stretch(ref p) => p.get(),
+            SpecifiedFontStretch::Keyword(ref kw) => kw.compute().0,
+            SpecifiedFontStretch::System(..) => unreachable!(),
+        };
+        nscssvalue.set_font_stretch(number);
     }
 }
 
-impl<'a> ToNsCssValue for &'a FontWeight {
+impl<'a> ToNsCssValue for &'a AbsoluteFontWeight {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        match *self {
-            FontWeight::Normal => nscssvalue.set_enum(structs::NS_FONT_WEIGHT_NORMAL as i32),
-            FontWeight::Bold => nscssvalue.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
-            FontWeight::Weight(weight) => nscssvalue.set_font_weight(weight.0),
-        }
+        nscssvalue.set_font_weight(self.compute().0)
     }
 }
 
@@ -77,6 +79,52 @@ impl<'a> ToNsCssValue for &'a SpecifiedFontVariationSettings {
     }
 }
 
+macro_rules! descriptor_range_conversion {
+    ($name:ident) => {
+        impl<'a> ToNsCssValue for &'a $name {
+            fn convert(self, nscssvalue: &mut nsCSSValue) {
+                let $name(ref first, ref second) = *self;
+                let second = match *second {
+                    None => {
+                        nscssvalue.set_from(first);
+                        return;
+                    }
+                    Some(ref second) => second,
+                };
+
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+
+                a.set_from(first);
+                b.set_from(second);
+
+                nscssvalue.set_pair(&a, &b);
+            }
+        }
+    }
+}
+
+descriptor_range_conversion!(FontWeight);
+descriptor_range_conversion!(FontStretch);
+
+impl<'a> ToNsCssValue for &'a FontStyle {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        match *self {
+            FontStyle::Normal => nscssvalue.set_normal(),
+            FontStyle::Italic => nscssvalue.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
+            FontStyle::Oblique(ref first, ref second) => {
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+
+                a.set_font_style(SpecifiedFontStyle::compute_angle(first).degrees());
+                b.set_font_style(SpecifiedFontStyle::compute_angle(second).degrees());
+
+                nscssvalue.set_pair(&a, &b);
+            }
+        }
+    }
+}
+
 impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         match *self {
@@ -87,46 +135,6 @@ impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
             // This path is unreachable because the descriptor is only specified by the user.
             font_language_override::SpecifiedValue::System(_) => unreachable!(),
         }
-    }
-}
-
-macro_rules! map_enum {
-    (
-        $(
-            $prop:ident {
-                $($servo:ident => $gecko:ident,)+
-            }
-        )+
-    ) => {
-        $(
-            impl<'a> ToNsCssValue for &'a $prop::T {
-                fn convert(self, nscssvalue: &mut nsCSSValue) {
-                    nscssvalue.set_enum(match *self {
-                        $( $prop::T::$servo => structs::$gecko as i32, )+
-                    })
-                }
-            }
-        )+
-    }
-}
-
-map_enum! {
-    font_style {
-        Normal => NS_FONT_STYLE_NORMAL,
-        Italic => NS_FONT_STYLE_ITALIC,
-        Oblique => NS_FONT_STYLE_OBLIQUE,
-    }
-
-    font_stretch {
-        Normal          => NS_FONT_STRETCH_NORMAL,
-        UltraCondensed  => NS_FONT_STRETCH_ULTRA_CONDENSED,
-        ExtraCondensed  => NS_FONT_STRETCH_EXTRA_CONDENSED,
-        Condensed       => NS_FONT_STRETCH_CONDENSED,
-        SemiCondensed   => NS_FONT_STRETCH_SEMI_CONDENSED,
-        SemiExpanded    => NS_FONT_STRETCH_SEMI_EXPANDED,
-        Expanded        => NS_FONT_STRETCH_EXPANDED,
-        ExtraExpanded   => NS_FONT_STRETCH_EXTRA_EXPANDED,
-        UltraExpanded   => NS_FONT_STRETCH_ULTRA_EXPANDED,
     }
 }
 

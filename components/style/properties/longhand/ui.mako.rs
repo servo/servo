@@ -41,28 +41,36 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
                          enabled_in="chrome",
                          spec="None (Nonstandard internal property)")}
 
+// TODO(bug 1419695) This should be hidden from content.
 ${helpers.predefined_type("-moz-window-opacity", "Opacity", "1.0", products="gecko",
                           gecko_ffi_name="mWindowOpacity",
                           animation_value_type="ComputedValue",
-                          enabled_in="chrome",
                           spec="None (Nonstandard internal property)")}
 
-${helpers.predefined_type("-moz-window-transform", "Transform",
-                          "generics::transform::Transform::none()",
-                          products="gecko", gecko_ffi_name="mSpecifiedWindowTransform",
-                          animation_value_type="ComputedValue",
-                          enabled_in="chrome",
-                          spec="None (Nonstandard internal property)")}
+// TODO(bug 1419695) This should be hidden from content.
+${helpers.predefined_type(
+    "-moz-window-transform",
+    "Transform",
+    "generics::transform::Transform::none()",
+    products="gecko",
+    gecko_ffi_name="mSpecifiedWindowTransform",
+    flags="GETCS_NEEDS_LAYOUT_FLUSH",
+    animation_value_type="ComputedValue",
+    spec="None (Nonstandard internal property)"
+)}
 
-${helpers.predefined_type("-moz-window-transform-origin",
-                          "TransformOrigin",
-                          "computed::TransformOrigin::initial_value()",
-                          animation_value_type="ComputedValue",
-                          gecko_ffi_name="mWindowTransformOrigin",
-                          products="gecko",
-                          boxed=True,
-                          enabled_in="chrome",
-                          spec="None (Nonstandard internal property)")}
+// TODO(bug 1419695) This should be hidden from content.
+${helpers.predefined_type(
+    "-moz-window-transform-origin",
+    "TransformOrigin",
+    "computed::TransformOrigin::initial_value()",
+    animation_value_type="ComputedValue",
+    gecko_ffi_name="mWindowTransformOrigin",
+    products="gecko",
+    boxed=True,
+    flags="GETCS_NEEDS_LAYOUT_FLUSH",
+    spec="None (Nonstandard internal property)"
+)}
 
 // TODO(emilio): Probably also should be hidden from content.
 ${helpers.predefined_type("-moz-force-broken-image-icon",

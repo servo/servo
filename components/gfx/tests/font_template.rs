@@ -16,8 +16,10 @@ fn test_font_template_descriptor() {
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::PathBuf;
-    use style::computed_values::font_stretch::T as FontStretch;
+    use style::values::computed::Percentage;
     use style::values::computed::font::FontWeight;
+    use style::values::generics::NonNegative;
+    use style::values::generics::font::FontStyle;
 
     fn descriptor(filename: &str) -> FontTemplateDescriptor {
         let mut path: PathBuf = [
@@ -43,25 +45,25 @@ fn test_font_template_descriptor() {
 
     assert_eq!(descriptor("DejaVuSans"), FontTemplateDescriptor {
         weight: FontWeight::normal(),
-        stretch: FontStretch::Normal,
-        italic: false,
+        stretch: NonNegative(Percentage(1.)),
+        style: FontStyle::Normal,
     });
 
     assert_eq!(descriptor("DejaVuSans-Bold"), FontTemplateDescriptor {
         weight: FontWeight::bold(),
-        stretch: FontStretch::Normal,
-        italic: false,
+        stretch: NonNegative(Percentage(1.)),
+        style: FontStyle::Normal,
     });
 
     assert_eq!(descriptor("DejaVuSans-Oblique"), FontTemplateDescriptor {
         weight: FontWeight::normal(),
-        stretch: FontStretch::Normal,
-        italic: true,
+        stretch: NonNegative(Percentage(1.)),
+        style: FontStyle::Italic,
     });
 
     assert_eq!(descriptor("DejaVuSansCondensed-BoldOblique"), FontTemplateDescriptor {
         weight: FontWeight::bold(),
-        stretch: FontStretch::SemiCondensed,
-        italic: true,
+        stretch: NonNegative(Percentage(0.875)),
+        style: FontStyle::Italic,
     });
 }

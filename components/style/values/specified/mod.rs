@@ -34,8 +34,8 @@ pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing};
 pub use self::column::ColumnCount;
-pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontVariantAlternates, FontWeight};
-pub use self::font::{FontFamily, FontLanguageOverride, FontVariantEastAsian, FontVariationSettings};
+pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontVariantAlternates, FontWeight};
+pub use self::font::{FontFamily, FontLanguageOverride, FontStyle, FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
@@ -201,7 +201,14 @@ impl Number {
         }
     }
 
+    /// Returns whether this number came from a `calc()` expression.
+    #[inline]
+    pub fn was_calc(&self) -> bool {
+        self.calc_clamping_mode.is_some()
+    }
+
     /// Returns the numeric value, clamped if needed.
+    #[inline]
     pub fn get(&self) -> f32 {
         self.calc_clamping_mode
             .map_or(self.value, |mode| mode.clamp(self.value))

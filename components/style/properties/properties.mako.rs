@@ -781,6 +781,15 @@ bitflags! {
         const APPLIES_TO_FIRST_LINE = 1 << 4;
         /// This longhand property applies to ::placeholder.
         const APPLIES_TO_PLACEHOLDER = 1 << 5;
+
+        /* The following flags are currently not used in Rust code, they
+         * only need to be listed in corresponding properties so that
+         * they can be checked in the C++ side via ServoCSSPropList.h. */
+        /// This property's getComputedStyle implementation requires layout
+        /// to be flushed.
+        const GETCS_NEEDS_LAYOUT_FLUSH = 0;
+        /// This property can be animated on the compositor.
+        const CAN_ANIMATE_ON_COMPOSITOR = 0;
     }
 }
 
@@ -2233,9 +2242,13 @@ pub mod style_structs {
                 pub fn compute_font_hash(&mut self) {
                     // Corresponds to the fields in
                     // `gfx::font_template::FontTemplateDescriptor`.
+                    //
+                    // FIXME(emilio): Where's font-style?
                     let mut hasher: FnvHasher = Default::default();
-                    hasher.write_u16(self.font_weight.0);
-                    self.font_stretch.hash(&mut hasher);
+                    // We hash the floating point number with four decimal
+                    // places.
+                    hasher.write_u64((self.font_weight.0 * 10000.).trunc() as u64);
+                    hasher.write_u64(((self.font_stretch.0).0 * 10000.).trunc() as u64);
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()
                 }

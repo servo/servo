@@ -9,9 +9,8 @@
 use cssparser::Parser;
 use gecko_bindings::structs;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
@@ -81,14 +80,26 @@ impl ToCss for AlignFlags {
     where
         W: Write,
     {
-        match *self & AlignFlags::FLAG_BITS {
-            AlignFlags::LEGACY => dest.write_str("legacy ")?,
+        let extra_flags = *self & AlignFlags::FLAG_BITS;
+        let value = self.value();
+
+        match extra_flags {
+            AlignFlags::LEGACY => {
+                dest.write_str("legacy")?;
+                if value.is_empty() {
+                    return Ok(());
+                }
+                dest.write_char(' ')?;
+            },
             AlignFlags::SAFE => dest.write_str("safe ")?,
             // Don't serialize "unsafe", since it's the default.
-            _ => {},
+            AlignFlags::UNSAFE => {},
+            _ => {
+                debug_assert_eq!(extra_flags, AlignFlags::empty());
+            },
         }
 
-        dest.write_str(match self.value() {
+        dest.write_str(match value {
             AlignFlags::AUTO => "auto",
             AlignFlags::NORMAL => "normal",
             AlignFlags::START => "start",
@@ -436,10 +447,10 @@ impl Parse for AlignItems {
 pub struct JustifyItems(pub AlignFlags);
 
 impl JustifyItems {
-    /// The initial value 'auto'
+    /// The initial value 'legacy'
     #[inline]
-    pub fn auto() -> Self {
-        JustifyItems(AlignFlags::AUTO)
+    pub fn legacy() -> Self {
+        JustifyItems(AlignFlags::LEGACY)
     }
 
     /// The value 'normal'
@@ -462,24 +473,12 @@ impl Parse for JustifyItems {
             return Ok(JustifyItems(baseline));
         }
 
-        // auto | normal | stretch
-        //
-        // FIXME(emilio): auto is no longer a keyword in the current spec, and
-        // has been renamed to legacy, but that needs different changes because
-        // right now it's the initial value for both style systems, and has that
-        // weird behavior of "inheriting" into descendants.
-        //
-        // Fix this in both.
-        //
-        // See also:
-        //   https://bugs.webkit.org/show_bug.cgi?id=172711
-        //   https://bugs.chromium.org/p/chromium/issues/detail?id=726148
-        //
-        if let Ok(value) = input.try(parse_auto_normal_stretch) {
+        // normal | stretch
+        if let Ok(value) = input.try(parse_normal_stretch) {
             return Ok(JustifyItems(value));
         }
 
-        // [ legacy || [ left | right | center ] ]
+        // legacy | [ legacy && [ left | right | center ] ]
         if let Ok(value) = input.try(parse_legacy) {
             return Ok(JustifyItems(value));
         }
@@ -567,29 +566,30 @@ fn parse_self_position<'i, 't>(
     })
 }
 
-// [ legacy && [ left | right | center ] ]
+fn parse_left_right_center<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<AlignFlags, ParseError<'i>> {
+    Ok(try_match_ident_ignore_ascii_case! { input,
+        "left" => AlignFlags::LEFT,
+        "right" => AlignFlags::RIGHT,
+        "center" => AlignFlags::CENTER,
+    })
+}
+
+// legacy | [ legacy && [ left | right | center ] ]
 fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    let a_location = input.current_source_location();
-    let a = input.expect_ident()?.clone();
-    let b_location = input.current_source_location();
-    let b = input.expect_ident()?;
-    if a.eq_ignore_ascii_case("legacy") {
-        (match_ignore_ascii_case! { &b,
-            "left" => Ok(AlignFlags::LEGACY | AlignFlags::LEFT),
-            "right" => Ok(AlignFlags::LEGACY | AlignFlags::RIGHT),
-            "center" => Ok(AlignFlags::LEGACY | AlignFlags::CENTER),
-            _ => Err(())
-        }).map_err(|()| {
-            b_location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(b.clone()))
-        })
-    } else if b.eq_ignore_ascii_case("legacy") {
-        (match_ignore_ascii_case! { &a,
-            "left" => Ok(AlignFlags::LEGACY | AlignFlags::LEFT),
-            "right" => Ok(AlignFlags::LEGACY | AlignFlags::RIGHT),
-            "center" => Ok(AlignFlags::LEGACY | AlignFlags::CENTER),
-            _ => Err(())
-        }).map_err(|()| a_location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(a)))
-    } else {
-        Err(a_location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-    }
+    let flags = try_match_ident_ignore_ascii_case! { input,
+        "legacy" => {
+            let flags = input.try(parse_left_right_center)
+                .unwrap_or(AlignFlags::empty());
+
+            return Ok(AlignFlags::LEGACY | flags)
+        }
+        "left" => AlignFlags::LEFT,
+        "right" => AlignFlags::RIGHT,
+        "center" => AlignFlags::CENTER,
+    };
+
+    input.expect_ident_matching("legacy")?;
+    Ok(AlignFlags::LEGACY | flags)
 }

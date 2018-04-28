@@ -14,13 +14,16 @@
         if side[1]:
             spec = "https://drafts.csswg.org/css-logical-props/#propdef-padding-%s" % side[1]
     %>
-    ${helpers.predefined_type("padding-%s" % side[0], "NonNegativeLengthOrPercentage",
-                              "computed::NonNegativeLengthOrPercentage::zero()",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
-                              animation_value_type="NonNegativeLengthOrPercentage",
-                              logical = side[1],
-                              spec = spec,
-                              flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER",
-                              allow_quirks=not side[1],
-                              servo_restyle_damage = "reflow rebuild_and_reflow_inline")}
+    ${helpers.predefined_type(
+        "padding-%s" % side[0],
+        "NonNegativeLengthOrPercentage",
+        "computed::NonNegativeLengthOrPercentage::zero()",
+        alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
+        animation_value_type="NonNegativeLengthOrPercentage",
+        logical=side[1],
+        spec=spec,
+        flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER GETCS_NEEDS_LAYOUT_FLUSH",
+        allow_quirks=not side[1],
+        servo_restyle_damage="reflow rebuild_and_reflow_inline"
+    )}
 % endfor

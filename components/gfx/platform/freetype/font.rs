@@ -24,6 +24,7 @@ use std::os::raw::{c_char, c_long};
 use std::sync::Arc;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
+use style::values::computed::font::FontStyle;
 use super::c_str_to_string;
 use text::glyph::GlyphId;
 use text::util::fixed_to_float;
@@ -149,43 +150,44 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn is_italic(&self) -> bool {
-        unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 }
+    fn style(&self) -> FontStyle {
+        use style::values::generics::font::FontStyle::*;
+        if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 } {
+            Italic
+        } else {
+            Normal
+        }
     }
 
     fn boldness(&self) -> FontWeight {
-        if let Some(os2) = self.os2_table() {
-            let weight = os2.us_weight_class as i32;
-
-            if weight < 10 {
-                FontWeight::from_int(weight * 100).unwrap()
-            } else if weight >= 100 && weight < 1000 {
-                FontWeight::from_int(weight / 100 * 100).unwrap()
-            } else {
-                FontWeight::normal()
-            }
-        } else {
-            FontWeight::normal()
-        }
+        let os2 = match self.os2_table() {
+            None => return FontWeight::normal(),
+            Some(os2) => os2,
+        };
+        let weight = os2.us_weight_class as f32;
+        FontWeight(weight.max(1.).min(1000.))
     }
 
     fn stretchiness(&self) -> FontStretch {
-        if let Some(os2) = self.os2_table() {
+        use style::values::generics::NonNegative;
+        use style::values::specified::font::FontStretchKeyword;
+        let percentage = if let Some(os2) = self.os2_table() {
             match os2.us_width_class {
-                1 => FontStretch::UltraCondensed,
-                2 => FontStretch::ExtraCondensed,
-                3 => FontStretch::Condensed,
-                4 => FontStretch::SemiCondensed,
-                5 => FontStretch::Normal,
-                6 => FontStretch::SemiExpanded,
-                7 => FontStretch::Expanded,
-                8 => FontStretch::ExtraExpanded,
-                9 => FontStretch::UltraExpanded,
-                _ => FontStretch::Normal
+                1 => FontStretchKeyword::UltraCondensed,
+                2 => FontStretchKeyword::ExtraCondensed,
+                3 => FontStretchKeyword::Condensed,
+                4 => FontStretchKeyword::SemiCondensed,
+                5 => FontStretchKeyword::Normal,
+                6 => FontStretchKeyword::SemiExpanded,
+                7 => FontStretchKeyword::Expanded,
+                8 => FontStretchKeyword::ExtraExpanded,
+                9 => FontStretchKeyword::UltraExpanded,
+                _ => FontStretchKeyword::Normal
             }
         } else {
-            FontStretch::Normal
-        }
+            FontStretchKeyword::Normal
+        }.compute();
+        NonNegative(percentage)
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

@@ -3,38 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 mod common {
-    use std::{env, fs, io};
-    use std::path::{Path, PathBuf};
+    use std::env;
+    use std::path::PathBuf;
 
     lazy_static! {
         pub static ref OUTDIR_PATH: PathBuf =
             PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("gecko");
-    }
-
-    /// Copy contents of one directory into another.
-    /// It currently only does a shallow copy.
-    pub fn copy_dir<P, Q, F>(from: P, to: Q, callback: F) -> io::Result<()>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-        F: Fn(&Path),
-    {
-        let to = to.as_ref();
-        for entry in from.as_ref().read_dir()? {
-            let entry = entry?;
-            let path = entry.path();
-            callback(&path);
-            fs::copy(&path, to.join(entry.file_name()))?;
-        }
-        Ok(())
     }
 }
 
 #[cfg(feature = "bindgen")]
 mod bindings {
     use bindgen::{Builder, CodegenConfig};
-    use bindgen::callbacks::{EnumVariantCustomBehavior, EnumVariantValue, ParseCallbacks};
-    use regex::{Regex, RegexSet};
+    use regex::Regex;
     use std::cmp;
     use std::collections::{HashMap, HashSet};
     use std::env;
@@ -416,27 +397,6 @@ mod bindings {
     }
 
     fn generate_structs() {
-        #[derive(Debug)]
-        struct Callbacks(HashMap<String, RegexSet>);
-        impl ParseCallbacks for Callbacks {
-            fn enum_variant_behavior(
-                &self,
-                enum_name: Option<&str>,
-                variant_name: &str,
-                _variant_value: EnumVariantValue,
-            ) -> Option<EnumVariantCustomBehavior> {
-                enum_name
-                    .and_then(|enum_name| self.0.get(enum_name))
-                    .and_then(|regex| {
-                        if regex.is_match(variant_name) {
-                            Some(EnumVariantCustomBehavior::Constify)
-                        } else {
-                            None
-                        }
-                    })
-            }
-        }
-
         let builder = Builder::get_initial_builder()
             .enable_cxx_namespaces()
             .with_codegen_config(CodegenConfig {
@@ -452,21 +412,6 @@ mod bindings {
             .handle_str_items("whitelist-vars", |b, item| b.whitelist_var(item))
             .handle_str_items("whitelist-types", |b, item| b.whitelist_type(item))
             .handle_str_items("opaque-types", |b, item| b.opaque_type(item))
-            .handle_list("constified-enum-variants", |builder, iter| {
-                let mut map = HashMap::new();
-                for item in iter {
-                    let item = item.as_table().unwrap();
-                    let name = item["enum"].as_str().unwrap();
-                    let variants = item["variants"]
-                        .as_array()
-                        .unwrap()
-                        .as_slice()
-                        .iter()
-                        .map(|item| item.as_str().unwrap());
-                    map.insert(name.into(), RegexSet::new(variants).unwrap());
-                }
-                builder.parse_callbacks(Box::new(Callbacks(map)))
-            })
             .handle_table_items("mapped-generic-types", |builder, item| {
                 let generic = item["generic"].as_bool().unwrap();
                 let gecko = item["gecko"].as_str().unwrap();
@@ -650,22 +595,32 @@ mod bindings {
             generate_bindings(),
             generate_atoms(),
         }
-
-        // Copy all generated files to dist for the binding package
-        let path = DISTDIR_PATH.join("rust_bindings/style");
-        if path.exists() {
-            fs::remove_dir_all(&path).expect("Fail to remove binding dir in dist");
-        }
-        fs::create_dir_all(&path).expect("Fail to create bindings dir in dist");
-        copy_dir(&*OUTDIR_PATH, &path, |_| {}).expect("Fail to copy generated files to dist dir");
     }
 }
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use std::env;
-    use std::path::PathBuf;
+    use std::{env, fs, io};
+    use std::path::{Path, PathBuf};
     use super::common::*;
+
+    /// Copy contents of one directory into another.
+    /// It currently only does a shallow copy.
+    fn copy_dir<P, Q, F>(from: P, to: Q, callback: F) -> io::Result<()>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+        F: Fn(&Path),
+    {
+        let to = to.as_ref();
+        for entry in from.as_ref().read_dir()? {
+            let entry = entry?;
+            let path = entry.path();
+            callback(&path);
+            fs::copy(&path, to.join(entry.file_name()))?;
+        }
+        Ok(())
+    }
 
     pub fn generate() {
         let dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("gecko/generated");

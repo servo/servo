@@ -6,6 +6,7 @@ use cssparser::{ParseErrorKind, Parser, ParserInput, SourceLocation};
 use cssparser::ToCss as ParserToCss;
 use env_logger::Builder;
 use malloc_size_of::MallocSizeOfOps;
+use nsstring::nsCString;
 use selectors::{NthIndexCache, SelectorList};
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
@@ -92,7 +93,8 @@ use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ComputedStyleStrong, RustString};
-use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetParsingMode, nsAtom, nsCSSPropertyID};
+use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetLoadDataHolder};
+use style::gecko_bindings::structs::{SheetParsingMode, nsAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSCounterDesc};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::AtomArray;
@@ -145,6 +147,7 @@ use style::stylesheets::{DocumentRule, FontFaceRule, FontFeatureValuesRule, Impo
 use style::stylesheets::{KeyframesRule, MediaRule, NamespaceRule, Origin, OriginSet, PageRule};
 use style::stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::import_rule::ImportSheet;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
 use style::stylist::{add_size_of_ua_cache, AuthorStylesEnabled, RuleInclusion, Stylist};
@@ -163,7 +166,7 @@ use style::values::specified::gecko::{IntersectionObserverRootMargin, PixelOrPer
 use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::{CssWriter, ParsingMode, StyleParseErrorKind, ToCss};
 use super::error_reporter::ErrorReporter;
-use super::stylesheet_loader::StylesheetLoader;
+use super::stylesheet_loader::{AsyncStylesheetParser, StylesheetLoader};
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -1122,6 +1125,15 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     ).into_strong()
 }
 
+fn mode_to_origin(mode: SheetParsingMode) -> Origin {
+    match mode {
+        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
+        SheetParsingMode::eUserSheetFeatures => Origin::User,
+        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+        SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
+    }
+}
+
 /// Note: The load_data corresponds to this sheet, and is passed as the parent
 /// load data for child sheet loads. It may be null for certain cases where we
 /// know we won't have child loads.
@@ -1130,8 +1142,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     loader: *mut Loader,
     stylesheet: *mut ServoStyleSheet,
     load_data: *mut SheetLoadData,
-    data: *const u8,
-    data_len: usize,
+    bytes: *const nsACString,
     mode: SheetParsingMode,
     extra_data: *mut URLExtraData,
     line_number_offset: u32,
@@ -1139,14 +1150,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     reusable_sheets: *mut LoaderReusableStyleSheets,
 ) -> RawServoStyleSheetContentsStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
-    let input = unsafe { ::std::str::from_utf8_unchecked(::std::slice::from_raw_parts(data, data_len)) };
-
-    let origin = match mode {
-        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
-        SheetParsingMode::eUserSheetFeatures => Origin::User,
-        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
-        SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
-    };
+    let input: &str = unsafe { (*bytes).as_str_unchecked() };
 
     let reporter = ErrorReporter::new(stylesheet, loader, extra_data);
     let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
@@ -1164,10 +1168,42 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
 
 
     Arc::new(StylesheetContents::from_str(
-        input, url_data.clone(), origin,
+        input, url_data.clone(), mode_to_origin(mode),
         &global_style_data.shared_lock, loader, &reporter,
         quirks_mode.into(), line_number_offset)
     ).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_FromUTF8BytesAsync(
+    load_data: *mut SheetLoadDataHolder,
+    extra_data: *mut URLExtraData,
+    bytes: *const nsACString,
+    mode: SheetParsingMode,
+    line_number_offset: u32,
+    quirks_mode: nsCompatibility,
+) {
+    let (load_data, extra_data, bytes) = unsafe {
+        let mut b = nsCString::new();
+        b.assign(&*bytes);
+        (RefPtr::new(load_data), RefPtr::new(extra_data), b)
+    };
+    let async_parser = AsyncStylesheetParser::new(
+        load_data,
+        extra_data,
+        bytes,
+        mode_to_origin(mode),
+        quirks_mode.into(),
+        line_number_offset
+    );
+
+    if let Some(thread_pool) = STYLE_THREAD_POOL.style_thread_pool.as_ref() {
+        thread_pool.spawn(|| {
+            async_parser.parse();
+        });
+    } else {
+        async_parser.parse();
+    }
 }
 
 #[no_mangle]
@@ -2053,6 +2089,17 @@ pub extern "C" fn Servo_ImportRule_GetSheet(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_ImportRule_SetSheet(
+    rule: RawServoImportRuleBorrowed,
+    sheet: *mut ServoStyleSheet,
+) {
+    write_locked_arc(rule, |rule: &mut ImportRule| {
+        let sheet = unsafe { GeckoStyleSheet::new(sheet) };
+        rule.stylesheet = ImportSheet::new(sheet);
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_Keyframe_GetKeyText(
     keyframe: RawServoKeyframeBorrowed,
     result: *mut nsAString
@@ -2709,7 +2756,7 @@ pub unsafe extern "C" fn Servo_ComputedValues_GetForAnonymousBox(
                 let level = match origin {
                     Origin::UserAgent => CascadeLevel::UANormal,
                     Origin::User => CascadeLevel::UserNormal,
-                    Origin::Author => CascadeLevel::AuthorNormal,
+                    Origin::Author => CascadeLevel::SameTreeAuthorNormal,
                 };
                 for rule in data.pages.iter() {
                     declarations.push(ApplicableDeclarationBlock::from_declarations(
@@ -3753,6 +3800,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
 ) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands;
+    use style::values::generics::font::FontStyle;
     use style::values::specified::BorderStyle;
 
     let long = get_longhand_from_id!(property);
@@ -3773,7 +3821,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
         FontStyle => {
-            ToComputedValue::from_computed_value(&longhands::font_style::computed_value::T::from_gecko_keyword(value))
+            let val = if value == structs::NS_FONT_STYLE_ITALIC {
+                FontStyle::Italic
+            } else {
+                debug_assert_eq!(value, structs::NS_FONT_STYLE_NORMAL);
+                FontStyle::Normal
+            };
+
+            ToComputedValue::from_computed_value(&val)
         },
         FontWeight => longhands::font_weight::SpecifiedValue::from_gecko_keyword(value),
         ListStyleType => Box::new(longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value)),
@@ -5360,9 +5415,9 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
     stretch: nsCSSValueBorrowedMut,
     weight: nsCSSValueBorrowedMut
 ) -> bool {
-    use style::properties::longhands::{font_stretch, font_style};
     use style::properties::shorthands::font;
-    use style::values::specified::font::{FontFamily, FontWeight};
+    use style::values::generics::font::FontStyle as GenericFontStyle;
+    use style::values::specified::font::{FontFamily, FontWeight, FontStyle, SpecifiedFontStyle};
 
     let string = unsafe { (*value).to_string() };
     let mut input = ParserInput::new(&string);
@@ -5387,18 +5442,26 @@ pub extern "C" fn Servo_ParseFontShorthandForMatching(
         FontFamily::Values(list) => family.set_move(list.0),
         FontFamily::System(_) => return false,
     }
-    style.set_from(match font.font_style {
-        font_style::SpecifiedValue::Keyword(ref kw) => kw,
-        font_style::SpecifiedValue::System(_) => return false,
-    });
-    stretch.set_from(match font.font_stretch {
-        font_stretch::SpecifiedValue::Keyword(ref kw) => kw,
-        font_stretch::SpecifiedValue::System(_) => return false,
-    });
+
+    let specified_font_style = match font.font_style {
+        FontStyle::Specified(ref s) => s,
+        FontStyle::System(_) => return false,
+    };
+    match *specified_font_style {
+        GenericFontStyle::Normal => style.set_normal(),
+        GenericFontStyle::Italic => style.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
+        GenericFontStyle::Oblique(ref angle) => {
+            style.set_font_style(SpecifiedFontStyle::compute_angle(angle).degrees())
+        }
+    }
+
+    if font.font_stretch.get_system().is_some() {
+        return false;
+    }
+    stretch.set_from(&font.font_stretch);
+
     match font.font_weight {
-        FontWeight::Weight(w) => weight.set_from(w),
-        FontWeight::Normal => weight.set_enum(structs::NS_FONT_WEIGHT_NORMAL as i32),
-        FontWeight::Bold => weight.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
+        FontWeight::Absolute(w) => weight.set_font_weight(w.compute().0),
         // Resolve relative font weights against the initial of font-weight
         // (normal, which is equivalent to 400).
         FontWeight::Bolder => weight.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),

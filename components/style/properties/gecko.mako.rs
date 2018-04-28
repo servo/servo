@@ -25,8 +25,6 @@ use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
-use gecko_bindings::bindings::Gecko_FontWeight_SetFloat;
-use gecko_bindings::bindings::Gecko_FontWeight_ToFloat;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImageValue;
 use gecko_bindings::bindings::Gecko_StyleTransition_SetUnsupportedProperty;
@@ -1806,7 +1804,7 @@ fn static_assert() {
     }
 
     pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
-        debug_assert_ne!(v.0, ::values::specified::align::AlignFlags::AUTO);
+        debug_assert_ne!(v.0, ::values::specified::align::AlignFlags::LEGACY);
         self.gecko.mJustifyItems = v.into();
     }
 
@@ -2601,15 +2599,49 @@ fn static_assert() {
     }
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
-        unsafe { Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0 as f32) };
+        unsafe { bindings::Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0) };
     }
     ${impl_simple_copy('font_weight', 'mFont.weight')}
 
     pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-        let weight: f32 = unsafe { Gecko_FontWeight_ToFloat(self.gecko.mFont.weight) };
-        debug_assert!(weight >= 0.0 &&
-                      weight <= ::std::u16::MAX as f32);
-        longhands::font_weight::computed_value::T(weight as u16)
+        let weight: f32 = unsafe {
+            bindings::Gecko_FontWeight_ToFloat(self.gecko.mFont.weight)
+        };
+        longhands::font_weight::computed_value::T(weight)
+    }
+
+    pub fn set_font_stretch(&mut self, v: longhands::font_stretch::computed_value::T) {
+        unsafe { bindings::Gecko_FontStretch_SetFloat(&mut self.gecko.mFont.stretch, (v.0).0) };
+    }
+    ${impl_simple_copy('font_stretch', 'mFont.stretch')}
+    pub fn clone_font_stretch(&self) -> longhands::font_stretch::computed_value::T {
+        use values::computed::Percentage;
+        use values::generics::NonNegative;
+
+        let stretch =
+            unsafe { bindings::Gecko_FontStretch_ToFloat(self.gecko.mFont.stretch) };
+        debug_assert!(stretch >= 0.);
+
+        NonNegative(Percentage(stretch))
+    }
+
+    pub fn set_font_style(&mut self, v: longhands::font_style::computed_value::T) {
+        use values::generics::font::FontStyle;
+        let s = &mut self.gecko.mFont.style;
+        unsafe {
+            match v {
+                FontStyle::Normal => bindings::Gecko_FontSlantStyle_SetNormal(s),
+                FontStyle::Italic => bindings::Gecko_FontSlantStyle_SetItalic(s),
+                FontStyle::Oblique(ref angle) => {
+                    bindings::Gecko_FontSlantStyle_SetOblique(s, angle.0.degrees())
+                }
+            }
+        }
+    }
+    ${impl_simple_copy('font_style', 'mFont.style')}
+    pub fn clone_font_style(&self) -> longhands::font_style::computed_value::T {
+        use values::computed::font::FontStyle;
+        FontStyle::from_gecko(self.gecko.mFont.style)
     }
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
