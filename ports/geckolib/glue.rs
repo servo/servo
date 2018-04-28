@@ -1012,9 +1012,18 @@ pub unsafe extern "C" fn Servo_Property_GetCSSValuesForProperty(
     let mut values = BTreeSet::<&'static str>::new();
     prop_id.collect_property_completion_keywords(&mut |list| values.extend(list.iter()));
 
+    let mut extras = vec![];
+    if values.contains("transparent") {
+        // This is a special value devtools use to avoid inserting the
+        // long list of color keywords. We need to prepend it to values.
+        extras.push("COLOR");
+    }
+
     let result = result.as_mut().unwrap();
-    bindings::Gecko_ResizeTArrayForStrings(result, values.len() as u32);
-    for (src, dest) in values.iter().zip(result.iter_mut()) {
+    let len = extras.len() + values.len();
+    bindings::Gecko_ResizeTArrayForStrings(result, len as u32);
+
+    for (src, dest) in extras.iter().chain(values.iter()).zip(result.iter_mut()) {
         dest.write_str(src).unwrap();
     }
 }
