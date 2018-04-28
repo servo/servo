@@ -173,16 +173,10 @@ where
         Self { inner, separator }
     }
 
-    /// Serialises a CSS value, writing any separator as necessary.
-    ///
-    /// The separator is never written before any `item` produces any output,
-    /// and is written in subsequent calls only if the `item` produces some
-    /// output on its own again. This lets us handle `Option<T>` fields by
-    /// just not printing anything on `None`.
     #[inline]
-    pub fn item<T>(&mut self, item: &T) -> fmt::Result
+    fn write_item<F>(&mut self, f: F) -> fmt::Result
     where
-        T: ToCss,
+        F: FnOnce(&mut CssWriter<'b, W>) -> fmt::Result
     {
         let old_prefix = self.inner.prefix;
         if old_prefix.is_none() {
@@ -191,7 +185,7 @@ where
             // to write the separator next time we produce output again.
             self.inner.prefix = Some(self.separator);
         }
-        item.to_css(&mut self.inner)?;
+        f(self.inner)?;
         match (old_prefix, self.inner.prefix) {
             (_, None) => {
                 // This call produced output and cleaned up after itself.
@@ -212,6 +206,29 @@ where
             }
         }
         Ok(())
+    }
+
+    /// Serialises a CSS value, writing any separator as necessary.
+    ///
+    /// The separator is never written before any `item` produces any output,
+    /// and is written in subsequent calls only if the `item` produces some
+    /// output on its own again. This lets us handle `Option<T>` fields by
+    /// just not printing anything on `None`.
+    #[inline]
+    pub fn item<T>(&mut self, item: &T) -> fmt::Result
+    where
+        T: ToCss,
+    {
+        self.write_item(|inner| item.to_css(inner))
+    }
+
+    /// Writes a string as-is (i.e. not escaped or wrapped in quotes)
+    /// with any separator as necessary.
+    ///
+    /// See SequenceWriter::item.
+    #[inline]
+    pub fn raw_item(&mut self, item: &str) -> fmt::Result {
+        self.write_item(|inner| inner.write_str(item))
     }
 }
 
