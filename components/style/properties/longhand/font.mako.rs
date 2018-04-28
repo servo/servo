@@ -274,6 +274,11 @@ ${helpers.predefined_type("-x-text-zoom",
         //! detects that a value has a system font, it will resolve it, and
         //! cache it on the ComputedValues. After this, it can be just fetched
         //! whenever a font longhand on the same element needs the system font.
+        //!
+        //! When a longhand property is holding a SystemFont, it's serialized
+        //! to an empty string as if its value comes from a shorthand with
+        //! variable reference. We may want to improve this behavior at some
+        //! point. See also https://github.com/w3c/csswg-drafts/issues/1586.
 
         use app_units::Au;
         use cssparser::{Parser, ToCss};

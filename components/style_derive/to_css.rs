@@ -78,6 +78,9 @@ fn derive_variant_arm(
     let variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&ast);
     let separator = if variant_attrs.comma { ", " } else { " " };
 
+    if variant_attrs.skip {
+        return quote!(Ok(()));
+    }
     if variant_attrs.dimension {
         assert_eq!(bindings.len(), 1);
         assert!(
@@ -223,6 +226,7 @@ pub struct CssVariantAttrs {
     pub dimension: bool,
     pub keyword: Option<String>,
     pub aliases: Option<String>,
+    pub skip: bool,
 }
 
 #[darling(attributes(css), default)]
