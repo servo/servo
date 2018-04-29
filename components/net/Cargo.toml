@@ -15,6 +15,7 @@ doctest = false
 base64 = "0.6"
 brotli = "1.0.6"
 cookie = "0.10"
+compositing = {path = "../compositing"}
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"
@@ -47,9 +48,6 @@ unicase = "1.4.0"
 url = "1.2"
 uuid = {version = "0.6", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-
-[target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
-tinyfiledialogs = "3.0"
 
 [[test]]
 name = "main"

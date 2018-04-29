@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use create_embedder_proxy;
 use ipc_channel::ipc;
 use net::resource_thread::new_core_resource_thread;
 use net::test::parse_hostsfile;
@@ -20,7 +21,7 @@ fn test_exit() {
     let (mtx, _mrx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     let (resource_thread, _private_resource_thread) = new_core_resource_thread(
-        "".into(), None, ProfilerChan(tx), MemProfilerChan(mtx), None);
+        "".into(), None, ProfilerChan(tx), MemProfilerChan(mtx), create_embedder_proxy(), None);
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();
 }

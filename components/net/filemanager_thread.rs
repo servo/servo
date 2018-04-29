@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::IpcSender;
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
+use ipc_channel::ipc::{self, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
@@ -18,71 +17,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::thread;
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-use tinyfiledialogs;
 use url::Url;
 use uuid::Uuid;
-
-/// The provider of file-dialog UI should implement this trait.
-/// It will be used to initialize a generic FileManager.
-/// For example, we can choose a dummy UI for testing purpose.
-pub trait UIProvider where Self: Sync {
-    fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String>;
-
-    fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>>;
-}
-
-pub struct TFDProvider;
-
-impl UIProvider for TFDProvider {
-    #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-    fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String> {
-        if opts::get().headless {
-            return None;
-        }
-
-        let mut filter = vec![];
-        for p in patterns {
-            let s = "*.".to_string() + &p.0;
-            filter.push(s)
-        }
-
-        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-
-        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
-
-        tinyfiledialogs::open_file_dialog("Pick a file", path, filter_opt)
-    }
-
-    #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-    fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
-        if opts::get().headless {
-            return None;
-        }
-
-        let mut filter = vec![];
-        for p in patterns {
-            let s = "*.".to_string() + &p.0;
-            filter.push(s)
-        }
-
-        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-
-        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
-
-        tinyfiledialogs::open_file_dialog_multi("Pick files", path, filter_opt)
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    fn open_file_dialog(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<String> {
-        None
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    fn open_file_dialog_multi(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
-        None
-    }
-}
 
 /// FileManagerStore's entry
 struct FileStoreEntry {
@@ -123,12 +59,14 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
+    embedder_proxy: EmbedderProxy,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new() -> FileManager {
+    pub fn new(embedder_proxy: EmbedderProxy) -> FileManager {
         FileManager {
+            embedder_proxy: embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
         }
     }
@@ -159,22 +97,20 @@ impl FileManager {
     }
 
     /// Message handler
-    pub fn handle<UI>(&self,
-                      msg: FileManagerThreadMsg,
-                      ui: &'static UI)
-        where UI: UIProvider + 'static,
-    {
+    pub fn handle(&self, msg: FileManagerThreadMsg) {
         match msg {
             FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
                 let store = self.store.clone();
+                let embedder = self.embedder_proxy.clone();
                 thread::Builder::new().name("select file".to_owned()).spawn(move || {
-                    store.select_file(filter, sender, origin, opt_test_path, ui);
+                    store.select_file(filter, sender, origin, opt_test_path, embedder);
                 }).expect("Thread spawning failed");
             }
             FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
                 let store = self.store.clone();
+                let embedder = self.embedder_proxy.clone();
                 thread::Builder::new().name("select files".to_owned()).spawn(move || {
-                    store.select_files(filter, sender, origin, opt_test_paths, ui);
+                    store.select_files(filter, sender, origin, opt_test_paths, embedder);
                 }).expect("Thread spawning failed");
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
@@ -279,21 +215,36 @@ impl FileManagerStore {
         }
     }
 
-    fn select_file<UI>(&self,
-                       patterns: Vec<FilterPattern>,
-                       sender: IpcSender<FileManagerResult<SelectedFile>>,
-                       origin: FileOrigin,
-                       opt_test_path: Option<String>,
-                       ui: &UI)
-        where UI: UIProvider,
-    {
+    fn query_files_from_embedder(&self,
+                                 patterns: Vec<FilterPattern>,
+                                 multiple_files: bool,
+                                 embedder_proxy: EmbedderProxy) -> Option<Vec<String>> {
+        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let msg = EmbedderMsg::SelectFiles(patterns, multiple_files, ipc_sender);
+
+        embedder_proxy.send(msg);
+        match ipc_receiver.recv() {
+            Ok(result) => result,
+            Err(e) => {
+                warn!("Failed to receive files from embedder ({}).", e);
+                None
+            }
+        }
+    }
+
+    fn select_file(&self,
+                    patterns: Vec<FilterPattern>,
+                    sender: IpcSender<FileManagerResult<SelectedFile>>,
+                    origin: FileOrigin,
+                    opt_test_path: Option<String>,
+                    embedder_proxy: EmbedderProxy) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
         let opt_s = if select_files_pref_enabled() {
             opt_test_path
         } else {
-            ui.open_file_dialog("", patterns)
+            self.query_files_from_embedder(patterns, false, embedder_proxy).and_then(|mut x| x.pop())
         };
 
         match opt_s {
@@ -309,21 +260,19 @@ impl FileManagerStore {
         }
     }
 
-    fn select_files<UI>(&self,
-                        patterns: Vec<FilterPattern>,
-                        sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-                        origin: FileOrigin,
-                        opt_test_paths: Option<Vec<String>>,
-                        ui: &UI)
-        where UI: UIProvider,
-    {
+    fn select_files(&self,
+                    patterns: Vec<FilterPattern>,
+                    sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
+                    origin: FileOrigin,
+                    opt_test_paths: Option<Vec<String>>,
+                    embedder_proxy: EmbedderProxy) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
         let opt_v = if select_files_pref_enabled() {
             opt_test_paths
         } else {
-            ui.open_file_dialog_multi("", patterns)
+            self.query_files_from_embedder(patterns, true, embedder_proxy)
         };
 
         match opt_v {

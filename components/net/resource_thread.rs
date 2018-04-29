@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
+use compositing::compositor_thread::EmbedderProxy;
 use connector::{create_http_connector, create_ssl_client};
 use cookie;
 use cookie_rs;
@@ -11,7 +12,7 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use fetch::cors_cache::CorsCache;
 use fetch::methods::{CancellationListener, FetchContext, fetch};
-use filemanager_thread::{FileManager, TFDProvider};
+use filemanager_thread::FileManager;
 use hsts::HstsList;
 use http_cache::HttpCache;
 use http_loader::{HttpState, http_redirect_fetch};
@@ -46,13 +47,12 @@ use std::thread;
 use storage_thread::StorageThreadFactory;
 use websocket_loader;
 
-const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
-
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             time_profiler_chan: ProfilerChan,
                             mem_profiler_chan: MemProfilerChan,
+                            embedder_proxy: EmbedderProxy,
                             config_dir: Option<PathBuf>)
                             -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
@@ -60,6 +60,7 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
         devtools_chan,
         time_profiler_chan,
         mem_profiler_chan,
+        embedder_proxy,
         config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone()),
@@ -72,6 +73,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 time_profiler_chan: ProfilerChan,
                                 mem_profiler_chan: MemProfilerChan,
+                                embedder_proxy: EmbedderProxy,
                                 config_dir: Option<PathBuf>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
@@ -80,7 +82,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
 
     thread::Builder::new().name("ResourceManager".to_owned()).spawn(move || {
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, time_profiler_chan
+            user_agent, devtools_chan, time_profiler_chan, embedder_proxy
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -263,7 +265,7 @@ impl ResourceChannelManager {
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
-            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
+            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
@@ -374,12 +376,13 @@ pub struct CoreResourceManager {
 impl CoreResourceManager {
     pub fn new(user_agent: Cow<'static, str>,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
-               _profiler_chan: ProfilerChan) -> CoreResourceManager {
+               _profiler_chan: ProfilerChan,
+               embedder_proxy: EmbedderProxy) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
             devtools_chan: devtools_channel,
             swmanager_chan: None,
-            filemanager: FileManager::new(),
+            filemanager: FileManager::new(embedder_proxy),
         }
     }
 

@@ -10,14 +10,16 @@ use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
+use servo::net_traits::filemanager_thread::FilterPattern;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
+use servo::servo_config::opts;
 use servo::servo_config::prefs::PREFS;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::mem;
 use std::rc::Rc;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::thread;
 use tinyfiledialogs;
 
@@ -294,6 +296,12 @@ impl Browser {
                 },
                 EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
                     platform_get_selected_devices(devices, sender);
+                },
+                EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
+                    if opts::get().headless {
+                        let _ = sender.send(None);
+                    }
+                    platform_get_selected_files(patterns, multiple_files, sender);
                 }
                 EmbedderMsg::ShowIME(_browser_id, _kind) => {
                     debug!("ShowIME received");
@@ -337,6 +345,40 @@ fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<
             let _ = sender.send(Some(address));
         }
     }
+    let _ = sender.send(None);
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+fn platform_get_selected_files(patterns: Vec<FilterPattern>,
+                               multiple_files: bool,
+                               sender: IpcSender<Option<Vec<String>>>) {
+    let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
+
+    thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
+        let mut filter = vec![];
+        for p in patterns {
+            let s = "*.".to_string() + &p.0;
+            filter.push(s)
+        }
+
+        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
+
+        if multiple_files {
+            let files = tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt);
+            let _ = sender.send(files);
+        } else {
+            let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
+            let _ = sender.send(file.map(|x| vec![x]));
+        }
+    }).expect("Thread spawning failed");
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+fn platform_get_selected_files(_patterns: Vec<FilterPattern>,
+                               _multiple_files: bool,
+                               sender: IpcSender<Option<Vec<String>>>) {
+    warn!("File picker not implemented");
     let _ = sender.send(None);
 }
 

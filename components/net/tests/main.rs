@@ -4,6 +4,7 @@
 
 #![cfg(test)]
 
+extern crate compositing;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate embedder_traits;
@@ -16,6 +17,7 @@ extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
+extern crate servo_config;
 extern crate servo_url;
 extern crate time;
 extern crate unicase;
@@ -33,6 +35,7 @@ mod mime_classifier;
 mod resource_thread;
 mod subresource_integrity;
 
+use compositing::compositor_thread::{EmbedderProxy, EventLoopWaker};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use hyper::server::{Handler, Listening, Server};
@@ -54,13 +57,40 @@ struct FetchResponseCollector {
     sender: Sender<Response>,
 }
 
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
+fn create_embedder_proxy() -> EmbedderProxy {
+    let (sender, _) = channel();
+    let event_loop_waker = | | {
+        struct DummyEventLoopWaker {
+        }
+        impl DummyEventLoopWaker {
+            fn new() -> DummyEventLoopWaker {
+                DummyEventLoopWaker { }
+            }
+        }
+        impl EventLoopWaker for DummyEventLoopWaker {
+            fn wake(&self) { }
+            fn clone(&self) -> Box<EventLoopWaker + Send> {
+                Box::new(DummyEventLoopWaker { })
+            }
+        }
+
+        Box::new(DummyEventLoopWaker::new())
+    };
+
+    EmbedderProxy {
+        sender: sender,
+        event_loop_waker: event_loop_waker()
+    }
+}
+
+fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>, fc: Option<EmbedderProxy>) -> FetchContext {
     let ssl_client = create_ssl_client(&resources::read_string(Resource::SSLCertificates));
+    let sender = fc.unwrap_or_else(|| create_embedder_proxy());
     FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
-        filemanager: FileManager::new(),
+        filemanager: FileManager::new(sender),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
     }
 }
@@ -76,7 +106,7 @@ impl FetchTaskTarget for FetchResponseCollector {
 }
 
 fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch_with_context(request, &new_fetch_context(dc))
+    fetch_with_context(request, &new_fetch_context(dc, None))
 }
 
 fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
@@ -96,7 +126,7 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
         sender: sender,
     };
 
-    methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None));
+    methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None, None));
 
     receiver.recv().unwrap()
 }
