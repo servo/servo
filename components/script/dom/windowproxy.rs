@@ -22,7 +22,7 @@ use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
 use js::jsapi::{JSAutoCompartment, JSContext, JSErrNum, JSFreeOp, JSObject};
-use js::jsapi::{JSPROP_READONLY, JSTracer, JS_DefinePropertyById};
+use js::jsapi::{JSPROP_ENUMERATE, JSPROP_READONLY, JSTracer, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
 use js::jsapi::{JS_HasPropertyById, JS_HasOwnPropertyById};
 use js::jsapi::{JS_IsExceptionPending, JS_GetOwnPropertyDescriptorById};
@@ -310,7 +310,7 @@ unsafe fn GetSubframeWindowProxy(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId
-) -> Option<DomRoot<WindowProxy>> {
+) -> Option<(DomRoot<WindowProxy>, u32)> {
     let index = get_array_index_from_id(cx, Handle::from_raw(id));
     if let Some(index) = index {
         rooted!(in(cx) let target = GetProxyPrivate(*proxy).to_object());
@@ -327,7 +327,8 @@ unsafe fn GetSubframeWindowProxy(
             );
             return result_receiver.recv().ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(ScriptThread::find_window_proxy);
+                .and_then(ScriptThread::find_window_proxy)
+                .map(|proxy| (proxy, JSPROP_ENUMERATE | JSPROP_READONLY));
         } else if let Ok(win) = root_from_handleobject::<DissimilarOriginWindow>(target.handle()) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
@@ -339,7 +340,8 @@ unsafe fn GetSubframeWindowProxy(
             ));
             return result_receiver.recv().ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(ScriptThread::find_window_proxy);
+                .and_then(ScriptThread::find_window_proxy)
+                .map(|proxy| (proxy, JSPROP_READONLY));
         }
     }
 
@@ -353,11 +355,11 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
                                               mut desc: RawMutableHandle<PropertyDescriptor>)
                                               -> bool {
     let window = GetSubframeWindowProxy(cx, proxy, id);
-    if let Some(window) = window {
+    if let Some((window, attrs)) = window {
         rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
         desc.value = val.get();
-        fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), JSPROP_READONLY);
+        fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), attrs);
         return true;
     }
 
@@ -425,7 +427,7 @@ unsafe extern "C" fn get(cx: *mut JSContext,
                          vp: RawMutableHandleValue)
                          -> bool {
     let window = GetSubframeWindowProxy(cx, proxy, id);
-    if let Some(window) = window {
+    if let Some((window, _attrs)) = window {
         window.to_jsval(cx, MutableHandle::from_raw(vp));
         return true;
     }
