@@ -17,4 +17,5 @@ pub use self::webrender_helpers::WebRenderDisplayListConverter;
 mod background;
 mod builder;
 mod conversions;
+pub mod items;
 mod webrender_helpers;

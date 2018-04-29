@@ -43,14 +43,11 @@ extern crate lazy_static;
 extern crate log;
 #[cfg_attr(target_os = "windows", macro_use)]
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
-extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
 extern crate range;
 #[macro_use] extern crate serde;
 extern crate servo_arc;
-extern crate servo_geometry;
 extern crate servo_url;
 #[macro_use] extern crate servo_atoms;
 #[cfg(feature = "unstable")]
@@ -65,9 +62,6 @@ extern crate webrender_api;
 extern crate xi_unicode;
 #[cfg(target_os = "android")]
 extern crate xml5ever;
-
-#[deny(unsafe_code)]
-pub mod display_list;
 
 // Fonts
 #[macro_use] pub mod font;

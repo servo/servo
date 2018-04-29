@@ -10,12 +10,11 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-gfx = {path = "../../../components/gfx"}
 gfx_traits = {path = "../../../components/gfx_traits"}
 ipc-channel = "0.10"
+layout = {path = "../../../components/layout"}
 metrics = {path = "../../../components/metrics"}
 msg = {path = "../../../components/msg"}
-net_traits = {path = "../../../components/net_traits"}
 profile_traits = {path = "../../../components/profile_traits"}
 servo_url = {path = "../../../components/url"}
 time = "0.1.12"

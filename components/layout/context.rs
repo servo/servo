@@ -4,8 +4,8 @@
 
 //! Data needed by the layout thread.
 
+use display_list::items::{WebRenderImageInfo, OpaqueNode};
 use fnv::FnvHasher;
-use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};

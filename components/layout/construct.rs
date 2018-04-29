@@ -17,6 +17,7 @@ use ServoArc;
 use block::BlockFlow;
 use context::{LayoutContext, with_thread_local_font_context};
 use data::{LayoutDataFlags, LayoutData};
+use display_list::items::OpaqueNode;
 use flex::FlexFlow;
 use floats::FloatKind;
 use flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
@@ -27,7 +28,6 @@ use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo, FragmentFlags
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use fragment::WhitespaceStrippingResult;
-use gfx::display_list::OpaqueNode;
 use inline::{InlineFlow, InlineFragmentNodeInfo, InlineFragmentNodeFlags};
 use linked_list::prepend_from;
 use list_item::{ListItemFlow, ListStyleTypeContent};

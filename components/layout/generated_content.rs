@@ -9,9 +9,9 @@
 //! as possible.
 
 use context::{LayoutContext, with_thread_local_font_context};
+use display_list::items::OpaqueNode;
 use flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};

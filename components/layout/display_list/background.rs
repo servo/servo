@@ -13,8 +13,8 @@
 
 use app_units::Au;
 use display_list::ToLayout;
+use display_list::items::{BorderDetails, Gradient, RadialGradient, WebRenderImageInfo};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
-use gfx::display_list::{self, BorderDetails, WebRenderImageInfo};
 use model::{self, MaybeAuto};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
@@ -56,7 +56,9 @@ pub struct BackgroundPlacement {
     pub tile_spacing: Size2D<Au>,
     /// A clip area. While the background is rendered according to all the
     /// measures above it is only shown within these bounds.
-    pub css_clip: Rect<Au>,
+    pub clip_rect: Rect<Au>,
+    /// Rounded corners for the clip_rect.
+    pub clip_radii: BorderRadius,
     /// Whether or not the background is fixed to the viewport.
     pub fixed: bool,
 }
@@ -149,6 +151,26 @@ fn compute_background_image_size(
     }
 }
 
+pub fn compute_background_clip(
+    bg_clip: BackgroundClip,
+    absolute_bounds: Rect<Au>,
+    border: SideOffsets2D<Au>,
+    border_padding: SideOffsets2D<Au>,
+    border_radii: BorderRadius,
+) -> (Rect<Au>, BorderRadius) {
+    match bg_clip {
+        BackgroundClip::BorderBox => (absolute_bounds, border_radii),
+        BackgroundClip::PaddingBox => (
+            absolute_bounds.inner_rect(border),
+            calculate_inner_border_radii(border_radii, border),
+        ),
+        BackgroundClip::ContentBox => (
+            absolute_bounds.inner_rect(border_padding),
+            calculate_inner_border_radii(border_radii, border_padding),
+        ),
+    }
+}
+
 /// Determines where to place an element background image or gradient.
 ///
 /// Photos have their resolution as intrinsic size while gradients have
@@ -160,6 +182,7 @@ pub fn compute_background_placement(
     intrinsic_size: Option<Size2D<Au>>,
     border: SideOffsets2D<Au>,
     border_padding: SideOffsets2D<Au>,
+    border_radii: BorderRadius,
     index: usize,
 ) -> BackgroundPlacement {
     let bg_attachment = *get_cyclic(&bg.background_attachment.0, index);
@@ -170,11 +193,13 @@ pub fn compute_background_placement(
     let bg_repeat = get_cyclic(&bg.background_repeat.0, index);
     let bg_size = *get_cyclic(&bg.background_size.0, index);
 
-    let css_clip = match bg_clip {
-        BackgroundClip::BorderBox => absolute_bounds,
-        BackgroundClip::PaddingBox => absolute_bounds.inner_rect(border),
-        BackgroundClip::ContentBox => absolute_bounds.inner_rect(border_padding),
-    };
+    let (clip_rect, clip_radii) = compute_background_clip(
+        bg_clip,
+        absolute_bounds,
+        border,
+        border_padding,
+        border_radii,
+    );
 
     let mut fixed = false;
     let mut bounds = match bg_attachment {
@@ -202,8 +227,8 @@ pub fn compute_background_placement(
         &mut tile_size.width,
         &mut tile_spacing.width,
         pos_x,
-        css_clip.origin.x,
-        css_clip.size.width,
+        clip_rect.origin.x,
+        clip_rect.size.width,
     );
     tile_image_axis(
         bg_repeat.1,
@@ -212,15 +237,16 @@ pub fn compute_background_placement(
         &mut tile_size.height,
         &mut tile_spacing.height,
         pos_y,
-        css_clip.origin.y,
-        css_clip.size.height,
+        clip_rect.origin.y,
+        clip_rect.size.height,
     );
 
     BackgroundPlacement {
         bounds,
         tile_size,
         tile_spacing,
-        css_clip,
+        clip_rect,
+        clip_radii,
         fixed,
     }
 }
@@ -508,7 +534,7 @@ pub fn convert_linear_gradient(
     stops: &[GradientItem],
     direction: LineDirection,
     repeating: bool,
-) -> display_list::Gradient {
+) -> Gradient {
     let angle = match direction {
         LineDirection::Angle(angle) => angle.radians(),
         LineDirection::Horizontal(x) => match x {
@@ -556,7 +582,7 @@ pub fn convert_linear_gradient(
 
     let center = Point2D::new(size.width / 2, size.height / 2);
 
-    display_list::Gradient {
+    Gradient {
         start_point: (center - delta).to_layout(),
         end_point: (center + delta).to_layout(),
         stops: stops,
@@ -570,7 +596,7 @@ pub fn convert_radial_gradient(
     shape: EndingShape,
     center: Position,
     repeating: bool,
-) -> display_list::RadialGradient {
+) -> RadialGradient {
     let center = Point2D::new(
         center.horizontal.to_used_value(size.width),
         center.vertical.to_used_value(size.height),
@@ -593,7 +619,7 @@ pub fn convert_radial_gradient(
 
     let stops = convert_gradient_stops(stops, radius.width);
 
-    display_list::RadialGradient {
+    RadialGradient {
         center: center.to_layout(),
         radius: radius.to_layout(),
         stops: stops,
