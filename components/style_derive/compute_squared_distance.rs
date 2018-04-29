@@ -26,7 +26,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         let mut append_error_clause = s.variants().len() > 1;
 
         let match_body = s.variants().iter().fold(quote!(), |body, variant| {
-            let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
+            let attrs = cg::parse_variant_attrs_from_ast::<AnimationVariantAttrs>(&variant.ast());
             if attrs.error {
                 append_error_clause = true;
                 return body;

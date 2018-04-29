@@ -4,15 +4,14 @@
 
 use cssparser::{ParseErrorKind, Parser, ParserInput, SourceLocation};
 use cssparser::ToCss as ParserToCss;
-use env_logger::Builder;
 use malloc_size_of::MallocSizeOfOps;
-use nsstring::nsCString;
+use nsstring::{nsCString, nsStringRepr};
 use selectors::{NthIndexCache, SelectorList};
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use smallvec::SmallVec;
 use std::cell::RefCell;
-use std::env;
+use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::iter;
 use std::mem;
@@ -137,7 +136,7 @@ use style::properties::{parse_one_declaration_into, parse_style_attribute};
 use style::properties::animated_properties::AnimationValue;
 use style::properties::animated_properties::compare_property_priority;
 use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::{CascadeLevel, StrongRuleNode, StyleSource};
+use style::rule_tree::{CascadeLevel, StrongRuleNode};
 use style::selector_parser::{PseudoElementCascadeType, SelectorImpl};
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::{Atom, WeakAtom};
@@ -164,7 +163,7 @@ use style::values::generics::rect::Rect;
 use style::values::specified;
 use style::values::specified::gecko::{IntersectionObserverRootMargin, PixelOrPercentage};
 use style::values::specified::source_size_list::SourceSizeList;
-use style_traits::{CssWriter, ParsingMode, StyleParseErrorKind, ToCss};
+use style_traits::{CssType, CssWriter, ParsingMode, StyleParseErrorKind, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::{AsyncStylesheetParser, StylesheetLoader};
 
@@ -183,14 +182,6 @@ static mut DUMMY_URL_DATA: *mut URLExtraData = 0 as *mut URLExtraData;
 #[no_mangle]
 pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     use style::gecko_bindings::sugar::origin_flags;
-
-    // Initialize logging.
-    let mut builder = Builder::new();
-    let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
-    match env::var("RUST_LOG") {
-      Ok(v) => builder.parse(&v).init(),
-      _ => builder.parse(default_level).init(),
-    };
 
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
     thread_state::initialize(thread_state::ThreadState::LAYOUT);
@@ -938,20 +929,36 @@ pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(
     }
 }
 
+macro_rules! parse_enabled_property_name {
+    ($prop_name:ident, $found:ident, $default:expr) => {{
+        let prop_name = $prop_name.as_ref().unwrap().as_str_unchecked();
+        // XXX This can be simplified once Option::filter is stable.
+        let prop_id = PropertyId::parse(prop_name).ok().and_then(|p| {
+            if p.enabled_for_all_content() {
+                Some(p)
+            } else {
+                None
+            }
+        });
+        match prop_id {
+            Some(p) => {
+                *$found = true;
+                p
+            }
+            None => {
+                *$found = false;
+                return $default;
+            }
+        }
+    }}
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn Servo_Property_IsShorthand(
     prop_name: *const nsACString,
     found: *mut bool
 ) -> bool {
-    let prop_id = PropertyId::parse(prop_name.as_ref().unwrap().as_str_unchecked());
-    let prop_id = match prop_id {
-        Ok(ref p) if p.enabled_for_all_content() => p,
-        _ => {
-            *found = false;
-            return false;
-        }
-    };
-    *found = true;
+    let prop_id = parse_enabled_property_name!(prop_name, found, false);
     prop_id.is_shorthand()
 }
 
@@ -972,6 +979,53 @@ pub unsafe extern "C" fn Servo_Property_IsInherited(
         PropertyId::ShorthandAlias(id, _) => id.longhands().next().unwrap(),
     };
     longhand_id.inherited()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_Property_SupportsType(
+    prop_name: *const nsACString,
+    ty: u32,
+    found: *mut bool,
+) -> bool {
+    let prop_id = parse_enabled_property_name!(prop_name, found, false);
+    // This should match the constants in InspectorUtils.
+    // (Let's don't bother importing InspectorUtilsBinding into bindings
+    // because it is not used anywhere else, and issue here would be
+    // caught by the property-db test anyway.)
+    let ty = match ty {
+        1 => CssType::COLOR,
+        2 => CssType::GRADIENT,
+        3 => CssType::TIMING_FUNCTION,
+        _ => unreachable!("unknown CSS type {}", ty),
+    };
+    prop_id.supports_type(ty)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_Property_GetCSSValuesForProperty(
+    prop_name: *const nsACString,
+    found: *mut bool,
+    result: *mut nsTArray<nsStringRepr>,
+) {
+    let prop_id = parse_enabled_property_name!(prop_name, found, ());
+    // Use B-tree set for unique and sorted result.
+    let mut values = BTreeSet::<&'static str>::new();
+    prop_id.collect_property_completion_keywords(&mut |list| values.extend(list.iter()));
+
+    let mut extras = vec![];
+    if values.contains("transparent") {
+        // This is a special value devtools use to avoid inserting the
+        // long list of color keywords. We need to prepend it to values.
+        extras.push("COLOR");
+    }
+
+    let result = result.as_mut().unwrap();
+    let len = extras.len() + values.len();
+    bindings::Gecko_ResizeTArrayForStrings(result, len as u32);
+
+    for (src, dest) in extras.iter().chain(values.iter()).zip(result.iter_mut()) {
+        dest.write_str(src).unwrap();
+    }
 }
 
 #[no_mangle]
@@ -3123,8 +3177,8 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
 
     let mut result = SmallVec::<[_; 10]>::new();
     for node in rule_node.self_and_ancestors() {
-        let style_rule = match *node.style_source() {
-            StyleSource::Style(ref rule) => rule,
+        let style_rule = match node.style_source().and_then(|x| x.as_rule()) {
+            Some(rule) => rule,
             _ => continue,
         };
 
@@ -3141,9 +3195,11 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
 
     unsafe { rules.set_len(result.len() as u32) };
     for (ref src, ref mut dest) in result.into_iter().zip(rules.iter_mut()) {
-        src.with_raw_offset_arc(|arc| {
-            **dest = *Locked::<StyleRule>::arc_as_borrowed(arc);
-        })
+        src.with_arc(|a| {
+            a.with_raw_offset_arc(|arc| {
+                **dest = *Locked::<StyleRule>::arc_as_borrowed(arc);
+            })
+        });
     }
 }
 

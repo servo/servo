@@ -62,11 +62,12 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
     let rules = s.contents.rules.read_with(&guard);
     rules.0.iter().filter_map(|rule| {
         match *rule {
-            CssRule::Style(ref style_rule) => Some(style_rule),
+            CssRule::Style(ref style_rule) => Some((
+                StyleSource::from_rule(style_rule.clone()),
+                CascadeLevel::UserNormal,
+            )),
             _ => None,
         }
-    }).cloned().map(StyleSource::Style).map(|s| {
-        (s, CascadeLevel::UserNormal)
     }).collect()
 }
 
@@ -78,7 +79,7 @@ fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, C
                                   shared_lock: &SharedRwLock)
                                   -> StrongRuleNode {
     let mut rules = rules.to_vec();
-    rules.push((StyleSource::Declarations(Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
+    rules.push((StyleSource::from_declarations(Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
         PropertyDeclaration::Display(
             longhands::display::SpecifiedValue::Block),
         Importance::Normal

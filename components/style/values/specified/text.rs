@@ -9,7 +9,9 @@ use parser::{Parse, ParserContext};
 use properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
 use unicode_segmentation::UnicodeSegmentation;
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
@@ -158,7 +160,7 @@ impl ToComputedValue for LineHeight {
 }
 
 /// A generic value for the `text-overflow` property.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextOverflowSide {
     /// Clip inline content.
     Clip,
@@ -192,7 +194,7 @@ impl Parse for TextOverflowSide {
     }
 }
 
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 /// text-overflow. Specifies rendering when inline content overflows its line box edge.
 pub struct TextOverflow {
     /// First value. Applies to end line box edge if no second is supplied; line-left edge otherwise.
@@ -251,30 +253,115 @@ impl ToComputedValue for TextOverflow {
     }
 }
 
-bitflags! {
-    #[derive(MallocSizeOf, ToComputedValue)]
-    /// Specified keyword values for the text-decoration-line property.
-    pub struct TextDecorationLine: u8 {
-        /// No text decoration line is specified
-        const NONE = 0;
-        /// Underline
-        const UNDERLINE = 0x01;
-        /// Overline
-        const OVERLINE = 0x02;
-        /// Line through
-        const LINE_THROUGH = 0x04;
-        /// Blink
-        const BLINK = 0x08;
-        #[cfg(feature = "gecko")]
-        /// Only set by presentation attributes
-        ///
-        /// Setting this will mean that text-decorations use the color
-        /// specified by `color` in quirks mode.
-        ///
-        /// For example, this gives <a href=foo><font color="red">text</font></a>
-        /// a red text decoration
-        const COLOR_OVERRIDE = 0x10;
+macro_rules! impl_text_decoration_line {
+    {
+        $(
+            $(#[$($meta:tt)+])*
+            $ident:ident / $css:expr => $value:expr,
+        )+
+    } => {
+        bitflags! {
+            #[derive(MallocSizeOf, ToComputedValue)]
+            /// Specified keyword values for the text-decoration-line property.
+            pub struct TextDecorationLine: u8 {
+                /// No text decoration line is specified
+                const NONE = 0;
+                $(
+                    $(#[$($meta)+])*
+                    const $ident = $value;
+                )+
+                #[cfg(feature = "gecko")]
+                /// Only set by presentation attributes
+                ///
+                /// Setting this will mean that text-decorations use the color
+                /// specified by `color` in quirks mode.
+                ///
+                /// For example, this gives <a href=foo><font color="red">text</font></a>
+                /// a red text decoration
+                const COLOR_OVERRIDE = 0x10;
+            }
+        }
+
+        impl Parse for TextDecorationLine {
+            /// none | [ underline || overline || line-through || blink ]
+            fn parse<'i, 't>(
+                _context: &ParserContext,
+                input: &mut Parser<'i, 't>,
+            ) -> Result<TextDecorationLine, ParseError<'i>> {
+                let mut result = TextDecorationLine::NONE;
+                if input
+                    .try(|input| input.expect_ident_matching("none"))
+                    .is_ok()
+                {
+                    return Ok(result);
+                }
+
+                loop {
+                    let result = input.try(|input| {
+                        let ident = input.expect_ident().map_err(|_| ())?;
+                        match_ignore_ascii_case! { ident,
+                            $(
+                                $css => {
+                                    if result.contains(TextDecorationLine::$ident) {
+                                        Err(())
+                                    } else {
+                                        result.insert(TextDecorationLine::$ident);
+                                        Ok(())
+                                    }
+                                }
+                            )+
+                            _ => Err(()),
+                        }
+                    });
+                    if result.is_err() {
+                        break;
+                    }
+                }
+
+                if !result.is_empty() {
+                    Ok(result)
+                } else {
+                    Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                }
+            }
+        }
+
+        impl ToCss for TextDecorationLine {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
+                if self.is_empty() {
+                    return dest.write_str("none");
+                }
+
+                let mut writer = SequenceWriter::new(dest, " ");
+                $(
+                    if self.contains(TextDecorationLine::$ident) {
+                        writer.raw_item($css)?;
+                    }
+                )+
+                Ok(())
+            }
+        }
+
+        impl SpecifiedValueInfo for TextDecorationLine {
+            fn collect_completion_keywords(f: KeywordsCollectFn) {
+                f(&["none", $($css,)+]);
+            }
+        }
     }
+}
+
+impl_text_decoration_line! {
+    /// Underline
+    UNDERLINE / "underline" => 1 << 0,
+    /// Overline
+    OVERLINE / "overline" => 1 << 1,
+    /// Line through
+    LINE_THROUGH / "line-through" => 1 << 2,
+    /// Blink
+    BLINK / "blink" => 1 << 3,
 }
 
 #[cfg(feature = "gecko")]
@@ -288,79 +375,18 @@ impl TextDecorationLine {
     }
 }
 
-impl Parse for TextDecorationLine {
-    /// none | [ underline || overline || line-through || blink ]
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<TextDecorationLine, ParseError<'i>> {
-        let mut result = TextDecorationLine::NONE;
-        if input
-            .try(|input| input.expect_ident_matching("none"))
-            .is_ok()
-        {
-            return Ok(result);
-        }
-
-        loop {
-            let result = input.try(|input| {
-                let ident = input.expect_ident().map_err(|_| ())?;
-                match_ignore_ascii_case! { ident,
-                    "underline" => {
-                        if result.contains(TextDecorationLine::UNDERLINE) {
-                            Err(())
-                        } else {
-                            result.insert(TextDecorationLine::UNDERLINE);
-                            Ok(())
-                        }
-                    }
-                    "overline" => {
-                        if result.contains(TextDecorationLine::OVERLINE) {
-                            Err(())
-                        } else {
-                            result.insert(TextDecorationLine::OVERLINE);
-                            Ok(())
-                        }
-                    }
-                    "line-through" => {
-                        if result.contains(TextDecorationLine::LINE_THROUGH) {
-                            Err(())
-                        } else {
-                            result.insert(TextDecorationLine::LINE_THROUGH);
-                            Ok(())
-                        }
-                    }
-                    "blink" => {
-                        if result.contains(TextDecorationLine::BLINK) {
-                            Err(())
-                        } else {
-                            result.insert(TextDecorationLine::BLINK);
-                            Ok(())
-                        }
-                    }
-                    _ => Err(()),
-                }
-            });
-            if result.is_err() {
-                break;
-            }
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
 macro_rules! define_text_align_keyword {
-    ($($name: ident => $discriminant: expr,)+) => {
+    ($(
+        $(#[$($meta:tt)+])*
+        $name: ident => $discriminant: expr,
+    )+) => {
         /// Specified value of text-align keyword value.
-        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+                 SpecifiedValueInfo, ToComputedValue, ToCss)]
         #[allow(missing_docs)]
         pub enum TextAlignKeyword {
             $(
+                $(#[$($meta)+])*
                 $name = $discriminant,
             )+
         }
@@ -391,6 +417,7 @@ define_text_align_keyword! {
     MozCenter => 6,
     MozLeft => 7,
     MozRight => 8,
+    #[css(skip)]
     Char => 10,
 }
 
@@ -417,7 +444,7 @@ impl TextAlignKeyword {
 
 /// Specified value of text-align property.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextAlign {
     /// Keyword value of text-align property.
     Keyword(TextAlignKeyword),
@@ -429,6 +456,7 @@ pub enum TextAlign {
     /// only set directly on the elements and it has a different handling
     /// unlike other values.
     #[cfg(feature = "gecko")]
+    #[css(skip)]
     MozCenterOrInherit,
 }
 
@@ -449,21 +477,6 @@ impl Parse for TextAlign {
         #[cfg(feature = "servo")]
         {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-    }
-}
-
-impl ToCss for TextAlign {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match *self {
-            TextAlign::Keyword(key) => key.to_css(dest),
-            #[cfg(feature = "gecko")]
-            TextAlign::MatchParent => dest.write_str("match-parent"),
-            #[cfg(feature = "gecko")]
-            TextAlign::MozCenterOrInherit => Ok(()),
         }
     }
 }
@@ -534,7 +547,7 @@ impl ToComputedValue for TextAlign {
 }
 
 /// Specified value of text-emphasis-style property.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextEmphasisStyle {
     /// <fill> <shape>
     Keyword(TextEmphasisKeywordValue),
@@ -545,7 +558,7 @@ pub enum TextEmphasisStyle {
 }
 
 /// Keyword value for the text-emphasis-style property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextEmphasisKeywordValue {
     /// <fill>
     Fill(TextEmphasisFillMode),
@@ -574,7 +587,8 @@ impl TextEmphasisKeywordValue {
 }
 
 /// Fill mode for the text-emphasis-style property
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 pub enum TextEmphasisFillMode {
     /// `filled`
     Filled,
@@ -583,7 +597,8 @@ pub enum TextEmphasisFillMode {
 }
 
 /// Shape keyword for the text-emphasis-style property
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToCss)]
 pub enum TextEmphasisShapeKeyword {
     /// `dot`
     Dot,
@@ -709,7 +724,8 @@ impl Parse for TextEmphasisStyle {
 }
 
 /// The allowed horizontal values for the `text-emphasis-position` property.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum TextEmphasisHorizontalWritingModeValue {
     /// Draw marks over the text in horizontal writing mode.
     Over,
@@ -718,7 +734,8 @@ pub enum TextEmphasisHorizontalWritingModeValue {
 }
 
 /// The allowed vertical values for the `text-emphasis-position` property.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum TextEmphasisVerticalWritingModeValue {
     /// Draws marks to the right of the text in vertical writing mode.
     Right,
@@ -727,7 +744,8 @@ pub enum TextEmphasisVerticalWritingModeValue {
 }
 
 /// Specified value of `text-emphasis-position` property.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub struct TextEmphasisPosition(
     pub TextEmphasisHorizontalWritingModeValue,
     pub TextEmphasisVerticalWritingModeValue,

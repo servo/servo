@@ -8,7 +8,8 @@
 use counter_style::{parse_counter_style_name, Symbols};
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseErrorKind};
+use style_traits::{KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};
 use super::CustomIdent;
 
 pub mod background;
@@ -137,14 +138,32 @@ impl Parse for CounterStyleOrNone {
     }
 }
 
+impl SpecifiedValueInfo for CounterStyleOrNone {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        // XXX The best approach for implementing this is probably
+        // having a CounterStyleName type wrapping CustomIdent, and
+        // put the predefined list for that type in counter_style mod.
+        // But that's a non-trivial change itself, so we use a simpler
+        // approach here.
+        macro_rules! predefined {
+            ($($name:expr,)+) => {
+                f(&["none", "symbols", $($name,)+]);
+            }
+        }
+        include!("../../counter_style/predefined.rs");
+    }
+}
+
 /// A wrapper of Non-negative values.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, PartialOrd, SpecifiedValueInfo, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub struct NonNegative<T>(pub T);
 
 /// A wrapper of greater-than-or-equal-to-one values.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, PartialOrd, SpecifiedValueInfo, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub struct GreaterThanOrEqualToOne<T>(pub T);

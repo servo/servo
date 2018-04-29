@@ -99,7 +99,8 @@ fn is_decimal(counter_type: &CounterStyleType) -> bool {
 /// The specified value for the `content` property.
 ///
 /// https://drafts.csswg.org/css-content/#propdef-content
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub enum Content {
     /// `normal` reserved keyword.
     Normal,
@@ -113,7 +114,8 @@ pub enum Content {
 }
 
 /// Items for the `content` property.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub enum ContentItem {
     /// Literal string content.
     String(Box<str>),

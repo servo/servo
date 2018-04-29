@@ -5,7 +5,6 @@
 
 extern crate cssparser;
 #[macro_use] extern crate cstr;
-extern crate env_logger;
 extern crate libc;
 #[macro_use] extern crate log;
 extern crate malloc_size_of;

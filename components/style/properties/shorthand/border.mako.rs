@@ -140,6 +140,7 @@ pub fn parse_border<'i, 't>(
         for prop in ['color', 'style', 'width'])}
         ${' '.join('border-image-%s' % name
         for name in ['outset', 'repeat', 'slice', 'source', 'width'])}"
+    derive_value_info="False"
     spec="https://drafts.csswg.org/css-backgrounds/#border">
 
     pub fn parse_value<'i, 't>(
@@ -202,6 +203,17 @@ pub fn parse_border<'i, 't>(
         }
     }
 
+    // Just use the same as border-left. The border shorthand can't accept
+    // any value that the sub-shorthand couldn't.
+    <%
+        border_left = "<::properties::shorthands::border_left::Longhands as SpecifiedValueInfo>"
+    %>
+    impl SpecifiedValueInfo for Longhands {
+        const SUPPORTED_TYPES: u8 = ${border_left}::SUPPORTED_TYPES;
+        fn collect_completion_keywords(f: KeywordsCollectFn) {
+            ${border_left}::collect_completion_keywords(f);
+        }
+    }
 </%helpers:shorthand>
 
 <%helpers:shorthand name="border-radius" sub_properties="${' '.join(

@@ -188,7 +188,7 @@ where
     }
 }
 
-pub fn parse_variant_attrs<A>(variant: &VariantAst) -> A
+pub fn parse_variant_attrs_from_ast<A>(variant: &VariantAst) -> A
 where
     A: FromVariant,
 {
@@ -198,7 +198,14 @@ where
         fields: variant.fields.clone(),
         discriminant: variant.discriminant.clone(),
     };
-    match A::from_variant(&v) {
+    parse_variant_attrs(&v)
+}
+
+pub fn parse_variant_attrs<A>(variant: &Variant) -> A
+where
+    A: FromVariant
+{
+    match A::from_variant(variant) {
         Ok(attrs) => attrs,
         Err(e) => panic!("failed to parse variant attributes: {}", e),
     }

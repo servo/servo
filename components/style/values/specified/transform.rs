@@ -233,7 +233,7 @@ impl Parse for Transform {
 }
 
 /// The specified value of a component of a CSS `<transform-origin>`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum OriginComponent<S> {
     /// `center`
     Center,

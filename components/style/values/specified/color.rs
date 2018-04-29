@@ -14,7 +14,8 @@ use parser::{Parse, ParserContext};
 use properties::longhands::system_colors::SystemColor;
 use std::fmt::{self, Write};
 use std::io::Write as IoWrite;
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss, ValueParseErrorKind};
+use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};
+use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use values::specified::calc::CalcNode;
@@ -394,7 +395,7 @@ impl ToComputedValue for Color {
 
 /// Specified color value, but resolved to just RGBA for computed value
 /// with value from color property at the same context.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub struct RGBAColor(pub Color);
 
 impl Parse for RGBAColor {
@@ -426,10 +427,23 @@ impl From<Color> for RGBAColor {
     }
 }
 
+impl SpecifiedValueInfo for Color {
+    const SUPPORTED_TYPES: u8 = CssType::COLOR;
+
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        // We are not going to insert all the color names here. Caller and
+        // devtools should take care of them. XXX Actually, transparent
+        // should probably be handled that way as well.
+        // XXX `currentColor` should really be `currentcolor`. But let's
+        // keep it consistent with the old system for now.
+        f(&["rgb", "rgba", "hsl", "hsla", "currentColor", "transparent"]);
+    }
+}
+
 /// Specified value for the "color" property, which resolves the `currentcolor`
 /// keyword to the parent color instead of self's color.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 pub struct ColorPropertyValue(pub Color);
 
 impl ToComputedValue for ColorPropertyValue {

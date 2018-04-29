@@ -71,7 +71,7 @@ where
 
 /// Convenience void type to disable some properties and values through types.
 #[cfg_attr(feature = "servo", derive(Deserialize, MallocSizeOf, Serialize))]
-#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum Impossible {}
 
 // FIXME(nox): This should be derived but the derive code cannot cope
@@ -93,8 +93,9 @@ impl Parse for Impossible {
 }
 
 /// A struct representing one of two kinds of values.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedValue,
-         ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToComputedValue,
+         ToCss)]
 pub enum Either<A, B> {
     /// The first value.
     First(A),
@@ -125,7 +126,8 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
 }
 
 /// <https://drafts.csswg.org/css-values-4/#custom-idents>
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct CustomIdent(pub Atom);
 
 impl CustomIdent {
@@ -160,7 +162,7 @@ impl ToCss for CustomIdent {
 }
 
 /// <https://drafts.csswg.org/css-animations/#typedef-keyframes-name>
-#[derive(Clone, Debug, MallocSizeOf, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
 pub enum KeyframesName {
     /// <custom-ident>
     Ident(CustomIdent),

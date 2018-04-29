@@ -39,6 +39,7 @@ use std::convert::From;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::iter::{ExactSizeIterator, Iterator};
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
@@ -924,7 +925,7 @@ impl<T: 'static> Arc<T> {
 ///
 /// ArcBorrow lets us deal with borrows of known-refcounted objects
 /// without needing to worry about how they're actually stored.
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ArcBorrow<'a, T: 'a>(&'a T);
 
 impl<'a, T> Copy for ArcBorrow<'a, T> {}
@@ -951,6 +952,10 @@ impl<'a, T> ArcBorrow<'a, T> {
         ArcBorrow(r)
     }
 
+    pub fn ptr_eq(this: &Self, other: &Self) -> bool {
+        this.0 as *const T == other.0 as *const T
+    }
+
     #[inline]
     pub fn with_arc<F, U>(&self, f: F) -> U
     where
@@ -971,6 +976,13 @@ impl<'a, T> ArcBorrow<'a, T> {
         // Forward the result.
         result
     }
+
+    /// Similar to deref, but uses the lifetime |a| rather than the lifetime of
+    /// self, which is incompatible with the signature of the Deref trait.
+    #[inline]
+    pub fn get(&self) -> &'a T {
+        self.0
+    }
 }
 
 impl<'a, T> Deref for ArcBorrow<'a, T> {
@@ -978,7 +990,127 @@ impl<'a, T> Deref for ArcBorrow<'a, T> {
 
     #[inline]
     fn deref(&self) -> &T {
-        &*self.0
+        self.0
+    }
+}
+
+/// A tagged union that can represent Arc<A> or Arc<B> while only consuming a
+/// single word. The type is also NonZero, and thus can be stored in an Option
+/// without increasing size.
+///
+/// This could probably be extended to support four types if necessary.
+pub struct ArcUnion<A: 'static, B: 'static> {
+    p: NonZeroPtrMut<()>,
+    phantom_a: PhantomData<&'static A>,
+    phantom_b: PhantomData<&'static B>,
+}
+
+impl<A: PartialEq + 'static, B: PartialEq + 'static> PartialEq for ArcUnion<A, B> {
+    fn eq(&self, other: &Self) -> bool {
+        use ArcUnionBorrow::*;
+        match (self.borrow(), other.borrow()) {
+            (First(x), First(y)) => x == y,
+            (Second(x), Second(y)) => x == y,
+            (_, _) => false,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ArcUnionBorrow<'a, A: 'static, B: 'static> {
+    First(ArcBorrow<'a, A>),
+    Second(ArcBorrow<'a, B>),
+}
+
+impl<A: 'static, B: 'static> ArcUnion<A, B> {
+    fn new(ptr: *mut ()) -> Self {
+        ArcUnion {
+            p: NonZeroPtrMut::new(ptr),
+            phantom_a: PhantomData,
+            phantom_b: PhantomData,
+        }
+    }
+
+    /// Returns true if the two values are pointer-equal.
+    pub fn ptr_eq(this: &Self, other: &Self) -> bool {
+        this.p == other.p
+    }
+
+    /// Returns an enum representing a borrow of either A or B.
+    pub fn borrow(&self) -> ArcUnionBorrow<A, B> {
+        if self.is_first() {
+            let ptr = self.p.ptr() as *const A;
+            let borrow = unsafe { ArcBorrow::from_ref(&*ptr) };
+            ArcUnionBorrow::First(borrow)
+        } else {
+            let ptr = ((self.p.ptr() as usize) & !0x1) as *const B;
+            let borrow = unsafe { ArcBorrow::from_ref(&*ptr) };
+            ArcUnionBorrow::Second(borrow)
+        }
+    }
+
+    /// Creates an ArcUnion from an instance of the first type.
+    pub fn from_first(other: Arc<A>) -> Self {
+        Self::new(Arc::into_raw(other) as *mut _)
+    }
+
+    /// Creates an ArcUnion from an instance of the second type.
+    pub fn from_second(other: Arc<B>) -> Self {
+        Self::new(((Arc::into_raw(other) as usize) | 0x1) as *mut _)
+    }
+
+    /// Returns true if this ArcUnion contains the first type.
+    pub fn is_first(&self) -> bool {
+        self.p.ptr() as usize & 0x1 == 0
+    }
+
+    /// Returns true if this ArcUnion contains the second type.
+    pub fn is_second(&self) -> bool {
+        !self.is_first()
+    }
+
+    /// Returns a borrow of the first type if applicable, otherwise None.
+    pub fn as_first(&self) -> Option<ArcBorrow<A>> {
+        match self.borrow() {
+            ArcUnionBorrow::First(x) => Some(x),
+            ArcUnionBorrow::Second(_) => None,
+        }
+    }
+
+    /// Returns a borrow of the second type if applicable, otherwise None.
+    pub fn as_second(&self) -> Option<ArcBorrow<B>> {
+        match self.borrow() {
+            ArcUnionBorrow::First(_) => None,
+            ArcUnionBorrow::Second(x) => Some(x),
+        }
+    }
+}
+
+impl<A: 'static, B: 'static> Clone for ArcUnion<A, B> {
+    fn clone(&self) -> Self {
+        match self.borrow() {
+            ArcUnionBorrow::First(x) => ArcUnion::from_first(x.clone_arc()),
+            ArcUnionBorrow::Second(x) => ArcUnion::from_second(x.clone_arc()),
+        }
+    }
+}
+
+impl<A: 'static, B: 'static> Drop for ArcUnion<A, B> {
+    fn drop(&mut self) {
+        match self.borrow() {
+            ArcUnionBorrow::First(x) => unsafe {
+                let _ = Arc::from_raw(&*x);
+            },
+            ArcUnionBorrow::Second(x) => unsafe {
+                let _ = Arc::from_raw(&*x);
+            },
+        }
+    }
+}
+
+impl<A: fmt::Debug, B: fmt::Debug> fmt::Debug for ArcUnion<A, B> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&self.borrow(), f)
     }
 }
 

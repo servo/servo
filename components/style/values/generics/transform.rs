@@ -15,7 +15,8 @@ use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 #[css(comma, function)]
 pub struct Matrix<T> {
     pub a: T,
@@ -29,7 +30,8 @@ pub struct Matrix<T> {
 #[allow(missing_docs)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
 #[css(comma, function = "matrix3d")]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub struct Matrix3D<T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,
     pub m21: T, pub m22: T, pub m23: T, pub m24: T,
@@ -64,8 +66,8 @@ impl<T: Into<f64>> From<Matrix3D<T>> for Transform3D<f64> {
 }
 
 /// A generic transform origin.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct TransformOrigin<H, V, Depth> {
     /// The horizontal origin.
     pub horizontal: H,
@@ -78,7 +80,9 @@ pub struct TransformOrigin<H, V, Depth> {
 /// A generic timing function.
 ///
 /// <https://drafts.csswg.org/css-timing-1/#single-timing-function-production>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
+#[value_info(ty = "TIMING_FUNCTION")]
 pub enum TimingFunction<Integer, Number> {
     /// `linear | ease | ease-in | ease-out | ease-in-out`
     Keyword(TimingKeyword),
@@ -93,6 +97,7 @@ pub enum TimingFunction<Integer, Number> {
     },
     /// `step-start | step-end | steps(<integer>, [ start | end ]?)`
     #[css(comma, function)]
+    #[value_info(other_values = "step-start,step-end")]
     Steps(Integer, #[css(skip_if = "is_end")] StepPosition),
     /// `frames(<integer>)`
     #[css(comma, function)]
@@ -101,7 +106,8 @@ pub enum TimingFunction<Integer, Number> {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum TimingKeyword {
     Linear,
     Ease,
@@ -157,7 +163,8 @@ impl TimingKeyword {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// A single operation in the list of a `transform` value
 pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> {
     /// Represents a 2D 2x3 matrix.
@@ -261,7 +268,8 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> 
     },
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// A value of the `transform` property
 pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 
@@ -554,8 +562,8 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     }
 }
 
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedZero,
-         ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 /// A value of the `Rotate` property
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
@@ -568,8 +576,8 @@ pub enum Rotate<Number, Angle> {
     Rotate3D(Number, Number, Number, Angle),
 }
 
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedZero,
-         ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 /// A value of the `Scale` property
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
@@ -584,8 +592,8 @@ pub enum Scale<Number> {
     Scale3D(Number, Number, Number),
 }
 
-#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedZero,
-         ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 /// A value of the `Translate` property
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
@@ -601,7 +609,8 @@ pub enum Translate<LengthOrPercentage, Length> {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub enum TransformStyle {
     #[cfg(feature = "servo")]
     Auto,

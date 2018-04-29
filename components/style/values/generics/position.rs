@@ -6,8 +6,8 @@
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedZero, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue)]
 pub struct Position<H, V> {
     /// The horizontal component of position.
     pub horizontal: H,
@@ -26,8 +26,8 @@ impl<H, V> Position<H, V> {
 }
 
 /// A generic value for the `z-index` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum ZIndex<Integer> {
     /// An integer value.
     Integer(Integer),

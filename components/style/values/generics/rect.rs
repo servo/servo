@@ -11,8 +11,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A CSS value made of four components, where its `ToCss` impl will try to
 /// serialize as few components as possible, like for example in `border-width`.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
 impl<T> Rect<T> {

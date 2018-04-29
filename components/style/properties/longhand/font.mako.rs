@@ -274,6 +274,11 @@ ${helpers.predefined_type("-x-text-zoom",
         //! detects that a value has a system font, it will resolve it, and
         //! cache it on the ComputedValues. After this, it can be just fetched
         //! whenever a font longhand on the same element needs the system font.
+        //!
+        //! When a longhand property is holding a SystemFont, it's serialized
+        //! to an empty string as if its value comes from a shorthand with
+        //! variable reference. We may want to improve this behavior at some
+        //! point. See also https://github.com/w3c/csswg-drafts/issues/1586.
 
         use app_units::Au;
         use cssparser::{Parser, ToCss};
@@ -296,7 +301,8 @@ ${helpers.predefined_type("-x-text-zoom",
             kw_cast = """font_variant_caps font_kerning font_variant_position
                          font_optical_sizing""".split()
         %>
-        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq,
+                 SpecifiedValueInfo, ToCss)]
         pub enum SystemFont {
             % for font in system_fonts:
                 ${to_camel_case(font)},
@@ -444,7 +450,7 @@ ${helpers.predefined_type("-x-text-zoom",
         // a lot of code with `if product == gecko` conditionals, we have a
         // dummy system font module that does nothing
 
-        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SpecifiedValueInfo, ToCss)]
         #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
         /// void enum for system font, can never exist
         pub enum SystemFont {}

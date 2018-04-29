@@ -9,8 +9,9 @@ use parser::{Parse, ParserContext};
 use style_traits::ParseError;
 
 /// An image url or none, used for example in list-style-image
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
-         ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToComputedValue,
+         ToCss)]
 pub enum UrlOrNone<Url> {
     /// `none`
     None,

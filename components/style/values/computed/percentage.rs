@@ -12,8 +12,9 @@ use values::generics::NonNegative;
 
 /// A computed percentage.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, Default, MallocSizeOf, PartialEq,
-         PartialOrd, ToAnimatedZero, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, Default,
+         MallocSizeOf, PartialEq, PartialOrd, SpecifiedValueInfo,
+         ToAnimatedZero, ToComputedValue)]
 pub struct Percentage(pub CSSFloat);
 
 impl Percentage {

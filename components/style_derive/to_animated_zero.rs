@@ -22,7 +22,7 @@ pub fn derive(mut input: syn::DeriveInput) -> quote::Tokens {
     }
 
     let to_body = synstructure::Structure::new(&input).each_variant(|variant| {
-        let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(&variant.ast());
+        let attrs = cg::parse_variant_attrs_from_ast::<AnimationVariantAttrs>(&variant.ast());
         if attrs.error {
             return Some(quote! { Err(()) });
         }

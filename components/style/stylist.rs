@@ -1523,7 +1523,7 @@ impl Stylist {
         // just avoid allocating it and calling `apply_declarations` directly,
         // maybe...
         let rule_node = self.rule_tree.insert_ordered_rules(iter::once((
-            StyleSource::Declarations(declarations),
+            StyleSource::from_declarations(declarations),
             CascadeLevel::StyleAttributeNormal,
         )));
 
@@ -2177,7 +2177,7 @@ impl CascadeData {
                                     .expect("Expected precomputed declarations for the UA level")
                                     .get_or_insert_with(&pseudo.canonical(), Vec::new)
                                     .push(ApplicableDeclarationBlock::new(
-                                        StyleSource::Style(locked.clone()),
+                                        StyleSource::from_rule(locked.clone()),
                                         self.rules_source_order,
                                         CascadeLevel::UANormal,
                                         selector.specificity(),
@@ -2480,7 +2480,7 @@ impl Rule {
         level: CascadeLevel,
         shadow_cascade_order: ShadowCascadeOrder,
     ) -> ApplicableDeclarationBlock {
-        let source = StyleSource::Style(self.style_rule.clone());
+        let source = StyleSource::from_rule(self.style_rule.clone());
         ApplicableDeclarationBlock::new(source, self.source_order, level, self.specificity(), shadow_cascade_order)
     }
 

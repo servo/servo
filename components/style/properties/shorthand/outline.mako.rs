@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="outline"
-                    sub_properties="outline-width outline-style outline-color"
+                    sub_properties="outline-color outline-style outline-width"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
     use properties::longhands::{outline_color, outline_width, outline_style};

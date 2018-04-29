@@ -8,7 +8,7 @@
 use fnv::FnvHashMap;
 use logical_geometry::WritingMode;
 use properties::{ComputedValues, StyleBuilder};
-use rule_tree::{StrongRuleNode, StyleSource};
+use rule_tree::StrongRuleNode;
 use selector_parser::PseudoElement;
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
@@ -97,16 +97,18 @@ impl RuleCache {
         mut rule_node: Option<&'r StrongRuleNode>,
     ) -> Option<&'r StrongRuleNode> {
         while let Some(node) = rule_node {
-            match *node.style_source() {
-                StyleSource::Declarations(ref decls) => {
-                    let cascade_level = node.cascade_level();
-                    let decls = decls.read_with(cascade_level.guard(guards));
-                    if decls.contains_any_reset() {
-                        break;
-                    }
+            match node.style_source() {
+                Some(s) => match s.as_declarations() {
+                    Some(decls) => {
+                        let cascade_level = node.cascade_level();
+                        let decls = decls.read_with(cascade_level.guard(guards));
+                        if decls.contains_any_reset() {
+                            break;
+                        }
+                    },
+                    None => break,
                 },
-                StyleSource::None => {},
-                StyleSource::Style(_) => break,
+                None => {},
             }
             rule_node = node.parent();
         }

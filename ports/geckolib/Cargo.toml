@@ -17,7 +17,6 @@ gecko_debug = ["style/gecko_debug"]
 atomic_refcell = "0.1"
 cssparser = "0.23.0"
 cstr = "0.1.2"
-env_logger = {version = "0.5", default-features = false} # disable `regex` to reduce code size
 libc = "0.2"
 log = {version = "0.4", features = ["release_max_level_info"]}
 malloc_size_of = {path = "../../components/malloc_size_of"}

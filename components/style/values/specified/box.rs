@@ -10,8 +10,7 @@ use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::CustomIdent;
-use values::KeyframesName;
+use values::{CustomIdent, KeyframesName};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
@@ -19,7 +18,8 @@ use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// Defines an element’s display type, which consists of
 /// the two basic qualities of how an element generates boxes
@@ -296,7 +296,9 @@ impl AnimationIterationCount {
 }
 
 /// A value for the `animation-name` property.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
+#[value_info(other_values = "none")]
 pub struct AnimationName(pub Option<KeyframesName>);
 
 impl AnimationName {
@@ -339,7 +341,8 @@ impl Parse for AnimationName {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum ScrollSnapType {
     None,
     Mandatory,
@@ -348,7 +351,8 @@ pub enum ScrollSnapType {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -357,13 +361,15 @@ pub enum OverscrollBehavior {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum OverflowClipBox {
     PaddingBox,
     ContentBox,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// Provides a rendering hint to the user agent,
 /// stating what kinds of changes the author expects
 /// to perform on the element
@@ -415,8 +421,9 @@ impl Parse for WillChange {
 
 bitflags! {
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(ToComputedValue)]
+    #[derive(SpecifiedValueInfo, ToComputedValue)]
     /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
     pub struct TouchAction: u8 {
         /// `none` variant
         const TOUCH_ACTION_NONE = 1 << 0;
@@ -515,7 +522,8 @@ pub fn assert_touch_action_matches() {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, ToComputedValue)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    #[value_info(other_values = "none,strict,layout,style,paint")]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
         /// `layout` variant, turns on layout containment

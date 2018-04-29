@@ -35,7 +35,7 @@ pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, SimpleShadow>;
 pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, Impossible>;
 
 /// A value for the `<factor>` parts in `Filter`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub struct Factor(NumberOrPercentage);
 
 impl Factor {

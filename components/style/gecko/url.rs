@@ -19,7 +19,7 @@ use style_traits::ParseError;
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 pub struct CssUrl {
     /// The URL in unresolved string form.
     ///
@@ -121,7 +121,7 @@ impl MallocSizeOf for CssUrl {
 }
 
 /// A specified url() value for general usage.
-#[derive(Clone, Debug, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct SpecifiedUrl {
     /// The specified url value.
     pub url: CssUrl,
@@ -179,7 +179,7 @@ impl MallocSizeOf for SpecifiedUrl {
 /// A specified url() value for image.
 ///
 /// This exists so that we can construct `ImageValue` and reuse it.
-#[derive(Clone, Debug, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct SpecifiedImageUrl {
     /// The specified url value.
     pub url: CssUrl,

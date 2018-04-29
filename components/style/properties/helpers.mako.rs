@@ -164,7 +164,7 @@
         % if separator == "Comma":
         #[css(comma)]
         % endif
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
         pub struct SpecifiedValue(
             % if not allow_empty:
             #[css(iterable)]
@@ -396,8 +396,8 @@
 
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse)]
-            #[derive(PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse,
+                     PartialEq, SpecifiedValueInfo, ToCss)]
             pub enum T {
             % for value in keyword.values_for(product):
                 ${to_camel_case(value)},
@@ -408,9 +408,10 @@
         }
 
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
+            #[css(skip)]
             System(SystemFont),
         }
 
@@ -558,7 +559,8 @@
         </%def>
         % if extra_specified:
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
+            #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+                     SpecifiedValueInfo, ToCss)]
             pub enum SpecifiedValue {
                 ${variants(keyword.values_for(product) + extra_specified.split(), bool(extra_specified))}
             }
@@ -569,7 +571,7 @@
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
             #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
             % if not extra_specified:
-            #[derive(Parse, ToComputedValue)]
+            #[derive(Parse, SpecifiedValueInfo, ToComputedValue)]
             % endif
             pub enum T {
                 ${variants(data.longhands_by_name[name].keyword.values_for(product), not extra_specified)}
@@ -617,9 +619,14 @@
     % endif
 </%def>
 
-<%def name="shorthand(name, sub_properties, derive_serialize=False, **kwargs)">
+<%def name="shorthand(name, sub_properties, derive_serialize=False,
+                      derive_value_info=True, **kwargs)">
 <%
     shorthand = data.declare_shorthand(name, sub_properties.split(), **kwargs)
+    # mako doesn't accept non-string value in parameters with <% %> form, so
+    # we have to workaround it this way.
+    if not isinstance(derive_value_info, bool):
+        derive_value_info = eval(derive_value_info)
 %>
     % if shorthand:
     /// ${shorthand.spec}
@@ -634,8 +641,11 @@
         #[allow(unused_imports)]
         use style_traits::{ParseError, StyleParseErrorKind};
         #[allow(unused_imports)]
-        use style_traits::{CssWriter, ToCss};
+        use style_traits::{CssWriter, KeywordsCollectFn, SpecifiedValueInfo, ToCss};
 
+        % if derive_value_info:
+        #[derive(SpecifiedValueInfo)]
+        % endif
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
                 pub ${sub_property.ident}:

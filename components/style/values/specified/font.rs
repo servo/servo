@@ -15,7 +15,9 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
 use values::CustomIdent;
 use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
@@ -77,7 +79,7 @@ pub const MAX_FONT_WEIGHT: f32 = 1000.;
 /// A specified font-weight value.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum FontWeight {
     /// `<font-weight-absolute>`
     Absolute(AbsoluteFontWeight),
@@ -86,6 +88,7 @@ pub enum FontWeight {
     /// Lighter variant
     Lighter,
     /// System font variant.
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -154,7 +157,7 @@ impl ToComputedValue for FontWeight {
 /// An absolute font-weight value for a @font-face rule.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-weight-absolute-values
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum AbsoluteFontWeight {
     /// A `<number>`, with the additional constraints specified in:
     ///
@@ -333,10 +336,12 @@ impl SpecifiedFontStyle {
 }
 
 /// The specified value of the `font-style` property.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 #[allow(missing_docs)]
 pub enum FontStyle {
     Specified(SpecifiedFontStyle),
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -378,15 +383,18 @@ impl Parse for FontStyle {
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 pub enum FontStretch {
     Stretch(Percentage),
     Keyword(FontStretchKeyword),
+    #[css(skip)]
     System(SystemFont),
 }
 
 /// A keyword value for `font-stretch`.
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 #[allow(missing_docs)]
 pub enum FontStretchKeyword {
     Normal,
@@ -501,7 +509,7 @@ impl ToComputedValue for FontStretch {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 /// A specified font-size value
 pub enum FontSize {
     /// A length; e.g. 10px.
@@ -522,6 +530,7 @@ pub enum FontSize {
     /// font-size: larger
     Larger,
     /// Derived from a specified system font.
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -538,6 +547,7 @@ pub enum FontFamily {
     #[css(comma)]
     Values(#[css(iterable)] FontFamilyList),
     /// System font
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -602,6 +612,8 @@ impl Parse for FontFamily {
     }
 }
 
+impl SpecifiedValueInfo for FontFamily {}
+
 /// `FamilyName::parse` is based on `SingleFontFamily::parse` and not the other way around
 /// because we want the former to exclude generic family keywords.
 impl Parse for FamilyName {
@@ -619,7 +631,7 @@ impl Parse for FamilyName {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Preserve the readability of text when font fallback occurs
 pub enum FontSizeAdjust {
     /// None variant
@@ -627,6 +639,7 @@ pub enum FontSizeAdjust {
     /// Number variant
     Number(Number),
     /// system font
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -700,21 +713,6 @@ impl KeywordInfo {
             kw: self.kw,
             factor: self.factor * factor,
             offset: self.offset.scale_by(factor) + offset,
-        }
-    }
-}
-
-impl KeywordSize {
-    /// Parses a keyword size.
-    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            "xx-small" => Ok(KeywordSize::XXSmall),
-            "x-small" => Ok(KeywordSize::XSmall),
-            "small" => Ok(KeywordSize::Small),
-            "medium" => Ok(KeywordSize::Medium),
-            "large" => Ok(KeywordSize::Large),
-            "x-large" => Ok(KeywordSize::XLarge),
-            "xx-large" => Ok(KeywordSize::XXLarge),
         }
     }
 }
@@ -1079,7 +1077,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Set of variant alternates
 pub enum VariantAlternates {
     /// Enables display of stylistic alternates
@@ -1104,7 +1102,7 @@ pub enum VariantAlternates {
     HistoricalForms,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 /// List of Variant Alternates
 pub struct VariantAlternatesList(
     #[css(if_empty = "normal", iterable)] pub Box<[VariantAlternates]>,
@@ -1125,12 +1123,13 @@ impl VariantAlternatesList {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Control over the selection of these alternate glyphs
 pub enum FontVariantAlternates {
     /// Use alternative glyph from value
     Value(VariantAlternatesList),
     /// Use system font glyph
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -1263,31 +1262,82 @@ impl Parse for FontVariantAlternates {
     }
 }
 
-bitflags! {
-    #[derive(MallocSizeOf)]
-    /// Vairants for east asian variant
-    pub struct VariantEastAsian: u16 {
-        /// None of the features
-        const NORMAL = 0;
-        /// Enables rendering of JIS78 forms (OpenType feature: jp78)
-        const JIS78 = 0x01;
-        /// Enables rendering of JIS83 forms (OpenType feature: jp83).
-        const JIS83 = 0x02;
-        /// Enables rendering of JIS90 forms (OpenType feature: jp90).
-        const JIS90 = 0x04;
-        /// Enables rendering of JIS2004 forms (OpenType feature: jp04).
-        const JIS04 = 0x08;
-        /// Enables rendering of simplified forms (OpenType feature: smpl).
-        const SIMPLIFIED = 0x10;
-        /// Enables rendering of traditional forms (OpenType feature: trad).
-        const TRADITIONAL = 0x20;
-        /// Enables rendering of full-width variants (OpenType feature: fwid).
-        const FULL_WIDTH = 0x40;
-        /// Enables rendering of proportionally-spaced variants (OpenType feature: pwid).
-        const PROPORTIONAL_WIDTH = 0x80;
-        /// Enables display of ruby variant glyphs (OpenType feature: ruby).
-        const RUBY = 0x100;
+macro_rules! impl_variant_east_asian {
+    {
+        $(
+            $(#[$($meta:tt)+])*
+            $ident:ident / $css:expr => $gecko:ident = $value:expr,
+        )+
+    } => {
+        bitflags! {
+            #[derive(MallocSizeOf)]
+            /// Vairants for east asian variant
+            pub struct VariantEastAsian: u16 {
+                /// None of the features
+                const NORMAL = 0;
+                $(
+                    $(#[$($meta)+])*
+                    const $ident = $value;
+                )+
+            }
+        }
+
+        impl ToCss for VariantEastAsian {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
+                if self.is_empty() {
+                    return dest.write_str("normal");
+                }
+
+                let mut writer = SequenceWriter::new(dest, " ");
+                $(
+                    if self.intersects(VariantEastAsian::$ident) {
+                        writer.raw_item($css)?;
+                    }
+                )+
+                Ok(())
+            }
+        }
+
+        /// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
+        #[cfg(feature = "gecko")]
+        #[inline]
+        pub fn assert_variant_east_asian_matches() {
+            use gecko_bindings::structs;
+            $(
+                debug_assert_eq!(structs::$gecko as u16, VariantEastAsian::$ident.bits());
+            )+
+        }
+
+        impl SpecifiedValueInfo for VariantEastAsian {
+            fn collect_completion_keywords(f: KeywordsCollectFn) {
+                f(&["normal", $($css,)+]);
+            }
+        }
     }
+}
+
+impl_variant_east_asian! {
+    /// Enables rendering of JIS78 forms (OpenType feature: jp78)
+    JIS78 / "jis78" => NS_FONT_VARIANT_EAST_ASIAN_JIS78 = 0x01,
+    /// Enables rendering of JIS83 forms (OpenType feature: jp83).
+    JIS83 / "jis83" => NS_FONT_VARIANT_EAST_ASIAN_JIS83 = 0x02,
+    /// Enables rendering of JIS90 forms (OpenType feature: jp90).
+    JIS90 / "jis90" => NS_FONT_VARIANT_EAST_ASIAN_JIS90 = 0x04,
+    /// Enables rendering of JIS2004 forms (OpenType feature: jp04).
+    JIS04 / "jis04" => NS_FONT_VARIANT_EAST_ASIAN_JIS04 = 0x08,
+    /// Enables rendering of simplified forms (OpenType feature: smpl).
+    SIMPLIFIED / "simplified" => NS_FONT_VARIANT_EAST_ASIAN_SIMPLIFIED = 0x10,
+    /// Enables rendering of traditional forms (OpenType feature: trad).
+    TRADITIONAL / "traditional" => NS_FONT_VARIANT_EAST_ASIAN_TRADITIONAL = 0x20,
+    /// Enables rendering of full-width variants (OpenType feature: fwid).
+    FULL_WIDTH / "full-width" => NS_FONT_VARIANT_EAST_ASIAN_FULL_WIDTH = 0x40,
+    /// Enables rendering of proportionally-spaced variants (OpenType feature: pwid).
+    PROPORTIONAL_WIDTH / "proportional-width" => NS_FONT_VARIANT_EAST_ASIAN_PROP_WIDTH = 0x80,
+    /// Enables display of ruby variant glyphs (OpenType feature: ruby).
+    RUBY / "ruby" => NS_FONT_VARIANT_EAST_ASIAN_RUBY = 0x100,
 }
 
 #[cfg(feature = "gecko")]
@@ -1305,83 +1355,17 @@ impl VariantEastAsian {
     }
 }
 
-impl ToCss for VariantEastAsian {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("normal");
-        }
-
-        let mut has_any = false;
-
-        macro_rules! write_value {
-            ($ident:path => $str:expr) => {
-                if self.intersects($ident) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    has_any = true;
-                    dest.write_str($str)?;
-                }
-            };
-        }
-
-        write_value!(VariantEastAsian::JIS78 => "jis78");
-        write_value!(VariantEastAsian::JIS83 => "jis83");
-        write_value!(VariantEastAsian::JIS90 => "jis90");
-        write_value!(VariantEastAsian::JIS04 => "jis04");
-        write_value!(VariantEastAsian::SIMPLIFIED => "simplified");
-        write_value!(VariantEastAsian::TRADITIONAL => "traditional");
-        write_value!(VariantEastAsian::FULL_WIDTH => "full-width");
-        write_value!(VariantEastAsian::PROPORTIONAL_WIDTH => "proportional-width");
-        write_value!(VariantEastAsian::RUBY => "ruby");
-
-        debug_assert!(has_any);
-        Ok(())
-    }
-}
-
 #[cfg(feature = "gecko")]
 impl_gecko_keyword_conversions!(VariantEastAsian, u16);
 
-/// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
-#[cfg(feature = "gecko")]
-#[inline]
-pub fn assert_variant_east_asian_matches() {
-    use gecko_bindings::structs;
-
-    macro_rules! check_variant_east_asian {
-        ( $( $a:ident => $b:path),*, ) => {
-            if cfg!(debug_assertions) {
-                $(
-                    assert_eq!(structs::$a as u16, $b.bits());
-                )*
-            }
-        }
-    }
-
-    check_variant_east_asian! {
-        NS_FONT_VARIANT_EAST_ASIAN_FULL_WIDTH => VariantEastAsian::FULL_WIDTH,
-        NS_FONT_VARIANT_EAST_ASIAN_JIS04 => VariantEastAsian::JIS04,
-        NS_FONT_VARIANT_EAST_ASIAN_JIS78 => VariantEastAsian::JIS78,
-        NS_FONT_VARIANT_EAST_ASIAN_JIS83 => VariantEastAsian::JIS83,
-        NS_FONT_VARIANT_EAST_ASIAN_JIS90 => VariantEastAsian::JIS90,
-        NS_FONT_VARIANT_EAST_ASIAN_PROP_WIDTH => VariantEastAsian::PROPORTIONAL_WIDTH,
-        NS_FONT_VARIANT_EAST_ASIAN_RUBY => VariantEastAsian::RUBY,
-        NS_FONT_VARIANT_EAST_ASIAN_SIMPLIFIED => VariantEastAsian::SIMPLIFIED,
-        NS_FONT_VARIANT_EAST_ASIAN_TRADITIONAL => VariantEastAsian::TRADITIONAL,
-    }
-}
-
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Allows control of glyph substitution and sizing in East Asian text.
 pub enum FontVariantEastAsian {
     /// Value variant with `variant-east-asian`
     Value(VariantEastAsian),
     /// System font variant
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -1485,32 +1469,86 @@ impl Parse for FontVariantEastAsian {
     }
 }
 
-bitflags! {
-    #[derive(MallocSizeOf)]
-    /// Variants of ligatures
-    pub struct VariantLigatures: u16 {
-        /// Specifies that common default features are enabled
-        const NORMAL = 0;
-        /// Specifies that all types of ligatures and contextual forms
-        /// covered by this property are explicitly disabled
-        const NONE = 0x01;
-        /// Enables display of common ligatures
-        const COMMON_LIGATURES = 0x02;
-        /// Disables display of common ligatures
-        const NO_COMMON_LIGATURES = 0x04;
-        /// Enables display of discretionary ligatures
-        const DISCRETIONARY_LIGATURES = 0x08;
-        /// Disables display of discretionary ligatures
-        const NO_DISCRETIONARY_LIGATURES = 0x10;
-        /// Enables display of historical ligatures
-        const HISTORICAL_LIGATURES = 0x20;
-        /// Disables display of historical ligatures
-        const NO_HISTORICAL_LIGATURES = 0x40;
-        /// Enables display of contextual alternates
-        const CONTEXTUAL = 0x80;
-        /// Disables display of contextual alternates
-        const NO_CONTEXTUAL = 0x100;
+macro_rules! impl_variant_ligatures {
+    {
+        $(
+            $(#[$($meta:tt)+])*
+            $ident:ident / $css:expr => $gecko:ident = $value:expr,
+        )+
+    } => {
+        bitflags! {
+            #[derive(MallocSizeOf)]
+            /// Variants of ligatures
+            pub struct VariantLigatures: u16 {
+                /// Specifies that common default features are enabled
+                const NORMAL = 0;
+                $(
+                    $(#[$($meta)+])*
+                    const $ident = $value;
+                )+
+            }
+        }
+
+        impl ToCss for VariantLigatures {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
+                if self.is_empty() {
+                    return dest.write_str("normal");
+                }
+                if self.contains(VariantLigatures::NONE) {
+                    return dest.write_str("none");
+                }
+
+                let mut writer = SequenceWriter::new(dest, " ");
+                $(
+                    if self.intersects(VariantLigatures::$ident) {
+                        writer.raw_item($css)?;
+                    }
+                )+
+                Ok(())
+            }
+        }
+
+        /// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
+        #[cfg(feature = "gecko")]
+        #[inline]
+        pub fn assert_variant_ligatures_matches() {
+            use gecko_bindings::structs;
+            $(
+                debug_assert_eq!(structs::$gecko as u16, VariantLigatures::$ident.bits());
+            )+
+        }
+
+        impl SpecifiedValueInfo for VariantLigatures {
+            fn collect_completion_keywords(f: KeywordsCollectFn) {
+                f(&["normal", $($css,)+]);
+            }
+        }
     }
+}
+
+impl_variant_ligatures! {
+    /// Specifies that all types of ligatures and contextual forms
+    /// covered by this property are explicitly disabled
+    NONE / "none" => NS_FONT_VARIANT_LIGATURES_NONE = 0x01,
+    /// Enables display of common ligatures
+    COMMON_LIGATURES / "common-ligatures" => NS_FONT_VARIANT_LIGATURES_COMMON = 0x02,
+    /// Disables display of common ligatures
+    NO_COMMON_LIGATURES / "no-common-ligatures" => NS_FONT_VARIANT_LIGATURES_NO_COMMON = 0x04,
+    /// Enables display of discretionary ligatures
+    DISCRETIONARY_LIGATURES / "discretionary-ligatures" => NS_FONT_VARIANT_LIGATURES_DISCRETIONARY = 0x08,
+    /// Disables display of discretionary ligatures
+    NO_DISCRETIONARY_LIGATURES / "no-discretionary-ligatures" => NS_FONT_VARIANT_LIGATURES_NO_DISCRETIONARY = 0x10,
+    /// Enables display of historical ligatures
+    HISTORICAL_LIGATURES / "historical-ligatures" => NS_FONT_VARIANT_LIGATURES_HISTORICAL = 0x20,
+    /// Disables display of historical ligatures
+    NO_HISTORICAL_LIGATURES / "no-historical-ligatures" => NS_FONT_VARIANT_LIGATURES_NO_HISTORICAL = 0x40,
+    /// Enables display of contextual alternates
+    CONTEXTUAL / "contextual" => NS_FONT_VARIANT_LIGATURES_CONTEXTUAL = 0x80,
+    /// Disables display of contextual alternates
+    NO_CONTEXTUAL / "no-contextual" => NS_FONT_VARIANT_LIGATURES_NO_CONTEXTUAL = 0x100,
 }
 
 #[cfg(feature = "gecko")]
@@ -1528,86 +1566,18 @@ impl VariantLigatures {
     }
 }
 
-impl ToCss for VariantLigatures {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("normal");
-        }
-        if self.contains(VariantLigatures::NONE) {
-            return dest.write_str("none");
-        }
-
-        let mut has_any = false;
-
-        macro_rules! write_value {
-            ($ident:path => $str:expr) => {
-                if self.intersects($ident) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    has_any = true;
-                    dest.write_str($str)?;
-                }
-            };
-        }
-
-        write_value!(VariantLigatures::COMMON_LIGATURES => "common-ligatures");
-        write_value!(VariantLigatures::NO_COMMON_LIGATURES => "no-common-ligatures");
-        write_value!(VariantLigatures::DISCRETIONARY_LIGATURES => "discretionary-ligatures");
-        write_value!(VariantLigatures::NO_DISCRETIONARY_LIGATURES => "no-discretionary-ligatures");
-        write_value!(VariantLigatures::HISTORICAL_LIGATURES => "historical-ligatures");
-        write_value!(VariantLigatures::NO_HISTORICAL_LIGATURES => "no-historical-ligatures");
-        write_value!(VariantLigatures::CONTEXTUAL => "contextual");
-        write_value!(VariantLigatures::NO_CONTEXTUAL => "no-contextual");
-
-        debug_assert!(has_any);
-        Ok(())
-    }
-}
-
 #[cfg(feature = "gecko")]
 impl_gecko_keyword_conversions!(VariantLigatures, u16);
 
-/// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
-#[cfg(feature = "gecko")]
-#[inline]
-pub fn assert_variant_ligatures_matches() {
-    use gecko_bindings::structs;
-
-    macro_rules! check_variant_ligatures {
-        ( $( $a:ident => $b:path),*, ) => {
-            if cfg!(debug_assertions) {
-                $(
-                    assert_eq!(structs::$a as u16, $b.bits());
-                )*
-            }
-        }
-    }
-
-    check_variant_ligatures! {
-        NS_FONT_VARIANT_LIGATURES_NONE => VariantLigatures::NONE,
-        NS_FONT_VARIANT_LIGATURES_COMMON => VariantLigatures::COMMON_LIGATURES,
-        NS_FONT_VARIANT_LIGATURES_NO_COMMON => VariantLigatures::NO_COMMON_LIGATURES,
-        NS_FONT_VARIANT_LIGATURES_DISCRETIONARY => VariantLigatures::DISCRETIONARY_LIGATURES,
-        NS_FONT_VARIANT_LIGATURES_NO_DISCRETIONARY => VariantLigatures::NO_DISCRETIONARY_LIGATURES,
-        NS_FONT_VARIANT_LIGATURES_HISTORICAL => VariantLigatures::HISTORICAL_LIGATURES,
-        NS_FONT_VARIANT_LIGATURES_NO_HISTORICAL => VariantLigatures::NO_HISTORICAL_LIGATURES,
-        NS_FONT_VARIANT_LIGATURES_CONTEXTUAL => VariantLigatures::CONTEXTUAL,
-        NS_FONT_VARIANT_LIGATURES_NO_CONTEXTUAL => VariantLigatures::NO_CONTEXTUAL,
-    }
-}
-
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Ligatures and contextual forms are ways of combining glyphs
 /// to produce more harmonized forms
 pub enum FontVariantLigatures {
     /// Value variant with `variant-ligatures`
     Value(VariantLigatures),
     /// System font variant
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -1721,29 +1691,80 @@ impl Parse for FontVariantLigatures {
     }
 }
 
-bitflags! {
-    #[derive(MallocSizeOf)]
-    /// Vairants of numeric values
-    pub struct VariantNumeric: u8 {
-        /// None of other variants are enabled.
-        const NORMAL = 0;
-        /// Enables display of lining numerals.
-        const LINING_NUMS = 0x01;
-        /// Enables display of old-style numerals.
-        const OLDSTYLE_NUMS = 0x02;
-        /// Enables display of proportional numerals.
-        const PROPORTIONAL_NUMS = 0x04;
-        /// Enables display of tabular numerals.
-        const TABULAR_NUMS = 0x08;
-        /// Enables display of lining diagonal fractions.
-        const DIAGONAL_FRACTIONS = 0x10;
-        /// Enables display of lining stacked fractions.
-        const STACKED_FRACTIONS = 0x20;
-        /// Enables display of letter forms used with ordinal numbers.
-        const ORDINAL = 0x80;
-        /// Enables display of slashed zeros.
-        const SLASHED_ZERO = 0x40;
+macro_rules! impl_variant_numeric {
+    {
+        $(
+            $(#[$($meta:tt)+])*
+            $ident:ident / $css:expr => $gecko:ident = $value:expr,
+        )+
+    } => {
+        bitflags! {
+            #[derive(MallocSizeOf)]
+            /// Vairants of numeric values
+            pub struct VariantNumeric: u8 {
+                /// None of other variants are enabled.
+                const NORMAL = 0;
+                $(
+                    $(#[$($meta)+])*
+                    const $ident = $value;
+                )+
+            }
+        }
+
+        impl ToCss for VariantNumeric {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
+                if self.is_empty() {
+                    return dest.write_str("normal");
+                }
+
+                let mut writer = SequenceWriter::new(dest, " ");
+                $(
+                    if self.intersects(VariantNumeric::$ident) {
+                        writer.raw_item($css)?;
+                    }
+                )+
+                Ok(())
+            }
+        }
+
+        /// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
+        #[cfg(feature = "gecko")]
+        #[inline]
+        pub fn assert_variant_numeric_matches() {
+            use gecko_bindings::structs;
+            $(
+                debug_assert_eq!(structs::$gecko as u8, VariantNumeric::$ident.bits());
+            )+
+        }
+
+        impl SpecifiedValueInfo for VariantNumeric {
+            fn collect_completion_keywords(f: KeywordsCollectFn) {
+                f(&["normal", $($css,)+]);
+            }
+        }
     }
+}
+
+impl_variant_numeric! {
+    /// Enables display of lining numerals.
+    LINING_NUMS / "lining-nums" => NS_FONT_VARIANT_NUMERIC_LINING = 0x01,
+    /// Enables display of old-style numerals.
+    OLDSTYLE_NUMS / "oldstyle-nums" => NS_FONT_VARIANT_NUMERIC_OLDSTYLE = 0x02,
+    /// Enables display of proportional numerals.
+    PROPORTIONAL_NUMS / "proportional-nums" => NS_FONT_VARIANT_NUMERIC_PROPORTIONAL = 0x04,
+    /// Enables display of tabular numerals.
+    TABULAR_NUMS / "tabular-nums" => NS_FONT_VARIANT_NUMERIC_TABULAR = 0x08,
+    /// Enables display of lining diagonal fractions.
+    DIAGONAL_FRACTIONS / "diagonal-fractions" => NS_FONT_VARIANT_NUMERIC_DIAGONAL_FRACTIONS = 0x10,
+    /// Enables display of lining stacked fractions.
+    STACKED_FRACTIONS / "stacked-fractions" => NS_FONT_VARIANT_NUMERIC_STACKED_FRACTIONS = 0x20,
+    /// Enables display of letter forms used with ordinal numbers.
+    ORDINAL / "ordinal" => NS_FONT_VARIANT_NUMERIC_ORDINAL = 0x80,
+    /// Enables display of slashed zeros.
+    SLASHED_ZERO / "slashed-zero" => NS_FONT_VARIANT_NUMERIC_SLASHZERO = 0x40,
 }
 
 #[cfg(feature = "gecko")]
@@ -1761,81 +1782,17 @@ impl VariantNumeric {
     }
 }
 
-impl ToCss for VariantNumeric {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("normal");
-        }
-
-        let mut has_any = false;
-
-        macro_rules! write_value {
-            ($ident:path => $str:expr) => {
-                if self.intersects($ident) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    has_any = true;
-                    dest.write_str($str)?;
-                }
-            };
-        }
-
-        write_value!(VariantNumeric::LINING_NUMS => "lining-nums");
-        write_value!(VariantNumeric::OLDSTYLE_NUMS => "oldstyle-nums");
-        write_value!(VariantNumeric::PROPORTIONAL_NUMS => "proportional-nums");
-        write_value!(VariantNumeric::TABULAR_NUMS => "tabular-nums");
-        write_value!(VariantNumeric::DIAGONAL_FRACTIONS => "diagonal-fractions");
-        write_value!(VariantNumeric::STACKED_FRACTIONS => "stacked-fractions");
-        write_value!(VariantNumeric::SLASHED_ZERO => "slashed-zero");
-        write_value!(VariantNumeric::ORDINAL => "ordinal");
-
-        debug_assert!(has_any);
-        Ok(())
-    }
-}
-
 #[cfg(feature = "gecko")]
 impl_gecko_keyword_conversions!(VariantNumeric, u8);
 
-/// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
-#[cfg(feature = "gecko")]
-#[inline]
-pub fn assert_variant_numeric_matches() {
-    use gecko_bindings::structs;
-
-    macro_rules! check_variant_numeric {
-        ( $( $a:ident => $b:path),*, ) => {
-            if cfg!(debug_assertions) {
-                $(
-                    assert_eq!(structs::$a as u8, $b.bits());
-                )*
-            }
-        }
-    }
-
-    check_variant_numeric! {
-        NS_FONT_VARIANT_NUMERIC_LINING => VariantNumeric::LINING_NUMS,
-        NS_FONT_VARIANT_NUMERIC_OLDSTYLE => VariantNumeric::OLDSTYLE_NUMS,
-        NS_FONT_VARIANT_NUMERIC_PROPORTIONAL => VariantNumeric::PROPORTIONAL_NUMS,
-        NS_FONT_VARIANT_NUMERIC_TABULAR => VariantNumeric::TABULAR_NUMS,
-        NS_FONT_VARIANT_NUMERIC_DIAGONAL_FRACTIONS => VariantNumeric::DIAGONAL_FRACTIONS,
-        NS_FONT_VARIANT_NUMERIC_STACKED_FRACTIONS => VariantNumeric::STACKED_FRACTIONS,
-        NS_FONT_VARIANT_NUMERIC_SLASHZERO => VariantNumeric::SLASHED_ZERO,
-        NS_FONT_VARIANT_NUMERIC_ORDINAL => VariantNumeric::ORDINAL,
-    }
-}
-
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Specifies control over numerical forms.
 pub enum FontVariantNumeric {
     /// Value variant with `variant-numeric`
     Value(VariantNumeric),
     /// System font
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -1938,11 +1895,12 @@ pub type SpecifiedFontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
 /// Define initial settings that apply when the font defined by an @font-face
 /// rule is rendered.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum FontFeatureSettings {
     /// Value of `FontSettings`
     Value(SpecifiedFontFeatureSettings),
     /// System font
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -1981,16 +1939,19 @@ impl Parse for FontFeatureSettings {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces
 pub struct FontSynthesis {
     /// If a `font-weight` is requested that the font family does not contain,
     /// the user agent may synthesize the requested weight from the weights
     /// that do exist in the font family.
+    #[value_info(represents_keyword)]
     pub weight: bool,
     /// If a font-style is requested that the font family does not contain,
     /// the user agent may synthesize the requested style from the normal face in the font family.
+    #[value_info(represents_keyword)]
     pub style: bool,
 }
 
@@ -2079,7 +2040,7 @@ impl From<FontSynthesis> for u8 {
     }
 }
 
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Allows authors to explicitly specify the language system of the font,
 /// overriding the language system implied by the content language
 pub enum FontLanguageOverride {
@@ -2092,6 +2053,7 @@ pub enum FontLanguageOverride {
     /// the language system implied by the language of the element
     Override(Box<str>),
     /// Use system font
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -2169,11 +2131,12 @@ pub type SpecifiedFontVariationSettings = FontSettings<VariationValue<Number>>;
 
 /// Define initial settings that apply when the font defined by an @font-face
 /// rule is rendered.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum FontVariationSettings {
     /// Value of `FontSettings`
     Value(SpecifiedFontVariationSettings),
     /// System font
+    #[css(skip)]
     System(SystemFont),
 }
 
@@ -2254,7 +2217,8 @@ impl Parse for VariationValue<Number> {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// text-zoom. Enable if true, disable if false
 pub struct XTextZoom(#[css(skip)] pub bool);
 
@@ -2271,7 +2235,8 @@ impl Parse for XTextZoom {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// Internal property that reflects the lang attribute
 pub struct XLang(#[css(skip)] pub Atom);
 
@@ -2297,7 +2262,7 @@ impl Parse for XLang {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Specifies the minimum font size allowed due to changes in scriptlevel.
 /// Ref: https://wiki.mozilla.org/MathML:mstyle
 pub struct MozScriptMinSize(pub NoCalcLength);
@@ -2324,7 +2289,7 @@ impl Parse for MozScriptMinSize {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Changes the scriptlevel in effect for the children.
 /// Ref: https://wiki.mozilla.org/MathML:mstyle
 ///
@@ -2359,7 +2324,8 @@ impl Parse for MozScriptLevel {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue,
+         ToCss)]
 /// Specifies the multiplier to be used to adjust font size
 /// due to changes in scriptlevel.
 ///

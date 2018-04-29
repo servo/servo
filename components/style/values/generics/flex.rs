@@ -6,8 +6,9 @@
 
 /// A generic value for the `flex-basis` property.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToAnimatedValue,
-         ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToComputedValue,
+         ToCss)]
 pub enum FlexBasis<Width> {
     /// `content`
     Content,
