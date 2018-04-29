@@ -22,6 +22,7 @@ extern crate selectors;
 #[cfg(feature = "servo")] extern crate webrender_api;
 extern crate servo_arc;
 #[cfg(feature = "servo")] extern crate servo_atoms;
+#[cfg(feature = "servo")] extern crate servo_url;
 
 #[cfg(feature = "servo")] pub use webrender_api::DevicePixel;
 

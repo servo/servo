@@ -4,7 +4,7 @@
 
 use cg;
 use quote::Tokens;
-use syn::{Data, DeriveInput, Fields, Ident,Type};
+use syn::{Data, DeriveInput, Fields, Ident, Type};
 use to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
@@ -101,7 +101,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         quote!()
     } else {
         let mut value_list = quote!();
-        value_list.append_separated(values.iter(), quote!(,));
+        value_list.append_separated(values.iter(), quote! { , });
         quote! { _f(&[#value_list]); }
     };
 

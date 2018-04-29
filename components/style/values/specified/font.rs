@@ -23,8 +23,8 @@ use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage}
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
 use values::generics::NonNegative;
-use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
 use values::generics::font::{KeywordSize, VariationValue};
+use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
 use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
 use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 

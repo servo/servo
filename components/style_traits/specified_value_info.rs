@@ -6,6 +6,7 @@
 
 use servo_arc::Arc;
 use std::ops::Range;
+use std::sync::Arc as StdArc;
 
 /// Type of value that a property supports. This is used by Gecko's
 /// devtools to make sense about value it parses, and types listed
@@ -84,6 +85,11 @@ impl SpecifiedValueInfo for u32 {}
 impl SpecifiedValueInfo for str {}
 impl SpecifiedValueInfo for String {}
 
+#[cfg(feature = "servo")]
+impl SpecifiedValueInfo for ::servo_atoms::Atom {}
+#[cfg(feature = "servo")]
+impl SpecifiedValueInfo for ::servo_url::ServoUrl {}
+
 impl<T: SpecifiedValueInfo + ?Sized> SpecifiedValueInfo for Box<T> {
     const SUPPORTED_TYPES: u8 = T::SUPPORTED_TYPES;
     fn collect_completion_keywords(f: KeywordsCollectFn) {
@@ -111,6 +117,7 @@ macro_rules! impl_generic_specified_value_info {
 impl_generic_specified_value_info!(Option<T>);
 impl_generic_specified_value_info!(Vec<T>);
 impl_generic_specified_value_info!(Arc<T>);
+impl_generic_specified_value_info!(StdArc<T>);
 impl_generic_specified_value_info!(Range<Idx>);
 
 impl<T1, T2> SpecifiedValueInfo for (T1, T2)

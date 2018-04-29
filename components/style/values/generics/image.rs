@@ -145,6 +145,8 @@ pub struct PaintWorklet {
     pub arguments: Vec<Arc<custom_properties::SpecifiedValue>>,
 }
 
+impl ::style_traits::SpecifiedValueInfo for PaintWorklet { }
+
 impl ToCss for PaintWorklet {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where

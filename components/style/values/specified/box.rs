@@ -522,7 +522,7 @@ pub fn assert_touch_action_matches() {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, ToComputedValue, SpecifiedValueInfo)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
     #[value_info(other_values = "none,strict,layout,style,paint")]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {

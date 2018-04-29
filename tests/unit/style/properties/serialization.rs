@@ -487,42 +487,6 @@ mod shorthand_serialization {
         }
     }
 
-    mod outline {
-        use style::values::specified::outline::OutlineStyle;
-        use super::*;
-
-        #[test]
-        fn outline_should_show_all_properties_when_set() {
-            let mut properties = Vec::new();
-
-            let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = OutlineStyle::Other(BorderStyle::Solid);
-            let color = RGBA::new(255, 0, 0, 255).into();
-
-            properties.push(PropertyDeclaration::OutlineWidth(width));
-            properties.push(PropertyDeclaration::OutlineStyle(style));
-            properties.push(PropertyDeclaration::OutlineColor(color));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "outline: 4px solid rgb(255, 0, 0);");
-        }
-
-        #[test]
-        fn outline_should_serialize_correctly_when_style_is_auto() {
-            let mut properties = Vec::new();
-
-            let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = OutlineStyle::Auto;
-            let color = RGBA::new(255, 0, 0, 255).into();
-            properties.push(PropertyDeclaration::OutlineWidth(width));
-            properties.push(PropertyDeclaration::OutlineStyle(style));
-            properties.push(PropertyDeclaration::OutlineColor(color));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "outline: 4px auto rgb(255, 0, 0);");
-        }
-    }
-
     mod background {
         use super::*;
 
