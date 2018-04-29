@@ -235,21 +235,6 @@ where
     }
 }
 
-/// A wrapper type that implements `ToCss` by printing its inner field.
-pub struct Verbatim<'a, T>(pub &'a T)
-where
-    T: ?Sized + 'a;
-
-impl<'a, T> ToCss for Verbatim<'a, T>
-where
-    T: AsRef<str> + ?Sized + 'a,
-{
-    #[inline]
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
-        dest.write_str(self.0.as_ref())
-    }
-}
-
 /// Type used as the associated type in the `OneOrMoreSeparated` trait on a
 /// type to indicate that a serialized list of elements of this type is
 /// separated by commas.

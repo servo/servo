@@ -175,7 +175,7 @@ fn derive_single_field_expr(
                 {
                     let mut iter = #field.iter().peekable();
                     if iter.peek().is_none() {
-                        writer.item(&::style_traits::values::Verbatim(#if_empty))?;
+                        writer.raw_item(#if_empty)?;
                     } else {
                         for item in iter {
                             writer.item(&item)?;
