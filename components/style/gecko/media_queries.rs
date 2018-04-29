@@ -13,7 +13,7 @@ use euclid::TypedScale;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSUnit, nsCSSValue};
+use gecko_bindings::structs::{nsCSSKTableEntry, nsCSSKeyword, nsCSSUnit, nsCSSValue};
 use gecko_bindings::structs::{nsMediaFeature, nsMediaFeature_RangeType};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsPresContext};
 use gecko_bindings::structs::RawGeckoPresContextOwned;
@@ -479,7 +479,7 @@ where
 }
 
 unsafe fn find_in_table<F>(
-    mut current_entry: *const nsCSSProps_KTableEntry,
+    mut current_entry: *const nsCSSKTableEntry,
     mut f: F,
 ) -> Option<(nsCSSKeyword, i16)>
 where
@@ -544,7 +544,7 @@ fn parse_feature_value<'i, 't>(
                 bindings::Gecko_LookupCSSKeyword(keyword.as_bytes().as_ptr(), keyword.len() as u32)
             };
 
-            let first_table_entry: *const nsCSSProps_KTableEntry =
+            let first_table_entry: *const nsCSSKTableEntry =
                 unsafe { *feature.mData.mKeywordTable.as_ref() };
 
             let value = match unsafe { find_in_table(first_table_entry, |kw, _| kw == keyword) } {
