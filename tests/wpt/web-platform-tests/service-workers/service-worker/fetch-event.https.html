@@ -6,6 +6,9 @@
 <body>
 <script>
 var worker = 'resources/fetch-event-test-worker.js';
+function wait(ms) {
+    return new Promise(resolve => step_timeout(resolve, ms));
+}
 
 async_test(function(t) {
     const scope = 'resources/simple.html?headers';
@@ -629,5 +632,143 @@ promise_test(async (t) => {
     frame.remove();
     await service_worker_unregister_and_done(t, scope);
   }, 'Service Worker responds to fetch event with the correct keepalive value');
+
+promise_test(async (t) => {
+    const scope = 'resources/simple.html?isReloadNavigation';
+    let frame;
+    let reg;
+    try {
+      reg = await service_worker_unregister_and_register(t, worker, scope);
+      await wait_for_state(t, reg.installing, 'activated');
+      frame = await with_iframe(scope);
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = false');
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        frame.contentWindow.location.reload();
+      });
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = true');
+    } finally {
+      if (frame) {
+        frame.remove();
+      }
+      if (reg) {
+        await reg.unregister();
+      }
+    }
+  }, 'FetchEvent#request.isReloadNavigation is true (location.reload())');
+
+promise_test(async (t) => {
+    const scope = 'resources/simple.html?isReloadNavigation';
+    let frame;
+    let reg;
+    try {
+      reg = await service_worker_unregister_and_register(t, worker, scope);
+      await wait_for_state(t, reg.installing, 'activated');
+      frame = await with_iframe(scope);
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = false');
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        frame.contentWindow.history.go(0);
+      });
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = true');
+    } finally {
+      if (frame) {
+        frame.remove();
+      }
+      if (reg) {
+        await reg.unregister();
+      }
+    }
+  }, 'FetchEvent#request.isReloadNavigation is true (history.go(0))');
+
+promise_test(async (t) => {
+    const scope = 'resources/simple.html?isReloadNavigation';
+    let frame;
+    let reg;
+
+    try {
+      reg = await service_worker_unregister_and_register(t, worker, scope);
+      await wait_for_state(t, reg.installing, 'activated');
+      frame = await with_iframe(scope);
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = false');
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        const form = frame.contentDocument.createElement('form');
+        form.method = 'POST';
+        form.name = 'form';
+        form.action = new Request(scope).url;
+        frame.contentDocument.body.appendChild(form);
+        form.submit();
+      });
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = POST, isReloadNavigation = false');
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        frame.contentWindow.location.reload();
+      });
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = POST, isReloadNavigation = true');
+    } finally {
+      if (frame) {
+        frame.remove();
+      }
+      if (reg) {
+        await reg.unregister();
+      }
+    }
+  }, 'FetchEvent#request.isReloadNavigation is true (POST + location.reload())');
+
+promise_test(async (t) => {
+    const scope = 'resources/simple.html?isReloadNavigation';
+    const anotherUrl = new Request('resources/simple.html').url;
+    let frame;
+    let reg;
+
+    try {
+      reg = await service_worker_unregister_and_register(t, worker, scope);
+      await wait_for_state(t, reg.installing, 'activated');
+      frame = await with_iframe(scope);
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = false');
+      // Use step_timeout(0) to ensure the history entry is created for Blink
+      // and WebKit. See https://bugs.webkit.org/show_bug.cgi?id=42861.
+      await wait(0);
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        frame.src = anotherUrl;
+      });
+      assert_equals(frame.contentDocument.body.textContent, "Here's a simple html file.\n");
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        frame.contentWindow.history.go(-1);
+      });
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = false');
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        frame.contentWindow.history.go(0);
+      });
+      assert_equals(frame.contentDocument.body.textContent,
+                    'method = GET, isReloadNavigation = true');
+      await new Promise((resolve) => {
+        frame.addEventListener('load', resolve);
+        frame.contentWindow.history.go(1);
+      });
+      assert_equals(frame.contentDocument.body.textContent, "Here's a simple html file.\n");
+    } finally {
+      if (frame) {
+        frame.remove();
+      }
+      if (reg) {
+        await reg.unregister();
+      }
+    }
+  }, 'FetchEvent#request.isReloadNavigation is true (with history traversal)');
+
 </script>
 </body>
