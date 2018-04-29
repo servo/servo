@@ -189,6 +189,15 @@ fn derive_single_field_expr(
                 writer.item(&item)?;
             }
         }
+    } else if attrs.represents_keyword {
+        let ident =
+            field.ast().ident.as_ref().expect("Unnamed field with represents_keyword?");
+        let ident = cg::to_css_identifier(ident.as_ref());
+        quote! {
+            if *#field {
+                writer.raw_item(#ident)?;
+            }
+        }
     } else {
         if attrs.field_bound {
             let ty = &field.ast().ty;
@@ -236,5 +245,6 @@ pub struct CssFieldAttrs {
     pub field_bound: bool,
     pub iterable: bool,
     pub skip: bool,
+    pub represents_keyword: bool,
     pub skip_if: Option<Path>,
 }

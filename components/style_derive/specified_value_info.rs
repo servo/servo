@@ -140,13 +140,13 @@ fn derive_struct_fields<'a>(
                 values.push(value.to_string());
             }
         }
-        if info_attrs.represents_keyword {
+        let css_attrs = cg::parse_field_attrs::<CssFieldAttrs>(field);
+        if css_attrs.represents_keyword {
             let ident = field.ident.as_ref()
                 .expect("only named field should use represents_keyword");
             values.push(cg::to_css_identifier(ident.as_ref()));
             return None;
         }
-        let css_attrs = cg::parse_field_attrs::<CssFieldAttrs>(field);
         if let Some(if_empty) = css_attrs.if_empty {
             values.push(if_empty);
         }
@@ -176,6 +176,5 @@ struct ValueInfoVariantAttrs {
 #[darling(attributes(value_info), default)]
 #[derive(Default, FromField)]
 struct ValueInfoFieldAttrs {
-    represents_keyword: bool,
     other_values: Option<String>,
 }

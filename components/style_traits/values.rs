@@ -37,6 +37,9 @@ use std::fmt::{self, Write};
 /// * if `#[css(skip_if = "function")]` is found on a field, the `ToCss` call
 ///   for that field is skipped if `function` returns true. This function is
 ///   provided the field as an argument;
+/// * `#[css(represents_keyword)]` can be used on bool fields in order to
+///   serialize the field name if the field is true, or nothing otherwise.  It
+///   also collects those keywords for `SpecifiedValueInfo`.
 /// * finally, one can put `#[css(derive_debug)]` on the whole type, to
 ///   implement `Debug` by a single call to `ToCss::to_css`.
 pub trait ToCss {

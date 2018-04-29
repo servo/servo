@@ -1947,11 +1947,11 @@ pub struct FontSynthesis {
     /// If a `font-weight` is requested that the font family does not contain,
     /// the user agent may synthesize the requested weight from the weights
     /// that do exist in the font family.
-    #[value_info(represents_keyword)]
+    #[css(represents_keyword)]
     pub weight: bool,
     /// If a font-style is requested that the font family does not contain,
     /// the user agent may synthesize the requested style from the normal face in the font family.
-    #[value_info(represents_keyword)]
+    #[css(represents_keyword)]
     pub style: bool,
 }
 

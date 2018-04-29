@@ -23,12 +23,13 @@ pub enum BorderImageSideWidth<LengthOrPercentage, Number> {
 
 /// A generic value for the `border-image-slice` property.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+         ToComputedValue, ToCss)]
 pub struct BorderImageSlice<NumberOrPercentage> {
     /// The offsets.
+    #[css(field_bound)]
     pub offsets: Rect<NumberOrPercentage>,
     /// Whether to fill the middle part.
-    #[value_info(represents_keyword)]
+    #[css(represents_keyword)]
     pub fill: bool,
 }
 
@@ -83,22 +84,6 @@ where
             offsets: Rect::all(value),
             fill: false,
         }
-    }
-}
-
-impl<N> ToCss for BorderImageSlice<N>
-where
-    N: PartialEq + ToCss,
-{
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.offsets.to_css(dest)?;
-        if self.fill {
-            dest.write_str(" fill")?;
-        }
-        Ok(())
     }
 }
 
