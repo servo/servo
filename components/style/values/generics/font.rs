@@ -227,13 +227,14 @@ impl Default for KeywordSize {
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-style-prop
 #[allow(missing_docs)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
-         PartialEq, ToAnimatedValue, ToAnimatedZero)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero)]
 pub enum FontStyle<Angle> {
     #[animation(error)]
     Normal,
     #[animation(error)]
     Italic,
+    #[value_info(starts_with_keyword)]
     Oblique(Angle),
 }
