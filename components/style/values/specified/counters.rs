@@ -12,6 +12,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
+use values::generics::counters::CounterPair;
 use values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use values::generics::counters::CounterReset as GenericCounterReset;
 #[cfg(feature = "gecko")]
@@ -48,7 +49,7 @@ fn parse_counters<'i, 't>(
     context: &ParserContext,
     input: &mut Parser<'i, 't>,
     default_value: i32,
-) -> Result<Vec<(CustomIdent, Integer)>, ParseError<'i>> {
+) -> Result<Vec<CounterPair<Integer>>, ParseError<'i>> {
     if input
         .try(|input| input.expect_ident_matching("none"))
         .is_ok()
@@ -59,16 +60,16 @@ fn parse_counters<'i, 't>(
     let mut counters = Vec::new();
     loop {
         let location = input.current_source_location();
-        let counter_name = match input.next() {
+        let name = match input.next() {
             Ok(&Token::Ident(ref ident)) => CustomIdent::from_ident(location, ident, &["none"])?,
             Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
             Err(_) => break,
         };
 
-        let counter_delta = input
+        let value = input
             .try(|input| Integer::parse(context, input))
             .unwrap_or(Integer::new(default_value));
-        counters.push((counter_name, counter_delta))
+        counters.push(CounterPair { name, value });
     }
 
     if !counters.is_empty() {
