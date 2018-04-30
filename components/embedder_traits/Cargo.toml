@@ -9,5 +9,8 @@ publish = false
 name = "embedder_traits"
 path = "lib.rs"
 
+[features]
+tests = []
+
 [dependencies]
 lazy_static = "1"

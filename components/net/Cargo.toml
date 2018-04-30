@@ -49,6 +49,9 @@ url = "1.2"
 uuid = {version = "0.6", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }
+
 [[test]]
 name = "main"
 path = "tests/main.rs"

@@ -26,6 +26,7 @@ url = "1.2"
 
 [dev-dependencies]
 env_logger = "0.5"
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }
 
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
 xdg = "2.0"
