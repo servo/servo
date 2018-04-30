@@ -80,7 +80,6 @@ dictionary DOMRectInit {
     unrestricted double height = 0;
 };
 
-[LegacyArrayClass]
 interface DOMRectList {
     readonly attribute unsigned long length;
     getter DOMRect? item(unsigned long index);
