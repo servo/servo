@@ -26,6 +26,7 @@ file
 fullscreenchange
 fullscreenerror
 gattserverdisconnected
+hashchange
 hidden
 image
 input

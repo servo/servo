@@ -105,9 +105,9 @@ pub enum ScriptMsg {
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
     /// Inform the constellation of a pushed history state.
-    PushHistoryState(HistoryStateId),
+    PushHistoryState(HistoryStateId, ServoUrl),
     /// Inform the constellation of a replaced history state.
-    ReplaceHistoryState(HistoryStateId),
+    ReplaceHistoryState(HistoryStateId, ServoUrl),
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(IpcSender<u32>),
     /// Favicon detected

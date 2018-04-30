@@ -12,8 +12,10 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::hashchangeevent::HashChangeEvent;
 use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -71,8 +73,22 @@ impl History {
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#history-traversal
+    // Steps 5-16
     #[allow(unsafe_code)]
-    pub fn activate_state(&self, state_id: Option<HistoryStateId>) {
+    pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl) {
+        // Steps 5
+        let document = self.window.Document();
+        let old_url = document.url().clone();
+        document.set_url(url.clone());
+
+        // Step 6
+        let hash_changed =  old_url.fragment() != url.fragment();
+
+        // TODO: Step 8 - scroll restoration
+
+        // Step 11
+        let state_changed = state_id != self.state_id.get();
         self.state_id.set(state_id);
         let serialized_data = match state_id {
             Some(state_id) => {
@@ -98,8 +114,26 @@ impl History {
             }
         }
 
-        unsafe {
-            PopStateEvent::dispatch_jsval(self.window.upcast::<EventTarget>(), &*self.window, self.state.handle());
+        // TODO: Queue events on DOM Manipulation task source if non-blocking flag is set.
+        // Step 16.1
+        if state_changed {
+            PopStateEvent::dispatch_jsval(
+                self.window.upcast::<EventTarget>(),
+                &*self.window,
+                unsafe { self.state.handle() }
+            );
+        }
+
+        // Step 16.3
+        if hash_changed {
+            let event = HashChangeEvent::new(
+                &self.window,
+                atom!("hashchange"),
+                true,
+                false,
+                old_url.into_string(),
+                url.into_string());
+            event.upcast::<Event>().fire(self.window.upcast::<EventTarget>());
         }
     }
 
@@ -175,7 +209,7 @@ impl History {
             PushOrReplace::Push => {
                 let state_id = HistoryStateId::new();
                 self.state_id.set(Some(state_id));
-                let msg = ScriptMsg::PushHistoryState(state_id);
+                let msg = ScriptMsg::PushHistoryState(state_id, new_url.clone());
                 let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
                 state_id
             },
@@ -188,7 +222,7 @@ impl History {
                         state_id
                     },
                 };
-                let msg = ScriptMsg::ReplaceHistoryState(state_id);
+                let msg = ScriptMsg::ReplaceHistoryState(state_id, new_url.clone());
                 let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
                 state_id
             },
