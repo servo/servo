@@ -92,7 +92,7 @@ use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ComputedStyleStrong, RustString};
-use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetLoadDataHolder};
+use style::gecko_bindings::structs::{StyleSheet as DomStyleSheet, SheetLoadData, SheetLoadDataHolder};
 use style::gecko_bindings::structs::{SheetParsingMode, nsAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSCounterDesc};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
@@ -1194,7 +1194,7 @@ fn mode_to_origin(mode: SheetParsingMode) -> Origin {
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     loader: *mut Loader,
-    stylesheet: *mut ServoStyleSheet,
+    stylesheet: *mut DomStyleSheet,
     load_data: *mut SheetLoadData,
     bytes: *const nsACString,
     mode: SheetParsingMode,
@@ -1263,7 +1263,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8BytesAsync(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1288,7 +1288,7 @@ pub extern "C" fn Servo_AuthorStyles_Drop(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_AuthorStyles_AppendStyleSheet(
     styles: RawServoAuthorStylesBorrowedMut,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
 
@@ -1301,8 +1301,8 @@ pub unsafe extern "C" fn Servo_AuthorStyles_AppendStyleSheet(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_AuthorStyles_InsertStyleSheetBefore(
     styles: RawServoAuthorStylesBorrowedMut,
-    sheet: *const ServoStyleSheet,
-    before_sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
+    before_sheet: *const DomStyleSheet,
 ) {
     let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
 
@@ -1319,7 +1319,7 @@ pub unsafe extern "C" fn Servo_AuthorStyles_InsertStyleSheetBefore(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_AuthorStyles_RemoveStyleSheet(
     styles: RawServoAuthorStylesBorrowedMut,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
 
@@ -1454,7 +1454,7 @@ pub unsafe extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1467,8 +1467,8 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet,
-    before_sheet: *const ServoStyleSheet
+    sheet: *const DomStyleSheet,
+    before_sheet: *const DomStyleSheet
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1485,7 +1485,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet
+    sheet: *const DomStyleSheet
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1560,7 +1560,7 @@ pub extern "C" fn Servo_StyleSheet_GetRules(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Clone(
     raw_sheet: RawServoStyleSheetContentsBorrowed,
-    reference_sheet: *const ServoStyleSheet,
+    reference_sheet: *const DomStyleSheet,
 ) -> RawServoStyleSheetContentsStrong {
     use style::shared_lock::{DeepCloneParams, DeepCloneWithLock};
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1681,7 +1681,7 @@ pub extern "C" fn Servo_CssRules_InsertRule(
     index: u32,
     nested: bool,
     loader: *mut Loader,
-    gecko_stylesheet: *mut ServoStyleSheet,
+    gecko_stylesheet: *mut DomStyleSheet,
     rule_type: *mut u16,
 ) -> nsresult {
     let loader = if loader.is_null() {
@@ -2136,16 +2136,16 @@ pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, res
 #[no_mangle]
 pub extern "C" fn Servo_ImportRule_GetSheet(
     rule: RawServoImportRuleBorrowed,
-) -> *const ServoStyleSheet {
+) -> *const DomStyleSheet {
     read_locked_arc(rule, |rule: &ImportRule| {
-        rule.stylesheet.as_sheet().unwrap().raw() as *const ServoStyleSheet
+        rule.stylesheet.as_sheet().unwrap().raw() as *const DomStyleSheet
     })
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ImportRule_SetSheet(
     rule: RawServoImportRuleBorrowed,
-    sheet: *mut ServoStyleSheet,
+    sheet: *mut DomStyleSheet,
 ) {
     write_locked_arc(rule, |rule: &mut ImportRule| {
         let sheet = unsafe { GeckoStyleSheet::new(sheet) };

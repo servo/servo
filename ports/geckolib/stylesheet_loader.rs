@@ -12,7 +12,7 @@ use style::gecko::global_style_data::GLOBAL_STYLE_DATA;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
-use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetLoadDataHolder};
+use style::gecko_bindings::structs::{StyleSheet as DomStyleSheet, SheetLoadData, SheetLoadDataHolder};
 use style::gecko_bindings::structs::URLExtraData;
 use style::gecko_bindings::sugar::ownership::FFIArcHelpers;
 use style::gecko_bindings::sugar::refptr::RefPtr;
@@ -24,13 +24,15 @@ use style::stylesheets::StylesheetContents;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
 
-pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut SheetLoadData, *mut LoaderReusableStyleSheets);
+pub struct StylesheetLoader(*mut Loader, *mut DomStyleSheet, *mut SheetLoadData, *mut LoaderReusableStyleSheets);
 
 impl StylesheetLoader {
-    pub fn new(loader: *mut Loader,
-               parent: *mut ServoStyleSheet,
-               parent_load_data: *mut SheetLoadData,
-               reusable_sheets: *mut LoaderReusableStyleSheets) -> Self {
+    pub fn new(
+        loader: *mut Loader,
+        parent: *mut DomStyleSheet,
+        parent_load_data: *mut SheetLoadData,
+        reusable_sheets: *mut LoaderReusableStyleSheets,
+    ) -> Self {
         StylesheetLoader(loader, parent, parent_load_data, reusable_sheets)
     }
 }
