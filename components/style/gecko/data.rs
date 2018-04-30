@@ -9,7 +9,7 @@ use context::QuirksMode;
 use dom::TElement;
 use gecko_bindings::bindings::{self, RawServoStyleSet};
 use gecko_bindings::structs::{self, RawGeckoPresContextOwned, ServoStyleSetSizes, ServoStyleSheet};
-use gecko_bindings::structs::{ServoStyleSheetInner, StyleSheetInfo, nsIDocument};
+use gecko_bindings::structs::{StyleSheetInfo, nsIDocument};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use malloc_size_of::MallocSizeOfOps;
@@ -54,9 +54,9 @@ impl GeckoStyleSheet {
         unsafe { &*self.0 }
     }
 
-    fn inner(&self) -> &ServoStyleSheetInner {
+    fn inner(&self) -> &StyleSheetInfo {
         unsafe {
-            &*(self.raw()._base.mInner as *const StyleSheetInfo as *const ServoStyleSheetInner)
+            &*(self.raw().mInner as *const StyleSheetInfo)
         }
     }
 
@@ -98,7 +98,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
         use std::mem;
 
         unsafe {
-            let dom_media_list = self.raw()._base.mMedia.mRawPtr as *const DomMediaList;
+            let dom_media_list = self.raw().mMedia.mRawPtr as *const DomMediaList;
             if dom_media_list.is_null() {
                 return None;
             }
