@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: parsing object-position with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-object-position">
+<meta name="assert" content="object-position supports only the '<position>' grammar.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("object-position", "auto");
+test_invalid_value("object-position", "1px 2px 3px");
+test_invalid_value("object-position", "left right");
+test_invalid_value("object-position", "bottom 10% top 20%");
+
+// The following were supported in an earlier version of the spec.
+// https://github.com/w3c/csswg-drafts/issues/2140
+// Deprecated in Blink with support to be removed in M68, around July 2018.
+test_invalid_value("object-position", "center left 1px");
+test_invalid_value("object-position", "center top 2px");
+test_invalid_value("object-position", "right 3% center");
+test_invalid_value("object-position", "left 4px top");
+test_invalid_value("object-position", "right top 5px");
+test_invalid_value("object-position", "bottom 6% center");
+test_invalid_value("object-position", "bottom 7% left");
+test_invalid_value("object-position", "bottom right 8%");
+
+</script>
+</body>
+</html>

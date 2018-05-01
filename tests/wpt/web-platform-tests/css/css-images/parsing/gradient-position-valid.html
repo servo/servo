@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: parsing gradients with valid position values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#typedef-position">
+<meta name="assert" content="gradient positions support the full '<position>' grammar.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+// Where two values are shown, the first serialization is being used by Blink/Firefox/WebKit and the second by Edge.
+
+test_valid_value("background-image", "radial-gradient(at 10%, red, blue)", ["radial-gradient(at 10% center, red, blue)", "radial-gradient(at 10%, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at 20% 30px, red, blue)");
+test_valid_value("background-image", "radial-gradient(at 30px center, red, blue)", ["radial-gradient(at 30px center, red, blue)", "radial-gradient(at 30px, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at 40px top, red, blue)");
+test_valid_value("background-image", "radial-gradient(at bottom 10% right 20%, red, blue)", "radial-gradient(at right 20% bottom 10%, red, blue)");
+test_valid_value("background-image", "radial-gradient(at bottom right, red, blue)", "radial-gradient(at right bottom, red, blue)");
+test_valid_value("background-image", "radial-gradient(at center, red, blue)", ["radial-gradient(at center center, red, blue)", "radial-gradient(at center, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at center 50px, red, blue)");
+test_valid_value("background-image", "radial-gradient(at center bottom, red, blue)", ["radial-gradient(at center bottom, red, blue)", "radial-gradient(at bottom, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at center center, red, blue)", ["radial-gradient(at center center, red, blue)", "radial-gradient(at center, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at center left, red, blue)", ["radial-gradient(at left center, red, blue)", "radial-gradient(at left, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at left, red, blue)", ["radial-gradient(at left center, red, blue)", "radial-gradient(at left, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at left bottom, red, blue)");
+test_valid_value("background-image", "radial-gradient(at left center, red, blue)", ["radial-gradient(at left center, red, blue)", "radial-gradient(at left, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at right 40%, red, blue)");
+test_valid_value("background-image", "radial-gradient(at right 30% top 60px, red, blue)");
+test_valid_value("background-image", "radial-gradient(at top, red, blue)", ["radial-gradient(at center top, red, blue)", "radial-gradient(at top, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(at top center, red, blue)", ["radial-gradient(at center top, red, blue)", "radial-gradient(at top, red, blue)"]);
+</script>
+</body>
+</html>

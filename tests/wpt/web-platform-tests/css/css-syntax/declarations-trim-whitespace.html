@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarations trim whitespace from their beginning/ending</title>
+<meta name="author" title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#consume-declaration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+    <div id="log"></div>
+    <style id="style-el">
+    #foo {
+        --foo-1:bar;
+        --foo-2: bar;
+        --foo-3:bar ;
+        --foo-4: bar ;
+        --foo-5: bar !important;
+        --foo-6: bar !important ;
+        --foo-7:bar!important;
+        --foo-8:bar!important ;
+        --foo-9:bar
+    }
+    </style>
+    <p id=foo>foo</p>
+    <script>
+    let stylesheet = getComputedStyle(document.querySelector("#foo"));
+    let canonical = "bar";
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-1"), canonical);
+    }, "--foo-1:bar;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-2"), canonical);
+    }, "--foo-2: bar;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-3"), canonical);
+    }, "--foo-3:bar ;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-4"), canonical);
+    }, "--foo-4: bar ;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-5"), canonical);
+    }, "--foo-5: bar !important;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-6"), canonical);
+    }, "--foo-6: bar !important ;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-7"), canonical);
+    }, "--foo-7:bar!important;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-8"), canonical);
+    }, "--foo-8:bar!important ;");
+    test(function() {
+        assert_equals(stylesheet.getPropertyValue("--foo-9"), canonical);
+    }, "--foo-9:bar (then ws until end of rule)");
+    </script>

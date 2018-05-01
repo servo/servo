@@ -59,4 +59,10 @@ async_test(t => {
     c.port2.postMessage('DONE');
   }, 'Close in onmessage should not cancel inflight messages.');
 
+test(() => {
+    const c = new MessageChannel();
+    c.port1.close();
+    assert_throws("DataCloneError", () => self.postMessage(null, "*", [c.port1]));
+    self.postMessage(null, "*", [c.port2]);
+}, "close() detaches a MessagePort (but not the one its entangled with)");
 </script>

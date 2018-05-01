@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: parsing object-fit with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#propdef-object-fit">
+<meta name="assert" content="object-fit supports only the grammar 'fill | none | [contain | cover] || scale-down'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("object-fit", "auto");
+test_invalid_value("object-fit", "contain cover");
+test_invalid_value("object-fit", "fill scale-down");
+test_invalid_value("object-fit", "contain fill");
+test_invalid_value("object-fit", "cover none");
+</script>
+</body>
+</html>
