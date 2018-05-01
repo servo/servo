@@ -7,7 +7,9 @@ async_test(t => {
     postMessage(ws.readyState == WebSocket.CONNECTING);
   }
 
-  var workerBlob = new Blob([workerCode.toString() + ";workerCode();"], {type:"application/javascript"});
+  var workerBlob = new Blob([workerCode.toString() + ";workerCode();"], {
+    type: "application/javascript"
+  });
 
   var w = new Worker(URL.createObjectURL(workerBlob));
   w.onmessage = function(e) {

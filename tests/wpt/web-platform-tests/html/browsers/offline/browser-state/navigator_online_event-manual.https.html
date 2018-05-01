@@ -25,12 +25,18 @@
   </div>
   <script>
 
-  function showOnline() {
-    document.getElementById('actualMsg').innerHTML = 'online event is raised.';
+  function showOnline(e) {
+    let msg = 'online event is raised';
+    if (e.target != window)
+      msg += ' (on the WRONG target)';
+    document.getElementById('actualMsg').innerHTML = msg + '.';
   }
 
-  function showOffline() {
-    document.getElementById('actualMsg').innerHTML = 'offline event is raised.';
+  function showOffline(e) {
+    let msg = 'offline event is raised';
+    if (e.target != window)
+      msg += ' (on the WRONG target)';
+    document.getElementById('actualMsg').innerHTML = msg + '.';
   }
 
   window.addEventListener("online", showOnline, false);

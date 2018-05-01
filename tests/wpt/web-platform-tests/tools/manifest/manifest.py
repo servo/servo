@@ -1,6 +1,6 @@
+import itertools
 import json
 import os
-import re
 from collections import defaultdict
 from six import iteritems, itervalues, viewkeys, string_types
 
@@ -56,7 +56,8 @@ class Manifest(object):
     def reftest_nodes_by_url(self):
         if self._reftest_nodes_by_url is None:
             by_url = {}
-            for path, nodes in iteritems(self._data.get("reftests", {})):
+            for path, nodes in itertools.chain(iteritems(self._data.get("reftest", {})),
+                                               iteritems(self._data.get("reftest_node", {}))):
                 for node in nodes:
                     by_url[node.url] = node
             self._reftest_nodes_by_url = by_url
@@ -143,13 +144,13 @@ class Manifest(object):
                     changed_hashes[item.source_file.rel_path] = (item.source_file.hash,
                                                                  item.item_type)
                 references[item.source_file.rel_path].add(item)
-                self._reftest_nodes_by_url[item.url] = item
             else:
                 if isinstance(item, RefTestNode):
                     item = item.to_RefTest()
                     changed_hashes[item.source_file.rel_path] = (item.source_file.hash,
                                                                  item.item_type)
                 reftests[item.source_file.rel_path].add(item)
+            self._reftest_nodes_by_url[item.url] = item
 
         return reftests, references, changed_hashes
 

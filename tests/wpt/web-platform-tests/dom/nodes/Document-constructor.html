@@ -36,6 +36,7 @@ test(function() {
   assert_equals(doc.contentType, "application/xml");
   assert_equals(doc.origin, document.origin);
   assert_equals(doc.createElement("DIV").localName, "DIV");
+  assert_equals(doc.createElement("a").constructor, Element);
 }, "new Document(): metadata")
 
 test(function() {
@@ -47,7 +48,8 @@ test(function() {
 
 test(function() {
   var doc = new Document();
-  var a = doc.createElement("a");
+  var a = doc.createElementNS("http://www.w3.org/1999/xhtml", "a");
+  assert_equals(a.constructor, HTMLAnchorElement);
   // In UTF-8: 0xC3 0xA4
   a.href = "http://example.org/?\u00E4";
   assert_equals(a.href, "http://example.org/?%C3%A4");
