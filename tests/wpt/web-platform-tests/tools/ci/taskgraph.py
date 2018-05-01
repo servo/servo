@@ -20,7 +20,7 @@ task_template = {
         },
     },
     "payload": {
-        "maxRunTime": 5400,
+        "maxRunTime": 7200,
         "image": "harjgam/web-platform-tests:0.6",
         "command":[
             "/bin/bash",
@@ -56,8 +56,8 @@ file_template = {
 }
 
 suites = {
-    "testharness": {"chunks": 12},
-    "reftest": {"chunks": 6},
+    "testharness": {"chunks": 15},
+    "reftest": {"chunks": 10},
     "wdspec": {"chunks": 1}
 }
 

@@ -309,6 +309,7 @@ GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/w
 SET TIMEOUT: css/css-fonts/font-display/font-display.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-change.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-change-ref.html
+SET TIMEOUT: css/css-fonts/font-display/font-display-preload.html
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
@@ -779,6 +780,8 @@ CSS-COLLIDING-REF-NAME: css/CSS2/visuren/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/linebox/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/css-transforms/individual-transform/individual-transform-1-ref.html
 CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/transforms/individual-transform-1-ref.html
+CSS-COLLIDING-REF-NAME: css/css-flexbox/reference/percentage-size-subitems-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-grid/grid-items/percentage-size-subitems-001-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
@@ -797,7 +800,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-1.png
 
 # CSS tests that used to be at the top level and weren't subject to lints
-MISSING-LINK: css/css-fonts/font-display/font-display.html
 MISSING-LINK: css/css-fonts/matching/fixed-stretch-style-over-weight.html
 SUPPORT-WRONG-DIR: css/css-fonts/matching/font-matching.css
 MISSING-LINK: css/css-fonts/matching/stretch-distance-over-weight-distance.html
