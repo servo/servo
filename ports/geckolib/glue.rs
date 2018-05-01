@@ -4768,17 +4768,18 @@ fn fill_in_missing_keyframe_values(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_StyleSet_GetKeyframesForName(
     raw_data: RawServoStyleSetBorrowed,
+    element: RawGeckoElementBorrowed,
     name: *mut nsAtom,
     inherited_timing_function: nsTimingFunctionBorrowed,
     keyframes: RawGeckoKeyframeListBorrowedMut,
 ) -> bool {
-    debug_assert!(keyframes.len() == 0,
-                  "keyframes should be initially empty");
+    debug_assert!(keyframes.len() == 0, "keyframes should be initially empty");
 
+    let element = GeckoElement(element);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let name = Atom::from_raw(name);
 
-    let animation = match data.stylist.get_animation(&name) {
+    let animation = match data.stylist.get_animation(&name, element) {
         Some(animation) => animation,
         None => return false,
     };

@@ -1421,14 +1421,52 @@ impl Stylist {
     }
 
     /// Returns the registered `@keyframes` animation for the specified name.
-    ///
-    /// FIXME(emilio): This needs to account for the element rules.
     #[inline]
-    pub fn get_animation(&self, name: &Atom) -> Option<&KeyframesAnimation> {
-        self.cascade_data
-            .iter_origins()
-            .filter_map(|(d, _)| d.animations.get(name))
-            .next()
+    pub fn get_animation<'a, E>(
+        &'a self,
+        name: &Atom,
+        element: E,
+    ) -> Option<&'a KeyframesAnimation>
+    where
+        E: TElement + 'a,
+    {
+        macro_rules! try_find_in {
+            ($data:expr) => {
+                if let Some(animation) = $data.animations.get(name) {
+                    return Some(animation);
+                }
+            }
+        }
+
+        // NOTE(emilio): We implement basically what Blink does for this case,
+        // which is [1] as of this writing.
+        //
+        // See [2] for the spec discussion about what to do about this. WebKit's
+        // behavior makes a bit more sense off-hand, but it's way more complex
+        // to implement, and it makes value computation having to thread around
+        // the cascade level, which is not great. Also, it breaks if you inherit
+        // animation-name from an element in a different tree.
+        //
+        // See [3] for the bug to implement whatever gets resolved, and related
+        // bugs for a bit more context.
+        //
+        // [1]: https://cs.chromium.org/chromium/src/third_party/blink/renderer/core/css/resolver/style_resolver.cc?l=1267&rcl=90f9f8680ebb4a87d177f3b0833372ae4e0c88d8
+        // [2]: https://github.com/w3c/csswg-drafts/issues/1995
+        // [3]: https://bugzil.la/1458189
+        if let Some(shadow) = element.shadow_root() {
+            try_find_in!(shadow.style_data());
+        }
+
+        if let Some(shadow) = element.containing_shadow() {
+            try_find_in!(shadow.style_data());
+        } else {
+            try_find_in!(self.cascade_data.author);
+        }
+
+        try_find_in!(self.cascade_data.user);
+        try_find_in!(self.cascade_data.user_agent.cascade_data);
+
+        None
     }
 
     /// Computes the match results of a given element against the set of
