@@ -425,4 +425,18 @@ promise_test(async t => {
   });
 }, 'HTMLLinkElement with rel=preload and as=manifest fetches with a "manifest" Request.destination');
 
+// HTMLLinkElement with rel=prefetch - empty string destination
+promise_test(async t => {
+  await new Promise((resolve, reject) => {
+      let node = frame.contentWindow.document.createElement("link");
+      node.rel = "prefetch";
+      node.onload = resolve;
+      node.onerror = reject;
+      node.href = "dummy?dest=";
+      frame.contentWindow.document.body.appendChild(node);
+  }).catch(() => {
+      assert_unreached("Fetch errored.");
+  });
+}, 'HTMLLinkElement with rel=prefetch fetches with an empty string Request.destination');
+
 </script>

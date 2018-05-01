@@ -39,5 +39,17 @@ for (const subtest of gInvalidKeyframesTests) {
     });
   }, `KeyframeEffect constructor throws with ${subtest.desc}`);
 }
+
+test(t => {
+  const frames1 = [ { left: '100px' }, { left: '200px' } ];
+  const frames2 = [ { left: '200px' }, { left: '300px' } ];
+
+  const animation = target.animate(frames1, 1000);
+  animation.currentTime = 500;
+  assert_equals(getComputedStyle(target).left, "150px");
+
+  animation.effect.setKeyframes(frames2);
+  assert_equals(getComputedStyle(target).left, "250px");
+}, 'Changes made via setKeyframes should be immediately visible in style');
 </script>
 </body>

@@ -13,35 +13,38 @@ if not(wpt_root in sys.path):
 
 from tools.wpt.testfiles import get_git_cmd
 
-logging.basicConfig()
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_pr(repo, owner, rev):
-    url = ("https://api.github.com/search/issues?q=type:pr+is:merged+repo:%s/%s+%s" %
-           (repo, owner, rev))
+def get_pr(repo, owner, sha):
+    url = ("https://api.github.com/search/issues?q=type:pr+is:merged+repo:%s/%s+sha:%s" %
+           (repo, owner, sha))
     try:
         resp = urllib2.urlopen(url)
+        body = resp.read()
     except Exception as e:
         logger.error(e)
         return None
 
     if resp.code != 200:
-        logger.error("Got HTTP status %s" % resp.code)
+        logger.error("Got HTTP status %s. Response:" % resp.code)
+        logger.error(body)
         return None
 
     try:
-        data = json.loads(resp.read())
+        data = json.loads(body)
     except ValueError:
-        logger.error("Failed to read response as JSON")
+        logger.error("Failed to read response as JSON:")
+        logger.error(body)
         return None
 
     items = data["items"]
     if len(items) == 0:
-        logger.error("No PR found for master")
+        logger.error("No PR found for %s" % sha)
         return None
     if len(items) > 1:
-        logger.warning("Found multiple PRs for master")
+        logger.warning("Found multiple PRs for %s" % sha)
 
     pr = items[0]
 
@@ -63,12 +66,15 @@ def tag(repo, owner, sha, tag):
         resp = opener.open(req)
     except Exception as e:
         logger.error("Tag creation failed:\n%s" % e)
-        return
+        return False
 
     if resp.code != 201:
-        logger.error("Got HTTP status %s" % resp.code)
-    else:
-        logger.info("Tagged master as %s" % tag)
+        logger.error("Got HTTP status %s. Response:" % resp.code)
+        logger.error(resp.read())
+        return False
+
+    logger.info("Tagged %s as %s" % (sha, tag))
+    return True
 
 
 def main():
@@ -84,8 +90,11 @@ def main():
     head_rev = git("rev-parse", "HEAD")
 
     pr = get_pr(owner, repo, head_rev)
-    if pr is not None:
-        tag(owner, repo, head_rev, "merge_pr_%s" % pr)
+    if pr is None:
+        sys.exit(1)
+    tagged = tag(owner, repo, head_rev, "merge_pr_%s" % pr)
+    if not tagged:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

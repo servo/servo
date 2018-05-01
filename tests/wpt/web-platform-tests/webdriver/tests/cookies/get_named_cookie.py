@@ -1,19 +1,28 @@
-from tests.support.inline import inline
-from tests.support.fixtures import clear_all_cookies
 from datetime import datetime, timedelta
+
+from tests.support.asserts import assert_success
+from tests.support.fixtures import clear_all_cookies
+from tests.support.inline import inline
+
+
+def get_named_cookie(session, name):
+    return session.transport.send(
+        "GET", "session/{session_id}/cookie/{name}".format(
+            session_id=session.session_id,
+            name=name))
+
 
 def test_get_named_session_cookie(session, url):
     session.url = url("/common/blank.html")
     clear_all_cookies(session)
     session.execute_script("document.cookie = 'foo=bar'")
 
-    result = session.transport.send("GET", "session/%s/cookie/foo" % session.session_id)
-    assert result.status == 200
-    assert isinstance(result.body["value"], dict)
+    result = get_named_cookie(session, "foo")
+    cookie = assert_success(result)
+    assert isinstance(cookie, dict)
 
     # table for cookie conversion
     # https://w3c.github.io/webdriver/webdriver-spec.html#dfn-table-for-cookie-conversion
-    cookie = result.body["value"]
     assert "name" in cookie
     assert isinstance(cookie["name"], basestring)
     assert "value" in cookie
@@ -32,6 +41,7 @@ def test_get_named_session_cookie(session, url):
     assert cookie["name"] == "foo"
     assert cookie["value"] == "bar"
 
+
 def test_get_named_cookie(session, url):
     session.url = url("/common/blank.html")
     clear_all_cookies(session)
@@ -41,14 +51,10 @@ def test_get_named_cookie(session, url):
     a_year_from_now = (datetime.utcnow() + timedelta(days=365)).strftime(utc_string_format)
     session.execute_script("document.cookie = 'foo=bar;expires=%s'" % a_year_from_now)
 
-    result = session.transport.send("GET", "session/%s/cookie" % session.session_id)
-    assert result.status == 200
-    assert "value" in result.body
-    assert isinstance(result.body["value"], list)
-    assert len(result.body["value"]) == 1
-    assert isinstance(result.body["value"][0], dict)
+    result = get_named_cookie(session, "foo")
+    cookie = assert_success(result)
+    assert isinstance(cookie, dict)
 
-    cookie = result.body["value"][0]
     assert "name" in cookie
     assert isinstance(cookie["name"], basestring)
     assert "value" in cookie
@@ -59,39 +65,39 @@ def test_get_named_cookie(session, url):
     assert cookie["name"] == "foo"
     assert cookie["value"] == "bar"
     # convert from seconds since epoch
-    assert datetime.utcfromtimestamp(cookie["expiry"]).strftime(utc_string_format) == a_year_from_now
+    assert datetime.utcfromtimestamp(
+        cookie["expiry"]).strftime(utc_string_format) == a_year_from_now
+
 
 def test_duplicated_cookie(session, url, server_config):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+        "domain": server_config["browser_host"],
+        "path": "/",
+        "http_only": False,
+        "secure": False
+    }
+
     session.url = url("/common/blank.html")
     clear_all_cookies(session)
-    create_cookie_request = {
-        "cookie": {
-            "name": "hello",
-            "value": "world",
-            "domain": server_config["domains"][""],
-            "path": "/",
-            "httpOnly": False,
-            "secure": False
-        }
-    }
-    result = session.transport.send("POST", "session/%s/cookie" % session.session_id, create_cookie_request)
-    assert result.status == 200
-    assert "value" in result.body
-    assert result.body["value"] is None
 
-    session.url = inline("<script>document.cookie = 'hello=newworld; domain=%s; path=/';</script>" % server_config["domains"][""])
-    result = session.transport.send("GET", "session/%s/cookie" % session.session_id)
-    assert result.status == 200
-    assert "value" in result.body
-    assert isinstance(result.body["value"], list)
-    assert len(result.body["value"]) == 1
-    assert isinstance(result.body["value"][0], dict)
+    session.set_cookie(**new_cookie)
+    session.url = inline("""
+      <script>
+        document.cookie = '{name}=newworld; domain={domain}; path=/';
+      </script>""".format(
+        name=new_cookie["name"],
+        domain=server_config["browser_host"]))
 
-    cookie = result.body["value"][0]
+    result = get_named_cookie(session, new_cookie["name"])
+    cookie = assert_success(result)
+    assert isinstance(cookie, dict)
+
     assert "name" in cookie
     assert isinstance(cookie["name"], basestring)
     assert "value" in cookie
     assert isinstance(cookie["value"], basestring)
 
-    assert cookie["name"] == "hello"
+    assert cookie["name"] == new_cookie["name"]
     assert cookie["value"] == "newworld"
