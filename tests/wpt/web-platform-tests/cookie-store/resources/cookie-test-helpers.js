@@ -11,41 +11,6 @@ const kIsUnsecured = location.protocol !== 'https:';
 
 const kCookieHelperCgi = 'resources/cookie_helper.py';
 
-// Async wrapper for an async function or promise that is expected
-// reject in an unsecured (non-https:) context and work in a secured
-// (https:) context.
-//
-// Parameters:
-//
-// - testCase: (TestCase) test case context
-// - code: (Error class or number) expected rejection type in unsecured context
-// - promise: (thenable) test code
-// - message: (optional; string) message to forward to promise_rejects in
-//   unsecured context
-async function promise_rejects_when_unsecured(
-  testCase,
-  code,
-  promise,
-  message = 'Feature unavailable from unsecured contexts') {
-  if (kIsUnsecured)
-    await promise_rejects(testCase, code, promise, message);
-  else await promise;
-};
-
-// Converts a list of cookie records {name, value} to [name=]value; ... as
-// seen in Cookie: and document.cookie.
-//
-// Parameters:
-// - cookies: (array of {name, value}) records to convert
-//
-// Returns a string serializing the records, or undefined if no records were
-// given.
-function cookieString(cookies) {
-  return cookies.length ? cookies.map((
-    {name, value}) => (name ? (name + '=') : '') + value).join('; ') :
-  undefined;
-}
-
 // Approximate async equivalent to the document.cookie getter but with
 // important differences: optional additional getAll arguments are
 // forwarded, and an empty cookie jar returns undefined.
@@ -56,7 +21,11 @@ function cookieString(cookies) {
 // using parsed cookie jar contents and also allows expectations to be
 // written more compactly.
 async function getCookieString(...args) {
-  return cookieString(await cookieStore.getAll(...args));
+  const cookies = await cookieStore.getAll(...args);
+  return cookies.length
+    ? cookies.map(({name, value}) =>
+                  (name ? (name + '=') : '') + value).join('; ')
+    : undefined;
 }
 
 // Approximate async equivalent to the document.cookie getter but from
@@ -240,31 +209,18 @@ async function verifyCookieChangeEvent(eventPromise, expected, description) {
 async function cookie_test(func, description) {
 
   // Wipe cookies used by tests before and after the test.
-  async function deleteTestCookies() {
-    await cookieStore.delete('');
-    await cookieStore.delete('TEST');
-    await cookieStore.delete('META-🍪');
-    await cookieStore.delete('DOCUMENT-🍪');
-    await cookieStore.delete('HTTP-🍪');
-    await setCookieStringHttp(
-      'HTTPONLY-🍪=DELETED; path=/; max-age=0; httponly');
-    if (!kIsUnsecured) {
-      await cookieStore.delete('__Host-COOKIENAME');
-      await cookieStore.delete('__Host-1🍪');
-      await cookieStore.delete('__Host-2🌟');
-      await cookieStore.delete('__Host-3🌱');
-      await cookieStore.delete('__Host-unordered1🍪');
-      await cookieStore.delete('__Host-unordered2🌟');
-      await cookieStore.delete('__Host-unordered3🌱');
-    }
+  async function deleteAllCookies() {
+    (await cookieStore.getAll()).forEach(({name, value}) => {
+      cookieStore.delete(name);
+    });
   }
 
   return promise_test(async t => {
-    await deleteTestCookies();
+    await deleteAllCookies();
     try {
       return await func(t);
     } finally {
-      await deleteTestCookies();
+      await deleteAllCookies();
     }
   }, description);
 }

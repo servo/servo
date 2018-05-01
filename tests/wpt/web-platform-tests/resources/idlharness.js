@@ -1513,8 +1513,6 @@ IdlInterface.prototype.test_self = function()
         // object.
         // "Otherwise, if A is declared to inherit from another interface, then
         // return the interface prototype object for the inherited interface.
-        // "Otherwise, if A is declared with the [LegacyArrayClass] extended
-        // attribute, then return %ArrayPrototype%.
         // "Otherwise, return %ObjectPrototype%.
         //
         // "In the ECMAScript binding, the DOMException type has some additional
@@ -1537,9 +1535,6 @@ IdlInterface.prototype.test_self = function()
                     !this.array
                          .members[inherit_interface]
                          .has_extended_attribute("NoInterfaceObject");
-            } else if (this.has_extended_attribute('LegacyArrayClass')) {
-                inherit_interface = 'Array';
-                inherit_interface_has_interface_object = true;
             } else if (this.name === "DOMException") {
                 inherit_interface = 'Error';
                 inherit_interface_has_interface_object = true;

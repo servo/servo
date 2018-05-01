@@ -292,3 +292,22 @@ def test_iterpath():
                                                                  "/test2-1.html",
                                                                  "/test2-2.html"])
     assert set(m.iterpath("missing")) == set()
+
+
+def test_reftest_node_by_url():
+    m = manifest.Manifest()
+
+    s1 = SourceFileWithTest("test1", "0"*40, item.RefTest, [("/test2", "==")])
+    s2 = SourceFileWithTest("test2", "0"*40, item.RefTest, [("/test3", "==")])
+
+    m.update([s1, s2])
+
+    test1 = s1.manifest_items()[1][0]
+    test2 = s2.manifest_items()[1][0]
+    test2_node = test2.to_RefTestNode()
+
+    assert m.reftest_nodes_by_url == {"/test1": test1,
+                                      "/test2": test2_node}
+    m._reftest_nodes_by_url = None
+    assert m.reftest_nodes_by_url == {"/test1": test1,
+                                      "/test2": test2_node}

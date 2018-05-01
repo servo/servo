@@ -15,9 +15,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome reftest 1 6"]
+        \ chrome reftest 1 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -33,9 +33,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome reftest 2 6"]
+        \ chrome reftest 2 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -51,9 +51,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome reftest 3 6"]
+        \ chrome reftest 3 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -69,9 +69,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome reftest 4 6"]
+        \ chrome reftest 4 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -87,9 +87,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome reftest 5 6"]
+        \ chrome reftest 5 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -105,9 +105,81 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome reftest 6 6"]
+        \ chrome reftest 6 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-chrome-dev-reftest-7, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ chrome reftest 7 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-chrome-dev-reftest-8, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ chrome reftest 8 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-chrome-dev-reftest-9, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ chrome reftest 9 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-chrome-dev-reftest-10, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ chrome reftest 10 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -125,7 +197,7 @@ tasks:
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
         \ chrome wdspec 1 1"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -141,9 +213,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 1 12"]
+        \ chrome testharness 1 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -159,9 +231,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 2 12"]
+        \ chrome testharness 2 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -177,9 +249,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 3 12"]
+        \ chrome testharness 3 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -195,9 +267,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 4 12"]
+        \ chrome testharness 4 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -213,9 +285,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 5 12"]
+        \ chrome testharness 5 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -231,9 +303,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 6 12"]
+        \ chrome testharness 6 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -249,9 +321,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 7 12"]
+        \ chrome testharness 7 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -267,9 +339,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 8 12"]
+        \ chrome testharness 8 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -285,9 +357,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 9 12"]
+        \ chrome testharness 9 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -303,9 +375,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 10 12"]
+        \ chrome testharness 10 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -321,9 +393,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 11 12"]
+        \ chrome testharness 11 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -339,9 +411,63 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ chrome testharness 12 12"]
+        \ chrome testharness 12 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-chrome-dev-testharness-13, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ chrome testharness 13 15"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-chrome-dev-testharness-14, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ chrome testharness 14 15"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-chrome-dev-testharness-15, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ chrome testharness 15 15"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -357,9 +483,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox reftest 1 6"]
+        \ firefox reftest 1 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -375,9 +501,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox reftest 2 6"]
+        \ firefox reftest 2 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -393,9 +519,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox reftest 3 6"]
+        \ firefox reftest 3 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -411,9 +537,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox reftest 4 6"]
+        \ firefox reftest 4 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -429,9 +555,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox reftest 5 6"]
+        \ firefox reftest 5 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -447,9 +573,81 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox reftest 6 6"]
+        \ firefox reftest 6 10"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-firefox-nightly-reftest-7, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ firefox reftest 7 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-firefox-nightly-reftest-8, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ firefox reftest 8 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-firefox-nightly-reftest-9, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ firefox reftest 9 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-firefox-nightly-reftest-10, owner: '{{ event.head.user.email
+      }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ firefox reftest 10 10"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -467,7 +665,7 @@ tasks:
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
         \ firefox wdspec 1 1"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -483,9 +681,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 1 12"]
+        \ firefox testharness 1 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -501,9 +699,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 2 12"]
+        \ firefox testharness 2 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -519,9 +717,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 3 12"]
+        \ firefox testharness 3 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -537,9 +735,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 4 12"]
+        \ firefox testharness 4 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -555,9 +753,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 5 12"]
+        \ firefox testharness 5 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -573,9 +771,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 6 12"]
+        \ firefox testharness 6 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -591,9 +789,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 7 12"]
+        \ firefox testharness 7 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -609,9 +807,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 8 12"]
+        \ firefox testharness 8 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -627,9 +825,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 9 12"]
+        \ firefox testharness 9 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -645,9 +843,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 10 12"]
+        \ firefox testharness 10 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -663,9 +861,9 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 11 12"]
+        \ firefox testharness 11 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 - extra:
@@ -681,9 +879,63 @@ tasks:
         \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
         \ &&\n            git config advice.detachedHead false &&\n            git\
         \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
-        \ firefox testharness 12 12"]
+        \ firefox testharness 12 15"]
     image: harjgam/web-platform-tests:0.6
-    maxRunTime: 5400
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-firefox-nightly-testharness-13, owner: '{{
+      event.head.user.email }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ firefox testharness 13 15"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-firefox-nightly-testharness-14, owner: '{{
+      event.head.user.email }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ firefox testharness 14 15"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
+  provisionerId: '{{ taskcluster.docker.provisionerId }}'
+  workerType: '{{ taskcluster.docker.workerType }}'
+- extra:
+    github:
+      branches: [master]
+      events: [push]
+  metadata: {description: '', name: wpt-firefox-nightly-testharness-15, owner: '{{
+      event.head.user.email }}', source: '{{ event.head.repo.url }}'}
+  payload:
+    artifacts:
+      public/results: {path: /home/test/artifacts, type: directory}
+    command: [/bin/bash, --login, -c, ">-\n            ~/start.sh &&\n           \
+        \ cd /home/test/web-platform-tests &&\n            git fetch {{event.head.repo.url}}\
+        \ &&\n            git config advice.detachedHead false &&\n            git\
+        \ checkout {{event.head.sha}} &&\n            ./tools/ci/ci_taskcluster.sh\
+        \ firefox testharness 15 15"]
+    image: harjgam/web-platform-tests:0.6
+    maxRunTime: 7200
   provisionerId: '{{ taskcluster.docker.provisionerId }}'
   workerType: '{{ taskcluster.docker.workerType }}'
 version: 0
