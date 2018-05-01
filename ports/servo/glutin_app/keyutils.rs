@@ -293,6 +293,7 @@ pub fn is_printable(key_code: VirtualKeyCode) -> bool {
         Right |
         Down |
         Back |
+        Return |
         LAlt |
         LControl |
         LMenu |
