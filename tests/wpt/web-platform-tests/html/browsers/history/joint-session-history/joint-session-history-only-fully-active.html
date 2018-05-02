@@ -20,7 +20,7 @@
         // is the child, with session length 1, so the joint session length change will be 1.
         // If all documents count, then the grandchild is reachable via the session history,
         // and it has session length 1, so the joint session length change will be 2.
-        assert_equals(2, window.history.length - old_history_len);
+        assert_equals(1, window.history.length - old_history_len);
         window.clearInterval(timer);
         t.done();
       }
