@@ -392,6 +392,13 @@ impl Node {
          self.mutation_observers.borrow_mut()
     }
 
+    /// Removes the mutation observer for a given node.
+    pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
+        self.mutation_observers.borrow_mut().retain(|reg_obs| {
+            &*reg_obs.observer != observer
+        })
+    }
+
     /// Dumps the subtree rooted at this node, for debugging.
     pub fn dump(&self) {
         self.dump_indent(0);
