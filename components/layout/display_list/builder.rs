@@ -16,9 +16,9 @@ use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
 use display_list::ToLayout;
 use display_list::background::{build_border_radius, build_image_border_details};
-use display_list::background::{calculate_inner_border_radii, compute_background_placement};
-use display_list::background::{convert_linear_gradient, convert_radial_gradient};
-use display_list::background::{get_cyclic, simple_normal_border};
+use display_list::background::{calculate_border_image_outset, calculate_inner_border_radii};
+use display_list::background::{compute_background_placement, convert_linear_gradient};
+use display_list::background::{convert_radial_gradient, get_cyclic, simple_normal_border};
 use display_list::items::{BaseDisplayItem, BorderDetails, BorderDisplayItem, BLUR_INFLATION_FACTOR};
 use display_list::items::{BoxShadowDisplayItem, ClipScrollNode};
 use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
@@ -1264,6 +1264,18 @@ impl FragmentDisplayListBuilding for Fragment {
         );
 
         let border_radius = build_border_radius(&bounds, border_style_struct);
+        let border_widths = border.to_physical(style.writing_mode);
+        let outset = calculate_border_image_outset(
+            border_style_struct.border_image_outset,
+            border_widths
+        );
+        let outset_layout = SideOffsets2D::new(
+            outset.top.to_f32_px(),
+            outset.right.to_f32_px(),
+            outset.bottom.to_f32_px(),
+            outset.left.to_f32_px(),
+        );
+        let size = bounds.outer_rect(outset).size;
 
         let details = match border_style_struct.border_image_source {
             Either::First(_) => Some(BorderDetails::Normal(NormalBorder {
@@ -1295,8 +1307,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                 angle_or_corner,
                                 gradient.repeating,
                             ),
-                            // TODO(gw): Support border-image-outset
-                            outset: SideOffsets2D::zero(),
+                            outset: outset_layout,
                         })
                     },
                     GradientKind::Radial(shape, center, _angle) => {
@@ -1308,17 +1319,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                 center,
                                 gradient.repeating,
                             ),
-                            // TODO(gw): Support border-image-outset
-                            outset: SideOffsets2D::zero(),
+                            outset: outset_layout,
                         })
                     },
                 })
             },
             Either::Second(Image::PaintWorklet(ref paint_worklet)) => {
-                // TODO: this size should be increased by border-image-outset
-                let size = self.border_box.size.to_physical(style.writing_mode);
                 self.get_webrender_image_for_paint_worklet(state, style, paint_worklet, size)
-                    .and_then(|image| build_image_border_details(image, border_style_struct))
+                    .and_then(|image| build_image_border_details(image, border_style_struct, outset_layout))
             },
             Either::Second(Image::Rect(..)) => {
                 // TODO: Handle border-image with `-moz-image-rect`.
@@ -1337,12 +1345,12 @@ impl FragmentDisplayListBuilding for Fragment {
                         UsePlaceholder::No,
                     )
                 })
-                .and_then(|image| build_image_border_details(image, border_style_struct)),
+                .and_then(|image| build_image_border_details(image, border_style_struct, outset_layout)),
         };
         if let Some(details) = details {
             state.add_display_item(DisplayItem::Border(Box::new(BorderDisplayItem {
                 base,
-                border_widths: border.to_physical(style.writing_mode).to_layout(),
+                border_widths: border_widths.to_layout(),
                 details,
             })));
         }
