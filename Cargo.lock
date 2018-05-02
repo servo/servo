@@ -268,7 +268,7 @@ dependencies = [
  "azure 0.28.0 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.4.34 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -286,7 +286,7 @@ dependencies = [
 name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -558,15 +558,15 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.23.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/Eijebong/rust-cssparser.git#27e18209167f5a8f883cb758dfe4a3cbf9794f3f"
 dependencies = [
- "cssparser-macros 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser-macros 0.3.3 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "dtoa-short 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "itoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "procedural-masquerade 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "procedural-masquerade 0.1.5 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -576,11 +576,11 @@ dependencies = [
 [[package]]
 name = "cssparser-macros"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/Eijebong/rust-cssparser.git#27e18209167f5a8f883cb758dfe4a3cbf9794f3f"
 dependencies = [
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "procedural-masquerade 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "procedural-masquerade 0.1.5 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -591,7 +591,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cstr-macros 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "procedural-masquerade 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "procedural-masquerade 0.1.5 (git+https://github.com/Eijebong/rust-cssparser.git)",
 ]
 
 [[package]]
@@ -599,7 +599,7 @@ name = "cstr-macros"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "procedural-masquerade 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "procedural-masquerade 0.1.5 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -997,7 +997,7 @@ name = "geckoservo"
 version = "0.0.1"
 dependencies = [
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "cstr 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1648,7 +1648,7 @@ name = "malloc_size_of"
 version = "0.0.1"
 dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashglobe 0.1.0",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2270,7 +2270,7 @@ dependencies = [
 [[package]]
 name = "procedural-masquerade"
 version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/Eijebong/rust-cssparser.git#27e18209167f5a8f883cb758dfe4a3cbf9794f3f"
 
 [[package]]
 name = "profile"
@@ -2509,7 +2509,7 @@ dependencies = [
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "deny_public_fields 0.0.1",
  "devtools_traits 0.0.1",
  "dom_struct 0.0.1",
@@ -2586,7 +2586,7 @@ dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "html5ever 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2667,7 +2667,7 @@ name = "selectors"
 version = "0.19.0"
 dependencies = [
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3022,7 +3022,7 @@ dependencies = [
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3084,7 +3084,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "embedder_traits 0.0.1",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3107,7 +3107,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
@@ -3123,7 +3123,7 @@ name = "stylo_tests"
 version = "0.0.1"
 dependencies = [
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)",
  "cstr 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3831,8 +3831,8 @@ dependencies = [
 "checksum crossbeam-deque 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f739f8c5363aca78cfb059edf753d8f0d36908c348f3d8d1503f03d8b75d9cf3"
 "checksum crossbeam-epoch 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "927121f5407de9956180ff5e936fe3cf4324279280001cd56b669d28ee7e9150"
 "checksum crossbeam-utils 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2760899e32a1d58d5abb31129f8fae5de75220bc2176e77ff7c627ae45c918d9"
-"checksum cssparser 0.23.6 (registry+https://github.com/rust-lang/crates.io-index)" = "67aa42c6e5208102b021b728f724f5ae13d140b0c8025857a102ed9724f4a542"
-"checksum cssparser-macros 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "f3a5383ae18dbfdeb569ed62019f5bddb2a95cd2d3833313c475a0d014777805"
+"checksum cssparser 0.23.6 (git+https://github.com/Eijebong/rust-cssparser.git)" = "<none>"
+"checksum cssparser-macros 0.3.3 (git+https://github.com/Eijebong/rust-cssparser.git)" = "<none>"
 "checksum cstr 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "bc6b738cea084b0bf479106e0089d58d8c3dbc35d1fef3c485e19e20ea47d252"
 "checksum cstr-macros 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0472c17c83d3ec1af32fb6ee2b3ad56ae0b6e69355d63d1d30602055c34324a8"
 "checksum darling 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2a78af487e4eb8f4421a1770687b328af6bb4494ca93435210678c6eea875c11"
@@ -3971,7 +3971,7 @@ dependencies = [
 "checksum png 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f0b0cabbbd20c2d7f06dbf015e06aad59b6ca3d9ed14848783e98af9aaf19925"
 "checksum precomputed-hash 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 "checksum proc-macro2 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "77997c53ae6edd6d187fec07ec41b207063b5ee6f33680e9fa86d405cdd313d4"
-"checksum procedural-masquerade 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "dc1bcafee1590f81acb329ae45ec627b318123f085153913620316ae9a144b2a"
+"checksum procedural-masquerade 0.1.5 (git+https://github.com/Eijebong/rust-cssparser.git)" = "<none>"
 "checksum quick-error 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "eda5fe9b71976e62bc81b781206aaa076401769b2143379d3eb2118388babac4"
 "checksum quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7b0ff51282f28dc1b53fd154298feaa2e77c5ea0dba68e1fd8b03b72fbe13d2a"
 "checksum rand 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)" = "15a732abf9d20f0ad8eeb6f909bf6868722d9a06e1e50802b6a70351f40b4eb1"

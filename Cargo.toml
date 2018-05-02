@@ -28,3 +28,5 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+cssparser = { git = "https://github.com/Eijebong/rust-cssparser.git" }
+procedural-masquerade = { git = "https://github.com/Eijebong/rust-cssparser.git" }
