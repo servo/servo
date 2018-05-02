@@ -27,6 +27,7 @@ pub struct MutationObserver {
     #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
     record_queue: DomRefCell<Vec<DomRoot<MutationRecord>>>,
+    node_list: DomRefCell<Vec<DomRoot<Node>>>,
 }
 
 pub enum Mutation<'a> {
@@ -38,7 +39,7 @@ pub enum Mutation<'a> {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct RegisteredObserver {
-    observer: DomRoot<MutationObserver>,
+    pub observer: DomRoot<MutationObserver>,
     options: ObserverOptions,
 }
 
@@ -64,6 +65,7 @@ impl MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
             record_queue: DomRefCell::new(vec![]),
+            node_list: DomRefCell::new(vec![]),
         }
     }
 
@@ -286,6 +288,8 @@ impl MutationObserverMethods for MutationObserver {
                     child_list
                 },
             });
+
+            self.node_list.borrow_mut().push(DomRoot::from_ref(target));
         }
 
         Ok(())
@@ -296,5 +300,17 @@ impl MutationObserverMethods for MutationObserver {
         let records: Vec<DomRoot<MutationRecord>> = self.record_queue.borrow().clone();
         self.record_queue.borrow_mut().clear();
         records
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-mutationobserver-disconnect
+    fn Disconnect(&self) {
+        // Step 1
+        for node in self.node_list.borrow_mut().iter() {
+            node.remove_mutation_observer(self);
+        }
+        self.node_list.borrow_mut().clear();
+
+        // Step 2
+        self.record_queue.borrow_mut().clear();
     }
 }
