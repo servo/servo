@@ -10,7 +10,6 @@ use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
-use servo::net_traits::filemanager_thread::FilterPattern;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
@@ -260,7 +259,7 @@ impl Browser {
                 EmbedderMsg::ResizeTo(_browser_id, size) => {
                     self.window.set_inner_size(size);
                 }
-                EmbedderMsg::Alert(_browser_id, _message) => {
+                EmbedderMsg::Alert(_browser_id, message) => {
                     display_alert_dialog(&message);
                 }
                 EmbedderMsg::AllowNavigation(_browser_id, _url, response_chan) => {
@@ -364,20 +363,15 @@ fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn platform_get_selected_files(patterns: Vec<FilterPattern>,
+fn platform_get_selected_files(filters: Vec<String>,
                                multiple_files: bool,
                                sender: IpcSender<Option<Vec<String>>>) {
     let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
 
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
-        let mut filter = vec![];
-        for p in patterns {
-            let s = "*.".to_string() + &p.0;
-            filter.push(s)
-        }
 
-        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
+        let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+        let filter_opt = if filters.len() > 0 { Some((filter_ref, "")) } else { None };
 
         if multiple_files {
             let files = tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt);

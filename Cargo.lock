@@ -1894,7 +1894,6 @@ version = "0.0.1"
 dependencies = [
  "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "compositing 0.0.1",
  "cookie 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "embedder_traits 0.0.1",

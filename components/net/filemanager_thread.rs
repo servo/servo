@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
@@ -220,7 +220,12 @@ impl FileManagerStore {
                                  multiple_files: bool,
                                  embedder_proxy: EmbedderProxy) -> Option<Vec<String>> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = EmbedderMsg::SelectFiles(patterns, multiple_files, ipc_sender);
+        let mut filters = vec![];
+        for p in patterns {
+            let s = "*.".to_string() + &p.0;
+            filters.push(s)
+        }
+        let msg = EmbedderMsg::SelectFiles(filters, multiple_files, ipc_sender);
 
         embedder_proxy.send(msg);
         match ipc_receiver.recv() {

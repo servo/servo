@@ -14,7 +14,6 @@ ipc-channel = "0.10"
 lazy_static = "1"
 log = "0.4"
 msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
 serde = "1.0"
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits"}

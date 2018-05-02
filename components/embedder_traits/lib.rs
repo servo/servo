@@ -11,7 +11,6 @@ extern crate serde;
 
 extern crate ipc_channel;
 extern crate msg;
-extern crate net_traits;
 extern crate servo_url;
 extern crate style_traits;
 extern crate webrender_api;
@@ -20,7 +19,6 @@ pub mod resources;
 
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
-use net_traits::filemanager_thread::FilterPattern;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::sync::mpsc::{Receiver, Sender};
@@ -108,7 +106,7 @@ pub enum EmbedderMsg {
     /// Open dialog to select bluetooth device.
     GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
+    SelectFiles(Vec<String>, bool, IpcSender<Option<Vec<String>>>),
     /// Request to present an IME to the user when an editable element is focused.
     ShowIME(TopLevelBrowsingContextId, InputMethodType),
     /// Request to hide the IME when the editable element is blurred.
@@ -124,6 +122,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
+            EmbedderMsg::Alert(..) => write!(f, "Alert"),
             EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
             EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
