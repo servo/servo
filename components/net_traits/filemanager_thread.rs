@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use blob_url_store::{BlobBuf, BlobURLStoreError};
+use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
 use std::cmp::{max, min};
@@ -109,11 +110,6 @@ pub struct SelectedFile {
     // https://w3c.github.io/FileAPI/#dfn-type
     pub type_string: String,
 }
-
-/// Filter for file selection;
-/// the `String` content is expected to be extension (e.g, "doc", without the prefixing ".")
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct FilterPattern(pub String);
 
 #[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {

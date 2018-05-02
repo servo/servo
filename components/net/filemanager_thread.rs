@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
-use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
+use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
@@ -220,12 +220,7 @@ impl FileManagerStore {
                                  multiple_files: bool,
                                  embedder_proxy: EmbedderProxy) -> Option<Vec<String>> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let mut filters = vec![];
-        for p in patterns {
-            let s = "*.".to_string() + &p.0;
-            filters.push(s)
-        }
-        let msg = EmbedderMsg::SelectFiles(filters, multiple_files, ipc_sender);
+        let msg = EmbedderMsg::SelectFiles(patterns, multiple_files, ipc_sender);
 
         embedder_proxy.send(msg);
         match ipc_receiver.recv() {

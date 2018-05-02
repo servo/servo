@@ -5,7 +5,7 @@
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
-use servo::embedder_traits::EmbedderMsg;
+use servo::embedder_traits::{EmbedderMsg, FilterPattern};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
@@ -259,8 +259,8 @@ impl Browser {
                 EmbedderMsg::ResizeTo(_browser_id, size) => {
                     self.window.set_inner_size(size);
                 }
-                EmbedderMsg::Alert(_browser_id, message) => {
-                    display_alert_dialog(&message);
+                EmbedderMsg::Alert(_browser_id, message, sender) => {
+                    display_alert_dialog(message.to_owned(), sender);
                 }
                 EmbedderMsg::AllowNavigation(_browser_id, _url, response_chan) => {
                     if let Err(e) = response_chan.send(true) {
@@ -318,15 +318,23 @@ impl Browser {
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn display_alert_dialog(message: &str) {
-    if !opts::get().headless {
-        tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
-    }
+fn display_alert_dialog(message: String, sender: IpcSender<bool>) {
+    thread::Builder::new().name("display alert dialog".to_owned()).spawn(move || {
+        if !opts::get().headless {
+            tinyfiledialogs::message_box_ok("Alert!", &message, MessageBoxIcon::Warning);
+            if let Err(_) = sender.send(true) {
+                // TODO: the equivalent of constellation.handle_send_error.
+            };
+        }
+    }).expect("Thread spawning failed");
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn display_alert_dialog(_message: &str) {
+fn display_alert_dialog(_message: &str, sender: IpcSender<bool>) {
     // tinyfiledialogs not supported on Android
+    if let Err(_) = sender.send(true) {
+        // TODO: the equivalent of constellation.handle_send_error.
+    };
 }
 
 #[cfg(target_os = "linux")]
@@ -363,11 +371,15 @@ fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn platform_get_selected_files(filters: Vec<String>,
+fn platform_get_selected_files(patterns: Vec<FilterPattern>,
                                multiple_files: bool,
                                sender: IpcSender<Option<Vec<String>>>) {
     let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
-
+    let mut filters = vec![];
+    for p in patterns {
+        let s = "*.".to_string() + &p.0;
+        filters.push(s)
+    }
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
 
         let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);

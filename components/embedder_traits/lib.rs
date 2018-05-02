@@ -82,7 +82,7 @@ pub enum EmbedderMsg {
     /// Resize the window to size
     ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
     // Show an alert message.
-    Alert(TopLevelBrowsingContextId, String),
+    Alert(TopLevelBrowsingContextId, String, IpcSender<bool>),
     /// Wether or not to follow a link
     AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -106,7 +106,7 @@ pub enum EmbedderMsg {
     /// Open dialog to select bluetooth device.
     GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    SelectFiles(Vec<String>, bool, IpcSender<Option<Vec<String>>>),
+    SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
     /// Request to present an IME to the user when an editable element is focused.
     ShowIME(TopLevelBrowsingContextId, InputMethodType),
     /// Request to hide the IME when the editable element is blurred.
@@ -141,3 +141,8 @@ impl Debug for EmbedderMsg {
         }
     }
 }
+
+/// Filter for file selection;
+/// the `String` content is expected to be extension (e.g, "doc", without the prefixing ".")
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FilterPattern(pub String);

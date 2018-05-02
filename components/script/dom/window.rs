@@ -529,10 +529,13 @@ impl WindowMethods for Window {
             stdout.flush().unwrap();
             stderr.flush().unwrap();
         }
+        let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let window_proxy = self.window_proxy.get().unwrap();
         let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
         self.send_to_constellation(ScriptMsg::ForwardToEmbedder(EmbedderMsg::Alert(top_level_browsing_context_id,
-                                                                                   s.to_string())));
+                                                                                   s.to_string(),
+                                                                                   sender)));
+        let _alert_dismissed = receiver.recv().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
