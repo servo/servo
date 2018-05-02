@@ -19,9 +19,11 @@ use model::{self, MaybeAuto};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
+use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::{self, Background};
+use style::values::Either;
 use style::values::computed::{Angle, GradientItem};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{NumberOrPercentage, Percentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::background::BackgroundSize;
@@ -784,6 +786,7 @@ pub fn calculate_inner_border_radii(
 pub fn build_image_border_details(
     webrender_image: WebRenderImageInfo,
     border_style_struct: &style_structs::Border,
+    outset: SideOffsets2D<f32>,
 ) -> Option<BorderDetails> {
     let corners = &border_style_struct.border_image_slice.offsets;
     let border_image_repeat = &border_style_struct.border_image_repeat;
@@ -801,12 +804,33 @@ pub fn build_image_border_details(
                 ),
             },
             fill: border_style_struct.border_image_slice.fill,
-            // TODO(gw): Support border-image-outset
-            outset: SideOffsets2D::zero(),
+            outset: outset,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
         }))
     } else {
         None
     }
+}
+
+fn calculate_border_image_outset_side(
+    outset: LengthOrNumber,
+    border_width: Au,
+) -> Au {
+    match outset {
+        Either::First(length) => length.into(),
+        Either::Second(factor) => border_width.scale_by(factor),
+    }
+}
+
+pub fn calculate_border_image_outset(
+    outset: BorderImageOutset,
+    border: SideOffsets2D<Au>,
+) -> SideOffsets2D<Au> {
+    SideOffsets2D::new(
+        calculate_border_image_outset_side(outset.0, border.top),
+        calculate_border_image_outset_side(outset.1, border.right),
+        calculate_border_image_outset_side(outset.2, border.bottom),
+        calculate_border_image_outset_side(outset.3, border.left),
+    )
 }
