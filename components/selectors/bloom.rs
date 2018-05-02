@@ -335,7 +335,7 @@ fn create_and_insert_some_stuff() {
 
     let false_positives = (1001_usize..2000).filter(|i| bf.might_contain(i)).count();
 
-    assert!(false_positives < 150, "{} is not < 150", false_positives); // 15%.
+    assert!(false_positives < 160, "{} is not < 160", false_positives); // 16%.
 
     for i in 0_usize..100 {
         bf.remove(&i);
