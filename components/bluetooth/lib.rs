@@ -21,9 +21,9 @@ use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse, 
 use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;

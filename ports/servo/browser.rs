@@ -5,8 +5,8 @@
 use euclid::{TypedPoint2D, TypedVector2D};
 use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
 use glutin_app::window::{Window, LINE_HEIGHT};
-use servo::embedder_traits::{EmbedderMsg, FilterPattern};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
+use servo::embedder_traits::{EmbedderMsg, FilterPattern};
 use servo::ipc_channel::ipc::IpcSender;
 use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
 use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
@@ -381,7 +381,6 @@ fn platform_get_selected_files(patterns: Vec<FilterPattern>,
         filters.push(s)
     }
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
-
         let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
         let filter_opt = if filters.len() > 0 { Some((filter_ref, "")) } else { None };
 

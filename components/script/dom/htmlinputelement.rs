@@ -44,7 +44,7 @@ use mime_guess;
 use msg::constellation_msg::InputMethodType;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
-use net_traits::filemanager_thread::{FileManagerThreadMsg};
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::ipc;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptToConstellationChan;
