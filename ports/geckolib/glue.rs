@@ -3610,6 +3610,20 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_SetProperty(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_DeclarationBlock_SetPropertyToAnimationValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    animation_value: RawServoAnimationValueBorrowed,
+) -> bool {
+    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+        decls.push(
+            AnimationValue::as_arc(&animation_value).uncompute(),
+            Importance::Normal,
+            DeclarationSource::CssOm,
+        )
+    })
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn Servo_DeclarationBlock_SetPropertyById(
     declarations: RawServoDeclarationBlockBorrowed,
     property: nsCSSPropertyID,
