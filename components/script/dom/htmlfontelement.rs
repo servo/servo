@@ -19,18 +19,19 @@ use html5ever::{LocalName, Prefix};
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLFontElement {
-    htmlelement: HTMLElement,
+pub struct HTMLFontElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLFontElement {
+impl<TH: TypeHolderTrait> HTMLFontElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLFontElement {
+        document: &Document<TH>,
+    ) -> HTMLFontElement<TH> {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -40,9 +41,9 @@ impl HTMLFontElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLFontElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLFontElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
             document,
             HTMLFontElementBinding::Wrap,
@@ -50,7 +51,7 @@ impl HTMLFontElement {
     }
 }
 
-impl HTMLFontElementMethods for HTMLFontElement {
+impl<TH: TypeHolderTrait> HTMLFontElementMethods for HTMLFontElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_getter!(Color, "color");
 
@@ -68,17 +69,17 @@ impl HTMLFontElementMethods for HTMLFontElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     fn SetSize(&self, value: DOMString) {
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         element.set_attribute(&local_name!("size"), parse_size(&value));
     }
 }
 
-impl VirtualMethods for HTMLFontElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLFontElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: &Attr<TH>) -> bool {
         if attr.local_name() == &local_name!("color") {
             return true;
         }
@@ -108,11 +109,11 @@ pub trait HTMLFontElementLayoutHelpers {
     fn get_size(&self) -> Option<u32>;
 }
 
-impl HTMLFontElementLayoutHelpers for LayoutDom<HTMLFontElement> {
+impl<TH: TypeHolderTrait> HTMLFontElementLayoutHelpers for LayoutDom<HTMLFontElement<TH>> {
     #[allow(unsafe_code)]
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            (*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("color"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -122,7 +123,7 @@ impl HTMLFontElementLayoutHelpers for LayoutDom<HTMLFontElement> {
     #[allow(unsafe_code)]
     fn get_face(&self) -> Option<Atom> {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            (*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("face"))
                 .map(AttrValue::as_atom)
                 .cloned()
@@ -132,7 +133,7 @@ impl HTMLFontElementLayoutHelpers for LayoutDom<HTMLFontElement> {
     #[allow(unsafe_code)]
     fn get_size(&self) -> Option<u32> {
         let size = unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            (*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("size"))
         };
         match size {

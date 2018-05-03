@@ -11,17 +11,22 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct WebGLShaderPrecisionFormat {
-    reflector_: Reflector,
+pub struct WebGLShaderPrecisionFormat<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     range_min: i32,
     range_max: i32,
     precision: i32,
 }
 
-impl WebGLShaderPrecisionFormat {
-    fn new_inherited(range_min: i32, range_max: i32, precision: i32) -> WebGLShaderPrecisionFormat {
+impl<TH: TypeHolderTrait> WebGLShaderPrecisionFormat<TH> {
+    fn new_inherited(
+        range_min: i32,
+        range_max: i32,
+        precision: i32,
+    ) -> WebGLShaderPrecisionFormat<TH> {
         WebGLShaderPrecisionFormat {
             reflector_: Reflector::new(),
             range_min: range_min,
@@ -31,11 +36,11 @@ impl WebGLShaderPrecisionFormat {
     }
 
     pub fn new(
-        window: &Window,
+        window: &Window<TH>,
         range_min: i32,
         range_max: i32,
         precision: i32,
-    ) -> DomRoot<WebGLShaderPrecisionFormat> {
+    ) -> DomRoot<WebGLShaderPrecisionFormat<TH>> {
         reflect_dom_object(
             Box::new(WebGLShaderPrecisionFormat::new_inherited(
                 range_min, range_max, precision,
@@ -46,7 +51,7 @@ impl WebGLShaderPrecisionFormat {
     }
 }
 
-impl WebGLShaderPrecisionFormatMethods for WebGLShaderPrecisionFormat {
+impl<TH: TypeHolderTrait> WebGLShaderPrecisionFormatMethods for WebGLShaderPrecisionFormat<TH> {
     // https://www.khronos.org/registry/webgl/specs/1.0/#5.12.1
     fn RangeMin(&self) -> i32 {
         self.range_min

@@ -5,7 +5,6 @@
 //! The `MozMap` (open-ended dictionary) type.
 
 use dom::bindings::conversions::jsid_to_string;
-use dom::bindings::error::report_pending_exception;
 use dom::bindings::str::DOMString;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::JSContext;
@@ -76,7 +75,7 @@ where
             // TODO: can GetPropertyKeys fail?
             // (it does so if the object has duplicate keys)
             // https://github.com/servo/servo/issues/21462
-            report_pending_exception(cx, false);
+            // TODO: (retep007)report_pending_exception(cx, false);
             return Ok(ConversionResult::Failure(
                 "Getting MozMap value property keys failed".into(),
             ));

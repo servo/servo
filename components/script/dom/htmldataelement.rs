@@ -11,18 +11,19 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLDataElement {
-    htmlelement: HTMLElement,
+pub struct HTMLDataElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLDataElement {
+impl<TH: TypeHolderTrait> HTMLDataElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLDataElement {
+        document: &Document<TH>,
+    ) -> HTMLDataElement<TH> {
         HTMLDataElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -32,9 +33,9 @@ impl HTMLDataElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLDataElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLDataElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLDataElement::new_inherited(local_name, prefix, document)),
             document,
             HTMLDataElementBinding::Wrap,
@@ -42,7 +43,7 @@ impl HTMLDataElement {
     }
 }
 
-impl HTMLDataElementMethods for HTMLDataElement {
+impl<TH: TypeHolderTrait> HTMLDataElementMethods for HTMLDataElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-data-value
     make_getter!(Value, "value");
 

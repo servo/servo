@@ -14,19 +14,20 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::NamespaceRule;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSNamespaceRule {
-    cssrule: CSSRule,
+pub struct CSSNamespaceRule<TH: TypeHolderTrait> {
+    cssrule: CSSRule<TH>,
     #[ignore_malloc_size_of = "Arc"]
     namespacerule: Arc<Locked<NamespaceRule>>,
 }
 
-impl CSSNamespaceRule {
+impl<TH: TypeHolderTrait> CSSNamespaceRule<TH> {
     fn new_inherited(
-        parent_stylesheet: &CSSStyleSheet,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         namespacerule: Arc<Locked<NamespaceRule>>,
-    ) -> CSSNamespaceRule {
+    ) -> Self {
         CSSNamespaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             namespacerule: namespacerule,
@@ -35,10 +36,10 @@ impl CSSNamespaceRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        parent_stylesheet: &CSSStyleSheet,
+        window: &Window<TH>,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         namespacerule: Arc<Locked<NamespaceRule>>,
-    ) -> DomRoot<CSSNamespaceRule> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(CSSNamespaceRule::new_inherited(
                 parent_stylesheet,
@@ -50,7 +51,7 @@ impl CSSNamespaceRule {
     }
 }
 
-impl CSSNamespaceRuleMethods for CSSNamespaceRule {
+impl<TH: TypeHolderTrait> CSSNamespaceRuleMethods for CSSNamespaceRule<TH> {
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix
     fn Prefix(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
@@ -69,7 +70,7 @@ impl CSSNamespaceRuleMethods for CSSNamespaceRule {
     }
 }
 
-impl SpecificCSSRule for CSSNamespaceRule {
+impl<TH: TypeHolderTrait> SpecificCSSRule for CSSNamespaceRule<TH> {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::NAMESPACE_RULE

@@ -15,22 +15,23 @@ use dom::node::Node;
 use dom::nodelist::{NodeList, NodeListType};
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct RadioNodeList {
-    node_list: NodeList,
+pub struct RadioNodeList<TH: TypeHolderTrait> {
+    node_list: NodeList<TH>,
 }
 
-impl RadioNodeList {
+impl<TH: TypeHolderTrait> RadioNodeList<TH> {
     #[allow(unrooted_must_root)]
-    fn new_inherited(list_type: NodeListType) -> RadioNodeList {
+    fn new_inherited(list_type: NodeListType<TH>) -> RadioNodeList<TH> {
         RadioNodeList {
             node_list: NodeList::new_inherited(list_type),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
+    pub fn new(window: &Window<TH>, list_type: NodeListType<TH>) -> DomRoot<RadioNodeList<TH>> {
         reflect_dom_object(
             Box::new(RadioNodeList::new_inherited(list_type)),
             window,
@@ -38,9 +39,9 @@ impl RadioNodeList {
         )
     }
 
-    pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<RadioNodeList>
+    pub fn new_simple_list<T>(window: &Window<TH>, iter: T) -> DomRoot<RadioNodeList<TH>>
     where
-        T: Iterator<Item = DomRoot<Node>>,
+        T: Iterator<Item = DomRoot<Node<TH>>>,
     {
         RadioNodeList::new(
             window,
@@ -56,12 +57,12 @@ impl RadioNodeList {
     }
 }
 
-impl RadioNodeListMethods for RadioNodeList {
+impl<TH: TypeHolderTrait> RadioNodeListMethods<TH> for RadioNodeList<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn Value(&self) -> DOMString {
-        self.upcast::<NodeList>().as_simple_list().iter().filter_map(|node| {
+        self.upcast::<NodeList<TH>>().as_simple_list().iter().filter_map(|node| {
             // Step 1
-            node.downcast::<HTMLInputElement>().and_then(|input| {
+            node.downcast::<HTMLInputElement<TH>>().and_then(|input| {
                 if input.input_type() == InputType::Radio && input.Checked() {
                     // Step 3-4
                     let value = input.Value();
@@ -77,9 +78,9 @@ impl RadioNodeListMethods for RadioNodeList {
 
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn SetValue(&self, value: DOMString) {
-        for node in self.upcast::<NodeList>().as_simple_list().iter() {
+        for node in self.upcast::<NodeList<TH>>().as_simple_list().iter() {
             // Step 1
-            if let Some(input) = node.downcast::<HTMLInputElement>() {
+            if let Some(input) = node.downcast::<HTMLInputElement<TH>>() {
                 match input.input_type() {
                     InputType::Radio if value == DOMString::from("on") => {
                         // Step 2
@@ -107,7 +108,7 @@ impl RadioNodeListMethods for RadioNodeList {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node<TH>>> {
         self.node_list.IndexedGetter(index)
     }
 }

@@ -11,18 +11,19 @@ use dom::node::Node;
 use dom::nodelist::NodeList;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLMeterElement {
-    htmlelement: HTMLElement,
+pub struct HTMLMeterElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLMeterElement {
+impl<TH: TypeHolderTrait> HTMLMeterElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLMeterElement {
+        document: &Document<TH>,
+    ) -> HTMLMeterElement<TH> {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -32,9 +33,9 @@ impl HTMLMeterElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLMeterElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLMeterElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLMeterElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -44,9 +45,9 @@ impl HTMLMeterElement {
     }
 }
 
-impl HTMLMeterElementMethods for HTMLMeterElement {
+impl<TH: TypeHolderTrait> HTMLMeterElementMethods<TH> for HTMLMeterElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
+    fn Labels(&self) -> DomRoot<NodeList<TH>> {
+        self.upcast::<HTMLElement<TH>>().labels()
     }
 }

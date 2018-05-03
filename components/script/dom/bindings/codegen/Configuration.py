@@ -24,6 +24,7 @@ class Configuration:
         self.descriptors = []
         self.interfaces = {}
         self.maxProtoChainLength = 0
+        self.typeHolded = glbl['TypeHolded']
         for thing in parseData:
             # Servo does not support external interfaces.
             if isinstance(thing, IDLExternalInterface):
@@ -138,6 +139,9 @@ class Configuration:
         """
         return DescriptorProvider(self)
 
+    def getTypeHolded(self):
+        return self.typeHolded
+
 
 class NoSuchDescriptorError(TypeError):
     def __init__(self, str):
@@ -182,8 +186,11 @@ class Descriptor(DescriptorProvider):
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
-        nativeTypeDefault = ifaceName
-
+        self.isGeneric = False
+        self.typeHolded = False
+        typeName = desc.get('nativeType', ifaceName)
+        genericTypeName = typeName
+        self.concreteWithDisambiguator = typeName
         # For generated iterator interfaces for other iterable interfaces, we
         # just use IterableIterator as the native type, templated on the
         # nativeType of the iterable interface. That way we can have a
@@ -192,35 +199,45 @@ class Descriptor(DescriptorProvider):
         if self.interface.isIteratorInterface():
             itrName = self.interface.iterableInterface.identifier.name
             itrDesc = self.getDescriptor(itrName)
-            nativeTypeDefault = iteratorNativeType(itrDesc)
-
-        typeName = desc.get('nativeType', nativeTypeDefault)
-
+            self.isGeneric = itrDesc.isGeneric
+            self.typeHolded = itrDesc.typeHolded
+            typeName = desc.get('nativeType', iteratorNativeType(itrDesc))
+            genericTypeName = typeName
+            self.concreteWithDisambiguator = typeName
+        else:
+            genericTypeName = '%s<TH>' % typeName
+            self.concreteWithDisambiguator = '%s::<TH>' % typeName
+            self.isGeneric = True
+        if typeName in config.getTypeHolded():
+            genericTypeName = 'TH::%s' % typeName
+            self.concreteWithDisambiguator = 'TH::%s' % typeName
+            self.isGeneric = True
+            self.typeHolded = True
         spiderMonkeyInterface = desc.get('spiderMonkeyInterface', False)
 
         # Callback and SpiderMonkey types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
         if spiderMonkeyInterface:
-            self.returnType = 'Rc<%s>' % typeName
-            self.argumentType = '&%s' % typeName
+            self.returnType = 'Rc<%s>' % genericTypeName
+            self.argumentType = '&%s' % genericTypeName
             self.nativeType = typeName
             pathDefault = 'dom::types::%s' % typeName
         elif self.interface.isCallback():
             ty = 'dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
-            self.returnType = "Rc<%s>" % ty
+            self.returnType = "Rc<%s>" % genericTypeName
             self.argumentType = "???"
             self.nativeType = ty
         else:
-            self.returnType = "DomRoot<%s>" % typeName
-            self.argumentType = "&%s" % typeName
-            self.nativeType = "*const %s" % typeName
+            self.returnType = "DomRoot<%s>" % genericTypeName
+            self.argumentType = "&%s" % genericTypeName
+            self.nativeType = "*const %s" % genericTypeName
             if self.interface.isIteratorInterface():
                 pathDefault = 'dom::bindings::iterable::IterableIterator'
             else:
                 pathDefault = 'dom::types::%s' % MakeNativeName(typeName)
 
-        self.concreteType = typeName
+        self.concreteType = genericTypeName
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
         self.bindingPath = 'dom::bindings::codegen::Bindings::%s' % ('::'.join([ifaceName + 'Binding'] * 2))
@@ -481,4 +498,4 @@ def iteratorNativeType(descriptor, infer=False):
     assert descriptor.interface.isIterable()
     iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
     assert iterableDecl.isPairIterator()
-    return "IterableIterator%s" % ("" if infer else '<%s>' % descriptor.interface.identifier.name)
+    return "IterableIterator%s" % ("" if infer else '<%s>' % descriptor.concreteType)

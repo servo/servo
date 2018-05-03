@@ -25,6 +25,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use std::marker::PhantomData;
 use std::mem;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
@@ -36,6 +37,7 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
 use task_source::TaskSourceName;
+use typeholder::TypeHolderTrait;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -57,32 +59,33 @@ pub trait StylesheetOwner {
     fn set_origin_clean(&self, origin_clean: bool);
 }
 
-pub enum StylesheetContextSource {
+pub enum StylesheetContextSource<TH: TypeHolderTrait> {
     // NB: `media` is just an option so we avoid cloning it.
     LinkElement { media: Option<MediaList> },
     Import(Arc<Stylesheet>),
+    _p(PhantomData<TH>),
 }
 
 /// The context required for asynchronously loading an external stylesheet.
-pub struct StylesheetContext {
+pub struct StylesheetContext<TH: TypeHolderTrait> {
     /// The element that initiated the request.
-    elem: Trusted<HTMLElement>,
-    source: StylesheetContextSource,
+    elem: Trusted<HTMLElement<TH>>,
+    source: StylesheetContextSource<TH>,
     url: ServoUrl,
     metadata: Option<Metadata>,
     /// The response body received to date.
     data: Vec<u8>,
     /// The node document for elem when the load was initiated.
-    document: Trusted<Document>,
+    document: Trusted<Document<TH>>,
     origin_clean: bool,
     /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
 }
 
-impl PreInvoke for StylesheetContext {}
+impl<TH: TypeHolderTrait> PreInvoke for StylesheetContext<TH> {}
 
-impl FetchResponseListener for StylesheetContext {
+impl<TH: TypeHolderTrait> FetchResponseListener for StylesheetContext<TH> {
     fn process_request_body(&mut self) {}
 
     fn process_request_eof(&mut self) {}
@@ -140,7 +143,7 @@ impl FetchResponseListener for StylesheetContext {
             let loader = StylesheetLoader::for_element(&elem);
             match self.source {
                 StylesheetContextSource::LinkElement { ref mut media } => {
-                    let link = elem.downcast::<HTMLLinkElement>().unwrap();
+                    let link = elem.downcast::<HTMLLinkElement<TH>>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
                     let is_stylesheet_load_applicable = self
@@ -179,6 +182,7 @@ impl FetchResponseListener for StylesheetContext {
                         win.css_error_reporter(),
                     );
                 },
+                StylesheetContextSource::_p(_) => unimplemented!(),
             }
 
             document.invalidate_stylesheets();
@@ -189,7 +193,7 @@ impl FetchResponseListener for StylesheetContext {
         }
 
         let owner = elem
-            .upcast::<Element>()
+            .upcast::<Element<TH>>()
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
         owner.set_origin_clean(self.origin_clean);
@@ -205,25 +209,25 @@ impl FetchResponseListener for StylesheetContext {
             } else {
                 atom!("load")
             };
-            elem.upcast::<EventTarget>().fire_event(event);
+            elem.upcast::<EventTarget<TH>>().fire_event(event);
         }
     }
 }
 
-pub struct StylesheetLoader<'a> {
-    elem: &'a HTMLElement,
+pub struct StylesheetLoader<'a, TH: TypeHolderTrait> {
+    elem: &'a HTMLElement<TH>,
 }
 
-impl<'a> StylesheetLoader<'a> {
-    pub fn for_element(element: &'a HTMLElement) -> Self {
+impl<'a, TH: TypeHolderTrait> StylesheetLoader<'a, TH> {
+    pub fn for_element(element: &'a HTMLElement<TH>) -> Self {
         StylesheetLoader { elem: element }
     }
 }
 
-impl<'a> StylesheetLoader<'a> {
+impl<'a, TH: TypeHolderTrait> StylesheetLoader<'a, TH> {
     pub fn load(
         &self,
-        source: StylesheetContextSource,
+        source: StylesheetContextSource<TH>,
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
         integrity_metadata: String,
@@ -231,7 +235,7 @@ impl<'a> StylesheetLoader<'a> {
         let document = document_from_node(self.elem);
         let gen = self
             .elem
-            .downcast::<HTMLLinkElement>()
+            .downcast::<HTMLLinkElement<TH>>()
             .map(HTMLLinkElement::get_request_generation_id);
         let context = ::std::sync::Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
@@ -259,7 +263,7 @@ impl<'a> StylesheetLoader<'a> {
 
         let owner = self
             .elem
-            .upcast::<Element>()
+            .upcast::<Element<TH>>()
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
         let referrer_policy = owner
@@ -297,7 +301,7 @@ impl<'a> StylesheetLoader<'a> {
     }
 }
 
-impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
+impl<'a, TH: TypeHolderTrait> StyleStylesheetLoader for StylesheetLoader<'a, TH> {
     /// Request a stylesheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_stylesheet(

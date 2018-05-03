@@ -9,11 +9,13 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use std::marker::PhantomData;
+use typeholder::TypeHolderTrait;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
 #[dom_struct]
-pub struct BluetoothCharacteristicProperties {
-    reflector_: Reflector,
+pub struct BluetoothCharacteristicProperties<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     broadcast: bool,
     read: bool,
     write_without_response: bool,
@@ -23,9 +25,10 @@ pub struct BluetoothCharacteristicProperties {
     authenticated_signed_writes: bool,
     reliable_write: bool,
     writable_auxiliaries: bool,
+    _p: PhantomData<TH>,
 }
 
-impl BluetoothCharacteristicProperties {
+impl<TH: TypeHolderTrait> BluetoothCharacteristicProperties<TH> {
     pub fn new_inherited(
         broadcast: bool,
         read: bool,
@@ -36,7 +39,7 @@ impl BluetoothCharacteristicProperties {
         authenticated_signed_writes: bool,
         reliable_write: bool,
         writable_auxiliaries: bool,
-    ) -> BluetoothCharacteristicProperties {
+    ) -> BluetoothCharacteristicProperties<TH> {
         BluetoothCharacteristicProperties {
             reflector_: Reflector::new(),
             broadcast: broadcast,
@@ -48,11 +51,12 @@ impl BluetoothCharacteristicProperties {
             authenticated_signed_writes: authenticated_signed_writes,
             reliable_write: reliable_write,
             writable_auxiliaries: writable_auxiliaries,
+            _p: Default::default(),
         }
     }
 
     pub fn new(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         broadcast: bool,
         read: bool,
         writeWithoutResponse: bool,
@@ -62,7 +66,7 @@ impl BluetoothCharacteristicProperties {
         authenticatedSignedWrites: bool,
         reliableWrite: bool,
         writableAuxiliaries: bool,
-    ) -> DomRoot<BluetoothCharacteristicProperties> {
+    ) -> DomRoot<BluetoothCharacteristicProperties<TH>> {
         reflect_dom_object(
             Box::new(BluetoothCharacteristicProperties::new_inherited(
                 broadcast,
@@ -81,7 +85,9 @@ impl BluetoothCharacteristicProperties {
     }
 }
 
-impl BluetoothCharacteristicPropertiesMethods for BluetoothCharacteristicProperties {
+impl<TH: TypeHolderTrait> BluetoothCharacteristicPropertiesMethods
+    for BluetoothCharacteristicProperties<TH>
+{
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-broadcast
     fn Broadcast(&self) -> bool {
         self.broadcast

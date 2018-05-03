@@ -17,22 +17,25 @@ use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeDamage, window_from_node};
 use script_traits::ScriptToConstellationChan;
 use textinput::{SelectionDirection, SelectionState, TextInput};
+use typeholder::TypeHolderTrait;
 
-pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
+pub trait TextControlElement<TH: TypeHolderTrait>:
+    DerivedFrom<EventTarget<TH>> + DerivedFrom<Node<TH>>
+{
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
 }
 
-pub struct TextControlSelection<'a, E: TextControlElement> {
+pub struct TextControlSelection<'a, E: TextControlElement<TH>, TH: TypeHolderTrait> {
     element: &'a E,
-    textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan, TH>>,
 }
 
-impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
+impl<'a, E: TextControlElement<TH>, TH: TypeHolderTrait> TextControlSelection<'a, E, TH> {
     pub fn new(
         element: &'a E,
-        textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+        textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan, TH>>,
     ) -> Self {
         TextControlSelection { element, textinput }
     }
@@ -298,7 +301,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         if textinput.selection_state() != original_selection_state {
             let window = window_from_node(self.element);
             window.user_interaction_task_source().queue_event(
-                &self.element.upcast::<EventTarget>(),
+                &self.element.upcast::<EventTarget<TH>>(),
                 atom!("select"),
                 EventBubbles::Bubbles,
                 EventCancelable::NotCancelable,
@@ -307,7 +310,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         }
 
         self.element
-            .upcast::<Node>()
+            .upcast::<Node<TH>>()
             .dirty(NodeDamage::OtherNodeDamage);
     }
 }

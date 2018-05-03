@@ -63,9 +63,9 @@
 //! use dom::htmlelement::HTMLElement;
 //! use dom::htmlinputelement::HTMLInputElement;
 //!
-//! if let Some(elem) = node.downcast::<Element> {
-//!     if elem.is::<HTMLInputElement>() {
-//!         return elem.upcast::<HTMLElement>();
+//! if let Some(elem) = node.downcast::<Element<TH>> {
+//!     if elem.is::<HTMLInputElement<TH>>() {
+//!         return elem.upcast::<HTMLElement<TH>>();
 //!     }
 //! }
 //! ```
@@ -166,9 +166,9 @@
 //! # use script::dom::element::Element;
 //! # use script::dom::node::Node;
 //! # use script::dom::htmlelement::HTMLElement;
-//! fn f(element: &Element) {
-//!     let base = element.upcast::<Node>();
-//!     let derived = element.downcast::<HTMLElement>().unwrap();
+//! fn f(element: &Element<TH>) {
+//!     let base = element.upcast::<Node<TH>>();
+//!     let derived = element.downcast::<HTMLElement<TH>>().unwrap();
 //! }
 //! ```
 //!

@@ -11,17 +11,18 @@ use dom::performanceentry::PerformanceEntry;
 use dom_struct::dom_struct;
 use metrics::ToMs;
 use script_traits::ProgressiveWebMetricType;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct PerformancePaintTiming {
-    entry: PerformanceEntry,
+pub struct PerformancePaintTiming<TH: TypeHolderTrait> {
+    entry: PerformanceEntry<TH>,
 }
 
-impl PerformancePaintTiming {
+impl<TH: TypeHolderTrait> PerformancePaintTiming<TH> {
     fn new_inherited(
         metric_type: ProgressiveWebMetricType,
         start_time: u64,
-    ) -> PerformancePaintTiming {
+    ) -> PerformancePaintTiming<TH> {
         let name = match metric_type {
             ProgressiveWebMetricType::FirstPaint => DOMString::from("first-paint"),
             ProgressiveWebMetricType::FirstContentfulPaint => {
@@ -41,10 +42,10 @@ impl PerformancePaintTiming {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         metric_type: ProgressiveWebMetricType,
         start_time: u64,
-    ) -> DomRoot<PerformancePaintTiming> {
+    ) -> DomRoot<PerformancePaintTiming<TH>> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
         reflect_dom_object(Box::new(entry), global, PerformancePaintTimingBinding::Wrap)
     }

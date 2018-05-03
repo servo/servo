@@ -16,22 +16,27 @@ use dom::node::Node;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct NodeIterator {
-    reflector_: Reflector,
-    root_node: Dom<Node>,
+pub struct NodeIterator<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    root_node: Dom<Node<TH>>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
-    reference_node: MutDom<Node>,
+    reference_node: MutDom<Node<TH>>,
     pointer_before_reference_node: Cell<bool>,
     what_to_show: u32,
     #[ignore_malloc_size_of = "Can't measure due to #6870"]
-    filter: Filter,
+    filter: Filter<TH>,
     active: Cell<bool>,
 }
 
-impl NodeIterator {
-    fn new_inherited(root_node: &Node, what_to_show: u32, filter: Filter) -> NodeIterator {
+impl<TH: TypeHolderTrait> NodeIterator<TH> {
+    fn new_inherited(
+        root_node: &Node<TH>,
+        what_to_show: u32,
+        filter: Filter<TH>,
+    ) -> NodeIterator<TH> {
         NodeIterator {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
@@ -44,11 +49,11 @@ impl NodeIterator {
     }
 
     pub fn new_with_filter(
-        document: &Document,
-        root_node: &Node,
+        document: &Document<TH>,
+        root_node: &Node<TH>,
         what_to_show: u32,
-        filter: Filter,
-    ) -> DomRoot<NodeIterator> {
+        filter: Filter<TH>,
+    ) -> DomRoot<NodeIterator<TH>> {
         reflect_dom_object(
             Box::new(NodeIterator::new_inherited(root_node, what_to_show, filter)),
             document.window(),
@@ -57,11 +62,11 @@ impl NodeIterator {
     }
 
     pub fn new(
-        document: &Document,
-        root_node: &Node,
+        document: &Document<TH>,
+        root_node: &Node<TH>,
         what_to_show: u32,
-        node_filter: Option<Rc<NodeFilter>>,
-    ) -> DomRoot<NodeIterator> {
+        node_filter: Option<Rc<NodeFilter<TH>>>,
+    ) -> DomRoot<NodeIterator<TH>> {
         let filter = match node_filter {
             None => Filter::None,
             Some(jsfilter) => Filter::Callback(jsfilter),
@@ -70,9 +75,9 @@ impl NodeIterator {
     }
 }
 
-impl NodeIteratorMethods for NodeIterator {
+impl<TH: TypeHolderTrait> NodeIteratorMethods<TH> for NodeIterator<TH> {
     // https://dom.spec.whatwg.org/#dom-nodeiterator-root
-    fn Root(&self) -> DomRoot<Node> {
+    fn Root(&self) -> DomRoot<Node<TH>> {
         DomRoot::from_ref(&*self.root_node)
     }
 
@@ -82,7 +87,7 @@ impl NodeIteratorMethods for NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-filter
-    fn GetFilter(&self) -> Option<Rc<NodeFilter>> {
+    fn GetFilter(&self) -> Option<Rc<NodeFilter<TH>>> {
         match self.filter {
             Filter::None => None,
             Filter::Callback(ref nf) => Some((*nf).clone()),
@@ -90,7 +95,7 @@ impl NodeIteratorMethods for NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-referencenode
-    fn ReferenceNode(&self) -> DomRoot<Node> {
+    fn ReferenceNode(&self) -> DomRoot<Node<TH>> {
         self.reference_node.get()
     }
 
@@ -100,7 +105,7 @@ impl NodeIteratorMethods for NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-nextnode
-    fn NextNode(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn NextNode(&self) -> Fallible<Option<DomRoot<Node<TH>>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get();
@@ -144,7 +149,7 @@ impl NodeIteratorMethods for NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
-    fn PreviousNode(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn PreviousNode(&self) -> Fallible<Option<DomRoot<Node<TH>>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get();
@@ -193,9 +198,9 @@ impl NodeIteratorMethods for NodeIterator {
     }
 }
 
-impl NodeIterator {
+impl<TH: TypeHolderTrait> NodeIterator<TH> {
     // https://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(&self, node: &Node) -> Fallible<u16> {
+    fn accept_node(&self, node: &Node<TH>) -> Fallible<u16> {
         // Step 1.
         if self.active.get() {
             return Err(Error::InvalidState);
@@ -225,7 +230,7 @@ impl NodeIterator {
 }
 
 #[derive(JSTraceable)]
-pub enum Filter {
+pub enum Filter<TH: TypeHolderTrait> {
     None,
-    Callback(Rc<NodeFilter>),
+    Callback(Rc<NodeFilter<TH>>),
 }

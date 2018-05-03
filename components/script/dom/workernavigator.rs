@@ -11,23 +11,24 @@ use dom::navigatorinfo;
 use dom::permissions::Permissions;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
-pub struct WorkerNavigator {
-    reflector_: Reflector,
-    permissions: MutNullableDom<Permissions>,
+pub struct WorkerNavigator<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    permissions: MutNullableDom<Permissions<TH>>,
 }
 
-impl WorkerNavigator {
-    fn new_inherited() -> WorkerNavigator {
+impl<TH: TypeHolderTrait> WorkerNavigator<TH> {
+    fn new_inherited() -> WorkerNavigator<TH> {
         WorkerNavigator {
             reflector_: Reflector::new(),
             permissions: Default::default(),
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
+    pub fn new(global: &WorkerGlobalScope<TH>) -> DomRoot<WorkerNavigator<TH>> {
         reflect_dom_object(
             Box::new(WorkerNavigator::new_inherited()),
             global,
@@ -36,7 +37,7 @@ impl WorkerNavigator {
     }
 }
 
-impl WorkerNavigatorMethods for WorkerNavigator {
+impl<TH: TypeHolderTrait> WorkerNavigatorMethods<TH> for WorkerNavigator<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-product
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()
@@ -78,7 +79,7 @@ impl WorkerNavigatorMethods for WorkerNavigator {
     }
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
-    fn Permissions(&self) -> DomRoot<Permissions> {
+    fn Permissions(&self) -> DomRoot<Permissions<TH>> {
         self.permissions
             .or_init(|| Permissions::new(&self.global()))
     }

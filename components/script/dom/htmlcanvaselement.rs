@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+#![allow(unsafe_code)]
 use base64;
 use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
@@ -42,30 +42,31 @@ use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;
 use std::cell::Ref;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use typeholder::TypeHolderTrait;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum CanvasContext {
-    Context2d(Dom<CanvasRenderingContext2D>),
-    WebGL(Dom<WebGLRenderingContext>),
-    WebGL2(Dom<WebGL2RenderingContext>),
+pub enum CanvasContext<TH: TypeHolderTrait> {
+    Context2d(Dom<CanvasRenderingContext2D<TH>>),
+    WebGL(Dom<WebGLRenderingContext<TH>>),
+    WebGL2(Dom<WebGL2RenderingContext<TH>>),
 }
 
 #[dom_struct]
-pub struct HTMLCanvasElement {
-    htmlelement: HTMLElement,
-    context: DomRefCell<Option<CanvasContext>>,
+pub struct HTMLCanvasElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
+    context: DomRefCell<Option<CanvasContext<TH>>>,
 }
 
-impl HTMLCanvasElement {
+impl<TH: TypeHolderTrait> HTMLCanvasElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLCanvasElement {
+        document: &Document<TH>,
+    ) -> HTMLCanvasElement<TH> {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             context: DomRefCell::new(None),
@@ -76,9 +77,9 @@ impl HTMLCanvasElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLCanvasElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLCanvasElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLCanvasElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -117,7 +118,7 @@ pub trait LayoutHTMLCanvasElementHelpers {
     fn get_canvas_id_for_layout(&self) -> CanvasId;
 }
 
-impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
+impl<TH: TypeHolderTrait> LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement<TH>> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLCanvasData {
         unsafe {
@@ -136,10 +137,10 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
             };
 
             let width_attr = canvas
-                .upcast::<Element>()
+                .upcast::<Element<TH>>()
                 .get_attr_for_layout(&ns!(), &local_name!("width"));
             let height_attr = canvas
-                .upcast::<Element>()
+                .upcast::<Element<TH>>()
                 .get_attr_for_layout(&ns!(), &local_name!("height"));
             HTMLCanvasData {
                 source: source,
@@ -153,7 +154,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_uint_px_dimension)
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -163,7 +164,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("height"))
                 .map(AttrValue::as_uint_px_dimension)
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -184,21 +185,21 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
     }
 }
 
-impl HTMLCanvasElement {
-    pub fn context(&self) -> Option<Ref<CanvasContext>> {
+impl<TH: TypeHolderTrait> HTMLCanvasElement<TH> {
+    pub fn context(&self) -> Option<Ref<CanvasContext<TH>>> {
         ref_filter_map::ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
-    }
-
-    fn get_or_init_2d_context(&self) -> Option<DomRoot<CanvasRenderingContext2D>> {
+}
+    
+    pub fn get_or_init_2d_context(&self) -> Option<DomRoot<CanvasRenderingContext2D<TH>>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 CanvasContext::Context2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
-                _ => None,
+            _ => None,
             };
         }
         let window = window_from_node(self);
         let size = self.get_size();
-        let context = CanvasRenderingContext2D::new(window.upcast::<GlobalScope>(), self, size);
+        let context = CanvasRenderingContext2D::new(window.upcast::<GlobalScope<TH>>(), self, size);
         *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -208,7 +209,7 @@ impl HTMLCanvasElement {
         &self,
         cx: *mut JSContext,
         options: HandleValue,
-    ) -> Option<DomRoot<WebGLRenderingContext>> {
+    ) -> Option<DomRoot<WebGLRenderingContext<TH>>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 CanvasContext::WebGL(ref ctx) => Some(DomRoot::from_ref(ctx)),
@@ -219,6 +220,7 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
         let context = WebGLRenderingContext::new(&window, self, WebGLVersion::WebGL1, size, attrs)?;
+
         *self.context.borrow_mut() = Some(CanvasContext::WebGL(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -228,7 +230,7 @@ impl HTMLCanvasElement {
         &self,
         cx: *mut JSContext,
         options: HandleValue,
-    ) -> Option<DomRoot<WebGL2RenderingContext>> {
+    ) -> Option<DomRoot<WebGL2RenderingContext<TH>>> {
         if !PREFS.is_webgl2_enabled() {
             return None;
         }
@@ -247,7 +249,7 @@ impl HTMLCanvasElement {
     }
 
     /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.
-    pub fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
+    pub fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext<TH>>> {
         match *self.context.borrow() {
             Some(CanvasContext::WebGL(ref context)) => Some(DomRoot::from_ref(&*context)),
             Some(CanvasContext::WebGL2(ref context)) => Some(context.base_context()),
@@ -256,14 +258,16 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn get_gl_attributes(
+    fn get_gl_attributes(
         cx: *mut JSContext,
         options: HandleValue,
     ) -> Option<GLContextAttributes> {
-        match WebGLContextAttributes::new(cx, options) {
+        match unsafe{ WebGLContextAttributes::new(cx, options) } {
             Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
             Ok(ConversionResult::Failure(ref error)) => {
-                throw_type_error(cx, &error);
+                unsafe {
+                    throw_type_error(cx, &error);
+                }
                 None
             },
             _ => {
@@ -304,14 +308,14 @@ impl HTMLCanvasElement {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
                 return None;
             },
-            None => vec![0; size.height as usize * size.width as usize * 4]
+            None => vec![0; size.height as usize * size.width as usize * 4],
         };
 
         Some((data, size))
     }
 }
 
-impl HTMLCanvasElementMethods for HTMLCanvasElement {
+impl<TH: TypeHolderTrait> HTMLCanvasElementMethods<TH> for HTMLCanvasElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
@@ -325,13 +329,12 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
-    #[allow(unsafe_code)]
     unsafe fn GetContext(
         &self,
         cx: *mut JSContext,
         id: DOMString,
         options: HandleValue,
-    ) -> Option<RenderingContext> {
+    ) -> Option<RenderingContext<TH>> {
         match &*id {
             "2d" => self
                 .get_or_init_2d_context()
@@ -347,13 +350,12 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
-    #[allow(unsafe_code)]
     unsafe fn ToDataURL(
         &self,
         _context: *mut JSContext,
         _mime_type: Option<DOMString>,
         _quality: HandleValue,
-    ) -> Fallible<USVString> {
+    ) -> Fallible<USVString>{
         // Step 1.
         if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
             if !context.origin_is_clean() {
@@ -383,11 +385,12 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                     None => return Ok(USVString("data:,".into())),
                 }
             },
-            Some(CanvasContext::WebGL2(ref context)) => {
-                match context.base_context().get_image_data(self.Width(), self.Height()) {
-                    Some(data) => data,
-                    None => return Ok(USVString("data:,".into())),
-                }
+            Some(CanvasContext::WebGL2(ref context)) => match context
+                .base_context()
+                .get_image_data(self.Width(), self.Height())
+            {
+                Some(data) => data,
+                None => return Ok("data:,".into()),
             },
             None => {
                 // Each pixel is fully-transparent black.
@@ -408,12 +411,12 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     }
 }
 
-impl VirtualMethods for HTMLCanvasElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLCanvasElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => self.recreate_contexts(),
@@ -451,8 +454,12 @@ pub mod utils {
     use net_traits::image_cache::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
     use net_traits::image_cache::CanRequestImages;
     use servo_url::ServoUrl;
+    use typeholder::TypeHolderTrait;
 
-    pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
+    pub fn request_image_from_cache<TH: TypeHolderTrait>(
+        window: &Window<TH>,
+        url: ServoUrl,
+    ) -> ImageResponse {
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
             url.into(),

@@ -22,16 +22,17 @@ use servo_media::audio::panner_node::PannerNodeMessage;
 use servo_media::audio::param::{ParamDir, ParamType};
 use std::cell::Cell;
 use std::f32;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct PannerNode {
-    node: AudioNode,
-    position_x: Dom<AudioParam>,
-    position_y: Dom<AudioParam>,
-    position_z: Dom<AudioParam>,
-    orientation_x: Dom<AudioParam>,
-    orientation_y: Dom<AudioParam>,
-    orientation_z: Dom<AudioParam>,
+pub struct PannerNode<TH: TypeHolderTrait> {
+    node: AudioNode<TH>,
+    position_x: Dom<AudioParam<TH>>,
+    position_y: Dom<AudioParam<TH>>,
+    position_z: Dom<AudioParam<TH>>,
+    orientation_x: Dom<AudioParam<TH>>,
+    orientation_y: Dom<AudioParam<TH>>,
+    orientation_z: Dom<AudioParam<TH>>,
     #[ignore_malloc_size_of = "servo_media"]
     panning_model: Cell<PanningModel>,
     #[ignore_malloc_size_of = "servo_media"]
@@ -44,13 +45,13 @@ pub struct PannerNode {
     cone_outer_gain: Cell<f64>,
 }
 
-impl PannerNode {
+impl<TH: TypeHolderTrait> PannerNode<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &PannerOptions,
-    ) -> Fallible<PannerNode> {
+    ) -> Fallible<PannerNode<TH>> {
         let node_options = options.parent.unwrap_or(
             2,
             ChannelCountMode::Clamped_max,
@@ -164,10 +165,10 @@ impl PannerNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &PannerOptions,
-    ) -> Fallible<DomRoot<PannerNode>> {
+    ) -> Fallible<DomRoot<PannerNode<TH>>> {
         let node = PannerNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object(
             Box::new(node),
@@ -177,38 +178,38 @@ impl PannerNode {
     }
 
     pub fn Constructor(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &PannerOptions,
-    ) -> Fallible<DomRoot<PannerNode>> {
+    ) -> Fallible<DomRoot<PannerNode<TH>>> {
         PannerNode::new(window, context, options)
     }
 }
 
-impl PannerNodeMethods for PannerNode {
+impl<TH: TypeHolderTrait> PannerNodeMethods<TH> for PannerNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx
-    fn PositionX(&self) -> DomRoot<AudioParam> {
+    fn PositionX(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.position_x)
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-positiony
-    fn PositionY(&self) -> DomRoot<AudioParam> {
+    fn PositionY(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.position_y)
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-positionz
-    fn PositionZ(&self) -> DomRoot<AudioParam> {
+    fn PositionZ(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.position_z)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationx
-    fn OrientationX(&self) -> DomRoot<AudioParam> {
+    fn OrientationX(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.orientation_x)
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationy
-    fn OrientationY(&self) -> DomRoot<AudioParam> {
+    fn OrientationY(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.orientation_y)
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationz
-    fn OrientationZ(&self) -> DomRoot<AudioParam> {
+    fn OrientationZ(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.orientation_z)
     }
 
@@ -224,7 +225,7 @@ impl PannerNodeMethods for PannerNode {
     fn SetDistanceModel(&self, model: DistanceModelType) {
         self.distance_model.set(model.into());
         let msg = PannerNodeMessage::SetDistanceModel(self.distance_model.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel
@@ -238,7 +239,7 @@ impl PannerNodeMethods for PannerNode {
     fn SetPanningModel(&self, model: PanningModelType) {
         self.panning_model.set(model.into());
         let msg = PannerNodeMessage::SetPanningModel(self.panning_model.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
@@ -252,7 +253,7 @@ impl PannerNodeMethods for PannerNode {
         }
         self.ref_distance.set(*val);
         let msg = PannerNodeMessage::SetRefDistance(self.ref_distance.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
@@ -267,7 +268,7 @@ impl PannerNodeMethods for PannerNode {
         }
         self.max_distance.set(*val);
         let msg = PannerNodeMessage::SetMaxDistance(self.max_distance.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
@@ -282,7 +283,7 @@ impl PannerNodeMethods for PannerNode {
         }
         self.rolloff_factor.set(*val);
         let msg = PannerNodeMessage::SetRolloff(self.rolloff_factor.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
@@ -294,7 +295,7 @@ impl PannerNodeMethods for PannerNode {
     fn SetConeInnerAngle(&self, val: Finite<f64>) {
         self.cone_inner_angle.set(*val);
         let msg = PannerNodeMessage::SetConeInner(self.cone_inner_angle.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle
@@ -305,7 +306,7 @@ impl PannerNodeMethods for PannerNode {
     fn SetConeOuterAngle(&self, val: Finite<f64>) {
         self.cone_outer_angle.set(*val);
         let msg = PannerNodeMessage::SetConeOuter(self.cone_outer_angle.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
@@ -319,7 +320,7 @@ impl PannerNodeMethods for PannerNode {
         }
         self.cone_outer_gain.set(*val);
         let msg = PannerNodeMessage::SetConeGain(self.cone_outer_gain.get());
-        self.upcast::<AudioNode>()
+        self.upcast::<AudioNode<TH>>()
             .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }

@@ -13,19 +13,20 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::channel_node::ChannelNodeOptions;
 use servo_media::audio::node::AudioNodeInit;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct ChannelMergerNode {
-    node: AudioNode,
+pub struct ChannelMergerNode<TH: TypeHolderTrait> {
+    node: AudioNode<TH>,
 }
 
-impl ChannelMergerNode {
+impl<TH: TypeHolderTrait> ChannelMergerNode<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        _: &Window,
-        context: &BaseAudioContext,
+        _: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &ChannelMergerOptions,
-    ) -> Fallible<ChannelMergerNode> {
+    ) -> Fallible<ChannelMergerNode<TH>> {
         let node_options = options.parent.unwrap_or(
             1,
             ChannelCountMode::Explicit,
@@ -52,10 +53,10 @@ impl ChannelMergerNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &ChannelMergerOptions,
-    ) -> Fallible<DomRoot<ChannelMergerNode>> {
+    ) -> Fallible<DomRoot<ChannelMergerNode<TH>>> {
         let node = ChannelMergerNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object(
             Box::new(node),
@@ -65,10 +66,10 @@ impl ChannelMergerNode {
     }
 
     pub fn Constructor(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &ChannelMergerOptions,
-    ) -> Fallible<DomRoot<ChannelMergerNode>> {
+    ) -> Fallible<DomRoot<ChannelMergerNode<TH>>> {
         ChannelMergerNode::new(window, context, options)
     }
 }

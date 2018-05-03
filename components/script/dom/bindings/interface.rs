@@ -52,7 +52,7 @@ unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
-    pub const fn new(
+    pub fn new(
         constructor_behavior: &'static InterfaceConstructorBehavior,
         string_rep: &'static [u8],
         proto_id: PrototypeList::ID,
@@ -83,12 +83,43 @@ impl NonCallbackInterfaceObjectClass {
 pub type ConstructorClassHook =
     unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
 
+pub static InterfaceConstructorBehaviorthrow: InterfaceConstructorBehavior =
+    InterfaceConstructorBehavior(ClassOps {
+        addProperty: None,
+        delProperty: None,
+        enumerate: None,
+        newEnumerate: None,
+        resolve: None,
+        mayResolve: None,
+        finalize: None,
+        call: Some(invalid_constructor),
+        construct: Some(invalid_constructor),
+        hasInstance: Some(has_instance_hook),
+        trace: None,
+    });
+
+pub static InterfaceConstructorBehaviorcall: InterfaceConstructorBehavior =
+    InterfaceConstructorBehavior(ClassOps {
+        addProperty: None,
+        delProperty: None,
+        enumerate: None,
+        newEnumerate: None,
+        resolve: None,
+        mayResolve: None,
+        finalize: None,
+        call: Some(non_new_constructor),
+        // TODO: construct: Some(hook),
+        construct: None,
+        hasInstance: Some(has_instance_hook),
+        trace: None,
+    });
+
 /// The constructor behavior of a non-callback interface object.
 pub struct InterfaceConstructorBehavior(ClassOps);
 
 impl InterfaceConstructorBehavior {
     /// An interface constructor that unconditionally throws a type error.
-    pub const fn throw() -> Self {
+    pub fn throw() -> Self {
         InterfaceConstructorBehavior(ClassOps {
             addProperty: None,
             delProperty: None,
@@ -105,7 +136,7 @@ impl InterfaceConstructorBehavior {
     }
 
     /// An interface constructor that calls a native Rust function.
-    pub const fn call(hook: ConstructorClassHook) -> Self {
+    pub fn call(hook: ConstructorClassHook) -> Self {
         InterfaceConstructorBehavior(ClassOps {
             addProperty: None,
             delProperty: None,
@@ -366,7 +397,7 @@ pub unsafe fn define_on_global_object(
     ));
 }
 
-const OBJECT_OPS: ObjectOps = ObjectOps {
+static OBJECT_OPS: ObjectOps = ObjectOps {
     lookupProperty: None,
     defineProperty: None,
     hasProperty: None,

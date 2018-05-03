@@ -20,18 +20,19 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLLabelElement {
-    htmlelement: HTMLElement,
+pub struct HTMLLabelElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLLabelElement {
+impl<TH: TypeHolderTrait> HTMLLabelElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLLabelElement {
+        document: &Document<TH>,
+    ) -> HTMLLabelElement<TH> {
         HTMLLabelElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -41,9 +42,9 @@ impl HTMLLabelElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLLabelElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLLabelElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLLabelElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -53,9 +54,9 @@ impl HTMLLabelElement {
     }
 }
 
-impl Activatable for HTMLLabelElement {
-    fn as_element(&self) -> &Element {
-        self.upcast::<Element>()
+impl<TH: TypeHolderTrait> Activatable<TH> for HTMLLabelElement<TH> {
+    fn as_element(&self) -> &Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -70,9 +71,9 @@ impl Activatable for HTMLLabelElement {
     fn canceled_activation(&self) {}
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event<TH>, _target: &EventTarget<TH>) {
         if let Some(e) = self.GetControl() {
-            let elem = e.upcast::<Element>();
+            let elem = e.upcast::<Element<TH>>();
             synthetic_click_activation(
                 elem,
                 false,
@@ -97,9 +98,9 @@ impl Activatable for HTMLLabelElement {
     }
 }
 
-impl HTMLLabelElementMethods for HTMLLabelElement {
+impl<TH: TypeHolderTrait> HTMLLabelElementMethods<TH> for HTMLLabelElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner()
     }
 
@@ -110,13 +111,13 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
     make_atomic_setter!(SetHtmlFor, "for");
 
     // https://html.spec.whatwg.org/multipage/#dom-label-control
-    fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
-        if !self.upcast::<Node>().is_in_doc() {
+    fn GetControl(&self) -> Option<DomRoot<HTMLElement<TH>>> {
+        if !self.upcast::<Node<TH>>().is_in_doc() {
             return None;
         }
 
         let for_attr = match self
-            .upcast::<Element>()
+            .upcast::<Element<TH>>()
             .get_attribute(&ns!(), &local_name!("for"))
         {
             Some(for_attr) => for_attr,
@@ -126,16 +127,16 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
         let for_value = for_attr.value();
         document_from_node(self)
             .get_element_by_id(for_value.as_atom())
-            .and_then(DomRoot::downcast::<HTMLElement>)
+            .and_then(DomRoot::downcast::<HTMLElement<TH>>)
             .into_iter()
             .filter(|e| e.is_labelable_element())
             .next()
     }
 }
 
-impl VirtualMethods for HTMLLabelElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLLabelElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -148,7 +149,7 @@ impl VirtualMethods for HTMLLabelElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("form") => {
@@ -159,32 +160,32 @@ impl VirtualMethods for HTMLLabelElement {
     }
 }
 
-impl HTMLLabelElement {
-    pub fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement>> {
-        self.upcast::<Node>()
+impl<TH: TypeHolderTrait> HTMLLabelElement<TH> {
+    pub fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement<TH>>> {
+        self.upcast::<Node<TH>>()
             .traverse_preorder()
-            .filter_map(DomRoot::downcast::<HTMLElement>)
+            .filter_map(DomRoot::downcast::<HTMLElement<TH>>)
             .filter(|elem| elem.is_labelable_element())
             .next()
     }
 }
 
-impl FormControl for HTMLLabelElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLLabelElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.GetControl()
-            .map(DomRoot::upcast::<Element>)
+            .map(DomRoot::upcast::<Element<TH>>)
             .and_then(|elem| {
                 elem.as_maybe_form_control()
                     .and_then(|control| control.form_owner())
             })
     }
 
-    fn set_form_owner(&self, _: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, _: Option<&HTMLFormElement<TH>>) {
         // Label is a special case for form owner, it reflects its control's
         // form owner. Therefore it doesn't hold form owner itself.
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 }

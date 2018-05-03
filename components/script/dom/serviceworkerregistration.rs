@@ -15,19 +15,22 @@ use dom_struct::dom_struct;
 use script_traits::{WorkerScriptLoadOrigin, ScopeThings};
 use servo_url::ServoUrl;
 use std::cell::Cell;
-
+use typeholder::TypeHolderTrait;
 #[dom_struct]
-pub struct ServiceWorkerRegistration {
-    eventtarget: EventTarget,
-    active: Option<Dom<ServiceWorker>>,
-    installing: Option<Dom<ServiceWorker>>,
-    waiting: Option<Dom<ServiceWorker>>,
+pub struct ServiceWorkerRegistration<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
+    active: Option<Dom<ServiceWorker<TH>>>,
+    installing: Option<Dom<ServiceWorker<TH>>>,
+    waiting: Option<Dom<ServiceWorker<TH>>>,
     scope: ServoUrl,
     uninstalling: Cell<bool>,
 }
 
-impl ServiceWorkerRegistration {
-    fn new_inherited(active_sw: &ServiceWorker, scope: ServoUrl) -> ServiceWorkerRegistration {
+impl<TH: TypeHolderTrait> ServiceWorkerRegistration<TH> {
+    fn new_inherited(
+        active_sw: &ServiceWorker<TH>,
+        scope: ServoUrl,
+    ) -> ServiceWorkerRegistration<TH> {
         ServiceWorkerRegistration {
             eventtarget: EventTarget::new_inherited(),
             active: Some(Dom::from_ref(active_sw)),
@@ -39,10 +42,10 @@ impl ServiceWorkerRegistration {
     }
     #[allow(unrooted_must_root)]
     pub fn new(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         script_url: &ServoUrl,
         scope: ServoUrl,
-    ) -> DomRoot<ServiceWorkerRegistration> {
+    ) -> DomRoot<ServiceWorkerRegistration<TH>> {
         let active_worker =
             ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
@@ -56,7 +59,7 @@ impl ServiceWorkerRegistration {
         )
     }
 
-    pub fn get_installed(&self) -> &ServiceWorker {
+    pub fn get_installed(&self) -> &ServiceWorker<TH> {
         self.active.as_ref().unwrap()
     }
 
@@ -68,7 +71,7 @@ impl ServiceWorkerRegistration {
         self.uninstalling.set(flag)
     }
 
-    pub fn create_scope_things(global: &GlobalScope, script_url: ServoUrl) -> ScopeThings {
+    pub fn create_scope_things(global: &GlobalScope<TH>, script_url: ServoUrl) -> ScopeThings {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
@@ -88,7 +91,7 @@ impl ServiceWorkerRegistration {
     }
 
     // https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm
-    pub fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker>> {
+    pub fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker<TH>>> {
         if self.installing.as_ref().is_some() {
             self.installing.as_ref().map(|sw| DomRoot::from_ref(&**sw))
         } else if self.waiting.as_ref().is_some() {
@@ -116,19 +119,19 @@ pub fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl)
         .all(|(scope, matched)| scope == matched)
 }
 
-impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
+impl<TH: TypeHolderTrait> ServiceWorkerRegistrationMethods<TH> for ServiceWorkerRegistration<TH> {
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-installing-attribute
-    fn GetInstalling(&self) -> Option<DomRoot<ServiceWorker>> {
+    fn GetInstalling(&self) -> Option<DomRoot<ServiceWorker<TH>>> {
         self.installing.as_ref().map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute
-    fn GetActive(&self) -> Option<DomRoot<ServiceWorker>> {
+    fn GetActive(&self) -> Option<DomRoot<ServiceWorker<TH>>> {
         self.active.as_ref().map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-waiting-attribute
-    fn GetWaiting(&self) -> Option<DomRoot<ServiceWorker>> {
+    fn GetWaiting(&self) -> Option<DomRoot<ServiceWorker<TH>>> {
         self.waiting.as_ref().map(|sw| DomRoot::from_ref(&**sw))
     }
 

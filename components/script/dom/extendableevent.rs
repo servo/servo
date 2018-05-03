@@ -15,44 +15,45 @@ use dom_struct::dom_struct;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]
-pub struct ExtendableEvent {
-    event: Event,
+pub struct ExtendableEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     extensions_allowed: bool,
 }
 
-impl ExtendableEvent {
-    pub fn new_inherited() -> ExtendableEvent {
+impl<TH: TypeHolderTrait> ExtendableEvent<TH> {
+    pub fn new_inherited() -> ExtendableEvent<TH> {
         ExtendableEvent {
             event: Event::new_inherited(),
             extensions_allowed: true,
         }
     }
     pub fn new(
-        worker: &ServiceWorkerGlobalScope,
+        worker: &ServiceWorkerGlobalScope<TH>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-    ) -> DomRoot<ExtendableEvent> {
+    ) -> DomRoot<ExtendableEvent<TH>> {
         let ev = reflect_dom_object(
             Box::new(ExtendableEvent::new_inherited()),
             worker,
             ExtendableEventBinding::Wrap,
         );
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
 
     pub fn Constructor(
-        worker: &ServiceWorkerGlobalScope,
+        worker: &ServiceWorkerGlobalScope<TH>,
         type_: DOMString,
         init: &ExtendableEventBinding::ExtendableEventInit,
-    ) -> Fallible<DomRoot<ExtendableEvent>> {
+    ) -> Fallible<DomRoot<ExtendableEvent<TH>>> {
         Ok(ExtendableEvent::new(
             worker,
             Atom::from(type_),

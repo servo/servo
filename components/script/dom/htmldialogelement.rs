@@ -15,19 +15,20 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLDialogElement {
-    htmlelement: HTMLElement,
+pub struct HTMLDialogElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     return_value: DomRefCell<DOMString>,
 }
 
-impl HTMLDialogElement {
+impl<TH: TypeHolderTrait> HTMLDialogElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLDialogElement {
+        document: &Document<TH>,
+    ) -> HTMLDialogElement<TH> {
         HTMLDialogElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             return_value: DomRefCell::new(DOMString::new()),
@@ -38,9 +39,9 @@ impl HTMLDialogElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLDialogElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLDialogElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLDialogElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -50,7 +51,7 @@ impl HTMLDialogElement {
     }
 }
 
-impl HTMLDialogElementMethods for HTMLDialogElement {
+impl<TH: TypeHolderTrait> HTMLDialogElementMethods for HTMLDialogElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
     make_bool_getter!(Open, "open");
 
@@ -70,8 +71,8 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-close
     fn Close(&self, return_value: Option<DOMString>) {
-        let element = self.upcast::<Element>();
-        let target = self.upcast::<EventTarget>();
+        let element = self.upcast::<Element<TH>>();
+        let target = self.upcast::<EventTarget<TH>>();
         let win = window_from_node(self);
 
         // Step 1 & 2

@@ -30,13 +30,15 @@ use servo_channel::Sender;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
+use std::marker::PhantomData;
 use std::sync::Arc;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
-pub struct WorkletGlobalScope {
+pub struct WorkletGlobalScope<TH: TypeHolderTrait> {
     /// The global for this worklet.
-    globalscope: GlobalScope,
+    globalscope: GlobalScope<TH>,
     /// The base URL for this worklet.
     base_url: ServoUrl,
     /// Sender back to the script thread
@@ -46,7 +48,7 @@ pub struct WorkletGlobalScope {
     executor: WorkletExecutor,
 }
 
-impl WorkletGlobalScope {
+impl<TH: TypeHolderTrait> WorkletGlobalScope<TH> {
     /// Create a new stack-allocated `WorkletGlobalScope`.
     pub fn new_inherited(
         pipeline_id: PipelineId,
@@ -61,7 +63,7 @@ impl WorkletGlobalScope {
             pipeline_id,
         };
         Self {
-            globalscope: GlobalScope::new_inherited(
+            globalscope: GlobalScope::<TH>::new_inherited(
                 pipeline_id,
                 init.devtools_chan.clone(),
                 init.mem_profiler_chan.clone(),
@@ -116,11 +118,11 @@ impl WorkletGlobalScope {
     /// Perform a worklet task
     pub fn perform_a_worklet_task(&self, task: WorkletTask) {
         match task {
-            WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
+            WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope<TH>>() {
                 Some(global) => global.perform_a_worklet_task(task),
                 None => warn!("This is not a test worklet."),
             },
-            WorkletTask::Paint(task) => match self.downcast::<PaintWorkletGlobalScope>() {
+            WorkletTask::Paint(task) => match self.downcast::<PaintWorkletGlobalScope<TH>>() {
                 Some(global) => global.perform_a_worklet_task(task),
                 None => warn!("This is not a paint worklet."),
             },
@@ -151,14 +153,15 @@ pub struct WorkletGlobalScopeInit {
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
-pub enum WorkletGlobalScopeType {
+pub enum WorkletGlobalScopeType<TH: TypeHolderTrait> {
     /// A servo-specific testing worklet
     Test,
     /// A paint worklet
     Paint,
+    _p(PhantomData<TH>),
 }
 
-impl WorkletGlobalScopeType {
+impl<TH: TypeHolderTrait> WorkletGlobalScopeType<TH> {
     /// Create a new heap-allocated `WorkletGlobalScope`.
     pub fn new(
         &self,
@@ -167,7 +170,7 @@ impl WorkletGlobalScopeType {
         base_url: ServoUrl,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
-    ) -> DomRoot<WorkletGlobalScope> {
+    ) -> DomRoot<WorkletGlobalScope<TH>> {
         match *self {
             WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
                 runtime,
@@ -183,6 +186,7 @@ impl WorkletGlobalScopeType {
                 executor,
                 init,
             )),
+            WorkletGlobalScopeType::_p(_) => unimplemented!(),
         }
     }
 }

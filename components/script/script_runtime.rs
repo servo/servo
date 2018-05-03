@@ -45,6 +45,7 @@ use style::thread_state::{self, ThreadState};
 use task::TaskBox;
 use task_source::TaskSourceName;
 use time::{Tm, now};
+use typeholder::TypeHolderTrait;
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
@@ -118,7 +119,7 @@ pub trait ScriptPort {
 /// SM callback for promise job resolution. Adds a promise callback to the current
 /// global's microtask queue.
 #[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(
+unsafe extern "C" fn enqueue_job<TH: TypeHolderTrait>(
     cx: *mut JSContext,
     job: HandleObject,
     _allocation_site: HandleObject,
@@ -128,7 +129,7 @@ unsafe extern "C" fn enqueue_job(
     wrap_panic(
         AssertUnwindSafe(|| {
             //XXXjdm - use a different global now?
-            let global = GlobalScope::from_object(job.get());
+            let global = GlobalScope::<TH>::from_object(job.get());
             let pipeline = global.pipeline_id();
             global.enqueue_microtask(Microtask::Promise(EnqueuedPromiseCallback {
                 callback: PromiseJobCallback::new(cx, job.get()),
@@ -157,12 +158,12 @@ impl Deref for Runtime {
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn new_rt_and_cx() -> Runtime {
-    LiveDOMReferences::initialize();
+pub unsafe fn new_rt_and_cx<TH: TypeHolderTrait>() -> Runtime {
+    LiveDOMReferences::<TH>::initialize();
     let runtime = RustRuntime::new().unwrap();
     let cx = runtime.cx();
 
-    JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
+    JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots::<TH>), ptr::null_mut());
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {
@@ -181,7 +182,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(cx);
 
-    SetEnqueuePromiseJobCallback(cx, Some(enqueue_job), ptr::null_mut());
+    SetEnqueuePromiseJobCallback(cx, Some(enqueue_job::<TH>), ptr::null_mut());
 
     set_gc_zeal_options(cx);
 
@@ -523,16 +524,19 @@ unsafe extern "C" fn debug_gc_callback(
 thread_local!(static THREAD_ACTIVE: Cell<bool> = Cell::new(true););
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
+unsafe extern "C" fn trace_rust_roots<TH: TypeHolderTrait>(
+    tr: *mut JSTracer,
+    _data: *mut os::raw::c_void,
+) {
     if !THREAD_ACTIVE.with(|t| t.get()) {
         return;
     }
     debug!("starting custom root handler");
-    trace_thread(tr);
+    trace_thread::<TH>(tr);
     trace_traceables(tr);
     trace_roots(tr);
-    trace_refcounted_objects(tr);
-    settings_stack::trace(tr);
+    trace_refcounted_objects::<TH>(tr);
+    settings_stack::trace::<TH>(tr);
     debug!("done custom root handler");
 }
 

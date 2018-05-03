@@ -9,13 +9,14 @@ use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct OESElementIndexUint {
-    reflector_: Reflector,
+pub struct OESElementIndexUint<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl OESElementIndexUint {
+impl<TH: TypeHolderTrait> OESElementIndexUint<TH> {
     fn new_inherited() -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -23,10 +24,10 @@ impl OESElementIndexUint {
     }
 }
 
-impl WebGLExtension for OESElementIndexUint {
+impl<TH: TypeHolderTrait> WebGLExtension<TH> for OESElementIndexUint<TH> {
     type Extension = Self;
 
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
+    fn new(ctx: &WebGLRenderingContext<TH>) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(OESElementIndexUint::new_inherited()),
             &*ctx.global(),
@@ -38,12 +39,12 @@ impl WebGLExtension for OESElementIndexUint {
         WebGLExtensionSpec::Specific(WebGLVersion::WebGL1)
     }
 
-    fn is_supported(ext: &WebGLExtensions) -> bool {
+    fn is_supported(ext: &WebGLExtensions<TH>) -> bool {
         // This extension is always available in desktop OpenGL.
         !is_gles() || ext.supports_gl_extension("GL_OES_element_index_uint")
     }
 
-    fn enable(ext: &WebGLExtensions) {
+    fn enable(ext: &WebGLExtensions<TH>) {
         ext.enable_element_index_uint();
     }
 

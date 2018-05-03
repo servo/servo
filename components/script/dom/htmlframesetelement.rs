@@ -11,18 +11,19 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLFrameSetElement {
-    htmlelement: HTMLElement,
+pub struct HTMLFrameSetElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLFrameSetElement {
+impl<TH: TypeHolderTrait> HTMLFrameSetElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLFrameSetElement {
+        document: &Document<TH>,
+    ) -> HTMLFrameSetElement<TH> {
         HTMLFrameSetElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -32,9 +33,9 @@ impl HTMLFrameSetElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLFrameSetElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLFrameSetElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLFrameSetElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -44,7 +45,7 @@ impl HTMLFrameSetElement {
     }
 }
 
-impl HTMLFrameSetElementMethods for HTMLFrameSetElement {
+impl<TH: TypeHolderTrait> HTMLFrameSetElementMethods<TH> for HTMLFrameSetElement<TH> {
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers
     window_event_handlers!(ForwardToWindow);
 }

@@ -15,21 +15,25 @@ use js::typedarray::{Float32Array, CreateWith};
 use std::default::Default;
 use std::ptr;
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 use webvr_traits::WebVREyeParameters;
 
 #[dom_struct]
-pub struct VREyeParameters {
-    reflector_: Reflector,
+pub struct VREyeParameters<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     parameters: DomRefCell<WebVREyeParameters>,
     offset: Heap<*mut JSObject>,
-    fov: Dom<VRFieldOfView>,
+    fov: Dom<VRFieldOfView<TH>>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVREyeParameters);
 
-impl VREyeParameters {
-    fn new_inherited(parameters: WebVREyeParameters, fov: &VRFieldOfView) -> VREyeParameters {
+impl<TH: TypeHolderTrait> VREyeParameters<TH> {
+    fn new_inherited(
+        parameters: WebVREyeParameters,
+        fov: &VRFieldOfView<TH>,
+    ) -> VREyeParameters<TH> {
         VREyeParameters {
             reflector_: Reflector::new(),
             parameters: DomRefCell::new(parameters),
@@ -39,7 +43,10 @@ impl VREyeParameters {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(parameters: WebVREyeParameters, global: &GlobalScope) -> DomRoot<VREyeParameters> {
+    pub fn new(
+        parameters: WebVREyeParameters,
+        global: &GlobalScope<TH>,
+    ) -> DomRoot<VREyeParameters<TH>> {
         let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
 
         let cx = global.get_cx();
@@ -63,7 +70,7 @@ impl VREyeParameters {
     }
 }
 
-impl VREyeParametersMethods for VREyeParameters {
+impl<TH: TypeHolderTrait> VREyeParametersMethods<TH> for VREyeParameters<TH> {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vreyeparameters-offset
     unsafe fn Offset(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
@@ -71,7 +78,7 @@ impl VREyeParametersMethods for VREyeParameters {
     }
 
     // https://w3c.github.io/webvr/#dom-vreyeparameters-fieldofview
-    fn FieldOfView(&self) -> DomRoot<VRFieldOfView> {
+    fn FieldOfView(&self) -> DomRoot<VRFieldOfView<TH>> {
         DomRoot::from_ref(&*self.fov)
     }
 

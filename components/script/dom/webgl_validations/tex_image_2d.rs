@@ -9,6 +9,7 @@ use dom::webgltexture::WebGLTexture;
 use std::{self, fmt};
 use super::WebGLValidator;
 use super::types::{TexImageTarget, TexDataType, TexFormat};
+use typeholder::TypeHolderTrait;
 
 /// The errors that the texImage* family of functions can generate.
 #[derive(Debug)]
@@ -79,8 +80,8 @@ fn log2(n: u32) -> u32 {
     31 - n.leading_zeros()
 }
 
-pub struct CommonTexImage2DValidator<'a> {
-    context: &'a WebGLRenderingContext,
+pub struct CommonTexImage2DValidator<'a, TH: TypeHolderTrait> {
+    context: &'a WebGLRenderingContext<TH>,
     target: u32,
     level: i32,
     internal_format: u32,
@@ -89,8 +90,8 @@ pub struct CommonTexImage2DValidator<'a> {
     border: i32,
 }
 
-pub struct CommonTexImage2DValidatorResult {
-    pub texture: DomRoot<WebGLTexture>,
+pub struct CommonTexImage2DValidatorResult<TH: TypeHolderTrait> {
+    pub texture: DomRoot<WebGLTexture<TH>>,
     pub target: TexImageTarget,
     pub level: u32,
     pub internal_format: TexFormat,
@@ -99,9 +100,9 @@ pub struct CommonTexImage2DValidatorResult {
     pub border: u32,
 }
 
-impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
+impl<'a, TH: TypeHolderTrait> WebGLValidator for CommonTexImage2DValidator<'a, TH> {
     type Error = TexImageValidationError;
-    type ValidatedOutput = CommonTexImage2DValidatorResult;
+    type ValidatedOutput = CommonTexImage2DValidatorResult<TH>;
     fn validate(self) -> Result<Self::ValidatedOutput, TexImageValidationError> {
         // GL_INVALID_ENUM is generated if target is not GL_TEXTURE_2D,
         // GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -212,9 +213,9 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
     }
 }
 
-impl<'a> CommonTexImage2DValidator<'a> {
+impl<'a, TH: TypeHolderTrait> CommonTexImage2DValidator<'a, TH> {
     pub fn new(
-        context: &'a WebGLRenderingContext,
+        context: &'a WebGLRenderingContext<TH>,
         target: u32,
         level: i32,
         internal_format: u32,
@@ -234,16 +235,16 @@ impl<'a> CommonTexImage2DValidator<'a> {
     }
 }
 
-pub struct TexImage2DValidator<'a> {
-    common_validator: CommonTexImage2DValidator<'a>,
+pub struct TexImage2DValidator<'a, TH: TypeHolderTrait> {
+    common_validator: CommonTexImage2DValidator<'a, TH>,
     format: u32,
     data_type: u32,
 }
 
-impl<'a> TexImage2DValidator<'a> {
+impl<'a, TH: TypeHolderTrait> TexImage2DValidator<'a, TH> {
     // TODO: Move data validation logic here.
     pub fn new(
-        context: &'a WebGLRenderingContext,
+        context: &'a WebGLRenderingContext<TH>,
         target: u32,
         level: i32,
         internal_format: u32,
@@ -270,13 +271,13 @@ impl<'a> TexImage2DValidator<'a> {
 }
 
 /// The validated result of a TexImage2DValidator-validated call.
-pub struct TexImage2DValidatorResult {
+pub struct TexImage2DValidatorResult<TH: TypeHolderTrait> {
     /// NB: width, height and level are already unsigned after validation.
     pub width: u32,
     pub height: u32,
     pub level: u32,
     pub border: u32,
-    pub texture: DomRoot<WebGLTexture>,
+    pub texture: DomRoot<WebGLTexture<TH>>,
     pub target: TexImageTarget,
     pub format: TexFormat,
     pub data_type: TexDataType,
@@ -284,8 +285,8 @@ pub struct TexImage2DValidatorResult {
 
 /// TexImage2d validator as per
 /// <https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml>
-impl<'a> WebGLValidator for TexImage2DValidator<'a> {
-    type ValidatedOutput = TexImage2DValidatorResult;
+impl<'a, TH: TypeHolderTrait> WebGLValidator for TexImage2DValidator<'a, TH> {
+    type ValidatedOutput = TexImage2DValidatorResult<TH>;
     type Error = TexImageValidationError;
 
     fn validate(self) -> Result<Self::ValidatedOutput, TexImageValidationError> {

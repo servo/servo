@@ -19,19 +19,20 @@ use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, SupportsRule};
 use style::stylesheets::supports_rule::SupportsCondition;
 use style_traits::{ParsingMode, ToCss};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSSupportsRule {
-    cssconditionrule: CSSConditionRule,
+pub struct CSSSupportsRule<TH: TypeHolderTrait> {
+    cssconditionrule: CSSConditionRule<TH>,
     #[ignore_malloc_size_of = "Arc"]
     supportsrule: Arc<Locked<SupportsRule>>,
 }
 
-impl CSSSupportsRule {
+impl<TH: TypeHolderTrait> CSSSupportsRule<TH> {
     fn new_inherited(
-        parent_stylesheet: &CSSStyleSheet,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         supportsrule: Arc<Locked<SupportsRule>>,
-    ) -> CSSSupportsRule {
+    ) -> Self {
         let guard = parent_stylesheet.shared_lock().read();
         let list = supportsrule.read_with(&guard).rules.clone();
         CSSSupportsRule {
@@ -42,10 +43,10 @@ impl CSSSupportsRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        parent_stylesheet: &CSSStyleSheet,
+        window: &Window<TH>,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         supportsrule: Arc<Locked<SupportsRule>>,
-    ) -> DomRoot<CSSSupportsRule> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(CSSSupportsRule::new_inherited(
                 parent_stylesheet,
@@ -90,7 +91,7 @@ impl CSSSupportsRule {
     }
 }
 
-impl SpecificCSSRule for CSSSupportsRule {
+impl<TH: TypeHolderTrait> SpecificCSSRule for CSSSupportsRule<TH> {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::SUPPORTS_RULE

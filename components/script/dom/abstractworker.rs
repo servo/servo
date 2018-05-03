@@ -6,13 +6,14 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::structuredclone::StructuredCloneData;
 use script_runtime::CommonScriptMsg;
+use typeholder::TypeHolderTrait;
 
 /// Messages used to control the worker event loops
-pub enum WorkerScriptMsg {
+pub enum WorkerScriptMsg<TH: TypeHolderTrait> {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
     /// Message sent through Worker.postMessage
-    DOMMessage(StructuredCloneData),
+    DOMMessage(StructuredCloneData<TH>),
 }
 
 pub struct SimpleWorkerErrorHandler<T: DomObject> {

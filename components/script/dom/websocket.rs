@@ -41,6 +41,7 @@ use std::thread;
 use task::{TaskOnce, TaskCanceller};
 use task_source::TaskSource;
 use task_source::websocket::WebsocketTaskSource;
+use typeholder::TypeHolderTrait;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -68,8 +69,8 @@ mod close_code {
     pub const TLS_FAILED: u16 = 1015;
 }
 
-pub fn close_the_websocket_connection(
-    address: Trusted<WebSocket>,
+fn close_the_websocket_connection<TH: TypeHolderTrait>(
+    address: Trusted<WebSocket<TH>>,
     task_source: &WebsocketTaskSource,
     canceller: &TaskCanceller,
     code: Option<u16>,
@@ -86,8 +87,8 @@ pub fn close_the_websocket_connection(
         .unwrap();
 }
 
-pub fn fail_the_websocket_connection(
-    address: Trusted<WebSocket>,
+fn fail_the_websocket_connection<TH: TypeHolderTrait>(
+    address: Trusted<WebSocket<TH>>,
     task_source: &WebsocketTaskSource,
     canceller: &TaskCanceller,
 ) {
@@ -103,8 +104,8 @@ pub fn fail_the_websocket_connection(
 }
 
 #[dom_struct]
-pub struct WebSocket {
-    eventtarget: EventTarget,
+pub struct WebSocket<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     url: ServoUrl,
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u64>,
@@ -115,8 +116,8 @@ pub struct WebSocket {
     protocol: DomRefCell<String>, //Subprotocol selected by server
 }
 
-impl WebSocket {
-    fn new_inherited(url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> WebSocket {
+impl<TH: TypeHolderTrait> WebSocket<TH> {
+    fn new_inherited(url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> WebSocket<TH> {
         WebSocket {
             eventtarget: EventTarget::new_inherited(),
             url: url,
@@ -130,10 +131,10 @@ impl WebSocket {
     }
 
     fn new(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         url: ServoUrl,
         sender: IpcSender<WebSocketDomAction>,
-    ) -> DomRoot<WebSocket> {
+    ) -> DomRoot<WebSocket<TH>> {
         reflect_dom_object(
             Box::new(WebSocket::new_inherited(url, sender)),
             global,
@@ -143,10 +144,10 @@ impl WebSocket {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
     pub fn Constructor(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         url: DOMString,
         protocols: Option<StringOrStringSequence>,
-    ) -> Fallible<DomRoot<WebSocket>> {
+    ) -> Fallible<DomRoot<WebSocket<TH>>> {
         // Steps 1-2.
         let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 
@@ -305,7 +306,7 @@ impl WebSocket {
     }
 }
 
-impl WebSocketMethods for WebSocket {
+impl<TH: TypeHolderTrait> WebSocketMethods<TH> for WebSocket<TH> {
     // https://html.spec.whatwg.org/multipage/#handler-websocket-onopen
     event_handler!(open, GetOnopen, SetOnopen);
 
@@ -363,7 +364,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send_(&self, blob: &Blob) -> ErrorResult {
+    fn Send_(&self, blob: &Blob<TH>) -> ErrorResult {
         /* As per https://html.spec.whatwg.org/multipage/#websocket
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
            If the buffer limit is reached in the first place, there are likely other major problems
@@ -458,12 +459,12 @@ impl WebSocketMethods for WebSocket {
 
 /// Task queued when *the WebSocket connection is established*.
 /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
-struct ConnectionEstablishedTask {
-    address: Trusted<WebSocket>,
+struct ConnectionEstablishedTask<TH: TypeHolderTrait> {
+    address: Trusted<WebSocket<TH>>,
     protocol_in_use: Option<String>,
 }
 
-impl TaskOnce for ConnectionEstablishedTask {
+impl<TH: TypeHolderTrait> TaskOnce for ConnectionEstablishedTask<TH> {
     /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
     fn run_once(self) {
         let ws = self.address.root();
@@ -484,11 +485,11 @@ impl TaskOnce for ConnectionEstablishedTask {
     }
 }
 
-struct BufferedAmountTask {
-    address: Trusted<WebSocket>,
+struct BufferedAmountTask<TH: TypeHolderTrait> {
+    address: Trusted<WebSocket<TH>>,
 }
 
-impl TaskOnce for BufferedAmountTask {
+impl<TH: TypeHolderTrait> TaskOnce for BufferedAmountTask<TH> {
     // See https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
     //
     // To be compliant with standards, we need to reset bufferedAmount only when the event loop
@@ -502,14 +503,14 @@ impl TaskOnce for BufferedAmountTask {
     }
 }
 
-struct CloseTask {
-    address: Trusted<WebSocket>,
+struct CloseTask<TH: TypeHolderTrait> {
+    address: Trusted<WebSocket<TH>>,
     failed: bool,
     code: Option<u16>,
     reason: Option<String>,
 }
 
-impl TaskOnce for CloseTask {
+impl<TH: TypeHolderTrait> TaskOnce for CloseTask<TH> {
     fn run_once(self) {
         let ws = self.address.root();
 
@@ -542,16 +543,16 @@ impl TaskOnce for CloseTask {
             code,
             reason,
         );
-        close_event.upcast::<Event>().fire(ws.upcast());
+        close_event.upcast::<Event<TH>>().fire(ws.upcast());
     }
 }
 
-struct MessageReceivedTask {
-    address: Trusted<WebSocket>,
+struct MessageReceivedTask<TH: TypeHolderTrait> {
+    address: Trusted<WebSocket<TH>>,
     message: MessageData,
 }
 
-impl TaskOnce for MessageReceivedTask {
+impl<TH: TypeHolderTrait> TaskOnce for MessageReceivedTask<TH> {
     #[allow(unsafe_code)]
     fn run_once(self) {
         let ws = self.address.root();

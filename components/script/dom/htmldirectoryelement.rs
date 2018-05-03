@@ -9,18 +9,19 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLDirectoryElement {
-    htmlelement: HTMLElement,
+pub struct HTMLDirectoryElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLDirectoryElement {
+impl<TH: TypeHolderTrait> HTMLDirectoryElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLDirectoryElement {
+        document: &Document<TH>,
+    ) -> HTMLDirectoryElement<TH> {
         HTMLDirectoryElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -30,9 +31,9 @@ impl HTMLDirectoryElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLDirectoryElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLDirectoryElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLDirectoryElement::new_inherited(
                 local_name, prefix, document,
             )),

@@ -12,23 +12,24 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::param::{ParamType, ParamDir};
 use std::f32;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct AudioListener {
-    reflector_: Reflector,
-    position_x: Dom<AudioParam>,
-    position_y: Dom<AudioParam>,
-    position_z: Dom<AudioParam>,
-    forward_x: Dom<AudioParam>,
-    forward_y: Dom<AudioParam>,
-    forward_z: Dom<AudioParam>,
-    up_x: Dom<AudioParam>,
-    up_y: Dom<AudioParam>,
-    up_z: Dom<AudioParam>,
+pub struct AudioListener<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    position_x: Dom<AudioParam<TH>>,
+    position_y: Dom<AudioParam<TH>>,
+    position_z: Dom<AudioParam<TH>>,
+    forward_x: Dom<AudioParam<TH>>,
+    forward_y: Dom<AudioParam<TH>>,
+    forward_z: Dom<AudioParam<TH>>,
+    up_x: Dom<AudioParam<TH>>,
+    up_y: Dom<AudioParam<TH>>,
+    up_z: Dom<AudioParam<TH>>,
 }
 
-impl AudioListener {
-    fn new_inherited(window: &Window, context: &BaseAudioContext) -> AudioListener {
+impl<TH: TypeHolderTrait> AudioListener<TH> {
+    fn new_inherited(window: &Window<TH>, context: &BaseAudioContext<TH>) -> AudioListener<TH> {
         let node = context.listener();
 
         let position_x = AudioParam::new(
@@ -136,49 +137,49 @@ impl AudioListener {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, context: &BaseAudioContext) -> DomRoot<AudioListener> {
+    pub fn new(window: &Window<TH>, context: &BaseAudioContext<TH>) -> DomRoot<AudioListener<TH>> {
         let node = AudioListener::new_inherited(window, context);
         reflect_dom_object(Box::new(node), window, AudioListenerBinding::Wrap)
     }
 }
 
-impl AudioListenerMethods for AudioListener {
+impl<TH: TypeHolderTrait> AudioListenerMethods<TH> for AudioListener<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-positionx
-    fn PositionX(&self) -> DomRoot<AudioParam> {
+    fn PositionX(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.position_x)
     }
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-positiony
-    fn PositionY(&self) -> DomRoot<AudioParam> {
+    fn PositionY(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.position_y)
     }
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-positionz
-    fn PositionZ(&self) -> DomRoot<AudioParam> {
+    fn PositionZ(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.position_z)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-forwardx
-    fn ForwardX(&self) -> DomRoot<AudioParam> {
+    fn ForwardX(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.forward_x)
     }
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-forwardy
-    fn ForwardY(&self) -> DomRoot<AudioParam> {
+    fn ForwardY(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.forward_y)
     }
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-forwardz
-    fn ForwardZ(&self) -> DomRoot<AudioParam> {
+    fn ForwardZ(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.forward_z)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-upx
-    fn UpX(&self) -> DomRoot<AudioParam> {
+    fn UpX(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.up_x)
     }
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-upy
-    fn UpY(&self) -> DomRoot<AudioParam> {
+    fn UpY(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.up_y)
     }
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-upz
-    fn UpZ(&self) -> DomRoot<AudioParam> {
+    fn UpZ(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.up_z)
     }
 }

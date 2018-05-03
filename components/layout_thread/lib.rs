@@ -36,6 +36,7 @@ extern crate range;
 extern crate rayon;
 extern crate script;
 extern crate script_layout_interface;
+extern crate script_servoparser;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;

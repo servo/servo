@@ -12,18 +12,19 @@ use dom::worker::TrustedWorkerAddress;
 use dom::workerglobalscope::WorkerGlobalScope;
 use script_runtime::{ScriptChan, CommonScriptMsg, ScriptPort};
 use servo_channel::{Receiver, Sender};
+use typeholder::TypeHolderTrait;
 use task_queue::{QueuedTaskConversion, TaskQueue};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
-pub struct SendableWorkerScriptChan {
-    pub sender: Sender<DedicatedWorkerScriptMsg>,
-    pub worker: TrustedWorkerAddress,
+pub struct SendableWorkerScriptChan<TH: TypeHolderTrait> {
+    pub sender: Sender<DedicatedWorkerScriptMsg<TH>>,
+    pub worker: TrustedWorkerAddress<TH>,
 }
 
-impl ScriptChan for SendableWorkerScriptChan {
+impl<TH: TypeHolderTrait> ScriptChan for SendableWorkerScriptChan<TH> {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         let msg = DedicatedWorkerScriptMsg::CommonWorker(
             self.worker.clone(),
@@ -44,12 +45,13 @@ impl ScriptChan for SendableWorkerScriptChan {
 /// worker event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
-pub struct WorkerThreadWorkerChan {
-    pub sender: Sender<DedicatedWorkerScriptMsg>,
-    pub worker: TrustedWorkerAddress,
+pub struct WorkerThreadWorkerChan<TH: TypeHolderTrait> {
+    pub sender: Sender<DedicatedWorkerScriptMsg<TH>>,
+    pub worker: TrustedWorkerAddress<TH>,
 }
 
-impl ScriptChan for WorkerThreadWorkerChan {
+impl<TH: TypeHolderTrait> ScriptChan for WorkerThreadWorkerChan<TH>
+{
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         let msg = DedicatedWorkerScriptMsg::CommonWorker(
             self.worker.clone(),
@@ -66,7 +68,7 @@ impl ScriptChan for WorkerThreadWorkerChan {
     }
 }
 
-impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
+impl<TH: TypeHolderTrait> ScriptPort for Receiver<DedicatedWorkerScriptMsg<TH>> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         let common_msg = match self.recv() {
             Some(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
@@ -80,32 +82,32 @@ impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
     }
 }
 
-pub trait WorkerEventLoopMethods {
+pub trait WorkerEventLoopMethods<TH: TypeHolderTrait> {
     type TimerMsg: Send;
-    type WorkerMsg: QueuedTaskConversion + Send;
+    type WorkerMsg: QueuedTaskConversion<TH> + Send;
     type Event;
     fn timer_event_port(&self) -> &Receiver<Self::TimerMsg>;
-    fn task_queue(&self) -> &TaskQueue<Self::WorkerMsg>;
+    fn task_queue(&self) -> &TaskQueue<Self::WorkerMsg, TH>;
     fn handle_event(&self, event: Self::Event);
-    fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset>;
+    fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress<TH>) -> Option<AutoWorkerReset<TH>>;
     fn from_worker_msg(&self, msg: Self::WorkerMsg) -> Self::Event;
     fn from_timer_msg(&self, msg: Self::TimerMsg) -> Self::Event;
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> Self::Event;
 }
 
 // https://html.spec.whatwg.org/multipage/#worker-event-loop
-pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
+pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event, TH: TypeHolderTrait>(
     worker_scope: &T,
-    worker: Option<&TrustedWorkerAddress>,
+    worker: Option<&TrustedWorkerAddress<TH>>,
 ) where
     TimerMsg: Send,
-    WorkerMsg: QueuedTaskConversion + Send,
-    T: WorkerEventLoopMethods<TimerMsg = TimerMsg, WorkerMsg = WorkerMsg, Event = Event>
-        + DerivedFrom<WorkerGlobalScope>
-        + DerivedFrom<GlobalScope>
+    WorkerMsg: QueuedTaskConversion<TH> + Send,
+    T: WorkerEventLoopMethods<TH, TimerMsg = TimerMsg, WorkerMsg = WorkerMsg, Event = Event>
+        + DerivedFrom<WorkerGlobalScope<TH>>
+        + DerivedFrom<GlobalScope<TH>>
         + DomObject,
 {
-    let scope = worker_scope.upcast::<WorkerGlobalScope>();
+    let scope = worker_scope.upcast::<WorkerGlobalScope<TH>>();
     let timer_event_port = worker_scope.timer_event_port();
     let devtools_port = match scope.from_devtools_sender() {
         Some(_) => Some(scope.from_devtools_receiver().select()),
@@ -150,7 +152,7 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
             None => None,
         };
         worker_scope
-            .upcast::<GlobalScope>()
+            .upcast::<GlobalScope<TH>>()
             .perform_a_microtask_checkpoint();
     }
 }

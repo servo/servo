@@ -73,7 +73,7 @@ use style::values::specified::{AbsoluteLength, source_size_list::SourceSizeList}
 use style::values::specified::length::{Length, NoCalcLength};
 use style_traits::ParsingMode;
 use task_source::{TaskSource, TaskSourceName};
-
+use typeholder::TypeHolderTrait;
 enum ParseState {
     InDescriptor,
     InParens,
@@ -122,11 +122,11 @@ enum ImageRequestPhase {
 }
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
-struct ImageRequest {
+struct ImageRequest<TH: TypeHolderTrait> {
     state: State,
     parsed_url: Option<ServoUrl>,
     source_url: Option<DOMString>,
-    blocker: Option<LoadBlocker>,
+    blocker: Option<LoadBlocker<TH>>,
     #[ignore_malloc_size_of = "Arc"]
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
@@ -134,19 +134,19 @@ struct ImageRequest {
     current_pixel_density: Option<f64>,
 }
 #[dom_struct]
-pub struct HTMLImageElement {
-    htmlelement: HTMLElement,
+pub struct HTMLImageElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     image_request: Cell<ImageRequestPhase>,
-    current_request: DomRefCell<ImageRequest>,
-    pending_request: DomRefCell<ImageRequest>,
-    form_owner: MutNullableDom<HTMLFormElement>,
+    current_request: DomRefCell<ImageRequest<TH>>,
+    pending_request: DomRefCell<ImageRequest<TH>>,
+    form_owner: MutNullableDom<HTMLFormElement<TH>>,
     generation: Cell<u32>,
     #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
     last_selected_source: DomRefCell<Option<DOMString>>,
 }
 
-impl HTMLImageElement {
+impl<TH: TypeHolderTrait> HTMLImageElement<TH> {
     pub fn get_url(&self) -> Option<ServoUrl> {
         self.current_request.borrow().parsed_url.clone()
     }
@@ -227,13 +227,13 @@ impl PreInvoke for ImageContext {
     }
 }
 
-impl HTMLImageElement {
+impl<TH: TypeHolderTrait> HTMLImageElement<TH> {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
-        fn add_cache_listener_for_element(
+        fn add_cache_listener_for_element<THH: TypeHolderTrait>(
             image_cache: Arc<ImageCache>,
             id: PendingImageId,
-            elem: &HTMLImageElement,
+            elem: &HTMLImageElement<THH>,
         ) {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -347,7 +347,7 @@ impl HTMLImageElement {
         self.current_request.borrow_mut().state = State::CompletelyAvailable;
         LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
         // Mark the node dirty
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node<TH>>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     /// Step 24 of https://html.spec.whatwg.org/multipage/#update-the-image-data
@@ -398,14 +398,16 @@ impl HTMLImageElement {
         // Fire image.onload and loadend
         if trigger_image_load {
             // TODO: https://html.spec.whatwg.org/multipage/#fire-a-progress-event-or-event
-            self.upcast::<EventTarget>().fire_event(atom!("load"));
-            self.upcast::<EventTarget>().fire_event(atom!("loadend"));
+            self.upcast::<EventTarget<TH>>().fire_event(atom!("load"));
+            self.upcast::<EventTarget<TH>>()
+                .fire_event(atom!("loadend"));
         }
 
         // Fire image.onerror
         if trigger_image_error {
-            self.upcast::<EventTarget>().fire_event(atom!("error"));
-            self.upcast::<EventTarget>().fire_event(atom!("loadend"));
+            self.upcast::<EventTarget<TH>>().fire_event(atom!("error"));
+            self.upcast::<EventTarget<TH>>()
+                .fire_event(atom!("loadend"));
         }
 
         // Trigger reflow
@@ -457,15 +459,15 @@ impl HTMLImageElement {
         *self.source_set.borrow_mut() = SourceSet::new();
 
         // Step 2
-        let elem = self.upcast::<Element>();
-        let parent = elem.upcast::<Node>().GetParentElement();
+        let elem = self.upcast::<Element<TH>>();
+        let parent = elem.upcast::<Node<TH>>().GetParentElement();
         let nodes;
         let elements = match parent.as_ref() {
             Some(p) => {
-                if p.is::<HTMLPictureElement>() {
-                    nodes = p.upcast::<Node>().children();
+                if p.is::<HTMLPictureElement<TH>>() {
+                    nodes = p.upcast::<Node<TH>>().children();
                     nodes
-                        .filter_map(DomRoot::downcast::<Element>)
+                        .filter_map(DomRoot::downcast::<Element<TH>>)
                         .map(|n| DomRoot::from_ref(&*n))
                         .collect()
                 } else {
@@ -534,7 +536,7 @@ impl HTMLImageElement {
                 return;
             }
             // Step 4.2
-            if !element.is::<HTMLSourceElement>() {
+            if !element.is::<HTMLSourceElement<TH>>() {
                 continue;
             }
 
@@ -712,13 +714,13 @@ impl HTMLImageElement {
         let selected_source = img_sources.remove(best_candidate.1).clone();
         Some((
             DOMString::from_string(selected_source.url),
-            selected_source.descriptor.den.unwrap() as f64,
+            selected_source.descriptor.den.unwrap(),
         ))
     }
 
     fn init_image_request(
         &self,
-        request: &mut RefMut<ImageRequest>,
+        request: &mut RefMut<ImageRequest<TH>>,
         url: &ServoUrl,
         src: &DOMString,
     ) {
@@ -799,11 +801,10 @@ impl HTMLImageElement {
                             current_request.source_url = None;
                             current_request.parsed_url = None;
                         }
-                        let elem = this.upcast::<Element>();
+                        let elem = this.upcast::<Element<TH>>();
                         let src_present = elem.has_attribute(&local_name!("src"));
 
                         if src_present || Self::uses_srcset_or_picture(elem) {
-                            this.upcast::<EventTarget>().fire_event(atom!("error"));
                         }
                         // FIXME(nox): According to the spec, setting the current
                         // request to the broken state is done prior to queuing a
@@ -817,7 +818,7 @@ impl HTMLImageElement {
             },
         };
         // Step 10.
-        let target = Trusted::new(self.upcast::<EventTarget>());
+        let target = Trusted::new(self.upcast::<EventTarget<TH>>());
         // FIXME(nox): Why are errors silenced here?
         let _ = task_source.queue(
             task!(fire_progress_event: move || {
@@ -832,7 +833,7 @@ impl HTMLImageElement {
                     0,
                     0,
                 );
-                event.upcast::<Event>().fire(&target);
+                event.upcast::<Event<TH>>().fire(&target);
             }),
             window.upcast(),
         );
@@ -856,8 +857,8 @@ impl HTMLImageElement {
                                 this.current_request.borrow_mut();
                             current_request.source_url = Some(src.into());
                         }
-                        this.upcast::<EventTarget>().fire_event(atom!("error"));
-                        this.upcast::<EventTarget>().fire_event(atom!("loadend"));
+                        this.upcast::<EventTarget<TH>>().fire_event(atom!("error"));
+                        this.upcast::<EventTarget<TH>>().fire_event(atom!("loadend"));
 
                         // FIXME(nox): According to the spec, setting the current
                         // request to the broken state is done prior to queuing a
@@ -875,7 +876,7 @@ impl HTMLImageElement {
     pub fn update_the_image_data(&self) {
         let document = document_from_node(self);
         let window = document.window();
-        let elem = self.upcast::<Element>();
+        let elem = self.upcast::<Element<TH>>();
         let src = elem.get_string_attribute(&local_name!("src"));
         let base_url = document.base_url();
 
@@ -900,9 +901,9 @@ impl HTMLImageElement {
         let mut pixel_density = None;
         let src_set = elem.get_string_attribute(&local_name!("srcset"));
         let is_parent_picture = elem
-            .upcast::<Node>()
+            .upcast::<Node<TH>>()
             .GetParentElement()
-            .map_or(false, |p| p.is::<HTMLPictureElement>());
+            .map_or(false, |p| p.is::<HTMLPictureElement<TH>>());
         if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
             selected_source = Some(src.clone());
             pixel_density = Some(1 as f64);
@@ -950,7 +951,7 @@ impl HTMLImageElement {
                                 current_request.source_url = Some(src.into());
                             }
                             // TODO: restart animation, if set.
-                            this.upcast::<EventTarget>().fire_event(atom!("load"));
+                            this.upcast::<EventTarget<TH>>().fire_event(atom!("load"));
                         }),
                         window.upcast(),
                     );
@@ -964,7 +965,7 @@ impl HTMLImageElement {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
-        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+        ScriptThread::<TH>::await_stable_state(Microtask::ImageElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
@@ -980,10 +981,10 @@ impl HTMLImageElement {
     /// Step 2-12 of https://html.spec.whatwg.org/multipage/#img-environment-changes
     fn react_to_environment_changes_sync_steps(&self, generation: u32) {
         // TODO reduce duplicacy of this code
-        fn add_cache_listener_for_element(
+        fn add_cache_listener_for_element<THH: TypeHolderTrait>(
             image_cache: Arc<ImageCache>,
             id: PendingImageId,
-            elem: &HTMLImageElement,
+            elem: &HTMLImageElement<THH>,
             selected_source: String,
             selected_pixel_density: f64,
         ) {
@@ -1017,7 +1018,7 @@ impl HTMLImageElement {
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
         }
 
-        let elem = self.upcast::<Element>();
+        let elem = self.upcast::<Element<TH>>();
         let document = document_from_node(elem);
         let has_pending_request = match self.image_request.get() {
             ImageRequestPhase::Pending => true,
@@ -1163,29 +1164,29 @@ impl HTMLImageElement {
                 }
 
                 // Step 15.6
-                this.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                this.upcast::<Node<TH>>().dirty(NodeDamage::OtherNodeDamage);
 
                 // Step 15.7
-                this.upcast::<EventTarget>().fire_event(atom!("load"));
+                this.upcast::<EventTarget<TH>>().fire_event(atom!("load"));
             }),
             window.upcast(),
         );
     }
 
-    fn uses_srcset_or_picture(elem: &Element) -> bool {
+    fn uses_srcset_or_picture(elem: &Element<TH>) -> bool {
         let has_src = elem.has_attribute(&local_name!("srcset"));
         let is_parent_picture = elem
-            .upcast::<Node>()
+            .upcast::<Node<TH>>()
             .GetParentElement()
-            .map_or(false, |p| p.is::<HTMLPictureElement>());
+            .map_or(false, |p| p.is::<HTMLPictureElement<TH>>());
         has_src || is_parent_picture
     }
 
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLImageElement {
+        document: &Document<TH>,
+    ) -> HTMLImageElement<TH> {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
@@ -1220,9 +1221,9 @@ impl HTMLImageElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLImageElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLImageElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLImageElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -1232,10 +1233,10 @@ impl HTMLImageElement {
     }
 
     pub fn Image(
-        window: &Window,
+        window: &Window<TH>,
         width: Option<u32>,
         height: Option<u32>,
-    ) -> Fallible<DomRoot<HTMLImageElement>> {
+    ) -> Fallible<DomRoot<HTMLImageElement<TH>>> {
         let document = window.Document();
         let image = HTMLImageElement::new(local_name!("img"), None, &document);
         if let Some(w) = width {
@@ -1247,8 +1248,8 @@ impl HTMLImageElement {
 
         Ok(image)
     }
-    pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
-        let elem = self.upcast::<Element>();
+    pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement<TH>>>> {
+        let elem = self.upcast::<Element<TH>>();
         let usemap_attr = elem.get_attribute(&ns!(), &local_name!("usemap"))?;
 
         let value = usemap_attr.value();
@@ -1264,11 +1265,11 @@ impl HTMLImageElement {
         }
 
         let useMapElements = document_from_node(self)
-            .upcast::<Node>()
+            .upcast::<Node<TH>>()
             .traverse_preorder()
-            .filter_map(DomRoot::downcast::<HTMLMapElement>)
+            .filter_map(DomRoot::downcast::<HTMLMapElement<TH>>)
             .find(|n| {
-                n.upcast::<Element>()
+                n.upcast::<Element<TH>>()
                     .get_string_attribute(&LocalName::from("name")) ==
                     last
             });
@@ -1284,18 +1285,18 @@ impl HTMLImageElement {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum ImageElementMicrotask {
+pub enum ImageElementMicrotask<TH: TypeHolderTrait> {
     StableStateUpdateImageDataTask {
-        elem: DomRoot<HTMLImageElement>,
+        elem: DomRoot<HTMLImageElement<TH>>,
         generation: u32,
     },
     EnvironmentChangesTask {
-        elem: DomRoot<HTMLImageElement>,
+        elem: DomRoot<HTMLImageElement<TH>>,
         generation: u32,
     },
 }
 
-impl MicrotaskRunnable for ImageElementMicrotask {
+impl<TH: TypeHolderTrait> MicrotaskRunnable for ImageElementMicrotask<TH> {
     fn handler(&self) {
         match self {
             &ImageElementMicrotask::StableStateUpdateImageDataTask {
@@ -1332,7 +1333,7 @@ pub trait LayoutHTMLImageElementHelpers {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
+impl<TH: TypeHolderTrait> LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement<TH>> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
         (*self.unsafe_get())
@@ -1363,7 +1364,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
     #[allow(unsafe_code)]
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            (*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
@@ -1374,7 +1375,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
     #[allow(unsafe_code)]
     fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            (*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("height"))
                 .map(AttrValue::as_dimension)
                 .cloned()
@@ -1402,7 +1403,7 @@ pub fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
     SourceSizeList::parse(&context, &mut parser)
 }
 
-impl HTMLImageElementMethods for HTMLImageElement {
+impl<TH: TypeHolderTrait> HTMLImageElementMethods for HTMLImageElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_getter!(Alt, "alt");
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
@@ -1421,12 +1422,12 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
-        reflect_cross_origin_attribute(self.upcast::<Element>())
+        reflect_cross_origin_attribute(self.upcast::<Element<TH>>())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value);
+        set_cross_origin_attribute(self.upcast::<Element<TH>>(), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
@@ -1441,7 +1442,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         match node.bounding_content_box() {
             Some(rect) => rect.size.width.to_px() as u32,
             None => self.NaturalWidth(),
@@ -1455,7 +1456,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         match node.bounding_content_box() {
             Some(rect) => rect.size.height.to_px() as u32,
             None => self.NaturalHeight(),
@@ -1491,14 +1492,14 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(&self) -> bool {
-        let elem = self.upcast::<Element>();
+        let elem = self.upcast::<Element<TH>>();
         let srcset_absent = !elem.has_attribute(&local_name!("srcset"));
         if !elem.has_attribute(&local_name!("src")) && srcset_absent {
-            return true
+            return true;
         }
         let src = elem.get_string_attribute(&local_name!("src"));
         if srcset_absent && src.is_empty() {
-            return true
+            return true;
         }
         let request = self.current_request.borrow();
         let request_state = request.state;
@@ -1561,17 +1562,17 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_setter!(SetBorder, "border");
 }
 
-impl VirtualMethods for HTMLImageElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLImageElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn adopting_steps(&self, old_doc: &Document) {
+    fn adopting_steps(&self, old_doc: &Document<TH>) {
         self.super_type().unwrap().adopting_steps(old_doc);
         self.update_the_image_data();
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("src") | &local_name!("srcset")  |
@@ -1595,7 +1596,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event<TH>) {
         if event.type_() != atom!("click") {
             return;
         }
@@ -1607,7 +1608,7 @@ impl VirtualMethods for HTMLImageElement {
         };
 
         // Fetch click coordinates
-        let mouse_event = match event.downcast::<MouseEvent>() {
+        let mouse_event = match event.downcast::<MouseEvent<TH>>() {
             Some(x) => x,
             None => return,
         };
@@ -1616,7 +1617,7 @@ impl VirtualMethods for HTMLImageElement {
             mouse_event.ClientX().to_f32().unwrap(),
             mouse_event.ClientY().to_f32().unwrap(),
         );
-        let bcr = self.upcast::<Element>().GetBoundingClientRect();
+        let bcr = self.upcast::<Element<TH>>().GetBoundingClientRect();
         let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
 
         // Walk HTMLAreaElements
@@ -1644,37 +1645,37 @@ impl VirtualMethods for HTMLImageElement {
 
         // The element is inserted into a picture parent element
         // https://html.spec.whatwg.org/multipage/#relevant-mutations
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if parent.is::<HTMLPictureElement>() {
+        if let Some(parent) = self.upcast::<Node<TH>>().GetParentElement() {
+            if parent.is::<HTMLPictureElement<TH>>() {
                 self.update_the_image_data();
             }
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
         let document = document_from_node(self);
         document.unregister_responsive_image(self);
 
         // The element is removed from a picture parent element
         // https://html.spec.whatwg.org/multipage/#relevant-mutations
-        if context.parent.is::<HTMLPictureElement>() {
+        if context.parent.is::<HTMLPictureElement<TH>>() {
             self.update_the_image_data();
         }
     }
 }
 
-impl FormControl for HTMLImageElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLImageElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>) {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 
     fn is_listed(&self) -> bool {
@@ -1682,7 +1683,7 @@ impl FormControl for HTMLImageElement {
     }
 }
 
-fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
+fn image_dimension_setter<TH: TypeHolderTrait>(element: &Element<TH>, attr: LocalName, value: u32) {
     // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
     // a dimension for rendering.
     let value = if value > UNSIGNED_LONG_MAX { 0 } else { value };

@@ -28,20 +28,21 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread::Builder;
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct OfflineAudioContext {
-    context: BaseAudioContext,
+pub struct OfflineAudioContext<TH: TypeHolderTrait> {
+    context: BaseAudioContext<TH>,
     channel_count: u32,
     length: u32,
     rendering_started: Cell<bool>,
     #[ignore_malloc_size_of = "promises are hard"]
-    pending_rendering_promise: DomRefCell<Option<Rc<Promise>>>,
+    pending_rendering_promise: DomRefCell<Option<Rc<Promise<TH>>>>,
 }
 
-impl OfflineAudioContext {
+impl<TH: TypeHolderTrait> OfflineAudioContext<TH> {
     #[allow(unrooted_must_root)]
-    fn new_inherited(channel_count: u32, length: u32, sample_rate: f32) -> OfflineAudioContext {
+    fn new_inherited(channel_count: u32, length: u32, sample_rate: f32) -> OfflineAudioContext<TH> {
         let options = ServoMediaOfflineAudioContextOptions {
             channels: channel_count as u8,
             length: length as usize,
@@ -60,11 +61,11 @@ impl OfflineAudioContext {
 
     #[allow(unrooted_must_root)]
     fn new(
-        window: &Window,
+        window: &Window<TH>,
         channel_count: u32,
         length: u32,
         sample_rate: f32,
-    ) -> Fallible<DomRoot<OfflineAudioContext>> {
+    ) -> Fallible<DomRoot<OfflineAudioContext<TH>>> {
         if channel_count > MAX_CHANNEL_COUNT ||
             channel_count <= 0 ||
             length <= 0 ||
@@ -82,9 +83,9 @@ impl OfflineAudioContext {
     }
 
     pub fn Constructor(
-        window: &Window,
+        window: &Window<TH>,
         options: &OfflineAudioContextOptions,
-    ) -> Fallible<DomRoot<OfflineAudioContext>> {
+    ) -> Fallible<DomRoot<OfflineAudioContext<TH>>> {
         OfflineAudioContext::new(
             window,
             options.numberOfChannels,
@@ -94,16 +95,16 @@ impl OfflineAudioContext {
     }
 
     pub fn Constructor_(
-        window: &Window,
+        window: &Window<TH>,
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
-    ) -> Fallible<DomRoot<OfflineAudioContext>> {
+    ) -> Fallible<DomRoot<OfflineAudioContext<TH>>> {
         OfflineAudioContext::new(window, number_of_channels, length, *sample_rate)
     }
 }
 
-impl OfflineAudioContextMethods for OfflineAudioContext {
+impl<TH: TypeHolderTrait> OfflineAudioContextMethods<TH> for OfflineAudioContext<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-oncomplete
     event_handler!(complete, GetOncomplete, SetOncomplete);
 
@@ -114,7 +115,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering
     #[allow(unrooted_must_root)]
-    fn StartRendering(&self) -> Rc<Promise> {
+    fn StartRendering(&self) -> Rc<Promise<TH>> {
         let promise = Promise::new(&self.global());
         if self.rendering_started.get() {
             promise.reject_error(Error::InvalidState);
@@ -169,7 +170,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                                                                      EventBubbles::DoesNotBubble,
                                                                      EventCancelable::NotCancelable,
                                                                      &buffer);
-                        event.upcast::<Event>().fire(this.upcast());
+                        event.upcast::<Event<TH>>().fire(this.upcast());
                     }),
                     &canceller,
                 );

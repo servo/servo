@@ -21,11 +21,12 @@ use js::typedarray::{Float64Array, CreateWith};
 use std::cell::Cell;
 use std::ptr;
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 
 #[dom_struct]
-pub struct Gamepad {
-    reflector_: Reflector,
+pub struct Gamepad<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     gamepad_id: u32,
     id: String,
     index: Cell<i32>,
@@ -33,14 +34,14 @@ pub struct Gamepad {
     timestamp: Cell<f64>,
     mapping_type: String,
     axes: Heap<*mut JSObject>,
-    buttons: Dom<GamepadButtonList>,
-    pose: Option<Dom<VRPose>>,
+    buttons: Dom<GamepadButtonList<TH>>,
+    pose: Option<Dom<VRPose<TH>>>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     hand: WebVRGamepadHand,
     display_id: u32,
 }
 
-impl Gamepad {
+impl<TH: TypeHolderTrait> Gamepad<TH> {
     fn new_inherited(
         gamepad_id: u32,
         id: String,
@@ -48,11 +49,11 @@ impl Gamepad {
         connected: bool,
         timestamp: f64,
         mapping_type: String,
-        buttons: &GamepadButtonList,
-        pose: Option<&VRPose>,
+        buttons: &GamepadButtonList<TH>,
+        pose: Option<&VRPose<TH>>,
         hand: WebVRGamepadHand,
         display_id: u32,
-    ) -> Gamepad {
+    ) -> Gamepad<TH> {
         Self {
             reflector_: Reflector::new(),
             gamepad_id: gamepad_id,
@@ -71,11 +72,11 @@ impl Gamepad {
 
     #[allow(unsafe_code)]
     pub fn new_from_vr(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         index: i32,
         data: &WebVRGamepadData,
         state: &WebVRGamepadState,
-    ) -> DomRoot<Gamepad> {
+    ) -> DomRoot<Gamepad<TH>> {
         let buttons = GamepadButtonList::new_from_vr(&global, &state.buttons);
         let pose = VRPose::new(&global, &state.pose);
 
@@ -107,7 +108,7 @@ impl Gamepad {
     }
 }
 
-impl GamepadMethods for Gamepad {
+impl<TH: TypeHolderTrait> GamepadMethods<TH> for Gamepad<TH> {
     // https://w3c.github.io/gamepad/#dom-gamepad-id
     fn Id(&self) -> DOMString {
         DOMString::from(self.id.clone())
@@ -140,7 +141,7 @@ impl GamepadMethods for Gamepad {
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
-    fn Buttons(&self) -> DomRoot<GamepadButtonList> {
+    fn Buttons(&self) -> DomRoot<GamepadButtonList<TH>> {
         DomRoot::from_ref(&*self.buttons)
     }
 
@@ -155,7 +156,7 @@ impl GamepadMethods for Gamepad {
     }
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepad-pose
-    fn GetPose(&self) -> Option<DomRoot<VRPose>> {
+    fn GetPose(&self) -> Option<DomRoot<VRPose<TH>>> {
         self.pose.as_ref().map(|p| DomRoot::from_ref(&**p))
     }
 
@@ -165,7 +166,7 @@ impl GamepadMethods for Gamepad {
     }
 }
 
-impl Gamepad {
+impl<TH: TypeHolderTrait> Gamepad<TH> {
     #[allow(unsafe_code)]
     pub fn update_from_vr(&self, state: &WebVRGamepadState) {
         self.timestamp.set(state.timestamp);
@@ -209,7 +210,7 @@ impl Gamepad {
     pub fn notify_event(&self, event_type: GamepadEventType) {
         let event = GamepadEvent::new_with_type(&self.global(), event_type, &self);
         event
-            .upcast::<Event>()
-            .fire(self.global().as_window().upcast::<EventTarget>());
+            .upcast::<Event<TH>>()
+            .fire(self.global().as_window().upcast::<EventTarget<TH>>());
     }
 }

@@ -52,6 +52,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -62,28 +63,28 @@ pub enum BaseAudioContextOptions {
 
 #[must_root]
 #[derive(JSTraceable)]
-struct DecodeResolver {
-    pub promise: Rc<Promise>,
-    pub success_callback: Option<Rc<DecodeSuccessCallback>>,
-    pub error_callback: Option<Rc<DecodeErrorCallback>>,
+struct DecodeResolver<TH: TypeHolderTrait> {
+    pub promise: Rc<Promise<TH>>,
+    pub success_callback: Option<Rc<DecodeSuccessCallback<TH>>>,
+    pub error_callback: Option<Rc<DecodeErrorCallback<TH>>>,
 }
 
 #[dom_struct]
-pub struct BaseAudioContext {
-    eventtarget: EventTarget,
+pub struct BaseAudioContext<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     #[ignore_malloc_size_of = "servo_media"]
     audio_context_impl: AudioContext<Backend>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
-    destination: MutNullableDom<AudioDestinationNode>,
-    listener: MutNullableDom<AudioListener>,
+    destination: MutNullableDom<AudioDestinationNode<TH>>,
+    listener: MutNullableDom<AudioListener<TH>>,
     /// Resume promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
-    in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise<TH>>]>, ErrorResult)>>,
     /// https://webaudio.github.io/web-audio-api/#pendingresumepromises
     #[ignore_malloc_size_of = "promises are hard"]
-    pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,
+    pending_resume_promises: DomRefCell<Vec<Rc<Promise<TH>>>>,
     #[ignore_malloc_size_of = "promises are hard"]
-    decode_resolvers: DomRefCell<HashMap<String, DecodeResolver>>,
+    decode_resolvers: DomRefCell<HashMap<String, DecodeResolver<TH>>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
     sample_rate: f32,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
@@ -95,9 +96,9 @@ pub struct BaseAudioContext {
     channel_count: u32,
 }
 
-impl BaseAudioContext {
+impl<TH: TypeHolderTrait> BaseAudioContext<TH> {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(options: BaseAudioContextOptions) -> BaseAudioContext {
+    pub fn new_inherited(options: BaseAudioContextOptions) -> BaseAudioContext<TH> {
         let (sample_rate, channel_count) = match options {
             BaseAudioContextOptions::AudioContext(ref opt) => (opt.sample_rate, 2),
             BaseAudioContextOptions::OfflineAudioContext(ref opt) => {
@@ -146,7 +147,7 @@ impl BaseAudioContext {
     }
 
     #[allow(unrooted_must_root)]
-    fn push_pending_resume_promise(&self, promise: &Rc<Promise>) {
+    fn push_pending_resume_promise(&self, promise: &Rc<Promise<TH>>) {
         self.pending_resume_promises
             .borrow_mut()
             .push(promise.clone());
@@ -224,7 +225,7 @@ impl BaseAudioContext {
                         this.fulfill_in_flight_resume_promises(|| {
                             if this.state.get() != AudioContextState::Running {
                                 this.state.set(AudioContextState::Running);
-                                let window = DomRoot::downcast::<Window>(this.global()).unwrap();
+                                let window = DomRoot::downcast::<Window<TH>>(this.global()).unwrap();
                                 window.dom_manipulation_task_source().queue_simple_event(
                                     this.upcast(),
                                     atom!("statechange"),
@@ -251,7 +252,7 @@ impl BaseAudioContext {
     }
 }
 
-impl BaseAudioContextMethods for BaseAudioContext {
+impl<TH: TypeHolderTrait> BaseAudioContextMethods<TH> for BaseAudioContext<TH> {
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)
@@ -270,7 +271,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
     #[allow(unrooted_must_root)]
-    fn Resume(&self) -> Rc<Promise> {
+    fn Resume(&self) -> Rc<Promise<TH>> {
         // Step 1.
         let promise = Promise::new(&self.global());
 
@@ -301,7 +302,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
-    fn Destination(&self) -> DomRoot<AudioDestinationNode> {
+    fn Destination(&self) -> DomRoot<AudioDestinationNode<TH>> {
         let global = self.global();
         self.destination.or_init(|| {
             let mut options = AudioNodeOptions::empty();
@@ -313,7 +314,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener
-    fn Listener(&self) -> DomRoot<AudioListener> {
+    fn Listener(&self) -> DomRoot<AudioListener<TH>> {
         let global = self.global();
         let window = global.as_window();
         self.listener.or_init(|| AudioListener::new(&window, self))
@@ -323,7 +324,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator
-    fn CreateOscillator(&self) -> Fallible<DomRoot<OscillatorNode>> {
+    fn CreateOscillator(&self) -> Fallible<DomRoot<OscillatorNode<TH>>> {
         OscillatorNode::new(
             &self.global().as_window(),
             &self,
@@ -332,39 +333,38 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain
-    fn CreateGain(&self) -> Fallible<DomRoot<GainNode>> {
+    fn CreateGain(&self) -> Fallible<DomRoot<GainNode<TH>>> {
         GainNode::new(&self.global().as_window(), &self, &GainOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner
-    fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode>> {
+    fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode<TH>>> {
         PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser
-    fn CreateAnalyser(&self) -> Fallible<DomRoot<AnalyserNode>> {
+    fn CreateAnalyser(&self) -> Fallible<DomRoot<AnalyserNode<TH>>> {
         AnalyserNode::new(&self.global().as_window(), &self, &AnalyserOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter
-    fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
+    fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode<TH>>> {
         BiquadFilterNode::new(&self.global().as_window(), &self, &BiquadFilterOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
-    fn CreateChannelMerger(&self, count: u32) -> Fallible<DomRoot<ChannelMergerNode>> {
+    fn CreateChannelMerger(&self, count: u32) -> Fallible<DomRoot<ChannelMergerNode<TH>>> {
         let mut opts = ChannelMergerOptions::empty();
         opts.numberOfInputs = count;
         ChannelMergerNode::new(&self.global().as_window(), &self, &opts)
     }
-
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
     fn CreateBuffer(
         &self,
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
-    ) -> Fallible<DomRoot<AudioBuffer>> {
+    ) -> Fallible<DomRoot<AudioBuffer<TH>>> {
         if number_of_channels <= 0 ||
             number_of_channels > MAX_CHANNEL_COUNT ||
             length <= 0 ||
@@ -382,7 +382,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource
-    fn CreateBufferSource(&self) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+    fn CreateBufferSource(&self) -> Fallible<DomRoot<AudioBufferSourceNode<TH>>> {
         AudioBufferSourceNode::new(
             &self.global().as_window(),
             &self,
@@ -395,9 +395,9 @@ impl BaseAudioContextMethods for BaseAudioContext {
     fn DecodeAudioData(
         &self,
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,
-        decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
-        decode_error_callback: Option<Rc<DecodeErrorCallback>>,
-    ) -> Rc<Promise> {
+        decode_success_callback: Option<Rc<DecodeSuccessCallback<TH>>>,
+        decode_error_callback: Option<Rc<DecodeErrorCallback<TH>>>,
+    ) -> Rc<Promise<TH>> {
         // Step 1.
         let promise = Promise::new(&self.global());
         let global = self.global();

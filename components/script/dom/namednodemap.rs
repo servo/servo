@@ -15,22 +15,23 @@ use dom::element::Element;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct NamedNodeMap {
-    reflector_: Reflector,
-    owner: Dom<Element>,
+pub struct NamedNodeMap<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    owner: Dom<Element<TH>>,
 }
 
-impl NamedNodeMap {
-    fn new_inherited(elem: &Element) -> NamedNodeMap {
+impl<TH: TypeHolderTrait> NamedNodeMap<TH> {
+    fn new_inherited(elem: &Element<TH>) -> NamedNodeMap<TH> {
         NamedNodeMap {
             reflector_: Reflector::new(),
             owner: Dom::from_ref(elem),
         }
     }
 
-    pub fn new(window: &Window, elem: &Element) -> DomRoot<NamedNodeMap> {
+    pub fn new(window: &Window<TH>, elem: &Element<TH>) -> DomRoot<NamedNodeMap<TH>> {
         reflect_dom_object(
             Box::new(NamedNodeMap::new_inherited(elem)),
             window,
@@ -39,14 +40,14 @@ impl NamedNodeMap {
     }
 }
 
-impl NamedNodeMapMethods for NamedNodeMap {
+impl<TH: TypeHolderTrait> NamedNodeMapMethods<TH> for NamedNodeMap<TH> {
     // https://dom.spec.whatwg.org/#dom-namednodemap-length
     fn Length(&self) -> u32 {
         self.owner.attrs().len() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
-    fn Item(&self, index: u32) -> Option<DomRoot<Attr>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<Attr<TH>>> {
         self.owner
             .attrs()
             .get(index as usize)
@@ -54,7 +55,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
-    fn GetNamedItem(&self, name: DOMString) -> Option<DomRoot<Attr>> {
+    fn GetNamedItem(&self, name: DOMString) -> Option<DomRoot<Attr<TH>>> {
         self.owner.get_attribute_by_name(name)
     }
 
@@ -63,23 +64,23 @@ impl NamedNodeMapMethods for NamedNodeMap {
         &self,
         namespace: Option<DOMString>,
         local_name: DOMString,
-    ) -> Option<DomRoot<Attr>> {
+    ) -> Option<DomRoot<Attr<TH>>> {
         let ns = namespace_from_domstring(namespace);
         self.owner.get_attribute(&ns, &LocalName::from(local_name))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem
-    fn SetNamedItem(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
+    fn SetNamedItem(&self, attr: &Attr<TH>) -> Fallible<Option<DomRoot<Attr<TH>>>> {
         self.owner.SetAttributeNode(attr)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns
-    fn SetNamedItemNS(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
+    fn SetNamedItemNS(&self, attr: &Attr<TH>) -> Fallible<Option<DomRoot<Attr<TH>>>> {
         self.SetNamedItem(attr)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
-    fn RemoveNamedItem(&self, name: DOMString) -> Fallible<DomRoot<Attr>> {
+    fn RemoveNamedItem(&self, name: DOMString) -> Fallible<DomRoot<Attr<TH>>> {
         let name = self.owner.parsed_name(name);
         self.owner
             .remove_attribute_by_name(&name)
@@ -91,7 +92,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
         &self,
         namespace: Option<DOMString>,
         local_name: DOMString,
-    ) -> Fallible<DomRoot<Attr>> {
+    ) -> Fallible<DomRoot<Attr<TH>>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
             .remove_attribute(&ns, &LocalName::from(local_name))
@@ -99,12 +100,12 @@ impl NamedNodeMapMethods for NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Attr>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Attr<TH>>> {
         self.Item(index)
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, name: DOMString) -> Option<DomRoot<Attr>> {
+    fn NamedGetter(&self, name: DOMString) -> Option<DomRoot<Attr<TH>>> {
         self.GetNamedItem(name)
     }
 

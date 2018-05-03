@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use script::test::size_of;
+use script_servoparser::TypeHolder;
 
 // Macro so that we can stringify type names
 // I'd really prefer the tests themselves to be run at plugin time,
@@ -11,7 +12,7 @@ macro_rules! sizeof_checker (
     ($testname: ident, $t: ident, $known_size: expr) => (
         #[test]
         fn $testname() {
-            let new = size_of::$t();
+            let new = size_of::$t::<TypeHolder>();
             let old = $known_size;
             if new < old {
                 panic!("Your changes have decreased the stack size of commonly used DOM struct {} from {} to {}. \

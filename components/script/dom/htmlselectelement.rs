@@ -34,44 +34,48 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::default::Default;
 use std::iter;
+use std::marker::PhantomData;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
+use typeholder::TypeHolderTrait;
 
 #[derive(JSTraceable, MallocSizeOf)]
-struct OptionsFilter;
-impl CollectionFilter for OptionsFilter {
-    fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool {
-        if !elem.is::<HTMLOptionElement>() {
+struct OptionsFilter<TH: TypeHolderTrait>(PhantomData<TH>);
+impl<TH: TypeHolderTrait> CollectionFilter<TH> for OptionsFilter<TH> {
+    fn filter<'a>(&self, elem: &'a Element<TH>, root: &'a Node<TH>) -> bool {
+        if !elem.is::<HTMLOptionElement<TH>>() {
             return false;
         }
 
-        let node = elem.upcast::<Node>();
+        let node = elem.upcast::<Node<TH>>();
         if root.is_parent_of(node) {
             return true;
         }
 
         match node.GetParentNode() {
-            Some(optgroup) => optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(&optgroup),
+            Some(optgroup) => {
+                optgroup.is::<HTMLOptGroupElement<TH>>() && root.is_parent_of(&optgroup)
+            },
             None => false,
         }
     }
 }
 
 #[dom_struct]
-pub struct HTMLSelectElement {
-    htmlelement: HTMLElement,
-    options: MutNullableDom<HTMLOptionsCollection>,
-    form_owner: MutNullableDom<HTMLFormElement>,
+pub struct HTMLSelectElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
+    options: MutNullableDom<HTMLOptionsCollection<TH>>,
+    form_owner: MutNullableDom<HTMLFormElement<TH>>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
-impl HTMLSelectElement {
+impl<TH: TypeHolderTrait> HTMLSelectElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLSelectElement {
+        document: &Document<TH>,
+    ) -> HTMLSelectElement<TH> {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited_with_state(
                 ElementState::IN_ENABLED_STATE,
@@ -88,9 +92,9 @@ impl HTMLSelectElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLSelectElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLSelectElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLSelectElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -100,12 +104,12 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
-    fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
-        self.upcast::<Node>().children().flat_map(|node| {
-            if node.is::<HTMLOptionElement>() {
-                let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();
+    fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement<TH>>> {
+        self.upcast::<Node<TH>>().children().flat_map(|node| {
+            if node.is::<HTMLOptionElement<TH>>() {
+                let node = DomRoot::downcast::<HTMLOptionElement<TH>>(node).unwrap();
                 Choice3::First(iter::once(node))
-            } else if node.is::<HTMLOptGroupElement>() {
+            } else if node.is::<HTMLOptGroupElement<TH>>() {
                 Choice3::Second(node.children().filter_map(DomRoot::downcast))
             } else {
                 Choice3::Third(iter::empty())
@@ -128,15 +132,15 @@ impl HTMLSelectElement {
             return;
         }
 
-        let mut first_enabled: Option<DomRoot<HTMLOptionElement>> = None;
-        let mut last_selected: Option<DomRoot<HTMLOptionElement>> = None;
+        let mut first_enabled: Option<DomRoot<HTMLOptionElement<TH>>> = None;
+        let mut last_selected: Option<DomRoot<HTMLOptionElement<TH>>> = None;
 
         for opt in self.list_of_options() {
             if opt.Selected() {
                 opt.set_selectedness(false);
                 last_selected = Some(DomRoot::from_ref(&opt));
             }
-            let element = opt.upcast::<Element>();
+            let element = opt.upcast::<Element<TH>>();
             if first_enabled.is_none() && !element.disabled_state() {
                 first_enabled = Some(DomRoot::from_ref(&opt));
             }
@@ -153,12 +157,12 @@ impl HTMLSelectElement {
         }
     }
 
-    pub fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
+    pub fn push_form_data(&self, data_set: &mut Vec<FormDatum<TH>>) {
         if self.Name().is_empty() {
             return;
         }
         for opt in self.list_of_options() {
-            let element = opt.upcast::<Element>();
+            let element = opt.upcast::<Element<TH>>();
             if opt.Selected() && element.enabled_state() {
                 data_set.push(FormDatum {
                     ty: self.Type(),
@@ -170,11 +174,11 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-pick
-    pub fn pick_option(&self, picked: &HTMLOptionElement) {
+    pub fn pick_option(&self, picked: &HTMLOptionElement<TH>) {
         if !self.Multiple() {
             let picked = picked.upcast();
             for opt in self.list_of_options() {
-                if opt.upcast::<HTMLElement>() != picked {
+                if opt.upcast::<HTMLElement<TH>>() != picked {
                     opt.set_selectedness(false);
                 }
             }
@@ -195,9 +199,9 @@ impl HTMLSelectElement {
     }
 }
 
-impl HTMLSelectElementMethods for HTMLSelectElement {
+impl<TH: TypeHolderTrait> HTMLSelectElementMethods<TH> for HTMLSelectElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
+    fn Validity(&self) -> DomRoot<ValidityState<TH>> {
         let window = window_from_node(self);
         ValidityState::new(&window, self.upcast())
     }
@@ -206,8 +210,8 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-select-add
     fn Add(
         &self,
-        _element: HTMLOptionElementOrHTMLOptGroupElement,
-        _before: Option<HTMLElementOrLong>,
+        _element: HTMLOptionElementOrHTMLOptGroupElement<TH>,
+        _before: Option<HTMLElementOrLong<TH>>,
     ) {
     }
 
@@ -218,7 +222,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner()
     }
 
@@ -250,15 +254,15 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
+    fn Labels(&self) -> DomRoot<NodeList<TH>> {
+        self.upcast::<HTMLElement<TH>>().labels()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-options
-    fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
+    fn Options(&self) -> DomRoot<HTMLOptionsCollection<TH>> {
         self.options.or_init(|| {
             let window = window_from_node(self);
-            HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter))
+            HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter(Default::default())))
         })
     }
 
@@ -273,20 +277,20 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
-    fn Item(&self, index: u32) -> Option<DomRoot<Element>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<Element<TH>>> {
         self.Options().upcast().Item(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element<TH>>> {
         self.Options().IndexedGetter(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-nameditem
-    fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
+    fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement<TH>>> {
         self.Options()
             .NamedGetter(name)
-            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
+            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement<TH>>(e))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
@@ -296,7 +300,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
     fn Remove(&self) {
-        self.upcast::<Element>().Remove()
+        self.upcast::<Element<TH>>().Remove()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
@@ -353,16 +357,16 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 }
 
-impl VirtualMethods for HTMLSelectElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLSelectElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("disabled") => {
-                let el = self.upcast::<Element>();
+                let el = self.upcast::<Element<TH>>();
                 match mutation {
                     AttributeMutation::Set(_) => {
                         el.set_disabled_state(true);
@@ -373,6 +377,7 @@ impl VirtualMethods for HTMLSelectElement {
                         el.set_enabled_state(true);
                         el.check_ancestors_disabled_state_for_form_control();
                     },
+                    AttributeMutation::_p(_) => unreachable!(),
                 }
             },
             &local_name!("form") => {
@@ -387,18 +392,18 @@ impl VirtualMethods for HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>()
+        self.upcast::<Element<TH>>()
             .check_ancestors_disabled_state_for_form_control();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
+        let node = self.upcast::<Node<TH>>();
+        let el = self.upcast::<Element<TH>>();
         if node
             .ancestors()
-            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
+            .any(|ancestor| ancestor.is::<HTMLFieldSetElement<TH>>())
         {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -417,21 +422,21 @@ impl VirtualMethods for HTMLSelectElement {
     }
 }
 
-impl FormControl for HTMLSelectElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLSelectElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>) {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 }
 
-impl Validatable for HTMLSelectElement {
+impl<TH: TypeHolderTrait> Validatable for HTMLSelectElement<TH> {
     fn is_instance_validatable(&self) -> bool {
         true
     }

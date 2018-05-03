@@ -82,6 +82,12 @@ impl ops::Deref for ByteString {
 #[derive(Clone, Default, MallocSizeOf)]
 pub struct USVString(pub String);
 
+impl<'a> From<&'a str> for USVString {
+    fn from(str: &str) -> Self {
+        USVString(String::from(str))
+    }
+}
+
 /// Returns whether `s` is a `token`, as defined by
 /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
 pub fn is_token(s: &[u8]) -> bool {

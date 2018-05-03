@@ -21,16 +21,17 @@ use html5ever::LocalName;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::iter;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct FormData {
-    reflector_: Reflector,
-    data: DomRefCell<HashMap<LocalName, Vec<FormDatum>>>,
+pub struct FormData<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    data: DomRefCell<HashMap<LocalName, Vec<FormDatum<TH>>>>,
 }
 
-impl FormData {
-    fn new_inherited(opt_form: Option<&HTMLFormElement>) -> FormData {
-        let mut hashmap: HashMap<LocalName, Vec<FormDatum>> = HashMap::new();
+impl<TH: TypeHolderTrait> FormData<TH> {
+    fn new_inherited(opt_form: Option<&HTMLFormElement<TH>>) -> FormData<TH> {
+        let mut hashmap: HashMap<LocalName, Vec<FormDatum<TH>>> = HashMap::new();
 
         if let Some(form) = opt_form {
             for datum in form.get_form_dataset(None) {
@@ -49,7 +50,10 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<&HTMLFormElement>, global: &GlobalScope) -> DomRoot<FormData> {
+    pub fn new(
+        form: Option<&HTMLFormElement<TH>>,
+        global: &GlobalScope<TH>,
+    ) -> DomRoot<FormData<TH>> {
         reflect_dom_object(
             Box::new(FormData::new_inherited(form)),
             global,
@@ -58,15 +62,15 @@ impl FormData {
     }
 
     pub fn Constructor(
-        global: &GlobalScope,
-        form: Option<&HTMLFormElement>,
-    ) -> Fallible<DomRoot<FormData>> {
+        global: &GlobalScope<TH>,
+        form: Option<&HTMLFormElement<TH>>,
+    ) -> Fallible<DomRoot<FormData<TH>>> {
         // TODO: Construct form data set for form if it is supplied
         Ok(FormData::new(form, global))
     }
 }
 
-impl FormDataMethods for FormData {
+impl<TH: TypeHolderTrait> FormDataMethods<TH> for FormData<TH> {
     // https://xhr.spec.whatwg.org/#dom-formdata-append
     fn Append(&self, name: USVString, str_value: USVString) {
         let datum = FormDatum {
@@ -86,7 +90,7 @@ impl FormDataMethods for FormData {
 
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-append
-    fn Append_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
+    fn Append_(&self, name: USVString, blob: &Blob<TH>, filename: Option<USVString>) {
         let datum = FormDatum {
             ty: DOMString::from("file"),
             name: DOMString::from(name.0.clone()),
@@ -109,7 +113,7 @@ impl FormDataMethods for FormData {
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
-    fn Get(&self, name: USVString) -> Option<FileOrUSVString> {
+    fn Get(&self, name: USVString) -> Option<FileOrUSVString<TH>> {
         self.data
             .borrow()
             .get(&LocalName::from(name.0))
@@ -122,7 +126,7 @@ impl FormDataMethods for FormData {
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-getall
-    fn GetAll(&self, name: USVString) -> Vec<FileOrUSVString> {
+    fn GetAll(&self, name: USVString) -> Vec<FileOrUSVString<TH>> {
         self.data
             .borrow()
             .get(&LocalName::from(name.0))
@@ -158,7 +162,7 @@ impl FormDataMethods for FormData {
 
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
-    fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
+    fn Set_(&self, name: USVString, blob: &Blob<TH>, filename: Option<USVString>) {
         self.data.borrow_mut().insert(
             LocalName::from(name.0.clone()),
             vec![FormDatum {
@@ -172,13 +176,17 @@ impl FormDataMethods for FormData {
     }
 }
 
-impl FormData {
+impl<TH: TypeHolderTrait> FormData<TH> {
     // https://xhr.spec.whatwg.org/#create-an-entry
     // Steps 3-4.
-    fn create_an_entry(&self, blob: &Blob, opt_filename: Option<USVString>) -> DomRoot<File> {
+    fn create_an_entry(
+        &self,
+        blob: &Blob<TH>,
+        opt_filename: Option<USVString>,
+    ) -> DomRoot<File<TH>> {
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
-            None if blob.downcast::<File>().is_none() => DOMString::from("blob"),
+            None if blob.downcast::<File<TH>>().is_none() => DOMString::from("blob"),
             None => DOMString::from(""),
         };
 
@@ -193,7 +201,7 @@ impl FormData {
         )
     }
 
-    pub fn datums(&self) -> Vec<FormDatum> {
+    pub fn datums(&self) -> Vec<FormDatum<TH>> {
         self.data
             .borrow()
             .values()
@@ -203,9 +211,9 @@ impl FormData {
     }
 }
 
-impl Iterable for FormData {
+impl<TH: TypeHolderTrait> Iterable for FormData<TH> {
     type Key = USVString;
-    type Value = FileOrUSVString;
+    type Value = FileOrUSVString<TH>;
 
     fn get_iterable_length(&self) -> u32 {
         self.data
@@ -215,7 +223,7 @@ impl Iterable for FormData {
             .sum::<usize>() as u32
     }
 
-    fn get_value_at_index(&self, n: u32) -> FileOrUSVString {
+    fn get_value_at_index(&self, n: u32) -> FileOrUSVString<TH> {
         let data = self.data.borrow();
         let value = &data
             .values()

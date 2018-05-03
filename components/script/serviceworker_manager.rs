@@ -20,17 +20,18 @@ use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::thread;
+use typeholder::TypeHolderTrait;
 
 enum Message {
     FromResource(CustomResponseMediator),
     FromConstellation(ServiceWorkerMsg),
 }
 
-pub struct ServiceWorkerManager {
+pub struct ServiceWorkerManager<TH: TypeHolderTrait> {
     // map of registered service worker descriptors
     registered_workers: HashMap<ServoUrl, ScopeThings>,
     // map of active service worker descriptors
-    active_workers: HashMap<ServoUrl, Sender<ServiceWorkerScriptMsg>>,
+    active_workers: HashMap<ServoUrl, Sender<ServiceWorkerScriptMsg<TH>>>,
     // own sender to send messages here
     own_sender: IpcSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
@@ -39,12 +40,12 @@ pub struct ServiceWorkerManager {
     resource_receiver: Receiver<CustomResponseMediator>,
 }
 
-impl ServiceWorkerManager {
+impl<TH: TypeHolderTrait> ServiceWorkerManager<TH> {
     fn new(
         own_sender: IpcSender<ServiceWorkerMsg>,
         from_constellation_receiver: Receiver<ServiceWorkerMsg>,
         resource_port: Receiver<CustomResponseMediator>,
-    ) -> ServiceWorkerManager {
+    ) -> ServiceWorkerManager<TH> {
         ServiceWorkerManager {
             registered_workers: HashMap::new(),
             active_workers: HashMap::new(),
@@ -69,7 +70,7 @@ impl ServiceWorkerManager {
         thread::Builder::new()
             .name("ServiceWorkerManager".to_owned())
             .spawn(move || {
-                ServiceWorkerManager::new(own_sender, from_constellation, resource_port)
+                ServiceWorkerManager::<TH>::new(own_sender, from_constellation, resource_port)
                     .handle_message();
             }).expect("Thread spawning failed");
     }
@@ -86,7 +87,7 @@ impl ServiceWorkerManager {
     pub fn wakeup_serviceworker(
         &mut self,
         scope_url: ServoUrl,
-    ) -> Option<Sender<ServiceWorkerScriptMsg>> {
+    ) -> Option<Sender<ServiceWorkerScriptMsg<TH>>> {
         let scope_things = self.registered_workers.get(&scope_url);
         if let Some(scope_things) = scope_things {
             let (sender, receiver) = channel();
@@ -103,7 +104,7 @@ impl ServiceWorkerManager {
                     page_info,
                 ));
             };
-            ServiceWorkerGlobalScope::run_serviceworker_scope(
+            ServiceWorkerGlobalScope::<TH>::run_serviceworker_scope(
                 scope_things.clone(),
                 sender.clone(),
                 receiver,
@@ -132,7 +133,7 @@ impl ServiceWorkerManager {
         }
     }
 
-    fn forward_message(&self, msg: DOMMessage, sender: &Sender<ServiceWorkerScriptMsg>) {
+    fn forward_message(&self, msg: DOMMessage, sender: &Sender<ServiceWorkerScriptMsg<TH>>) {
         let DOMMessage(data) = msg;
         let data = StructuredCloneData::Vector(data);
         let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(

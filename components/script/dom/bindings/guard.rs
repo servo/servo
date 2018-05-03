@@ -10,13 +10,13 @@ use servo_config::prefs::PREFS;
 
 /// A container with a condition.
 pub struct Guard<T: Clone + Copy> {
-    condition: Condition,
-    value: T,
+    pub condition: Condition,
+    pub value: T,
 }
 
 impl<T: Clone + Copy> Guard<T> {
     /// Construct a new guarded value.
-    pub const fn new(condition: Condition, value: T) -> Self {
+    pub fn new(condition: Condition, value: T) -> Self {
         Guard {
             condition: condition,
             value: value,

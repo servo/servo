@@ -8,13 +8,14 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::mimetype::MimeType;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct Plugin {
-    reflector_: Reflector,
+pub struct Plugin<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl PluginMethods for Plugin {
+impl<TH: TypeHolderTrait> PluginMethods<TH> for Plugin<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-plugin-name
     fn Name(&self) -> DOMString {
         unreachable!()
@@ -36,22 +37,22 @@ impl PluginMethods for Plugin {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-plugin-item
-    fn Item(&self, _index: u32) -> Option<DomRoot<MimeType>> {
+    fn Item(&self, _index: u32) -> Option<DomRoot<MimeType<TH>>> {
         unreachable!()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-plugin-nameditem
-    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType<TH>>> {
         unreachable!()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-plugin-item
-    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<MimeType>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<MimeType<TH>>> {
         unreachable!()
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<MimeType<TH>>> {
         unreachable!()
     }
 

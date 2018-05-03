@@ -63,6 +63,7 @@ use task_source::websocket::WebsocketTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
+use typeholder::TypeHolderTrait;
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
@@ -74,9 +75,9 @@ impl Drop for AutoCloseWorker {
 }
 
 #[dom_struct]
-pub struct GlobalScope {
-    eventtarget: EventTarget,
-    crypto: MutNullableDom<Crypto>,
+pub struct GlobalScope<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
+    crypto: MutNullableDom<Crypto<TH>>,
     next_worker_id: Cell<WorkerId>,
 
     /// Pipeline id associated with this global.
@@ -115,7 +116,7 @@ pub struct GlobalScope {
     /// including resource_thread, filemanager_thread and storage_thread
     resource_threads: ResourceThreads,
 
-    timers: OneshotTimers,
+    timers: OneshotTimers<TH>,
 
     /// The origin of the globalscope
     origin: MutableOrigin,
@@ -127,17 +128,17 @@ pub struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     #[ignore_malloc_size_of = "Rc<T> is hard"]
-    microtask_queue: Rc<MicrotaskQueue>,
+    microtask_queue: Rc<MicrotaskQueue<TH>>,
 
     /// Vector storing closing references of all workers
     #[ignore_malloc_size_of = "Arc"]
     list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
 
     /// Vector storing references of all eventsources.
-    event_source_tracker: DOMTracker<EventSource>,
+    event_source_tracker: DOMTracker<EventSource<TH>>,
 }
 
-impl GlobalScope {
+impl<TH: TypeHolderTrait> GlobalScope<TH> {
     pub fn new_inherited(
         pipeline_id: PipelineId,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -148,7 +149,7 @@ impl GlobalScope {
         resource_threads: ResourceThreads,
         timer_event_chan: IpcSender<TimerEvent>,
         origin: MutableOrigin,
-        microtask_queue: Rc<MicrotaskQueue>,
+        microtask_queue: Rc<MicrotaskQueue<TH>>,
     ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
@@ -178,7 +179,7 @@ impl GlobalScope {
             .push(AutoCloseWorker(closing_worker));
     }
 
-    pub fn track_event_source(&self, event_source: &EventSource) {
+    pub fn track_event_source(&self, event_source: &EventSource<TH>) {
         self.event_source_tracker.track(event_source);
     }
 
@@ -186,7 +187,7 @@ impl GlobalScope {
         let mut canceled_any_fetch = false;
         self.event_source_tracker
             .for_each(
-                |event_source: DomRoot<EventSource>| match event_source.ReadyState() {
+                |event_source: DomRoot<EventSource<TH>>| match event_source.ReadyState() {
                     2 => {},
                     _ => {
                         event_source.cancel();
@@ -201,7 +202,7 @@ impl GlobalScope {
     /// was created in.
     #[allow(unsafe_code)]
     pub fn from_reflector<T: DomObject>(reflector: &T) -> DomRoot<Self> {
-        unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
+        unsafe { GlobalScope::<TH>::from_object(*reflector.reflector().get_jsobject()) }
     }
 
     /// Returns the global scope of the realm that the given JS object was created in.
@@ -227,14 +228,14 @@ impl GlobalScope {
             obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
             assert!(!obj.is_null());
         }
-        GlobalScope::from_object(obj)
+        GlobalScope::<TH>::from_object(obj)
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
         Runtime::get()
     }
 
-    pub fn crypto(&self) -> DomRoot<Crypto> {
+    pub fn crypto(&self) -> DomRoot<Crypto<TH>> {
         self.crypto.or_init(|| Crypto::new(self))
     }
 
@@ -314,15 +315,15 @@ impl GlobalScope {
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
     /// for this global scope.
     pub fn api_base_url(&self) -> ServoUrl {
-        if let Some(window) = self.downcast::<Window>() {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             // https://html.spec.whatwg.org/multipage/#script-settings-for-browsing-contexts:api-base-url
             return window.Document().base_url();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             // https://html.spec.whatwg.org/multipage/#script-settings-for-workers:api-base-url
             return worker.get_url().clone();
         }
-        if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+        if let Some(worklet) = self.downcast::<WorkletGlobalScope<TH>>() {
             // https://drafts.css-houdini.org/worklets/#script-settings-for-worklets
             return worklet.base_url();
         }
@@ -331,13 +332,13 @@ impl GlobalScope {
 
     /// Get the URL for this global scope.
     pub fn get_url(&self) -> ServoUrl {
-        if let Some(window) = self.downcast::<Window>() {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.get_url();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.get_url().clone();
         }
-        if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+        if let Some(worklet) = self.downcast::<WorkletGlobalScope<TH>>() {
             // TODO: is this the right URL to return?
             return worklet.base_url();
         }
@@ -345,8 +346,9 @@ impl GlobalScope {
     }
 
     /// Extract a `Window`, panic if the global object is not a `Window`.
-    pub fn as_window(&self) -> &Window {
-        self.downcast::<Window>().expect("expected a Window scope")
+    pub fn as_window(&self) -> &Window<TH> {
+        self.downcast::<Window<TH>>()
+            .expect("expected a Window scope")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
@@ -374,7 +376,9 @@ impl GlobalScope {
         );
 
         // Step 7.
-        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+        let event_status = event
+            .upcast::<Event<TH>>()
+            .fire(self.upcast::<EventTarget<TH>>());
 
         // Step 8.
         self.in_error_reporting_mode.set(false);
@@ -382,7 +386,7 @@ impl GlobalScope {
         // Step 9.
         if event_status == EventStatus::NotCanceled {
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
-            if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+            if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope<TH>>() {
                 dedicated.forward_error_to_worker_object(error_info);
             }
         }
@@ -400,10 +404,10 @@ impl GlobalScope {
 
     /// `ScriptChan` to send messages to the event loop of this global scope.
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
-        if let Some(window) = self.downcast::<Window>() {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.script_chan();
         }
         unreachable!();
@@ -411,11 +415,11 @@ impl GlobalScope {
 
     /// `ScriptChan` to send messages to the networking task source of
     /// this global scope.
-    pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
+    pub fn networking_task_source(&self) -> NetworkingTaskSource<TH> {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.networking_task_source();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.networking_task_source();
         }
         unreachable!();
@@ -424,10 +428,10 @@ impl GlobalScope {
     /// `ScriptChan` to send messages to the remote-event task source of
     /// this global scope.
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.remote_event_task_source();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.remote_event_task_source();
         }
         unreachable!();
@@ -436,10 +440,10 @@ impl GlobalScope {
     /// `ScriptChan` to send messages to the websocket task source of
     /// this global scope.
     pub fn websocket_task_source(&self) -> WebsocketTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.websocket_task_source();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.websocket_task_source();
         }
         unreachable!();
@@ -495,7 +499,7 @@ impl GlobalScope {
 
                 if !result {
                     debug!("error evaluating Dom string");
-                    unsafe { report_pending_exception(cx, true) };
+                    unsafe { report_pending_exception::<TH>(cx, true) };
                 }
 
                 maybe_resume_unwind();
@@ -506,7 +510,7 @@ impl GlobalScope {
 
     pub fn schedule_callback(
         &self,
-        callback: OneshotTimerCallback,
+        callback: OneshotTimerCallback<TH>,
         duration: MsDuration,
     ) -> OneshotTimerHandle {
         self.timers
@@ -519,7 +523,7 @@ impl GlobalScope {
 
     pub fn set_timeout_or_interval(
         &self,
-        callback: TimerCallback,
+        callback: TimerCallback<TH>,
         arguments: Vec<HandleValue>,
         timeout: i32,
         is_interval: IsInterval,
@@ -559,10 +563,10 @@ impl GlobalScope {
     }
 
     fn timer_source(&self) -> TimerSource {
-        if self.is::<Window>() {
+        if self.is::<Window<TH>>() {
             return TimerSource::FromWindow(self.pipeline_id());
         }
-        if self.is::<WorkerGlobalScope>() {
+        if self.is::<WorkerGlobalScope<TH>>() {
             return TimerSource::FromWorker;
         }
         unreachable!();
@@ -571,10 +575,10 @@ impl GlobalScope {
     /// Returns the task canceller of this global to ensure that everything is
     /// properly cancelled when the global scope is destroyed.
     pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
-        if let Some(window) = self.downcast::<Window>() {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.task_canceller(name);
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             // Note: the "name" is not passed to the worker,
             // because 'closing' it only requires one task canceller for all task sources.
             // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing
@@ -590,7 +594,7 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub fn enqueue_microtask(&self, job: Microtask) {
+    pub fn enqueue_microtask(&self, job: Microtask<TH>) {
         self.microtask_queue.enqueue(job);
     }
 
@@ -598,27 +602,27 @@ impl GlobalScope {
     /// event loop. Used for implementing web APIs that require blocking semantics
     /// without resorting to nested event loops.
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        if let Some(window) = self.downcast::<Window>() {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.new_script_pair();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.new_script_pair();
         }
         unreachable!();
     }
 
     /// Returns the microtask queue of this global.
-    pub fn microtask_queue(&self) -> &Rc<MicrotaskQueue> {
+    pub fn microtask_queue(&self) -> &Rc<MicrotaskQueue<TH>> {
         &self.microtask_queue
     }
 
     /// Process a single event as if it were the next event
     /// in the thread queue for this global scope.
     pub fn process_event(&self, msg: CommonScriptMsg) {
-        if self.is::<Window>() {
-            return ScriptThread::process_event(msg);
+        if self.is::<Window<TH>>() {
+            return ScriptThread::<TH>::process_event(msg);
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.process_event(msg);
         }
         unreachable!();
@@ -626,11 +630,11 @@ impl GlobalScope {
 
     /// Channel to send messages to the file reading task source of
     /// this of this global scope.
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource<TH> {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.file_reading_task_source();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.file_reading_task_source();
         }
         unreachable!();
@@ -667,11 +671,11 @@ impl GlobalScope {
         incumbent_global()
     }
 
-    pub fn performance(&self) -> DomRoot<Performance> {
-        if let Some(window) = self.downcast::<Window>() {
+    pub fn performance(&self) -> DomRoot<Performance<TH>> {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.Performance();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.Performance();
         }
         unreachable!();
@@ -679,11 +683,11 @@ impl GlobalScope {
 
     /// Channel to send messages to the performance timeline task source
     /// of this global scope.
-    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
+    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource<TH> {
+        if let Some(window) = self.downcast::<Window<TH>>() {
             return window.performance_timeline_task_source();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope<TH>>() {
             return worker.performance_timeline_task_source();
         }
         unreachable!();
@@ -696,7 +700,9 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 
 /// Returns the Rust global scope from a JS global object.
 #[allow(unsafe_code)]
-unsafe fn global_scope_from_global(global: *mut JSObject) -> DomRoot<GlobalScope> {
+unsafe fn global_scope_from_global<TH: TypeHolderTrait>(
+    global: *mut JSObject,
+) -> DomRoot<GlobalScope<TH>> {
     assert!(!global.is_null());
     let clasp = get_object_class(global);
     assert_ne!(

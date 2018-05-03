@@ -11,25 +11,26 @@ use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct InputEvent {
-    uievent: UIEvent,
+pub struct InputEvent<TH: TypeHolderTrait> {
+    uievent: UIEvent<TH>,
     data: Option<DOMString>,
     is_composing: bool,
 }
 
-impl InputEvent {
+impl<TH: TypeHolderTrait> InputEvent<TH> {
     pub fn new(
-        window: &Window,
+        window: &Window<TH>,
         type_: DOMString,
         can_bubble: bool,
         cancelable: bool,
-        view: Option<&Window>,
+        view: Option<&Window<TH>>,
         detail: i32,
         data: Option<DOMString>,
         is_composing: bool,
-    ) -> DomRoot<InputEvent> {
+    ) -> DomRoot<InputEvent<TH>> {
         let ev = reflect_dom_object(
             Box::new(InputEvent {
                 uievent: UIEvent::new_inherited(),
@@ -45,10 +46,10 @@ impl InputEvent {
     }
 
     pub fn Constructor(
-        window: &Window,
+        window: &Window<TH>,
         type_: DOMString,
-        init: &InputEventBinding::InputEventInit,
-    ) -> Fallible<DomRoot<InputEvent>> {
+        init: &InputEventBinding::InputEventInit<TH>,
+    ) -> Fallible<DomRoot<InputEvent<TH>>> {
         let event = InputEvent::new(
             window,
             type_,
@@ -63,7 +64,7 @@ impl InputEvent {
     }
 }
 
-impl InputEventMethods for InputEvent {
+impl<TH: TypeHolderTrait> InputEventMethods for InputEvent<TH> {
     // https://w3c.github.io/uievents/#dom-inputevent-data
     fn GetData(&self) -> Option<DOMString> {
         self.data.clone()

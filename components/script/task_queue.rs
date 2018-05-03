@@ -14,9 +14,10 @@ use std::collections::{HashMap, VecDeque};
 use std::default::Default;
 use task::TaskBox;
 use task_source::TaskSourceName;
+use typeholder::TypeHolderTrait;
 
-pub type QueuedTask = (
-    Option<TrustedWorkerAddress>,
+pub type QueuedTask<TH> = (
+    Option<TrustedWorkerAddress<TH>>,
     ScriptThreadEventCategory,
     Box<TaskBox>,
     Option<PipelineId>,
@@ -24,15 +25,15 @@ pub type QueuedTask = (
 );
 
 /// Defining the operations used to convert from a msg T to a QueuedTask.
-pub trait QueuedTaskConversion {
+pub trait QueuedTaskConversion<TH: TypeHolderTrait> {
     fn task_source_name(&self) -> Option<&TaskSourceName>;
-    fn into_queued_task(self) -> Option<QueuedTask>;
-    fn from_queued_task(queued_task: QueuedTask) -> Self;
+    fn into_queued_task(self) -> Option<QueuedTask<TH>>;
+    fn from_queued_task(queued_task: QueuedTask<TH>) -> Self;
     fn wake_up_msg() -> Self;
     fn is_wake_up(&self) -> bool;
 }
 
-pub struct TaskQueue<T> {
+pub struct TaskQueue<T, TH: TypeHolderTrait> {
     /// The original port on which the task-sources send tasks as messages.
     port: Receiver<T>,
     /// A sender to ensure the port doesn't block on select while there are throttled tasks.
@@ -42,11 +43,11 @@ pub struct TaskQueue<T> {
     /// A "business" counter, reset for each iteration of the event-loop
     taken_task_counter: Cell<u64>,
     /// Tasks that will be throttled for as long as we are "busy".
-    throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<QueuedTask>>>,
+    throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<QueuedTask<TH>>>>,
 }
 
-impl<T: QueuedTaskConversion> TaskQueue<T> {
-    pub fn new(port: Receiver<T>, wake_up_sender: Sender<T>) -> TaskQueue<T> {
+impl<T: QueuedTaskConversion<TH>, TH: TypeHolderTrait> TaskQueue<T, TH> {
+    pub fn new(port: Receiver<T>, wake_up_sender: Sender<T>) -> TaskQueue<T, TH> {
         TaskQueue {
             port,
             wake_up_sender,

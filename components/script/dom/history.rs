@@ -29,6 +29,7 @@ use profile_traits::ipc::channel;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 enum PushOrReplace {
     Push,
@@ -37,15 +38,15 @@ enum PushOrReplace {
 
 // https://html.spec.whatwg.org/multipage/#the-history-interface
 #[dom_struct]
-pub struct History {
-    reflector_: Reflector,
-    window: Dom<Window>,
+pub struct History<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    window: Dom<Window<TH>>,
     state: Heap<JSVal>,
     state_id: Cell<Option<HistoryStateId>>,
 }
 
-impl History {
-    pub fn new_inherited(window: &Window) -> History {
+impl<TH: TypeHolderTrait> History<TH> {
+    pub fn new_inherited(window: &Window<TH>) -> History<TH> {
         let state = Heap::default();
         state.set(NullValue());
         History {
@@ -56,7 +57,7 @@ impl History {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<History> {
+    pub fn new(window: &Window<TH>) -> DomRoot<History<TH>> {
         reflect_dom_object(
             Box::new(History::new_inherited(window)),
             window,
@@ -65,7 +66,7 @@ impl History {
     }
 }
 
-impl History {
+impl<TH: TypeHolderTrait> History<TH> {
     fn traverse_history(&self, direction: TraversalDirection) -> ErrorResult {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
@@ -73,7 +74,7 @@ impl History {
         let msg = ScriptMsg::TraverseHistory(direction);
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .upcast::<GlobalScope<TH>>()
             .script_to_constellation_chan()
             .send(msg);
         Ok(())
@@ -104,7 +105,7 @@ impl History {
                 let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .upcast::<GlobalScope<TH>>()
                     .resource_threads()
                     .send(CoreResourceMsg::GetHistoryState(state_id, tx));
                 rx.recv().unwrap()
@@ -114,7 +115,7 @@ impl History {
 
         match serialized_data {
             Some(serialized_data) => {
-                let global_scope = self.window.upcast::<GlobalScope>();
+                let global_scope = self.window.upcast::<GlobalScope<TH>>();
                 rooted!(in(global_scope.get_cx()) let mut state = UndefinedValue());
                 StructuredCloneData::Vector(serialized_data)
                     .read(&global_scope, state.handle_mut());
@@ -129,7 +130,7 @@ impl History {
         // Step 16.1
         if state_changed {
             PopStateEvent::dispatch_jsval(
-                self.window.upcast::<EventTarget>(),
+                self.window.upcast::<EventTarget<TH>>(),
                 &*self.window,
                 unsafe { HandleValue::from_raw(self.state.handle()) },
             );
@@ -146,15 +147,15 @@ impl History {
                 url.into_string(),
             );
             event
-                .upcast::<Event>()
-                .fire(self.window.upcast::<EventTarget>());
+                .upcast::<Event<TH>>()
+                .fire(self.window.upcast::<EventTarget<TH>>());
         }
     }
 
     pub fn remove_states(&self, states: Vec<HistoryStateId>) {
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .upcast::<GlobalScope<TH>>()
             .resource_threads()
             .send(CoreResourceMsg::RemoveHistoryStates(states));
     }
@@ -183,7 +184,7 @@ impl History {
         // TODO: Step 4
 
         // Step 5
-        let serialized_data = StructuredCloneData::write(cx, data)?.move_to_arraybuffer();
+        let serialized_data = StructuredCloneData::<TH>::write(cx, data)?.move_to_arraybuffer();
 
         let new_url: ServoUrl = match url {
             // Step 6
@@ -227,7 +228,7 @@ impl History {
                 let msg = ScriptMsg::PushHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .upcast::<GlobalScope<TH>>()
                     .script_to_constellation_chan()
                     .send(msg);
                 state_id
@@ -244,16 +245,21 @@ impl History {
                 let msg = ScriptMsg::ReplaceHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .upcast::<GlobalScope<TH>>()
                     .script_to_constellation_chan()
                     .send(msg);
                 state_id
             },
         };
 
-        let _ = self.window.upcast::<GlobalScope>().resource_threads().send(
-            CoreResourceMsg::SetHistoryState(state_id, serialized_data.clone()),
-        );
+        let _ = self
+            .window
+            .upcast::<GlobalScope<TH>>()
+            .resource_threads()
+            .send(CoreResourceMsg::SetHistoryState(
+                state_id,
+                serialized_data.clone(),
+            ));
 
         // TODO: Step 9 Update current entry to represent a GET request
         // https://github.com/servo/servo/issues/19156
@@ -262,7 +268,7 @@ impl History {
         document.set_url(new_url);
 
         // Step 11
-        let global_scope = self.window.upcast::<GlobalScope>();
+        let global_scope = self.window.upcast::<GlobalScope<TH>>();
         rooted!(in(cx) let mut state = UndefinedValue());
         StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
 
@@ -276,7 +282,7 @@ impl History {
     }
 }
 
-impl HistoryMethods for History {
+impl<TH: TypeHolderTrait> HistoryMethods for History<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-history-state
     #[allow(unsafe_code)]
     unsafe fn GetState(&self, _cx: *mut JSContext) -> Fallible<JSVal> {
@@ -296,7 +302,7 @@ impl HistoryMethods for History {
         let msg = ScriptMsg::JointSessionHistoryLength(sender);
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .upcast::<GlobalScope<TH>>()
             .script_to_constellation_chan()
             .send(msg);
         Ok(recv.recv().unwrap())

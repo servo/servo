@@ -17,20 +17,21 @@ use servo_media::audio::gain_node::GainNodeOptions;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
 use std::f32;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct GainNode {
-    node: AudioNode,
-    gain: Dom<AudioParam>,
+pub struct GainNode<TH: TypeHolderTrait> {
+    node: AudioNode<TH>,
+    gain: Dom<AudioParam<TH>>,
 }
 
-impl GainNode {
+impl<TH: TypeHolderTrait> GainNode<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &GainOptions,
-    ) -> Fallible<GainNode> {
+    ) -> Fallible<GainNode<TH>> {
         let node_options =
             options
                 .parent
@@ -60,10 +61,10 @@ impl GainNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &GainOptions,
-    ) -> Fallible<DomRoot<GainNode>> {
+    ) -> Fallible<DomRoot<GainNode<TH>>> {
         let node = GainNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object(
             Box::new(node),
@@ -73,17 +74,17 @@ impl GainNode {
     }
 
     pub fn Constructor(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &GainOptions,
-    ) -> Fallible<DomRoot<GainNode>> {
+    ) -> Fallible<DomRoot<GainNode<TH>>> {
         GainNode::new(window, context, options)
     }
 }
 
-impl GainNodeMethods for GainNode {
+impl<TH: TypeHolderTrait> GainNodeMethods<TH> for GainNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-gainnode-gain
-    fn Gain(&self) -> DomRoot<AudioParam> {
+    fn Gain(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.gain)
     }
 }

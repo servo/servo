@@ -19,10 +19,11 @@ use euclid::Point2D;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::default::Default;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct MouseEvent {
-    uievent: UIEvent,
+pub struct MouseEvent<TH: TypeHolderTrait> {
+    uievent: UIEvent<TH>,
     screen_x: Cell<i32>,
     screen_y: Cell<i32>,
     client_x: Cell<i32>,
@@ -32,12 +33,12 @@ pub struct MouseEvent {
     alt_key: Cell<bool>,
     meta_key: Cell<bool>,
     button: Cell<i16>,
-    related_target: MutNullableDom<EventTarget>,
+    related_target: MutNullableDom<EventTarget<TH>>,
     point_in_target: Cell<Option<Point2D<f32>>>,
 }
 
-impl MouseEvent {
-    fn new_inherited() -> MouseEvent {
+impl<TH: TypeHolderTrait> MouseEvent<TH> {
+    fn new_inherited() -> MouseEvent<TH> {
         MouseEvent {
             uievent: UIEvent::new_inherited(),
             screen_x: Cell::new(0),
@@ -54,7 +55,7 @@ impl MouseEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<MouseEvent> {
+    pub fn new_uninitialized(window: &Window<TH>) -> DomRoot<MouseEvent<TH>> {
         reflect_dom_object(
             Box::new(MouseEvent::new_inherited()),
             window,
@@ -63,11 +64,11 @@ impl MouseEvent {
     }
 
     pub fn new(
-        window: &Window,
+        window: &Window<TH>,
         type_: DOMString,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
-        view: Option<&Window>,
+        view: Option<&Window<TH>>,
         detail: i32,
         screen_x: i32,
         screen_y: i32,
@@ -78,9 +79,9 @@ impl MouseEvent {
         shift_key: bool,
         meta_key: bool,
         button: i16,
-        related_target: Option<&EventTarget>,
+        related_target: Option<&EventTarget<TH>>,
         point_in_target: Option<Point2D<f32>>,
-    ) -> DomRoot<MouseEvent> {
+    ) -> DomRoot<MouseEvent<TH>> {
         let ev = MouseEvent::new_uninitialized(window);
         ev.InitMouseEvent(
             type_,
@@ -104,10 +105,10 @@ impl MouseEvent {
     }
 
     pub fn Constructor(
-        window: &Window,
+        window: &Window<TH>,
         type_: DOMString,
-        init: &MouseEventBinding::MouseEventInit,
-    ) -> Fallible<DomRoot<MouseEvent>> {
+        init: &MouseEventBinding::MouseEventInit<TH>,
+    ) -> Fallible<DomRoot<MouseEvent<TH>>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
         let event = MouseEvent::new(
@@ -137,7 +138,7 @@ impl MouseEvent {
     }
 }
 
-impl MouseEventMethods for MouseEvent {
+impl<TH: TypeHolderTrait> MouseEventMethods<TH> for MouseEvent<TH> {
     // https://w3c.github.io/uievents/#widl-MouseEvent-screenX
     fn ScreenX(&self) -> i32 {
         self.screen_x.get()
@@ -184,7 +185,7 @@ impl MouseEventMethods for MouseEvent {
     }
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget
-    fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
+    fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget<TH>>> {
         self.related_target.get()
     }
 
@@ -211,7 +212,7 @@ impl MouseEventMethods for MouseEvent {
         type_arg: DOMString,
         can_bubble_arg: bool,
         cancelable_arg: bool,
-        view_arg: Option<&Window>,
+        view_arg: Option<&Window<TH>>,
         detail_arg: i32,
         screen_x_arg: i32,
         screen_y_arg: i32,
@@ -222,13 +223,13 @@ impl MouseEventMethods for MouseEvent {
         shift_key_arg: bool,
         meta_key_arg: bool,
         button_arg: i16,
-        related_target_arg: Option<&EventTarget>,
+        related_target_arg: Option<&EventTarget<TH>>,
     ) {
-        if self.upcast::<Event>().dispatching() {
+        if self.upcast::<Event<TH>>().dispatching() {
             return;
         }
 
-        self.upcast::<UIEvent>().InitUIEvent(
+        self.upcast::<UIEvent<TH>>().InitUIEvent(
             type_arg,
             can_bubble_arg,
             cancelable_arg,

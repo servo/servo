@@ -6,6 +6,7 @@
 #[cfg(test)] extern crate msg;
 #[cfg(test)] extern crate script;
 #[cfg(test)] extern crate servo_url;
+#[cfg(test)] extern crate script_servoparser;
 
 #[cfg(test)] mod origin;
 #[cfg(all(test, target_pointer_width = "64"))] mod size_of;
@@ -17,11 +18,14 @@
 /**
 ```compile_fail,E0277
 extern crate script;
+extern crate script_servoparser;
+
+use script_servoparser::TypeHolder;
 
 fn cloneable<T: Clone>() {}
 
 fn main() {
-    cloneable::<script::test::TrustedPromise>();
+    cloneable::<script::test::TrustedPromise<TypeHolder>>();
 }
 ```
 */

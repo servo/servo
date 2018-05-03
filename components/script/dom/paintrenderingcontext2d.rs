@@ -34,18 +34,19 @@ use servo_url::ServoUrl;
 use std::cell::Cell;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct PaintRenderingContext2D {
-    context: CanvasRenderingContext2D,
+pub struct PaintRenderingContext2D<TH: TypeHolderTrait> {
+    context: CanvasRenderingContext2D<TH>,
     device_pixel_ratio: Cell<TypedScale<f32, CSSPixel, DevicePixel>>,
 }
 
-impl PaintRenderingContext2D {
-    fn new_inherited(global: &PaintWorkletGlobalScope) -> PaintRenderingContext2D {
+impl<TH: TypeHolderTrait> PaintRenderingContext2D<TH> {
+    fn new_inherited(global: &PaintWorkletGlobalScope<TH>) -> PaintRenderingContext2D<TH> {
         let size = Size2D::zero();
         let image_cache = global.image_cache();
-        let base_url = global.upcast::<WorkletGlobalScope>().base_url();
+        let base_url = global.upcast::<WorkletGlobalScope<TH>>().base_url();
         PaintRenderingContext2D {
             context: CanvasRenderingContext2D::new_inherited(
                 global.upcast(),
@@ -58,7 +59,7 @@ impl PaintRenderingContext2D {
         }
     }
 
-    pub fn new(global: &PaintWorkletGlobalScope) -> DomRoot<PaintRenderingContext2D> {
+    pub fn new(global: &PaintWorkletGlobalScope<TH>) -> DomRoot<PaintRenderingContext2D<TH>> {
         reflect_dom_object(
             Box::new(PaintRenderingContext2D::new_inherited(global)),
             global,
@@ -85,7 +86,8 @@ impl PaintRenderingContext2D {
     ) {
         let size = size * device_pixel_ratio;
         self.device_pixel_ratio.set(device_pixel_ratio);
-        self.context.set_bitmap_dimensions(size.to_untyped().to_u32());
+        self.context
+            .set_bitmap_dimensions(size.to_untyped().to_u32());
         self.scale_by_device_pixel_ratio();
     }
 
@@ -97,7 +99,7 @@ impl PaintRenderingContext2D {
     }
 }
 
-impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
+impl<TH: TypeHolderTrait> PaintRenderingContext2DMethods<TH> for PaintRenderingContext2D<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
     fn Save(&self) {
         self.context.Save()
@@ -206,14 +208,19 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-    fn DrawImage(&self, image: CanvasImageSource, dx: f64, dy: f64) -> ErrorResult {
+    fn DrawImage(
+        &self,
+        image: CanvasImageSource<TH>,
+        dx: f64,
+        dy: f64,
+    ) -> ErrorResult {
         self.context.DrawImage(image, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage_(
         &self,
-        image: CanvasImageSource,
+        image: CanvasImageSource<TH>,
         dx: f64,
         dy: f64,
         dw: f64,
@@ -225,7 +232,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage__(
         &self,
-        image: CanvasImageSource,
+        image: CanvasImageSource<TH>,
         sx: f64,
         sy: f64,
         sw: f64,
@@ -301,22 +308,22 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn StrokeStyle(&self) -> StringOrCanvasGradientOrCanvasPattern {
+    fn StrokeStyle(&self) -> StringOrCanvasGradientOrCanvasPattern<TH> {
         self.context.StrokeStyle()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern<TH>) {
         self.context.SetStrokeStyle(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn FillStyle(&self) -> StringOrCanvasGradientOrCanvasPattern {
+    fn FillStyle(&self) -> StringOrCanvasGradientOrCanvasPattern<TH> {
         self.context.FillStyle()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern<TH>) {
         self.context.SetFillStyle(value)
     }
 
@@ -327,7 +334,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
-    ) -> DomRoot<CanvasGradient> {
+    ) -> DomRoot<CanvasGradient<TH>> {
         self.context.CreateLinearGradient(x0, y0, x1, y1)
     }
 
@@ -340,16 +347,16 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
-    ) -> Fallible<DomRoot<CanvasGradient>> {
+    ) -> Fallible<DomRoot<CanvasGradient<TH>>> {
         self.context.CreateRadialGradient(x0, y0, r0, x1, y1, r1)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
     fn CreatePattern(
         &self,
-        image: CanvasImageSource,
+        image: CanvasImageSource<TH>,
         repetition: DOMString,
-    ) -> Fallible<DomRoot<CanvasPattern>> {
+    ) -> Fallible<DomRoot<CanvasPattern<TH>>> {
         self.context.CreatePattern(image, repetition)
     }
 

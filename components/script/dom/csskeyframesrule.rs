@@ -20,20 +20,21 @@ use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::keyframes_rule::{KeyframesRule, Keyframe, KeyframeSelector};
 use style::values::KeyframesName;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSKeyframesRule {
-    cssrule: CSSRule,
+pub struct CSSKeyframesRule<TH: TypeHolderTrait> {
+    cssrule: CSSRule<TH>,
     #[ignore_malloc_size_of = "Arc"]
     keyframesrule: Arc<Locked<KeyframesRule>>,
-    rulelist: MutNullableDom<CSSRuleList>,
+    rulelist: MutNullableDom<CSSRuleList<TH>>,
 }
 
-impl CSSKeyframesRule {
+impl<TH: TypeHolderTrait> CSSKeyframesRule<TH> {
     fn new_inherited(
-        parent_stylesheet: &CSSStyleSheet,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         keyframesrule: Arc<Locked<KeyframesRule>>,
-    ) -> CSSKeyframesRule {
+    ) -> Self {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             keyframesrule: keyframesrule,
@@ -43,10 +44,10 @@ impl CSSKeyframesRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        parent_stylesheet: &CSSStyleSheet,
+        window: &Window<TH>,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         keyframesrule: Arc<Locked<KeyframesRule>>,
-    ) -> DomRoot<CSSKeyframesRule> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(CSSKeyframesRule::new_inherited(
                 parent_stylesheet,
@@ -57,9 +58,9 @@ impl CSSKeyframesRule {
         )
     }
 
-    fn rulelist(&self) -> DomRoot<CSSRuleList> {
+    fn rulelist(&self) -> DomRoot<CSSRuleList<TH>> {
         self.rulelist.or_init(|| {
-            let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
+            let parent_stylesheet = &self.upcast::<CSSRule<TH>>().parent_stylesheet();
             CSSRuleList::new(
                 self.global().as_window(),
                 parent_stylesheet,
@@ -87,9 +88,9 @@ impl CSSKeyframesRule {
     }
 }
 
-impl CSSKeyframesRuleMethods for CSSKeyframesRule {
+impl<TH: TypeHolderTrait> CSSKeyframesRuleMethods<TH> for CSSKeyframesRule<TH> {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules
-    fn CssRules(&self) -> DomRoot<CSSRuleList> {
+    fn CssRules(&self) -> DomRoot<CSSRuleList<TH>> {
         self.rulelist()
     }
 
@@ -120,7 +121,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule
-    fn FindRule(&self, selector: DOMString) -> Option<DomRoot<CSSKeyframeRule>> {
+    fn FindRule(&self, selector: DOMString) -> Option<DomRoot<CSSKeyframeRule<TH>>> {
         self.find_rule(&selector)
             .and_then(|idx| self.rulelist().item(idx as u32))
             .and_then(DomRoot::downcast)
@@ -144,7 +145,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     }
 }
 
-impl SpecificCSSRule for CSSKeyframesRule {
+impl<TH: TypeHolderTrait> SpecificCSSRule for CSSKeyframesRule<TH> {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::KEYFRAMES_RULE

@@ -15,25 +15,26 @@ use dom::storage::Storage;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct StorageEvent {
-    event: Event,
+pub struct StorageEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     key: Option<DOMString>,
     old_value: Option<DOMString>,
     new_value: Option<DOMString>,
     url: DOMString,
-    storage_area: MutNullableDom<Storage>,
+    storage_area: MutNullableDom<Storage<TH>>,
 }
 
-impl StorageEvent {
+impl<TH: TypeHolderTrait> StorageEvent<TH> {
     pub fn new_inherited(
         key: Option<DOMString>,
         old_value: Option<DOMString>,
         new_value: Option<DOMString>,
         url: DOMString,
-        storage_area: Option<&Storage>,
-    ) -> StorageEvent {
+        storage_area: Option<&Storage<TH>>,
+    ) -> StorageEvent<TH> {
         StorageEvent {
             event: Event::new_inherited(),
             key: key,
@@ -44,7 +45,7 @@ impl StorageEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, url: DOMString) -> DomRoot<StorageEvent> {
+    pub fn new_uninitialized(window: &Window<TH>, url: DOMString) -> DomRoot<StorageEvent<TH>> {
         reflect_dom_object(
             Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
             window,
@@ -53,7 +54,7 @@ impl StorageEvent {
     }
 
     pub fn new(
-        global: &Window,
+        global: &Window<TH>,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
@@ -61,8 +62,8 @@ impl StorageEvent {
         oldValue: Option<DOMString>,
         newValue: Option<DOMString>,
         url: DOMString,
-        storageArea: Option<&Storage>,
-    ) -> DomRoot<StorageEvent> {
+        storageArea: Option<&Storage<TH>>,
+    ) -> DomRoot<StorageEvent<TH>> {
         let ev = reflect_dom_object(
             Box::new(StorageEvent::new_inherited(
                 key,
@@ -75,17 +76,17 @@ impl StorageEvent {
             StorageEventBinding::Wrap,
         );
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         }
         ev
     }
 
     pub fn Constructor(
-        global: &Window,
+        global: &Window<TH>,
         type_: DOMString,
-        init: &StorageEventBinding::StorageEventInit,
-    ) -> Fallible<DomRoot<StorageEvent>> {
+        init: &StorageEventBinding::StorageEventInit<TH>,
+    ) -> Fallible<DomRoot<StorageEvent<TH>>> {
         let key = init.key.clone();
         let oldValue = init.oldValue.clone();
         let newValue = init.newValue.clone();
@@ -108,7 +109,7 @@ impl StorageEvent {
     }
 }
 
-impl StorageEventMethods for StorageEvent {
+impl<TH: TypeHolderTrait> StorageEventMethods<TH> for StorageEvent<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-key
     fn GetKey(&self) -> Option<DOMString> {
         self.key.clone()
@@ -130,7 +131,7 @@ impl StorageEventMethods for StorageEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
-    fn GetStorageArea(&self) -> Option<DomRoot<Storage>> {
+    fn GetStorageArea(&self) -> Option<DomRoot<Storage<TH>>> {
         self.storage_area.get()
     }
 

@@ -20,10 +20,11 @@ use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct ErrorEvent {
-    event: Event,
+pub struct ErrorEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     message: DomRefCell<DOMString>,
     filename: DomRefCell<DOMString>,
     lineno: Cell<u32>,
@@ -32,8 +33,8 @@ pub struct ErrorEvent {
     error: Heap<JSVal>,
 }
 
-impl ErrorEvent {
-    fn new_inherited() -> ErrorEvent {
+impl<TH: TypeHolderTrait> ErrorEvent<TH> {
+    fn new_inherited() -> ErrorEvent<TH> {
         ErrorEvent {
             event: Event::new_inherited(),
             message: DomRefCell::new(DOMString::new()),
@@ -44,7 +45,7 @@ impl ErrorEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ErrorEvent> {
+    pub fn new_uninitialized(global: &GlobalScope<TH>) -> DomRoot<ErrorEvent<TH>> {
         reflect_dom_object(
             Box::new(ErrorEvent::new_inherited()),
             global,
@@ -53,7 +54,7 @@ impl ErrorEvent {
     }
 
     pub fn new(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
@@ -62,10 +63,10 @@ impl ErrorEvent {
         lineno: u32,
         colno: u32,
         error: HandleValue,
-    ) -> DomRoot<ErrorEvent> {
+    ) -> DomRoot<ErrorEvent<TH>> {
         let ev = ErrorEvent::new_uninitialized(global);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
             *ev.message.borrow_mut() = message;
             *ev.filename.borrow_mut() = filename;
@@ -77,10 +78,10 @@ impl ErrorEvent {
     }
 
     pub fn Constructor(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         type_: DOMString,
         init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>,
-    ) -> Fallible<DomRoot<ErrorEvent>> {
+    ) -> Fallible<DomRoot<ErrorEvent<TH>>> {
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
             None => DOMString::new(),
@@ -114,7 +115,7 @@ impl ErrorEvent {
     }
 }
 
-impl ErrorEventMethods for ErrorEvent {
+impl<TH: TypeHolderTrait> ErrorEventMethods for ErrorEvent<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-lineno
     fn Lineno(&self) -> u32 {
         self.lineno.get()

@@ -13,19 +13,20 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::FontFaceRule;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSFontFaceRule {
-    cssrule: CSSRule,
+pub struct CSSFontFaceRule<TH: TypeHolderTrait> {
+    cssrule: CSSRule<TH>,
     #[ignore_malloc_size_of = "Arc"]
     fontfacerule: Arc<Locked<FontFaceRule>>,
 }
 
-impl CSSFontFaceRule {
+impl<TH: TypeHolderTrait> CSSFontFaceRule<TH> {
     fn new_inherited(
-        parent_stylesheet: &CSSStyleSheet,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         fontfacerule: Arc<Locked<FontFaceRule>>,
-    ) -> CSSFontFaceRule {
+    ) -> Self {
         CSSFontFaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             fontfacerule: fontfacerule,
@@ -34,10 +35,10 @@ impl CSSFontFaceRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        parent_stylesheet: &CSSStyleSheet,
+        window: &Window<TH>,
+        parent_stylesheet: &CSSStyleSheet<TH>,
         fontfacerule: Arc<Locked<FontFaceRule>>,
-    ) -> DomRoot<CSSFontFaceRule> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(CSSFontFaceRule::new_inherited(
                 parent_stylesheet,
@@ -49,7 +50,7 @@ impl CSSFontFaceRule {
     }
 }
 
-impl SpecificCSSRule for CSSFontFaceRule {
+impl<TH: TypeHolderTrait> SpecificCSSRule for CSSFontFaceRule<TH> {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::FONT_FACE_RULE

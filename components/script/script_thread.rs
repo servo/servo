@@ -104,6 +104,7 @@ use servo_channel::{channel, Receiver, Sender};
 use servo_channel::{route_ipc_receiver_to_new_servo_receiver, route_ipc_receiver_to_new_servo_sender};
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use std::any::Any;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::collections::{hash_map, HashMap, HashSet};
@@ -127,6 +128,7 @@ use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use task_source::websocket::WebsocketTaskSource;
 use time::{get_time, precise_time_ns, Tm};
+use typeholder::TypeHolderTrait;
 use url::Position;
 use url::percent_encoding::percent_decode;
 use webdriver_handlers;
@@ -135,11 +137,12 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
-thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
+thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const Any>> = Cell::new(None));
 
-pub unsafe fn trace_thread(tr: *mut JSTracer) {
+pub unsafe fn trace_thread<TH: TypeHolderTrait>(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = root.get() {
+            let script_thread = &(*script_thread).downcast_ref::<ScriptThread<TH>>().unwrap();
             debug!("tracing fields of ScriptThread");
             (*script_thread).trace(tr);
         }
@@ -253,7 +256,7 @@ pub enum MainThreadScriptMsg {
     WakeUp,
 }
 
-impl QueuedTaskConversion for MainThreadScriptMsg {
+impl<TH: TypeHolderTrait> QueuedTaskConversion<TH> for MainThreadScriptMsg {
     fn task_source_name(&self) -> Option<&TaskSourceName> {
         let script_msg = match self {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
@@ -267,7 +270,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
         }
     }
 
-    fn into_queued_task(self) -> Option<QueuedTask> {
+    fn into_queued_task(self) -> Option<QueuedTask<TH>> {
         let script_msg = match self {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
@@ -281,7 +284,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
         Some((None, category, boxed, pipeline_id, task_source))
     }
 
-    fn from_queued_task(queued_task: QueuedTask) -> Self {
+    fn from_queued_task(queued_task: QueuedTask<TH>) -> Self {
         let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         MainThreadScriptMsg::Common(script_msg)
@@ -321,13 +324,13 @@ impl ScriptPort for Receiver<MainThreadScriptMsg> {
     }
 }
 
-impl ScriptPort for Receiver<(TrustedWorkerAddress, CommonScriptMsg)> {
+impl<TH: TypeHolderTrait> ScriptPort for Receiver<(TrustedWorkerAddress<TH>, CommonScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         self.recv().map(|(_, msg)| msg).ok_or(())
     }
 }
 
-impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
+impl<TH: TypeHolderTrait> ScriptPort for Receiver<(TrustedWorkerAddress<TH>, MainThreadScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         match self.recv().map(|(_, msg)| msg) {
             Some(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
@@ -337,7 +340,9 @@ impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
     }
 }
 
-impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
+impl<TH: TypeHolderTrait> ScriptPort
+    for Receiver<(TrustedServiceWorkerAddress<TH>, CommonScriptMsg)>
+{
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         self.recv().map(|(_, msg)| msg).ok_or(())
     }
@@ -382,22 +387,22 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 /// The set of all documents managed by this script thread.
 #[derive(JSTraceable)]
 #[must_root]
-pub struct Documents {
-    map: HashMap<PipelineId, Dom<Document>>,
+pub struct Documents<TH: TypeHolderTrait> {
+    map: HashMap<PipelineId, Dom<Document<TH>>>,
 }
 
-impl Documents {
-    pub fn new() -> Documents {
+impl<TH: TypeHolderTrait> Documents<TH> {
+    pub fn new() -> Documents<TH> {
         Documents {
             map: HashMap::new(),
         }
     }
 
-    pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
+    pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document<TH>) {
         self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
 
-    pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+    pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document<TH>>> {
         self.map
             .remove(&pipeline_id)
             .map(|ref doc| DomRoot::from_ref(&**doc))
@@ -407,7 +412,7 @@ impl Documents {
         self.map.is_empty()
     }
 
-    pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+    pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document<TH>>> {
         self.map
             .get(&pipeline_id)
             .map(|doc| DomRoot::from_ref(&**doc))
@@ -417,12 +422,12 @@ impl Documents {
         self.map.len()
     }
 
-    pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
+    pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window<TH>>> {
         self.find_document(pipeline_id)
             .map(|doc| DomRoot::from_ref(doc.window()))
     }
 
-    pub fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
+    pub fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope<TH>>> {
         self.find_window(pipeline_id)
             .map(|window| DomRoot::from_ref(window.upcast()))
     }
@@ -431,12 +436,12 @@ impl Documents {
         &self,
         pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
-    ) -> Option<DomRoot<HTMLIFrameElement>> {
+    ) -> Option<DomRoot<HTMLIFrameElement<TH>>> {
         self.find_document(pipeline_id)
             .and_then(|doc| doc.find_iframe(browsing_context_id))
     }
 
-    pub fn iter<'a>(&'a self) -> DocumentsIter<'a> {
+    pub fn iter<'a>(&'a self) -> DocumentsIter<'a, TH> {
         DocumentsIter {
             iter: self.map.iter(),
         }
@@ -444,14 +449,14 @@ impl Documents {
 }
 
 #[allow(unrooted_must_root)]
-pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
+pub struct DocumentsIter<'a, TH: TypeHolderTrait> {
+    iter: hash_map::Iter<'a, PipelineId, Dom<Document<TH>>>,
 }
 
-impl<'a> Iterator for DocumentsIter<'a> {
-    type Item = (PipelineId, DomRoot<Document>);
+impl<'a, TH: TypeHolderTrait> Iterator for DocumentsIter<'a, TH> {
+    type Item = (PipelineId, DomRoot<Document<TH>>);
 
-    fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
+    fn next(&mut self) -> Option<(PipelineId, DomRoot<Document<TH>>)> {
         self.iter
             .next()
             .map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
@@ -463,28 +468,28 @@ impl<'a> Iterator for DocumentsIter<'a> {
 // which can trigger GC, and so we can end up tracing the script
 // thread during parsing. For this reason, we don't trace the
 // incomplete parser contexts during GC.
-type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
-unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
+type IncompleteParserContexts<TH> = Vec<(PipelineId, ParserContext<TH>)>;
+unsafe_no_jsmanaged_fields_generic!(RefCell<IncompleteParserContexts<TH>>);
 
-unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
+unsafe_no_jsmanaged_fields_generic!(TaskQueue<MainThreadScriptMsg, TH>);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
-pub struct ScriptThread {
+pub struct ScriptThread<TH: TypeHolderTrait> {
     /// The documents for pipelines managed by this thread
-    documents: DomRefCell<Documents>,
+    documents: DomRefCell<Documents<TH>>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DomRefCell<HashMap<BrowsingContextId, Dom<WindowProxy>>>,
+    window_proxies: DomRefCell<HashMap<BrowsingContextId, Dom<WindowProxy<TH>>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
-    incomplete_parser_contexts: RefCell<IncompleteParserContexts>,
+    incomplete_parser_contexts: RefCell<IncompleteParserContexts<TH>>,
     /// A map to store service worker registrations for a given origin
-    registration_map: DomRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration>>>,
+    registration_map: DomRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration<TH>>>>,
     /// A job queue for Service Workers keyed by their scope url
-    job_queue_map: Rc<JobQueue>,
+    job_queue_map: Rc<JobQueue<TH>>,
     /// Image cache for this script thread.
     image_cache: Arc<ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
@@ -494,7 +499,7 @@ pub struct ScriptThread {
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
-    task_queue: TaskQueue<MainThreadScriptMsg>,
+    task_queue: TaskQueue<MainThreadScriptMsg, TH>,
 
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
@@ -549,7 +554,7 @@ pub struct ScriptThread {
     js_runtime: Rc<Runtime>,
 
     /// The topmost element over the mouse.
-    topmost_mouse_over_target: MutNullableDom<Element>,
+    topmost_mouse_over_target: MutNullableDom<Element<TH>>,
 
     /// List of pipelines that have been owned and closed by this script thread.
     closed_pipelines: DomRefCell<HashSet<PipelineId>>,
@@ -561,13 +566,13 @@ pub struct ScriptThread {
     content_process_shutdown_chan: IpcSender<()>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    microtask_queue: Rc<MicrotaskQueue>,
+    microtask_queue: Rc<MicrotaskQueue<TH>>,
 
     /// Microtask Queue for adding support for mutation observer microtasks
     mutation_observer_compound_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
+    mutation_observers: DomRefCell<Vec<Dom<MutationObserver<TH>>>>,
 
     /// A handle to the WebGL thread
     webgl_chan: Option<WebGLPipeline>,
@@ -576,18 +581,18 @@ pub struct ScriptThread {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// The worklet thread pool
-    worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
+    worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool<TH>>>>,
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
-    docs_with_no_blocking_loads: DomRefCell<HashSet<Dom<Document>>>,
+    docs_with_no_blocking_loads: DomRefCell<HashSet<Dom<Document<TH>>>>,
 
     /// A list of nodes with in-progress CSS transitions, which roots them for the duration
     /// of the transition.
-    transitioning_nodes: DomRefCell<Vec<Dom<Node>>>,
+    transitioning_nodes: DomRefCell<Vec<Dom<Node<TH>>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
-    custom_element_reaction_stack: CustomElementReactionStack,
+    custom_element_reaction_stack: CustomElementReactionStack<TH>,
 
     /// The Webrender Document ID associated with this thread.
     webrender_document: DocumentId,
@@ -597,21 +602,21 @@ pub struct ScriptThread {
 /// are no reachable, owning pointers to the DOM memory, so it never gets freed by default
 /// when the script thread fails. The ScriptMemoryFailsafe uses the destructor bomb pattern
 /// to forcibly tear down the JS compartments for pages associated with the failing ScriptThread.
-struct ScriptMemoryFailsafe<'a> {
-    owner: Option<&'a ScriptThread>,
+struct ScriptMemoryFailsafe<'a, TH: TypeHolderTrait> {
+    owner: Option<&'a ScriptThread<TH>>,
 }
 
-impl<'a> ScriptMemoryFailsafe<'a> {
+impl<'a, TH: TypeHolderTrait> ScriptMemoryFailsafe<'a, TH> {
     fn neuter(&mut self) {
         self.owner = None;
     }
 
-    fn new(owner: &'a ScriptThread) -> ScriptMemoryFailsafe<'a> {
+    fn new(owner: &'a ScriptThread<TH>) -> ScriptMemoryFailsafe<'a, TH> {
         ScriptMemoryFailsafe { owner: Some(owner) }
     }
 }
 
-impl<'a> Drop for ScriptMemoryFailsafe<'a> {
+impl<'a, TH: TypeHolderTrait> Drop for ScriptMemoryFailsafe<'a, TH> {
     #[allow(unrooted_must_root)]
     fn drop(&mut self) {
         if let Some(owner) = self.owner {
@@ -622,7 +627,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     }
 }
 
-impl ScriptThreadFactory for ScriptThread {
+impl<TH: TypeHolderTrait> ScriptThreadFactory for ScriptThread<TH> {
     type Message = message::Msg;
 
     fn create(
@@ -648,7 +653,8 @@ impl ScriptThreadFactory for ScriptThread {
                 let opener = state.opener;
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
-                let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
+                let script_thread =
+                    ScriptThread::<TH>::new(state, script_port, script_chan.clone());
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -689,10 +695,13 @@ impl ScriptThreadFactory for ScriptThread {
     }
 }
 
-impl ScriptThread {
+impl<TH: TypeHolderTrait> ScriptThread<TH> {
     pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = &*root.get().unwrap();
+            let script_thread = script_thread
+                .downcast_ref::<ScriptThread<TH>>()
+                .expect("Incorrect type");
             let js_runtime = script_thread.js_runtime.rt();
             let new_nodes = nodes
                 .into_iter()
@@ -707,6 +716,12 @@ impl ScriptThread {
     pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
+            script_thread
+                .mutation_observer_compound_microtask_queued
+                .set(value);
             script_thread
                 .mutation_observer_compound_microtask_queued
                 .set(value);
@@ -716,15 +731,21 @@ impl ScriptThread {
     pub fn is_mutation_observer_compound_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
             return script_thread
                 .mutation_observer_compound_microtask_queued
                 .get();
         })
     }
 
-    pub fn add_mutation_observer(observer: &MutationObserver) {
+    pub fn add_mutation_observer(observer: &MutationObserver<TH>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
             script_thread
                 .mutation_observers
                 .borrow_mut()
@@ -732,9 +753,12 @@ impl ScriptThread {
         })
     }
 
-    pub fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
+    pub fn get_mutation_observers() -> Vec<DomRoot<MutationObserver<TH>>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
             script_thread
                 .mutation_observers
                 .borrow()
@@ -744,9 +768,12 @@ impl ScriptThread {
         })
     }
 
-    pub fn mark_document_with_no_blocked_loads(doc: &Document) {
+    pub fn mark_document_with_no_blocked_loads(doc: &Document<TH>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
             script_thread
                 .docs_with_no_blocking_loads
                 .borrow_mut()
@@ -757,6 +784,9 @@ impl ScriptThread {
     pub fn invoke_perform_a_microtask_checkpoint() {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                .downcast_ref::<ScriptThread<TH>>()
+                .expect("Incorrect type");
             script_thread.perform_a_microtask_checkpoint()
         })
     }
@@ -764,17 +794,23 @@ impl ScriptThread {
     pub fn page_headers_available(
         id: &PipelineId,
         metadata: Option<Metadata>,
-    ) -> Option<DomRoot<ServoParser>> {
+    ) -> Option<DomRoot<TH::ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                .downcast_ref::<ScriptThread<TH>>()
+                .expect("Incorrect type");
             script_thread.handle_page_headers_available(id, metadata)
         })
     }
 
     #[allow(unrooted_must_root)]
-    pub fn schedule_job(job: Job) {
+    pub fn schedule_job(job: Job<TH>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                .downcast_ref::<ScriptThread<TH>>()
+                .expect("Incorrect type");
             let job_queue = &*script_thread.job_queue_map;
             job_queue.schedule_job(job, &script_thread);
         });
@@ -784,16 +820,22 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
             }
         });
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
-    pub fn await_stable_state(task: Microtask) {
+    pub fn await_stable_state(task: Microtask<TH>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread.microtask_queue.enqueue(task);
             }
         });
@@ -803,6 +845,9 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 let pipeline_id = Some(new_layout_info.new_pipeline_id);
                 script_thread.profile_event(
                     ScriptThreadEventCategory::AttachLayout,
@@ -822,25 +867,34 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.get().and_then(|script_thread| {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread
                     .ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
             })
         })
     }
 
-    pub fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
+    pub fn find_document(id: PipelineId) -> Option<DomRoot<Document<TH>>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.get().and_then(|script_thread| {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread.documents.borrow().find_document(id)
             })
         })
     }
 
-    pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
+    pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy<TH>>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.get().and_then(|script_thread| {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread
                     .window_proxies
                     .borrow()
@@ -850,10 +904,13 @@ impl ScriptThread {
         })
     }
 
-    pub fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
+    pub fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy<TH>>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.get().and_then(|script_thread| {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 for (_, proxy) in script_thread.window_proxies.borrow().iter() {
                     if proxy.get_name() == *name {
                         return Some(DomRoot::from_ref(&**proxy));
@@ -864,9 +921,12 @@ impl ScriptThread {
         })
     }
 
-    pub fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
+    pub fn worklet_thread_pool() -> Rc<WorkletThreadPool<TH>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
             script_thread
                 .worklet_thread_pool
                 .borrow_mut()
@@ -912,6 +972,9 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread
                     .custom_element_reaction_stack
                     .push_new_element_queue();
@@ -923,6 +986,9 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread
                     .custom_element_reaction_stack
                     .pop_current_element_queue();
@@ -931,13 +997,16 @@ impl ScriptThread {
     }
 
     pub fn enqueue_callback_reaction(
-        element: &Element,
-        reaction: CallbackReaction,
-        definition: Option<Rc<CustomElementDefinition>>,
+        element: &Element<TH>,
+        reaction: CallbackReaction<TH>,
+        definition: Option<Rc<CustomElementDefinition<TH>>>,
     ) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread
                     .custom_element_reaction_stack
                     .enqueue_callback_reaction(element, reaction, definition);
@@ -945,10 +1014,16 @@ impl ScriptThread {
         })
     }
 
-    pub fn enqueue_upgrade_reaction(element: &Element, definition: Rc<CustomElementDefinition>) {
+    pub fn enqueue_upgrade_reaction(
+        element: &Element<TH>,
+        definition: Rc<CustomElementDefinition<TH>>,
+    ) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread
                     .custom_element_reaction_stack
                     .enqueue_upgrade_reaction(element, definition);
@@ -960,6 +1035,9 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
+                let script_thread = script_thread
+                    .downcast_ref::<ScriptThread<TH>>()
+                    .expect("Incorrect type");
                 script_thread
                     .custom_element_reaction_stack
                     .invoke_backup_element_queue();
@@ -972,8 +1050,8 @@ impl ScriptThread {
         state: InitialScriptState,
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
-    ) -> ScriptThread {
-        let runtime = unsafe { new_rt_and_cx() };
+    ) -> ScriptThread<TH> {
+        let runtime = unsafe { new_rt_and_cx::<TH>() };
         let cx = runtime.cx();
 
         unsafe {
@@ -2054,7 +2132,7 @@ impl ScriptThread {
         &self,
         id: &PipelineId,
         metadata: Option<Metadata>,
-    ) -> Option<DomRoot<ServoParser>> {
+    ) -> Option<DomRoot<TH::ServoParser>> {
         let idx = self
             .incomplete_loads
             .borrow()
@@ -2092,7 +2170,7 @@ impl ScriptThread {
     pub fn handle_get_registration(
         &self,
         scope_url: &ServoUrl,
-    ) -> Option<DomRoot<ServiceWorkerRegistration>> {
+    ) -> Option<DomRoot<ServiceWorkerRegistration<TH>>> {
         let maybe_registration_ref = self.registration_map.borrow();
         maybe_registration_ref
             .get(scope_url)
@@ -2102,7 +2180,7 @@ impl ScriptThread {
     pub fn handle_serviceworker_registration(
         &self,
         scope: &ServoUrl,
-        registration: &ServiceWorkerRegistration,
+        registration: &ServiceWorkerRegistration<TH>,
         pipeline_id: PipelineId,
     ) {
         {
@@ -2143,30 +2221,50 @@ impl ScriptThread {
     pub fn dom_manipulation_task_source(
         &self,
         pipeline_id: PipelineId,
-    ) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
+    ) -> DOMManipulationTaskSource<TH> {
+        DOMManipulationTaskSource(
+            self.dom_manipulation_task_sender.clone(),
+            pipeline_id,
+            Default::default(),
+        )
     }
 
     pub fn performance_timeline_task_source(
         &self,
         pipeline_id: PipelineId,
-    ) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.performance_timeline_task_sender.clone(), pipeline_id)
+    ) -> PerformanceTimelineTaskSource<TH> {
+        PerformanceTimelineTaskSource(
+            self.performance_timeline_task_sender.clone(),
+            pipeline_id,
+            Default::default(),
+        )
     }
 
     pub fn user_interaction_task_source(
         &self,
         pipeline_id: PipelineId,
-    ) -> UserInteractionTaskSource {
-        UserInteractionTaskSource(self.user_interaction_task_sender.clone(), pipeline_id)
+    ) -> UserInteractionTaskSource<TH> {
+        UserInteractionTaskSource(
+            self.user_interaction_task_sender.clone(),
+            pipeline_id,
+            Default::default(),
+        )
     }
 
-    pub fn networking_task_source(&self, pipeline_id: PipelineId) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.networking_task_sender.clone(), pipeline_id)
+    pub fn networking_task_source(&self, pipeline_id: PipelineId) -> NetworkingTaskSource<TH> {
+        NetworkingTaskSource(
+            self.networking_task_sender.clone(),
+            pipeline_id,
+            Default::default(),
+        )
     }
 
-    pub fn file_reading_task_source(&self, pipeline_id: PipelineId) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.file_reading_task_sender.clone(), pipeline_id)
+    pub fn file_reading_task_source(&self, pipeline_id: PipelineId) -> FileReadingTaskSource<TH> {
+        FileReadingTaskSource(
+            self.file_reading_task_sender.clone(),
+            pipeline_id,
+            Default::default(),
+        )
     }
 
     pub fn remote_event_task_source(&self, pipeline_id: PipelineId) -> RemoteEventTaskSource {
@@ -2232,7 +2330,7 @@ impl ScriptThread {
         if let Some(document) = document {
             // We don't want to dispatch `mouseout` event pointing to non-existing element
             if let Some(target) = self.topmost_mouse_over_target.get() {
-                if target.upcast::<Node>().owner_doc() == document {
+                if target.upcast::<Node<TH>>().owner_doc() == document {
                     self.topmost_mouse_over_target.set(None);
                 }
             }
@@ -2317,7 +2415,7 @@ impl ScriptThread {
         // Not quite the right thing - see #13865.
         node.dirty(NodeDamage::NodeStyleDamaged);
 
-        if let Some(el) = node.downcast::<Element>() {
+        if let Some(el) = node.downcast::<Element<TH>>() {
             if !el.has_css_layout_box() {
                 return;
             }
@@ -2334,7 +2432,6 @@ impl ScriptThread {
             pseudoElement: DOMString::new(),
         };
         let transition_event = TransitionEvent::new(&window, atom!("transitionend"), &init);
-        transition_event.upcast::<Event>().fire(node.upcast());
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
@@ -2406,7 +2503,6 @@ impl ScriptThread {
             .recv()
             .expect("Failed to get browsing context info from constellation.")
     }
-
     fn ask_constellation_for_top_level_info(
         &self,
         sender_pipeline: PipelineId,
@@ -2430,12 +2526,12 @@ impl ScriptThread {
     // to the `window_proxies` map, and return it.
     fn remote_window_proxy(
         &self,
-        global_to_clone: &GlobalScope,
+        global_to_clone: &GlobalScope<TH>,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
         opener: Option<BrowsingContextId>,
-    ) -> Option<DomRoot<WindowProxy>> {
-        let (browsing_context_id, parent_pipeline_id) =
+    ) -> Option<DomRoot<WindowProxy<TH>>> {
+         let (browsing_context_id, parent_pipeline_id) =
             self.ask_constellation_for_browsing_context_info(pipeline_id)?;
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
@@ -2470,12 +2566,12 @@ impl ScriptThread {
     // to the `window_proxies` map, and return it.
     fn local_window_proxy(
         &self,
-        window: &Window,
+        window: &Window<TH>,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-    ) -> DomRoot<WindowProxy> {
+    ) -> DomRoot<WindowProxy<TH>> {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             window_proxy.set_currently_active(&*window);
             return DomRoot::from_ref(window_proxy);
@@ -2511,7 +2607,7 @@ impl ScriptThread {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> DomRoot<ServoParser> {
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> DomRoot<TH::ServoParser> {
         let final_url = metadata.final_url.clone();
         {
             // send the final url to the layout thread.
@@ -2683,9 +2779,9 @@ impl ScriptThread {
         document.set_navigation_start(incomplete.navigation_start_precise);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(&document, parse_input, final_url);
+            TH::ServoParser::parse_xml_document(&document, parse_input, final_url);
         } else {
-            ServoParser::parse_html_document(&document, parse_input, final_url);
+            TH::ServoParser::parse_html_document(&document, parse_input, final_url);
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
@@ -2721,7 +2817,7 @@ impl ScriptThread {
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
-    fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
+    fn rebuild_and_force_reflow(&self, document: &Document<TH>, reason: ReflowReason) {
         let window = window_from_node(&*document);
         document.dirty_all_nodes();
         window.reflow(ReflowGoal::Full, reason);
@@ -2774,13 +2870,13 @@ impl ScriptThread {
                 // Notify Constellation about the topmost anchor mouse over target.
                 if let Some(target) = self.topmost_mouse_over_target.get() {
                     if let Some(anchor) = target
-                        .upcast::<Node>()
+                        .upcast::<Node<TH>>()
                         .inclusive_ancestors()
-                        .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                        .filter_map(DomRoot::downcast::<HTMLAnchorElement<TH>>)
                         .next()
                     {
                         let status = anchor
-                            .upcast::<Element>()
+                            .upcast::<Element<TH>>()
                             .get_attribute(&ns!(), &local_name!("href"))
                             .and_then(|href| {
                                 let value = href.value();
@@ -2798,9 +2894,9 @@ impl ScriptThread {
                 if !state_already_changed {
                     if let Some(target) = prev_mouse_over_target {
                         if let Some(_) = target
-                            .upcast::<Node>()
+                            .upcast::<Node<TH>>()
                             .inclusive_ancestors()
-                            .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                            .filter_map(DomRoot::downcast::<HTMLAnchorElement<TH>>)
                             .next()
                         {
                             let event = EmbedderMsg::Status(None);
@@ -2905,7 +3001,7 @@ impl ScriptThread {
         if is_javascript {
             let window = self.documents.borrow().find_window(parent_pipeline_id);
             if let Some(window) = window {
-                ScriptThread::eval_js_url(window.upcast::<GlobalScope>(), &mut load_data);
+                ScriptThread::<TH>::eval_js_url(window.upcast::<GlobalScope<TH>>(), &mut load_data);
             }
         }
 
@@ -2931,7 +3027,7 @@ impl ScriptThread {
         }
     }
 
-    pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData) {
+    pub fn eval_js_url(global_scope: &GlobalScope<TH>, load_data: &mut LoadData) {
         // Turn javascript: URL into JS code to eval, according to the steps in
         // https://html.spec.whatwg.org/multipage/#javascript-protocol
 
@@ -2998,7 +3094,7 @@ impl ScriptThread {
                 Some(&window),
                 0i32,
             );
-            uievent.upcast::<Event>().fire(window.upcast());
+            uievent.upcast::<Event<TH>>().fire(window.upcast());
         }
 
         // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
@@ -3027,7 +3123,7 @@ impl ScriptThread {
             ..RequestInit::default()
         };
 
-        let context = ParserContext::new(id, load_data.url);
+        let context = ParserContext::<TH>::new(id, load_data.url);
         self.incomplete_parser_contexts
             .borrow_mut()
             .push((id, context));
@@ -3094,7 +3190,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:blank").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = ParserContext::<TH>::new(id, url.clone());
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime!(Text / Html)));
@@ -3166,20 +3262,23 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
             let entry = PerformancePaintTiming::new(
-                &window.upcast::<GlobalScope>(),
+                &window.upcast::<GlobalScope<TH>>(),
                 metric_type,
                 metric_value,
             );
             window.Performance().queue_entry(
-                &entry.upcast::<PerformanceEntry>(),
+                &entry.upcast::<PerformanceEntry<TH>>(),
                 true, /* buffer performance entry */
             );
         }
     }
 
-    pub fn enqueue_microtask(job: Microtask) {
+    pub fn enqueue_microtask(job: Microtask<TH>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = script_thread
+                .downcast_ref::<ScriptThread<TH>>()
+                .expect("Incorrect type");
             script_thread.microtask_queue.enqueue(job);
         });
     }
@@ -3190,7 +3289,7 @@ impl ScriptThread {
     }
 }
 
-impl Drop for ScriptThread {
+impl<TH: TypeHolderTrait> Drop for ScriptThread<TH> {
     fn drop(&mut self) {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.set(None);

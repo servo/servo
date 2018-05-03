@@ -16,17 +16,18 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::iter::Iterator;
 use style::custom_properties;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct StylePropertyMapReadOnly {
-    reflector: Reflector,
-    entries: HashMap<Atom, Dom<CSSStyleValue>>,
+pub struct StylePropertyMapReadOnly<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
+    entries: HashMap<Atom, Dom<CSSStyleValue<TH>>>,
 }
 
-impl StylePropertyMapReadOnly {
-    fn new_inherited<Entries>(entries: Entries) -> StylePropertyMapReadOnly
+impl<TH: TypeHolderTrait> StylePropertyMapReadOnly<TH> {
+    fn new_inherited<Entries>(entries: Entries) -> StylePropertyMapReadOnly<TH>
     where
-        Entries: IntoIterator<Item = (Atom, Dom<CSSStyleValue>)>,
+        Entries: IntoIterator<Item = (Atom, Dom<CSSStyleValue<TH>>)>,
     {
         StylePropertyMapReadOnly {
             reflector: Reflector::new(),
@@ -35,9 +36,9 @@ impl StylePropertyMapReadOnly {
     }
 
     pub fn from_iter<Entries>(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         entries: Entries,
-    ) -> DomRoot<StylePropertyMapReadOnly>
+    ) -> DomRoot<StylePropertyMapReadOnly<TH>>
     where
         Entries: IntoIterator<Item = (Atom, String)>,
     {
@@ -61,9 +62,9 @@ impl StylePropertyMapReadOnly {
     }
 }
 
-impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
+impl<TH: TypeHolderTrait> StylePropertyMapReadOnlyMethods<TH> for StylePropertyMapReadOnly<TH> {
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-get>
-    fn Get(&self, property: DOMString) -> Option<DomRoot<CSSStyleValue>> {
+    fn Get(&self, property: DOMString) -> Option<DomRoot<CSSStyleValue<TH>>> {
         // TODO: avoid constructing an Atom
         self.entries
             .get(&Atom::from(property))

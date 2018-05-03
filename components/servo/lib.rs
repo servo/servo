@@ -23,6 +23,7 @@ extern crate gaol;
 extern crate gleam;
 #[macro_use]
 extern crate log;
+extern crate script_servoparser;
 
 pub extern crate bluetooth;
 pub extern crate bluetooth_traits;
@@ -206,7 +207,7 @@ where
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
-        script::init();
+        script::init::<script_servoparser::TypeHolder>();
 
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
@@ -227,7 +228,7 @@ where
         );
 
         // Send the constellation's swmanager sender to service worker manager thread
-        script::init_service_workers(sw_senders);
+        script::init_service_workers::<script_servoparser::TypeHolder>(sw_senders);
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -574,7 +575,7 @@ fn create_constellation(
     let (constellation_chan, from_swmanager_sender) = Constellation::<
         script_layout_interface::message::Msg,
         layout_thread::LayoutThread,
-        script::script_thread::ScriptThread,
+        script::script_thread::ScriptThread<script_servoparser::TypeHolder>,
     >::start(initial_state);
 
     if let Some(webvr_constellation_sender) = webvr_constellation_sender {
@@ -651,12 +652,12 @@ pub fn run_content_process(token: String) {
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
-    script::init();
-    script::init_service_workers(sw_senders);
+    script::init::<script_servoparser::TypeHolder>();
+    script::init_service_workers::<script_servoparser::TypeHolder>(sw_senders);
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
-                                     script::script_thread::ScriptThread>(true);
+                                     script::script_thread::ScriptThread<script_servoparser::TypeHolder>>(true);
 }
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]

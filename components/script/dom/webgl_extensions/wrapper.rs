@@ -11,48 +11,49 @@ use malloc_size_of::MallocSizeOf;
 use std::any::Any;
 use std::ptr::NonNull;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
+use typeholder::TypeHolderTrait;
 
 /// Trait used internally by WebGLExtensions to store and
 /// handle the different WebGL extensions in a common list.
-pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
+pub trait WebGLExtensionWrapper<TH: TypeHolderTrait>: JSTraceable + MallocSizeOf {
     fn instance_or_init(
         &self,
-        ctx: &WebGLRenderingContext,
-        ext: &WebGLExtensions,
+        ctx: &WebGLRenderingContext<TH>,
+        ext: &WebGLExtensions<TH>,
     ) -> NonNull<JSObject>;
     fn spec(&self) -> WebGLExtensionSpec;
-    fn is_supported(&self, &WebGLExtensions) -> bool;
+    fn is_supported(&self, &WebGLExtensions<TH>) -> bool;
     fn is_enabled(&self) -> bool;
-    fn enable(&self, ext: &WebGLExtensions);
+    fn enable(&self, ext: &WebGLExtensions<TH>);
     fn name(&self) -> &'static str;
     fn as_any(&self) -> &Any;
 }
 
 #[must_root]
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
+pub struct TypedWebGLExtensionWrapper<T: WebGLExtension<TH>, TH: TypeHolderTrait> {
     extension: MutNullableDom<T::Extension>,
 }
 
 /// Typed WebGL Extension implementation.
 /// Exposes the exact MutNullableDom<DOMObject> type defined by the extension.
-impl<T: WebGLExtension> TypedWebGLExtensionWrapper<T> {
-    pub fn new() -> TypedWebGLExtensionWrapper<T> {
+impl<T: WebGLExtension<TH>, TH: TypeHolderTrait> TypedWebGLExtensionWrapper<T, TH> {
+    pub fn new() -> TypedWebGLExtensionWrapper<T, TH> {
         TypedWebGLExtensionWrapper {
             extension: MutNullableDom::new(None),
         }
     }
 }
 
-impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
+impl<T, TH: TypeHolderTrait> WebGLExtensionWrapper<TH> for TypedWebGLExtensionWrapper<T, TH>
 where
-    T: WebGLExtension + JSTraceable + MallocSizeOf + 'static,
+    T: WebGLExtension<TH> + JSTraceable + MallocSizeOf + 'static,
 {
     #[allow(unsafe_code)]
     fn instance_or_init(
         &self,
-        ctx: &WebGLRenderingContext,
-        ext: &WebGLExtensions,
+        ctx: &WebGLRenderingContext<TH>,
+        ext: &WebGLExtensions<TH>,
     ) -> NonNull<JSObject> {
         let mut enabled = true;
         let extension = self.extension.or_init(|| {
@@ -69,7 +70,7 @@ where
         T::spec()
     }
 
-    fn is_supported(&self, ext: &WebGLExtensions) -> bool {
+    fn is_supported(&self, ext: &WebGLExtensions<TH>) -> bool {
         self.is_enabled() || T::is_supported(ext)
     }
 
@@ -77,7 +78,7 @@ where
         self.extension.get().is_some()
     }
 
-    fn enable(&self, ext: &WebGLExtensions) {
+    fn enable(&self, ext: &WebGLExtensions<TH>) {
         T::enable(ext);
     }
 

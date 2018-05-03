@@ -18,6 +18,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 use task_source::TaskSourceName;
+use typeholder::TypeHolderTrait;
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -45,9 +46,9 @@ impl FetchResponseListener for LayoutImageContext {
 
 impl PreInvoke for LayoutImageContext {}
 
-pub fn fetch_image_for_layout(
+pub fn fetch_image_for_layout<TH: TypeHolderTrait>(
     url: ServoUrl,
-    node: &Node,
+    node: &Node<TH>,
     id: PendingImageId,
     cache: Arc<ImageCache>,
 ) {

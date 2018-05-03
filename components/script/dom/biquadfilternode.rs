@@ -21,24 +21,25 @@ use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 use servo_media::audio::param::ParamType;
 use std::cell::Cell;
 use std::f32;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct BiquadFilterNode {
-    node: AudioNode,
-    gain: Dom<AudioParam>,
-    frequency: Dom<AudioParam>,
-    q: Dom<AudioParam>,
-    detune: Dom<AudioParam>,
+pub struct BiquadFilterNode<TH: TypeHolderTrait> {
+    node: AudioNode<TH>,
+    gain: Dom<AudioParam<TH>>,
+    frequency: Dom<AudioParam<TH>>,
+    q: Dom<AudioParam<TH>>,
+    detune: Dom<AudioParam<TH>>,
     filter: Cell<BiquadFilterType>,
 }
 
-impl BiquadFilterNode {
+impl<TH: TypeHolderTrait> BiquadFilterNode<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &BiquadFilterOptions,
-    ) -> Fallible<BiquadFilterNode> {
+    ) -> Fallible<BiquadFilterNode<TH>> {
         let node_options = options.parent
                                   .unwrap_or(2, ChannelCountMode::Max,
                                              ChannelInterpretation::Speakers);
@@ -103,41 +104,41 @@ impl BiquadFilterNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &BiquadFilterOptions,
-    ) -> Fallible<DomRoot<BiquadFilterNode>> {
+    ) -> Fallible<DomRoot<BiquadFilterNode<TH>>> {
         let node = BiquadFilterNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object(Box::new(node), window, BiquadFilterNodeBinding::Wrap))
     }
 
     pub fn Constructor(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &BiquadFilterOptions,
-    ) -> Fallible<DomRoot<BiquadFilterNode>> {
+    ) -> Fallible<DomRoot<BiquadFilterNode<TH>>> {
         BiquadFilterNode::new(window, context, options)
     }
 }
 
-impl BiquadFilterNodeMethods for BiquadFilterNode {
+impl<TH: TypeHolderTrait> BiquadFilterNodeMethods<TH> for BiquadFilterNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-gain
-    fn Gain(&self) -> DomRoot<AudioParam> {
+    fn Gain(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.gain)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-q
-    fn Q(&self) -> DomRoot<AudioParam> {
+    fn Q(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.q)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-detune
-    fn Detune(&self) -> DomRoot<AudioParam> {
+    fn Detune(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.detune)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-frequency
-    fn Frequency(&self) -> DomRoot<AudioParam> {
+    fn Frequency(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.frequency)
     }
 

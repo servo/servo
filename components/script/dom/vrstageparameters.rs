@@ -14,11 +14,12 @@ use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
 use std::ptr;
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 use webvr_traits::WebVRStageParameters;
 
 #[dom_struct]
-pub struct VRStageParameters {
-    reflector_: Reflector,
+pub struct VRStageParameters<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     parameters: DomRefCell<WebVRStageParameters>,
     transform: Heap<*mut JSObject>,
@@ -26,8 +27,8 @@ pub struct VRStageParameters {
 
 unsafe_no_jsmanaged_fields!(WebVRStageParameters);
 
-impl VRStageParameters {
-    fn new_inherited(parameters: WebVRStageParameters) -> VRStageParameters {
+impl<TH: TypeHolderTrait> VRStageParameters<TH> {
+    fn new_inherited(parameters: WebVRStageParameters) -> VRStageParameters<TH> {
         VRStageParameters {
             reflector_: Reflector::new(),
             parameters: DomRefCell::new(parameters),
@@ -38,8 +39,8 @@ impl VRStageParameters {
     #[allow(unsafe_code)]
     pub fn new(
         parameters: WebVRStageParameters,
-        global: &GlobalScope,
-    ) -> DomRoot<VRStageParameters> {
+        global: &GlobalScope<TH>,
+    ) -> DomRoot<VRStageParameters<TH>> {
         let cx = global.get_cx();
         rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
@@ -74,7 +75,7 @@ impl VRStageParameters {
     }
 }
 
-impl VRStageParametersMethods for VRStageParameters {
+impl<TH: TypeHolderTrait> VRStageParametersMethods for VRStageParameters<TH> {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sittingtostandingtransform
     unsafe fn SittingToStandingTransform(&self, _cx: *mut JSContext) -> NonNull<JSObject> {

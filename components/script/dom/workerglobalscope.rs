@@ -11,7 +11,6 @@ use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exceptio
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
-use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::trace::RootedTraceableBox;
 use dom::crypto::Crypto;
@@ -50,9 +49,10 @@ use task_source::remote_event::RemoteEventTaskSource;
 use task_source::websocket::WebsocketTaskSource;
 use time::precise_time_ns;
 use timers::{IsInterval, TimerCallback};
+use typeholder::TypeHolderTrait;
 
-pub fn prepare_workerscope_init(
-    global: &GlobalScope,
+pub fn prepare_workerscope_init<TH: TypeHolderTrait>(
+    global: &GlobalScope<TH>,
     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 ) -> WorkerGlobalScopeInit {
     let init = WorkerGlobalScopeInit {
@@ -73,8 +73,8 @@ pub fn prepare_workerscope_init(
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
-pub struct WorkerGlobalScope {
-    globalscope: GlobalScope,
+pub struct WorkerGlobalScope<TH: TypeHolderTrait> {
+    globalscope: GlobalScope<TH>,
 
     worker_id: WorkerId,
     worker_url: ServoUrl,
@@ -82,8 +82,8 @@ pub struct WorkerGlobalScope {
     closing: Option<Arc<AtomicBool>>,
     #[ignore_malloc_size_of = "Defined in js"]
     runtime: Runtime,
-    location: MutNullableDom<WorkerLocation>,
-    navigator: MutNullableDom<WorkerNavigator>,
+    location: MutNullableDom<WorkerLocation<TH>>,
+    navigator: MutNullableDom<WorkerNavigator<TH>>,
 
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
@@ -96,10 +96,10 @@ pub struct WorkerGlobalScope {
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
     navigation_start_precise: u64,
-    performance: MutNullableDom<Performance>,
+    performance: MutNullableDom<Performance<TH>>,
 }
 
-impl WorkerGlobalScope {
+impl<TH: TypeHolderTrait> WorkerGlobalScope<TH> {
     pub fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
@@ -109,7 +109,7 @@ impl WorkerGlobalScope {
         closing: Option<Arc<AtomicBool>>,
     ) -> Self {
         Self {
-            globalscope: GlobalScope::new_inherited(
+            globalscope: GlobalScope::<TH>::new_inherited(
                 init.pipeline_id,
                 init.to_devtools_sender,
                 init.mem_profiler_chan,
@@ -173,14 +173,14 @@ impl WorkerGlobalScope {
     }
 }
 
-impl WorkerGlobalScopeMethods for WorkerGlobalScope {
+impl<TH: TypeHolderTrait> WorkerGlobalScopeMethods<TH> for WorkerGlobalScope<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
-    fn Self_(&self) -> DomRoot<WorkerGlobalScope> {
+    fn Self_(&self) -> DomRoot<WorkerGlobalScope<TH>> {
         DomRoot::from_ref(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
-    fn Location(&self) -> DomRoot<WorkerLocation> {
+    fn Location(&self) -> DomRoot<WorkerLocation<TH>> {
         self.location
             .or_init(|| WorkerLocation::new(self, self.worker_url.clone()))
     }
@@ -201,14 +201,14 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
         rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         for url in urls {
-            let global_scope = self.upcast::<GlobalScope>();
+            let global_scope = self.upcast::<GlobalScope<TH>>();
             let request = NetRequestInit {
                 url: url.clone(),
                 destination: Destination::Script,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
                 origin: global_scope.origin().immutable().clone(),
-                pipeline_id: Some(self.upcast::<GlobalScope>().pipeline_id()),
+                pipeline_id: Some(self.upcast::<GlobalScope<TH>>().pipeline_id()),
                 referrer_url: None,
                 referrer_policy: None,
                 ..NetRequestInit::default()
@@ -244,13 +244,13 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
-    fn Navigator(&self) -> DomRoot<WorkerNavigator> {
+    fn Navigator(&self) -> DomRoot<WorkerNavigator<TH>> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
-    fn Crypto(&self) -> DomRoot<Crypto> {
-        self.upcast::<GlobalScope>().crypto()
+    fn Crypto(&self) -> DomRoot<Crypto<TH>> {
+        self.upcast::<GlobalScope<TH>>().crypto()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
@@ -268,11 +268,11 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     unsafe fn SetTimeout(
         &self,
         _cx: *mut JSContext,
-        callback: Rc<Function>,
+        callback: Rc<Function<TH>>,
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
+        self.upcast::<GlobalScope<TH>>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
             timeout,
@@ -289,7 +289,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
+        self.upcast::<GlobalScope<TH>>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
             timeout,
@@ -299,7 +299,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.upcast::<GlobalScope>()
+        self.upcast::<GlobalScope<TH>>()
             .clear_timeout_or_interval(handle);
     }
 
@@ -308,11 +308,11 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     unsafe fn SetInterval(
         &self,
         _cx: *mut JSContext,
-        callback: Rc<Function>,
+        callback: Rc<Function<TH>>,
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
+        self.upcast::<GlobalScope<TH>>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
             timeout,
@@ -329,7 +329,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         timeout: i32,
         args: Vec<HandleValue>,
     ) -> i32 {
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
+        self.upcast::<GlobalScope<TH>>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
             timeout,
@@ -346,16 +346,16 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(
         &self,
-        input: RequestOrUSVString,
-        init: RootedTraceableBox<RequestInit>,
-    ) -> Rc<Promise> {
+        input: RequestOrUSVString<TH>,
+        init: RootedTraceableBox<RequestInit<TH>>,
+    ) -> Rc<Promise<TH>> {
         fetch::Fetch(self.upcast(), input, init)
     }
 
     // https://w3c.github.io/hr-time/#the-performance-attribute
-    fn Performance(&self) -> DomRoot<Performance> {
+    fn Performance(&self) -> DomRoot<Performance<TH>> {
         self.performance.or_init(|| {
-            let global_scope = self.upcast::<GlobalScope>();
+            let global_scope = self.upcast::<GlobalScope<TH>>();
             Performance::new(
                 global_scope,
                 0, /* navigation start is not used in workers */
@@ -367,7 +367,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-origin
     fn Origin(&self) -> USVString {
         USVString(
-            self.upcast::<GlobalScope>()
+            self.upcast::<GlobalScope<TH>>()
                 .origin()
                 .immutable()
                 .ascii_serialization(),
@@ -375,10 +375,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     }
 }
 
-impl WorkerGlobalScope {
+impl<TH: TypeHolderTrait> WorkerGlobalScope<TH> {
     #[allow(unsafe_code)]
     pub fn execute_script(&self, source: DOMString) {
-        let _aes = AutoEntryScript::new(self.upcast());
+        // let _aes = AutoEntryScript::new(self.upcast());
         rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         match self.runtime.evaluate_script(
             self.reflector().get_jsobject(),
@@ -400,7 +400,7 @@ impl WorkerGlobalScope {
                             self.runtime.cx(),
                             self.reflector().get_jsobject().get(),
                         );
-                        report_pending_exception(self.runtime.cx(), true);
+                        report_pending_exception::<TH>(self.runtime.cx(), true);
                     }
                 }
             },
@@ -408,8 +408,8 @@ impl WorkerGlobalScope {
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
-        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope<TH>>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope<TH>>();
         if let Some(dedicated) = dedicated {
             return dedicated.script_chan();
         } else if let Some(service_worker) = service_worker {
@@ -419,16 +419,16 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.script_chan(), self.pipeline_id())
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource<TH> {
+        FileReadingTaskSource(self.script_chan(), self.pipeline_id(), Default::default())
     }
 
-    pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.script_chan(), self.pipeline_id())
+    pub fn networking_task_source(&self) -> NetworkingTaskSource<TH> {
+        NetworkingTaskSource(self.script_chan(), self.pipeline_id(), Default::default())
     }
 
-    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id())
+    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource<TH> {
+        PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id(), Default::default())
     }
 
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
@@ -440,7 +440,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope<TH>>();
         if let Some(dedicated) = dedicated {
             return dedicated.new_script_pair();
         } else {
@@ -461,7 +461,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
-        self.upcast::<GlobalScope>().fire_timer(timer_id);
+        self.upcast::<GlobalScope<TH>>().fire_timer(timer_id);
     }
 
     pub fn close(&self) {

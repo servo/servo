@@ -32,10 +32,11 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use task_source::TaskSourceName;
+use typeholder::TypeHolderTrait;
 
-struct FetchContext {
-    fetch_promise: Option<TrustedPromise>,
-    response_object: Trusted<Response>,
+struct FetchContext<TH: TypeHolderTrait> {
+    fetch_promise: Option<TrustedPromise<TH>>,
+    response_object: Trusted<Response<TH>>,
     body: Vec<u8>,
 }
 
@@ -95,7 +96,9 @@ fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<ServoUrl>
     request.referrer.to_url().map(|url| url.clone())
 }
 
-fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit {
+fn request_init_from_request<TH: TypeHolderTrait>(
+    request: NetTraitsRequest,
+) -> NetTraitsRequestInit {
     NetTraitsRequestInit {
         method: request.method.clone(),
         url: request.url(),
@@ -108,7 +111,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         use_cors_preflight: request.use_cors_preflight,
         credentials_mode: request.credentials_mode,
         use_url_credentials: request.use_url_credentials,
-        origin: GlobalScope::current()
+        origin: GlobalScope::<TH>::current()
             .expect("No current global object")
             .origin()
             .immutable()
@@ -124,15 +127,15 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
-pub fn Fetch(
-    global: &GlobalScope,
-    input: RequestInfo,
-    init: RootedTraceableBox<RequestInit>,
-) -> Rc<Promise> {
+pub fn Fetch<TH: TypeHolderTrait>(
+    global: &GlobalScope<TH>,
+    input: RequestInfo<TH>,
+    init: RootedTraceableBox<RequestInit<TH>>,
+) -> Rc<Promise<TH>> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new(global);
+    let promise = Promise::<TH>::new(global);
     let response = Response::new(global);
 
     // Step 2
@@ -143,10 +146,10 @@ pub fn Fetch(
         },
         Ok(r) => r.get_request(),
     };
-    let mut request_init = request_init_from_request(request);
+    let mut request_init = request_init_from_request::<TH>(request);
 
     // Step 3
-    if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
+    if global.downcast::<ServiceWorkerGlobalScope<TH>>().is_some() {
         request_init.service_workers_mode = ServiceWorkersMode::Foreign;
     }
 
@@ -156,7 +159,7 @@ pub fn Fetch(
     // Step 5
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let fetch_context = Arc::new(Mutex::new(FetchContext {
-        fetch_promise: Some(TrustedPromise::new(promise.clone())),
+        fetch_promise: Some(TrustedPromise::<TH>::new(promise.clone())),
         response_object: Trusted::new(&*response),
         body: vec![],
     }));
@@ -181,9 +184,9 @@ pub fn Fetch(
     promise
 }
 
-impl PreInvoke for FetchContext {}
+impl<TH: TypeHolderTrait> PreInvoke for FetchContext<TH> {}
 
-impl FetchResponseListener for FetchContext {
+impl<TH: TypeHolderTrait> FetchResponseListener for FetchContext<TH> {
     fn process_request_body(&mut self) {
         // TODO
     }
@@ -208,7 +211,7 @@ impl FetchResponseListener for FetchContext {
             // Step 4.1
             Err(_) => {
                 promise.reject_error(Error::Type("Network error occurred".to_string()));
-                self.fetch_promise = Some(TrustedPromise::new(promise));
+                self.fetch_promise = Some(TrustedPromise::<TH>::new(promise));
                 self.response_object.root().set_type(DOMResponseType::Error);
                 return;
             },
@@ -242,7 +245,7 @@ impl FetchResponseListener for FetchContext {
         }
         // Step 4.3
         promise.resolve_native(&self.response_object.root());
-        self.fetch_promise = Some(TrustedPromise::new(promise));
+        self.fetch_promise = Some(TrustedPromise::<TH>::new(promise));
     }
 
     fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
@@ -260,7 +263,7 @@ impl FetchResponseListener for FetchContext {
     }
 }
 
-fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata) {
+fn fill_headers_with_metadata<TH: TypeHolderTrait>(r: DomRoot<Response<TH>>, m: Metadata) {
     r.set_headers(m.headers);
     r.set_raw_status(m.status);
     r.set_final_url(m.final_url);

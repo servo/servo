@@ -17,6 +17,7 @@ use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom::webgltexture::WebGLTexture;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 pub enum CompleteForRendering {
     Complete,
@@ -26,15 +27,15 @@ pub enum CompleteForRendering {
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-enum WebGLFramebufferAttachment {
-    Renderbuffer(Dom<WebGLRenderbuffer>),
+enum WebGLFramebufferAttachment<TH: TypeHolderTrait> {
+    Renderbuffer(Dom<WebGLRenderbuffer<TH>>),
     Texture {
-        texture: Dom<WebGLTexture>,
+        texture: Dom<WebGLTexture<TH>>,
         level: i32,
     },
 }
 
-impl WebGLFramebufferAttachment {
+impl<TH: TypeHolderTrait> WebGLFramebufferAttachment<TH> {
     fn needs_initialization(&self) -> bool {
         match *self {
             WebGLFramebufferAttachment::Renderbuffer(ref r) => !r.is_initialized(),
@@ -49,7 +50,7 @@ impl WebGLFramebufferAttachment {
         }
     }
 
-    fn root(&self) -> WebGLFramebufferAttachmentRoot {
+    fn root(&self) -> WebGLFramebufferAttachmentRoot<TH> {
         match *self {
             WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
                 WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(&rb))
@@ -62,14 +63,14 @@ impl WebGLFramebufferAttachment {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum WebGLFramebufferAttachmentRoot {
-    Renderbuffer(DomRoot<WebGLRenderbuffer>),
-    Texture(DomRoot<WebGLTexture>),
+pub enum WebGLFramebufferAttachmentRoot<TH: TypeHolderTrait> {
+    Renderbuffer(DomRoot<WebGLRenderbuffer<TH>>),
+    Texture(DomRoot<WebGLTexture<TH>>),
 }
 
 #[dom_struct]
-pub struct WebGLFramebuffer {
-    webgl_object: WebGLObject,
+pub struct WebGLFramebuffer<TH: TypeHolderTrait> {
+    webgl_object: WebGLObject<TH>,
     id: WebGLFramebufferId,
     /// target can only be gl::FRAMEBUFFER at the moment
     target: Cell<Option<u32>>,
@@ -78,15 +79,15 @@ pub struct WebGLFramebuffer {
     status: Cell<u32>,
     // The attachment points for textures and renderbuffers on this
     // FBO.
-    color: DomRefCell<Option<WebGLFramebufferAttachment>>,
-    depth: DomRefCell<Option<WebGLFramebufferAttachment>>,
-    stencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
-    depthstencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
+    color: DomRefCell<Option<WebGLFramebufferAttachment<TH>>>,
+    depth: DomRefCell<Option<WebGLFramebufferAttachment<TH>>>,
+    stencil: DomRefCell<Option<WebGLFramebufferAttachment<TH>>>,
+    depthstencil: DomRefCell<Option<WebGLFramebufferAttachment<TH>>>,
     is_initialized: Cell<bool>,
 }
 
-impl WebGLFramebuffer {
-    fn new_inherited(context: &WebGLRenderingContext, id: WebGLFramebufferId) -> Self {
+impl<TH: TypeHolderTrait> WebGLFramebuffer<TH> {
+    fn new_inherited(context: &WebGLRenderingContext<TH>, id: WebGLFramebufferId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id: id,
@@ -102,7 +103,7 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub fn maybe_new(context: &WebGLRenderingContext<TH>) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateFramebuffer(sender));
         receiver
@@ -111,7 +112,7 @@ impl WebGLFramebuffer {
             .map(|id| WebGLFramebuffer::new(context, id))
     }
 
-    pub fn new(context: &WebGLRenderingContext, id: WebGLFramebufferId) -> DomRoot<Self> {
+    pub fn new(context: &WebGLRenderingContext<TH>, id: WebGLFramebufferId) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLFramebuffer::new_inherited(context, id)),
             &*context.global(),
@@ -120,7 +121,7 @@ impl WebGLFramebuffer {
     }
 }
 
-impl WebGLFramebuffer {
+impl<TH: TypeHolderTrait> WebGLFramebuffer<TH> {
     pub fn id(&self) -> WebGLFramebufferId {
         self.id
     }
@@ -132,7 +133,7 @@ impl WebGLFramebuffer {
         self.update_status();
 
         self.target.set(Some(target));
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::BindFramebuffer(
                 target,
@@ -143,7 +144,7 @@ impl WebGLFramebuffer {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.upcast::<WebGLObject>()
+            self.upcast::<WebGLObject<TH>>()
                 .context()
                 .send_command(WebGLCommand::DeleteFramebuffer(self.id));
         }
@@ -285,7 +286,7 @@ impl WebGLFramebuffer {
                     }
                 }
             }
-            self.upcast::<WebGLObject>()
+            self.upcast::<WebGLObject<TH>>()
                 .context()
                 .initialize_framebuffer(clear_bits);
             self.is_initialized.set(true);
@@ -294,7 +295,7 @@ impl WebGLFramebuffer {
         CompleteForRendering::Complete
     }
 
-    pub fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer>) -> WebGLResult<()> {
+    pub fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer<TH>>) -> WebGLResult<()> {
         let binding = self
             .attachment_binding(attachment)
             .ok_or(WebGLError::InvalidEnum)?;
@@ -312,7 +313,7 @@ impl WebGLFramebuffer {
             _ => None,
         };
 
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::FramebufferRenderbuffer(
                 constants::FRAMEBUFFER,
@@ -332,7 +333,7 @@ impl WebGLFramebuffer {
 
     fn detach_binding(
         &self,
-        binding: &DomRefCell<Option<WebGLFramebufferAttachment>>,
+        binding: &DomRefCell<Option<WebGLFramebufferAttachment<TH>>>,
         attachment: u32,
     ) {
         *binding.borrow_mut() = None;
@@ -344,7 +345,7 @@ impl WebGLFramebuffer {
     fn attachment_binding(
         &self,
         attachment: u32,
-    ) -> Option<&DomRefCell<Option<WebGLFramebufferAttachment>>> {
+    ) -> Option<&DomRefCell<Option<WebGLFramebufferAttachment<TH>>>> {
         match attachment {
             constants::COLOR_ATTACHMENT0 => Some(&self.color),
             constants::DEPTH_ATTACHMENT => Some(&self.depth),
@@ -355,8 +356,8 @@ impl WebGLFramebuffer {
     }
 
     fn reattach_depth_stencil(&self) {
-        let reattach = |attachment: &WebGLFramebufferAttachment, attachment_point| {
-            let context = self.upcast::<WebGLObject>().context();
+        let reattach = |attachment: &WebGLFramebufferAttachment<TH>, attachment_point| {
+            let context = self.upcast::<WebGLObject<TH>>().context();
             match *attachment {
                 WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
                     context.send_command(WebGLCommand::FramebufferRenderbuffer(
@@ -393,7 +394,7 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn attachment(&self, attachment: u32) -> Option<WebGLFramebufferAttachmentRoot> {
+    pub fn attachment(&self, attachment: u32) -> Option<WebGLFramebufferAttachmentRoot<TH>> {
         let binding = self.attachment_binding(attachment)?;
         binding
             .borrow()
@@ -405,7 +406,7 @@ impl WebGLFramebuffer {
         &self,
         attachment: u32,
         textarget: u32,
-        texture: Option<&WebGLTexture>,
+        texture: Option<&WebGLTexture<TH>>,
         level: i32,
     ) -> WebGLResult<()> {
         let binding = self
@@ -466,7 +467,7 @@ impl WebGLFramebuffer {
             _ => None,
         };
 
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::FramebufferTexture2D(
                 constants::FRAMEBUFFER,
@@ -485,9 +486,9 @@ impl WebGLFramebuffer {
         Ok(())
     }
 
-    fn with_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer, mut closure: F)
+    fn with_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer<TH>, mut closure: F)
     where
-        F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32),
+        F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment<TH>>>, u32),
     {
         let attachments = [
             (&self.color, constants::COLOR_ATTACHMENT0),
@@ -514,9 +515,9 @@ impl WebGLFramebuffer {
         }
     }
 
-    fn with_matching_textures<F>(&self, texture: &WebGLTexture, mut closure: F)
+    fn with_matching_textures<F>(&self, texture: &WebGLTexture<TH>, mut closure: F)
     where
-        F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32),
+        F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment<TH>>>, u32),
     {
         let attachments = [
             (&self.color, constants::COLOR_ATTACHMENT0),
@@ -546,7 +547,7 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+    pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer<TH>) {
         let mut depth_or_stencil_updated = false;
         self.with_matching_renderbuffers(rb, |att, name| {
             depth_or_stencil_updated |= INTERESTING_ATTACHMENT_POINTS.contains(&name);
@@ -559,7 +560,7 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn detach_texture(&self, texture: &WebGLTexture) {
+    pub fn detach_texture(&self, texture: &WebGLTexture<TH>) {
         let mut depth_or_stencil_updated = false;
         self.with_matching_textures(texture, |att, name| {
             depth_or_stencil_updated |= INTERESTING_ATTACHMENT_POINTS.contains(&name);
@@ -572,14 +573,14 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn invalidate_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+    pub fn invalidate_renderbuffer(&self, rb: &WebGLRenderbuffer<TH>) {
         self.with_matching_renderbuffers(rb, |_att, _| {
             self.is_initialized.set(false);
             self.update_status();
         });
     }
 
-    pub fn invalidate_texture(&self, texture: &WebGLTexture) {
+    pub fn invalidate_texture(&self, texture: &WebGLTexture<TH>) {
         self.with_matching_textures(texture, |_att, _name| {
             self.update_status();
         });
@@ -590,7 +591,7 @@ impl WebGLFramebuffer {
     }
 }
 
-impl Drop for WebGLFramebuffer {
+impl<TH: TypeHolderTrait> Drop for WebGLFramebuffer<TH> {
     fn drop(&mut self) {
         self.delete();
     }

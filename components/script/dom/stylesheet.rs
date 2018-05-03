@@ -11,22 +11,23 @@ use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct StyleSheet {
-    reflector_: Reflector,
+pub struct StyleSheet<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     type_: DOMString,
     href: Option<DOMString>,
     title: Option<DOMString>,
 }
 
-impl StyleSheet {
+impl<TH: TypeHolderTrait> StyleSheet<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
         type_: DOMString,
         href: Option<DOMString>,
         title: Option<DOMString>,
-    ) -> StyleSheet {
+    ) -> StyleSheet<TH> {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
@@ -37,11 +38,11 @@ impl StyleSheet {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
+        window: &Window<TH>,
         type_: DOMString,
         href: Option<DOMString>,
         title: Option<DOMString>,
-    ) -> DomRoot<StyleSheet> {
+    ) -> DomRoot<StyleSheet<TH>> {
         reflect_dom_object(
             Box::new(StyleSheet::new_inherited(type_, href, title)),
             window,
@@ -50,7 +51,7 @@ impl StyleSheet {
     }
 }
 
-impl StyleSheetMethods for StyleSheet {
+impl<TH: TypeHolderTrait> StyleSheetMethods for StyleSheet<TH> {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-type
     fn Type_(&self) -> DOMString {
         self.type_.clone()
@@ -68,12 +69,12 @@ impl StyleSheetMethods for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
     fn Disabled(&self) -> bool {
-        self.downcast::<CSSStyleSheet>().unwrap().disabled()
+        self.downcast::<CSSStyleSheet<TH>>().unwrap().disabled()
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
     fn SetDisabled(&self, disabled: bool) {
-        self.downcast::<CSSStyleSheet>()
+        self.downcast::<CSSStyleSheet<TH>>()
             .unwrap()
             .set_disabled(disabled)
     }

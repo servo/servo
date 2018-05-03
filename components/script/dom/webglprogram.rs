@@ -20,24 +20,25 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
 use std::cell::{Cell, Ref};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct WebGLProgram {
-    webgl_object: WebGLObject,
+pub struct WebGLProgram<TH: TypeHolderTrait> {
+    webgl_object: WebGLObject<TH>,
     id: WebGLProgramId,
     is_in_use: Cell<bool>,
     marked_for_deletion: Cell<bool>,
     link_called: Cell<bool>,
     linked: Cell<bool>,
     link_generation: Cell<u64>,
-    fragment_shader: MutNullableDom<WebGLShader>,
-    vertex_shader: MutNullableDom<WebGLShader>,
+    fragment_shader: MutNullableDom<WebGLShader<TH>>,
+    vertex_shader: MutNullableDom<WebGLShader<TH>>,
     active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
     active_uniforms: DomRefCell<Box<[ActiveUniformInfo]>>,
 }
 
-impl WebGLProgram {
-    fn new_inherited(context: &WebGLRenderingContext, id: WebGLProgramId) -> Self {
+impl<TH: TypeHolderTrait> WebGLProgram<TH> {
+    fn new_inherited(context: &WebGLRenderingContext<TH>, id: WebGLProgramId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id: id,
@@ -53,7 +54,7 @@ impl WebGLProgram {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub fn maybe_new(context: &WebGLRenderingContext<TH>) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateProgram(sender));
         receiver
@@ -62,7 +63,7 @@ impl WebGLProgram {
             .map(|id| WebGLProgram::new(context, id))
     }
 
-    pub fn new(context: &WebGLRenderingContext, id: WebGLProgramId) -> DomRoot<Self> {
+    pub fn new(context: &WebGLRenderingContext<TH>, id: WebGLProgramId) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLProgram::new_inherited(context, id)),
             &*context.global(),
@@ -71,7 +72,7 @@ impl WebGLProgram {
     }
 }
 
-impl WebGLProgram {
+impl<TH: TypeHolderTrait> WebGLProgram<TH> {
     pub fn id(&self) -> WebGLProgramId {
         self.id
     }
@@ -82,7 +83,7 @@ impl WebGLProgram {
             return;
         }
         self.marked_for_deletion.set(true);
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::DeleteProgram(self.id));
         if self.is_deleted() {
@@ -147,7 +148,7 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::LinkProgram(self.id, sender));
         let link_info = receiver.recv().unwrap();
@@ -200,14 +201,14 @@ impl WebGLProgram {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::ValidateProgram(self.id));
         Ok(())
     }
 
     /// glAttachShader
-    pub fn attach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
+    pub fn attach_shader(&self, shader: &WebGLShader<TH>) -> WebGLResult<()> {
         if self.is_deleted() || shader.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -227,7 +228,7 @@ impl WebGLProgram {
         shader_slot.set(Some(shader));
         shader.increment_attached_counter();
 
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::AttachShader(self.id, shader.id()));
 
@@ -235,7 +236,7 @@ impl WebGLProgram {
     }
 
     /// glDetachShader
-    pub fn detach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
+    pub fn detach_shader(&self, shader: &WebGLShader<TH>) -> WebGLResult<()> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -256,7 +257,7 @@ impl WebGLProgram {
         shader_slot.set(None);
         shader.decrement_attached_counter();
 
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::DetachShader(self.id, shader.id()));
 
@@ -276,7 +277,7 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::BindAttribLocation(
                 self.id,
@@ -286,7 +287,7 @@ impl WebGLProgram {
         Ok(())
     }
 
-    pub fn get_active_uniform(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
+    pub fn get_active_uniform(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo<TH>>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -303,7 +304,7 @@ impl WebGLProgram {
     }
 
     /// glGetActiveAttrib
-    pub fn get_active_attrib(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
+    pub fn get_active_attrib(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo<TH>>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -345,7 +346,7 @@ impl WebGLProgram {
     pub fn get_uniform_location(
         &self,
         name: DOMString,
-    ) -> WebGLResult<Option<DomRoot<WebGLUniformLocation>>> {
+    ) -> WebGLResult<Option<DomRoot<WebGLUniformLocation<TH>>>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -379,7 +380,7 @@ impl WebGLProgram {
         };
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::GetUniformLocation(
                 self.id,
@@ -413,13 +414,13 @@ impl WebGLProgram {
             }
         }
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::GetProgramInfoLog(self.id, sender));
         Ok(receiver.recv().unwrap())
     }
 
-    pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
+    pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader<TH>>>> {
         if self.marked_for_deletion.get() {
             return Err(WebGLError::InvalidValue);
         }
@@ -439,7 +440,7 @@ impl WebGLProgram {
     }
 }
 
-impl Drop for WebGLProgram {
+impl<TH: TypeHolderTrait> Drop for WebGLProgram<TH> {
     fn drop(&mut self) {
         self.in_use(false);
         self.mark_for_deletion();
@@ -501,7 +502,6 @@ fn validate_glsl_char(c: char) -> WebGLResult<()> {
         _ => Err(WebGLError::InvalidValue),
     }
 }
-
 fn parse_uniform_name(name: &str) -> Option<(&str, Option<i32>)> {
     if !name.ends_with(']') {
         return Some((name, None));

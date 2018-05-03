@@ -16,18 +16,19 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use servo_url::ServoUrl;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLBaseElement {
-    htmlelement: HTMLElement,
+pub struct HTMLBaseElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLBaseElement {
+impl<TH: TypeHolderTrait> HTMLBaseElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLBaseElement {
+        document: &Document<TH>,
+    ) -> HTMLBaseElement<TH> {
         HTMLBaseElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -37,9 +38,9 @@ impl HTMLBaseElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLBaseElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLBaseElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLBaseElement::new_inherited(local_name, prefix, document)),
             document,
             HTMLBaseElementBinding::Wrap,
@@ -49,7 +50,7 @@ impl HTMLBaseElement {
     /// <https://html.spec.whatwg.org/multipage/#frozen-base-url>
     pub fn frozen_base_url(&self) -> ServoUrl {
         let href = self
-            .upcast::<Element>()
+            .upcast::<Element<TH>>()
             .get_attribute(&ns!(), &local_name!("href"))
             .expect(
                 "The frozen base url is only defined for base elements \
@@ -68,14 +69,17 @@ impl HTMLBaseElement {
             return;
         }
 
-        if self.upcast::<Element>().has_attribute(&local_name!("href")) {
+        if self
+            .upcast::<Element<TH>>()
+            .has_attribute(&local_name!("href"))
+        {
             let document = document_from_node(self);
             document.refresh_base_element();
         }
     }
 }
 
-impl HTMLBaseElementMethods for HTMLBaseElement {
+impl<TH: TypeHolderTrait> HTMLBaseElementMethods for HTMLBaseElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-base-href
     fn Href(&self) -> DOMString {
         // Step 1.
@@ -83,7 +87,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
 
         // Step 2.
         let attr = self
-            .upcast::<Element>()
+            .upcast::<Element<TH>>()
             .get_attribute(&ns!(), &local_name!("href"));
         let value = attr.as_ref().map(|attr| attr.value());
         let url = value.as_ref().map_or("", |value| &**value);
@@ -107,12 +111,12 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
     make_setter!(SetHref, "href");
 }
 
-impl VirtualMethods for HTMLBaseElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLBaseElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         if *attr.local_name() == local_name!("href") {
             document_from_node(self).refresh_base_element();
@@ -124,7 +128,7 @@ impl VirtualMethods for HTMLBaseElement {
         self.bind_unbind(tree_in_doc);
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
         self.bind_unbind(context.tree_in_doc);
     }

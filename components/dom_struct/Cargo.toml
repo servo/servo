@@ -6,7 +6,7 @@ publish = false
 version = "0.0.1"
 
 [dependencies]
-quote = "0.6.3"
+quote = "0.6.4"
 syn = { version = "0.14.2", features = ["full"] }
 
 [lib]

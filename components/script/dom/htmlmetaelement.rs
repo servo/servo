@@ -27,21 +27,22 @@ use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, StylesheetContents, CssRule, CssRules, Origin, ViewportRule};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLMetaElement {
-    htmlelement: HTMLElement,
+pub struct HTMLMetaElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     #[ignore_malloc_size_of = "Arc"]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
+    cssom_stylesheet: MutNullableDom<CSSStyleSheet<TH>>,
 }
 
-impl HTMLMetaElement {
+impl<TH: TypeHolderTrait> HTMLMetaElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLMetaElement {
+        document: &Document<TH>,
+    ) -> HTMLMetaElement<TH> {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DomRefCell::new(None),
@@ -53,9 +54,9 @@ impl HTMLMetaElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLMetaElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLMetaElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
             document,
             HTMLMetaElementBinding::Wrap,
@@ -66,12 +67,12 @@ impl HTMLMetaElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet<TH>>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
                     &window_from_node(self),
-                    self.upcast::<Element>(),
+                    self.upcast::<Element<TH>>(),
                     "text/css".into(),
                     None, // todo handle location
                     None, // todo handle title
@@ -82,7 +83,7 @@ impl HTMLMetaElement {
     }
 
     fn process_attributes(&self) {
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         if let Some(name) = element.get_attribute(&ns!(), &local_name!("name")).r() {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
@@ -105,7 +106,7 @@ impl HTMLMetaElement {
         {
             return;
         }
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")).r() {
             let content = content.value();
             if !content.is_empty() {
@@ -135,7 +136,7 @@ impl HTMLMetaElement {
     }
 
     fn process_referrer_attribute(&self) {
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         if let Some(name) = element.get_attribute(&ns!(), &local_name!("name")).r() {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
@@ -148,15 +149,15 @@ impl HTMLMetaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
     fn apply_referrer(&self) {
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
+        if let Some(parent) = self.upcast::<Node<TH>>().GetParentElement() {
+            if let Some(head) = parent.downcast::<HTMLHeadElement<TH>>() {
                 head.set_document_referrer();
             }
         }
     }
 }
 
-impl HTMLMetaElementMethods for HTMLMetaElement {
+impl<TH: TypeHolderTrait> HTMLMetaElementMethods for HTMLMetaElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-meta-name
     make_getter!(Name, "name");
 
@@ -170,9 +171,9 @@ impl HTMLMetaElementMethods for HTMLMetaElement {
     make_setter!(SetContent, "content");
 }
 
-impl VirtualMethods for HTMLMetaElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLMetaElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
@@ -195,7 +196,7 @@ impl VirtualMethods for HTMLMetaElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         if let Some(s) = self.super_type() {
             s.attribute_mutated(attr, mutation);
         }
@@ -203,7 +204,7 @@ impl VirtualMethods for HTMLMetaElement {
         self.process_referrer_attribute();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);
         }

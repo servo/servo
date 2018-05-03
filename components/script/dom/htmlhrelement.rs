@@ -15,18 +15,19 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLHRElement {
-    htmlelement: HTMLElement,
+pub struct HTMLHRElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLHRElement {
+impl<TH: TypeHolderTrait> HTMLHRElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLHRElement {
+        document: &Document<TH>,
+    ) -> HTMLHRElement<TH> {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -36,9 +37,9 @@ impl HTMLHRElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLHRElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLHRElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLHRElement::new_inherited(local_name, prefix, document)),
             document,
             HTMLHRElementBinding::Wrap,
@@ -46,7 +47,7 @@ impl HTMLHRElement {
     }
 }
 
-impl HTMLHRElementMethods for HTMLHRElement {
+impl<TH: TypeHolderTrait> HTMLHRElementMethods for HTMLHRElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-hr-align
     make_getter!(Align, "align");
 
@@ -71,11 +72,11 @@ pub trait HTMLHRLayoutHelpers {
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement> {
+impl<TH: TypeHolderTrait> HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement<TH>> {
     #[allow(unsafe_code)]
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("color"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -85,7 +86,7 @@ impl HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement> {
     #[allow(unsafe_code)]
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
@@ -94,9 +95,9 @@ impl HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement> {
     }
 }
 
-impl VirtualMethods for HTMLHRElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLHRElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

@@ -14,18 +14,19 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLLIElement {
-    htmlelement: HTMLElement,
+pub struct HTMLLIElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLLIElement {
+impl<TH: TypeHolderTrait> HTMLLIElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLLIElement {
+        document: &Document<TH>,
+    ) -> HTMLLIElement<TH> {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -35,9 +36,9 @@ impl HTMLLIElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLLIElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLLIElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLLIElement::new_inherited(local_name, prefix, document)),
             document,
             HTMLLIElementBinding::Wrap,
@@ -45,7 +46,7 @@ impl HTMLLIElement {
     }
 }
 
-impl HTMLLIElementMethods for HTMLLIElement {
+impl<TH: TypeHolderTrait> HTMLLIElementMethods for HTMLLIElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-li-value
     make_int_getter!(Value, "value");
 
@@ -53,9 +54,9 @@ impl HTMLLIElementMethods for HTMLLIElement {
     make_int_setter!(SetValue, "value");
 }
 
-impl VirtualMethods for HTMLLIElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLLIElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

@@ -55,6 +55,7 @@ use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
+use typeholder::TypeHolderTrait;
 use url::UrlQuery;
 use url::form_urlencoded::Serializer;
 
@@ -62,20 +63,20 @@ use url::form_urlencoded::Serializer;
 pub struct GenerationId(u32);
 
 #[dom_struct]
-pub struct HTMLFormElement {
-    htmlelement: HTMLElement,
+pub struct HTMLFormElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     marked_for_reset: Cell<bool>,
-    elements: DomOnceCell<HTMLFormControlsCollection>,
+    elements: DomOnceCell<HTMLFormControlsCollection<TH>>,
     generation_id: Cell<GenerationId>,
-    controls: DomRefCell<Vec<Dom<Element>>>,
+    controls: DomRefCell<Vec<Dom<Element<TH>>>>,
 }
 
-impl HTMLFormElement {
+impl<TH: TypeHolderTrait> HTMLFormElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLFormElement {
+        document: &Document<TH>,
+    ) -> HTMLFormElement<TH> {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             marked_for_reset: Cell::new(false),
@@ -89,9 +90,9 @@ impl HTMLFormElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLFormElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLFormElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLFormElement::new_inherited(local_name, prefix, document)),
             document,
             HTMLFormElementBinding::Wrap,
@@ -99,7 +100,7 @@ impl HTMLFormElement {
     }
 }
 
-impl HTMLFormElementMethods for HTMLFormElement {
+impl<TH: TypeHolderTrait> HTMLFormElementMethods<TH> for HTMLFormElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
     make_getter!(AcceptCharset, "accept-charset");
 
@@ -174,43 +175,52 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
-    fn Elements(&self) -> DomRoot<HTMLFormControlsCollection> {
+    fn Elements(&self) -> DomRoot<HTMLFormControlsCollection<TH>> {
         #[derive(JSTraceable, MallocSizeOf)]
-        struct ElementsFilter {
-            form: DomRoot<HTMLFormElement>,
+        struct ElementsFilter<THH: TypeHolderTrait + 'static> {
+            form: DomRoot<HTMLFormElement<THH>>,
         }
-        impl CollectionFilter for ElementsFilter {
-            fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
-                let form_owner = match elem.upcast::<Node>().type_id() {
+        impl<THH: TypeHolderTrait> CollectionFilter<THH> for ElementsFilter<THH> {
+            fn filter<'a>(&self, elem: &'a Element<THH>, _root: &'a Node<THH>) -> bool {
+                let form_owner = match elem.upcast::<Node<THH>>().type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(t)) => match t {
-                        HTMLElementTypeId::HTMLButtonElement => {
-                            elem.downcast::<HTMLButtonElement>().unwrap().form_owner()
-                        },
-                        HTMLElementTypeId::HTMLFieldSetElement => {
-                            elem.downcast::<HTMLFieldSetElement>().unwrap().form_owner()
-                        },
+                        HTMLElementTypeId::HTMLButtonElement => elem
+                            .downcast::<HTMLButtonElement<THH>>()
+                            .unwrap()
+                            .form_owner(),
+                        HTMLElementTypeId::HTMLFieldSetElement => elem
+                            .downcast::<HTMLFieldSetElement<THH>>()
+                            .unwrap()
+                            .form_owner(),
                         HTMLElementTypeId::HTMLInputElement => {
-                            let input_elem = elem.downcast::<HTMLInputElement>().unwrap();
+                            let input_elem = elem.downcast::<HTMLInputElement<THH>>().unwrap();
                             if input_elem.input_type() == InputType::Image {
                                 return false;
                             }
                             input_elem.form_owner()
                         },
-                        HTMLElementTypeId::HTMLObjectElement => {
-                            elem.downcast::<HTMLObjectElement>().unwrap().form_owner()
-                        },
-                        HTMLElementTypeId::HTMLOutputElement => {
-                            elem.downcast::<HTMLOutputElement>().unwrap().form_owner()
-                        },
-                        HTMLElementTypeId::HTMLSelectElement => {
-                            elem.downcast::<HTMLSelectElement>().unwrap().form_owner()
-                        },
-                        HTMLElementTypeId::HTMLTextAreaElement => {
-                            elem.downcast::<HTMLTextAreaElement>().unwrap().form_owner()
-                        },
+                        HTMLElementTypeId::HTMLObjectElement => elem
+                            .downcast::<HTMLObjectElement<THH>>()
+                            .unwrap()
+                            .form_owner(),
+                        HTMLElementTypeId::HTMLOutputElement => elem
+                            .downcast::<HTMLOutputElement<THH>>()
+                            .unwrap()
+                            .form_owner(),
+                        HTMLElementTypeId::HTMLSelectElement => elem
+                            .downcast::<HTMLSelectElement<THH>>()
+                            .unwrap()
+                            .form_owner(),
+                        HTMLElementTypeId::HTMLTextAreaElement => elem
+                            .downcast::<HTMLTextAreaElement<THH>>()
+                            .unwrap()
+                            .form_owner(),
                         _ => {
                             debug_assert!(
-                                !elem.downcast::<HTMLElement>().unwrap().is_listed_element() ||
+                                !elem
+                                    .downcast::<HTMLElement<THH>>()
+                                    .unwrap()
+                                    .is_listed_element() ||
                                     elem.local_name() == &local_name!("keygen")
                             );
                             return false;
@@ -240,7 +250,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-item
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element<TH>>> {
         let elements = self.Elements();
         elements.IndexedGetter(index)
     }
@@ -258,17 +268,17 @@ pub enum ResetFrom {
     NotFromForm,
 }
 
-impl HTMLFormElement {
+impl<TH: TypeHolderTrait> HTMLFormElement<TH> {
     // https://html.spec.whatwg.org/multipage/#picking-an-encoding-for-the-form
     fn pick_encoding(&self) -> &'static Encoding {
         // Step 2
         if self
-            .upcast::<Element>()
+            .upcast::<Element<TH>>()
             .has_attribute(&local_name!("accept-charset"))
         {
             // Substep 1
             let input = self
-                .upcast::<Element>()
+                .upcast::<Element<TH>>()
                 .get_string_attribute(&local_name!("accept-charset"));
 
             // Substep 2, 3, 4
@@ -284,7 +294,7 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
-    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum>) -> String {
+    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum<TH>>) -> String {
         // Step 1
         let mut result = String::new();
 
@@ -307,7 +317,7 @@ impl HTMLFormElement {
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
-    pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
+    pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter<TH>) {
         // Step 1
         let doc = document_from_node(self);
         let base = doc.base_url();
@@ -316,14 +326,15 @@ impl HTMLFormElement {
         if submit_method_flag == SubmittedFrom::NotFromForm && !submitter.no_validate(self) {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements
-                self.upcast::<EventTarget>().fire_event(atom!("invalid"));
+                self.upcast::<EventTarget<TH>>()
+                    .fire_event(atom!("invalid"));
                 return;
             }
         }
         // Step 5
         if submit_method_flag == SubmittedFrom::NotFromForm {
             let event = self
-                .upcast::<EventTarget>()
+                .upcast::<EventTarget<TH>>()
                 .fire_bubbling_cancelable_event(atom!("submit"));
             if event.DefaultPrevented() {
                 return;
@@ -419,10 +430,10 @@ impl HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#submit-mutate-action
     fn mutate_action_url(
         &self,
-        form_data: &mut Vec<FormDatum>,
+        form_data: &mut Vec<FormDatum<TH>>,
         mut load_data: LoadData,
         encoding: &'static Encoding,
-        target: &Window,
+        target: &Window<TH>,
     ) {
         let charset = encoding.name();
 
@@ -440,11 +451,11 @@ impl HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#submit-body
     fn submit_entity_body(
         &self,
-        form_data: &mut Vec<FormDatum>,
+        form_data: &mut Vec<FormDatum<TH>>,
         mut load_data: LoadData,
         enctype: FormEncType,
         encoding: &'static Encoding,
-        target: &Window,
+        target: &Window<TH>,
     ) {
         let boundary = generate_boundary();
         let bytes = match enctype {
@@ -487,7 +498,7 @@ impl HTMLFormElement {
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, load_data: LoadData, target: &Window) {
+    fn plan_to_navigate(&self, load_data: LoadData, target: &Window<TH>) {
         // Step 1
         // Each planned navigation task is tagged with a generation ID, and
         // before the task is handled, it first checks whether the HTMLFormElement's
@@ -496,7 +507,7 @@ impl HTMLFormElement {
         self.generation_id.set(generation_id);
 
         // Step 2.
-        let pipeline_id = target.upcast::<GlobalScope>().pipeline_id();
+        let pipeline_id = target.upcast::<GlobalScope<TH>>().pipeline_id();
         let script_chan = target.main_thread_script_chan().clone();
         let this = Trusted::new(self);
         let task = task!(navigate_to_form_planned_navigation: move || {
@@ -533,15 +544,15 @@ impl HTMLFormElement {
 
     /// Statitically validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
-    fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
-        let node = self.upcast::<Node>();
+    fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement<TH>>> {
+        let node = self.upcast::<Node<TH>>();
         // FIXME(#3553): This is an incorrect way of getting controls owned by the
         //               form, refactor this when html5ever's form owner PR lands
         // Step 1-3
         let invalid_controls = node
             .traverse_preorder()
             .filter_map(|field| {
-                if let Some(el) = field.downcast::<Element>() {
+                if let Some(el) = field.downcast::<Element<TH>>() {
                     if el.disabled_state() {
                         None
                     } else {
@@ -560,7 +571,7 @@ impl HTMLFormElement {
                 } else {
                     None
                 }
-            }).collect::<Vec<FormSubmittableElement>>();
+            }).collect::<Vec<FormSubmittableElement<TH>>>();
         // Step 4
         if invalid_controls.is_empty() {
             return Ok(());
@@ -576,14 +587,14 @@ impl HTMLFormElement {
                     return Some(field);
                 }
                 None
-            }).collect::<Vec<FormSubmittableElement>>();
+            }).collect::<Vec<FormSubmittableElement<TH>>>();
         // Step 7
         Err(unhandled_invalid_controls)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 1 to 3
-    fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    fn get_unclean_dataset(&self, submitter: Option<FormSubmitter<TH>>) -> Vec<FormDatum<TH>> {
         let controls = self.controls.borrow();
         let mut data_set = Vec::new();
         for child in controls.iter() {
@@ -591,24 +602,24 @@ impl HTMLFormElement {
             if child.disabled_state() {
                 continue;
             }
-            let child = child.upcast::<Node>();
+            let child = child.upcast::<Node<TH>>();
 
             // Step 3.1: The field element has a datalist element ancestor.
             if child
                 .ancestors()
-                .any(|a| DomRoot::downcast::<HTMLDataListElement>(a).is_some())
+                .any(|a| DomRoot::downcast::<HTMLDataListElement<TH>>(a).is_some())
             {
                 continue;
             }
             if let NodeTypeId::Element(ElementTypeId::HTMLElement(element)) = child.type_id() {
                 match element {
                     HTMLElementTypeId::HTMLInputElement => {
-                        let input = child.downcast::<HTMLInputElement>().unwrap();
+                        let input = child.downcast::<HTMLInputElement<TH>>().unwrap();
 
                         data_set.append(&mut input.form_datums(submitter));
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
-                        let button = child.downcast::<HTMLButtonElement>().unwrap();
+                        let button = child.downcast::<HTMLButtonElement<TH>>().unwrap();
                         if let Some(datum) = button.form_datum(submitter) {
                             data_set.push(datum);
                         }
@@ -618,11 +629,11 @@ impl HTMLFormElement {
                         ()
                     },
                     HTMLElementTypeId::HTMLSelectElement => {
-                        let select = child.downcast::<HTMLSelectElement>().unwrap();
+                        let select = child.downcast::<HTMLSelectElement<TH>>().unwrap();
                         select.push_form_data(&mut data_set);
                     },
                     HTMLElementTypeId::HTMLTextAreaElement => {
-                        let textarea = child.downcast::<HTMLTextAreaElement>().unwrap();
+                        let textarea = child.downcast::<HTMLTextAreaElement<TH>>().unwrap();
                         let name = textarea.Name();
                         if !name.is_empty() {
                             data_set.push(FormDatum {
@@ -642,7 +653,7 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
-    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter<TH>>) -> Vec<FormDatum<TH>> {
         fn clean_crlf(s: &str) -> DOMString {
             // Step 4
             let mut buf = "".to_owned();
@@ -702,7 +713,7 @@ impl HTMLFormElement {
         }
 
         let event = self
-            .upcast::<EventTarget>()
+            .upcast::<EventTarget<TH>>()
             .fire_bubbling_cancelable_event(atom!("reset"));
         if event.DefaultPrevented() {
             return;
@@ -710,13 +721,13 @@ impl HTMLFormElement {
 
         let controls = self.controls.borrow();
         for child in controls.iter() {
-            let child = child.upcast::<Node>();
+            let child = child.upcast::<Node<TH>>();
 
             match child.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLInputElement,
                 )) => {
-                    child.downcast::<HTMLInputElement>().unwrap().reset();
+                    child.downcast::<HTMLInputElement<TH>>().unwrap().reset();
                 },
                 // TODO HTMLKeygenElement unimplemented
                 //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLKeygenElement)) => {
@@ -726,12 +737,12 @@ impl HTMLFormElement {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLSelectElement,
                 )) => {
-                    child.downcast::<HTMLSelectElement>().unwrap().reset();
+                    child.downcast::<HTMLSelectElement<TH>>().unwrap().reset();
                 },
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLTextAreaElement,
                 )) => {
-                    child.downcast::<HTMLTextAreaElement>().unwrap().reset();
+                    child.downcast::<HTMLTextAreaElement<TH>>().unwrap().reset();
                 },
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLOutputElement,
@@ -744,15 +755,15 @@ impl HTMLFormElement {
         self.marked_for_reset.set(false);
     }
 
-    fn add_control<T: ?Sized + FormControl>(&self, control: &T) {
-        let root = self.upcast::<Element>().root_element();
-        let root = root.r().upcast::<Node>();
+    fn add_control<T: ?Sized + FormControl<TH>>(&self, control: &T) {
+        let root = self.upcast::<Element<TH>>().root_element();
+        let root = root.r().upcast::<Node<TH>>();
 
         let mut controls = self.controls.borrow_mut();
         controls.insert_pre_order(control.to_element(), root);
     }
 
-    fn remove_control<T: ?Sized + FormControl>(&self, control: &T) {
+    fn remove_control<T: ?Sized + FormControl<TH>>(&self, control: &T) {
         let control = control.to_element();
         let mut controls = self.controls.borrow_mut();
         controls
@@ -763,20 +774,20 @@ impl HTMLFormElement {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum FormDatumValue {
+pub enum FormDatumValue<TH: TypeHolderTrait> {
     #[allow(dead_code)]
-    File(DomRoot<File>),
+    File(DomRoot<File<TH>>),
     String(DOMString),
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct FormDatum {
+pub struct FormDatum<TH: TypeHolderTrait> {
     pub ty: DOMString,
     pub name: DOMString,
-    pub value: FormDatumValue,
+    pub value: FormDatumValue<TH>,
 }
 
-impl FormDatum {
+impl<TH: TypeHolderTrait> FormDatum<TH> {
     pub fn replace_value(&self, charset: &str) -> String {
         if self.name == "_charset_" && self.ty == "hidden" {
             return charset.to_string();
@@ -805,18 +816,18 @@ pub enum FormMethod {
 
 #[derive(MallocSizeOf)]
 #[allow(dead_code)]
-pub enum FormSubmittableElement {
-    ButtonElement(DomRoot<HTMLButtonElement>),
-    InputElement(DomRoot<HTMLInputElement>),
+pub enum FormSubmittableElement<TH: TypeHolderTrait> {
+    ButtonElement(DomRoot<HTMLButtonElement<TH>>),
+    InputElement(DomRoot<HTMLInputElement<TH>>),
     // TODO: HTMLKeygenElement unimplemented
     // KeygenElement(&'a HTMLKeygenElement),
-    ObjectElement(DomRoot<HTMLObjectElement>),
-    SelectElement(DomRoot<HTMLSelectElement>),
-    TextAreaElement(DomRoot<HTMLTextAreaElement>),
+    ObjectElement(DomRoot<HTMLObjectElement<TH>>),
+    SelectElement(DomRoot<HTMLSelectElement<TH>>),
+    TextAreaElement(DomRoot<HTMLTextAreaElement<TH>>),
 }
 
-impl FormSubmittableElement {
-    fn as_event_target(&self) -> &EventTarget {
+impl<TH: TypeHolderTrait> FormSubmittableElement<TH> {
+    fn as_event_target(&self) -> &EventTarget<TH> {
         match *self {
             FormSubmittableElement::ButtonElement(ref button) => button.upcast(),
             FormSubmittableElement::InputElement(ref input) => input.upcast(),
@@ -826,16 +837,16 @@ impl FormSubmittableElement {
         }
     }
 
-    fn from_element(element: &Element) -> FormSubmittableElement {
-        if let Some(input) = element.downcast::<HTMLInputElement>() {
+    fn from_element(element: &Element<TH>) -> FormSubmittableElement<TH> {
+        if let Some(input) = element.downcast::<HTMLInputElement<TH>>() {
             FormSubmittableElement::InputElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLButtonElement>() {
+        } else if let Some(input) = element.downcast::<HTMLButtonElement<TH>>() {
             FormSubmittableElement::ButtonElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLObjectElement>() {
+        } else if let Some(input) = element.downcast::<HTMLObjectElement<TH>>() {
             FormSubmittableElement::ObjectElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLSelectElement>() {
+        } else if let Some(input) = element.downcast::<HTMLSelectElement<TH>>() {
             FormSubmittableElement::SelectElement(DomRoot::from_ref(&input))
-        } else if let Some(input) = element.downcast::<HTMLTextAreaElement>() {
+        } else if let Some(input) = element.downcast::<HTMLTextAreaElement<TH>>() {
             FormSubmittableElement::TextAreaElement(DomRoot::from_ref(&input))
         } else {
             unreachable!()
@@ -844,13 +855,13 @@ impl FormSubmittableElement {
 }
 
 #[derive(Clone, Copy, MallocSizeOf)]
-pub enum FormSubmitter<'a> {
-    FormElement(&'a HTMLFormElement),
-    InputElement(&'a HTMLInputElement),
-    ButtonElement(&'a HTMLButtonElement), // TODO: image submit, etc etc
+pub enum FormSubmitter<'a, TH: TypeHolderTrait> {
+    FormElement(&'a HTMLFormElement<TH>),
+    InputElement(&'a HTMLInputElement<TH>),
+    ButtonElement(&'a HTMLButtonElement<TH>), // TODO: image submit, etc etc
 }
 
-impl<'a> FormSubmitter<'a> {
+impl<'a, TH: TypeHolderTrait> FormSubmitter<'a, TH> {
     fn action(&self) -> DOMString {
         match *self {
             FormSubmitter::FormElement(form) => form.Action(),
@@ -927,7 +938,7 @@ impl<'a> FormSubmitter<'a> {
         }
     }
 
-    fn no_validate(&self, _form_owner: &HTMLFormElement) -> bool {
+    fn no_validate(&self, _form_owner: &HTMLFormElement<TH>) -> bool {
         match *self {
             FormSubmitter::FormElement(form) => form.NoValidate(),
             FormSubmitter::InputElement(input_element) => input_element.get_form_boolean_attribute(
@@ -945,12 +956,12 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormControl: DomObject {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
+pub trait FormControl<TH: TypeHolderTrait>: DomObject {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>>;
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>);
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>);
 
-    fn to_element<'a>(&'a self) -> &'a Element;
+    fn to_element<'a>(&'a self) -> &'a Element<TH>;
 
     fn is_listed(&self) -> bool {
         true
@@ -960,9 +971,9 @@ pub trait FormControl: DomObject {
     // Part of step 12.
     // '..suppress the running of the reset the form owner algorithm
     // when the parser subsequently attempts to insert the element..'
-    fn set_form_owner_from_parser(&self, form: &HTMLFormElement) {
+    fn set_form_owner_from_parser(&self, form: &HTMLFormElement<TH>) {
         let elem = self.to_element();
-        let node = elem.upcast::<Node>();
+        let node = elem.upcast::<Node<TH>>();
         node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, true);
         form.add_control(self);
         self.set_form_owner(Some(form));
@@ -971,12 +982,12 @@ pub trait FormControl: DomObject {
     // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
     fn reset_form_owner(&self) {
         let elem = self.to_element();
-        let node = elem.upcast::<Node>();
+        let node = elem.upcast::<Node<TH>>();
         let old_owner = self.form_owner();
         let has_form_id = elem.has_attribute(&local_name!("form"));
         let nearest_form_ancestor = node
             .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLFormElement>)
+            .filter_map(DomRoot::downcast::<HTMLFormElement<TH>>)
             .next();
 
         // Step 1
@@ -991,7 +1002,7 @@ pub trait FormControl: DomObject {
             let doc = document_from_node(node);
             let form_id = elem.get_string_attribute(&local_name!("form"));
             doc.GetElementById(form_id)
-                .and_then(DomRoot::downcast::<HTMLFormElement>)
+                .and_then(DomRoot::downcast::<HTMLFormElement<TH>>)
         } else {
             // Step 4
             nearest_form_ancestor
@@ -1010,7 +1021,7 @@ pub trait FormControl: DomObject {
     }
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
-    fn form_attribute_mutated(&self, mutation: AttributeMutation) {
+    fn form_attribute_mutated(&self, mutation: AttributeMutation<TH>) {
         match mutation {
             AttributeMutation::Set(_) => {
                 self.register_if_necessary();
@@ -1018,6 +1029,7 @@ pub trait FormControl: DomObject {
             AttributeMutation::Removed => {
                 self.unregister_if_necessary();
             },
+            AttributeMutation::_p(_) => unreachable!(),
         }
 
         self.reset_form_owner();
@@ -1027,7 +1039,7 @@ pub trait FormControl: DomObject {
     fn register_if_necessary(&self) {
         let elem = self.to_element();
         let form_id = elem.get_string_attribute(&local_name!("form"));
-        let node = elem.upcast::<Node>();
+        let node = elem.upcast::<Node<TH>>();
 
         if self.is_listed() && !form_id.is_empty() && node.is_in_doc() {
             let doc = document_from_node(node);
@@ -1040,7 +1052,7 @@ pub trait FormControl: DomObject {
         let form_id = elem.get_string_attribute(&local_name!("form"));
 
         if self.is_listed() && !form_id.is_empty() {
-            let doc = document_from_node(elem.upcast::<Node>());
+            let doc = document_from_node(elem.upcast::<Node<TH>>());
             doc.unregister_form_id_listener(form_id, self);
         }
     }
@@ -1048,7 +1060,7 @@ pub trait FormControl: DomObject {
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
     fn bind_form_control_to_tree(&self) {
         let elem = self.to_element();
-        let node = elem.upcast::<Node>();
+        let node = elem.upcast::<Node<TH>>();
 
         // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
         // Part of step 12.
@@ -1090,7 +1102,7 @@ pub trait FormControl: DomObject {
     ) -> DOMString
     where
         InputFn: Fn(&Self) -> DOMString,
-        OwnerFn: Fn(&HTMLFormElement) -> DOMString,
+        OwnerFn: Fn(&HTMLFormElement<TH>) -> DOMString,
         Self: Sized,
     {
         if self.to_element().has_attribute(attr) {
@@ -1108,7 +1120,7 @@ pub trait FormControl: DomObject {
     ) -> bool
     where
         InputFn: Fn(&Self) -> bool,
-        OwnerFn: Fn(&HTMLFormElement) -> bool,
+        OwnerFn: Fn(&HTMLFormElement<TH>) -> bool,
         Self: Sized,
     {
         if self.to_element().has_attribute(attr) {
@@ -1123,9 +1135,9 @@ pub trait FormControl: DomObject {
     // fn satisfies_constraints(&self) -> bool;
 }
 
-impl VirtualMethods for HTMLFormElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLFormElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -1138,7 +1150,7 @@ impl VirtualMethods for HTMLFormElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
 
         // Collect the controls to reset because reset_form_owner
@@ -1161,53 +1173,63 @@ impl VirtualMethods for HTMLFormElement {
     }
 }
 
-pub trait FormControlElementHelpers {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl>;
+pub trait FormControlElementHelpers<TH: TypeHolderTrait> {
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl<TH, TypeHolder = TH>>;
 }
 
-impl FormControlElementHelpers for Element {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl> {
-        let node = self.upcast::<Node>();
+impl<TH: TypeHolderTrait> FormControlElementHelpers<TH> for Element<TH> {
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl<TH, TypeHolder = TH>> {
+        let node = self.upcast::<Node<TH>>();
 
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
-            )) => Some(self.downcast::<HTMLButtonElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLButtonElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLFieldSetElement,
-            )) => Some(self.downcast::<HTMLFieldSetElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLFieldSetElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLImageElement,
-            )) => Some(self.downcast::<HTMLImageElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLImageElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
-            )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLInputElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLabelElement,
-            )) => Some(self.downcast::<HTMLLabelElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLLabelElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLegendElement,
-            )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLLegendElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLObjectElement,
-            )) => Some(self.downcast::<HTMLObjectElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLObjectElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLOutputElement,
-            )) => Some(self.downcast::<HTMLOutputElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLOutputElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLSelectElement,
-            )) => Some(self.downcast::<HTMLSelectElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLSelectElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
-            )) => Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLTextAreaElement<TH>>().unwrap()
+                as &FormControl<TH, TypeHolder = TH>),
             _ => None,
         }
     }
 }
 
 // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
-pub fn encode_multipart_form_data(
-    form_data: &mut Vec<FormDatum>,
+pub fn encode_multipart_form_data<TH: TypeHolderTrait>(
+    form_data: &mut Vec<FormDatum<TH>>,
     boundary: String,
     encoding: &'static Encoding,
 ) -> Vec<u8> {
@@ -1256,7 +1278,7 @@ pub fn encode_multipart_form_data(
                     ));
                 // https://tools.ietf.org/html/rfc7578#section-4.4
                 let content_type = ContentType(
-                    f.upcast::<Blob>()
+                    f.upcast::<Blob<TH>>()
                         .Type()
                         .parse()
                         .unwrap_or(mime!(Text / Plain)),
@@ -1267,7 +1289,7 @@ pub fn encode_multipart_form_data(
                 ).into_bytes();
                 result.append(&mut type_bytes);
 
-                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);
+                let mut bytes = f.upcast::<Blob<TH>>().get_bytes().unwrap_or(vec![]);
 
                 result.append(&mut bytes);
             },

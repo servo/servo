@@ -23,23 +23,24 @@ use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 // http://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattdescriptor
 #[dom_struct]
-pub struct BluetoothRemoteGATTDescriptor {
-    reflector_: Reflector,
-    characteristic: Dom<BluetoothRemoteGATTCharacteristic>,
+pub struct BluetoothRemoteGATTDescriptor<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    characteristic: Dom<BluetoothRemoteGATTCharacteristic<TH>>,
     uuid: DOMString,
     value: DomRefCell<Option<ByteString>>,
     instance_id: String,
 }
 
-impl BluetoothRemoteGATTDescriptor {
+impl<TH: TypeHolderTrait> BluetoothRemoteGATTDescriptor<TH> {
     pub fn new_inherited(
-        characteristic: &BluetoothRemoteGATTCharacteristic,
+        characteristic: &BluetoothRemoteGATTCharacteristic<TH>,
         uuid: DOMString,
         instance_id: String,
-    ) -> BluetoothRemoteGATTDescriptor {
+    ) -> BluetoothRemoteGATTDescriptor<TH> {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
             characteristic: Dom::from_ref(characteristic),
@@ -50,11 +51,11 @@ impl BluetoothRemoteGATTDescriptor {
     }
 
     pub fn new(
-        global: &GlobalScope,
-        characteristic: &BluetoothRemoteGATTCharacteristic,
+        global: &GlobalScope<TH>,
+        characteristic: &BluetoothRemoteGATTCharacteristic<TH>,
         uuid: DOMString,
         instanceID: String,
-    ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
+    ) -> DomRoot<BluetoothRemoteGATTDescriptor<TH>> {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTDescriptor::new_inherited(
                 characteristic,
@@ -75,9 +76,11 @@ impl BluetoothRemoteGATTDescriptor {
     }
 }
 
-impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
+impl<TH: TypeHolderTrait> BluetoothRemoteGATTDescriptorMethods<TH>
+    for BluetoothRemoteGATTDescriptor<TH>
+{
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-characteristic
-    fn Characteristic(&self) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
+    fn Characteristic(&self) -> DomRoot<BluetoothRemoteGATTCharacteristic<TH>> {
         DomRoot::from_ref(&self.characteristic)
     }
 
@@ -93,8 +96,8 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
-    fn ReadValue(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn ReadValue(&self) -> Rc<Promise<TH>> {
+        let p = Promise::<TH>::new(&self.global());
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -126,8 +129,8 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
-    fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise<TH>> {
+        let p = Promise::<TH>::new(&self.global());
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
@@ -171,8 +174,8 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     }
 }
 
-impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+impl<TH: TypeHolderTrait> AsyncBluetoothListener<TH> for BluetoothRemoteGATTDescriptor<TH> {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise<TH>>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
             BluetoothResponse::ReadValue(result) => {

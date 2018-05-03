@@ -22,21 +22,22 @@ use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::block::Block;
 use servo_media::audio::node::AudioNodeInit;
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct AnalyserNode {
-    node: AudioNode,
+pub struct AnalyserNode<TH: TypeHolderTrait> {
+    node: AudioNode<TH>,
     #[ignore_malloc_size_of = "Defined in servo-media"]
     engine: DomRefCell<AnalysisEngine>,
 }
 
-impl AnalyserNode {
+impl<TH: TypeHolderTrait> AnalyserNode<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        _: &Window,
-        context: &BaseAudioContext,
+        _: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &AnalyserOptions,
-    ) -> Fallible<(AnalyserNode, IpcReceiver<Block>)> {
+    ) -> Fallible<(AnalyserNode<TH>, IpcReceiver<Block>)> {
         let node_options = options.parent
                                   .unwrap_or(2, ChannelCountMode::Max,
                                              ChannelInterpretation::Speakers);
@@ -79,10 +80,10 @@ impl AnalyserNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &AnalyserOptions,
-    ) -> Fallible<DomRoot<AnalyserNode>> {
+    ) -> Fallible<DomRoot<AnalyserNode<TH>>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
         let object = reflect_dom_object(Box::new(node), window, AnalyserNodeBinding::Wrap);
         let source = window.dom_manipulation_task_source();
@@ -101,10 +102,10 @@ impl AnalyserNode {
 
     /// https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode
     pub fn Constructor(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &AnalyserOptions,
-    ) -> Fallible<DomRoot<AnalyserNode>> {
+    ) -> Fallible<DomRoot<AnalyserNode<TH>>> {
         AnalyserNode::new(window, context, options)
     }
 
@@ -113,7 +114,7 @@ impl AnalyserNode {
     }
 }
 
-impl AnalyserNodeMethods for AnalyserNode {
+impl<TH: TypeHolderTrait> AnalyserNodeMethods for AnalyserNode<TH> {
     #[allow(unsafe_code)]
     /// https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata
     fn GetFloatFrequencyData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {

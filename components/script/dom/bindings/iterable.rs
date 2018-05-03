@@ -51,7 +51,7 @@ pub trait Iterable {
 //FIXME: #12811 prevents dom_struct with type parameters
 #[dom_struct]
 pub struct IterableIterator<T: DomObject + JSTraceable + Iterable> {
-    reflector: Reflector,
+    reflector: Reflector<T::TypeHolder>,
     iterable: Dom<T>,
     type_: IteratorType,
     index: Cell<u32>,
@@ -62,7 +62,8 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     pub fn new(
         iterable: &T,
         type_: IteratorType,
-        wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>) -> DomRoot<Self>,
+        wrap: unsafe fn(*mut JSContext, &GlobalScope<T::TypeHolder>, Box<IterableIterator<T>>)
+            -> DomRoot<Self>,
     ) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
@@ -70,7 +71,11 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
             iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
         });
-        reflect_dom_object(iterator, &*iterable.global(), wrap)
+        reflect_dom_object::<_, GlobalScope<T::TypeHolder>, T::TypeHolder>(
+            iterator,
+            &*iterable.global(),
+            wrap,
+        )
     }
 
     /// Return the next value from the iterable object.

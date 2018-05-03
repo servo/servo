@@ -14,18 +14,19 @@ use dom::node::{ChildrenMutation, Node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLTitleElement {
-    htmlelement: HTMLElement,
+pub struct HTMLTitleElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLTitleElement {
+impl<TH: TypeHolderTrait> HTMLTitleElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLTitleElement {
+        document: &Document<TH>,
+    ) -> HTMLTitleElement<TH> {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -35,9 +36,9 @@ impl HTMLTitleElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLTitleElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLTitleElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLTitleElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -47,28 +48,28 @@ impl HTMLTitleElement {
     }
 }
 
-impl HTMLTitleElementMethods for HTMLTitleElement {
+impl<TH: TypeHolderTrait> HTMLTitleElementMethods for HTMLTitleElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
-        self.upcast::<Node>().child_text_content()
+        self.upcast::<Node<TH>>().child_text_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+        self.upcast::<Node<TH>>().SetTextContent(Some(value))
     }
 }
 
-impl VirtualMethods for HTMLTitleElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLTitleElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation<TH>) {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         if node.is_in_doc() {
             node.owner_doc().title_changed();
         }
@@ -78,7 +79,7 @@ impl VirtualMethods for HTMLTitleElement {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         if tree_in_doc {
             node.owner_doc().title_changed();
         }

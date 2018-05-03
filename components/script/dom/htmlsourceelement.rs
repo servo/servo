@@ -19,18 +19,19 @@ use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLSourceElement {
-    htmlelement: HTMLElement,
+pub struct HTMLSourceElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLSourceElement {
+impl<TH: TypeHolderTrait> HTMLSourceElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLSourceElement {
+        document: &Document<TH>,
+    ) -> HTMLSourceElement<TH> {
         HTMLSourceElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -40,9 +41,9 @@ impl HTMLSourceElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLSourceElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLSourceElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLSourceElement::new_inherited(
                 local_name, prefix, document,
             )),
@@ -51,26 +52,26 @@ impl HTMLSourceElement {
         )
     }
 
-    fn iterate_next_html_image_element_siblings(next_siblings_iterator: impl Iterator<Item=Root<Dom<Node>>>) {
+    fn iterate_next_html_image_element_siblings(next_siblings_iterator: impl Iterator<Item=Root<Dom<Node<TH>>>>) {
         for next_sibling in next_siblings_iterator {
-            if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
+            if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement<TH>>() {
                 html_image_element_sibling.update_the_image_data();
             }
         }
     }
 }
 
-impl VirtualMethods for HTMLSourceElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLSourceElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("srcset") | &local_name!("sizes")  |
             &local_name!("media") | &local_name!("type") => {
-                let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+                let next_sibling_iterator = self.upcast::<Node<TH>>().following_siblings();
                 HTMLSourceElement::iterate_next_html_image_element_siblings(next_sibling_iterator);
             },
             _ => {},
@@ -80,15 +81,15 @@ impl VirtualMethods for HTMLSourceElement {
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
     fn bind_to_tree(&self, tree_in_doc: bool) {
         self.super_type().unwrap().bind_to_tree(tree_in_doc);
-        let parent = self.upcast::<Node>().GetParentNode().unwrap();
-        if let Some(media) = parent.downcast::<HTMLMediaElement>() {
+        let parent = self.upcast::<Node<TH>>().GetParentNode().unwrap();
+        if let Some(media) = parent.downcast::<HTMLMediaElement<TH>>() {
             media.handle_source_child_insertion();
         }
-        let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+        let next_sibling_iterator = self.upcast::<Node<TH>>().following_siblings();
         HTMLSourceElement::iterate_next_html_image_element_siblings(next_sibling_iterator);
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
         if let Some(next_sibling) = context.next_sibling {
             let next_sibling_iterator = next_sibling.inclusively_following_siblings();
@@ -97,7 +98,7 @@ impl VirtualMethods for HTMLSourceElement {
     }
 }
 
-impl HTMLSourceElementMethods for HTMLSourceElement {
+impl<TH: TypeHolderTrait> HTMLSourceElementMethods for HTMLSourceElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-source-src
     make_getter!(Src, "src");
 

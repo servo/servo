@@ -24,26 +24,27 @@ use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit};
 use servo_media::audio::param::ParamType;
 use std::cell::Cell;
 use std::f32;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct AudioBufferSourceNode {
-    source_node: AudioScheduledSourceNode,
-    buffer: MutNullableDom<AudioBuffer>,
+pub struct AudioBufferSourceNode<TH: TypeHolderTrait> {
+    source_node: AudioScheduledSourceNode<TH>,
+    buffer: MutNullableDom<AudioBuffer<TH>>,
     buffer_set: Cell<bool>,
-    playback_rate: Dom<AudioParam>,
-    detune: Dom<AudioParam>,
+    playback_rate: Dom<AudioParam<TH>>,
+    detune: Dom<AudioParam<TH>>,
     loop_enabled: Cell<bool>,
     loop_start: Cell<f64>,
     loop_end: Cell<f64>,
 }
 
-impl AudioBufferSourceNode {
+impl<TH: TypeHolderTrait> AudioBufferSourceNode<TH> {
     #[allow(unrooted_must_root)]
     fn new_inherited(
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &AudioBufferSourceOptions,
-    ) -> Fallible<AudioBufferSourceNode> {
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
+        options: &AudioBufferSourceOptions<TH>,
+    ) -> Fallible<AudioBufferSourceNode<TH>> {
         let node_options = Default::default();
         let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeInit::AudioBufferSourceNode(options.into()),
@@ -95,10 +96,10 @@ impl AudioBufferSourceNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &AudioBufferSourceOptions,
-    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
+        options: &AudioBufferSourceOptions<TH>,
+    ) -> Fallible<DomRoot<AudioBufferSourceNode<TH>>> {
         let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object(
             Box::new(node),
@@ -108,22 +109,22 @@ impl AudioBufferSourceNode {
     }
 
     pub fn Constructor(
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &AudioBufferSourceOptions,
-    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
+        options: &AudioBufferSourceOptions<TH>,
+    ) -> Fallible<DomRoot<AudioBufferSourceNode<TH>>> {
         AudioBufferSourceNode::new(window, context, options)
     }
 }
 
-impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
+impl<TH: TypeHolderTrait> AudioBufferSourceNodeMethods<TH> for AudioBufferSourceNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
-    fn GetBuffer(&self) -> Fallible<Option<DomRoot<AudioBuffer>>> {
+    fn GetBuffer(&self) -> Fallible<Option<DomRoot<AudioBuffer<TH>>>> {
         Ok(self.buffer.get())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
-    fn SetBuffer(&self, new_buffer: Option<&AudioBuffer>) -> Fallible<()> {
+    fn SetBuffer(&self, new_buffer: Option<&AudioBuffer<TH>>) -> Fallible<()> {
         if new_buffer.is_some() {
             if self.buffer_set.get() {
                 // Step 2.
@@ -154,12 +155,12 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate
-    fn PlaybackRate(&self) -> DomRoot<AudioParam> {
+    fn PlaybackRate(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.playback_rate)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-detune
-    fn Detune(&self) -> DomRoot<AudioParam> {
+    fn Detune(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.detune)
     }
 
@@ -225,13 +226,13 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
             }
         }
         self.source_node
-            .upcast::<AudioScheduledSourceNode>()
+            .upcast::<AudioScheduledSourceNode<TH>>()
             .Start(when)
     }
 }
 
-impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
-    fn from(options: &'a AudioBufferSourceOptions) -> Self {
+impl<'a, TH:TypeHolderTrait> From<&'a AudioBufferSourceOptions<TH>> for AudioBufferSourceNodeOptions {
+    fn from(options: &'a AudioBufferSourceOptions<TH>) -> Self {
         Self {
             buffer: if let Some(ref buffer) = options.buffer {
                 if let Some(ref buffer) = buffer {

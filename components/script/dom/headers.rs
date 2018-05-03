@@ -16,10 +16,11 @@ use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Cell;
 use std::result::Result;
 use std::str;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct Headers {
-    reflector_: Reflector,
+pub struct Headers<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     guard: Cell<Guard>,
     #[ignore_malloc_size_of = "Defined in hyper"]
     header_list: DomRefCell<HyperHeaders>,
@@ -35,8 +36,8 @@ pub enum Guard {
     None,
 }
 
-impl Headers {
-    pub fn new_inherited() -> Headers {
+impl<TH: TypeHolderTrait> Headers<TH> {
+    pub fn new_inherited() -> Headers<TH> {
         Headers {
             reflector_: Reflector::new(),
             guard: Cell::new(Guard::None),
@@ -44,22 +45,22 @@ impl Headers {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<Headers<TH>> {
         reflect_dom_object(Box::new(Headers::new_inherited()), global, HeadersWrap)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
     pub fn Constructor(
-        global: &GlobalScope,
-        init: Option<HeadersInit>,
-    ) -> Fallible<DomRoot<Headers>> {
+        global: &GlobalScope<TH>,
+        init: Option<HeadersInit<TH>>,
+    ) -> Fallible<DomRoot<Headers<TH>>> {
         let dom_headers_new = Headers::new(global);
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
     }
 }
 
-impl HeadersMethods for Headers {
+impl<TH: TypeHolderTrait> HeadersMethods for Headers<TH> {
     // https://fetch.spec.whatwg.org/#concept-headers-append
     fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1
@@ -178,9 +179,9 @@ impl HeadersMethods for Headers {
     }
 }
 
-impl Headers {
+impl<TH: TypeHolderTrait> Headers<TH> {
     // https://fetch.spec.whatwg.org/#concept-headers-fill
-    pub fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
+    pub fn fill(&self, filler: Option<HeadersInit<TH>>) -> ErrorResult {
         match filler {
             // Step 1
             Some(HeadersInit::Headers(h)) => {
@@ -219,13 +220,13 @@ impl Headers {
         }
     }
 
-    pub fn for_request(global: &GlobalScope) -> DomRoot<Headers> {
+    pub fn for_request(global: &GlobalScope<TH>) -> DomRoot<Headers<TH>> {
         let headers_for_request = Headers::new(global);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
 
-    pub fn for_response(global: &GlobalScope) -> DomRoot<Headers> {
+    pub fn for_response(global: &GlobalScope<TH>) -> DomRoot<Headers<TH>> {
         let headers_for_response = Headers::new(global);
         headers_for_response.guard.set(Guard::Response);
         headers_for_response
@@ -276,7 +277,7 @@ impl Headers {
     }
 }
 
-impl Iterable for Headers {
+impl<TH: TypeHolderTrait> Iterable for Headers<TH> {
     type Key = ByteString;
     type Value = ByteString;
 

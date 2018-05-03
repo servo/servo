@@ -9,18 +9,19 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLParamElement {
-    htmlelement: HTMLElement,
+pub struct HTMLParamElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLParamElement {
+impl<TH: TypeHolderTrait> HTMLParamElement<TH> {
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLParamElement {
+        document: &Document<TH>,
+    ) -> HTMLParamElement<TH> {
         HTMLParamElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -30,9 +31,9 @@ impl HTMLParamElement {
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
-    ) -> DomRoot<HTMLParamElement> {
-        Node::reflect_node(
+        document: &Document<TH>,
+    ) -> DomRoot<HTMLParamElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLParamElement::new_inherited(
                 local_name, prefix, document,
             )),

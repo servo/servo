@@ -21,20 +21,25 @@ use script_traits::{ScriptMsg, DOMMessage};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use task::TaskOnce;
+use typeholder::TypeHolderTrait;
 
-pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
+pub type TrustedServiceWorkerAddress<TH> = Trusted<ServiceWorker<TH>>;
 
 #[dom_struct]
-pub struct ServiceWorker {
-    eventtarget: EventTarget,
+pub struct ServiceWorker<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     script_url: DomRefCell<String>,
     scope_url: ServoUrl,
     state: Cell<ServiceWorkerState>,
     skip_waiting: Cell<bool>,
 }
 
-impl ServiceWorker {
-    fn new_inherited(script_url: &str, skip_waiting: bool, scope_url: ServoUrl) -> ServiceWorker {
+impl<TH: TypeHolderTrait> ServiceWorker<TH> {
+    fn new_inherited(
+        script_url: &str,
+        skip_waiting: bool,
+        scope_url: ServoUrl,
+    ) -> ServiceWorker<TH> {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
             script_url: DomRefCell::new(String::from(script_url)),
@@ -45,11 +50,11 @@ impl ServiceWorker {
     }
 
     pub fn install_serviceworker(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         script_url: ServoUrl,
         scope_url: ServoUrl,
         skip_waiting: bool,
-    ) -> DomRoot<ServiceWorker> {
+    ) -> DomRoot<ServiceWorker<TH>> {
         reflect_dom_object(
             Box::new(ServiceWorker::new_inherited(
                 script_url.as_str(),
@@ -61,14 +66,14 @@ impl ServiceWorker {
         )
     }
 
-    pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress) {
+    pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress<TH>) {
         let service_worker = address.root();
         service_worker.upcast().fire_event(atom!("error"));
     }
 
     pub fn set_transition_state(&self, state: ServiceWorkerState) {
         self.state.set(state);
-        self.upcast::<EventTarget>()
+        self.upcast::<EventTarget<TH>>()
             .fire_event(atom!("statechange"));
     }
 
@@ -77,7 +82,7 @@ impl ServiceWorker {
     }
 }
 
-impl ServiceWorkerMethods for ServiceWorker {
+impl<TH: TypeHolderTrait> ServiceWorkerMethods<TH> for ServiceWorker<TH> {
     // https://w3c.github.io/ServiceWorker/#service-worker-state-attribute
     fn State(&self) -> ServiceWorkerState {
         self.state.get()
@@ -96,7 +101,7 @@ impl ServiceWorkerMethods for ServiceWorker {
             return Err(Error::InvalidState);
         }
         // Step 7
-        let data = StructuredCloneData::write(cx, message)?;
+        let data = StructuredCloneData::<TH>::write(cx, message)?;
         let msg_vec = DOMMessage(data.move_to_arraybuffer());
         let _ = self
             .global()
@@ -115,7 +120,7 @@ impl ServiceWorkerMethods for ServiceWorker {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 }
 
-impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
+impl<TH: TypeHolderTrait> TaskOnce for SimpleWorkerErrorHandler<ServiceWorker<TH>> {
     #[allow(unrooted_must_root)]
     fn run_once(self) {
         ServiceWorker::dispatch_simple_error(self.addr);

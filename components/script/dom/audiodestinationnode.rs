@@ -11,17 +11,18 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct AudioDestinationNode {
-    node: AudioNode,
+pub struct AudioDestinationNode<TH: TypeHolderTrait> {
+    node: AudioNode<TH>,
 }
 
-impl AudioDestinationNode {
+impl<TH: TypeHolderTrait> AudioDestinationNode<TH> {
     fn new_inherited(
-        context: &BaseAudioContext,
+        context: &BaseAudioContext<TH>,
         options: &AudioNodeOptions,
-    ) -> AudioDestinationNode {
+    ) -> AudioDestinationNode<TH> {
         let node_options =
             options.unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         AudioDestinationNode {
@@ -37,16 +38,16 @@ impl AudioDestinationNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        global: &GlobalScope,
-        context: &BaseAudioContext,
+        global: &GlobalScope<TH>,
+        context: &BaseAudioContext<TH>,
         options: &AudioNodeOptions,
-    ) -> DomRoot<AudioDestinationNode> {
+    ) -> DomRoot<AudioDestinationNode<TH>> {
         let node = AudioDestinationNode::new_inherited(context, options);
         reflect_dom_object(Box::new(node), global, AudioDestinationNodeBinding::Wrap)
     }
 }
 
-impl AudioDestinationNodeMethods for AudioDestinationNode {
+impl<TH: TypeHolderTrait> AudioDestinationNodeMethods for AudioDestinationNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audiodestinationnode-maxchannelcount
     fn MaxChannelCount(&self) -> u32 {
         MAX_CHANNEL_COUNT
