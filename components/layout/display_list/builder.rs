@@ -844,14 +844,17 @@ impl FragmentDisplayListBuilding for Fragment {
         // http://dev.w3.org/csswg/css-backgrounds-3/#the-background-clip
         let mut bounds = *absolute_bounds;
 
-        // This is the clip for the color (which is the last element in the bg array)
-        // Background clips are never empty.
-        let color_clip = &background.background_clip.0.last().unwrap();
+        // Quote from CSS Backgrounds and Borders Module Level 3:
+        //
+        // > The background color is clipped according to the background-clip value associated
+        // > with the bottom-most background image layer.
+        let last_background_image_index = background.background_image.0.len() - 1;
+        let color_clip = get_cyclic(&background.background_clip.0, last_background_image_index);
 
         // Adjust the clipping region as necessary to account for `border-radius`.
         let mut border_radii = build_border_radius(absolute_bounds, style.get_border());
 
-        match **color_clip {
+        match color_clip {
             BackgroundClip::BorderBox => {},
             BackgroundClip::PaddingBox => {
                 let border = style.logical_border_width().to_physical(style.writing_mode);
