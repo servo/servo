@@ -918,6 +918,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                             (delta * old_event_count + this_delta) /
                             new_event_count);
                     }
+                    last_combined_event.magnification *= scroll_event.magnification;
                 }
             }
         }
@@ -937,6 +938,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
             let mut txn = webrender_api::Transaction::new();
             txn.scroll(scroll_location, cursor);
+            if combined_event.magnification != 1.0 {
+                let old_zoom = self.pinch_zoom_level();
+                self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
+                txn.set_pinch_zoom(webrender_api::ZoomFactor::new(self.pinch_zoom_level()));
+            }
             txn.generate_frame();
             self.webrender_api.send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
@@ -1377,8 +1383,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
-        // TODO(gw): Access via WR.
-        1.0
+        self.viewport_zoom.get()
+    }
+
+    fn set_pinch_zoom_level(&mut self, mut zoom: f32) {
+        if let Some(min) = self.min_viewport_zoom {
+            zoom = f32::max(min.get(), zoom);
+        }
+        if let Some(max) = self.max_viewport_zoom {
+            zoom = f32::min(max.get(), zoom);
+        }
+        self.viewport_zoom = PinchZoomFactor::new(zoom);
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
