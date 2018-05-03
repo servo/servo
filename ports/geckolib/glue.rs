@@ -73,7 +73,6 @@ use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
-use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
@@ -129,7 +128,7 @@ use style::invalidation::element::restyle_hints;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parser::{Parse, ParserContext, self};
 use style::properties::{ComputedValues, DeclarationSource, Importance};
-use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use style::properties::{LonghandId, LonghandIdSet, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
 use style::properties::{SourcePropertyDeclaration, StyleBuilder};
 use style::properties::{parse_one_declaration_into, parse_style_attribute};
@@ -706,31 +705,6 @@ pub extern "C" fn Servo_AnimationValue_Serialize(
         .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), buffer,
                              None, None /* No extra custom properties */);
     debug_assert!(rv.is_ok());
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Servo_Shorthand_AnimationValues_Serialize(
-    shorthand_property: nsCSSPropertyID,
-    values: RawGeckoServoAnimationValueListBorrowed,
-    buffer: *mut nsAString,
-) {
-    let property_id = get_property_id_from_nscsspropertyid!(shorthand_property, ());
-    let shorthand = match property_id.as_shorthand() {
-        Ok(shorthand) => shorthand,
-        _ => return,
-    };
-
-    // Convert RawServoAnimationValue(s) into a vector of PropertyDeclaration
-    // so that we can use reference of the PropertyDeclaration without worrying
-    // about its lifetime. (longhands_to_css() expects &PropertyDeclaration
-    // iterator.)
-    let declarations: Vec<PropertyDeclaration> =
-        values.iter().map(|v| AnimationValue::as_arc(&&*v.mRawPtr).uncompute()).collect();
-
-    let _ = shorthand.longhands_to_css(
-        declarations.iter(),
-        &mut CssWriter::new(&mut *buffer),
-    );
 }
 
 #[no_mangle]
