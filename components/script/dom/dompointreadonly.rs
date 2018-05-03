@@ -9,45 +9,49 @@ use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
 #[dom_struct]
-pub struct DOMPointReadOnly {
-    reflector_: Reflector,
+pub struct DOMPointReadOnly<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     x: Cell<f64>,
     y: Cell<f64>,
     z: Cell<f64>,
     w: Cell<f64>,
+    _p: PhantomData<TH>,
 }
 
-impl DOMPointReadOnly {
-    pub fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
+impl<TH: TypeHolderTrait> DOMPointReadOnly<TH> {
+    pub fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly<TH> {
         DOMPointReadOnly {
             x: Cell::new(x),
             y: Cell::new(y),
             z: Cell::new(z),
             w: Cell::new(w),
             reflector_: Reflector::new(),
+            _p: Default::default(),
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly> {
+    pub fn new(global: &GlobalScope<TH>, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly<TH>> {
         reflect_dom_object(Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
                            global,
                            Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        x: f64,
                        y: f64,
                        z: f64,
                        w: f64)
-                       -> Fallible<DomRoot<DOMPointReadOnly>> {
+                       -> Fallible<DomRoot<DOMPointReadOnly<TH>>> {
         Ok(DOMPointReadOnly::new(global, x, y, z, w))
     }
 }
 
-impl DOMPointReadOnlyMethods for DOMPointReadOnly {
+impl<TH: TypeHolderTrait> DOMPointReadOnlyMethods for DOMPointReadOnly<TH> {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(&self) -> f64 {
         self.x.get()
@@ -76,7 +80,7 @@ pub trait DOMPointWriteMethods {
     fn SetW(&self, value: f64);
 }
 
-impl DOMPointWriteMethods for DOMPointReadOnly {
+impl<TH: TypeHolderTrait> DOMPointWriteMethods for DOMPointReadOnly<TH> {
     fn SetX(&self, value: f64) {
         self.x.set(value);
     }

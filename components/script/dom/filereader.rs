@@ -37,6 +37,7 @@ use std::thread;
 use task::TaskCanceller;
 use task_source::{TaskSource, TaskSourceName};
 use task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
+use typeholder::TypeHolderTrait;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum FileReaderFunction {
@@ -45,7 +46,7 @@ pub enum FileReaderFunction {
     ReadAsArrayBuffer,
 }
 
-pub type TrustedFileReader = Trusted<FileReader>;
+pub type TrustedFileReader<TH> = Trusted<FileReader<TH>>;
 
 #[derive(Clone, MallocSizeOf)]
 pub struct ReadMetaData {
@@ -134,16 +135,16 @@ impl FileReaderSharedFunctionality {
 }
 
 #[dom_struct]
-pub struct FileReader {
-    eventtarget: EventTarget,
+pub struct FileReader<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     ready_state: Cell<FileReaderReadyState>,
-    error: MutNullableDom<DOMException>,
+    error: MutNullableDom<DOMException<TH>>,
     result: DomRefCell<Option<FileReaderResult>>,
     generation_id: Cell<GenerationId>,
 }
 
-impl FileReader {
-    pub fn new_inherited() -> FileReader {
+impl<TH: TypeHolderTrait> FileReader<TH> {
+    pub fn new_inherited() -> FileReader<TH> {
         FileReader {
             eventtarget: EventTarget::new_inherited(),
             ready_state: Cell::new(FileReaderReadyState::Empty),
@@ -153,7 +154,7 @@ impl FileReader {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<FileReader> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<FileReader<TH>> {
         reflect_dom_object(
             Box::new(FileReader::new_inherited()),
             global,
@@ -161,13 +162,13 @@ impl FileReader {
         )
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReader>> {
-        Ok(FileReader::new(global))
+    pub fn Constructor(global: &GlobalScope<TH>) -> Fallible<DomRoot<FileReader<TH>>> {
+        Ok(FileReader::<TH>::new(global))
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps
     pub fn process_read_error(
-        filereader: TrustedFileReader,
+        filereader: TrustedFileReader<TH>,
         gen_id: GenerationId,
         error: DOMErrorName,
     ) {
@@ -199,7 +200,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId) {
+    pub fn process_read_data(filereader: TrustedFileReader<TH>, gen_id: GenerationId) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -215,7 +216,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId) {
+    pub fn process_read(filereader: TrustedFileReader<TH>, gen_id: GenerationId) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -233,7 +234,7 @@ impl FileReader {
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     #[allow(unsafe_code)]
     pub fn process_read_eof(
-        filereader: TrustedFileReader,
+        filereader: TrustedFileReader<TH>,
         gen_id: GenerationId,
         data: ReadMetaData,
         blob_contents: Arc<Vec<u8>>,
@@ -255,15 +256,15 @@ impl FileReader {
 
         match data.function {
             FileReaderFunction::ReadAsDataUrl => {
-                FileReader::perform_readasdataurl(&fr.result, data, &blob_contents)
+                FileReader::<TH>::perform_readasdataurl(&fr.result, data, &blob_contents)
             },
             FileReaderFunction::ReadAsText => {
-                FileReader::perform_readastext(&fr.result, data, &blob_contents)
+                FileReader::<TH>::perform_readastext(&fr.result, data, &blob_contents)
             },
             FileReaderFunction::ReadAsArrayBuffer => {
                 let _ac =
                     JSAutoCompartment::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
-                FileReader::perform_readasarraybuffer(
+                FileReader::<TH>::perform_readasarraybuffer(
                     &fr.result,
                     fr.global().get_cx(),
                     data,
@@ -332,7 +333,7 @@ impl FileReader {
     }
 }
 
-impl FileReaderMethods for FileReader {
+impl<TH: TypeHolderTrait> FileReaderMethods<TH> for FileReader<TH> {
     // https://w3c.github.io/FileAPI/#dfn-onloadstart
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
 
@@ -352,17 +353,17 @@ impl FileReaderMethods for FileReader {
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
-    fn ReadAsArrayBuffer(&self, blob: &Blob) -> ErrorResult {
+    fn ReadAsArrayBuffer(&self, blob: &Blob<TH>) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsArrayBuffer, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn ReadAsDataURL(&self, blob: &Blob) -> ErrorResult {
+    fn ReadAsDataURL(&self, blob: &Blob<TH>) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsDataUrl, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
+    fn ReadAsText(&self, blob: &Blob<TH>, label: Option<DOMString>) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsText, blob, label)
     }
 
@@ -385,7 +386,7 @@ impl FileReaderMethods for FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
-    fn GetError(&self) -> Option<DomRoot<DOMException>> {
+    fn GetError(&self) -> Option<DomRoot<DOMException<TH>>> {
         self.error.get()
     }
 
@@ -408,7 +409,7 @@ impl FileReaderMethods for FileReader {
     }
 }
 
-impl FileReader {
+impl<TH: TypeHolderTrait> FileReader<TH> {
     fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
         let progressevent = ProgressEvent::new(
             &self.global(),
@@ -419,7 +420,7 @@ impl FileReader {
             loaded,
             total.unwrap_or(0),
         );
-        progressevent.upcast::<Event>().fire(self.upcast());
+        progressevent.upcast::<Event<TH>>().fire(self.upcast());
     }
 
     fn terminate_ongoing_reading(&self) {
@@ -430,7 +431,7 @@ impl FileReader {
     fn read(
         &self,
         function: FileReaderFunction,
-        blob: &Blob,
+        blob: &Blob<TH>,
         label: Option<DOMString>,
     ) -> ErrorResult {
         // Step 1
@@ -478,12 +479,12 @@ impl FileReader {
 }
 
 // https://w3c.github.io/FileAPI/#thread-read-operation
-fn perform_annotated_read_operation(
+fn perform_annotated_read_operation<TH: TypeHolderTrait>(
     gen_id: GenerationId,
     data: ReadMetaData,
     blob_contents: Arc<Vec<u8>>,
-    filereader: TrustedFileReader,
-    task_source: FileReadingTaskSource,
+    filereader: TrustedFileReader<TH>,
+    task_source: FileReadingTaskSource<TH>,
     canceller: TaskCanceller,
 ) {
     // Step 4

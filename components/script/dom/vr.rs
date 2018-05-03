@@ -24,16 +24,17 @@ use profile_traits::ipc;
 use std::rc::Rc;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVREvent, WebVRMsg};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct VR {
-    reflector_: Reflector,
-    displays: DomRefCell<Vec<Dom<VRDisplay>>>,
-    gamepads: DomRefCell<Vec<Dom<Gamepad>>>
+pub struct VR<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    displays: DomRefCell<Vec<Dom<VRDisplay<TH>>>>,
+    gamepads: DomRefCell<Vec<Dom<Gamepad<TH>>>>
 }
 
-impl VR {
-    fn new_inherited() -> VR {
+impl<TH: TypeHolderTrait> VR<TH> {
+    fn new_inherited() -> VR<TH> {
         VR {
             reflector_: Reflector::new(),
             displays: DomRefCell::new(Vec::new()),
@@ -41,24 +42,24 @@ impl VR {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<VR> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<VR<TH>> {
         let root = reflect_dom_object(Box::new(VR::new_inherited()), global, VRBinding::Wrap);
         root.register();
         root
     }
 }
 
-impl Drop for VR {
+impl<TH: TypeHolderTrait> Drop for VR<TH> {
     fn drop(&mut self) {
         self.unregister();
     }
 }
 
-impl VRMethods for VR {
+impl<TH: TypeHolderTrait> VRMethods<TH> for VR<TH> {
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/webvr/#interface-navigator
-    fn GetDisplays(&self) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+    fn GetDisplays(&self) -> Rc<Promise<TH>> {
+        let promise = Promise::<TH>::new(&self.global());
 
         if let Some(webvr_thread) = self.webvr_thread() {
             let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -82,7 +83,7 @@ impl VRMethods for VR {
         }
 
         // convert from Dom to DomRoot
-        let displays: Vec<DomRoot<VRDisplay>> = self.displays.borrow().iter()
+        let displays: Vec<DomRoot<VRDisplay<TH>>> = self.displays.borrow().iter()
                                                           .map(|d| DomRoot::from_ref(&**d))
                                                           .collect();
         promise.resolve_native(&displays);
@@ -92,12 +93,12 @@ impl VRMethods for VR {
 }
 
 
-impl VR {
+impl<TH: TypeHolderTrait> VR<TH> {
     fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.global().as_window().webvr_thread()
     }
 
-    fn find_display(&self, display_id: u32) -> Option<DomRoot<VRDisplay>> {
+    fn find_display(&self, display_id: u32) -> Option<DomRoot<VRDisplay<TH>>> {
         self.displays.borrow()
                      .iter()
                      .find(|d| d.DisplayId() == display_id)
@@ -118,7 +119,7 @@ impl VR {
         }
     }
 
-    fn sync_display(&self, display: &WebVRDisplayData) -> DomRoot<VRDisplay> {
+    fn sync_display(&self, display: &WebVRDisplayData) -> DomRoot<VRDisplay<TH>> {
         if let Some(existing) = self.find_display(display.display_id) {
             existing.update_display(&display);
             existing
@@ -196,15 +197,15 @@ impl VR {
         }
     }
 
-    fn notify_display_event(&self, display: &VRDisplay, event: &WebVRDisplayEvent) {
+    fn notify_display_event(&self, display: &VRDisplay<TH>, event: &WebVRDisplayEvent) {
         let event = VRDisplayEvent::new_from_webvr(&self.global(), &display, &event);
-        event.upcast::<Event>().fire(self.global().upcast::<EventTarget>());
+        event.upcast::<Event<TH>>().fire(self.global().upcast::<EventTarget<TH>>());
     }
 }
 
 // Gamepad
-impl VR {
-    fn find_gamepad(&self, gamepad_id: u32) -> Option<DomRoot<Gamepad>> {
+impl<TH: TypeHolderTrait> VR<TH> {
+    fn find_gamepad(&self, gamepad_id: u32) -> Option<DomRoot<Gamepad<TH>>> {
         self.gamepads.borrow()
                      .iter()
                      .find(|g| g.gamepad_id() == gamepad_id)
@@ -232,7 +233,7 @@ impl VR {
     // The current approach allows the to sample gamepad state multiple times per frame. This
     // guarantees that the gamepads always have a valid state and can be very useful for
     // motion capture or drawing applications.
-    pub fn get_gamepads(&self) -> Vec<DomRoot<Gamepad>> {
+    pub fn get_gamepads(&self) -> Vec<DomRoot<Gamepad<TH>>> {
         if let Some(wevbr_sender) = self.webvr_thread() {
             let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             let synced_ids = self.gamepads.borrow().iter().map(|g| g.gamepad_id()).collect();

@@ -15,11 +15,12 @@ use servo_media::audio::node::AudioNodeMessage;
 use servo_media::audio::param::{ParamRate, ParamType, RampKind, UserAutomationEvent};
 use std::cell::Cell;
 use std::sync::mpsc;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct AudioParam {
-    reflector_: Reflector,
-    context: Dom<BaseAudioContext>,
+pub struct AudioParam<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    context: Dom<BaseAudioContext<TH>>,
     #[ignore_malloc_size_of = "servo_media"]
     node: NodeId,
     #[ignore_malloc_size_of = "servo_media"]
@@ -30,16 +31,16 @@ pub struct AudioParam {
     max_value: f32,
 }
 
-impl AudioParam {
+impl<TH: TypeHolderTrait> AudioParam<TH> {
     pub fn new_inherited(
-        context: &BaseAudioContext,
+        context: &BaseAudioContext<TH>,
         node: NodeId,
         param: ParamType,
         automation_rate: AutomationRate,
         default_value: f32,
         min_value: f32,
         max_value: f32,
-    ) -> AudioParam {
+    ) -> AudioParam<TH> {
         AudioParam {
             reflector_: Reflector::new(),
             context: Dom::from_ref(context),
@@ -54,15 +55,15 @@ impl AudioParam {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         node: NodeId,
         param: ParamType,
         automation_rate: AutomationRate,
         default_value: f32,
         min_value: f32,
         max_value: f32,
-    ) -> DomRoot<AudioParam> {
+    ) -> DomRoot<AudioParam<TH>> {
         let audio_param = AudioParam::new_inherited(
             context,
             node,
@@ -79,7 +80,7 @@ impl AudioParam {
         self.context.audio_context_impl().message_node(self.node, message);
     }
 
-    pub fn context(&self) -> &BaseAudioContext {
+    pub fn context(&self) -> &BaseAudioContext<TH> {
         &self.context
     }
 
@@ -92,7 +93,7 @@ impl AudioParam {
     }
 }
 
-impl AudioParamMethods for AudioParam {
+impl<TH: TypeHolderTrait> AudioParamMethods<TH> for AudioParam<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
     fn AutomationRate(&self) -> AutomationRate {
         self.automation_rate.get()
@@ -138,7 +139,7 @@ impl AudioParamMethods for AudioParam {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvalueattime
-    fn SetValueAtTime(&self, value: Finite<f32>, start_time: Finite<f64>) -> DomRoot<AudioParam> {
+    fn SetValueAtTime(&self, value: Finite<f32>, start_time: Finite<f64>) -> DomRoot<AudioParam<TH>> {
         self.message_node(
             AudioNodeMessage::SetParam(
                 self.param,
@@ -153,7 +154,7 @@ impl AudioParamMethods for AudioParam {
         &self,
         value: Finite<f32>,
         end_time: Finite<f64>,
-    ) -> DomRoot<AudioParam> {
+    ) -> DomRoot<AudioParam<TH>> {
         self.message_node(
             AudioNodeMessage::SetParam(
                 self.param,
@@ -168,7 +169,7 @@ impl AudioParamMethods for AudioParam {
         &self,
         value: Finite<f32>,
         end_time: Finite<f64>,
-    ) -> DomRoot<AudioParam> {
+    ) -> DomRoot<AudioParam<TH>> {
         self.message_node(
             AudioNodeMessage::SetParam(
                 self.param,
@@ -184,7 +185,7 @@ impl AudioParamMethods for AudioParam {
         target: Finite<f32>,
         start_time: Finite<f64>,
         time_constant: Finite<f32>,
-    ) -> DomRoot<AudioParam> {
+    ) -> DomRoot<AudioParam<TH>> {
         self.message_node(
             AudioNodeMessage::SetParam(
                 self.param,
@@ -195,7 +196,7 @@ impl AudioParamMethods for AudioParam {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
-    fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
+    fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam<TH>> {
         self.message_node(
             AudioNodeMessage::SetParam(
                 self.param,
@@ -206,7 +207,7 @@ impl AudioParamMethods for AudioParam {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelandholdattime
-    fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
+    fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam<TH>> {
         self.message_node(
             AudioNodeMessage::SetParam(
                 self.param,

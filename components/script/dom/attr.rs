@@ -23,26 +23,27 @@ use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
 use style::attr::{AttrIdentifier, AttrValue};
+use typeholder::TypeHolderTrait;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
-pub struct Attr {
-    reflector_: Reflector,
+pub struct Attr<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     identifier: AttrIdentifier,
     value: DomRefCell<AttrValue>,
 
     /// the element that owns this attribute.
-    owner: MutNullableDom<Element>,
+    owner: MutNullableDom<Element<TH>>,
 }
 
-impl Attr {
+impl<TH: TypeHolderTrait> Attr<TH> {
     fn new_inherited(local_name: LocalName,
                      value: AttrValue,
                      name: LocalName,
                      namespace: Namespace,
                      prefix: Option<Prefix>,
-                     owner: Option<&Element>)
-                     -> Attr {
+                     owner: Option<&Element<TH>>)
+                     -> Self {
         Attr {
             reflector_: Reflector::new(),
             identifier: AttrIdentifier {
@@ -56,14 +57,14 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                local_name: LocalName,
                value: AttrValue,
                name: LocalName,
                namespace: Namespace,
                prefix: Option<Prefix>,
-               owner: Option<&Element>)
-               -> DomRoot<Attr> {
+               owner: Option<&Element<TH>>)
+               -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Attr::new_inherited(
                 local_name,
@@ -94,7 +95,7 @@ impl Attr {
     }
 }
 
-impl AttrMethods for Attr {
+impl<TH: TypeHolderTrait> AttrMethods<TH> for Attr<TH> {
     // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
@@ -165,7 +166,7 @@ impl AttrMethods for Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
-    fn GetOwnerElement(&self) -> Option<DomRoot<Element>> {
+    fn GetOwnerElement(&self) -> Option<DomRoot<Element<TH>>> {
         self.owner()
     }
 
@@ -176,8 +177,8 @@ impl AttrMethods for Attr {
 }
 
 
-impl Attr {
-    pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
+impl<TH: TypeHolderTrait> Attr<TH> {
+    pub fn set_value(&self, mut value: AttrValue, owner: &Element<TH>) {
         let name = self.local_name().clone();
         let namespace = self.namespace().clone();
         let old_value = DOMString::from(&**self.value());
@@ -188,11 +189,11 @@ impl Attr {
             old_value: Some(old_value.clone()),
         };
 
-        MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
+        MutationObserver::<TH>::queue_a_mutation_record(owner.upcast::<Node<TH>>(), mutation);
 
         if owner.get_custom_element_definition().is_some() {
             let reaction = CallbackReaction::AttributeChanged(name, Some(old_value), Some(new_value), namespace);
-            ScriptThread::enqueue_callback_reaction(owner, reaction, None);
+            ScriptThread::<TH>::enqueue_callback_reaction(owner, reaction, None);
         }
 
         assert_eq!(Some(owner), self.owner().r());
@@ -223,7 +224,7 @@ impl Attr {
 
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
-    pub fn set_owner(&self, owner: Option<&Element>) {
+    pub fn set_owner(&self, owner: Option<&Element<TH>>) {
         let ns = &self.identifier.namespace;
         match (self.owner(), owner) {
             (Some(old), None) => {
@@ -236,7 +237,7 @@ impl Attr {
         self.owner.set(owner);
     }
 
-    pub fn owner(&self) -> Option<DomRoot<Element>> {
+    pub fn owner(&self) -> Option<DomRoot<Element<TH>>> {
         self.owner.get()
     }
 
@@ -260,7 +261,7 @@ pub trait AttrHelpersForLayout {
 }
 
 #[allow(unsafe_code)]
-impl AttrHelpersForLayout for LayoutDom<Attr> {
+impl<TH: TypeHolderTrait> AttrHelpersForLayout for LayoutDom<Attr<TH>> {
     #[inline]
     unsafe fn value_forever(&self) -> &'static AttrValue {
         // This transmute is used to cheat the lifetime restriction.

@@ -9,21 +9,22 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::element_state::ElementState;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct SVGGraphicsElement {
-    svgelement: SVGElement,
+pub struct SVGGraphicsElement<TH: TypeHolderTrait> {
+    svgelement: SVGElement<TH>,
 }
 
-impl SVGGraphicsElement {
+impl<TH: TypeHolderTrait> SVGGraphicsElement<TH> {
     pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>,
-                         document: &Document) -> SVGGraphicsElement {
+                         document: &Document<TH>) -> SVGGraphicsElement<TH> {
         SVGGraphicsElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
     pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
-                                    prefix: Option<Prefix>, document: &Document)
-                                    -> SVGGraphicsElement {
+                                    prefix: Option<Prefix>, document: &Document<TH>)
+                                    -> SVGGraphicsElement<TH> {
         SVGGraphicsElement {
             svgelement:
                 SVGElement::new_inherited_with_state(state, tag_name, prefix, document),
@@ -31,8 +32,8 @@ impl SVGGraphicsElement {
     }
 }
 
-impl VirtualMethods for SVGGraphicsElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<SVGElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for SVGGraphicsElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<SVGElement<TH>>() as &VirtualMethods<TH>)
     }
 }

@@ -18,16 +18,17 @@ use script_thread::ScriptThread;
 use serviceworkerjob::{Job, JobType};
 use std::default::Default;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct ServiceWorkerContainer {
-    eventtarget: EventTarget,
-    controller: MutNullableDom<ServiceWorker>,
-    client: Dom<Client>
+pub struct ServiceWorkerContainer<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
+    controller: MutNullableDom<ServiceWorker<TH>>,
+    client: Dom<Client<TH>>
 }
 
-impl ServiceWorkerContainer {
-    fn new_inherited(client: &Client) -> ServiceWorkerContainer {
+impl<TH: TypeHolderTrait> ServiceWorkerContainer<TH> {
+    fn new_inherited(client: &Client<TH>) -> ServiceWorkerContainer<TH> {
         ServiceWorkerContainer {
             eventtarget: EventTarget::new_inherited(),
             controller: Default::default(),
@@ -36,16 +37,16 @@ impl ServiceWorkerContainer {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<ServiceWorkerContainer<TH>> {
         let client = Client::new(&global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&*client);
         reflect_dom_object(Box::new(container), global, Wrap)
     }
 }
 
-impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
+impl<TH: TypeHolderTrait> ServiceWorkerContainerMethods<TH> for ServiceWorkerContainer<TH> {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
-    fn GetController(&self) -> Option<DomRoot<ServiceWorker>> {
+    fn GetController(&self) -> Option<DomRoot<ServiceWorker<TH>>> {
         self.client.get_controller()
     }
 
@@ -54,9 +55,9 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#start-register-algorithm - B
     fn Register(&self,
                 script_url: USVString,
-                options: &RegistrationOptions) -> Rc<Promise> {
+                options: &RegistrationOptions) -> Rc<Promise<TH>> {
         // A: Step 1
-        let promise = Promise::new(&*self.global());
+        let promise = Promise::<TH>::new(&*self.global());
         let USVString(ref script_url) = script_url;
         let api_base_url = self.global().api_base_url();
         // A: Step 3-5
@@ -112,7 +113,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
 
         // B: Step 8
         let job = Job::create_job(JobType::Register, scope, script_url, promise.clone(), &*self.client);
-        ScriptThread::schedule_job(job);
+        ScriptThread::<TH>::schedule_job(job);
         promise
     }
 }

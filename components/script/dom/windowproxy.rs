@@ -45,18 +45,19 @@ use script_thread::ScriptThread;
 use script_traits::ScriptMsg;
 use std::cell::Cell;
 use std::ptr;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
 // here, in script, but also in the constellation. The constellation
 // manages the session history, which in script is accessed through
 // History objects, messaging the constellation.
-pub struct WindowProxy {
+pub struct WindowProxy<TH: TypeHolderTrait> {
     /// The JS WindowProxy object.
     /// Unlike other reflectors, we mutate this field because
     /// we have to brain-transplant the reflector when the WindowProxy
     /// changes Window.
-    reflector: Reflector,
+    reflector: Reflector<TH>,
 
     /// The id of the browsing context.
     /// In the case that this is a nested browsing context, this is the id
@@ -80,19 +81,19 @@ pub struct WindowProxy {
     discarded: Cell<bool>,
 
     /// The containing iframe element, if this is a same-origin iframe
-    frame_element: Option<Dom<Element>>,
+    frame_element: Option<Dom<Element<TH>>>,
 
     /// The parent browsing context's window proxy, if this is a nested browsing context
-    parent: Option<Dom<WindowProxy>>,
+    parent: Option<Dom<WindowProxy<TH>>>,
 }
 
-impl WindowProxy {
+impl<TH: TypeHolderTrait> WindowProxy<TH> {
     pub fn new_inherited(browsing_context_id: BrowsingContextId,
                          top_level_browsing_context_id: TopLevelBrowsingContextId,
                          currently_active: Option<PipelineId>,
-                         frame_element: Option<&Element>,
-                         parent: Option<&WindowProxy>)
-                         -> WindowProxy
+                         frame_element: Option<&Element<TH>>,
+                         parent: Option<&WindowProxy<TH>>)
+                         -> WindowProxy<TH>
     {
         let name = frame_element.map_or(DOMString::new(), |e| e.get_string_attribute(&local_name!("name")));
         WindowProxy {
@@ -108,12 +109,12 @@ impl WindowProxy {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                browsing_context_id: BrowsingContextId,
                top_level_browsing_context_id: TopLevelBrowsingContextId,
-               frame_element: Option<&Element>,
-               parent: Option<&WindowProxy>)
-               -> DomRoot<WindowProxy>
+               frame_element: Option<&Element<TH>>,
+               parent: Option<&WindowProxy<TH>>)
+               -> DomRoot<WindowProxy<TH>>
     {
         unsafe {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
@@ -154,14 +155,14 @@ impl WindowProxy {
     }
 
     #[allow(unsafe_code)]
-    pub fn new_dissimilar_origin(global_to_clone_from: &GlobalScope,
+    pub fn new_dissimilar_origin(global_to_clone_from: &GlobalScope<TH>,
                                  browsing_context_id: BrowsingContextId,
                                  top_level_browsing_context_id: TopLevelBrowsingContextId,
-                                 parent: Option<&WindowProxy>)
-                                 -> DomRoot<WindowProxy>
+                                 parent: Option<&WindowProxy<TH>>)
+                                 -> DomRoot<WindowProxy<TH>>
     {
         unsafe {
-            let handler = CreateWrapperProxyHandler(&XORIGIN_PROXY_HANDLER);
+            let handler = CreateWrapperProxyHandler(&XORIGIN_PROXY_HANDLER::<TH>());
             assert!(!handler.is_null());
 
             let cx = global_to_clone_from.get_cx();
@@ -216,15 +217,15 @@ impl WindowProxy {
         self.top_level_browsing_context_id
     }
 
-    pub fn frame_element(&self) -> Option<&Element> {
+    pub fn frame_element(&self) -> Option<&Element<TH>> {
         self.frame_element.r()
     }
 
-    pub fn parent(&self) -> Option<&WindowProxy> {
+    pub fn parent(&self) -> Option<&WindowProxy<TH>> {
         self.parent.r()
     }
 
-    pub fn top(&self) -> &WindowProxy {
+    pub fn top(&self) -> &WindowProxy<TH> {
         let mut result = self;
         while let Some(parent) = result.parent() {
             result = parent;
@@ -236,7 +237,7 @@ impl WindowProxy {
     /// Change the Window that this WindowProxy resolves to.
     // TODO: support setting the window proxy to a dummy value,
     // to handle the case when the active document is in another script thread.
-    fn set_window(&self, window: &GlobalScope, traps: &ProxyTraps) {
+    fn set_window(&self, window: &GlobalScope<TH>, traps: &ProxyTraps) {
         unsafe {
             debug!("Setting window of {:p}.", self);
             let handler = CreateWrapperProxyHandler(traps);
@@ -276,16 +277,16 @@ impl WindowProxy {
         }
     }
 
-    pub fn set_currently_active(&self, window: &Window) {
+    pub fn set_currently_active(&self, window: &Window<TH>) {
         let globalscope = window.upcast();
-        self.set_window(&*globalscope, &PROXY_HANDLER);
+        self.set_window(&*globalscope, &PROXY_HANDLER::<TH>());
         self.currently_active.set(Some(globalscope.pipeline_id()));
     }
 
     pub fn unset_currently_active(&self) {
         let globalscope = self.global();
         let window = DissimilarOriginWindow::new(&*globalscope, self);
-        self.set_window(&*window.upcast(), &XORIGIN_PROXY_HANDLER);
+        self.set_window(&*window.upcast(), &XORIGIN_PROXY_HANDLER::<TH>());
         self.currently_active.set(None);
     }
 
@@ -306,19 +307,19 @@ impl WindowProxy {
 // there's no use using the lifetimed handles here.
 // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
 #[allow(unsafe_code)]
-unsafe fn GetSubframeWindowProxy(
+unsafe fn GetSubframeWindowProxy<TH: TypeHolderTrait>(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId
-) -> Option<(DomRoot<WindowProxy>, u32)> {
+) -> Option<(DomRoot<WindowProxy<TH>>, u32)> {
     let index = get_array_index_from_id(cx, Handle::from_raw(id));
     if let Some(index) = index {
         rooted!(in(cx) let target = GetProxyPrivate(*proxy).to_object());
-        if let Ok(win) = root_from_handleobject::<Window>(target.handle()) {
+        if let Ok(win) = root_from_handleobject::<Window<TH>>(target.handle()) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
-            let _ = win.upcast::<GlobalScope>().script_to_constellation_chan().send(
+            let _ = win.upcast::<GlobalScope<TH>>().script_to_constellation_chan().send(
                 ScriptMsg::GetChildBrowsingContextId(
                     browsing_context_id,
                     index as usize,
@@ -329,7 +330,7 @@ unsafe fn GetSubframeWindowProxy(
                 .and_then(|maybe_bcid| maybe_bcid)
                 .and_then(ScriptThread::find_window_proxy)
                 .map(|proxy| (proxy, JSPROP_ENUMERATE | JSPROP_READONLY));
-        } else if let Ok(win) = root_from_handleobject::<DissimilarOriginWindow>(target.handle()) {
+        } else if let Ok(win) = root_from_handleobject::<DissimilarOriginWindow<TH>>(target.handle()) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
@@ -349,12 +350,12 @@ unsafe fn GetSubframeWindowProxy(
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
+unsafe extern "C" fn getOwnPropertyDescriptor<TH: TypeHolderTrait>(cx: *mut JSContext,
                                               proxy: RawHandleObject,
                                               id: RawHandleId,
                                               mut desc: RawMutableHandle<PropertyDescriptor>)
                                               -> bool {
-    let window = GetSubframeWindowProxy(cx, proxy, id);
+    let window = GetSubframeWindowProxy::<TH>(cx, proxy, id);
     if let Some((window, attrs)) = window {
         rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
@@ -398,12 +399,12 @@ unsafe extern "C" fn defineProperty(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn has(cx: *mut JSContext,
+unsafe extern "C" fn has<TH: TypeHolderTrait>(cx: *mut JSContext,
                          proxy: RawHandleObject,
                          id: RawHandleId,
                          bp: *mut bool)
                          -> bool {
-    let window = GetSubframeWindowProxy(cx, proxy, id);
+    let window = GetSubframeWindowProxy::<TH>(cx, proxy, id);
     if window.is_some() {
         *bp = true;
         return true;
@@ -420,13 +421,13 @@ unsafe extern "C" fn has(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get(cx: *mut JSContext,
+unsafe extern "C" fn get<TH: TypeHolderTrait>(cx: *mut JSContext,
                          proxy: RawHandleObject,
                          receiver: RawHandleValue,
                          id: RawHandleId,
                          vp: RawMutableHandleValue)
                          -> bool {
-    let window = GetSubframeWindowProxy(cx, proxy, id);
+    let window = GetSubframeWindowProxy::<TH>(cx, proxy, id);
     if let Some((window, _attrs)) = window {
         window.to_jsval(cx, MutableHandle::from_raw(vp));
         return true;
@@ -481,9 +482,9 @@ unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
     return true;
 }
 
-static PROXY_HANDLER: ProxyTraps = ProxyTraps {
+fn PROXY_HANDLER<TH: TypeHolderTrait>() -> ProxyTraps { ProxyTraps {
     enter: None,
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor::<TH>),
     defineProperty: Some(defineProperty),
     ownPropertyKeys: None,
     delete_: None,
@@ -491,8 +492,8 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
     preventExtensions: None,
     isExtensible: None,
-    has: Some(has),
-    get: Some(get),
+    has: Some(has::<TH>),
+    get: Some(get::<TH>),
     set: Some(set),
     call: None,
     construct: None,
@@ -506,17 +507,17 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     fun_toString: None,
     boxedValue_unbox: None,
     defaultValue: None,
-    trace: Some(trace),
-    finalize: Some(finalize),
+    trace: Some(trace::<TH>),
+    finalize: Some(finalize::<TH>),
     objectMoved: None,
     isCallable: None,
     isConstructor: None,
-};
+}}
 
 #[allow(unsafe_code)]
-pub fn new_window_proxy_handler() -> WindowProxyHandler {
+pub fn new_window_proxy_handler<TH: TypeHolderTrait>() -> WindowProxyHandler {
     unsafe {
-        WindowProxyHandler(CreateWrapperProxyHandler(&PROXY_HANDLER))
+        WindowProxyHandler(CreateWrapperProxyHandler(&PROXY_HANDLER::<TH>()))
     }
 }
 
@@ -525,16 +526,16 @@ pub fn new_window_proxy_handler() -> WindowProxyHandler {
 // defined in the DissimilarOriginWindow IDL.
 
 #[allow(unsafe_code)]
-unsafe fn throw_security_error(cx: *mut JSContext) -> bool {
+unsafe fn throw_security_error<TH: TypeHolderTrait>(cx: *mut JSContext) -> bool {
     if !JS_IsExceptionPending(cx) {
-        let global = GlobalScope::from_context(cx);
+        let global = GlobalScope::<TH>::from_context(cx);
         throw_dom_exception(cx, &*global, Error::Security);
     }
     false
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn has_xorigin(cx: *mut JSContext,
+unsafe extern "C" fn has_xorigin<TH: TypeHolderTrait>(cx: *mut JSContext,
                                  proxy: RawHandleObject,
                                  id: RawHandleId,
                                  bp: *mut bool)
@@ -547,12 +548,12 @@ unsafe extern "C" fn has_xorigin(cx: *mut JSContext,
         *bp = true;
         true
     } else {
-        throw_security_error(cx)
+        throw_security_error::<TH>(cx)
     }
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_xorigin(cx: *mut JSContext,
+unsafe extern "C" fn get_xorigin<TH: TypeHolderTrait>(cx: *mut JSContext,
                                  proxy: RawHandleObject,
                                  receiver: RawHandleValue,
                                  id: RawHandleId,
@@ -560,12 +561,12 @@ unsafe extern "C" fn get_xorigin(cx: *mut JSContext,
                                  -> bool
 {
     let mut found = false;
-    has_xorigin(cx, proxy, id, &mut found);
-    found && get(cx, proxy, receiver, id, vp)
+    has_xorigin::<TH>(cx, proxy, id, &mut found);
+    found && get::<TH>(cx, proxy, receiver, id, vp)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn set_xorigin(cx: *mut JSContext,
+unsafe extern "C" fn set_xorigin<TH: TypeHolderTrait>(cx: *mut JSContext,
                                  _: RawHandleObject,
                                  _: RawHandleId,
                                  _: RawHandleValue,
@@ -573,68 +574,68 @@ unsafe extern "C" fn set_xorigin(cx: *mut JSContext,
                                  _: *mut ObjectOpResult)
                                  -> bool
 {
-    throw_security_error(cx)
+    throw_security_error::<TH>(cx)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn delete_xorigin(cx: *mut JSContext,
+unsafe extern "C" fn delete_xorigin<TH: TypeHolderTrait>(cx: *mut JSContext,
                                     _: RawHandleObject,
                                     _: RawHandleId,
                                     _: *mut ObjectOpResult)
                                     -> bool
 {
-    throw_security_error(cx)
+    throw_security_error::<TH>(cx)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(cx: *mut JSContext,
+unsafe extern "C" fn getOwnPropertyDescriptor_xorigin<TH: TypeHolderTrait>(cx: *mut JSContext,
                                                       proxy: RawHandleObject,
                                                       id: RawHandleId,
                                                       desc: RawMutableHandle<PropertyDescriptor>)
                                                       -> bool
 {
     let mut found = false;
-    has_xorigin(cx, proxy, id, &mut found);
-    found && getOwnPropertyDescriptor(cx, proxy, id, desc)
+    has_xorigin::<TH>(cx, proxy, id, &mut found);
+    found && getOwnPropertyDescriptor::<TH>(cx, proxy, id, desc)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn defineProperty_xorigin(cx: *mut JSContext,
+unsafe extern "C" fn defineProperty_xorigin<TH: TypeHolderTrait>(cx: *mut JSContext,
                                             _: RawHandleObject,
                                             _: RawHandleId,
                                             _: RawHandle<PropertyDescriptor>,
                                             _: *mut ObjectOpResult)
                                             -> bool
 {
-    throw_security_error(cx)
+    throw_security_error::<TH>(cx)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn preventExtensions_xorigin(cx: *mut JSContext,
+unsafe extern "C" fn preventExtensions_xorigin<TH: TypeHolderTrait>(cx: *mut JSContext,
                                                _: RawHandleObject,
                                                _: *mut ObjectOpResult)
                                                -> bool
 {
-    throw_security_error(cx)
+    throw_security_error::<TH>(cx)
 }
 
-static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
+fn XORIGIN_PROXY_HANDLER<TH: TypeHolderTrait>() -> ProxyTraps { ProxyTraps {
     enter: None,
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
-    defineProperty: Some(defineProperty_xorigin),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin::<TH>),
+    defineProperty: Some(defineProperty_xorigin::<TH>),
     ownPropertyKeys: None,
-    delete_: Some(delete_xorigin),
+    delete_: Some(delete_xorigin::<TH>),
     enumerate: None,
     getPrototypeIfOrdinary: None,
-    preventExtensions: Some(preventExtensions_xorigin),
+    preventExtensions: Some(preventExtensions_xorigin::<TH>),
     isExtensible: None,
-    has: Some(has_xorigin),
-    get: Some(get_xorigin),
-    set: Some(set_xorigin),
+    has: Some(has_xorigin::<TH>),
+    get: Some(get_xorigin::<TH>),
+    set: Some(set_xorigin::<TH>),
     call: None,
     construct: None,
-    getPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
-    hasOwn: Some(has_xorigin),
+    getPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin::<TH>),
+    hasOwn: Some(has_xorigin::<TH>),
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
     hasInstance: None,
@@ -643,18 +644,18 @@ static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
     fun_toString: None,
     boxedValue_unbox: None,
     defaultValue: None,
-    trace: Some(trace),
-    finalize: Some(finalize),
+    trace: Some(trace::<TH>),
+    finalize: Some(finalize::<TH>),
     objectMoved: None,
     isCallable: None,
     isConstructor: None,
-};
+}}
 
 // How WindowProxy objects are garbage collected.
 
 #[allow(unsafe_code)]
-unsafe extern fn finalize(_fop: *mut JSFreeOp, obj: *mut JSObject) {
-    let this = GetProxyExtra(obj, 0).to_private() as *mut WindowProxy;
+unsafe extern fn finalize<TH: TypeHolderTrait>(_fop: *mut JSFreeOp, obj: *mut JSObject) {
+    let this = GetProxyExtra(obj, 0).to_private() as *mut WindowProxy::<TH>;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;
@@ -665,8 +666,8 @@ unsafe extern fn finalize(_fop: *mut JSFreeOp, obj: *mut JSObject) {
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn trace(trc: *mut JSTracer, obj: *mut JSObject) {
-    let this = GetProxyExtra(obj, 0).to_private() as *const WindowProxy;
+unsafe extern fn trace<TH: TypeHolderTrait>(trc: *mut JSTracer, obj: *mut JSObject) {
+    let this = GetProxyExtra(obj, 0).to_private() as *const WindowProxy::<TH>;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;

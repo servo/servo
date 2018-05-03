@@ -11,8 +11,9 @@ use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
 use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
+use script::typeholder::TypeHolderTrait;
 
-fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
+fn text_input<TH: TypeHolderTrait>(lines: Lines, s: &str) -> TextInput<DummyClipboardContext, TH> {
     TextInput::new(lines,
                    DOMString::from(s),
                    DummyClipboardContext::new(""),

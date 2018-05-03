@@ -25,37 +25,38 @@ pub mod size_of {
     use dom::node::Node;
     use dom::text::Text;
     use std::mem::size_of;
+    use typeholder::TypeHolderTrait;
 
-    pub fn CharacterData() -> usize {
-        size_of::<CharacterData>()
+    pub fn CharacterData<TH: TypeHolderTrait>() -> usize {
+        size_of::<CharacterData<TH>>()
     }
 
-    pub fn Element() -> usize {
-        size_of::<Element>()
+    pub fn Element<TH: TypeHolderTrait>() -> usize {
+        size_of::<Element<TH>>()
     }
 
-    pub fn EventTarget() -> usize {
-        size_of::<EventTarget>()
+    pub fn EventTarget<TH: TypeHolderTrait>() -> usize {
+        size_of::<EventTarget<TH>>()
     }
 
-    pub fn HTMLDivElement() -> usize {
-        size_of::<HTMLDivElement>()
+    pub fn HTMLDivElement<TH: TypeHolderTrait>() -> usize {
+        size_of::<HTMLDivElement<TH>>()
     }
 
-    pub fn HTMLElement() -> usize {
-        size_of::<HTMLElement>()
+    pub fn HTMLElement<TH: TypeHolderTrait>() -> usize {
+        size_of::<HTMLElement<TH>>()
     }
 
-    pub fn HTMLSpanElement() -> usize {
-        size_of::<HTMLSpanElement>()
+    pub fn HTMLSpanElement<TH: TypeHolderTrait>() -> usize {
+        size_of::<HTMLSpanElement<TH>>()
     }
 
-    pub fn Node() -> usize {
-        size_of::<Node>()
+    pub fn Node<TH: TypeHolderTrait>() -> usize {
+        size_of::<Node<TH>>()
     }
 
-    pub fn Text() -> usize {
-        size_of::<Text>()
+    pub fn Text<TH: TypeHolderTrait>() -> usize {
+        size_of::<Text<TH>>()
     }
 }
 

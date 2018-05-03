@@ -8,13 +8,16 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::plugin::Plugin;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct MimeType {
-    reflector_: Reflector,
+pub struct MimeType<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    _p: PhantomData<TH>,
 }
 
-impl MimeTypeMethods for MimeType {
+impl<TH: TypeHolderTrait> MimeTypeMethods<TH> for MimeType<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-mimetype-type
     fn Type(&self) -> DOMString {
         unreachable!()
@@ -31,7 +34,7 @@ impl MimeTypeMethods for MimeType {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetype-enabledplugin
-    fn EnabledPlugin(&self) -> DomRoot<Plugin> {
+    fn EnabledPlugin(&self) -> DomRoot<Plugin<TH>> {
         unreachable!()
     }
 }

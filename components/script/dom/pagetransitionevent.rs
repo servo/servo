@@ -15,47 +15,47 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
-
+use typeholder::TypeHolderTrait;
 // https://html.spec.whatwg.org/multipage/#pagetransitionevent
 #[dom_struct]
-pub struct PageTransitionEvent {
-    event: Event,
+pub struct PageTransitionEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     persisted: Cell<bool>,
 }
 
-impl PageTransitionEvent {
-    fn new_inherited() -> PageTransitionEvent {
+impl<TH: TypeHolderTrait> PageTransitionEvent<TH> {
+    fn new_inherited() -> PageTransitionEvent<TH> {
         PageTransitionEvent {
             event: Event::new_inherited(),
             persisted: Cell::new(false),
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<PageTransitionEvent> {
+    pub fn new_uninitialized(window: &Window<TH>) -> DomRoot<PageTransitionEvent<TH>> {
         reflect_dom_object(Box::new(PageTransitionEvent::new_inherited()),
                            window,
                            PageTransitionEventBinding::Wrap)
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
                persisted: bool)
-               -> DomRoot<PageTransitionEvent> {
+               -> DomRoot<PageTransitionEvent<TH>> {
         let ev = PageTransitionEvent::new_uninitialized(window);
         ev.persisted.set(persisted);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
                        init: &PageTransitionEventBinding::PageTransitionEventInit)
-                       -> Fallible<DomRoot<PageTransitionEvent>> {
+                       -> Fallible<DomRoot<PageTransitionEvent<TH>>> {
         Ok(PageTransitionEvent::new(window,
                               Atom::from(type_),
                               init.parent.bubbles,
@@ -64,7 +64,7 @@ impl PageTransitionEvent {
     }
 }
 
-impl PageTransitionEventMethods for PageTransitionEvent {
+impl<TH: TypeHolderTrait> PageTransitionEventMethods for PageTransitionEvent<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-pagetransitionevent-persisted
     fn Persisted(&self) -> bool {
         self.persisted.get()

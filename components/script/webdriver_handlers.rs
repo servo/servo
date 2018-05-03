@@ -37,13 +37,14 @@ use script_thread::Documents;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_traits::webdriver_msg::WebDriverCookieError;
 use servo_url::ServoUrl;
+use typeholder::TypeHolderTrait;
 
-fn find_node_by_unique_id(documents: &Documents,
+fn find_node_by_unique_id<TH: TypeHolderTrait>(documents: &Documents<TH>,
                           pipeline: PipelineId,
                           node_id: String)
-                          -> Option<DomRoot<Node>> {
+                          -> Option<DomRoot<Node<TH>>> {
     documents.find_document(pipeline).and_then(|document|
-        document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
+        document.upcast::<Node<TH>>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
     )
 }
 
@@ -74,7 +75,7 @@ pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDri
 }
 
 #[allow(unsafe_code)]
-pub fn handle_execute_script(documents: &Documents,
+pub fn handle_execute_script<TH: TypeHolderTrait>(documents: &Documents<TH>,
                              pipeline: PipelineId,
                              eval: String,
                              reply: IpcSender<WebDriverJSResult>) {
@@ -86,7 +87,7 @@ pub fn handle_execute_script(documents: &Documents,
     let result = unsafe {
         let cx = window.get_cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
-        window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
+        window.upcast::<GlobalScope<TH>>().evaluate_js_on_global_with_result(
             &eval, rval.handle_mut());
         jsval_to_webdriver(cx, rval.handle())
     };
@@ -94,7 +95,7 @@ pub fn handle_execute_script(documents: &Documents,
     reply.send(result).unwrap();
 }
 
-pub fn handle_execute_async_script(documents: &Documents,
+pub fn handle_execute_async_script<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                    pipeline: PipelineId,
                                    eval: String,
                                    reply: IpcSender<WebDriverJSResult>) {
@@ -106,10 +107,10 @@ pub fn handle_execute_async_script(documents: &Documents,
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));
     rooted!(in(cx) let mut rval = UndefinedValue());
-    window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+    window.upcast::<GlobalScope<TH>>().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
-pub fn handle_get_browsing_context_id(documents: &Documents,
+pub fn handle_get_browsing_context_id<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                       pipeline: PipelineId,
                                       webdriver_frame_id: WebDriverFrameId,
                                       reply: IpcSender<Result<BrowsingContextId, ()>>) {
@@ -120,7 +121,7 @@ pub fn handle_get_browsing_context_id(documents: &Documents,
         },
         WebDriverFrameId::Element(x) => {
             find_node_by_unique_id(documents, pipeline, x)
-                .and_then(|node| node.downcast::<HTMLIFrameElement>().and_then(|elem| elem.browsing_context_id()))
+                .and_then(|node| node.downcast::<HTMLIFrameElement<TH>>().and_then(|elem| elem.browsing_context_id()))
                 .ok_or(())
         },
         WebDriverFrameId::Parent => {
@@ -133,33 +134,33 @@ pub fn handle_get_browsing_context_id(documents: &Documents,
     reply.send(result).unwrap()
 }
 
-pub fn handle_find_element_css(documents: &Documents, pipeline: PipelineId, selector: String,
+pub fn handle_find_element_css<TH: TypeHolderTrait>(documents: &Documents<TH>, pipeline: PipelineId, selector: String,
                                reply: IpcSender<Result<Option<String>, ()>>) {
     let node_id = documents.find_document(pipeline)
         .ok_or(())
         .and_then(|doc| doc.QuerySelector(DOMString::from(selector)).map_err(|_| ()))
-        .map(|node| node.map(|x| x.upcast::<Node>().unique_id()));
+        .map(|node| node.map(|x| x.upcast::<Node<TH>>().unique_id()));
     reply.send(node_id).unwrap();
 }
 
-pub fn handle_find_elements_css(documents: &Documents,
+pub fn handle_find_elements_css<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                 pipeline: PipelineId,
                                 selector: String,
                                 reply: IpcSender<Result<Vec<String>, ()>>) {
     let node_ids = documents.find_document(pipeline)
         .ok_or(())
         .and_then(|doc| doc.QuerySelectorAll(DOMString::from(selector)).map_err(|_| ()))
-        .map(|nodes| nodes.iter().map(|x| x.upcast::<Node>().unique_id()).collect());
+        .map(|nodes| nodes.iter().map(|x| x.upcast::<Node<TH>>().unique_id()).collect());
     reply.send(node_ids).unwrap();
 }
 
-pub fn handle_focus_element(documents: &Documents,
+pub fn handle_focus_element<TH: TypeHolderTrait>(documents: &Documents<TH>,
                             pipeline: PipelineId,
                             element_id: String,
                             reply: IpcSender<Result<(), ()>>) {
     reply.send(match find_node_by_unique_id(documents, pipeline, element_id) {
         Some(ref node) => {
-            match node.downcast::<HTMLElement>() {
+            match node.downcast::<HTMLElement<TH>>() {
                 Some(ref elem) => {
                     // Need a way to find if this actually succeeded
                     elem.Focus();
@@ -172,15 +173,15 @@ pub fn handle_focus_element(documents: &Documents,
     }).unwrap();
 }
 
-pub fn handle_get_active_element(documents: &Documents,
+pub fn handle_get_active_element<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                  pipeline: PipelineId,
                                  reply: IpcSender<Option<String>>) {
     reply.send(documents.find_document(pipeline)
                .and_then(|doc| doc.GetActiveElement())
-               .map(|elem| elem.upcast::<Node>().unique_id())).unwrap();
+               .map(|elem| elem.upcast::<Node<TH>>().unique_id())).unwrap();
 }
 
-pub fn handle_get_cookies(documents: &Documents,
+pub fn handle_get_cookies<TH: TypeHolderTrait>(documents: &Documents<TH>,
                           pipeline: PipelineId,
                           reply: IpcSender<Vec<Serde<Cookie<'static>>>>) {
     // TODO: Return an error if the pipeline doesn't exist?
@@ -189,7 +190,7 @@ pub fn handle_get_cookies(documents: &Documents,
         Some(document) => {
             let url = document.url();
             let (sender, receiver) = ipc::channel().unwrap();
-            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope<TH>>().resource_threads().send(
                 GetCookiesDataForUrl(url, sender, NonHTTP)
             );
             receiver.recv().unwrap()
@@ -199,7 +200,7 @@ pub fn handle_get_cookies(documents: &Documents,
 }
 
 // https://w3c.github.io/webdriver/webdriver-spec.html#get-cookie
-pub fn handle_get_cookie(documents: &Documents,
+pub fn handle_get_cookie<TH: TypeHolderTrait>(documents: &Documents<TH>,
                          pipeline: PipelineId,
                          name: String,
                          reply: IpcSender<Vec<Serde<Cookie<'static>>>>) {
@@ -209,7 +210,7 @@ pub fn handle_get_cookie(documents: &Documents,
         Some(document) => {
             let url = document.url();
             let (sender, receiver) = ipc::channel().unwrap();
-            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope<TH>>().resource_threads().send(
                 GetCookiesDataForUrl(url, sender, NonHTTP)
             );
             receiver.recv().unwrap()
@@ -219,7 +220,7 @@ pub fn handle_get_cookie(documents: &Documents,
 }
 
 // https://w3c.github.io/webdriver/webdriver-spec.html#add-cookie
-pub fn handle_add_cookie(documents: &Documents,
+pub fn handle_add_cookie<TH: TypeHolderTrait>(documents: &Documents<TH>,
                          pipeline: PipelineId,
                          cookie: Cookie<'static>,
                          reply: IpcSender<Result<(), WebDriverCookieError>>) {
@@ -239,13 +240,13 @@ pub fn handle_add_cookie(documents: &Documents,
     reply.send(match (document.is_cookie_averse(), domain) {
         (true, _) => Err(WebDriverCookieError::InvalidDomain),
         (false, Some(ref domain)) if url.host_str().map(|x| { x == domain }).unwrap_or(false) => {
-            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope<TH>>().resource_threads().send(
                 SetCookieForUrl(url, Serde(cookie), method)
             );
             Ok(())
         },
         (false, None) => {
-            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope<TH>>().resource_threads().send(
                 SetCookieForUrl(url, Serde(cookie), method)
             );
             Ok(())
@@ -256,7 +257,7 @@ pub fn handle_add_cookie(documents: &Documents,
     }).unwrap();
 }
 
-pub fn handle_get_title(documents: &Documents, pipeline: PipelineId, reply: IpcSender<String>) {
+pub fn handle_get_title<TH: TypeHolderTrait>(documents: &Documents<TH>, pipeline: PipelineId, reply: IpcSender<String>) {
     // TODO: Return an error if the pipeline doesn't exist.
     let title = documents.find_document(pipeline)
         .map(|doc| String::from(doc.Title()))
@@ -264,14 +265,14 @@ pub fn handle_get_title(documents: &Documents, pipeline: PipelineId, reply: IpcS
     reply.send(title).unwrap();
 }
 
-pub fn handle_get_rect(documents: &Documents,
+pub fn handle_get_rect<TH: TypeHolderTrait>(documents: &Documents<TH>,
                        pipeline: PipelineId,
                        element_id: String,
                        reply: IpcSender<Result<Rect<f64>, ()>>) {
     reply.send(match find_node_by_unique_id(documents, pipeline, element_id) {
         Some(elem) => {
             // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
-            match elem.downcast::<HTMLElement>() {
+            match elem.downcast::<HTMLElement<TH>>() {
                 Some(html_elem) => {
                     // Step 1
                     let mut x = 0;
@@ -281,7 +282,7 @@ pub fn handle_get_rect(documents: &Documents,
 
                     // Step 2
                     while let Some(element) = offset_parent {
-                        offset_parent = match element.downcast::<HTMLElement>() {
+                        offset_parent = match element.downcast::<HTMLElement<TH>>() {
                             Some(elem) => {
                                 x += elem.OffsetLeft();
                                 y += elem.OffsetTop();
@@ -302,7 +303,7 @@ pub fn handle_get_rect(documents: &Documents,
     }).unwrap();
 }
 
-pub fn handle_get_text(documents: &Documents,
+pub fn handle_get_text<TH: TypeHolderTrait>(documents: &Documents<TH>,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
@@ -314,33 +315,33 @@ pub fn handle_get_text(documents: &Documents,
     }).unwrap();
 }
 
-pub fn handle_get_name(documents: &Documents,
+pub fn handle_get_name<TH: TypeHolderTrait>(documents: &Documents<TH>,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(documents, pipeline, node_id) {
         Some(node) => {
-            Ok(String::from(node.downcast::<Element>().unwrap().TagName()))
+            Ok(String::from(node.downcast::<Element<TH>>().unwrap().TagName()))
         },
         None => Err(())
     }).unwrap();
 }
 
-pub fn handle_get_attribute(documents: &Documents,
+pub fn handle_get_attribute<TH: TypeHolderTrait>(documents: &Documents<TH>,
                             pipeline: PipelineId,
                             node_id: String,
                             name: String,
                             reply: IpcSender<Result<Option<String>, ()>>) {
     reply.send(match find_node_by_unique_id(documents, pipeline, node_id) {
         Some(node) => {
-            Ok(node.downcast::<Element>().unwrap().GetAttribute(DOMString::from(name))
+            Ok(node.downcast::<Element<TH>>().unwrap().GetAttribute(DOMString::from(name))
                .map(String::from))
         },
         None => Err(())
     }).unwrap();
 }
 
-pub fn handle_get_css(documents: &Documents,
+pub fn handle_get_css<TH: TypeHolderTrait>(documents: &Documents<TH>,
                       pipeline: PipelineId,
                       node_id: String,
                       name: String,
@@ -348,7 +349,7 @@ pub fn handle_get_css(documents: &Documents,
     reply.send(match find_node_by_unique_id(documents, pipeline, node_id) {
         Some(node) => {
             let window = window_from_node(&*node);
-            let elem = node.downcast::<Element>().unwrap();
+            let elem = node.downcast::<Element<TH>>().unwrap();
             Ok(String::from(
                 window.GetComputedStyle(&elem, None).GetPropertyValue(DOMString::from(name))))
         },
@@ -356,7 +357,7 @@ pub fn handle_get_css(documents: &Documents,
     }).unwrap();
 }
 
-pub fn handle_get_url(documents: &Documents,
+pub fn handle_get_url<TH: TypeHolderTrait>(documents: &Documents<TH>,
                       pipeline: PipelineId,
                       reply: IpcSender<ServoUrl>) {
     // TODO: Return an error if the pipeline doesn't exist.
@@ -366,13 +367,13 @@ pub fn handle_get_url(documents: &Documents,
     reply.send(url).unwrap();
 }
 
-pub fn handle_is_enabled(documents: &Documents,
+pub fn handle_is_enabled<TH: TypeHolderTrait>(documents: &Documents<TH>,
                          pipeline: PipelineId,
                          element_id: String,
                          reply: IpcSender<Result<bool, ()>>) {
     reply.send(match find_node_by_unique_id(&documents, pipeline, element_id) {
         Some(ref node) => {
-            match node.downcast::<Element>() {
+            match node.downcast::<Element<TH>>() {
                 Some(elem) => Ok(elem.enabled_state()),
                 None => Err(())
             }
@@ -381,19 +382,19 @@ pub fn handle_is_enabled(documents: &Documents,
     }).unwrap();
 }
 
-pub fn handle_is_selected(documents: &Documents,
+pub fn handle_is_selected<TH: TypeHolderTrait>(documents: &Documents<TH>,
                           pipeline: PipelineId,
                           element_id: String,
                           reply: IpcSender<Result<bool, ()>>) {
     reply.send(match find_node_by_unique_id(documents, pipeline, element_id) {
         Some(ref node) => {
-            if let Some(input_element) = node.downcast::<HTMLInputElement>() {
+            if let Some(input_element) = node.downcast::<HTMLInputElement<TH>>() {
                 Ok(input_element.Checked())
             }
-            else if let Some(option_element) = node.downcast::<HTMLOptionElement>() {
+            else if let Some(option_element) = node.downcast::<HTMLOptionElement<TH>>() {
                 Ok(option_element.Selected())
             }
-            else if node.is::<HTMLElement>() {
+            else if node.is::<HTMLElement<TH>>() {
                 Ok(false) // regular elements are not selectable
             } else {
                 Err(())

@@ -65,17 +65,18 @@ use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
+use typeholder::TypeHolderTrait;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
-pub struct PaintWorkletGlobalScope {
+pub struct PaintWorkletGlobalScope<TH: TypeHolderTrait> {
     /// The worklet global for this object
-    worklet_global: WorkletGlobalScope,
+    worklet_global: WorkletGlobalScope<TH>,
     /// The image cache
     #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-definitions>
-    paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition>>>,
+    paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition<TH>>>>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-class-instances>
     paint_class_instances: DomRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
     /// The most recent name the worklet was called with
@@ -92,14 +93,14 @@ pub struct PaintWorkletGlobalScope {
     cached_result: DomRefCell<DrawAPaintImageResult>,
 }
 
-impl PaintWorkletGlobalScope {
+impl<TH: TypeHolderTrait> PaintWorkletGlobalScope<TH> {
     #[allow(unsafe_code)]
     pub fn new(runtime: &Runtime,
                pipeline_id: PipelineId,
                base_url: ServoUrl,
                executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
-               -> DomRoot<PaintWorkletGlobalScope> {
+               -> DomRoot<PaintWorkletGlobalScope<TH>> {
         debug!("Creating paint worklet global scope for pipeline {}.", pipeline_id);
         let global = Box::new(PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, executor, init),
@@ -178,7 +179,7 @@ impl PaintWorkletGlobalScope {
                           name: &Atom,
                           size_in_px: TypedSize2D<f32, CSSPixel>,
                           device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
-                          properties: &StylePropertyMapReadOnly,
+                          properties: &StylePropertyMapReadOnly<TH>,
                           arguments: &[String])
                           -> DrawAPaintImageResult
     {
@@ -198,7 +199,7 @@ impl PaintWorkletGlobalScope {
                                size_in_px: TypedSize2D<f32, CSSPixel>,
                                size_in_dpx: TypedSize2D<u32, DevicePixel>,
                                device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
-                               properties: &StylePropertyMapReadOnly,
+                               properties: &StylePropertyMapReadOnly<TH>,
                                arguments: &[String])
                                -> DrawAPaintImageResult
     {
@@ -395,7 +396,7 @@ pub enum PaintWorkletTask {
 /// which can't be moved.
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
-struct PaintDefinition {
+struct PaintDefinition<TH: TypeHolderTrait> {
     class_constructor: Heap<JSVal>,
     paint_function: Heap<JSVal>,
     constructor_valid_flag: Cell<bool>,
@@ -405,16 +406,16 @@ struct PaintDefinition {
     // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
     // but to avoid having the primary worklet thread create a new renering context,
     // we recycle them.
-    context: Dom<PaintRenderingContext2D>,
+    context: Dom<PaintRenderingContext2D<TH>>,
 }
 
-impl PaintDefinition {
+impl<TH: TypeHolderTrait> PaintDefinition<TH> {
     fn new(class_constructor: HandleValue,
            paint_function: HandleValue,
            alpha: bool,
            input_arguments_len: usize,
-           context: &PaintRenderingContext2D)
-           -> Box<PaintDefinition>
+           context: &PaintRenderingContext2D<TH>)
+           -> Box<PaintDefinition<TH>>
     {
         let result = Box::new(PaintDefinition {
             class_constructor: Heap::default(),
@@ -430,11 +431,11 @@ impl PaintDefinition {
     }
 }
 
-impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
+impl<TH: TypeHolderTrait> PaintWorkletGlobalScopeMethods<TH> for PaintWorkletGlobalScope<TH> {
     #[allow(unsafe_code)]
     #[allow(unrooted_must_root)]
     /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>
-    fn RegisterPaint(&self, name: DOMString, paint_ctor: Rc<VoidFunction>) -> Fallible<()> {
+    fn RegisterPaint(&self, name: DOMString, paint_ctor: Rc<VoidFunction<TH>>) -> Fallible<()> {
         let name = Atom::from(name);
         let cx = self.worklet_global.get_cx();
         rooted!(in(cx) let paint_obj = paint_ctor.callback_holder().get());

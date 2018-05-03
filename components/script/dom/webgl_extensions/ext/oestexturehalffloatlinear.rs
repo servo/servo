@@ -9,23 +9,27 @@ use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct OESTextureHalfFloatLinear {
-    reflector_: Reflector,
+pub struct OESTextureHalfFloatLinear<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    _p: PhantomData<TH>,
 }
 
-impl OESTextureHalfFloatLinear {
-    fn new_inherited() -> OESTextureHalfFloatLinear {
+impl<TH: TypeHolderTrait> OESTextureHalfFloatLinear<TH> {
+    fn new_inherited() -> OESTextureHalfFloatLinear<TH> {
         Self {
             reflector_: Reflector::new(),
+            _p: Default::default(),
         }
     }
 }
 
-impl WebGLExtension for OESTextureHalfFloatLinear {
-    type Extension = OESTextureHalfFloatLinear;
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureHalfFloatLinear> {
+impl<TH: TypeHolderTrait> WebGLExtension<TH> for OESTextureHalfFloatLinear<TH> {
+    type Extension = OESTextureHalfFloatLinear<TH>;
+    fn new(ctx: &WebGLRenderingContext<TH>) -> DomRoot<OESTextureHalfFloatLinear<TH>> {
         reflect_dom_object(Box::new(OESTextureHalfFloatLinear::new_inherited()),
                            &*ctx.global(),
                            OESTextureHalfFloatLinearBinding::Wrap)
@@ -35,13 +39,13 @@ impl WebGLExtension for OESTextureHalfFloatLinear {
         WebGLExtensionSpec::All
     }
 
-    fn is_supported(ext: &WebGLExtensions) -> bool {
+    fn is_supported(ext: &WebGLExtensions<TH>) -> bool {
         ext.supports_any_gl_extension(&["GL_OES_texture_float_linear",
                                         "GL_ARB_half_float_pixel",
                                         "GL_NV_half_float"])
     }
 
-    fn enable(ext: &WebGLExtensions) {
+    fn enable(ext: &WebGLExtensions<TH>) {
         ext.enable_filterable_tex_type(OESTextureHalfFloatConstants::HALF_FLOAT_OES);
     }
 

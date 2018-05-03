@@ -31,18 +31,19 @@ use num_traits::ToPrimitive;
 use servo_url::ServoUrl;
 use std::default::Default;
 use style::attr::AttrValue;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLAnchorElement {
-    htmlelement: HTMLElement,
-    rel_list: MutNullableDom<DOMTokenList>,
+pub struct HTMLAnchorElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
+    rel_list: MutNullableDom<DOMTokenList<TH>>,
     url: DomRefCell<Option<ServoUrl>>,
 }
 
-impl HTMLAnchorElement {
+impl<TH: TypeHolderTrait> HTMLAnchorElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLAnchorElement {
+                     document: &Document<TH>) -> HTMLAnchorElement<TH> {
         HTMLAnchorElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
@@ -54,15 +55,15 @@ impl HTMLAnchorElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLAnchorElement> {
-        Node::reflect_node(Box::new(HTMLAnchorElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLAnchorElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLAnchorElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLAnchorElementBinding::Wrap)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-hyperlink-url-set
     fn set_url(&self) {
-        let attribute = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"));
+        let attribute = self.upcast::<Element<TH>>().get_attribute(&ns!(), &local_name!("href"));
         *self.url.borrow_mut() = attribute.and_then(|attribute| {
             let document = document_from_node(self);
             document.base_url().join(&attribute.value()).ok()
@@ -83,13 +84,13 @@ impl HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#update-href
     fn update_href(&self, url: DOMString) {
-        self.upcast::<Element>().set_string_attribute(&local_name!("href"), url);
+        self.upcast::<Element<TH>>().set_string_attribute(&local_name!("href"), url);
     }
 }
 
-impl VirtualMethods for HTMLAnchorElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLAnchorElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -100,15 +101,15 @@ impl VirtualMethods for HTMLAnchorElement {
     }
 }
 
-impl HTMLAnchorElementMethods for HTMLAnchorElement {
+impl<TH: TypeHolderTrait> HTMLAnchorElementMethods<TH> for HTMLAnchorElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn Text(&self) -> DOMString {
-        self.upcast::<Node>().GetTextContent().unwrap()
+        self.upcast::<Node<TH>>().GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+        self.upcast::<Node<TH>>().SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
@@ -116,11 +117,11 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
     fn SetRel(&self, rel: DOMString) {
-        self.upcast::<Element>().set_tokenlist_attribute(&local_name!("rel"), rel);
+        self.upcast::<Element<TH>>().set_tokenlist_attribute(&local_name!("rel"), rel);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
-    fn RelList(&self) -> DomRoot<DOMTokenList> {
+    fn RelList(&self) -> DomRoot<DOMTokenList<TH>> {
         self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 
@@ -270,7 +271,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         USVString(match *self.url.borrow() {
             None => {
-                match self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href")) {
+                match self.upcast::<Element<TH>>().get_attribute(&ns!(), &local_name!("href")) {
                     // Step 3.
                     None => String::new(),
                     // Step 4.
@@ -284,7 +285,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
     fn SetHref(&self, value: USVString) {
-        self.upcast::<Element>().set_string_attribute(&local_name!("href"),
+        self.upcast::<Element<TH>>().set_string_attribute(&local_name!("href"),
                                                       DOMString::from_string(value.0));
         self.set_url();
     }
@@ -510,9 +511,9 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 }
 
-impl Activatable for HTMLAnchorElement {
-    fn as_element(&self) -> &Element {
-        self.upcast::<Element>()
+impl<TH: TypeHolderTrait> Activatable<TH> for HTMLAnchorElement<TH> {
+    fn as_element(&self) -> &Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -521,7 +522,7 @@ impl Activatable for HTMLAnchorElement {
         // hyperlink"
         // https://html.spec.whatwg.org/multipage/#the-a-element
         // "The activation behaviour of a elements *that create hyperlinks*"
-        self.upcast::<Element>().has_attribute(&local_name!("href"))
+        self.upcast::<Element<TH>>().has_attribute(&local_name!("href"))
     }
 
 
@@ -535,7 +536,7 @@ impl Activatable for HTMLAnchorElement {
     }
 
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
-    fn activation_behavior(&self, event: &Event, target: &EventTarget) {
+    fn activation_behavior(&self, event: &Event<TH>, target: &EventTarget<TH>) {
         //Step 1. If the node document is not fully active, abort.
         let doc = document_from_node(self);
         if !doc.is_fully_active() {
@@ -543,12 +544,12 @@ impl Activatable for HTMLAnchorElement {
         }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
         //Step 3. Handle <img ismap/>.
-        let element = self.upcast::<Element>();
-        let mouse_event = event.downcast::<MouseEvent>().unwrap();
+        let element = self.upcast::<Element<TH>>();
+        let mouse_event = event.downcast::<MouseEvent<TH>>().unwrap();
         let mut ismap_suffix = None;
-        if let Some(element) = target.downcast::<Element>() {
-            if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
-                let target_node = element.upcast::<Node>();
+        if let Some(element) = target.downcast::<Element<TH>>() {
+            if target.is::<HTMLImageElement<TH>>() && element.has_attribute(&local_name!("ismap")) {
+                let target_node = element.upcast::<Node<TH>>();
                 let rect = target_node.bounding_content_box_or_zero();
                 ismap_suffix = Some(
                     format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
@@ -580,7 +581,7 @@ fn is_current_browsing_context(target: DOMString) -> bool {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
-pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, referrer_policy: Option<ReferrerPolicy>) {
+pub fn follow_hyperlink<TH: TypeHolderTrait>(subject: &Element<TH>, hyperlink_suffix: Option<String>, referrer_policy: Option<ReferrerPolicy>) {
     // Step 1: replace.
     // Step 2: source browsing context.
     // Step 3: target browsing context.

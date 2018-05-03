@@ -15,16 +15,17 @@ use dom::userscripts::load_script;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLHeadElement {
-    htmlelement: HTMLElement
+pub struct HTMLHeadElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>
 }
 
-impl HTMLHeadElement {
+impl<TH: TypeHolderTrait> HTMLHeadElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLHeadElement {
+                     document: &Document<TH>) -> HTMLHeadElement<TH> {
         HTMLHeadElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -33,8 +34,8 @@ impl HTMLHeadElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLHeadElement> {
-        Node::reflect_node(Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLHeadElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLHeadElementBinding::Wrap)
     }
@@ -47,10 +48,10 @@ impl HTMLHeadElement {
             return;
         }
 
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         let candidates = node.traverse_preorder()
-                             .filter_map(DomRoot::downcast::<Element>)
-                             .filter(|elem| elem.is::<HTMLMetaElement>())
+                             .filter_map(DomRoot::downcast::<Element<TH>>)
+                             .filter(|elem| elem.is::<HTMLMetaElement<TH>>())
                              .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
                              .filter(|elem| elem.get_attribute(&ns!(), &local_name!("content")).is_some());
 
@@ -67,9 +68,9 @@ impl HTMLHeadElement {
     }
 }
 
-impl VirtualMethods for HTMLHeadElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLHeadElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
     fn bind_to_tree(&self, tree_in_doc: bool) {
         if let Some(ref s) = self.super_type() {

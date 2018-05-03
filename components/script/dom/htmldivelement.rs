@@ -10,16 +10,17 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLDivElement {
-    htmlelement: HTMLElement
+pub struct HTMLDivElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>
 }
 
-impl HTMLDivElement {
+impl<TH: TypeHolderTrait> HTMLDivElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLDivElement {
+                     document: &Document<TH>) -> HTMLDivElement<TH> {
         HTMLDivElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -28,14 +29,14 @@ impl HTMLDivElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDivElement> {
-        Node::reflect_node(Box::new(HTMLDivElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLDivElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLDivElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLDivElementBinding::Wrap)
     }
 }
 
-impl HTMLDivElementMethods for HTMLDivElement {
+impl<TH: TypeHolderTrait> HTMLDivElementMethods for HTMLDivElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-div-align
     make_getter!(Align, "align");
 

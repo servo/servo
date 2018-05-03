@@ -28,6 +28,7 @@ use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
 use std::default::Default;
 use style::element_state::ElementState;
+use typeholder::TypeHolderTrait;
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[derive(MallocSizeOf)]
@@ -39,16 +40,16 @@ enum ButtonType {
 }
 
 #[dom_struct]
-pub struct HTMLButtonElement {
-    htmlelement: HTMLElement,
+pub struct HTMLButtonElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     button_type: Cell<ButtonType>,
-    form_owner: MutNullableDom<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement<TH>>,
 }
 
-impl HTMLButtonElement {
+impl<TH: TypeHolderTrait> HTMLButtonElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLButtonElement {
+                     document: &Document<TH>) -> HTMLButtonElement<TH> {
         HTMLButtonElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
@@ -61,16 +62,16 @@ impl HTMLButtonElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLButtonElement> {
-        Node::reflect_node(Box::new(HTMLButtonElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLButtonElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLButtonElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLButtonElementBinding::Wrap)
     }
 }
 
-impl HTMLButtonElementMethods for HTMLButtonElement {
+impl<TH: TypeHolderTrait> HTMLButtonElementMethods<TH> for HTMLButtonElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
+    fn Validity(&self) -> DomRoot<ValidityState<TH>> {
         let window = window_from_node(self);
         ValidityState::new(&window, self.upcast())
     }
@@ -82,7 +83,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner()
     }
 
@@ -138,15 +139,15 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_setter!(SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
+    fn Labels(&self) -> DomRoot<NodeList<TH>> {
+        self.upcast::<HTMLElement<TH>>().labels()
     }
 }
 
-impl HTMLButtonElement {
+impl<TH: TypeHolderTrait> HTMLButtonElement<TH> {
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 3.1 to 3.7 (specific to HTMLButtonElement)
-    pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+    pub fn form_datum(&self, submitter: Option<FormSubmitter<TH>>) -> Option<FormDatum<TH>> {
         // Step 3.1: disabled state check is in get_unclean_dataset
 
         // Step 3.1: only run steps if this is the submitter
@@ -176,16 +177,16 @@ impl HTMLButtonElement {
     }
 }
 
-impl VirtualMethods for HTMLButtonElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLButtonElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("disabled") => {
-                let el = self.upcast::<Element>();
+                let el = self.upcast::<Element<TH>>();
                 match mutation {
                     AttributeMutation::Set(Some(_)) => {}
                     AttributeMutation::Set(None) => {
@@ -196,7 +197,8 @@ impl VirtualMethods for HTMLButtonElement {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_ancestors_disabled_state_for_form_control();
-                    }
+                    },
+                    AttributeMutation::_p(_) => return,
                 }
             },
             &local_name!("type") => {
@@ -212,7 +214,8 @@ impl VirtualMethods for HTMLButtonElement {
                     }
                     AttributeMutation::Removed => {
                         self.button_type.set(ButtonType::Submit);
-                    }
+                    },
+                    AttributeMutation::_p(_) => return,
                 }
             },
             &local_name!("form") => {
@@ -227,15 +230,15 @@ impl VirtualMethods for HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element<TH>>().check_ancestors_disabled_state_for_form_control();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        let node = self.upcast::<Node<TH>>();
+        let el = self.upcast::<Element<TH>>();
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement<TH>>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -243,21 +246,21 @@ impl VirtualMethods for HTMLButtonElement {
     }
 }
 
-impl FormControl for HTMLButtonElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLButtonElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>) {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 }
 
-impl Validatable for HTMLButtonElement {
+impl<TH: TypeHolderTrait> Validatable for HTMLButtonElement<TH> {
     fn is_instance_validatable(&self) -> bool {
         true
     }
@@ -268,14 +271,14 @@ impl Validatable for HTMLButtonElement {
     }
 }
 
-impl Activatable for HTMLButtonElement {
-    fn as_element(&self) -> &Element {
+impl<TH: TypeHolderTrait> Activatable<TH> for HTMLButtonElement<TH> {
+    fn as_element(&self) -> &Element<TH> {
         self.upcast()
     }
 
     fn is_instance_activatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
-        !self.upcast::<Element>().disabled_state()
+        !self.upcast::<Element<TH>>().disabled_state()
     }
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
@@ -288,7 +291,7 @@ impl Activatable for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event<TH>, _target: &EventTarget<TH>) {
         let ty = self.button_type.get();
         match ty {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
@@ -313,13 +316,13 @@ impl Activatable for HTMLButtonElement {
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
         let doc = document_from_node(self);
-        let node = doc.upcast::<Node>();
+        let node = doc.upcast::<Node<TH>>();
         let owner = self.form_owner();
-        if owner.is_none() || self.upcast::<Element>().click_in_progress() {
+        if owner.is_none() || self.upcast::<Element<TH>>().click_in_progress() {
             return;
         }
         node.query_selector_iter(DOMString::from("button[type=submit]")).unwrap()
-            .filter_map(DomRoot::downcast::<HTMLButtonElement>)
+            .filter_map(DomRoot::downcast::<HTMLButtonElement<TH>>)
             .find(|r| r.form_owner() == owner)
             .map(|s| synthetic_click_activation(s.as_element(),
                                                 ctrl_key,

@@ -10,24 +10,25 @@ use dom::gamepadbutton::GamepadButton;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRGamepadButton;
+use typeholder::TypeHolderTrait;
 
 // https://w3c.github.io/gamepad/#gamepadbutton-interface
 #[dom_struct]
-pub struct GamepadButtonList {
-    reflector_: Reflector,
-    list: Vec<Dom<GamepadButton>>
+pub struct GamepadButtonList<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    list: Vec<Dom<GamepadButton<TH>>>
 }
 
-impl GamepadButtonList {
+impl<TH: TypeHolderTrait> GamepadButtonList<TH> {
     #[allow(unrooted_must_root)]
-    fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
+    fn new_inherited(list: &[&GamepadButton<TH>]) -> GamepadButtonList<TH> {
         GamepadButtonList {
             reflector_: Reflector::new(),
             list: list.iter().map(|button| Dom::from_ref(*button)).collect(),
         }
     }
 
-    pub fn new_from_vr(global: &GlobalScope, buttons: &[WebVRGamepadButton]) -> DomRoot<GamepadButtonList> {
+    pub fn new_from_vr(global: &GlobalScope<TH>, buttons: &[WebVRGamepadButton]) -> DomRoot<GamepadButtonList<TH>> {
         rooted_vec!(let list <- buttons.iter()
                                        .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
 
@@ -43,19 +44,19 @@ impl GamepadButtonList {
     }
 }
 
-impl GamepadButtonListMethods for GamepadButtonList {
+impl<TH: TypeHolderTrait> GamepadButtonListMethods<TH> for GamepadButtonList<TH> {
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn Length(&self) -> u32 {
         self.list.len() as u32
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
-    fn Item(&self, index: u32) -> Option<DomRoot<GamepadButton>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<GamepadButton<TH>>> {
         self.list.get(index as usize).map(|button| DomRoot::from_ref(&**button))
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<GamepadButton>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<GamepadButton<TH>>> {
         self.Item(index)
     }
 }

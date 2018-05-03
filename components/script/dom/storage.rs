@@ -21,22 +21,26 @@ use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use task_source::TaskSource;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct Storage {
-    reflector_: Reflector,
-    storage_type: StorageType
+pub struct Storage<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    storage_type: StorageType,
+    _p: PhantomData<TH>,
 }
 
-impl Storage {
-    fn new_inherited(storage_type: StorageType) -> Storage {
+impl<TH: TypeHolderTrait> Storage<TH> {
+    fn new_inherited(storage_type: StorageType) -> Storage<TH> {
         Storage {
             reflector_: Reflector::new(),
-            storage_type: storage_type
+            storage_type: storage_type,
+            _p: Default::default(),
         }
     }
 
-    pub fn new(global: &Window, storage_type: StorageType) -> DomRoot<Storage> {
+    pub fn new(global: &Window<TH>, storage_type: StorageType) -> DomRoot<Storage<TH>> {
         reflect_dom_object(Box::new(Storage::new_inherited(storage_type)), global, StorageBinding::Wrap)
     }
 
@@ -50,7 +54,7 @@ impl Storage {
 
 }
 
-impl StorageMethods for Storage {
+impl<TH: TypeHolderTrait> StorageMethods for Storage<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-storage-length
     fn Length(&self) -> u32 {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -147,7 +151,7 @@ impl StorageMethods for Storage {
 }
 
 
-impl Storage {
+impl<TH: TypeHolderTrait> Storage<TH> {
     /// <https://html.spec.whatwg.org/multipage/#send-a-storage-notification>
     fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
                                      new_value: Option<String>) {
@@ -182,7 +186,7 @@ impl Storage {
                     DOMString::from(url.into_string()),
                     Some(&this),
                 );
-                event.upcast::<Event>().fire(global.upcast());
+                event.upcast::<Event<TH>>().fire(global.upcast());
             }),
             global.upcast(),
         ).unwrap();

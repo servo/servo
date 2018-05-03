@@ -23,6 +23,8 @@ use std::cell::{Cell, UnsafeCell};
 use std::mem;
 use std::ops::{Deref, DerefMut, Drop};
 use std::ptr;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 /// The index of the slot wherein a pointer to the weak holder cell is
 /// stored for weak-referenceable bindings. We use slot 1 for holding it,

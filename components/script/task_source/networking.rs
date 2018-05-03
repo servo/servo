@@ -6,17 +6,19 @@ use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[derive(JSTraceable)]
-pub struct NetworkingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
+pub struct NetworkingTaskSource<TH: TypeHolderTrait>(pub Box<ScriptChan + Send + 'static>, pub PipelineId, pub PhantomData<TH>);
 
-impl Clone for NetworkingTaskSource {
-    fn clone(&self) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.0.clone(), self.1.clone())
+impl<TH: TypeHolderTrait> Clone for NetworkingTaskSource<TH> {
+    fn clone(&self) -> NetworkingTaskSource<TH> {
+        NetworkingTaskSource(self.0.clone(), self.1.clone(), Default::default())
     }
 }
 
-impl TaskSource for NetworkingTaskSource {
+impl<TH: TypeHolderTrait> TaskSource for NetworkingTaskSource<TH> {
     const NAME: TaskSourceName = TaskSourceName::Networking;
 
     fn queue_with_canceller<T>(
@@ -35,7 +37,7 @@ impl TaskSource for NetworkingTaskSource {
     }
 }
 
-impl NetworkingTaskSource {
+impl<TH: TypeHolderTrait> NetworkingTaskSource<TH> {
     /// This queues a task that will not be cancelled when its associated
     /// global scope gets destroyed.
     pub fn queue_unconditionally<T>(&self, task: T) -> Result<(), ()>

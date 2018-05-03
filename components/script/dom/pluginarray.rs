@@ -10,27 +10,31 @@ use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::plugin::Plugin;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct PluginArray {
-    reflector_: Reflector,
+pub struct PluginArray<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    _p: PhantomData<TH>,
 }
 
-impl PluginArray {
-    pub fn new_inherited() -> PluginArray {
+impl<TH: TypeHolderTrait> PluginArray<TH> {
+    pub fn new_inherited() -> PluginArray<TH> {
         PluginArray {
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
+            _p: Default::default(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<PluginArray<TH>> {
         reflect_dom_object(Box::new(PluginArray::new_inherited()),
                            global,
                            PluginArrayBinding::Wrap)
     }
 }
 
-impl PluginArrayMethods for PluginArray {
+impl<TH: TypeHolderTrait> PluginArrayMethods<TH> for PluginArray<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-refresh
     fn Refresh(&self, _reload: bool) {
     }
@@ -41,22 +45,22 @@ impl PluginArrayMethods for PluginArray {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-item
-    fn Item(&self, _index: u32) -> Option<DomRoot<Plugin>> {
+    fn Item(&self, _index: u32) -> Option<DomRoot<Plugin<TH>>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-nameditem
-    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<Plugin>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<Plugin<TH>>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-item
-    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<Plugin>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<Plugin<TH>>> {
         None
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<Plugin>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<Plugin<TH>>> {
         None
     }
 

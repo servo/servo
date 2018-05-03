@@ -14,17 +14,18 @@ use dom::event::Event;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
 #[dom_struct]
-pub struct HashChangeEvent {
-    event: Event,
+pub struct HashChangeEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     old_url: String,
     new_url: String,
 }
 
-impl HashChangeEvent {
-    fn new_inherited(old_url: String, new_url: String) -> HashChangeEvent {
+impl<TH: TypeHolderTrait> HashChangeEvent<TH> {
+    fn new_inherited(old_url: String, new_url: String) -> HashChangeEvent<TH> {
         HashChangeEvent {
             event: Event::new_inherited(),
             old_url: old_url,
@@ -32,33 +33,33 @@ impl HashChangeEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<HashChangeEvent> {
+    pub fn new_uninitialized(window: &Window<TH>) -> DomRoot<HashChangeEvent<TH>> {
         reflect_dom_object(Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
                            window,
                            HashChangeEventBinding::Wrap)
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
                old_url: String,
                new_url: String)
-               -> DomRoot<HashChangeEvent> {
+               -> DomRoot<HashChangeEvent<TH>> {
         let ev = reflect_dom_object(Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
                                     window,
                                     HashChangeEventBinding::Wrap);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
                        init: &HashChangeEventBinding::HashChangeEventInit)
-                       -> Fallible<DomRoot<HashChangeEvent>> {
+                       -> Fallible<DomRoot<HashChangeEvent<TH>>> {
         Ok(HashChangeEvent::new(window,
                                 Atom::from(type_),
                                 init.parent.bubbles,
@@ -68,7 +69,7 @@ impl HashChangeEvent {
     }
 }
 
-impl HashChangeEventMethods for HashChangeEvent {
+impl<TH: TypeHolderTrait> HashChangeEventMethods for HashChangeEvent<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-oldurl
     fn OldURL(&self) -> USVString {
         USVString(self.old_url.clone())

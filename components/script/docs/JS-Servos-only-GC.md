@@ -143,7 +143,7 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct Document {
     node: Node,
-    window: Dom<Window>,
+    window: Dom<Window<TH>>,
     is_html_document: bool,
     ...
 }
@@ -164,7 +164,7 @@ relationship. The `Document` just has a pointer to a `Window`, one of many
 pointers to that object, which can live in native DOM data structures or in
 JavaScript objects. These are precisely the pointers we need to tell the
 garbage collector about. We do this with a
-[custom type for traced pointers: `Dom<T>`][dom] (for example, the `Dom<Window>`
+[custom type for traced pointers: `Dom<T>`][dom] (for example, the `Dom<Window<TH>>`
 above). The implementation of `trace` for `Dom<T>` is not auto-generated; this
 is where we actually call the SpiderMonkey trace hooks:
 

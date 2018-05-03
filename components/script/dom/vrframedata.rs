@@ -18,21 +18,22 @@ use std::cell::Cell;
 use std::ptr;
 use std::ptr::NonNull;
 use webvr_traits::WebVRFrameData;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct VRFrameData {
-    reflector_: Reflector,
+pub struct VRFrameData<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     left_proj: Heap<*mut JSObject>,
     left_view: Heap<*mut JSObject>,
     right_proj: Heap<*mut JSObject>,
     right_view: Heap<*mut JSObject>,
-    pose: Dom<VRPose>,
+    pose: Dom<VRPose<TH>>,
     timestamp: Cell<f64>,
     first_timestamp: Cell<f64>
 }
 
-impl VRFrameData {
-    fn new_inherited(pose: &VRPose) -> VRFrameData {
+impl<TH: TypeHolderTrait> VRFrameData<TH> {
+    fn new_inherited(pose: &VRPose<TH>) -> VRFrameData<TH> {
         VRFrameData {
             reflector_: Reflector::new(),
             left_proj: Heap::default(),
@@ -46,7 +47,7 @@ impl VRFrameData {
     }
 
     #[allow(unsafe_code)]
-    fn new(global: &GlobalScope) -> DomRoot<VRFrameData> {
+    fn new(global: &GlobalScope<TH>) -> DomRoot<VRFrameData<TH>> {
         let matrix = [1.0, 0.0, 0.0, 0.0,
                       0.0, 1.0, 0.0, 0.0,
                       0.0, 0.0, 1.0, 0.0,
@@ -65,7 +66,7 @@ impl VRFrameData {
         root
     }
 
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<VRFrameData>> {
+    pub fn Constructor(window: &Window<TH>) -> Fallible<DomRoot<VRFrameData<TH>>> {
         Ok(VRFrameData::new(&window.global()))
     }
 }
@@ -80,7 +81,7 @@ fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>
     (*dst).set(array.get());
 }
 
-impl VRFrameData {
+impl<TH: TypeHolderTrait> VRFrameData<TH> {
     #[allow(unsafe_code)]
     pub fn update(&self, data: &WebVRFrameData) {
         unsafe {
@@ -110,7 +111,7 @@ impl VRFrameData {
     }
 }
 
-impl VRFrameDataMethods for VRFrameData {
+impl<TH: TypeHolderTrait> VRFrameDataMethods<TH> for VRFrameData<TH> {
     // https://w3c.github.io/webvr/#dom-vrframedata-timestamp
     fn Timestamp(&self) -> Finite<f64> {
         Finite::wrap(self.timestamp.get() - self.first_timestamp.get())
@@ -141,7 +142,7 @@ impl VRFrameDataMethods for VRFrameData {
     }
 
     // https://w3c.github.io/webvr/#dom-vrframedata-pose
-    fn Pose(&self) -> DomRoot<VRPose> {
+    fn Pose(&self) -> DomRoot<VRPose<TH>> {
         DomRoot::from_ref(&*self.pose)
     }
 }

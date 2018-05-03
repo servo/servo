@@ -54,9 +54,12 @@ fn main() {
     }
     let phf = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
     let mut phf = File::create(&phf).unwrap();
-    write!(&mut phf, "pub static MAP: phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)> = ").unwrap();
+    write!(&mut phf, "pub static mut MAP: phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)> = ").unwrap();
+    phf_codegen::Map::<&'static [u8]>::new().build(&mut phf).unwrap();
+    write!(&mut phf, ";\n\n").unwrap();
+    write!(&mut phf, "pub unsafe fn init_MAP<TH: TypeHolderTrait>() {{\n MAP =").unwrap();
     map.build(&mut phf).unwrap();
-    write!(&mut phf, ";\n").unwrap();
+    write!(&mut phf, ";}}\n").unwrap();
 }
 
 #[derive(Eq, Hash, PartialEq)]

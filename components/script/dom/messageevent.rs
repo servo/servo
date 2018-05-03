@@ -19,27 +19,28 @@ use js::jsapi::{Heap, JSContext};
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct MessageEvent {
-    event: Event,
+pub struct MessageEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
 }
 
-impl MessageEvent {
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<MessageEvent> {
+impl<TH: TypeHolderTrait> MessageEvent<TH> {
+    pub fn new_uninitialized(global: &GlobalScope<TH>) -> DomRoot<MessageEvent<TH>> {
         MessageEvent::new_initialized(global,
                                       HandleValue::undefined(),
                                       DOMString::new(),
                                       DOMString::new())
     }
 
-    pub fn new_initialized(global: &GlobalScope,
+    pub fn new_initialized(global: &GlobalScope<TH>,
                            data: HandleValue,
                            origin: DOMString,
-                           lastEventId: DOMString) -> DomRoot<MessageEvent> {
+                           lastEventId: DOMString) -> DomRoot<MessageEvent<TH>> {
         let ev = Box::new(MessageEvent {
             event: Event::new_inherited(),
             data: Heap::default(),
@@ -52,22 +53,22 @@ impl MessageEvent {
         ev
     }
 
-    pub fn new(global: &GlobalScope, type_: Atom,
+    pub fn new(global: &GlobalScope<TH>, type_: Atom,
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
-               -> DomRoot<MessageEvent> {
+               -> DomRoot<MessageEvent<TH>> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        type_: DOMString,
                        init: RootedTraceableBox<MessageEventBinding::MessageEventInit>)
-                       -> Fallible<DomRoot<MessageEvent>> {
+                       -> Fallible<DomRoot<MessageEvent<TH>>> {
         let ev = MessageEvent::new(global,
                                    Atom::from(type_),
                                    init.parent.bubbles,
@@ -79,9 +80,9 @@ impl MessageEvent {
     }
 }
 
-impl MessageEvent {
-    pub fn dispatch_jsval(target: &EventTarget,
-                          scope: &GlobalScope,
+impl<TH: TypeHolderTrait> MessageEvent<TH> {
+    pub fn dispatch_jsval(target: &EventTarget<TH>,
+                          scope: &GlobalScope<TH>,
                           message: HandleValue) {
         let messageevent = MessageEvent::new(
             scope,
@@ -91,11 +92,11 @@ impl MessageEvent {
             message,
             DOMString::new(),
             DOMString::new());
-        messageevent.upcast::<Event>().fire(target);
+        messageevent.upcast::<Event<TH>>().fire(target);
     }
 }
 
-impl MessageEventMethods for MessageEvent {
+impl<TH: TypeHolderTrait> MessageEventMethods for MessageEvent<TH> {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-data
     unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {

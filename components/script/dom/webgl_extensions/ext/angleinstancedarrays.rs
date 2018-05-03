@@ -11,15 +11,16 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct ANGLEInstancedArrays {
-    reflector_: Reflector,
-    ctx: Dom<WebGLRenderingContext>,
+pub struct ANGLEInstancedArrays<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    ctx: Dom<WebGLRenderingContext<TH>>,
 }
 
-impl ANGLEInstancedArrays {
-    fn new_inherited(ctx: &WebGLRenderingContext) -> Self {
+impl<TH: TypeHolderTrait> ANGLEInstancedArrays<TH> {
+    fn new_inherited(ctx: &WebGLRenderingContext<TH>) -> Self {
         Self {
             reflector_: Reflector::new(),
             ctx: Dom::from_ref(ctx),
@@ -27,10 +28,10 @@ impl ANGLEInstancedArrays {
     }
 }
 
-impl WebGLExtension for ANGLEInstancedArrays {
+impl<TH: TypeHolderTrait> WebGLExtension<TH> for ANGLEInstancedArrays<TH> {
     type Extension = Self;
 
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
+    fn new(ctx: &WebGLRenderingContext<TH>) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(ANGLEInstancedArrays::new_inherited(ctx)),
             &*ctx.global(),
@@ -42,7 +43,7 @@ impl WebGLExtension for ANGLEInstancedArrays {
         WebGLExtensionSpec::Specific(WebGLVersion::WebGL1)
     }
 
-    fn is_supported(ext: &WebGLExtensions) -> bool {
+    fn is_supported(ext: &WebGLExtensions<TH>) -> bool {
         ext.supports_any_gl_extension(&[
             "GL_ANGLE_instanced_arrays",
             "GL_ARB_instanced_arrays",
@@ -51,7 +52,7 @@ impl WebGLExtension for ANGLEInstancedArrays {
         ])
     }
 
-    fn enable(ext: &WebGLExtensions) {
+    fn enable(ext: &WebGLExtensions<TH>) {
         ext.enable_get_vertex_attrib_name(
             ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE,
         );
@@ -62,7 +63,7 @@ impl WebGLExtension for ANGLEInstancedArrays {
     }
 }
 
-impl ANGLEInstancedArraysMethods for ANGLEInstancedArrays {
+impl<TH: TypeHolderTrait> ANGLEInstancedArraysMethods for ANGLEInstancedArrays<TH> {
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
     fn DrawArraysInstancedANGLE(
         &self,

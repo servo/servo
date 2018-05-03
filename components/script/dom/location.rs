@@ -14,22 +14,23 @@ use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_url::{MutableOrigin, ServoUrl};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct Location {
-    reflector_: Reflector,
-    window: Dom<Window>,
+pub struct Location<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    window: Dom<Window<TH>>,
 }
 
-impl Location {
-    fn new_inherited(window: &Window) -> Location {
+impl<TH: TypeHolderTrait> Location<TH> {
+    fn new_inherited(window: &Window<TH>) -> Location<TH> {
         Location {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window)
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Location> {
+    pub fn new(window: &Window<TH>) -> DomRoot<Location<TH>> {
         reflect_dom_object(Box::new(Location::new_inherited(window)),
                            window,
                            LocationBinding::Wrap)
@@ -47,7 +48,7 @@ impl Location {
     }
 
     fn check_same_origin_domain(&self) -> ErrorResult {
-        let entry_document = GlobalScope::entry().as_window().Document();
+        let entry_document = GlobalScope::<TH>::entry().as_window().Document();
         let this_document = self.window.Document();
         if entry_document.origin().same_origin_domain(this_document.origin()) {
             Ok(())
@@ -67,7 +68,7 @@ impl Location {
     }
 }
 
-impl LocationMethods for Location {
+impl<TH: TypeHolderTrait> LocationMethods for Location<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
     fn Assign(&self, url: USVString) -> ErrorResult {
         self.check_same_origin_domain()?;

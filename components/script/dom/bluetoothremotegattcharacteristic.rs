@@ -28,6 +28,7 @@ use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 // Maximum length of an attribute value.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 2169)
@@ -35,21 +36,21 @@ pub const MAXIMUM_ATTRIBUTE_LENGTH: usize = 512;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattcharacteristic
 #[dom_struct]
-pub struct BluetoothRemoteGATTCharacteristic {
-    eventtarget: EventTarget,
-    service: Dom<BluetoothRemoteGATTService>,
+pub struct BluetoothRemoteGATTCharacteristic<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
+    service: Dom<BluetoothRemoteGATTService<TH>>,
     uuid: DOMString,
-    properties: Dom<BluetoothCharacteristicProperties>,
+    properties: Dom<BluetoothCharacteristicProperties<TH>>,
     value: DomRefCell<Option<ByteString>>,
     instance_id: String,
 }
 
-impl BluetoothRemoteGATTCharacteristic {
-    pub fn new_inherited(service: &BluetoothRemoteGATTService,
+impl<TH: TypeHolderTrait> BluetoothRemoteGATTCharacteristic<TH> {
+    pub fn new_inherited(service: &BluetoothRemoteGATTService<TH>,
                          uuid: DOMString,
-                         properties: &BluetoothCharacteristicProperties,
+                         properties: &BluetoothCharacteristicProperties<TH>,
                          instance_id: String)
-                         -> BluetoothRemoteGATTCharacteristic {
+                         -> BluetoothRemoteGATTCharacteristic<TH> {
         BluetoothRemoteGATTCharacteristic {
             eventtarget: EventTarget::new_inherited(),
             service: Dom::from_ref(service),
@@ -60,12 +61,12 @@ impl BluetoothRemoteGATTCharacteristic {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               service: &BluetoothRemoteGATTService,
+    pub fn new(global: &GlobalScope<TH>,
+               service: &BluetoothRemoteGATTService<TH>,
                uuid: DOMString,
-               properties: &BluetoothCharacteristicProperties,
+               properties: &BluetoothCharacteristicProperties<TH>,
                instanceID: String)
-               -> DomRoot<BluetoothRemoteGATTCharacteristic> {
+               -> DomRoot<BluetoothRemoteGATTCharacteristic<TH>> {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTCharacteristic::new_inherited(
                 service, uuid, properties, instanceID
@@ -84,14 +85,14 @@ impl BluetoothRemoteGATTCharacteristic {
     }
 }
 
-impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
+impl<TH: TypeHolderTrait> BluetoothRemoteGATTCharacteristicMethods<TH> for BluetoothRemoteGATTCharacteristic<TH> {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
-    fn Properties(&self) -> DomRoot<BluetoothCharacteristicProperties> {
+    fn Properties(&self) -> DomRoot<BluetoothCharacteristicProperties<TH>> {
         DomRoot::from_ref(&self.properties)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-service
-    fn Service(&self) -> DomRoot<BluetoothRemoteGATTService> {
+    fn Service(&self) -> DomRoot<BluetoothRemoteGATTService<TH>> {
         DomRoot::from_ref(&self.service)
     }
 
@@ -102,8 +103,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
-    fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Rc<Promise> {
-        get_gatt_children(self, true, BluetoothUUID::descriptor, Some(descriptor), self.get_instance_id(),
+    fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Rc<Promise<TH>> {
+        get_gatt_children(self, true, BluetoothUUID::<TH>::descriptor, Some(descriptor), self.get_instance_id(),
                           self.Service().Device().get_gatt().Connected(), GATTType::Descriptor)
     }
 
@@ -111,8 +112,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
     fn GetDescriptors(&self,
                       descriptor: Option<BluetoothDescriptorUUID>)
-                      -> Rc<Promise> {
-        get_gatt_children(self, false, BluetoothUUID::descriptor, descriptor, self.get_instance_id(),
+                      -> Rc<Promise<TH>> {
+        get_gatt_children(self, false, BluetoothUUID::<TH>::descriptor, descriptor, self.get_instance_id(),
                           self.Service().Device().get_gatt().Connected(), GATTType::Descriptor)
     }
 
@@ -123,8 +124,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
-    fn ReadValue(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn ReadValue(&self) -> Rc<Promise<TH>> {
+        let p = Promise::<TH>::new(&self.global());
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -156,8 +157,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
-    fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn WriteValue(&self, value: ArrayBufferViewOrArrayBuffer) -> Rc<Promise<TH>> {
+        let p = Promise::<TH>::new(&self.global());
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
@@ -202,8 +203,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
-    fn StartNotifications(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn StartNotifications(&self) -> Rc<Promise<TH>> {
+        let p = Promise::<TH>::new(&self.global());
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
@@ -238,8 +239,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
-    fn StopNotifications(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn StopNotifications(&self) -> Rc<Promise<TH>> {
+        let p = Promise::<TH>::new(&self.global());
         let sender = response_async(&p, self);
 
         // TODO: Step 3 - 4: Implement `active notification context set` for BluetoothRemoteGATTCharacteristic,
@@ -257,8 +258,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     event_handler!(characteristicvaluechanged, GetOncharacteristicvaluechanged, SetOncharacteristicvaluechanged);
 }
 
-impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+impl<TH: TypeHolderTrait> AsyncBluetoothListener<TH> for BluetoothRemoteGATTCharacteristic<TH> {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise<TH>>) {
         let device = self.Service().Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
@@ -285,7 +286,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 *self.value.borrow_mut() = Some(value.clone());
 
                 // Step 5.5.3.
-                self.upcast::<EventTarget>().fire_bubbling_event(atom!("characteristicvaluechanged"));
+                self.upcast::<EventTarget<TH>>().fire_bubbling_event(atom!("characteristicvaluechanged"));
 
                 // Step 5.5.4.
                 promise.resolve_native(&value);

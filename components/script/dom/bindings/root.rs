@@ -44,6 +44,7 @@ use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 use style::thread_state;
+use typeholder::TypeHolderTrait;
 
 /// A rooted value.
 #[allow(unrooted_must_root)]
@@ -68,7 +69,7 @@ where
         STACK_ROOTS.with(|ref root_list| {
             let root_list = &*root_list.get().unwrap();
             root_list.root(value.stable_trace_object());
-            Root { value, root_list }
+            Root { value, root_list}
         })
     }
 }
@@ -83,21 +84,21 @@ pub unsafe trait StableTraceObject {
 
 unsafe impl<T> StableTraceObject for Dom<T>
 where
-    T: DomObject,
+    T: DomObject
 {
     fn stable_trace_object<'a>(&'a self) -> *const JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
         #[allow(unrooted_must_root)]
-        struct ReflectorStackRoot(Reflector);
-        unsafe impl JSTraceable for ReflectorStackRoot {
+        struct ReflectorStackRoot<TH: TypeHolderTrait>(Reflector<TH>);
+        unsafe impl<TH: TypeHolderTrait> JSTraceable for ReflectorStackRoot<TH> {
             unsafe fn trace(&self, tracer: *mut JSTracer) {
                 trace_reflector(tracer, "on stack", &self.0);
             }
         }
         unsafe {
-            &*(self.reflector() as *const Reflector as *const ReflectorStackRoot)
+            &*(self.reflector() as *const Reflector<T::TypeHolder> as *const ReflectorStackRoot<T::TypeHolder>)
         }
     }
 }
@@ -158,7 +159,7 @@ impl<T: DomObject> DomRoot<T> {
 
 impl<T> MallocSizeOf for DomRoot<T>
 where
-    T: DomObject + MallocSizeOf,
+    T: DomObject + MallocSizeOf
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         (**self).size_of(ops)
@@ -167,7 +168,7 @@ where
 
 impl<T> PartialEq for DomRoot<T>
 where
-    T: DomObject,
+    T: DomObject
 {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value
@@ -176,7 +177,7 @@ where
 
 impl<T> Clone for DomRoot<T>
 where
-    T: DomObject,
+    T: DomObject
 {
     fn clone(&self) -> DomRoot<T> {
         DomRoot::from_ref(&*self)
@@ -185,7 +186,7 @@ where
 
 unsafe impl<T> JSTraceable for DomRoot<T>
 where
-    T: DomObject,
+    T: DomObject
 {
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Already traced.
@@ -473,14 +474,14 @@ impl <T> Clone for LayoutDom<T> {
     }
 }
 
-impl LayoutDom<Node> {
+impl<TH: TypeHolderTrait> LayoutDom<Node<TH>> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
-    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutDom<Node> {
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutDom<Node<TH>> {
         debug_assert!(thread_state::get().is_layout());
         let TrustedNodeAddress(addr) = inner;
         LayoutDom {
-            ptr: ptr::NonNull::new_unchecked(addr as *const Node as *mut Node),
+            ptr: ptr::NonNull::new_unchecked(addr as *const Node<TH> as *mut Node<TH>),
         }
     }
 }

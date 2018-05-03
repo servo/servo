@@ -24,25 +24,27 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[derive(JSTraceable)]
-struct CellsFilter;
-impl CollectionFilter for CellsFilter {
-    fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is::<HTMLTableHeaderCellElement>() || elem.is::<HTMLTableDataCellElement>()) &&
-            elem.upcast::<Node>().GetParentNode().r() == Some(root)
+struct CellsFilter<TH: TypeHolderTrait>(PhantomData<TH>);
+impl<TH: TypeHolderTrait> CollectionFilter<TH> for CellsFilter<TH> {
+    fn filter(&self, elem: &Element<TH>, root: &Node<TH>) -> bool {
+        (elem.is::<HTMLTableHeaderCellElement<TH>>() || elem.is::<HTMLTableDataCellElement<TH>>()) &&
+            elem.upcast::<Node<TH>>().GetParentNode().r() == Some(root)
     }
 }
 
 #[dom_struct]
-pub struct HTMLTableRowElement {
-    htmlelement: HTMLElement,
-    cells: MutNullableDom<HTMLCollection>,
+pub struct HTMLTableRowElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
+    cells: MutNullableDom<HTMLCollection<TH>>,
 }
 
-impl HTMLTableRowElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-                     -> HTMLTableRowElement {
+impl<TH: TypeHolderTrait> HTMLTableRowElement<TH> {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>)
+                     -> HTMLTableRowElement<TH> {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             cells: Default::default(),
@@ -50,23 +52,23 @@ impl HTMLTableRowElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLTableRowElement> {
-        Node::reflect_node(Box::new(HTMLTableRowElement::new_inherited(local_name, prefix, document)),
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>)
+               -> DomRoot<HTMLTableRowElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLTableRowElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTableRowElementBinding::Wrap)
     }
 
     /// Determine the index for this `HTMLTableRowElement` within the given
     /// `HTMLCollection`. Returns `-1` if not found within collection.
-    fn row_index(&self, collection: DomRoot<HTMLCollection>) -> i32 {
+    fn row_index(&self, collection: DomRoot<HTMLCollection<TH>>) -> i32 {
         collection.elements_iter()
-                  .position(|elem| (&elem as &Element) == self.upcast())
+                  .position(|elem| (&elem as &Element<TH>) == self.upcast())
                   .map_or(-1, |i| i as i32)
     }
 }
 
-impl HTMLTableRowElementMethods for HTMLTableRowElement {
+impl<TH: TypeHolderTrait> HTMLTableRowElementMethods<TH> for HTMLTableRowElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
     make_getter!(BgColor, "bgcolor");
 
@@ -74,17 +76,17 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
     make_legacy_color_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-cells
-    fn Cells(&self) -> DomRoot<HTMLCollection> {
+    fn Cells(&self) -> DomRoot<HTMLCollection<TH>> {
         self.cells.or_init(|| {
             let window = window_from_node(self);
-            let filter = Box::new(CellsFilter);
+            let filter = Box::new(CellsFilter(Default::default()));
             HTMLCollection::create(&window, self.upcast(), filter)
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
-    fn InsertCell(&self, index: i32) -> Fallible<DomRoot<HTMLElement>> {
-        let node = self.upcast::<Node>();
+    fn InsertCell(&self, index: i32) -> Fallible<DomRoot<HTMLElement<TH>>> {
+        let node = self.upcast::<Node<TH>>();
         node.insert_cell_or_row(
             index,
             || self.Cells(),
@@ -93,42 +95,42 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
     fn DeleteCell(&self, index: i32) -> ErrorResult {
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         node.delete_cell_or_row(
             index,
             || self.Cells(),
-            |n| n.is::<HTMLTableDataCellElement>())
+            |n| n.is::<HTMLTableDataCellElement<TH>>())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex
     fn RowIndex(&self) -> i32 {
-        let parent = match self.upcast::<Node>().GetParentNode() {
+        let parent = match self.upcast::<Node<TH>>().GetParentNode() {
             Some(parent) => parent,
             None => return -1,
         };
-        if let Some(table) = parent.downcast::<HTMLTableElement>() {
+        if let Some(table) = parent.downcast::<HTMLTableElement<TH>>() {
             return self.row_index(table.Rows());
         }
-        if !parent.is::<HTMLTableSectionElement>() {
+        if !parent.is::<HTMLTableSectionElement<TH>>() {
             return -1;
         }
-        let grandparent = match parent.upcast::<Node>().GetParentNode() {
+        let grandparent = match parent.upcast::<Node<TH>>().GetParentNode() {
             Some(parent) => parent,
             None => return -1,
         };
-        grandparent.downcast::<HTMLTableElement>()
+        grandparent.downcast::<HTMLTableElement<TH>>()
                    .map_or(-1, |table| self.row_index(table.Rows()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex
     fn SectionRowIndex(&self) -> i32 {
-        let parent = match self.upcast::<Node>().GetParentNode() {
+        let parent = match self.upcast::<Node<TH>>().GetParentNode() {
             Some(parent) => parent,
             None => return -1,
         };
-        let collection = if let Some(table) = parent.downcast::<HTMLTableElement>() {
+        let collection = if let Some(table) = parent.downcast::<HTMLTableElement<TH>>() {
             table.Rows()
-        } else if let Some(table_section) = parent.downcast::<HTMLTableSectionElement>() {
+        } else if let Some(table_section) = parent.downcast::<HTMLTableSectionElement<TH>>() {
             table_section.Rows()
         } else {
             return -1;
@@ -142,10 +144,10 @@ pub trait HTMLTableRowElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableRowElementLayoutHelpers for LayoutDom<HTMLTableRowElement> {
+impl<TH: TypeHolderTrait> HTMLTableRowElementLayoutHelpers for LayoutDom<HTMLTableRowElement<TH>> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -153,9 +155,9 @@ impl HTMLTableRowElementLayoutHelpers for LayoutDom<HTMLTableRowElement> {
     }
 }
 
-impl VirtualMethods for HTMLTableRowElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLTableRowElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

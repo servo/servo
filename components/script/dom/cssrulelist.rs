@@ -16,6 +16,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::Locked;
 use style::stylesheets::{CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError};
+use typeholder::TypeHolderTrait;
 
 #[allow(unsafe_code)]
 unsafe_no_jsmanaged_fields!(RulesSource);
@@ -34,12 +35,12 @@ impl From<RulesMutateError> for Error {
 }
 
 #[dom_struct]
-pub struct CSSRuleList {
-    reflector_: Reflector,
-    parent_stylesheet: Dom<CSSStyleSheet>,
+pub struct CSSRuleList<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    parent_stylesheet: Dom<CSSStyleSheet<TH>>,
     #[ignore_malloc_size_of = "Arc"]
     rules: RulesSource,
-    dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>
+    dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule<TH>>>>
 }
 
 pub enum RulesSource {
@@ -47,9 +48,9 @@ pub enum RulesSource {
     Keyframes(Arc<Locked<KeyframesRule>>),
 }
 
-impl CSSRuleList {
+impl<TH: TypeHolderTrait> CSSRuleList<TH> {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
+    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet<TH>, rules: RulesSource) -> CSSRuleList<TH> {
         let guard = parent_stylesheet.shared_lock().read();
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => {
@@ -69,8 +70,8 @@ impl CSSRuleList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               rules: RulesSource) -> DomRoot<CSSRuleList> {
+    pub fn new(window: &Window<TH>, parent_stylesheet: &CSSStyleSheet<TH>,
+               rules: RulesSource) -> DomRoot<CSSRuleList<TH>> {
         reflect_dom_object(Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
                            window,
                            CSSRuleListBinding::Wrap)
@@ -137,7 +138,7 @@ impl CSSRuleList {
         }
     }
 
-    pub fn item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
+    pub fn item(&self, idx: u32) -> Option<DomRoot<CSSRule<TH>>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
@@ -174,9 +175,9 @@ impl CSSRuleList {
     }
 }
 
-impl CSSRuleListMethods for CSSRuleList {
+impl<TH: TypeHolderTrait> CSSRuleListMethods<TH> for CSSRuleList<TH> {
     // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
-    fn Item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
+    fn Item(&self, idx: u32) -> Option<DomRoot<CSSRule<TH>>> {
         self.item(idx)
     }
 
@@ -186,7 +187,7 @@ impl CSSRuleListMethods for CSSRuleList {
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<CSSRule>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<CSSRule<TH>>> {
         self.Item(index)
     }
 }

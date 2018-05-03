@@ -13,34 +13,38 @@ use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct CSSStyleValue {
-    reflector: Reflector,
+pub struct CSSStyleValue<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
     value: String,
+    _p: PhantomData<TH>,
 }
 
-impl CSSStyleValue {
-    fn new_inherited(value: String) -> CSSStyleValue {
+impl<TH: TypeHolderTrait> CSSStyleValue<TH> {
+    fn new_inherited(value: String) -> CSSStyleValue<TH> {
         CSSStyleValue {
             reflector: Reflector::new(),
             value: value,
+            _p: Default::default(),
         }
     }
 
-    pub fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
+    pub fn new(global: &GlobalScope<TH>, value: String) -> DomRoot<CSSStyleValue<TH>> {
         reflect_dom_object(Box::new(CSSStyleValue::new_inherited(value)), global, Wrap)
     }
 }
 
-impl CSSStyleValueMethods for CSSStyleValue {
+impl<TH: TypeHolderTrait> CSSStyleValueMethods for CSSStyleValue<TH> {
     /// <https://drafts.css-houdini.org/css-typed-om-1/#CSSStyleValue-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
         DOMString::from(&*self.value)
     }
 }
 
-impl CSSStyleValue {
+impl<TH: TypeHolderTrait> CSSStyleValue<TH> {
     /// Parse the value as a `url()`.
     /// TODO: This should really always be an absolute URL, but we currently
     /// return relative URLs for computed values, so we pass in a base.

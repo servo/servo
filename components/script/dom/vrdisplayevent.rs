@@ -18,18 +18,19 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use webvr_traits::{WebVRDisplayEvent, WebVRDisplayEventReason};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct VRDisplayEvent {
-    event: Event,
-    display: Dom<VRDisplay>,
+pub struct VRDisplayEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
+    display: Dom<VRDisplay<TH>>,
     reason: Option<VRDisplayEventReason>
 }
 
-impl VRDisplayEvent {
-    fn new_inherited(display: &VRDisplay,
+impl<TH: TypeHolderTrait> VRDisplayEvent<TH> {
+    fn new_inherited(display: &VRDisplay<TH>,
                      reason: Option<VRDisplayEventReason>)
-                     -> VRDisplayEvent {
+                     -> VRDisplayEvent<TH> {
         VRDisplayEvent {
             event: Event::new_inherited(),
             display: Dom::from_ref(display),
@@ -37,29 +38,29 @@ impl VRDisplayEvent {
         }
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(global: &GlobalScope<TH>,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               display: &VRDisplay,
+               display: &VRDisplay<TH>,
                reason: Option<VRDisplayEventReason>)
-               -> DomRoot<VRDisplayEvent> {
+               -> DomRoot<VRDisplayEvent<TH>> {
         let ev = reflect_dom_object(
             Box::new(VRDisplayEvent::new_inherited(&display, reason)),
             global,
             VRDisplayEventBinding::Wrap
         );
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
 
-    pub fn new_from_webvr(global: &GlobalScope,
-                          display: &VRDisplay,
+    pub fn new_from_webvr(global: &GlobalScope<TH>,
+                          display: &VRDisplay<TH>,
                           event: &WebVRDisplayEvent)
-                          -> DomRoot<VRDisplayEvent> {
+                          -> DomRoot<VRDisplayEvent<TH>> {
         let (name, reason) = match *event {
             WebVRDisplayEvent::Connect(_) => ("vrdisplayconnect", None),
             WebVRDisplayEvent::Disconnect(_) => ("vrdisplaydisconnect", None),
@@ -93,10 +94,10 @@ impl VRDisplayEvent {
                             reason)
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
-                       init: &VRDisplayEventBinding::VRDisplayEventInit)
-                       -> Fallible<DomRoot<VRDisplayEvent>> {
+                       init: &VRDisplayEventBinding::VRDisplayEventInit<TH>)
+                       -> Fallible<DomRoot<VRDisplayEvent<TH>>> {
         Ok(VRDisplayEvent::new(&window.global(),
                             Atom::from(type_),
                             init.parent.bubbles,
@@ -106,9 +107,9 @@ impl VRDisplayEvent {
     }
 }
 
-impl VRDisplayEventMethods for VRDisplayEvent {
+impl<TH: TypeHolderTrait> VRDisplayEventMethods<TH> for VRDisplayEvent<TH> {
     // https://w3c.github.io/webvr/#dom-vrdisplayevent-display
-    fn Display(&self) -> DomRoot<VRDisplay> {
+    fn Display(&self) -> DomRoot<VRDisplay<TH>> {
         DomRoot::from_ref(&*self.display)
     }
 

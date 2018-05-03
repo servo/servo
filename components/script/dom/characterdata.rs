@@ -25,29 +25,30 @@ use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
 use servo_config::opts;
 use std::cell::Ref;
+use typeholder::TypeHolderTrait;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
-pub struct CharacterData {
-    node: Node,
+pub struct CharacterData<TH: TypeHolderTrait> {
+    node: Node<TH>,
     data: DomRefCell<DOMString>,
 }
 
-impl CharacterData {
-    pub fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
+impl<TH: TypeHolderTrait> CharacterData<TH> {
+    pub fn new_inherited(data: DOMString, document: &Document<TH>) -> Self {
         CharacterData {
-            node: Node::new_inherited(document),
+            node: Node::<TH>::new_inherited(document),
             data: DomRefCell::new(data),
         }
     }
 
-    pub fn clone_with_data(&self, data: DOMString, document: &Document) -> DomRoot<Node> {
-        match self.upcast::<Node>().type_id() {
+    pub fn clone_with_data(&self, data: DOMString, document: &Document<TH>) -> DomRoot<Node<TH>> {
+        match self.upcast::<Node<TH>>().type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
                 DomRoot::upcast(Comment::new(data, &document))
             }
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
-                let pi = self.downcast::<ProcessingInstruction>().unwrap();
+                let pi = self.downcast::<ProcessingInstruction<TH>>().unwrap();
                 DomRoot::upcast(ProcessingInstruction::new(pi.Target(), data, &document))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
@@ -70,13 +71,13 @@ impl CharacterData {
     }
 
     fn content_changed(&self) {
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         node.dirty(NodeDamage::OtherNodeDamage);
 
         // If this is a Text node, we might need to re-parse (say, if our parent
         // is a <style> element.) We don't need to if this is a Comment or
         // ProcessingInstruction.
-        if self.is::<Text>() {
+        if self.is::<Text<TH>>() {
             if let Some(parent_node) = node.GetParentNode() {
                 let mutation = ChildrenMutation::ChangeText;
                 vtable_for(&parent_node).children_changed(&mutation);
@@ -89,11 +90,11 @@ impl CharacterData {
         let mutation = Mutation::CharacterData {
             old_value: self.data.borrow().clone(),
         };
-        MutationObserver::queue_a_mutation_record(self.upcast::<Node>(), mutation);
+        MutationObserver::queue_a_mutation_record(self.upcast::<Node<TH>>(), mutation);
     }
 }
 
-impl CharacterDataMethods for CharacterData {
+impl<TH: TypeHolderTrait> CharacterDataMethods<TH> for CharacterData<TH> {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn Data(&self) -> DOMString {
         self.data.borrow().clone()
@@ -106,7 +107,7 @@ impl CharacterDataMethods for CharacterData {
         let new_length = data.encode_utf16().count() as u32;
         *self.data.borrow_mut() = data;
         self.content_changed();
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         node.ranges().replace_code_units(node, 0, old_length, new_length);
     }
 
@@ -222,41 +223,41 @@ impl CharacterDataMethods for CharacterData {
         *self.data.borrow_mut() = DOMString::from(new_data);
         self.content_changed();
         // Steps 8-11.
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         node.ranges().replace_code_units(
             node, offset, count, arg.encode_utf16().count() as u32);
         Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
-    fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().before(nodes)
+    fn Before(&self, nodes: Vec<NodeOrString<TH>>) -> ErrorResult {
+        self.upcast::<Node<TH>>().before(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
-    fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().after(nodes)
+    fn After(&self, nodes: Vec<NodeOrString<TH>>) -> ErrorResult {
+        self.upcast::<Node<TH>>().after(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes)
+    fn ReplaceWith(&self, nodes: Vec<NodeOrString<TH>>) -> ErrorResult {
+        self.upcast::<Node<TH>>().replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         node.remove_self();
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
-    fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().preceding_siblings().filter_map(DomRoot::downcast).next()
+    fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element<TH>>> {
+        self.upcast::<Node<TH>>().preceding_siblings().filter_map(DomRoot::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
-    fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().following_siblings().filter_map(DomRoot::downcast).next()
+    fn GetNextElementSibling(&self) -> Option<DomRoot<Element<TH>>> {
+        self.upcast::<Node<TH>>().following_siblings().filter_map(DomRoot::downcast).next()
     }
 }
 
@@ -266,7 +267,7 @@ pub trait LayoutCharacterDataHelpers {
 }
 
 #[allow(unsafe_code)]
-impl LayoutCharacterDataHelpers for LayoutDom<CharacterData> {
+impl<TH: TypeHolderTrait> LayoutCharacterDataHelpers for LayoutDom<CharacterData<TH>> {
     #[inline]
     unsafe fn data_for_layout(&self) -> &str {
         &(*self.unsafe_get()).data.borrow_for_layout()

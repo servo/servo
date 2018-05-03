@@ -16,36 +16,37 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::default::Default;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct FocusEvent {
-    uievent: UIEvent,
-    related_target: MutNullableDom<EventTarget>,
+pub struct FocusEvent<TH: TypeHolderTrait> {
+    uievent: UIEvent<TH>,
+    related_target: MutNullableDom<EventTarget<TH>>,
 }
 
-impl FocusEvent {
-    fn new_inherited() -> FocusEvent {
+impl<TH: TypeHolderTrait> FocusEvent<TH> {
+    fn new_inherited() -> FocusEvent<TH> {
         FocusEvent {
             uievent: UIEvent::new_inherited(),
             related_target: Default::default(),
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
+    pub fn new_uninitialized(window: &Window<TH>) -> DomRoot<FocusEvent<TH>> {
         reflect_dom_object(Box::new(FocusEvent::new_inherited()),
                            window,
                            FocusEventBinding::Wrap)
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                type_: DOMString,
                can_bubble: EventBubbles,
                cancelable: EventCancelable,
-               view: Option<&Window>,
+               view: Option<&Window<TH>>,
                detail: i32,
-               related_target: Option<&EventTarget>) -> DomRoot<FocusEvent> {
+               related_target: Option<&EventTarget<TH>>) -> DomRoot<FocusEvent<TH>> {
         let ev = FocusEvent::new_uninitialized(window);
-        ev.upcast::<UIEvent>().InitUIEvent(type_,
+        ev.upcast::<UIEvent<TH>>().InitUIEvent(type_,
                                            bool::from(can_bubble),
                                            bool::from(cancelable),
                                            view, detail);
@@ -53,9 +54,9 @@ impl FocusEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
-                       init: &FocusEventBinding::FocusEventInit) -> Fallible<DomRoot<FocusEvent>> {
+                       init: &FocusEventBinding::FocusEventInit<TH>) -> Fallible<DomRoot<FocusEvent<TH>>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
         let event = FocusEvent::new(window,
@@ -69,9 +70,9 @@ impl FocusEvent {
     }
 }
 
-impl FocusEventMethods for FocusEvent {
+impl<TH: TypeHolderTrait> FocusEventMethods<TH> for FocusEvent<TH> {
     // https://w3c.github.io/uievents/#widl-FocusEvent-relatedTarget
-    fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
+    fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget<TH>>> {
         self.related_target.get()
     }
 

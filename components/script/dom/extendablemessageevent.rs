@@ -20,20 +20,21 @@ use js::jsapi::{Heap, JSContext};
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct ExtendableMessageEvent {
-    event: ExtendableEvent,
+pub struct ExtendableMessageEvent<TH: TypeHolderTrait> {
+    event: ExtendableEvent<TH>,
     data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
 }
 
-impl ExtendableMessageEvent {
-    pub fn new(global: &GlobalScope, type_: Atom,
+impl<TH: TypeHolderTrait> ExtendableMessageEvent<TH> {
+    pub fn new(global: &GlobalScope<TH>, type_: Atom,
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
-               -> DomRoot<ExtendableMessageEvent> {
+               -> DomRoot<ExtendableMessageEvent<TH>> {
         let ev = Box::new(ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
             data: Heap::default(),
@@ -42,7 +43,7 @@ impl ExtendableMessageEvent {
         });
         let ev = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bubbles, cancelable);
         }
         ev.data.set(data.get());
@@ -50,11 +51,11 @@ impl ExtendableMessageEvent {
         ev
     }
 
-    pub fn Constructor(worker: &ServiceWorkerGlobalScope,
+    pub fn Constructor(worker: &ServiceWorkerGlobalScope<TH>,
                        type_: DOMString,
                        init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>)
-                       -> Fallible<DomRoot<ExtendableMessageEvent>> {
-        let global = worker.upcast::<GlobalScope>();
+                       -> Fallible<DomRoot<ExtendableMessageEvent<TH>>> {
+        let global = worker.upcast::<GlobalScope<TH>>();
         let ev = ExtendableMessageEvent::new(global,
                                              Atom::from(type_),
                                              init.parent.parent.bubbles,
@@ -66,18 +67,18 @@ impl ExtendableMessageEvent {
     }
 }
 
-impl ExtendableMessageEvent {
-    pub fn dispatch_jsval(target: &EventTarget,
-                          scope: &GlobalScope,
+impl<TH: TypeHolderTrait> ExtendableMessageEvent<TH> {
+    pub fn dispatch_jsval(target: &EventTarget<TH>,
+                          scope: &GlobalScope<TH>,
                           message: HandleValue) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
             scope, atom!("message"), false, false, message,
             DOMString::new(), DOMString::new());
-        Extendablemessageevent.upcast::<Event>().fire(target);
+        Extendablemessageevent.upcast::<Event<TH>>().fire(target);
     }
 }
 
-impl ExtendableMessageEventMethods for ExtendableMessageEvent {
+impl<TH: TypeHolderTrait> ExtendableMessageEventMethods for ExtendableMessageEvent<TH> {
     #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#extendablemessage-event-data-attribute
     unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
