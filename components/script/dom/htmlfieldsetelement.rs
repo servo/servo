@@ -19,18 +19,20 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::default::Default;
+use std::marker::PhantomData;
 use style::element_state::ElementState;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLFieldSetElement {
-    htmlelement: HTMLElement,
-    form_owner: MutNullableDom<HTMLFormElement>,
+pub struct HTMLFieldSetElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
+    form_owner: MutNullableDom<HTMLFormElement<TH>>,
 }
 
-impl HTMLFieldSetElement {
+impl<TH: TypeHolderTrait> HTMLFieldSetElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLFieldSetElement {
+                     document: &Document<TH>) -> HTMLFieldSetElement<TH> {
         HTMLFieldSetElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
@@ -42,31 +44,31 @@ impl HTMLFieldSetElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLFieldSetElement> {
-        Node::reflect_node(Box::new(HTMLFieldSetElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLFieldSetElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLFieldSetElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLFieldSetElementBinding::Wrap)
     }
 }
 
-impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
+impl<TH: TypeHolderTrait> HTMLFieldSetElementMethods<TH> for HTMLFieldSetElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
-    fn Elements(&self) -> DomRoot<HTMLCollection> {
+    fn Elements(&self) -> DomRoot<HTMLCollection<TH>> {
         #[derive(JSTraceable, MallocSizeOf)]
-        struct ElementsFilter;
-        impl CollectionFilter for ElementsFilter {
-            fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
-                elem.downcast::<HTMLElement>()
+        struct ElementsFilter<THH: TypeHolderTrait + 'static>(PhantomData<THH>);
+        impl<THH: TypeHolderTrait> CollectionFilter<THH> for ElementsFilter<THH> {
+            fn filter<'a>(&self, elem: &'a Element<THH>, _root: &'a Node<THH>) -> bool {
+                elem.downcast::<HTMLElement<THH>>()
                     .map_or(false, HTMLElement::is_listed_element)
             }
         }
-        let filter = Box::new(ElementsFilter);
+        let filter = Box::new(ElementsFilter(Default::default()));
         let window = window_from_node(self);
         HTMLCollection::create(&window, self.upcast(), filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
+    fn Validity(&self) -> DomRoot<ValidityState<TH>> {
         let window = window_from_node(self);
         ValidityState::new(&window, self.upcast())
     }
@@ -78,17 +80,17 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner()
     }
 }
 
-impl VirtualMethods for HTMLFieldSetElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLFieldSetElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("disabled") => {
@@ -99,16 +101,17 @@ impl VirtualMethods for HTMLFieldSetElement {
                         return;
                     },
                     AttributeMutation::Removed => false,
+                    AttributeMutation::_p(_) => unreachable!(),
                 };
-                let node = self.upcast::<Node>();
-                let el = self.upcast::<Element>();
+                let node = self.upcast::<Node<TH>>();
+                let el = self.upcast::<Element<TH>>();
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
                         true
-                    } else if node.is::<HTMLLegendElement>() {
+                    } else if node.is::<HTMLLegendElement<TH>>() {
                         found_legend = true;
                         false
                     } else {
@@ -138,13 +141,13 @@ impl VirtualMethods for HTMLFieldSetElement {
                 });
                 if disabled_state {
                     for field in fields {
-                        let el = field.downcast::<Element>().unwrap();
+                        let el = field.downcast::<Element<TH>>().unwrap();
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
                     }
                 } else {
                     for field in fields {
-                        let el = field.downcast::<Element>().unwrap();
+                        let el = field.downcast::<Element<TH>>().unwrap();
                         el.check_disabled_attribute();
                         el.check_ancestors_disabled_state_for_form_control();
                     }
@@ -158,16 +161,16 @@ impl VirtualMethods for HTMLFieldSetElement {
     }
 }
 
-impl FormControl for HTMLFieldSetElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLFieldSetElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>) {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 }

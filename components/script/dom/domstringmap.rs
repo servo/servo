@@ -11,22 +11,23 @@ use dom::bindings::str::DOMString;
 use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct DOMStringMap {
-    reflector_: Reflector,
-    element: Dom<HTMLElement>,
+pub struct DOMStringMap<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    element: Dom<HTMLElement<TH>>,
 }
 
-impl DOMStringMap {
-    fn new_inherited(element: &HTMLElement) -> DOMStringMap {
+impl<TH: TypeHolderTrait> DOMStringMap<TH> {
+    fn new_inherited(element: &HTMLElement<TH>) -> DOMStringMap<TH> {
         DOMStringMap {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
         }
     }
 
-    pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
+    pub fn new(element: &HTMLElement<TH>) -> DomRoot<DOMStringMap<TH>> {
         let window = window_from_node(element);
         reflect_dom_object(Box::new(DOMStringMap::new_inherited(element)),
                            &*window,
@@ -35,7 +36,7 @@ impl DOMStringMap {
 }
 
 // https://html.spec.whatwg.org/multipage/#domstringmap
-impl DOMStringMapMethods for DOMStringMap {
+impl<TH: TypeHolderTrait> DOMStringMapMethods for DOMStringMap<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem
     fn NamedDeleter(&self, name: DOMString) {
         self.element.delete_custom_attr(name)

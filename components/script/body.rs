@@ -27,6 +27,7 @@ use std::cell::Ref;
 use std::ptr;
 use std::rc::Rc;
 use std::str;
+use typeholder::TypeHolderTrait;
 use url::form_urlencoded;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -38,19 +39,22 @@ pub enum BodyType {
     ArrayBuffer
 }
 
-pub enum FetchedData {
+pub enum FetchedData<TH: TypeHolderTrait> {
     Text(String),
     Json(RootedTraceableBox<Heap<JSValue>>),
-    BlobData(DomRoot<Blob>),
-    FormData(DomRoot<FormData>),
+    BlobData(DomRoot<Blob<TH>>),
+    FormData(DomRoot<FormData<TH>>),
     ArrayBuffer(RootedTraceableBox<Heap<*mut JSObject>>),
     JSException(RootedTraceableBox<Heap<JSVal>>)
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
-pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyType) -> Rc<Promise> {
-    let promise = Promise::new(&object.global());
+pub fn consume_body<T: BodyOperations<<T as DomObject>::TypeHolder> + DomObject>(
+    object: &T,
+    body_type: BodyType
+) -> Rc<Promise<T::TypeHolder>> {
+    let promise = Promise::<<T as DomObject>::TypeHolder>::new(&object.global());
 
     // Step 1
     if object.get_body_used() || object.is_locked() {
@@ -72,9 +76,9 @@ pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyTy
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
-pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
+pub fn consume_body_with_promise<T: BodyOperations<<T as DomObject>::TypeHolder> + DomObject>(object: &T,
                                                                 body_type: BodyType,
-                                                                promise: &Promise) {
+                                                                promise: &Promise<T::TypeHolder>) {
     // Step 5
     let body = match object.take_body() {
         Some(body) => body,
@@ -103,11 +107,11 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data
 #[allow(unsafe_code)]
-fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
+fn run_package_data_algorithm<T: BodyOperations<<T as DomObject>::TypeHolder> + DomObject>(object: &T,
                                                              bytes: Vec<u8>,
                                                              body_type: BodyType,
                                                              mime_type: Ref<Vec<u8>>)
-                                                             -> Fallible<FetchedData> {
+                                                             -> Fallible<FetchedData<T::TypeHolder>> {
     let global = object.global();
     let cx = global.get_cx();
     let mime = &*mime_type;
@@ -122,13 +126,13 @@ fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
     }
 }
 
-fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
+fn run_text_data_algorithm<TH: TypeHolderTrait>(bytes: Vec<u8>) -> Fallible<FetchedData<TH>> {
     Ok(FetchedData::Text(String::from_utf8_lossy(&bytes).into_owned()))
 }
 
 #[allow(unsafe_code)]
-fn run_json_data_algorithm(cx: *mut JSContext,
-                           bytes: Vec<u8>) -> Fallible<FetchedData> {
+fn run_json_data_algorithm<TH: TypeHolderTrait>(cx: *mut JSContext,
+                           bytes: Vec<u8>) -> Fallible<FetchedData<TH>> {
     let json_text = String::from_utf8_lossy(&bytes);
     let json_text: Vec<u16> = json_text.encode_utf16().collect();
     rooted!(in(cx) let mut rval = UndefinedValue());
@@ -147,9 +151,9 @@ fn run_json_data_algorithm(cx: *mut JSContext,
     }
 }
 
-fn run_blob_data_algorithm(root: &GlobalScope,
+fn run_blob_data_algorithm<TH: TypeHolderTrait>(root: &GlobalScope<TH>,
                            bytes: Vec<u8>,
-                           mime: &[u8]) -> Fallible<FetchedData> {
+                           mime: &[u8]) -> Fallible<FetchedData<TH>> {
     let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
         s
     } else {
@@ -159,7 +163,10 @@ fn run_blob_data_algorithm(root: &GlobalScope,
     Ok(FetchedData::BlobData(blob))
 }
 
-fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> Fallible<FetchedData> {
+fn run_form_data_algorithm<TH: TypeHolderTrait>(
+    root: &GlobalScope<TH>,
+    bytes: Vec<u8>, mime: &[u8]
+) -> Fallible<FetchedData<TH>> {
     let mime_str = if let Ok(s) = str::from_utf8(mime) {
         s
     } else {
@@ -184,7 +191,10 @@ fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> F
 }
 
 #[allow(unsafe_code)]
-unsafe fn run_array_buffer_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+unsafe fn run_array_buffer_data_algorithm<TH: TypeHolderTrait>(
+    cx: *mut JSContext,
+    bytes: Vec<u8>
+) -> Fallible<FetchedData<TH>> {
     rooted!(in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
     let arraybuffer = ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer_ptr.handle_mut());
     if arraybuffer.is_err() {
@@ -194,9 +204,9 @@ unsafe fn run_array_buffer_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) ->
     Ok(FetchedData::ArrayBuffer(rooted_heap))
 }
 
-pub trait BodyOperations {
+pub trait BodyOperations<TH: TypeHolderTrait> {
     fn get_body_used(&self) -> bool;
-    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType);
+    fn set_body_promise(&self, p: &Rc<Promise<TH>>, body_type: BodyType);
     /// Returns `Some(_)` if the body is complete, `None` if there is more to
     /// come.
     fn take_body(&self) -> Option<Vec<u8>>;

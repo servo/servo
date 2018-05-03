@@ -12,11 +12,12 @@ use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
 use std::ptr;
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 use webvr_traits::webvr;
 
 #[dom_struct]
-pub struct VRPose {
-    reflector_: Reflector,
+pub struct VRPose<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     position: Heap<*mut JSObject>,
     orientation: Heap<*mut JSObject>,
     linear_vel: Heap<*mut JSObject>,
@@ -63,8 +64,8 @@ fn heap_to_option(heap: &Heap<*mut JSObject>) -> Option<NonNull<JSObject>> {
     }
 }
 
-impl VRPose {
-    fn new_inherited() -> VRPose {
+impl<TH: TypeHolderTrait> VRPose<TH> {
+    fn new_inherited() -> VRPose<TH> {
         VRPose {
             reflector_: Reflector::new(),
             position: Heap::default(),
@@ -76,7 +77,7 @@ impl VRPose {
         }
     }
 
-    pub fn new(global: &GlobalScope, pose: &webvr::VRPose) -> DomRoot<VRPose> {
+    pub fn new(global: &GlobalScope<TH>, pose: &webvr::VRPose) -> DomRoot<VRPose<TH>> {
         let root = reflect_dom_object(Box::new(VRPose::new_inherited()),
                                       global,
                                       VRPoseBinding::Wrap);
@@ -98,7 +99,7 @@ impl VRPose {
     }
 }
 
-impl VRPoseMethods for VRPose {
+impl<TH: TypeHolderTrait> VRPoseMethods for VRPose<TH> {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-position
     unsafe fn GetPosition(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {

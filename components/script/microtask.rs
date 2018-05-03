@@ -19,21 +19,22 @@ use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 /// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]
-pub struct MicrotaskQueue {
+pub struct MicrotaskQueue<TH: TypeHolderTrait> {
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
-    microtask_queue: DomRefCell<Vec<Microtask>>,
+    microtask_queue: DomRefCell<Vec<Microtask<TH>>>,
     /// <https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint>
     performing_a_microtask_checkpoint: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum Microtask {
-    Promise(EnqueuedPromiseCallback),
-    MediaElement(MediaElementMicrotask),
-    ImageElement(ImageElementMicrotask),
+pub enum Microtask<TH: TypeHolderTrait> {
+    Promise(EnqueuedPromiseCallback<TH>),
+    MediaElement(MediaElementMicrotask<TH>),
+    ImageElement(ImageElementMicrotask<TH>),
     CustomElementReaction,
     NotifyMutationObservers,
 }
@@ -44,23 +45,23 @@ pub trait MicrotaskRunnable {
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct EnqueuedPromiseCallback {
+pub struct EnqueuedPromiseCallback<TH: TypeHolderTrait> {
     #[ignore_malloc_size_of = "Rc has unclear ownership"]
-    pub callback: Rc<PromiseJobCallback>,
+    pub callback: Rc<PromiseJobCallback<TH>>,
     pub pipeline: PipelineId,
 }
 
-impl MicrotaskQueue {
+impl<TH: TypeHolderTrait> MicrotaskQueue<TH> {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
-    pub fn enqueue(&self, job: Microtask) {
+    pub fn enqueue(&self, job: Microtask<TH>) {
         self.microtask_queue.borrow_mut().push(job);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     pub fn checkpoint<F>(&self, target_provider: F)
-        where F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>
+        where F: Fn(PipelineId) -> Option<DomRoot<GlobalScope<TH>>>
     {
         if self.performing_a_microtask_checkpoint.get() {
             return;
@@ -90,10 +91,10 @@ impl MicrotaskQueue {
                         task.handler();
                     },
                     Microtask::CustomElementReaction => {
-                        ScriptThread::invoke_backup_element_queue();
+                        ScriptThread::<TH>::invoke_backup_element_queue();
                     },
                     Microtask::NotifyMutationObservers => {
-                        MutationObserver::notify_mutation_observers();
+                        MutationObserver::<TH>::notify_mutation_observers();
                     }
                 }
             }

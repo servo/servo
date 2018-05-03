@@ -9,14 +9,15 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLTrackElement {
-    htmlelement: HTMLElement,
+pub struct HTMLTrackElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLTrackElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLTrackElement {
+impl<TH: TypeHolderTrait> HTMLTrackElement<TH> {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>) -> HTMLTrackElement<TH> {
         HTMLTrackElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -25,8 +26,8 @@ impl HTMLTrackElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTrackElement> {
-        Node::reflect_node(Box::new(HTMLTrackElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLTrackElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLTrackElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTrackElementBinding::Wrap)
     }

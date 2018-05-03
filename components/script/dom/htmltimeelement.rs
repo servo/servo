@@ -11,14 +11,15 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLTimeElement {
-    htmlelement: HTMLElement,
+pub struct HTMLTimeElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLTimeElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLTimeElement {
+impl<TH: TypeHolderTrait> HTMLTimeElement<TH> {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>) -> HTMLTimeElement<TH> {
         HTMLTimeElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -27,14 +28,14 @@ impl HTMLTimeElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTimeElement> {
-        Node::reflect_node(Box::new(HTMLTimeElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLTimeElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLTimeElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTimeElementBinding::Wrap)
     }
 }
 
-impl HTMLTimeElementMethods for HTMLTimeElement {
+impl<TH: TypeHolderTrait> HTMLTimeElementMethods for HTMLTimeElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-time-datetime
     make_getter!(DateTime, "datetime");
 

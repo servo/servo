@@ -12,10 +12,11 @@ use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
 use dom::window::ReflowReason;
 use script_layout_interface::message::ReflowGoal;
+use typeholder::TypeHolderTrait;
 
 /// Trait for elements with defined activation behavior
-pub trait Activatable {
-    fn as_element(&self) -> &Element;
+pub trait Activatable<TH: TypeHolderTrait> {
+    fn as_element(&self) -> &Element<TH>;
 
     // Is this particular instance of the element activatable?
     fn is_instance_activatable(&self) -> bool;
@@ -27,7 +28,7 @@ pub trait Activatable {
     fn canceled_activation(&self);
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, event: &Event, target: &EventTarget);
+    fn activation_behavior(&self, event: &Event<TH>, target: &EventTarget<TH>);
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool);
@@ -56,7 +57,7 @@ pub enum ActivationSource {
 }
 
 // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
-pub fn synthetic_click_activation(element: &Element,
+pub fn synthetic_click_activation<TH: TypeHolderTrait>(element: &Element<TH>,
                                   ctrl_key: bool,
                                   shift_key: bool,
                                   alt_key: bool,
@@ -77,7 +78,7 @@ pub fn synthetic_click_activation(element: &Element,
     // Step 4
     // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
     let win = window_from_node(element);
-    let target = element.upcast::<EventTarget>();
+    let target = element.upcast::<EventTarget<TH>>();
     let mouse = MouseEvent::new(&win,
                                 DOMString::from("click"),
                                 EventBubbles::DoesNotBubble,
@@ -95,7 +96,7 @@ pub fn synthetic_click_activation(element: &Element,
                                 0,
                                 None,
                                 None);
-    let event = mouse.upcast::<Event>();
+    let event = mouse.upcast::<Event<TH>>();
     if source == ActivationSource::FromClick {
         event.set_trusted(false);
     }

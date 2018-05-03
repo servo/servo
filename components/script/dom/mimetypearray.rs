@@ -10,49 +10,50 @@ use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::mimetype::MimeType;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct MimeTypeArray {
-    reflector_: Reflector,
+pub struct MimeTypeArray<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl MimeTypeArray {
-    pub fn new_inherited() -> MimeTypeArray {
+impl<TH: TypeHolderTrait> MimeTypeArray<TH> {
+    pub fn new_inherited() -> MimeTypeArray<TH> {
         MimeTypeArray {
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<MimeTypeArray> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<MimeTypeArray<TH>> {
         reflect_dom_object(Box::new(MimeTypeArray::new_inherited()),
                            global,
                            MimeTypeArrayBinding::Wrap)
     }
 }
 
-impl MimeTypeArrayMethods for MimeTypeArray {
+impl<TH: TypeHolderTrait> MimeTypeArrayMethods<TH> for MimeTypeArray<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-length
     fn Length(&self) -> u32 {
         0
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
-    fn Item(&self, _index: u32) -> Option<DomRoot<MimeType>> {
+    fn Item(&self, _index: u32) -> Option<DomRoot<MimeType<TH>>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-nameditem
-    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType<TH>>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
-    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<MimeType>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<MimeType<TH>>> {
         None
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<MimeType<TH>>> {
         None
     }
 

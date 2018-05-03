@@ -86,10 +86,14 @@ use js::rust::HandleObject;
 use js::rust::MutableHandleObject;
 use script_thread::ScriptThread;
 use std::ptr;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
-pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fallible<DomRoot<T>>
-                                  where T: DerivedFrom<Element> {
+pub unsafe fn html_constructor<T, TH: TypeHolderTrait>(
+    window: &Window<TH>,
+    call_args: &CallArgs
+) -> Fallible<DomRoot<T>>
+                                  where T: DerivedFrom<Element<TH>> {
     let document = window.Document();
 
     // Step 1
@@ -119,11 +123,15 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
             // Since this element is autonomous, its active function object must be the HTMLElement
 
             // Retrieve the constructor object for HTMLElement
-            HTMLElementBinding::GetConstructorObject(window.get_cx(), global_object.handle(), constructor.handle_mut());
+            HTMLElementBinding::GetConstructorObject::<TH>(
+                window.get_cx(),
+                global_object.handle(),
+                constructor.handle_mut()
+            );
 
         } else {
             // Step 5
-            get_constructor_object_from_local_name(definition.local_name.clone(),
+            get_constructor_object_from_local_name::<TH>(definition.local_name.clone(),
                                                    window.get_cx(),
                                                    global_object.handle(),
                                                    constructor.handle_mut());
@@ -176,14 +184,14 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
 
 /// Returns the constructor object for the element associated with the given local name.
 /// This list should only include elements marked with the [HTMLConstructor] extended attribute.
-pub fn get_constructor_object_from_local_name(name: LocalName,
+pub fn get_constructor_object_from_local_name<TH: TypeHolderTrait>(name: LocalName,
                                               cx: *mut JSContext,
                                               global: HandleObject,
                                               rval: MutableHandleObject)
                                               -> bool {
     macro_rules! get_constructor(
         ($binding:ident) => ({
-            unsafe { $binding::GetConstructorObject(cx, global, rval); }
+            unsafe { $binding::GetConstructorObject::<TH>(cx, global, rval); }
             true
         })
     );
@@ -317,10 +325,10 @@ pub fn get_constructor_object_from_local_name(name: LocalName,
     }
 }
 
-pub fn pop_current_element_queue() {
-    ScriptThread::pop_current_element_queue();
+pub fn pop_current_element_queue<TH: TypeHolderTrait>() {
+    ScriptThread::<TH>::pop_current_element_queue();
 }
 
-pub fn push_new_element_queue() {
-    ScriptThread::push_new_element_queue();
+pub fn push_new_element_queue<TH: TypeHolderTrait>() {
+    ScriptThread::<TH>::push_new_element_queue();
 }

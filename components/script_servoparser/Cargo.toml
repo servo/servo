@@ -1,0 +1,47 @@
+[package]
+name = "script_servoparser"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+
+[lib]
+name = "script_servoparser"
+path = "lib.rs"
+
+[features]
+debugmozjs = ['mozjs/debugmozjs']
+unstable = []
+unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
+default = ["unrooted_must_root_lint"]
+
+[dependencies]
+script = {path = "../script"}
+html5ever = "0.22"
+dom_struct = {path = "../dom_struct"}
+embedder_traits = {path = "../embedder_traits"}
+hyper = "0.10"
+msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
+profile_traits = {path = "../profile_traits"}
+script_traits = {path = "../script_traits"}
+servo_config = {path = "../config"}
+servo_url = {path = "../url"}
+style = {path = "../style", features = ["servo"]}
+mozjs = { version = "0.7", features = ["promises"]}
+hyper_serde = "0.8"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
+domobject_derive = {path = "../domobject_derive"}
+xml5ever = {version = "0.12"}
+jstraceable_derive = {path = "../jstraceable_derive" }
+script_plugins = {path = "../script_plugins"}
+url = "1.6"
+time = "0.1.12"
+ipc-channel = "0.10"
+servo_atoms = {path = "../atoms"}
+encoding_rs = "0.7"
+euclid = "0.19"
+log = "0.4"
+deny_public_fields = {path = "../deny_public_fields"}

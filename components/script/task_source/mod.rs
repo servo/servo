@@ -15,6 +15,7 @@ use dom::globalscope::GlobalScope;
 use enum_iterator::IntoEnumIterator;
 use std::result::Result;
 use task::{TaskCanceller, TaskOnce};
+use typeholder::TypeHolderTrait;
 
 // The names of all task sources, used to differentiate TaskCancellers.
 // Note: When adding a task source, update this enum.
@@ -48,9 +49,10 @@ pub trait TaskSource {
     where
         T: TaskOnce + 'static;
 
-    fn queue<T>(&self, task: T, global: &GlobalScope) -> Result<(), ()>
+    fn queue<T, TH>(&self, task: T, global: &GlobalScope<TH>) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
+        TH: TypeHolderTrait,
     {
         let canceller = global.task_canceller(Self::NAME);
         self.queue_with_canceller(task, &canceller)

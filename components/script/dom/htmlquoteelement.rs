@@ -9,16 +9,17 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLQuoteElement {
-    htmlelement: HTMLElement,
+pub struct HTMLQuoteElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLQuoteElement {
+impl<TH: TypeHolderTrait> HTMLQuoteElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLQuoteElement {
+                     document: &Document<TH>) -> HTMLQuoteElement<TH> {
         HTMLQuoteElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document)
@@ -28,8 +29,8 @@ impl HTMLQuoteElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLQuoteElement> {
-        Node::reflect_node(Box::new(HTMLQuoteElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLQuoteElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLQuoteElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLQuoteElementBinding::Wrap)
     }

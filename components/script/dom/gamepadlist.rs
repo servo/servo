@@ -10,29 +10,30 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::gamepad::Gamepad;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 // https://www.w3.org/TR/gamepad/
 #[dom_struct]
-pub struct GamepadList {
-    reflector_: Reflector,
-    list: DomRefCell<Vec<Dom<Gamepad>>>
+pub struct GamepadList<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    list: DomRefCell<Vec<Dom<Gamepad<TH>>>>
 }
 
-impl GamepadList {
-    fn new_inherited(list: &[&Gamepad]) -> GamepadList {
+impl<TH: TypeHolderTrait> GamepadList<TH> {
+    fn new_inherited(list: &[&Gamepad<TH>]) -> GamepadList<TH> {
         GamepadList {
             reflector_: Reflector::new(),
             list: DomRefCell::new(list.iter().map(|g| Dom::from_ref(&**g)).collect())
         }
     }
 
-    pub fn new(global: &GlobalScope, list: &[&Gamepad]) -> DomRoot<GamepadList> {
+    pub fn new(global: &GlobalScope<TH>, list: &[&Gamepad<TH>]) -> DomRoot<GamepadList<TH>> {
         reflect_dom_object(Box::new(GamepadList::new_inherited(list)),
                            global,
                            GamepadListBinding::Wrap)
     }
 
-    pub fn add_if_not_exists(&self, gamepads: &[DomRoot<Gamepad>]) {
+    pub fn add_if_not_exists(&self, gamepads: &[DomRoot<Gamepad<TH>>]) {
         for gamepad in gamepads {
             if !self.list.borrow().iter().any(|g| g.gamepad_id() == gamepad.gamepad_id()) {
                 self.list.borrow_mut().push(Dom::from_ref(&*gamepad));
@@ -43,19 +44,19 @@ impl GamepadList {
     }
 }
 
-impl GamepadListMethods for GamepadList {
+impl<TH: TypeHolderTrait> GamepadListMethods<TH> for GamepadList<TH> {
     // https://w3c.github.io/gamepad/#dom-navigator-getgamepads
     fn Length(&self) -> u32 {
         self.list.borrow().len() as u32
     }
 
     // https://w3c.github.io/gamepad/#dom-navigator-getgamepads
-    fn Item(&self, index: u32) -> Option<DomRoot<Gamepad>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<Gamepad<TH>>> {
         self.list.borrow().get(index as usize).map(|gamepad| DomRoot::from_ref(&**gamepad))
     }
 
     // https://w3c.github.io/gamepad/#dom-navigator-getgamepads
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Gamepad>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Gamepad<TH>>> {
         self.Item(index)
     }
 }

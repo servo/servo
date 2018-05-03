@@ -19,6 +19,7 @@ use dom::performanceentry::PerformanceEntry;
 use dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use dom_struct::dom_struct;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 /// List of allowed performance entry types.
 const VALID_ENTRY_TYPES: &'static [&'static str] = &[
@@ -30,17 +31,17 @@ const VALID_ENTRY_TYPES: &'static [&'static str] = &[
 ];
 
 #[dom_struct]
-pub struct PerformanceObserver {
-    reflector_: Reflector,
+pub struct PerformanceObserver<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     #[ignore_malloc_size_of = "can't measure Rc values"]
-    callback: Rc<PerformanceObserverCallback>,
-    entries: DomRefCell<DOMPerformanceEntryList>,
+    callback: Rc<PerformanceObserverCallback<TH>>,
+    entries: DomRefCell<DOMPerformanceEntryList<TH>>,
 }
 
-impl PerformanceObserver {
-    fn new_inherited(callback: Rc<PerformanceObserverCallback>,
-                     entries: DomRefCell<DOMPerformanceEntryList>)
-        -> PerformanceObserver {
+impl<TH: TypeHolderTrait> PerformanceObserver<TH> {
+    fn new_inherited(callback: Rc<PerformanceObserverCallback<TH>>,
+                     entries: DomRefCell<DOMPerformanceEntryList<TH>>)
+        -> PerformanceObserver<TH> {
         PerformanceObserver {
             reflector_: Reflector::new(),
             callback,
@@ -49,21 +50,21 @@ impl PerformanceObserver {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               callback: Rc<PerformanceObserverCallback>,
-               entries: DOMPerformanceEntryList)
-        -> DomRoot<PerformanceObserver> {
+    pub fn new(global: &GlobalScope<TH>,
+               callback: Rc<PerformanceObserverCallback<TH>>,
+               entries: DOMPerformanceEntryList<TH>)
+        -> DomRoot<PerformanceObserver<TH>> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
         reflect_dom_object(Box::new(observer), global, PerformanceObserverBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope, callback: Rc<PerformanceObserverCallback>)
-        -> Fallible<DomRoot<PerformanceObserver>> {
+    pub fn Constructor(global: &GlobalScope<TH>, callback: Rc<PerformanceObserverCallback<TH>>)
+        -> Fallible<DomRoot<PerformanceObserver<TH>>> {
         Ok(PerformanceObserver::new(global, callback, Vec::new()))
     }
 
     /// Buffer a new performance entry.
-    pub fn queue_entry(&self, entry: &PerformanceEntry) {
+    pub fn queue_entry(&self, entry: &PerformanceEntry<TH>) {
         self.entries.borrow_mut().push(DomRoot::from_ref(entry));
     }
 
@@ -81,20 +82,20 @@ impl PerformanceObserver {
         let _ = self.callback.Call__(&observer_entry_list, self, ExceptionHandling::Report);
     }
 
-    pub fn callback(&self) -> Rc<PerformanceObserverCallback> {
+    pub fn callback(&self) -> Rc<PerformanceObserverCallback<TH>> {
         self.callback.clone()
     }
 
-    pub fn entries(&self) -> DOMPerformanceEntryList {
+    pub fn entries(&self) -> DOMPerformanceEntryList<TH> {
         self.entries.borrow().clone()
     }
 
-    pub fn set_entries(&self, entries: DOMPerformanceEntryList) {
+    pub fn set_entries(&self, entries: DOMPerformanceEntryList<TH>) {
         *self.entries.borrow_mut() = entries;
     }
 }
 
-impl PerformanceObserverMethods for PerformanceObserver {
+impl<TH: TypeHolderTrait> PerformanceObserverMethods for PerformanceObserver<TH> {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()
     fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
         // step 1

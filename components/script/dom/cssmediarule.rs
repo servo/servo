@@ -21,18 +21,19 @@ use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
 use style_traits::{ParsingMode, ToCss};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSMediaRule {
-    cssconditionrule: CSSConditionRule,
+pub struct CSSMediaRule<TH: TypeHolderTrait> {
+    cssconditionrule: CSSConditionRule<TH>,
     #[ignore_malloc_size_of = "Arc"]
     mediarule: Arc<Locked<MediaRule>>,
-    medialist: MutNullableDom<MediaList>,
+    medialist: MutNullableDom<MediaList<TH>>,
 }
 
-impl CSSMediaRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<Locked<MediaRule>>)
-                     -> CSSMediaRule {
+impl<TH: TypeHolderTrait> CSSMediaRule<TH> {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet<TH>, mediarule: Arc<Locked<MediaRule>>)
+                     -> Self {
         let guard = parent_stylesheet.shared_lock().read();
         let list = mediarule.read_with(&guard).rules.clone();
         CSSMediaRule {
@@ -43,14 +44,14 @@ impl CSSMediaRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               mediarule: Arc<Locked<MediaRule>>) -> DomRoot<CSSMediaRule> {
+    pub fn new(window: &Window<TH>, parent_stylesheet: &CSSStyleSheet<TH>,
+               mediarule: Arc<Locked<MediaRule>>) -> DomRoot<Self> {
         reflect_dom_object(Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
                            window,
                            CSSMediaRuleBinding::Wrap)
     }
 
-    fn medialist(&self) -> DomRoot<MediaList> {
+    fn medialist(&self) -> DomRoot<MediaList<TH>> {
         self.medialist.or_init(|| {
             let guard = self.cssconditionrule.shared_lock().read();
             MediaList::new(self.global().as_window(),
@@ -97,7 +98,7 @@ impl CSSMediaRule {
     }
 }
 
-impl SpecificCSSRule for CSSMediaRule {
+impl<TH: TypeHolderTrait> SpecificCSSRule for CSSMediaRule<TH> {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::MEDIA_RULE
@@ -109,9 +110,9 @@ impl SpecificCSSRule for CSSMediaRule {
     }
 }
 
-impl CSSMediaRuleMethods for CSSMediaRule {
+impl<TH: TypeHolderTrait> CSSMediaRuleMethods<TH> for CSSMediaRule<TH> {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-media
-    fn Media(&self) -> DomRoot<MediaList> {
+    fn Media(&self) -> DomRoot<MediaList<TH>> {
         self.medialist()
     }
 }

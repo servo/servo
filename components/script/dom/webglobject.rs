@@ -7,22 +7,23 @@ use dom::bindings::reflector::Reflector;
 use dom::bindings::root::Dom;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct WebGLObject {
-    reflector_: Reflector,
-    context: Dom<WebGLRenderingContext>,
+pub struct WebGLObject<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    context: Dom<WebGLRenderingContext<TH>>,
 }
 
-impl WebGLObject {
-    pub fn new_inherited(context: &WebGLRenderingContext) -> WebGLObject {
+impl<TH: TypeHolderTrait> WebGLObject<TH> {
+    pub fn new_inherited(context: &WebGLRenderingContext<TH>) -> WebGLObject<TH> {
         WebGLObject {
             reflector_: Reflector::new(),
             context: Dom::from_ref(context),
         }
     }
 
-    pub fn context(&self) -> &WebGLRenderingContext {
+    pub fn context(&self) -> &WebGLRenderingContext<TH> {
         &self.context
     }
 }

@@ -60,6 +60,7 @@ use libc;
 use num_traits::Float;
 use servo_config::opts;
 use std::{char, ffi, ptr, slice};
+use typeholder::TypeHolderTrait;
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {
@@ -321,7 +322,7 @@ impl FromJSValConvertible for ByteString {
 }
 
 
-impl ToJSValConvertible for Reflector {
+impl<TH: TypeHolderTrait> ToJSValConvertible for Reflector<TH> {
     unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());

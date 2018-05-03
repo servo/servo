@@ -9,16 +9,17 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLPictureElement {
-    htmlelement: HTMLElement,
+pub struct HTMLPictureElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLPictureElement {
+impl<TH: TypeHolderTrait> HTMLPictureElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLPictureElement {
+                     document: &Document<TH>) -> HTMLPictureElement<TH> {
         HTMLPictureElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document)
@@ -28,8 +29,8 @@ impl HTMLPictureElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLPictureElement> {
-        Node::reflect_node(Box::new(HTMLPictureElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLPictureElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLPictureElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLPictureElementBinding::Wrap)
     }

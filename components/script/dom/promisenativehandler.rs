@@ -11,23 +11,24 @@ use dom_struct::dom_struct;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use malloc_size_of::MallocSizeOf;
+use typeholder::TypeHolderTrait;
 
 pub trait Callback: JSTraceable + MallocSizeOf {
     fn callback(&self, cx: *mut JSContext, v: HandleValue);
 }
 
 #[dom_struct]
-pub struct PromiseNativeHandler {
-    reflector: Reflector,
+pub struct PromiseNativeHandler<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
     resolve: Option<Box<Callback>>,
     reject: Option<Box<Callback>>,
 }
 
-impl PromiseNativeHandler {
-    pub fn new(global: &GlobalScope,
+impl<TH: TypeHolderTrait> PromiseNativeHandler<TH> {
+    pub fn new(global: &GlobalScope<TH>,
                resolve: Option<Box<Callback>>,
                reject: Option<Box<Callback>>)
-               -> DomRoot<PromiseNativeHandler> {
+               -> DomRoot<PromiseNativeHandler<TH>> {
         reflect_dom_object(Box::new(PromiseNativeHandler {
             reflector: Reflector::new(),
             resolve: resolve,
@@ -42,10 +43,10 @@ impl PromiseNativeHandler {
     }
 
     pub fn resolved_callback(&self, cx: *mut JSContext, v: HandleValue) {
-        PromiseNativeHandler::callback(&self.resolve, cx, v)
+        PromiseNativeHandler::<TH>::callback(&self.resolve, cx, v)
     }
 
     pub fn rejected_callback(&self, cx: *mut JSContext, v: HandleValue) {
-        PromiseNativeHandler::callback(&self.reject, cx, v)
+        PromiseNativeHandler::<TH>::callback(&self.reject, cx, v)
     }
 }

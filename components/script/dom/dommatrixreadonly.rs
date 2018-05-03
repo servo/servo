@@ -21,20 +21,23 @@ use js::typedarray::{Float32Array, Float64Array};
 use js::typedarray::CreateWith;
 use std::cell::{Cell, Ref};
 use std::f64;
+use std::marker::PhantomData;
 use std::ptr;
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct DOMMatrixReadOnly {
-    reflector_: Reflector,
+pub struct DOMMatrixReadOnly<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     matrix: DomRefCell<Transform3D<f64>>,
     is2D: Cell<bool>,
+    _p: PhantomData<TH>,
 }
 
-impl DOMMatrixReadOnly {
+impl<TH: TypeHolderTrait> DOMMatrixReadOnly<TH> {
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
-        let dommatrix = Self::new_inherited(is2D, matrix);
+    pub fn new(global: &GlobalScope<TH>, iss2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
+        let dommatrix = Self::new_inherited(iss2D, matrix);
         reflect_dom_object(Box::new(dommatrix), global, Wrap)
     }
 
@@ -43,16 +46,17 @@ impl DOMMatrixReadOnly {
             reflector_: Reflector::new(),
             matrix: DomRefCell::new(matrix),
             is2D: Cell::new(is2D),
+            _p: Default::default(),
         }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<Self>> {
+    pub fn Constructor(global: &GlobalScope<TH>) -> Fallible<DomRoot<Self>> {
         Ok(Self::new(global, true, Transform3D::identity()))
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
-    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<DomRoot<Self>> {
+    pub fn Constructor_(global: &GlobalScope<TH>, entries: Vec<f64>) -> Fallible<DomRoot<Self>> {
         entries_to_matrix(&entries[..])
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
@@ -60,7 +64,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix
-    pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
+    pub fn FromMatrix(global: &GlobalScope<TH>, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
         dommatrixinit_to_matrix(&other)
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
@@ -344,9 +348,9 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat32array
     #[allow(unsafe_code)]
     pub fn FromFloat32Array(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         array: CustomAutoRooterGuard<Float32Array>,
-    ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
+    ) -> Fallible<DomRoot<DOMMatrixReadOnly<TH>>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrixReadOnly::Constructor_(global, vec)
     }
@@ -354,16 +358,16 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat64array
     #[allow(unsafe_code)]
     pub fn FromFloat64Array(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         array: CustomAutoRooterGuard<Float64Array>,
-    ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
+    ) -> Fallible<DomRoot<DOMMatrixReadOnly<TH>>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrixReadOnly::Constructor_(global, vec)
     }
 }
 
 
-impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
+impl<TH: TypeHolderTrait> DOMMatrixReadOnlyMethods<TH> for DOMMatrixReadOnly<TH> {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
     fn M11(&self) -> f64 {
         self.matrix.borrow().m11
@@ -489,55 +493,55 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate
-    fn Translate(&self, tx: f64, ty: f64, tz: f64) -> DomRoot<DOMMatrix> {
+    fn Translate(&self, tx: f64, ty: f64, tz: f64) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self).TranslateSelf(tx, ty, tz)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale
     fn Scale(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
-                    originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix> {
+                    originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self)
             .ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale3d
-    fn Scale3d(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix> {
+    fn Scale3d(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self)
             .Scale3dSelf(scale, originX, originY, originZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotate
-    fn Rotate(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> DomRoot<DOMMatrix> {
+    fn Rotate(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self).RotateSelf(rotX, rotY, rotZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotatefromvector
-    fn RotateFromVector(&self, x: f64, y: f64) -> DomRoot<DOMMatrix> {
+    fn RotateFromVector(&self, x: f64, y: f64) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self).RotateFromVectorSelf(x, y)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotateaxisangle
-    fn RotateAxisAngle(&self, x: f64, y: f64, z: f64, angle: f64) -> DomRoot<DOMMatrix> {
+    fn RotateAxisAngle(&self, x: f64, y: f64, z: f64, angle: f64) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self).RotateAxisAngleSelf(x, y, z, angle)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewx
-    fn SkewX(&self, sx: f64) -> DomRoot<DOMMatrix> {
+    fn SkewX(&self, sx: f64) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self).SkewXSelf(sx)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewy
-    fn SkewY(&self, sy: f64) -> DomRoot<DOMMatrix> {
+    fn SkewY(&self, sy: f64) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self).SkewYSelf(sy)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply
-    fn Multiply(&self, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
+    fn Multiply(&self, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix<TH>>> {
         DOMMatrix::from_readonly(&self.global(), self).MultiplySelf(&other)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx
-    fn FlipX(&self) -> DomRoot<DOMMatrix> {
+    fn FlipX(&self) -> DomRoot<DOMMatrix<TH>> {
         let is2D = self.is2D.get();
         let flip = Transform3D::row_major(-1.0, 0.0, 0.0, 0.0,
                                         0.0, 1.0, 0.0, 0.0,
@@ -548,7 +552,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipy
-    fn FlipY(&self) -> DomRoot<DOMMatrix> {
+    fn FlipY(&self) -> DomRoot<DOMMatrix<TH>> {
         let is2D = self.is2D.get();
         let flip = Transform3D::row_major(1.0,  0.0, 0.0, 0.0,
                                        0.0, -1.0, 0.0, 0.0,
@@ -559,12 +563,12 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-inverse
-    fn Inverse(&self) -> DomRoot<DOMMatrix> {
+    fn Inverse(&self) -> DomRoot<DOMMatrix<TH>> {
         DOMMatrix::from_readonly(&self.global(), self).InvertSelf()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint
-    fn TransformPoint(&self, point: &DOMPointInit) -> DomRoot<DOMPoint> {
+    fn TransformPoint(&self, point: &DOMPointInit) -> DomRoot<DOMPoint<TH>> {
         // Euclid always normalizes the homogeneous coordinate which is usually the right
         // thing but may (?) not be compliant with the CSS matrix spec (or at least is
         // probably not the behavior web authors will expect even if it is mathematically

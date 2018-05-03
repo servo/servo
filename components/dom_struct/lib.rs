@@ -9,15 +9,24 @@ extern crate quote;
 extern crate syn;
 
 use proc_macro::TokenStream;
+use quote::__rt::Span;
 use syn::*;
 
 #[proc_macro_attribute]
 pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
+    let mut base = None;
+    let mut crater = None;
     if !args.is_empty() {
-        panic!("#[dom_struct] takes no arguments");
+        use quote::ToTokens;
+
+        let args = args.to_string();
+        let crate_name = args.trim_matches(&['(', ')', ' '][..]);
+        crater = Some(syn::Ident::new(crate_name, Span::call_site()));
+        base = Some(quote! { #[base = #crate_name] });
     }
     let attributes = quote! {
         #[derive(DenyPublicFields, DomObject, JSTraceable, MallocSizeOf)]
+        #base
         #[must_root]
         #[repr(C)]
     };
@@ -32,19 +41,17 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
 
     if let Item::Struct(s) = item {
         let s2 = s.clone();
-        if s.generics.params.len() > 0 {
-            return quote!(#s2).into();
-        }
         if let Fields::Named(ref f) = s.fields {
             let f = f.named.first().expect("Must have at least one field").into_value();
             let ident = f.ident.as_ref().expect("Must have named fields");
             let name = &s.ident;
+            let (impl_generics, ty_generics, where_clause) = &s.generics.split_for_impl();
             let ty = &f.ty;
 
             quote! (
                 #s2
 
-                impl ::dom::bindings::inheritance::HasParent for #name {
+                impl#impl_generics #crater::dom::bindings::inheritance::HasParent for #name #ty_generics #where_clause {
                     type Parent = #ty;
                     /// This is used in a type assertion to ensure that
                     /// the source and webidls agree as to what the parent type is

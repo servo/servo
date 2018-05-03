@@ -10,11 +10,12 @@ use dom::canvasgradient::ToFillOrStrokeStyle;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::Size2D;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]
-pub struct CanvasPattern {
-    reflector_: Reflector,
+pub struct CanvasPattern<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     surface_data: Vec<u8>,
     surface_size: Size2D<i32>,
     repeat_x: bool,
@@ -22,12 +23,12 @@ pub struct CanvasPattern {
     origin_clean: bool,
 }
 
-impl CanvasPattern {
+impl<TH: TypeHolderTrait> CanvasPattern<TH> {
     fn new_inherited(surface_data: Vec<u8>,
                      surface_size: Size2D<i32>,
                      repeat: RepetitionStyle,
                      origin_clean: bool)
-                     -> CanvasPattern {
+                     -> CanvasPattern<TH> {
         let (x, y) = match repeat {
             RepetitionStyle::Repeat => (true, true),
             RepetitionStyle::RepeatX => (true, false),
@@ -44,12 +45,12 @@ impl CanvasPattern {
             origin_clean: origin_clean,
         }
     }
-    pub fn new(global: &GlobalScope,
+    pub fn new(global: &GlobalScope<TH>,
                surface_data: Vec<u8>,
                surface_size: Size2D<i32>,
                repeat: RepetitionStyle,
                origin_clean: bool)
-               -> DomRoot<CanvasPattern> {
+               -> DomRoot<CanvasPattern<TH>> {
         reflect_dom_object(
             Box::new(CanvasPattern::new_inherited(
                 surface_data, surface_size, repeat, origin_clean
@@ -63,7 +64,7 @@ impl CanvasPattern {
     }
 }
 
-impl<'a> ToFillOrStrokeStyle for &'a CanvasPattern {
+impl<'a, TH: TypeHolderTrait> ToFillOrStrokeStyle for &'a CanvasPattern<TH> {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         FillOrStrokeStyle::Surface(SurfaceStyle::new(self.surface_data.clone(),
                                                      self.surface_size,

@@ -12,20 +12,21 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 use std::default::Default;
+use typeholder::TypeHolderTrait;
 use uuid::Uuid;
 
 #[dom_struct]
-pub struct Client {
-    reflector_: Reflector,
-    active_worker: MutNullableDom<ServiceWorker>,
+pub struct Client<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    active_worker: MutNullableDom<ServiceWorker<TH>>,
     url: ServoUrl,
     frame_type: FrameType,
     #[ignore_malloc_size_of = "Defined in uuid"]
     id: Uuid
 }
 
-impl Client {
-    fn new_inherited(url: ServoUrl) -> Client {
+impl<TH: TypeHolderTrait> Client<TH> {
+    fn new_inherited(url: ServoUrl) -> Client<TH> {
         Client {
             reflector_: Reflector::new(),
             active_worker: Default::default(),
@@ -35,7 +36,7 @@ impl Client {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Client> {
+    pub fn new(window: &Window<TH>) -> DomRoot<Client<TH>> {
         reflect_dom_object(Box::new(Client::new_inherited(window.get_url())),
                            window,
                            Wrap)
@@ -45,16 +46,16 @@ impl Client {
         self.url.clone()
     }
 
-    pub fn get_controller(&self) -> Option<DomRoot<ServiceWorker>> {
+    pub fn get_controller(&self) -> Option<DomRoot<ServiceWorker<TH>>> {
         self.active_worker.get()
     }
 
-    pub fn set_controller(&self, worker: &ServiceWorker) {
+    pub fn set_controller(&self, worker: &ServiceWorker<TH>) {
         self.active_worker.set(Some(worker));
     }
 }
 
-impl ClientMethods for Client {
+impl<TH: TypeHolderTrait> ClientMethods for Client<TH> {
     // https://w3c.github.io/ServiceWorker/#client-url-attribute
     fn Url(&self) -> USVString {
         USVString(self.url.as_str().to_owned())

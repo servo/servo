@@ -53,18 +53,19 @@ use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use dom::svgsvgelement::SVGSVGElement;
 use html5ever::LocalName;
 use style::attr::AttrValue;
+use typeholder::TypeHolderTrait;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
-pub trait VirtualMethods {
+pub trait VirtualMethods<TH: TypeHolderTrait> {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
-    fn super_type(&self) -> Option<&VirtualMethods>;
+    fn super_type(&self) -> Option<&VirtualMethods<TH>>;
 
     /// Called when attributes of a node are mutated.
     /// <https://dom.spec.whatwg.org/#attribute-is-set>
     /// <https://dom.spec.whatwg.org/#attribute-is-removed>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         if let Some(s) = self.super_type() {
             s.attribute_mutated(attr, mutation);
         }
@@ -72,7 +73,7 @@ pub trait VirtualMethods {
 
     /// Returns `true` if given attribute `attr` affects style of the
     /// given element.
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: &Attr<TH>) -> bool {
         match self.super_type() {
             Some(s) => s.attribute_affects_presentational_hints(attr),
             None => false
@@ -100,35 +101,35 @@ pub trait VirtualMethods {
     /// indicates whether the tree is part of a Document.
     /// Implements removing steps:
     /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);
         }
     }
 
     /// Called on the parent when its children are changed.
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation<TH>) {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
     }
 
     /// Called during event dispatch after the bubbling phase completes.
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event<TH>) {
         if let Some(s) = self.super_type() {
             s.handle_event(event);
         }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
-    fn adopting_steps(&self, old_doc: &Document) {
+    fn adopting_steps(&self, old_doc: &Document<TH>) {
         if let Some(ref s) = self.super_type() {
             s.adopting_steps(old_doc);
         }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone-ext>
-    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
+    fn cloning_steps(&self, copy: &Node<TH>, maybe_doc: Option<&Document<TH>>,
                      clone_children: CloneChildrenFlag) {
         if let Some(ref s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
@@ -148,126 +149,126 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for(node: &Node) -> &VirtualMethods {
+pub fn vtable_for<TH: TypeHolderTrait>(node: &Node<TH>) -> &VirtualMethods<TH> {
     match node.type_id() {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-            node.downcast::<HTMLAnchorElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLAnchorElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
-            node.downcast::<HTMLAreaElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLAreaElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)) => {
-            node.downcast::<HTMLBaseElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLBaseElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) => {
-            node.downcast::<HTMLBodyElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLBodyElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
-            node.downcast::<HTMLButtonElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLButtonElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)) => {
-            node.downcast::<HTMLCanvasElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLCanvasElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDetailsElement)) => {
-            node.downcast::<HTMLDetailsElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLDetailsElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
-            node.downcast::<HTMLFieldSetElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLFieldSetElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)) => {
-            node.downcast::<HTMLFontElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLFontElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)) => {
-            node.downcast::<HTMLFormElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLFormElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
-            node.downcast::<HTMLHeadElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLHeadElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHRElement)) => {
-            node.downcast::<HTMLHRElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLHRElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
-            node.downcast::<HTMLImageElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLImageElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) => {
-            node.downcast::<HTMLIFrameElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLIFrameElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-            node.downcast::<HTMLInputElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLInputElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
-            node.downcast::<HTMLLabelElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLLabelElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLIElement)) => {
-            node.downcast::<HTMLLIElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLLIElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-            node.downcast::<HTMLLinkElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLLinkElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_))) => {
-            node.downcast::<HTMLMediaElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLMediaElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
-            node.downcast::<HTMLMetaElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLMetaElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
-            node.downcast::<HTMLObjectElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLObjectElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) => {
-            node.downcast::<HTMLOptGroupElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLOptGroupElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
-            node.downcast::<HTMLOptionElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLOptionElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
-            node.downcast::<HTMLOutputElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLOutputElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
-            node.downcast::<HTMLScriptElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLScriptElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
-            node.downcast::<HTMLSelectElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLSelectElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)) => {
-            node.downcast::<HTMLSourceElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLSourceElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
-            node.downcast::<HTMLStyleElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLStyleElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)) => {
-            node.downcast::<HTMLTableElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLTableElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_))) => {
-            node.downcast::<HTMLTableCellElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLTableCellElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
-            node.downcast::<HTMLTableRowElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLTableRowElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement)) => {
-            node.downcast::<HTMLTableSectionElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLTableSectionElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)) => {
-            node.downcast::<HTMLTemplateElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLTemplateElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-            node.downcast::<HTMLTextAreaElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLTextAreaElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => {
-            node.downcast::<HTMLTitleElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLTitleElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
                     SVGGraphicsElementTypeId::SVGSVGElement
                 ))) => {
-            node.downcast::<SVGSVGElement>().unwrap() as &VirtualMethods
+            node.downcast::<SVGSVGElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(ElementTypeId::Element) => {
-            node.downcast::<Element>().unwrap() as &VirtualMethods
+            node.downcast::<Element<TH>>().unwrap() as &VirtualMethods<TH>
         }
         NodeTypeId::Element(_) => {
-            node.downcast::<HTMLElement>().unwrap() as &VirtualMethods
+            node.downcast::<HTMLElement<TH>>().unwrap() as &VirtualMethods<TH>
         }
         _ => {
-            node as &VirtualMethods
+            node as &VirtualMethods<TH>
         }
     }
 }

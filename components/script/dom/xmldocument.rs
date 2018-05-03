@@ -20,15 +20,16 @@ use mime::Mime;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
-pub struct XMLDocument {
-    document: Document,
+pub struct XMLDocument<TH: TypeHolderTrait> {
+    document: Document<TH>,
 }
 
-impl XMLDocument {
-    fn new_inherited(window: &Window,
+impl<TH: TypeHolderTrait> XMLDocument<TH> {
+    fn new_inherited(window: &Window<TH>,
                      has_browsing_context: HasBrowsingContext,
                      url: Option<ServoUrl>,
                      origin: MutableOrigin,
@@ -37,7 +38,7 @@ impl XMLDocument {
                      last_modified: Option<String>,
                      activity: DocumentActivity,
                      source: DocumentSource,
-                     doc_loader: DocumentLoader) -> XMLDocument {
+                     doc_loader: DocumentLoader) -> XMLDocument<TH> {
         XMLDocument {
             document: Document::new_inherited(window,
                                               has_browsing_context,
@@ -55,7 +56,7 @@ impl XMLDocument {
         }
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                has_browsing_context: HasBrowsingContext,
                url: Option<ServoUrl>,
                origin: MutableOrigin,
@@ -65,7 +66,7 @@ impl XMLDocument {
                activity: DocumentActivity,
                source: DocumentSource,
                doc_loader: DocumentLoader)
-               -> DomRoot<XMLDocument> {
+               -> DomRoot<XMLDocument<TH>> {
         let doc = reflect_dom_object(
             Box::new(XMLDocument::new_inherited(
                 window,
@@ -83,27 +84,27 @@ impl XMLDocument {
             XMLDocumentBinding::Wrap
         );
         {
-            let node = doc.upcast::<Node>();
+            let node = doc.upcast::<Node<TH>>();
             node.set_owner_doc(&doc.document);
         }
         doc
     }
 }
 
-impl XMLDocumentMethods for XMLDocument {
+impl<TH: TypeHolderTrait> XMLDocumentMethods<TH> for XMLDocument<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-document-location
-    fn GetLocation(&self) -> Option<DomRoot<Location>> {
-        self.upcast::<Document>().GetLocation()
+    fn GetLocation(&self) -> Option<DomRoot<Location<TH>>> {
+        self.upcast::<Document<TH>>().GetLocation()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.upcast::<Document>().SupportedPropertyNames()
+        self.upcast::<Document<TH>>().SupportedPropertyNames()
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
-        self.upcast::<Document>().NamedGetter(_cx, name)
+        self.upcast::<Document<TH>>().NamedGetter(_cx, name)
     }
 }

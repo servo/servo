@@ -12,7 +12,7 @@ use script::test::DomRefCell;
 use script::test::Node;
 
 struct Foo {
-    bar: DomRefCell<Dom<Node>>
+    bar: DomRefCell<Dom<Node<TH>>>
     //~^ ERROR Banned type DomRefCell<Dom<T>> detected. Use MutDom<T> instead
 }
 

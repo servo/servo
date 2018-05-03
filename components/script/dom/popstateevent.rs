@@ -19,48 +19,49 @@ use js::jsapi::{Heap, JSContext};
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]
-pub struct PopStateEvent {
-    event: Event,
+pub struct PopStateEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     state: Heap<JSVal>,
 }
 
-impl PopStateEvent {
-    fn new_inherited() -> PopStateEvent {
+impl<TH: TypeHolderTrait> PopStateEvent<TH> {
+    fn new_inherited() -> PopStateEvent<TH> {
         PopStateEvent {
             event: Event::new_inherited(),
             state: Heap::default(),
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<PopStateEvent> {
+    pub fn new_uninitialized(window: &Window<TH>) -> DomRoot<PopStateEvent<TH>> {
         reflect_dom_object(Box::new(PopStateEvent::new_inherited()),
                            window,
                            PopStateEventBinding::Wrap)
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
                state: HandleValue)
-               -> DomRoot<PopStateEvent> {
+               -> DomRoot<PopStateEvent<TH>> {
         let ev = PopStateEvent::new_uninitialized(window);
         ev.state.set(state.get());
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
                        init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>)
-                       -> Fallible<DomRoot<PopStateEvent>> {
+                       -> Fallible<DomRoot<PopStateEvent<TH>>> {
         Ok(PopStateEvent::new(window,
                               Atom::from(type_),
                               init.parent.bubbles,
@@ -68,15 +69,15 @@ impl PopStateEvent {
                               init.state.handle()))
     }
 
-    pub fn dispatch_jsval(target: &EventTarget,
-                          window: &Window,
+    pub fn dispatch_jsval(target: &EventTarget<TH>,
+                          window: &Window<TH>,
                           state: HandleValue) {
         let event = PopStateEvent::new(window, atom!("popstate"), false, false, state);
-        event.upcast::<Event>().fire(target);
+        event.upcast::<Event<TH>>().fire(target);
     }
 }
 
-impl PopStateEventMethods for PopStateEvent {
+impl<TH: TypeHolderTrait> PopStateEventMethods for PopStateEvent<TH> {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-popstateevent-state
     unsafe fn State(&self, _cx: *mut JSContext) -> JSVal {

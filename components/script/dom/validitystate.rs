@@ -9,6 +9,7 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::element::Element;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
 #[derive(JSTraceable, MallocSizeOf)]
@@ -44,15 +45,15 @@ bitflags!{
 
 // https://html.spec.whatwg.org/multipage/#validitystate
 #[dom_struct]
-pub struct ValidityState {
-    reflector_: Reflector,
-    element: Dom<Element>,
+pub struct ValidityState<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    element: Dom<Element<TH>>,
     state: ValidityStatus
 }
 
 
-impl ValidityState {
-    fn new_inherited(element: &Element) -> ValidityState {
+impl<TH: TypeHolderTrait> ValidityState<TH> {
+    fn new_inherited(element: &Element<TH>) -> ValidityState<TH> {
         ValidityState {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
@@ -60,14 +61,14 @@ impl ValidityState {
         }
     }
 
-    pub fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
+    pub fn new(window: &Window<TH>, element: &Element<TH>) -> DomRoot<ValidityState<TH>> {
         reflect_dom_object(Box::new(ValidityState::new_inherited(element)),
                            window,
                            ValidityStateBinding::Wrap)
     }
 }
 
-impl ValidityStateMethods for ValidityState {
+impl<TH: TypeHolderTrait> ValidityStateMethods for ValidityState<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing
     fn ValueMissing(&self) -> bool {
         false

@@ -9,16 +9,17 @@ use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLTableDataCellElement {
-    htmltablecellelement: HTMLTableCellElement,
+pub struct HTMLTableDataCellElement<TH: TypeHolderTrait> {
+    htmltablecellelement: HTMLTableCellElement<TH>,
 }
 
-impl HTMLTableDataCellElement {
+impl<TH: TypeHolderTrait> HTMLTableDataCellElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLTableDataCellElement {
+                     document: &Document<TH>) -> HTMLTableDataCellElement<TH> {
         HTMLTableDataCellElement {
             htmltablecellelement:
                 HTMLTableCellElement::new_inherited(local_name, prefix, document)
@@ -26,9 +27,9 @@ impl HTMLTableDataCellElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLTableDataCellElement> {
-        Node::reflect_node(
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>)
+               -> DomRoot<HTMLTableDataCellElement<TH>> {
+        Node::<TH>::reflect_node(
             Box::new(HTMLTableDataCellElement::new_inherited(
                 local_name, prefix, document
             )),

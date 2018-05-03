@@ -12,27 +12,28 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct TestBindingIterable {
-    reflector: Reflector,
+pub struct TestBindingIterable<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
     vals: DomRefCell<Vec<DOMString>>,
 }
 
-impl TestBindingIterable {
-    fn new(global: &GlobalScope) -> DomRoot<TestBindingIterable> {
+impl<TH: TypeHolderTrait> TestBindingIterable<TH> {
+    fn new(global: &GlobalScope<TH>) -> DomRoot<TestBindingIterable<TH>> {
         reflect_dom_object(Box::new(TestBindingIterable {
             reflector: Reflector::new(),
             vals: DomRefCell::new(vec![]),
         }), global, TestBindingIterableBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBindingIterable>> {
+    pub fn Constructor(global: &GlobalScope<TH>) -> Fallible<DomRoot<TestBindingIterable<TH>>> {
         Ok(TestBindingIterable::new(global))
     }
 }
 
-impl TestBindingIterableMethods for TestBindingIterable {
+impl<TH: TypeHolderTrait> TestBindingIterableMethods for TestBindingIterable<TH> {
     fn Add(&self, v: DOMString) { self.vals.borrow_mut().push(v); }
     fn Length(&self) -> u32 { self.vals.borrow().len() as u32 }
     fn GetItem(&self, n: u32) -> DOMString { self.IndexedGetter(n).unwrap_or_default() }

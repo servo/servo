@@ -22,19 +22,20 @@ use html5ever::{LocalName, Prefix};
 use net_traits::image::base::Image;
 use servo_arc::Arc;
 use std::default::Default;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLObjectElement {
-    htmlelement: HTMLElement,
+pub struct HTMLObjectElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     #[ignore_malloc_size_of = "Arc"]
     image: DomRefCell<Option<Arc<Image>>>,
-    form_owner: MutNullableDom<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement<TH>>,
 }
 
-impl HTMLObjectElement {
+impl<TH: TypeHolderTrait> HTMLObjectElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLObjectElement {
+                     document: &Document<TH>) -> HTMLObjectElement<TH> {
         HTMLObjectElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
@@ -46,8 +47,8 @@ impl HTMLObjectElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLObjectElement> {
-        Node::reflect_node(Box::new(HTMLObjectElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLObjectElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLObjectElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLObjectElementBinding::Wrap)
     }
@@ -57,11 +58,11 @@ trait ProcessDataURL {
     fn process_data_url(&self);
 }
 
-impl<'a> ProcessDataURL for &'a HTMLObjectElement {
+impl<'a, TH: TypeHolderTrait> ProcessDataURL for &'a HTMLObjectElement<TH> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&self) {
-        let elem = self.upcast::<Element>();
+        let elem = self.upcast::<Element<TH>>();
 
         // TODO: support other values
         match (elem.get_attribute(&ns!(), &local_name!("type")),
@@ -74,9 +75,9 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
     }
 }
 
-impl HTMLObjectElementMethods for HTMLObjectElement {
+impl<TH: TypeHolderTrait> HTMLObjectElementMethods<TH> for HTMLObjectElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
+    fn Validity(&self) -> DomRoot<ValidityState<TH>> {
         let window = window_from_node(self);
         ValidityState::new(&window, self.upcast())
     }
@@ -88,12 +89,12 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner()
     }
 }
 
-impl Validatable for HTMLObjectElement {
+impl<TH: TypeHolderTrait> Validatable for HTMLObjectElement<TH> {
     fn is_instance_validatable(&self) -> bool {
         true
     }
@@ -104,12 +105,12 @@ impl Validatable for HTMLObjectElement {
     }
 }
 
-impl VirtualMethods for HTMLObjectElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLObjectElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("data") => {
@@ -125,16 +126,16 @@ impl VirtualMethods for HTMLObjectElement {
     }
 }
 
-impl FormControl for HTMLObjectElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLObjectElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>) {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 }

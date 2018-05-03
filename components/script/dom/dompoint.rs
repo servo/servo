@@ -10,39 +10,40 @@ use dom::bindings::root::DomRoot;
 use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
-pub struct DOMPoint {
-    point: DOMPointReadOnly,
+pub struct DOMPoint<TH: TypeHolderTrait> {
+    point: DOMPointReadOnly<TH>,
 }
 
-impl DOMPoint {
-    fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPoint {
+impl<TH: TypeHolderTrait> DOMPoint<TH> {
+    fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPoint<TH> {
         DOMPoint {
             point: DOMPointReadOnly::new_inherited(x, y, z, w),
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
+    pub fn new(global: &GlobalScope<TH>, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint<TH>> {
         reflect_dom_object(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        x: f64,
                        y: f64,
                        z: f64,
                        w: f64)
-                       -> Fallible<DomRoot<DOMPoint>> {
+                       -> Fallible<DomRoot<DOMPoint<TH>>> {
         Ok(DOMPoint::new(global, x, y, z, w))
     }
 
-    pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> DomRoot<DOMPoint> {
+    pub fn new_from_init(global: &GlobalScope<TH>, p: &DOMPointInit) -> DomRoot<DOMPoint<TH>> {
         DOMPoint::new(global, p.x, p.y, p.z, p.w)
     }
 }
 
-impl DOMPointMethods for DOMPoint {
+impl<TH: TypeHolderTrait> DOMPointMethods for DOMPoint<TH> {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(&self) -> f64 {
         self.point.X()

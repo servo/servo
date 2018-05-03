@@ -8,29 +8,30 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct MediaError {
-    reflector_: Reflector,
+pub struct MediaError<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     code: u16,
 }
 
-impl MediaError {
-    fn new_inherited(code: u16) -> MediaError {
+impl<TH: TypeHolderTrait> MediaError<TH> {
+    fn new_inherited(code: u16) -> MediaError<TH> {
         MediaError {
             reflector_: Reflector::new(),
             code: code,
         }
     }
 
-    pub fn new(window: &Window, code: u16) -> DomRoot<MediaError> {
+    pub fn new(window: &Window<TH>, code: u16) -> DomRoot<MediaError<TH>> {
         reflect_dom_object(Box::new(MediaError::new_inherited(code)),
                            window,
                            MediaErrorBinding::Wrap)
     }
 }
 
-impl MediaErrorMethods for MediaError {
+impl<TH: TypeHolderTrait> MediaErrorMethods for MediaError<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-mediaerror-code
     fn Code(&self) -> u16 {
         self.code

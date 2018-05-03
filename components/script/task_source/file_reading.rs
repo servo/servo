@@ -6,20 +6,26 @@ use dom::domexception::DOMErrorName;
 use dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
 use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
+use std::marker::PhantomData;
 use std::sync::Arc;
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
 
 #[derive(JSTraceable)]
-pub struct FileReadingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
+pub struct FileReadingTaskSource<TH: TypeHolderTrait>(
+    pub Box<ScriptChan + Send + 'static>,
+    pub PipelineId,
+    pub PhantomData<TH>
+);
 
-impl Clone for FileReadingTaskSource {
-    fn clone(&self) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.0.clone(), self.1.clone())
+impl<TH: TypeHolderTrait> Clone for FileReadingTaskSource<TH> {
+    fn clone(&self) -> FileReadingTaskSource<TH> {
+        FileReadingTaskSource(self.0.clone(), self.1.clone(), Default::default())
     }
 }
 
-impl TaskSource for FileReadingTaskSource {
+impl<TH: TypeHolderTrait> TaskSource for FileReadingTaskSource<TH> {
     const NAME: TaskSourceName = TaskSourceName::FileReading;
 
     fn queue_with_canceller<T>(
@@ -38,33 +44,33 @@ impl TaskSource for FileReadingTaskSource {
     }
 }
 
-impl TaskOnce for FileReadingTask {
+impl<TH: TypeHolderTrait> TaskOnce for FileReadingTask<TH> {
     fn run_once(self) {
         self.handle_task();
     }
 }
 
 #[allow(dead_code)]
-pub enum FileReadingTask {
-    ProcessRead(TrustedFileReader, GenerationId),
-    ProcessReadData(TrustedFileReader, GenerationId),
-    ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
-    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Arc<Vec<u8>>),
+pub enum FileReadingTask<TH: TypeHolderTrait> {
+    ProcessRead(TrustedFileReader<TH>, GenerationId),
+    ProcessReadData(TrustedFileReader<TH>, GenerationId),
+    ProcessReadError(TrustedFileReader<TH>, GenerationId, DOMErrorName),
+    ProcessReadEOF(TrustedFileReader<TH>, GenerationId, ReadMetaData, Arc<Vec<u8>>),
 }
 
-impl FileReadingTask {
+impl<TH: TypeHolderTrait> FileReadingTask<TH> {
     pub fn handle_task(self) {
         use self::FileReadingTask::*;
 
         match self {
             ProcessRead(reader, gen_id) =>
-                FileReader::process_read(reader, gen_id),
+                FileReader::<TH>::process_read(reader, gen_id),
             ProcessReadData(reader, gen_id) =>
-                FileReader::process_read_data(reader, gen_id),
+                FileReader::<TH>::process_read_data(reader, gen_id),
             ProcessReadError(reader, gen_id, error) =>
-                FileReader::process_read_error(reader, gen_id, error),
+                FileReader::<TH>::process_read_error(reader, gen_id, error),
             ProcessReadEOF(reader, gen_id, metadata, blob_contents) =>
-                FileReader::process_read_eof(reader, gen_id, metadata, blob_contents),
+                FileReader::<TH>::process_read_eof(reader, gen_id, metadata, blob_contents),
         }
     }
 }

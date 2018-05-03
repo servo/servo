@@ -8,19 +8,20 @@ use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct XMLHttpRequestUpload {
-    eventtarget: XMLHttpRequestEventTarget
+pub struct XMLHttpRequestUpload<TH: TypeHolderTrait> {
+    eventtarget: XMLHttpRequestEventTarget<TH>
 }
 
-impl XMLHttpRequestUpload {
-    fn new_inherited() -> XMLHttpRequestUpload {
+impl<TH: TypeHolderTrait> XMLHttpRequestUpload<TH> {
+    fn new_inherited() -> XMLHttpRequestUpload<TH> {
         XMLHttpRequestUpload {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
         }
     }
-    pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<XMLHttpRequestUpload<TH>> {
         reflect_dom_object(Box::new(XMLHttpRequestUpload::new_inherited()),
                            global,
                            XMLHttpRequestUploadBinding::Wrap)

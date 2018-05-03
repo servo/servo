@@ -19,6 +19,7 @@ use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::cmp::min;
 use std::ptr::{self, NonNull};
+use typeholder::TypeHolderTrait;
 
 // This range is defined by the spec.
 // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
@@ -28,8 +29,8 @@ pub const MAX_SAMPLE_RATE: f32 = 96000.;
 type JSAudioChannel = Heap<*mut JSObject>;
 
 #[dom_struct]
-pub struct AudioBuffer {
-    reflector_: Reflector,
+pub struct AudioBuffer<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     js_channels: DomRefCell<Vec<JSAudioChannel>>,
     #[ignore_malloc_size_of = "servo_media"]
     shared_channels: DomRefCell<ServoMediaAudioBuffer>,
@@ -39,10 +40,10 @@ pub struct AudioBuffer {
     number_of_channels: u32,
 }
 
-impl AudioBuffer {
+impl<TH: TypeHolderTrait> AudioBuffer<TH> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    pub fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
+    pub fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer<TH> {
         let vec = (0..number_of_channels).map(|_| Heap::default()).collect();
         AudioBuffer {
             reflector_: Reflector::new(),
@@ -60,12 +61,12 @@ impl AudioBuffer {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        global: &Window,
+        global: &Window<TH>,
         number_of_channels: u32,
         length: u32,
         sample_rate: f32,
         initial_data: Option<&[f32]>,
-    ) -> DomRoot<AudioBuffer> {
+    ) -> DomRoot<AudioBuffer<TH>> {
         let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
         let buffer = reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap);
         buffer.set_channels(initial_data);
@@ -74,9 +75,9 @@ impl AudioBuffer {
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
     pub fn Constructor(
-        window: &Window,
+        window: &Window<TH>,
         options: &AudioBufferOptions,
-    ) -> Fallible<DomRoot<AudioBuffer>> {
+    ) -> Fallible<DomRoot<AudioBuffer<TH>>> {
         if options.numberOfChannels > MAX_CHANNEL_COUNT ||
             *options.sampleRate < MIN_SAMPLE_RATE ||
             *options.sampleRate > MAX_SAMPLE_RATE
@@ -189,7 +190,7 @@ impl AudioBuffer {
     }
 }
 
-impl AudioBufferMethods for AudioBuffer {
+impl<TH: TypeHolderTrait> AudioBufferMethods for AudioBuffer<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-samplerate
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)

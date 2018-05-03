@@ -27,10 +27,11 @@ use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
 use style::element_state::ElementState;
 use style::str::{split_html_space_chars, str_join};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLOptionElement {
-    htmlelement: HTMLElement,
+pub struct HTMLOptionElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 
     /// <https://html.spec.whatwg.org/multipage/#attr-option-selected>
     selectedness: Cell<bool>,
@@ -39,10 +40,10 @@ pub struct HTMLOptionElement {
     dirtiness: Cell<bool>,
 }
 
-impl HTMLOptionElement {
+impl<TH: TypeHolderTrait> HTMLOptionElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLOptionElement {
+                     document: &Document<TH>) -> HTMLOptionElement<TH> {
         HTMLOptionElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
@@ -55,8 +56,8 @@ impl HTMLOptionElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLOptionElement> {
-        Node::reflect_node(Box::new(HTMLOptionElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLOptionElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLOptionElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLOptionElementBinding::Wrap)
     }
@@ -70,8 +71,8 @@ impl HTMLOptionElement {
     }
 
     fn pick_if_selected_and_reset(&self) {
-        if let Some(select) = self.upcast::<Node>().ancestors()
-                .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+        if let Some(select) = self.upcast::<Node<TH>>().ancestors()
+                .filter_map(DomRoot::downcast::<HTMLSelectElement<TH>>)
                 .next() {
             if self.Selected() {
                 select.pick_option(self);
@@ -82,16 +83,16 @@ impl HTMLOptionElement {
 }
 
 // FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
-fn collect_text(element: &Element, value: &mut String) {
+fn collect_text<TH: TypeHolderTrait>(element: &Element<TH>, value: &mut String) {
     let svg_script = *element.namespace() == ns!(svg) && element.local_name() == &local_name!("script");
-    let html_script = element.is::<HTMLScriptElement>();
+    let html_script = element.is::<HTMLScriptElement<TH>>();
     if svg_script || html_script {
         return;
     }
 
-    for child in element.upcast::<Node>().children() {
-        if child.is::<Text>() {
-            let characterdata = child.downcast::<CharacterData>().unwrap();
+    for child in element.upcast::<Node<TH>>().children() {
+        if child.is::<Text<TH>>() {
+            let characterdata = child.downcast::<CharacterData<TH>>().unwrap();
             value.push_str(&characterdata.Data());
         } else if let Some(element_child) = child.downcast() {
             collect_text(element_child, value);
@@ -99,7 +100,7 @@ fn collect_text(element: &Element, value: &mut String) {
     }
 }
 
-impl HTMLOptionElementMethods for HTMLOptionElement {
+impl<TH: TypeHolderTrait> HTMLOptionElementMethods<TH> for HTMLOptionElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     make_bool_getter!(Disabled, "disabled");
 
@@ -115,25 +116,25 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+        self.upcast::<Node<TH>>().SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
-        let parent = self.upcast::<Node>().GetParentNode().and_then(|p|
-            if p.is::<HTMLOptGroupElement>() {
-                p.upcast::<Node>().GetParentNode()
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
+        let parent = self.upcast::<Node<TH>>().GetParentNode().and_then(|p|
+            if p.is::<HTMLOptGroupElement<TH>>() {
+                p.upcast::<Node<TH>>().GetParentNode()
             } else {
                 Some(p)
             }
         );
 
-        parent.and_then(|p| p.downcast::<HTMLSelectElement>().and_then(|s| s.GetForm()))
+        parent.and_then(|p| p.downcast::<HTMLSelectElement<TH>>().and_then(|s| s.GetForm()))
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value
     fn Value(&self) -> DOMString {
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         let attr = &local_name!("value");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
@@ -147,7 +148,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     fn Label(&self) -> DOMString {
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         let attr = &local_name!("label");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
@@ -178,16 +179,16 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     }
 }
 
-impl VirtualMethods for HTMLOptionElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLOptionElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("disabled") => {
-                let el = self.upcast::<Element>();
+                let el = self.upcast::<Element<TH>>();
                 match mutation {
                     AttributeMutation::Set(_) => {
                         el.set_disabled_state(true);
@@ -197,7 +198,8 @@ impl VirtualMethods for HTMLOptionElement {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_parent_disabled_state_for_option();
-                    }
+                    },
+                    AttributeMutation::_p(_) => unreachable!(),
                 }
             },
             &local_name!("selected") => {
@@ -214,6 +216,7 @@ impl VirtualMethods for HTMLOptionElement {
                             self.selectedness.set(false);
                         }
                     },
+                    AttributeMutation::_p(_) => unreachable!(),
                 }
             },
             _ => {},
@@ -225,22 +228,22 @@ impl VirtualMethods for HTMLOptionElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_parent_disabled_state_for_option();
+        self.upcast::<Element<TH>>().check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
 
         if let Some(select) = context.parent.inclusive_ancestors()
-                .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+                .filter_map(DomRoot::downcast::<HTMLSelectElement<TH>>)
                 .next() {
             select.ask_for_reset();
         }
 
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
+        let node = self.upcast::<Node<TH>>();
+        let el = self.upcast::<Element<TH>>();
         if node.GetParentNode().is_some() {
             el.check_parent_disabled_state_for_option();
         } else {

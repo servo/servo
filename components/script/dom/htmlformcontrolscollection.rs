@@ -16,21 +16,22 @@ use dom::radionodelist::RadioNodeList;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::iter;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLFormControlsCollection {
-    collection: HTMLCollection,
+pub struct HTMLFormControlsCollection<TH: TypeHolderTrait> {
+    collection: HTMLCollection<TH>,
 }
 
-impl HTMLFormControlsCollection {
-    fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLFormControlsCollection {
+impl<TH: TypeHolderTrait> HTMLFormControlsCollection<TH> {
+    fn new_inherited(root: &Node<TH>, filter: Box<CollectionFilter<TH> + 'static>) -> HTMLFormControlsCollection<TH> {
         HTMLFormControlsCollection {
             collection: HTMLCollection::new_inherited(root, filter)
         }
     }
 
-    pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>)
-        -> DomRoot<HTMLFormControlsCollection>
+    pub fn new(window: &Window<TH>, root: &Node<TH>, filter: Box<CollectionFilter<TH> + 'static>)
+        -> DomRoot<HTMLFormControlsCollection<TH>>
     {
         reflect_dom_object(Box::new(HTMLFormControlsCollection::new_inherited(root, filter)),
                            window,
@@ -44,9 +45,9 @@ impl HTMLFormControlsCollection {
     }
 }
 
-impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
+impl<TH: TypeHolderTrait> HTMLFormControlsCollectionMethods<TH> for HTMLFormControlsCollection<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
-    fn NamedItem(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedItem(&self, name: DOMString) -> Option<RadioNodeListOrElement<TH>> {
         // Step 1
         if name.is_empty() { return None; }
 
@@ -64,7 +65,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 Some(RadioNodeListOrElement::Element(elem))
             } else {
                 // Step 4-5
-                let once = iter::once(DomRoot::upcast::<Node>(elem));
+                let once = iter::once(DomRoot::upcast::<Node<TH>>(elem));
                 let list = once.chain(peekable.map(DomRoot::upcast));
                 let global = self.global();
                 let window = global.as_window();
@@ -76,7 +77,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
-    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement<TH>> {
         self.NamedItem(name)
     }
 
@@ -90,7 +91,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element<TH>>> {
         self.collection.IndexedGetter(index)
     }
 }

@@ -9,18 +9,19 @@ use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct DOMRectReadOnly {
-    reflector_: Reflector,
+pub struct DOMRectReadOnly<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     x: Cell<f64>,
     y: Cell<f64>,
     width: Cell<f64>,
     height: Cell<f64>,
 }
 
-impl DOMRectReadOnly {
-    pub fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRectReadOnly {
+impl<TH: TypeHolderTrait> DOMRectReadOnly<TH> {
+    pub fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRectReadOnly<TH> {
         DOMRectReadOnly {
             x: Cell::new(x),
             y: Cell::new(y),
@@ -30,23 +31,21 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               x: f64,
+    pub fn new(global: &GlobalScope<TH>,               x: f64,
                y: f64,
                width: f64,
                height: f64)
-               -> DomRoot<DOMRectReadOnly> {
+               -> DomRoot<DOMRectReadOnly<TH>> {
         reflect_dom_object(Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
                            global,
                            Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       x: f64,
+    pub fn Constructor(global: &GlobalScope<TH>,                       x: f64,
                        y: f64,
                        width: f64,
                        height: f64)
-                       -> Fallible<DomRoot<DOMRectReadOnly>> {
+                       -> Fallible<DomRoot<DOMRectReadOnly<TH>>> {
         Ok(DOMRectReadOnly::new(global, x, y, width, height))
     }
 
@@ -67,7 +66,7 @@ impl DOMRectReadOnly {
     }
 }
 
-impl DOMRectReadOnlyMethods for DOMRectReadOnly {
+impl<TH: TypeHolderTrait> DOMRectReadOnlyMethods for DOMRectReadOnly<TH> {
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x
     fn X(&self) -> f64 {
         self.x.get()

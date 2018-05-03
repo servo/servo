@@ -18,44 +18,43 @@ use js::jsapi::{Heap, JSContext};
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
-pub struct CustomEvent {
-    event: Event,
+pub struct CustomEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     detail: Heap<JSVal>,
 }
 
-impl CustomEvent {
-    fn new_inherited() -> CustomEvent {
+impl<TH: TypeHolderTrait> CustomEvent<TH> {
+    fn new_inherited() -> CustomEvent<TH> {
         CustomEvent {
             event: Event::new_inherited(),
             detail: Heap::default(),
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CustomEvent> {
+    pub fn new_uninitialized(global: &GlobalScope<TH>) -> DomRoot<CustomEvent<TH>> {
         reflect_dom_object(Box::new(CustomEvent::new_inherited()),
                            global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(global: &GlobalScope,
-               type_: Atom,
+    pub fn new(global: &GlobalScope<TH>,               type_: Atom,
                bubbles: bool,
                cancelable: bool,
                detail: HandleValue)
-               -> DomRoot<CustomEvent> {
+               -> DomRoot<CustomEvent<TH>> {
         let ev = CustomEvent::new_uninitialized(global);
         ev.init_custom_event(type_, bubbles, cancelable, detail);
         ev
     }
 
     #[allow(unsafe_code)]
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
+    pub fn Constructor(global: &GlobalScope<TH>,                       type_: DOMString,
                        init: RootedTraceableBox<CustomEventBinding::CustomEventInit>)
-                       -> Fallible<DomRoot<CustomEvent>> {
+                       -> Fallible<DomRoot<CustomEvent<TH>>> {
         Ok(CustomEvent::new(global,
                             Atom::from(type_),
                             init.parent.bubbles,
@@ -68,7 +67,7 @@ impl CustomEvent {
                          can_bubble: bool,
                          cancelable: bool,
                          detail: HandleValue) {
-        let event = self.upcast::<Event>();
+        let event = self.upcast::<Event<TH>>();
         if event.dispatching() {
             return;
         }
@@ -78,7 +77,7 @@ impl CustomEvent {
     }
 }
 
-impl CustomEventMethods for CustomEvent {
+impl<TH: TypeHolderTrait> CustomEventMethods for CustomEvent<TH> {
     #[allow(unsafe_code)]
     // https://dom.spec.whatwg.org/#dom-customevent-detail
     unsafe fn Detail(&self, _cx: *mut JSContext) -> JSVal {

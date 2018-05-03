@@ -15,11 +15,12 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
-pub struct CanvasGradient {
-    reflector_: Reflector,
+pub struct CanvasGradient<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     style: CanvasGradientStyle,
     stops: DomRefCell<Vec<CanvasGradientStop>>,
 }
@@ -30,8 +31,8 @@ pub enum CanvasGradientStyle {
     Radial(RadialGradientStyle),
 }
 
-impl CanvasGradient {
-    fn new_inherited(style: CanvasGradientStyle) -> CanvasGradient {
+impl<TH: TypeHolderTrait> CanvasGradient<TH> {
+    fn new_inherited(style: CanvasGradientStyle) -> CanvasGradient<TH> {
         CanvasGradient {
             reflector_: Reflector::new(),
             style: style,
@@ -39,14 +40,14 @@ impl CanvasGradient {
         }
     }
 
-    pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
+    pub fn new(global: &GlobalScope<TH>, style: CanvasGradientStyle) -> DomRoot<CanvasGradient<TH>> {
         reflect_dom_object(Box::new(CanvasGradient::new_inherited(style)),
                            global,
                            CanvasGradientBinding::Wrap)
     }
 }
 
-impl CanvasGradientMethods for CanvasGradient {
+impl<TH: TypeHolderTrait> CanvasGradientMethods for CanvasGradient<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
     fn AddColorStop(&self, offset: Finite<f64>, color: DOMString) -> ErrorResult {
         if *offset < 0f64 || *offset > 1f64 {
@@ -78,7 +79,7 @@ pub trait ToFillOrStrokeStyle {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle;
 }
 
-impl<'a> ToFillOrStrokeStyle for &'a CanvasGradient {
+impl<'a, TH: TypeHolderTrait> ToFillOrStrokeStyle for &'a CanvasGradient<TH> {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         let gradient_stops = self.stops.borrow().clone();
         match self.style {

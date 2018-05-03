@@ -18,12 +18,13 @@ use dom_struct::dom_struct;
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::Cow;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 unsafe_no_jsmanaged_fields!(Key);
 
 #[dom_struct]
-pub struct KeyboardEvent {
-    uievent: UIEvent,
+pub struct KeyboardEvent<TH: TypeHolderTrait> {
+    uievent: UIEvent<TH>,
     key: Cell<Option<Key>>,
     key_string: DomRefCell<DOMString>,
     code: DomRefCell<DOMString>,
@@ -39,8 +40,8 @@ pub struct KeyboardEvent {
     printable: Cell<Option<char>>,
 }
 
-impl KeyboardEvent {
-    fn new_inherited() -> KeyboardEvent {
+impl<TH: TypeHolderTrait> KeyboardEvent<TH> {
+    fn new_inherited() -> KeyboardEvent<TH> {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
@@ -59,17 +60,17 @@ impl KeyboardEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<KeyboardEvent> {
+    pub fn new_uninitialized(window: &Window<TH>) -> DomRoot<KeyboardEvent<TH>> {
         reflect_dom_object(Box::new(KeyboardEvent::new_inherited()),
                            window,
                            KeyboardEventBinding::Wrap)
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                type_: DOMString,
                can_bubble: bool,
                cancelable: bool,
-               view: Option<&Window>,
+               view: Option<&Window<TH>>,
                _detail: i32,
                ch: Option<char>,
                key: Option<Key>,
@@ -83,8 +84,8 @@ impl KeyboardEvent {
                shift_key: bool,
                meta_key: bool,
                char_code: Option<u32>,
-               key_code: u32) -> DomRoot<KeyboardEvent> {
-        let ev = KeyboardEvent::new_uninitialized(window);
+               key_code: u32) -> DomRoot<KeyboardEvent<TH>> {
+        let ev = KeyboardEvent::<TH>::new_uninitialized(window);
         ev.InitKeyboardEvent(type_, can_bubble, cancelable, view, key_string, location,
                              DOMString::new(), repeat, DOMString::new());
         ev.key.set(key);
@@ -100,10 +101,10 @@ impl KeyboardEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
-                       init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<DomRoot<KeyboardEvent>> {
-        let event = KeyboardEvent::new(window,
+                       init: &KeyboardEventBinding::KeyboardEventInit<TH>) -> Fallible<DomRoot<KeyboardEvent<TH>>> {
+        let event = KeyboardEvent::<TH>::new(window,
                                        type_,
                                        init.parent.parent.parent.bubbles,
                                        init.parent.parent.parent.cancelable,
@@ -131,7 +132,7 @@ impl KeyboardEvent {
 }
 
 
-impl KeyboardEvent {
+impl<TH: TypeHolderTrait> KeyboardEvent<TH> {
     pub fn printable(&self) -> Option<char> {
         self.printable.get()
     }
@@ -756,23 +757,23 @@ impl KeyEventProperties {
     }
 }
 
-impl KeyboardEventMethods for KeyboardEvent {
+impl<TH: TypeHolderTrait> KeyboardEventMethods<TH> for KeyboardEvent<TH> {
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent
     fn InitKeyboardEvent(&self,
                          type_arg: DOMString,
                          can_bubble_arg: bool,
                          cancelable_arg: bool,
-                         view_arg: Option<&Window>,
+                         view_arg: Option<&Window<TH>>,
                          key_arg: DOMString,
                          location_arg: u32,
                          _modifiers_list_arg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
-        if self.upcast::<Event>().dispatching() {
+        if self.upcast::<Event<TH>>().dispatching() {
             return;
         }
 
-        self.upcast::<UIEvent>()
+        self.upcast::<UIEvent<TH>>()
             .InitUIEvent(type_arg, can_bubble_arg, cancelable_arg, view_arg, 0);
         *self.key_string.borrow_mut() = key_arg;
         self.location.set(location_arg);

@@ -20,22 +20,23 @@ use servo_media::audio::oscillator_node::OscillatorNodeOptions as ServoMediaOsci
 use servo_media::audio::oscillator_node::OscillatorType as ServoMediaOscillatorType;
 use servo_media::audio::param::ParamType;
 use std::f32;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct OscillatorNode {
-    source_node: AudioScheduledSourceNode,
+pub struct OscillatorNode<TH: TypeHolderTrait> {
+    source_node: AudioScheduledSourceNode<TH>,
     oscillator_type: OscillatorType,
-    frequency: Dom<AudioParam>,
-    detune: Dom<AudioParam>,
+    frequency: Dom<AudioParam<TH>>,
+    detune: Dom<AudioParam<TH>>,
 }
 
-impl OscillatorNode {
+impl<TH: TypeHolderTrait> OscillatorNode<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         oscillator_options: &OscillatorOptions,
-    ) -> OscillatorNode {
+    ) -> OscillatorNode<TH> {
         let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
@@ -79,31 +80,31 @@ impl OscillatorNode {
 
     #[allow(unrooted_must_root)]
     pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &OscillatorOptions,
-    ) -> DomRoot<OscillatorNode> {
+    ) -> DomRoot<OscillatorNode<TH>> {
         let node = OscillatorNode::new_inherited(window, context, options);
         reflect_dom_object(Box::new(node), window, OscillatorNodeBinding::Wrap)
     }
 
     pub fn Constructor(
-        window: &Window,
-        context: &BaseAudioContext,
+        window: &Window<TH>,
+        context: &BaseAudioContext<TH>,
         options: &OscillatorOptions,
-    ) -> Fallible<DomRoot<OscillatorNode>> {
+    ) -> Fallible<DomRoot<OscillatorNode<TH>>> {
         Ok(OscillatorNode::new(window, context, options))
     }
 }
 
-impl OscillatorNodeMethods for OscillatorNode {
+impl<TH: TypeHolderTrait> OscillatorNodeMethods<TH> for OscillatorNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency
-    fn Frequency(&self) -> DomRoot<AudioParam> {
+    fn Frequency(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.frequency)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune
-    fn Detune(&self) -> DomRoot<AudioParam> {
+    fn Detune(&self) -> DomRoot<AudioParam<TH>> {
         DomRoot::from_ref(&self.detune)
     }
 }

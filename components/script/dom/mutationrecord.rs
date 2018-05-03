@@ -11,29 +11,30 @@ use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct MutationRecord {
-    reflector_: Reflector,
+pub struct MutationRecord<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     record_type: DOMString,
-    target: Dom<Node>,
+    target: Dom<Node<TH>>,
     attribute_name: Option<DOMString>,
     attribute_namespace: Option<DOMString>,
     old_value: Option<DOMString>,
-    added_nodes: MutNullableDom<NodeList>,
-    removed_nodes: MutNullableDom<NodeList>,
-    next_sibling: Option<Dom<Node>>,
-    prev_sibling: Option<Dom<Node>>,
+    added_nodes: MutNullableDom<NodeList<TH>>,
+    removed_nodes: MutNullableDom<NodeList<TH>>,
+    next_sibling: Option<Dom<Node<TH>>>,
+    prev_sibling: Option<Dom<Node<TH>>>,
 }
 
-impl MutationRecord {
+impl<TH: TypeHolderTrait> MutationRecord<TH> {
     #[allow(unrooted_must_root)]
     pub fn attribute_mutated(
-        target: &Node,
+        target: &Node<TH>,
         attribute_name: &LocalName,
         attribute_namespace: Option<&Namespace>,
         old_value: Option<DOMString>,
-    ) -> DomRoot<MutationRecord> {
+    ) -> DomRoot<MutationRecord<TH>> {
         let record = Box::new(MutationRecord::new_inherited(
             "attributes",
             target,
@@ -46,9 +47,9 @@ impl MutationRecord {
     }
 
     pub fn character_data_mutated(
-        target: &Node,
+        target: &Node<TH>,
         old_value: Option<DOMString>,
-    ) -> DomRoot<MutationRecord> {
+    ) -> DomRoot<MutationRecord<TH>> {
         reflect_dom_object(
             Box::new(MutationRecord::new_inherited(
                 "characterData",
@@ -63,12 +64,12 @@ impl MutationRecord {
     }
 
     pub fn child_list_mutated(
-        target: &Node,
-        added_nodes: Option<&[&Node]>,
-        removed_nodes: Option<&[&Node]>,
-        next_sibling: Option<&Node>,
-        prev_sibling: Option<&Node>,
-    ) -> DomRoot<MutationRecord> {
+        target: &Node<TH>,
+        added_nodes: Option<&[&Node<TH>]>,
+        removed_nodes: Option<&[&Node<TH>]>,
+        next_sibling: Option<&Node<TH>>,
+        prev_sibling: Option<&Node<TH>>,
+    ) -> DomRoot<MutationRecord<TH>> {
         let window = window_from_node(target);
         let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
         let removed_nodes = removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
@@ -90,15 +91,15 @@ impl MutationRecord {
 
     fn new_inherited(
         record_type: &str,
-        target: &Node,
+        target: &Node<TH>,
         attribute_name: Option<DOMString>,
         attribute_namespace: Option<DOMString>,
         old_value: Option<DOMString>,
-        added_nodes: Option<&NodeList>,
-        removed_nodes: Option<&NodeList>,
-        next_sibling: Option<&Node>,
-        prev_sibling: Option<&Node>,
-    ) -> MutationRecord {
+        added_nodes: Option<&NodeList<TH>>,
+        removed_nodes: Option<&NodeList<TH>>,
+        next_sibling: Option<&Node<TH>>,
+        prev_sibling: Option<&Node<TH>>,
+    ) -> MutationRecord<TH> {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: DOMString::from(record_type),
@@ -114,14 +115,14 @@ impl MutationRecord {
     }
 }
 
-impl MutationRecordMethods for MutationRecord {
+impl<TH: TypeHolderTrait> MutationRecordMethods<TH> for MutationRecord<TH> {
     // https://dom.spec.whatwg.org/#dom-mutationrecord-type
     fn Type(&self) -> DOMString {
         self.record_type.clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-target
-    fn Target(&self) -> DomRoot<Node> {
+    fn Target(&self) -> DomRoot<Node<TH>> {
         DomRoot::from_ref(&*self.target)
     }
 
@@ -141,7 +142,7 @@ impl MutationRecordMethods for MutationRecord {
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
-    fn AddedNodes(&self) -> DomRoot<NodeList> {
+    fn AddedNodes(&self) -> DomRoot<NodeList<TH>> {
         self.added_nodes.or_init(|| {
             let window = window_from_node(&*self.target);
             NodeList::empty(&window)
@@ -149,7 +150,7 @@ impl MutationRecordMethods for MutationRecord {
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
-    fn RemovedNodes(&self) -> DomRoot<NodeList> {
+    fn RemovedNodes(&self) -> DomRoot<NodeList<TH>> {
         self.removed_nodes.or_init(|| {
             let window = window_from_node(&*self.target);
             NodeList::empty(&window)
@@ -157,12 +158,12 @@ impl MutationRecordMethods for MutationRecord {
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
-    fn GetPreviousSibling(&self) -> Option<DomRoot<Node>> {
+    fn GetPreviousSibling(&self) -> Option<DomRoot<Node<TH>>> {
         self.prev_sibling.as_ref().map(|node| DomRoot::from_ref(&**node))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
-    fn GetNextSibling(&self) -> Option<DomRoot<Node>> {
+    fn GetNextSibling(&self) -> Option<DomRoot<Node<TH>>> {
         self.next_sibling.as_ref().map(|node| DomRoot::from_ref(&**node))
     }
 

@@ -18,48 +18,50 @@ use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use std::marker::PhantomData;
 use style::attr::AttrValue;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLTableSectionElement {
-    htmlelement: HTMLElement,
+pub struct HTMLTableSectionElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLTableSectionElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-                     -> HTMLTableSectionElement {
+impl<TH: TypeHolderTrait> HTMLTableSectionElement<TH> {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>)
+                     -> HTMLTableSectionElement<TH> {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLTableSectionElement> {
-        Node::reflect_node(Box::new(HTMLTableSectionElement::new_inherited(local_name, prefix, document)),
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>)
+               -> DomRoot<HTMLTableSectionElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLTableSectionElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTableSectionElementBinding::Wrap)
     }
 }
 
 #[derive(JSTraceable)]
-struct RowsFilter;
-impl CollectionFilter for RowsFilter {
-    fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>() &&
-            elem.upcast::<Node>().GetParentNode().r() == Some(root)
+struct RowsFilter<TH: TypeHolderTrait>(PhantomData<TH>);
+impl<TH: TypeHolderTrait> CollectionFilter<TH> for RowsFilter<TH> {
+    fn filter(&self, elem: &Element<TH>, root: &Node<TH>) -> bool {
+        elem.is::<HTMLTableRowElement<TH>>() &&
+            elem.upcast::<Node<TH>>().GetParentNode().r() == Some(root)
     }
 }
 
-impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
+impl<TH: TypeHolderTrait> HTMLTableSectionElementMethods<TH> for HTMLTableSectionElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
-    fn Rows(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::create(&window_from_node(self), self.upcast(), Box::new(RowsFilter))
+    fn Rows(&self) -> DomRoot<HTMLCollection<TH>> {
+        HTMLCollection::create(&window_from_node(self), self.upcast(), Box::new(RowsFilter(Default::default())))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
-    fn InsertRow(&self, index: i32) -> Fallible<DomRoot<HTMLElement>> {
-        let node = self.upcast::<Node>();
+    fn InsertRow(&self, index: i32) -> Fallible<DomRoot<HTMLElement<TH>>> {
+        let node = self.upcast::<Node<TH>>();
         node.insert_cell_or_row(
             index,
             || self.Rows(),
@@ -68,11 +70,11 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
     fn DeleteRow(&self, index: i32) -> ErrorResult {
-        let node = self.upcast::<Node>();
+        let node = self.upcast::<Node<TH>>();
         node.delete_cell_or_row(
             index,
             || self.Rows(),
-            |n| n.is::<HTMLTableRowElement>())
+            |n| n.is::<HTMLTableRowElement<TH>>())
     }
 }
 
@@ -81,10 +83,10 @@ pub trait HTMLTableSectionElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement> {
+impl<TH: TypeHolderTrait> HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement<TH>> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -92,9 +94,9 @@ impl HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement>
     }
 }
 
-impl VirtualMethods for HTMLTableSectionElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLTableSectionElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

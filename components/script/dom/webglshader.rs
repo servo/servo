@@ -21,8 +21,10 @@ use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
 use offscreen_gl_context::GLLimits;
 use std::cell::Cell;
+use std::marker::PhantomData;
 use std::os::raw::c_int;
 use std::sync::{ONCE_INIT, Once};
+use typeholder::TypeHolderTrait;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ShaderCompilationStatus {
@@ -32,8 +34,8 @@ pub enum ShaderCompilationStatus {
 }
 
 #[dom_struct]
-pub struct WebGLShader {
-    webgl_object: WebGLObject,
+pub struct WebGLShader<TH: TypeHolderTrait> {
+    webgl_object: WebGLObject<TH>,
     id: WebGLShaderId,
     gl_type: u32,
     source: DomRefCell<DOMString>,
@@ -45,9 +47,9 @@ pub struct WebGLShader {
 
 static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
 
-impl WebGLShader {
+impl<TH: TypeHolderTrait> WebGLShader<TH> {
     fn new_inherited(
-        context: &WebGLRenderingContext,
+        context: &WebGLRenderingContext<TH>,
         id: WebGLShaderId,
         shader_type: u32,
     ) -> Self {
@@ -64,14 +66,14 @@ impl WebGLShader {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext, shader_type: u32) -> Option<DomRoot<Self>> {
+    pub fn maybe_new(context: &WebGLRenderingContext<TH>, shader_type: u32) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateShader(shader_type, sender));
         receiver.recv().unwrap().map(|id| WebGLShader::new(context, id, shader_type))
     }
 
     pub fn new(
-        context: &WebGLRenderingContext,
+        context: &WebGLRenderingContext<TH>,
         id: WebGLShaderId,
         shader_type: u32,
     ) -> DomRoot<Self> {
@@ -84,7 +86,7 @@ impl WebGLShader {
 }
 
 
-impl WebGLShader {
+impl<TH: TypeHolderTrait> WebGLShader<TH> {
     pub fn id(&self) -> WebGLShaderId {
         self.id
     }
@@ -99,7 +101,7 @@ impl WebGLShader {
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
         limits: &GLLimits,
-        ext: &WebGLExtensions,
+        ext: &WebGLExtensions<TH>,
     ) -> WebGLResult<()> {
         if self.marked_for_deletion.get() && !self.is_attached() {
             return Err(WebGLError::InvalidValue);
@@ -118,8 +120,8 @@ impl WebGLShader {
             MaxCombinedTextureImageUnits: limits.max_combined_texture_image_units as c_int,
             MaxTextureImageUnits: limits.max_texture_image_units as c_int,
             MaxFragmentUniformVectors: limits.max_fragment_uniform_vectors as c_int,
-            OES_standard_derivatives: ext.is_enabled::<OESStandardDerivatives>() as c_int,
-            EXT_shader_texture_lod: ext.is_enabled::<EXTShaderTextureLod>() as c_int,
+            OES_standard_derivatives: ext.is_enabled::<OESStandardDerivatives<TH>>() as c_int,
+            EXT_shader_texture_lod: ext.is_enabled::<EXTShaderTextureLod<TH>>() as c_int,
             FragmentPrecisionHigh: 1,
             ..BuiltInResources::default()
         };
@@ -164,7 +166,7 @@ impl WebGLShader {
                 // NOTE: At this point we should be pretty sure that the compilation in the paint thread
                 // will succeed.
                 // It could be interesting to retrieve the info log from the paint thread though
-                self.upcast::<WebGLObject>()
+                self.upcast::<WebGLObject<TH>>()
                     .context()
                     .send_command(WebGLCommand::CompileShader(self.id, translated_source));
                 self.compilation_status.set(ShaderCompilationStatus::Succeeded);
@@ -186,7 +188,7 @@ impl WebGLShader {
     pub fn mark_for_deletion(&self) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
-            self.upcast::<WebGLObject>()
+            self.upcast::<WebGLObject<TH>>()
                 .context()
                 .send_command(WebGLCommand::DeleteShader(self.id));
         }
@@ -233,7 +235,7 @@ impl WebGLShader {
     }
 }
 
-impl Drop for WebGLShader {
+impl<TH: TypeHolderTrait> Drop for WebGLShader<TH> {
     fn drop(&mut self) {
         self.mark_for_deletion();
     }

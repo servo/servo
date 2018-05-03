@@ -10,17 +10,18 @@ use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct GamepadButton {
-    reflector_: Reflector,
+pub struct GamepadButton<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     pressed: Cell<bool>,
     touched: Cell<bool>,
     value: Cell<f64>,
 }
 
-impl GamepadButton {
-    pub fn new_inherited(pressed: bool, touched: bool) -> GamepadButton {
+impl<TH: TypeHolderTrait> GamepadButton<TH> {
+    pub fn new_inherited(pressed: bool, touched: bool) -> GamepadButton<TH> {
         Self {
             reflector_: Reflector::new(),
             pressed: Cell::new(pressed),
@@ -29,14 +30,14 @@ impl GamepadButton {
         }
     }
 
-    pub fn new(global: &GlobalScope, pressed: bool, touched: bool) -> DomRoot<GamepadButton> {
+    pub fn new(global: &GlobalScope<TH>, pressed: bool, touched: bool) -> DomRoot<GamepadButton<TH>> {
         reflect_dom_object(Box::new(GamepadButton::new_inherited(pressed, touched)),
                            global,
                            GamepadButtonBinding::Wrap)
     }
 }
 
-impl GamepadButtonMethods for GamepadButton {
+impl<TH: TypeHolderTrait> GamepadButtonMethods for GamepadButton<TH> {
     // https://www.w3.org/TR/gamepad/#widl-GamepadButton-pressed
     fn Pressed(&self) -> bool {
         self.pressed.get()
@@ -53,7 +54,7 @@ impl GamepadButtonMethods for GamepadButton {
     }
 }
 
-impl GamepadButton {
+impl<TH: TypeHolderTrait> GamepadButton<TH> {
     pub fn update(&self, pressed: bool, touched: bool) {
         self.pressed.set(pressed);
         self.touched.set(touched);

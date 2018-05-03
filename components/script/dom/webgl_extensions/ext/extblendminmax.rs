@@ -9,22 +9,23 @@ use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct EXTBlendMinmax {
-    reflector_: Reflector,
+pub struct EXTBlendMinmax<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl EXTBlendMinmax {
+impl<TH: TypeHolderTrait> EXTBlendMinmax<TH> {
     fn new_inherited() -> Self {
         Self { reflector_: Reflector::new() }
     }
 }
 
-impl WebGLExtension for EXTBlendMinmax {
+impl<TH: TypeHolderTrait> WebGLExtension<TH> for EXTBlendMinmax<TH> {
     type Extension = Self;
 
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
+    fn new(ctx: &WebGLRenderingContext<TH>) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self::new_inherited()),
             &*ctx.global(),
@@ -36,11 +37,11 @@ impl WebGLExtension for EXTBlendMinmax {
         WebGLExtensionSpec::Specific(WebGLVersion::WebGL1)
     }
 
-    fn is_supported(ext: &WebGLExtensions) -> bool {
+    fn is_supported(ext: &WebGLExtensions<TH>) -> bool {
         ext.supports_gl_extension("GL_EXT_blend_minmax")
     }
 
-    fn enable(ext: &WebGLExtensions) {
+    fn enable(ext: &WebGLExtensions<TH>) {
         ext.enable_blend_minmax();
     }
 

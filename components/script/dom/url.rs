@@ -19,22 +19,23 @@ use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::ipc;
 use servo_url::ServoUrl;
 use std::default::Default;
+use typeholder::TypeHolderTrait;
 use uuid::Uuid;
 
 // https://url.spec.whatwg.org/#url
 #[dom_struct]
-pub struct URL {
-    reflector_: Reflector,
+pub struct URL<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 
     // https://url.spec.whatwg.org/#concept-url-url
     url: DomRefCell<ServoUrl>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
-    search_params: MutNullableDom<URLSearchParams>,
+    search_params: MutNullableDom<URLSearchParams<TH>>,
 }
 
-impl URL {
-    fn new_inherited(url: ServoUrl) -> URL {
+impl<TH: TypeHolderTrait> URL<TH> {
+    fn new_inherited(url: ServoUrl) -> URL<TH> {
         URL {
             reflector_: Reflector::new(),
             url: DomRefCell::new(url),
@@ -42,8 +43,8 @@ impl URL {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object(Box::new(URL::new_inherited(url)),
+    pub fn new(global: &GlobalScope<TH>, url: ServoUrl) -> DomRoot<URL<TH>> {
+        reflect_dom_object(Box::new(URL::<TH>::new_inherited(url)),
                            global, URLBinding::Wrap)
     }
 
@@ -57,11 +58,11 @@ impl URL {
     }
 }
 
-impl URL {
+impl<TH: TypeHolderTrait> URL<TH> {
     // https://url.spec.whatwg.org/#constructors
-    pub fn Constructor(global: &GlobalScope, url: USVString,
+    pub fn Constructor(global: &GlobalScope<TH>, url: USVString,
                        base: Option<USVString>)
-                       -> Fallible<DomRoot<URL>> {
+                       -> Fallible<DomRoot<URL<TH>>> {
         let parsed_base = match base {
             None => {
                 // Step 1.
@@ -87,7 +88,7 @@ impl URL {
         };
         // Step 5: Skip (see step 8 below).
         // Steps 6-7.
-        let result = URL::new(global, parsed_url);
+        let result = URL::<TH>::new(global, parsed_url);
         // Step 8: Instead of construcing a new `URLSearchParams` object here, construct it
         //         on-demand inside `URL::SearchParams`.
         // Step 9.
@@ -95,18 +96,18 @@ impl URL {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-createObjectURL
-    pub fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
+    pub fn CreateObjectURL(global: &GlobalScope<TH>, blob: &Blob<TH>) -> DOMString {
         // XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         //      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
         let origin = get_blob_origin(&global.get_url());
 
         let id = blob.get_blob_url_id();
 
-        DOMString::from(URL::unicode_serialization_blob_url(&origin, &id))
+        DOMString::from(URL::<TH>::unicode_serialization_blob_url(&origin, &id))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
-    pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
+    pub fn RevokeObjectURL(global: &GlobalScope<TH>, url: DOMString) {
         /*
             If the value provided for the url argument is not a Blob URL OR
             if the value provided for the url argument does not have an entry in the Blob URL Store,
@@ -145,7 +146,7 @@ impl URL {
     }
 }
 
-impl URLMethods for URL {
+impl<TH: TypeHolderTrait> URLMethods<TH> for URL<TH> {
     // https://url.spec.whatwg.org/#dom-url-hash
     fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url.borrow())
@@ -254,7 +255,7 @@ impl URLMethods for URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
-    fn SearchParams(&self) -> DomRoot<URLSearchParams> {
+    fn SearchParams(&self) -> DomRoot<URLSearchParams<TH>> {
         self.search_params.or_init(|| {
             URLSearchParams::new(&self.global(), Some(self))
         })

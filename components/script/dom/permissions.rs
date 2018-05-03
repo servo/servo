@@ -23,6 +23,7 @@ use servo_config::prefs::PREFS;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use tinyfiledialogs::{self, MessageBoxIcon, YesNo};
+use typeholder::TypeHolderTrait;
 
 #[cfg(target_os = "linux")]
 const DIALOG_TITLE: &'static str = "Permission request dialog";
@@ -31,15 +32,15 @@ const NONSECURE_DIALOG_MESSAGE: &'static str = "feature is only safe to use in s
 const REQUEST_DIALOG_MESSAGE: &'static str = "Do you want to grant permission for";
 const ROOT_DESC_CONVERSION_ERROR: &'static str = "Can't convert to an IDL value of type PermissionDescriptor";
 
-pub trait PermissionAlgorithm {
+pub trait PermissionAlgorithm<TH: TypeHolderTrait> {
     type Descriptor;
     type Status;
     fn create_descriptor(cx: *mut JSContext,
                          permission_descriptor_obj: *mut JSObject)
                          -> Result<Self::Descriptor, Error>;
-    fn permission_query(cx: *mut JSContext, promise: &Rc<Promise>,
+    fn permission_query(cx: *mut JSContext, promise: &Rc<Promise<TH>>,
                         descriptor: &Self::Descriptor, status: &Self::Status);
-    fn permission_request(cx: *mut JSContext, promise: &Rc<Promise>,
+    fn permission_request(cx: *mut JSContext, promise: &Rc<Promise<TH>>,
                           descriptor: &Self::Descriptor, status: &Self::Status);
     fn permission_revoke(descriptor: &Self::Descriptor, status: &Self::Status);
 }
@@ -52,18 +53,18 @@ enum Operation {
 
 // https://w3c.github.io/permissions/#permissions
 #[dom_struct]
-pub struct Permissions {
-    reflector_: Reflector,
+pub struct Permissions<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl Permissions {
-    pub fn new_inherited() -> Permissions {
+impl<TH: TypeHolderTrait> Permissions<TH> {
+    pub fn new_inherited() -> Permissions<TH> {
         Permissions {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<Permissions<TH>> {
         reflect_dom_object(Box::new(Permissions::new_inherited()),
                            global,
                            PermissionsBinding::Wrap)
@@ -77,16 +78,16 @@ impl Permissions {
                   op: Operation,
                   cx: *mut JSContext,
                   permissionDesc: *mut JSObject,
-                  promise: Option<Rc<Promise>>)
-                  -> Rc<Promise> {
+                  promise: Option<Rc<Promise<TH>>>)
+                  -> Rc<Promise<TH>> {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
-            None => Promise::new(&self.global()),
+            None => Promise::<TH>::new(&self.global()),
         };
 
         // (Query, Request, Revoke) Step 1.
-        let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
+        let root_desc = match Permissions::<TH>::create_descriptor(cx, permissionDesc) {
             Ok(descriptor) => descriptor,
             Err(error) => {
                 p.reject_error(error);
@@ -100,7 +101,7 @@ impl Permissions {
         // (Query, Request, Revoke) Step 2.
         match root_desc.name {
             PermissionName::Bluetooth => {
-                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
+                let bluetooth_desc = match Bluetooth::<TH>::create_descriptor(cx, permissionDesc) {
                     Ok(descriptor) => descriptor,
                     Err(error) => {
                         p.reject_error(error);
@@ -174,32 +175,32 @@ impl Permissions {
     }
 }
 
-impl PermissionsMethods for Permissions {
+impl<TH: TypeHolderTrait> PermissionsMethods<TH> for Permissions<TH> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-query
-    unsafe fn Query(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    unsafe fn Query(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise<TH>> {
         self.manipulate(Operation::Query, cx, permissionDesc, None)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-request
-    unsafe fn Request(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    unsafe fn Request(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise<TH>> {
         self.manipulate(Operation::Request, cx, permissionDesc, None)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    unsafe fn Revoke(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    unsafe fn Revoke(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise<TH>> {
         self.manipulate(Operation::Revoke, cx, permissionDesc, None)
     }
 }
 
-impl PermissionAlgorithm for Permissions {
+impl<TH: TypeHolderTrait> PermissionAlgorithm<TH> for Permissions<TH> {
     type Descriptor = PermissionDescriptor;
-    type Status = PermissionStatus;
+    type Status = PermissionStatus<TH>;
 
     #[allow(unsafe_code)]
     fn create_descriptor(cx: *mut JSContext,
@@ -218,18 +219,18 @@ impl PermissionAlgorithm for Permissions {
 
     // https://w3c.github.io/permissions/#boolean-permission-query-algorithm
     fn permission_query(_cx: *mut JSContext,
-                        _promise: &Rc<Promise>,
+                        _promise: &Rc<Promise<TH>>,
                         _descriptor: &PermissionDescriptor,
-                        status: &PermissionStatus) {
+                        status: &PermissionStatus<TH>) {
         // Step 1.
-        status.set_state(get_descriptor_permission_state(status.get_query(), None));
+        status.set_state(get_descriptor_permission_state::<TH>(status.get_query(), None));
     }
 
     // https://w3c.github.io/permissions/#boolean-permission-request-algorithm
     fn permission_request(cx: *mut JSContext,
-                          promise: &Rc<Promise>,
+                          promise: &Rc<Promise<TH>>,
                           descriptor: &PermissionDescriptor,
-                          status: &PermissionStatus) {
+                          status: &PermissionStatus<TH>) {
         // Step 1.
         Permissions::permission_query(cx, promise, descriptor, status);
 
@@ -241,7 +242,7 @@ impl PermissionAlgorithm for Permissions {
                 let state =
                     prompt_user(&format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone()));
 
-                let globalscope = GlobalScope::current().expect("No current global object");
+                let globalscope = GlobalScope::<TH>::current().expect("No current global object");
                 globalscope.as_window()
                            .permission_state_invocation_results()
                            .borrow_mut()
@@ -256,17 +257,17 @@ impl PermissionAlgorithm for Permissions {
         Permissions::permission_query(cx, promise, descriptor, status);
     }
 
-    fn permission_revoke(_descriptor: &PermissionDescriptor, _status: &PermissionStatus) {}
+    fn permission_revoke(_descriptor: &PermissionDescriptor, _status: &PermissionStatus<TH>) {}
 }
 
 // https://w3c.github.io/permissions/#permission-state
-pub fn get_descriptor_permission_state(permission_name: PermissionName,
-                                       env_settings_obj: Option<&GlobalScope>)
+pub fn get_descriptor_permission_state<TH: TypeHolderTrait>(permission_name: PermissionName,
+                                       env_settings_obj: Option<&GlobalScope<TH>>)
                                        -> PermissionState {
     // Step 1.
     let settings = match env_settings_obj {
         Some(env_settings_obj) => DomRoot::from_ref(env_settings_obj),
-        None => GlobalScope::current().expect("No current global object"),
+        None => GlobalScope::<TH>::current().expect("No current global object"),
     };
 
     // Step 2.

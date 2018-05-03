@@ -11,24 +11,25 @@ use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
-pub enum NodeListType {
-    Simple(Vec<Dom<Node>>),
-    Children(ChildrenList),
+pub enum NodeListType<TH: TypeHolderTrait> {
+    Simple(Vec<Dom<Node<TH>>>),
+    Children(ChildrenList<TH>),
 }
 
 // https://dom.spec.whatwg.org/#interface-nodelist
 #[dom_struct]
-pub struct NodeList {
-    reflector_: Reflector,
-    list_type: NodeListType,
+pub struct NodeList<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    list_type: NodeListType<TH>,
 }
 
-impl NodeList {
+impl<TH: TypeHolderTrait> NodeList<TH> {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(list_type: NodeListType) -> NodeList {
+    pub fn new_inherited(list_type: NodeListType<TH>) -> NodeList<TH> {
         NodeList {
             reflector_: Reflector::new(),
             list_type: list_type,
@@ -36,31 +37,31 @@ impl NodeList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
+    pub fn new(window: &Window<TH>, list_type: NodeListType<TH>) -> DomRoot<NodeList<TH>> {
         reflect_dom_object(Box::new(NodeList::new_inherited(list_type)),
                            window,
                            NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>
-                              where T: Iterator<Item=DomRoot<Node>> {
+    pub fn new_simple_list<T>(window: &Window<TH>, iter: T) -> DomRoot<NodeList<TH>>
+                              where T: Iterator<Item=DomRoot<Node<TH>>> {
         NodeList::new(window, NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()))
     }
 
-    pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> DomRoot<NodeList> {
+    pub fn new_simple_list_slice(window: &Window<TH>, slice: &[&Node<TH>]) -> DomRoot<NodeList<TH>> {
         NodeList::new(window, NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()))
     }
 
-    pub fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
+    pub fn new_child_list(window: &Window<TH>, node: &Node<TH>) -> DomRoot<NodeList<TH>> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
 
-    pub fn empty(window: &Window) -> DomRoot<NodeList> {
+    pub fn empty(window: &Window<TH>) -> DomRoot<NodeList<TH>> {
         NodeList::new(window, NodeListType::Simple(vec![]))
     }
 }
 
-impl NodeListMethods for NodeList {
+impl<TH: TypeHolderTrait> NodeListMethods<TH> for NodeList<TH> {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
     fn Length(&self) -> u32 {
         match self.list_type {
@@ -70,7 +71,7 @@ impl NodeListMethods for NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn Item(&self, index: u32) -> Option<DomRoot<Node>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<Node<TH>>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
                 elems.get(index as usize).map(|node| DomRoot::from_ref(&**node))
@@ -80,14 +81,14 @@ impl NodeListMethods for NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node<TH>>> {
         self.Item(index)
     }
 }
 
 
-impl NodeList {
-    pub fn as_children_list(&self) -> &ChildrenList {
+impl<TH: TypeHolderTrait> NodeList<TH> {
+    pub fn as_children_list(&self) -> &ChildrenList<TH> {
         if let NodeListType::Children(ref list) = self.list_type {
             list
         } else {
@@ -95,7 +96,7 @@ impl NodeList {
         }
     }
 
-    pub fn as_simple_list(&self) -> &Vec<Dom<Node>> {
+    pub fn as_simple_list(&self) -> &Vec<Dom<Node<TH>>> {
         if let NodeListType::Simple(ref list) = self.list_type {
             list
         } else {
@@ -103,7 +104,7 @@ impl NodeList {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item=DomRoot<Node>> + 'a {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item=DomRoot<Node<TH>>> + 'a {
         let len = self.Length();
         (0..len).flat_map(move |i| self.Item(i))
     }
@@ -111,15 +112,15 @@ impl NodeList {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
-pub struct ChildrenList {
-    node: Dom<Node>,
+pub struct ChildrenList<TH: TypeHolderTrait> {
+    node: Dom<Node<TH>>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
-    last_visited: MutNullableDom<Node>,
+    last_visited: MutNullableDom<Node<TH>>,
     last_index: Cell<u32>,
 }
 
-impl ChildrenList {
-    pub fn new(node: &Node) -> ChildrenList {
+impl<TH: TypeHolderTrait> ChildrenList<TH> {
+    pub fn new(node: &Node<TH>) -> ChildrenList<TH> {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: Dom::from_ref(node),
@@ -132,7 +133,7 @@ impl ChildrenList {
         self.node.children_count()
     }
 
-    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub fn item(&self, index: u32) -> Option<DomRoot<Node<TH>>> {
         // This always start traversing the children from the closest element
         // among parent's first and last children and the last visited one.
         let len = self.len() as u32;
@@ -189,8 +190,8 @@ impl ChildrenList {
         Some(last_visited)
     }
 
-    pub fn children_changed(&self, mutation: &ChildrenMutation) {
-        fn prepend(list: &ChildrenList, added: &[&Node], next: &Node) {
+    pub fn children_changed(&self, mutation: &ChildrenMutation<TH>) {
+        fn prepend<THH: TypeHolderTrait>(list: &ChildrenList<THH>, added: &[&Node<THH>], next: &Node<THH>) {
             let len = added.len() as u32;
             if len == 0u32 {
                 return;
@@ -211,11 +212,11 @@ impl ChildrenList {
             }
         }
 
-        fn replace(list: &ChildrenList,
-                   prev: Option<&Node>,
-                   removed: &Node,
-                   added: &[&Node],
-                   next: Option<&Node>) {
+        fn replace<THH: TypeHolderTrait>(list: &ChildrenList<THH>,
+                   prev: Option<&Node<THH>>,
+                   removed: &Node<THH>,
+                   added: &[&Node<THH>],
+                   next: Option<&Node<THH>>) {
             let index = list.last_index.get();
             if removed == &*list.last_visited.get().unwrap() {
                 let visited = match (prev, added, next) {

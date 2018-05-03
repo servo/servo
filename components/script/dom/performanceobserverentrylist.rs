@@ -12,15 +12,16 @@ use dom::globalscope::GlobalScope;
 use dom::performance::PerformanceEntryList;
 use dom::performanceentry::PerformanceEntry;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct PerformanceObserverEntryList {
-    reflector_: Reflector,
-    entries: DomRefCell<PerformanceEntryList>,
+pub struct PerformanceObserverEntryList<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    entries: DomRefCell<PerformanceEntryList<TH>>,
 }
 
-impl PerformanceObserverEntryList {
-    fn new_inherited(entries: PerformanceEntryList) -> PerformanceObserverEntryList {
+impl<TH: TypeHolderTrait> PerformanceObserverEntryList<TH> {
+    fn new_inherited(entries: PerformanceEntryList<TH>) -> PerformanceObserverEntryList<TH> {
         PerformanceObserverEntryList {
             reflector_: Reflector::new(),
             entries: DomRefCell::new(entries),
@@ -28,27 +29,27 @@ impl PerformanceObserverEntryList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, entries: PerformanceEntryList)
-        -> DomRoot<PerformanceObserverEntryList> {
+    pub fn new(global: &GlobalScope<TH>, entries: PerformanceEntryList<TH>)
+        -> DomRoot<PerformanceObserverEntryList<TH>> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
         reflect_dom_object(Box::new(observer_entry_list), global, PerformanceObserverEntryListBinding::Wrap)
     }
 }
 
-impl PerformanceObserverEntryListMethods for PerformanceObserverEntryList {
+impl<TH: TypeHolderTrait> PerformanceObserverEntryListMethods<TH> for PerformanceObserverEntryList<TH> {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
-    fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
+    fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry<TH>>> {
         self.entries.borrow().get_entries_by_name_and_type(None, None)
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
-    fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
+    fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry<TH>>> {
         self.entries.borrow().get_entries_by_name_and_type(None, Some(entry_type))
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
     fn GetEntriesByName(&self, name: DOMString, entry_type: Option<DOMString>)
-        -> Vec<DomRoot<PerformanceEntry>> {
+        -> Vec<DomRoot<PerformanceEntry<TH>>> {
         self.entries.borrow().get_entries_by_name_and_type(Some(name), entry_type)
     }
 }

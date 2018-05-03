@@ -41,6 +41,7 @@ use std::ptr;
 use style::thread_state::{self, ThreadState};
 use task::TaskBox;
 use time::{Tm, now};
+use typeholder::TypeHolderTrait;
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
@@ -109,13 +110,13 @@ pub trait ScriptPort {
 /// SM callback for promise job resolution. Adds a promise callback to the current
 /// global's microtask queue.
 #[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
+unsafe extern "C" fn enqueue_job<TH: TypeHolderTrait>(cx: *mut JSContext,
                                  job: HandleObject,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
     wrap_panic(AssertUnwindSafe(|| {
         //XXXjdm - use a different global now?
-        let global = GlobalScope::from_object(job.get());
+        let global = GlobalScope::<TH>::from_object(job.get());
         let pipeline = global.pipeline_id();
         global.enqueue_microtask(Microtask::Promise(EnqueuedPromiseCallback {
             callback: PromiseJobCallback::new(cx, job.get()),
@@ -142,11 +143,11 @@ impl Deref for Runtime {
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn new_rt_and_cx() -> Runtime {
-    LiveDOMReferences::initialize();
+pub unsafe fn new_rt_and_cx<TH: TypeHolderTrait>() -> Runtime {
+    LiveDOMReferences::<TH>::initialize();
     let runtime = RustRuntime::new().unwrap();
 
-    JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
+    JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots::<TH>), ptr::null_mut());
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {
@@ -157,13 +158,16 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
         SetGCSliceCallback(runtime.rt(), Some(gc_slice_callback));
     }
 
-    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
+    unsafe extern "C" fn empty_wrapper_callback<TH: TypeHolderTrait>(
+        _: *mut JSContext,
+        _: *mut JSObject
+    ) -> bool { true }
     SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
-    SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
+    SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback::<TH>));
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(runtime.rt());
 
-    SetEnqueuePromiseJobCallback(runtime.rt(), Some(enqueue_job), ptr::null_mut());
+    SetEnqueuePromiseJobCallback(runtime.rt(), Some(enqueue_job::<TH>), ptr::null_mut());
 
     set_gc_zeal_options(runtime.rt());
 
@@ -441,16 +445,16 @@ thread_local!(
 );
 
 #[allow(unsafe_code)]
-unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
+unsafe extern fn trace_rust_roots<TH: TypeHolderTrait>(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
     if !THREAD_ACTIVE.with(|t| t.get()) {
         return;
     }
     debug!("starting custom root handler");
-    trace_thread(tr);
+    trace_thread::<TH>(tr);
     trace_traceables(tr);
     trace_roots(tr);
-    trace_refcounted_objects(tr);
-    settings_stack::trace(tr);
+    trace_refcounted_objects::<TH>(tr);
+    settings_stack::trace::<TH>(tr);
     debug!("done custom root handler");
 }
 

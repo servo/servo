@@ -16,16 +16,17 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::element_state::ElementState;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLOptGroupElement {
-    htmlelement: HTMLElement
+pub struct HTMLOptGroupElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>
 }
 
-impl HTMLOptGroupElement {
+impl<TH: TypeHolderTrait> HTMLOptGroupElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLOptGroupElement {
+                     document: &Document<TH>) -> HTMLOptGroupElement<TH> {
         HTMLOptGroupElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
@@ -36,14 +37,14 @@ impl HTMLOptGroupElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLOptGroupElement> {
-        Node::reflect_node(Box::new(HTMLOptGroupElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLOptGroupElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLOptGroupElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLOptGroupElementBinding::Wrap)
     }
 }
 
-impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
+impl<TH: TypeHolderTrait> HTMLOptGroupElementMethods for HTMLOptGroupElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
     make_bool_getter!(Disabled, "disabled");
 
@@ -51,12 +52,12 @@ impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
     make_bool_setter!(SetDisabled, "disabled");
 }
 
-impl VirtualMethods for HTMLOptGroupElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLOptGroupElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("disabled") => {
@@ -67,22 +68,23 @@ impl VirtualMethods for HTMLOptGroupElement {
                         return;
                     },
                     AttributeMutation::Removed => false,
+                    AttributeMutation::_p(_) => unreachable!(),
                 };
-                let el = self.upcast::<Element>();
+                let el = self.upcast::<Element<TH>>();
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
-                let options = el.upcast::<Node>().children().filter(|child| {
-                    child.is::<HTMLOptionElement>()
-                }).map(|child| DomRoot::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
+                let options = el.upcast::<Node<TH>>().children().filter(|child| {
+                    child.is::<HTMLOptionElement<TH>>()
+                }).map(|child| DomRoot::from_ref(child.downcast::<HTMLOptionElement<TH>>().unwrap()));
                 if disabled_state {
                     for option in options {
-                        let el = option.upcast::<Element>();
+                        let el = option.upcast::<Element<TH>>();
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
                     }
                 } else {
                     for option in options {
-                        let el = option.upcast::<Element>();
+                        let el = option.upcast::<Element<TH>>();
                         el.check_disabled_attribute();
                     }
                 }

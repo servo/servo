@@ -20,10 +20,11 @@ use dom_struct::dom_struct;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
 use task_source::TaskSource;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct AudioContext {
-    context: BaseAudioContext,
+pub struct AudioContext<TH: TypeHolderTrait> {
+    context: BaseAudioContext<TH>,
     latency_hint: AudioContextLatencyCategory,
     /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency
     base_latency: f64,
@@ -31,10 +32,10 @@ pub struct AudioContext {
     output_latency: f64,
 }
 
-impl AudioContext {
+impl<TH: TypeHolderTrait> AudioContext<TH> {
     #[allow(unrooted_must_root)]
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
-    fn new_inherited(options: &AudioContextOptions) -> AudioContext {
+    fn new_inherited(options: &AudioContextOptions) -> AudioContext<TH> {
         // Steps 1-3.
         let context = BaseAudioContext::new_inherited(
             BaseAudioContextOptions::AudioContext(options.into()),
@@ -59,7 +60,7 @@ impl AudioContext {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
+    pub fn new(window: &Window<TH>, options: &AudioContextOptions) -> DomRoot<AudioContext<TH>> {
         let context = AudioContext::new_inherited(options);
         let context = reflect_dom_object(Box::new(context), window, AudioContextBinding::Wrap);
         context.resume();
@@ -68,9 +69,9 @@ impl AudioContext {
 
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     pub fn Constructor(
-        window: &Window,
+        window: &Window<TH>,
         options: &AudioContextOptions,
-    ) -> Fallible<DomRoot<AudioContext>> {
+    ) -> Fallible<DomRoot<AudioContext<TH>>> {
         Ok(AudioContext::new(window, options))
     }
 
@@ -83,7 +84,7 @@ impl AudioContext {
     }
 }
 
-impl AudioContextMethods for AudioContext {
+impl<TH: TypeHolderTrait> AudioContextMethods<TH> for AudioContext<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency
     fn BaseLatency(&self) -> Finite<f64> {
         Finite::wrap(self.base_latency)
@@ -105,7 +106,7 @@ impl AudioContextMethods for AudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
     #[allow(unrooted_must_root)]
-    fn Suspend(&self) -> Rc<Promise> {
+    fn Suspend(&self) -> Rc<Promise<TH>> {
         // Step 1.
         let promise = Promise::new(&self.global());
 
@@ -122,7 +123,7 @@ impl AudioContextMethods for AudioContext {
         }
 
         // Steps 4 and 5.
-        let window = DomRoot::downcast::<Window>(self.global()).unwrap();
+        let window = DomRoot::downcast::<Window<TH>>(self.global()).unwrap();
         let task_source = window.dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().suspend() {
@@ -137,7 +138,7 @@ impl AudioContextMethods for AudioContext {
                     promise.resolve_native(&());
                     if base_context.State() != AudioContextState::Suspended {
                         base_context.set_state_attribute(AudioContextState::Suspended);
-                        let window = DomRoot::downcast::<Window>(context.global()).unwrap();
+                        let window = DomRoot::downcast::<Window<TH>>(context.global()).unwrap();
                         window.dom_manipulation_task_source().queue_simple_event(
                             context.upcast(),
                             atom!("statechange"),
@@ -167,7 +168,7 @@ impl AudioContextMethods for AudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-close
     #[allow(unrooted_must_root)]
-    fn Close(&self) -> Rc<Promise> {
+    fn Close(&self) -> Rc<Promise<TH>> {
         // Step 1.
         let promise = Promise::new(&self.global());
 
@@ -184,7 +185,7 @@ impl AudioContextMethods for AudioContext {
         }
 
         // Steps 4 and 5.
-        let window = DomRoot::downcast::<Window>(self.global()).unwrap();
+        let window = DomRoot::downcast::<Window<TH>>(self.global()).unwrap();
         let task_source = window.dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().close() {
@@ -199,7 +200,7 @@ impl AudioContextMethods for AudioContext {
                     promise.resolve_native(&());
                     if base_context.State() != AudioContextState::Closed {
                         base_context.set_state_attribute(AudioContextState::Closed);
-                        let window = DomRoot::downcast::<Window>(context.global()).unwrap();
+                        let window = DomRoot::downcast::<Window<TH>>(context.global()).unwrap();
                         window.dom_manipulation_task_source().queue_simple_event(
                             context.upcast(),
                             atom!("statechange"),

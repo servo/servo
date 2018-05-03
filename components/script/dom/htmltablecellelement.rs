@@ -18,27 +18,28 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
+use typeholder::TypeHolderTrait;
 
 const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;
 
 #[dom_struct]
-pub struct HTMLTableCellElement {
-    htmlelement: HTMLElement,
+pub struct HTMLTableCellElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLTableCellElement {
+impl<TH: TypeHolderTrait> HTMLTableCellElement<TH> {
     pub fn new_inherited(tag_name: LocalName,
                          prefix: Option<Prefix>,
-                         document: &Document)
-                         -> HTMLTableCellElement {
+                         document: &Document<TH>)
+                         -> HTMLTableCellElement<TH> {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
         }
     }
 }
 
-impl HTMLTableCellElementMethods for HTMLTableCellElement {
+impl<TH: TypeHolderTrait> HTMLTableCellElementMethods for HTMLTableCellElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_getter!(ColSpan, "colspan", DEFAULT_COLSPAN);
 
@@ -65,16 +66,16 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
     fn CellIndex(&self) -> i32 {
-        let self_node = self.upcast::<Node>();
+        let self_node = self.upcast::<Node<TH>>();
 
         let parent_children = match self_node.GetParentNode() {
-            Some(ref parent_node) if parent_node.is::<HTMLTableRowElement>() => {
+            Some(ref parent_node) if parent_node.is::<HTMLTableRowElement<TH>>() => {
                 parent_node.children()
             },
             _ => return -1,
         };
 
-        parent_children.filter(|c| c.is::<HTMLTableCellElement>())
+        parent_children.filter(|c| c.is::<HTMLTableCellElement<TH>>())
                        .position(|c| &*c == self_node)
                        .map_or(-1, |p| p as i32)
     }
@@ -89,10 +90,10 @@ pub trait HTMLTableCellElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement> {
+impl<TH: TypeHolderTrait> HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement<TH>> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -101,7 +102,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement> {
 
     fn get_colspan(&self) -> Option<u32> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("colspan"))
                 .map(AttrValue::as_uint)
         }
@@ -109,7 +110,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement> {
 
     fn get_rowspan(&self) -> Option<u32> {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("rowspan"))
                 .map(AttrValue::as_uint)
         }
@@ -117,7 +118,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement> {
 
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
+            (&*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
@@ -126,9 +127,9 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement> {
     }
 }
 
-impl VirtualMethods for HTMLTableCellElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLTableCellElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
@@ -147,7 +148,7 @@ impl VirtualMethods for HTMLTableCellElement {
                 let mut attr = AttrValue::from_u32(value.into(), DEFAULT_ROWSPAN);
                 if let AttrValue::UInt(ref mut s, ref mut val) = attr {
                     if *val == 0 {
-                        let node = self.upcast::<Node>();
+                        let node = self.upcast::<Node<TH>>();
                         let doc = node.owner_doc();
                         // rowspan = 0 is not supported in quirks mode
                         if doc.quirks_mode() != QuirksMode::NoQuirks {

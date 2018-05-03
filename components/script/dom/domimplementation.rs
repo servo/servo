@@ -26,23 +26,24 @@ use dom::xmldocument::XMLDocument;
 use dom_struct::dom_struct;
 use mime::{Mime, TopLevel, SubLevel};
 use script_traits::DocumentActivity;
+use typeholder::TypeHolderTrait;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
-pub struct DOMImplementation {
-    reflector_: Reflector,
-    document: Dom<Document>,
+pub struct DOMImplementation<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    document: Dom<Document<TH>>,
 }
 
-impl DOMImplementation {
-    fn new_inherited(document: &Document) -> DOMImplementation {
+impl<TH: TypeHolderTrait> DOMImplementation<TH> {
+    fn new_inherited(document: &Document<TH>) -> DOMImplementation<TH> {
         DOMImplementation {
             reflector_: Reflector::new(),
             document: Dom::from_ref(document),
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<DOMImplementation> {
+    pub fn new(document: &Document<TH>) -> DomRoot<DOMImplementation<TH>> {
         let window = document.window();
         reflect_dom_object(Box::new(DOMImplementation::new_inherited(document)),
                            window,
@@ -51,13 +52,13 @@ impl DOMImplementation {
 }
 
 // https://dom.spec.whatwg.org/#domimplementation
-impl DOMImplementationMethods for DOMImplementation {
+impl<TH: TypeHolderTrait> DOMImplementationMethods<TH> for DOMImplementation<TH> {
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
     fn CreateDocumentType(&self,
                           qualified_name: DOMString,
                           pubid: DOMString,
                           sysid: DOMString)
-                          -> Fallible<DomRoot<DocumentType>> {
+                          -> Fallible<DomRoot<DocumentType<TH>>> {
         validate_qualified_name(&qualified_name)?;
         Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), &self.document))
     }
@@ -66,8 +67,8 @@ impl DOMImplementationMethods for DOMImplementation {
     fn CreateDocument(&self,
                       maybe_namespace: Option<DOMString>,
                       qname: DOMString,
-                      maybe_doctype: Option<&DocumentType>)
-                      -> Fallible<DomRoot<XMLDocument>> {
+                      maybe_doctype: Option<&DocumentType<TH>>)
+                      -> Fallible<DomRoot<XMLDocument<TH>>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
@@ -94,14 +95,14 @@ impl DOMImplementationMethods for DOMImplementation {
             None
         } else {
             let options = ElementCreationOptions { is: None };
-            match doc.upcast::<Document>().CreateElementNS(maybe_namespace, qname, &options) {
+            match doc.upcast::<Document<TH>>().CreateElementNS(maybe_namespace, qname, &options) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem),
             }
         };
 
         {
-            let doc_node = doc.upcast::<Node>();
+            let doc_node = doc.upcast::<Node<TH>>();
 
             // Step 4.
             if let Some(doc_type) = maybe_doctype {
@@ -122,7 +123,7 @@ impl DOMImplementationMethods for DOMImplementation {
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> DomRoot<Document> {
+    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> DomRoot<Document<TH>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
 
@@ -143,22 +144,22 @@ impl DOMImplementationMethods for DOMImplementation {
 
         {
             // Step 3.
-            let doc_node = doc.upcast::<Node>();
+            let doc_node = doc.upcast::<Node<TH>>();
             let doc_type = DocumentType::new(DOMString::from("html"), None, None, &doc);
             doc_node.AppendChild(doc_type.upcast()).unwrap();
         }
 
         {
             // Step 4.
-            let doc_node = doc.upcast::<Node>();
-            let doc_html = DomRoot::upcast::<Node>(HTMLHtmlElement::new(local_name!("html"),
+            let doc_node = doc.upcast::<Node<TH>>();
+            let doc_html = DomRoot::upcast::<Node<TH>>(HTMLHtmlElement::new(local_name!("html"),
                                                                      None,
                                                                      &doc));
             doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
-                let doc_head = DomRoot::upcast::<Node>(HTMLHeadElement::new(local_name!("head"),
+                let doc_head = DomRoot::upcast::<Node<TH>>(HTMLHeadElement::new(local_name!("head"),
                                                                          None,
                                                                          &doc));
                 doc_html.AppendChild(&doc_head).unwrap();
@@ -167,7 +168,7 @@ impl DOMImplementationMethods for DOMImplementation {
                 if let Some(title_str) = title {
                     // Step 6.1.
                     let doc_title =
-                        DomRoot::upcast::<Node>(HTMLTitleElement::new(local_name!("title"),
+                        DomRoot::upcast::<Node<TH>>(HTMLTitleElement::new(local_name!("title"),
                                                                    None,
                                                                    &doc));
                     doc_head.AppendChild(&doc_title).unwrap();

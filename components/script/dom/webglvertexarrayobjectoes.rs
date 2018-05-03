@@ -15,21 +15,22 @@ use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use ref_filter_map::ref_filter_map;
 use std::cell::{Cell, Ref};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct WebGLVertexArrayObjectOES {
-    webgl_object_: WebGLObject,
+pub struct WebGLVertexArrayObjectOES<TH: TypeHolderTrait> {
+    webgl_object_: WebGLObject<TH>,
     id: Option<WebGLVertexArrayId>,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
-    vertex_attribs: DomRefCell<Box<[VertexAttribData]>>,
-    element_array_buffer: MutNullableDom<WebGLBuffer>,
+    vertex_attribs: DomRefCell<Box<[VertexAttribData<TH>]>>,
+    element_array_buffer: MutNullableDom<WebGLBuffer<TH>>,
 }
 
-impl WebGLVertexArrayObjectOES {
-    fn new_inherited(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> Self {
-        let max_vertex_attribs = context.limits().max_vertex_attribs as usize;
-        Self {
+impl<TH: TypeHolderTrait> WebGLVertexArrayObjectOES<TH> {
+    fn new_inherited(context: &WebGLRenderingContext<TH>, id: Option<WebGLVertexArrayId>) -> Self {
+    let max_vertex_attribs = context.limits().max_vertex_attribs as usize;
+    Self {
             webgl_object_: WebGLObject::new_inherited(context),
             id,
             ever_bound: Default::default(),
@@ -39,7 +40,7 @@ impl WebGLVertexArrayObjectOES {
         }
     }
 
-    pub fn new(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> DomRoot<Self> {
+    pub fn new(context: &WebGLRenderingContext<TH>, id: Option<WebGLVertexArrayId>) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLVertexArrayObjectOES::new_inherited(context, id)),
             &*context.global(),
@@ -62,7 +63,7 @@ impl WebGLVertexArrayObjectOES {
         }
         self.is_deleted.set(true);
 
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::DeleteVertexArray(self.id.unwrap()));
 
@@ -84,11 +85,11 @@ impl WebGLVertexArrayObjectOES {
         self.ever_bound.set(true);
     }
 
-    pub fn element_array_buffer(&self) -> &MutNullableDom<WebGLBuffer> {
+    pub fn element_array_buffer(&self) -> &MutNullableDom<WebGLBuffer<TH>> {
         &self.element_array_buffer
     }
 
-    pub fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData>> {
+    pub fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData<TH>>> {
         ref_filter_map(self.vertex_attribs.borrow(), |attribs| attribs.get(index as usize))
     }
 
@@ -123,7 +124,7 @@ impl WebGLVertexArrayObjectOES {
             return Err(WebGLError::InvalidOperation);
         }
 
-        let context = self.upcast::<WebGLObject>().context();
+        let context = self.upcast::<WebGLObject<TH>>().context();
         let buffer = context.array_buffer().ok_or(WebGLError::InvalidOperation)?;
         buffer.increment_attached_counter();
         context.send_command(WebGLCommand::VertexAttribPointer(
@@ -161,7 +162,7 @@ impl WebGLVertexArrayObjectOES {
         self.vertex_attribs.borrow_mut()[index as usize].enabled_as_array = value;
     }
 
-    pub fn unbind_buffer(&self, buffer: &WebGLBuffer) {
+    pub fn unbind_buffer(&self, buffer: &WebGLBuffer<TH>) {
         for attrib in &mut **self.vertex_attribs.borrow_mut() {
             if let Some(b) = attrib.buffer() {
                 if b.id() != buffer.id() {
@@ -222,7 +223,7 @@ impl WebGLVertexArrayObjectOES {
     }
 }
 
-impl Drop for WebGLVertexArrayObjectOES {
+impl<TH: TypeHolderTrait> Drop for WebGLVertexArrayObjectOES<TH> {
     fn drop(&mut self) {
         if self.id.is_some() {
             self.delete();
@@ -232,7 +233,7 @@ impl Drop for WebGLVertexArrayObjectOES {
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[must_root]
-pub struct VertexAttribData {
+pub struct VertexAttribData<TH: TypeHolderTrait> {
     pub enabled_as_array: bool,
     pub size: u8,
     pub type_: u32,
@@ -240,11 +241,11 @@ pub struct VertexAttribData {
     pub normalized: bool,
     pub stride: u8,
     pub offset: u32,
-    pub buffer: Option<Dom<WebGLBuffer>>,
+    pub buffer: Option<Dom<WebGLBuffer<TH>>>,
     pub divisor: u32,
 }
 
-impl Default for VertexAttribData {
+impl<TH: TypeHolderTrait> Default for VertexAttribData<TH> {
     #[allow(unrooted_must_root)]
     fn default() -> Self {
         Self {
@@ -261,8 +262,8 @@ impl Default for VertexAttribData {
     }
 }
 
-impl VertexAttribData {
-    pub fn buffer(&self) -> Option<&WebGLBuffer> {
+impl<TH: TypeHolderTrait> VertexAttribData<TH> {
+    pub fn buffer(&self) -> Option<&WebGLBuffer<TH>> {
         self.buffer.as_ref().map(|b| &**b)
     }
 

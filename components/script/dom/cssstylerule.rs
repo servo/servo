@@ -21,18 +21,19 @@ use std::mem;
 use style::selector_parser::SelectorParser;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::{StyleRule, Origin};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSStyleRule {
-    cssrule: CSSRule,
+pub struct CSSStyleRule<TH: TypeHolderTrait> {
+    cssrule: CSSRule<TH>,
     #[ignore_malloc_size_of = "Arc"]
     stylerule: Arc<Locked<StyleRule>>,
-    style_decl: MutNullableDom<CSSStyleDeclaration>,
+    style_decl: MutNullableDom<CSSStyleDeclaration<TH>>,
 }
 
-impl CSSStyleRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, stylerule: Arc<Locked<StyleRule>>)
-                     -> CSSStyleRule {
+impl<TH: TypeHolderTrait> CSSStyleRule<TH> {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet<TH>, stylerule: Arc<Locked<StyleRule>>)
+                     -> Self {
         CSSStyleRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             stylerule: stylerule,
@@ -41,15 +42,15 @@ impl CSSStyleRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               stylerule: Arc<Locked<StyleRule>>) -> DomRoot<CSSStyleRule> {
+    pub fn new(window: &Window<TH>, parent_stylesheet: &CSSStyleSheet<TH>,
+               stylerule: Arc<Locked<StyleRule>>) -> DomRoot<Self> {
         reflect_dom_object(Box::new(CSSStyleRule::new_inherited(parent_stylesheet, stylerule)),
                            window,
                            CSSStyleRuleBinding::Wrap)
     }
 }
 
-impl SpecificCSSRule for CSSStyleRule {
+impl<TH: TypeHolderTrait> SpecificCSSRule for CSSStyleRule<TH> {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::STYLE_RULE
@@ -61,9 +62,9 @@ impl SpecificCSSRule for CSSStyleRule {
     }
 }
 
-impl CSSStyleRuleMethods for CSSStyleRule {
+impl<TH: TypeHolderTrait> CSSStyleRuleMethods<TH> for CSSStyleRule<TH> {
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-style
-    fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self) -> DomRoot<CSSStyleDeclaration<TH>> {
         self.style_decl.or_init(|| {
             let guard = self.cssrule.shared_lock().read();
             CSSStyleDeclaration::new(

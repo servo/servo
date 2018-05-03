@@ -8,13 +8,14 @@ use dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyM
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct TestBindingProxy {
-    reflector_: Reflector
+pub struct TestBindingProxy<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl TestBindingProxyMethods for TestBindingProxy {
+impl<TH: TypeHolderTrait> TestBindingProxyMethods for TestBindingProxy<TH> {
     fn Length(&self) -> u32 { 0 }
     fn SupportedPropertyNames(&self) -> Vec<DOMString> { vec![] }
     fn GetNamedItem(&self, _: DOMString) -> DOMString { DOMString::new() }

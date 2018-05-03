@@ -16,18 +16,19 @@ use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLLegendElement {
-    htmlelement: HTMLElement,
-    form_owner: MutNullableDom<HTMLFormElement>,
+pub struct HTMLLegendElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
+    form_owner: MutNullableDom<HTMLFormElement<TH>>,
 }
 
-impl HTMLLegendElement {
+impl<TH: TypeHolderTrait> HTMLLegendElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document)
-                     -> HTMLLegendElement {
+                     document: &Document<TH>)
+                     -> HTMLLegendElement<TH> {
         HTMLLegendElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             form_owner: Default::default(),
@@ -37,17 +38,17 @@ impl HTMLLegendElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document)
-               -> DomRoot<HTMLLegendElement> {
-        Node::reflect_node(Box::new(HTMLLegendElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>)
+               -> DomRoot<HTMLLegendElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLLegendElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLLegendElementBinding::Wrap)
     }
 }
 
-impl VirtualMethods for HTMLLegendElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLLegendElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
@@ -55,15 +56,15 @@ impl VirtualMethods for HTMLLegendElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element<TH>>().check_ancestors_disabled_state_for_form_control();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        let node = self.upcast::<Node<TH>>();
+        let el = self.upcast::<Element<TH>>();
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement<TH>>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -72,27 +73,27 @@ impl VirtualMethods for HTMLLegendElement {
 }
 
 
-impl HTMLLegendElementMethods for HTMLLegendElement {
+impl<TH: TypeHolderTrait> HTMLLegendElementMethods<TH> for HTMLLegendElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-legend-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
-        let parent = self.upcast::<Node>().GetParentElement()?;
-        if parent.is::<HTMLFieldSetElement>() {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
+        let parent = self.upcast::<Node<TH>>().GetParentElement()?;
+        if parent.is::<HTMLFieldSetElement<TH>>() {
             return self.form_owner();
         }
         None
     }
 }
 
-impl FormControl for HTMLLegendElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLLegendElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>) {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 }

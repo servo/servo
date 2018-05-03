@@ -14,32 +14,33 @@ use js::jsapi::{JSContext, JSObject};
 use js::typedarray::{Uint8Array, CreateWith};
 use std::ptr;
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct TextEncoder {
-    reflector_: Reflector,
+pub struct TextEncoder<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl TextEncoder {
-    fn new_inherited() -> TextEncoder {
+impl<TH: TypeHolderTrait> TextEncoder<TH> {
+    fn new_inherited() -> TextEncoder<TH> {
         TextEncoder {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<TextEncoder> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<TextEncoder<TH>> {
         reflect_dom_object(Box::new(TextEncoder::new_inherited()),
                            global,
                            TextEncoderBinding::Wrap)
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TextEncoder>> {
+    pub fn Constructor(global: &GlobalScope<TH>) -> Fallible<DomRoot<TextEncoder<TH>>> {
         Ok(TextEncoder::new(global))
     }
 }
 
-impl TextEncoderMethods for TextEncoder {
+impl<TH: TypeHolderTrait> TextEncoderMethods for TextEncoder<TH> {
     // https://encoding.spec.whatwg.org/#dom-textencoder-encoding
     fn Encoding(&self) -> DOMString {
         DOMString::from("utf-8")

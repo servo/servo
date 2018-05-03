@@ -48,18 +48,19 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use task_source::{TaskSource, TaskSourceName};
 use time::{self, Timespec, Duration};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
 // FIXME(nox): A lot of tasks queued for this element should probably be in the
 // media element event task source.
-pub struct HTMLMediaElement {
-    htmlelement: HTMLElement,
+pub struct HTMLMediaElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
     network_state: Cell<NetworkState>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
     ready_state: Cell<ReadyState>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
-    src_object: MutNullableDom<Blob>,
+    src_object: MutNullableDom<Blob<TH>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-currentsrc>
     current_src: DomRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
@@ -69,19 +70,19 @@ pub struct HTMLMediaElement {
     /// Reset to false every time the load algorithm is invoked.
     fired_loadeddata_event: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-error>
-    error: MutNullableDom<MediaError>,
+    error: MutNullableDom<MediaError<TH>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
     paused: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#attr-media-autoplay>
     autoplaying: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
+    delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker<TH>>>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises>
     #[ignore_malloc_size_of = "promises are hard"]
-    pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
+    pending_play_promises: DomRefCell<Vec<Rc<Promise<TH>>>>,
     /// Play promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
-    in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise<TH>>]>, ErrorResult)>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -105,11 +106,11 @@ enum ReadyState {
     HaveEnoughData = HTMLMediaElementConstants::HAVE_ENOUGH_DATA as u8,
 }
 
-impl HTMLMediaElement {
+impl<TH: TypeHolderTrait> HTMLMediaElement<TH> {
     pub fn new_inherited(
         tag_name: LocalName,
         prefix: Option<Prefix>,
-        document: &Document,
+        document: &Document<TH>,
     ) -> Self {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
@@ -130,7 +131,7 @@ impl HTMLMediaElement {
     }
 
     fn media_type_id(&self) -> HTMLMediaElementTypeId {
-        match self.upcast::<Node>().type_id() {
+        match self.upcast::<Node<TH>>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLMediaElement(media_type_id),
             )) => {
@@ -157,8 +158,8 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
     // FIXME(nox): Move this back to HTMLMediaElementMethods::Play once
-    // Rc<Promise> doesn't require #[allow(unrooted_must_root)] anymore.
-    fn play(&self, promise: &Rc<Promise>) {
+    // Rc<Promise<TH>> doesn't require #[allow(unrooted_must_root)] anymore.
+    fn play(&self, promise: &Rc<Promise<TH>>) {
         // Step 1.
         // FIXME(nox): Reject promise if not allowed to play.
 
@@ -264,10 +265,10 @@ impl HTMLMediaElement {
 
                     this.fulfill_in_flight_play_promises(|| {
                         // Step 2.3.1.
-                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"));
+                        this.upcast::<EventTarget<TH>>().fire_event(atom!("timeupdate"));
 
                         // Step 2.3.2.
-                        this.upcast::<EventTarget>().fire_event(atom!("pause"));
+                        this.upcast::<EventTarget<TH>>().fire_event(atom!("pause"));
 
                         // Step 2.3.3.
                         // Done after running this closure in
@@ -303,7 +304,7 @@ impl HTMLMediaElement {
 
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1.
-                    this.upcast::<EventTarget>().fire_event(atom!("playing"));
+                    this.upcast::<EventTarget<TH>>().fire_event(atom!("playing"));
 
                     // Step 2.2.
                     // Done after running this closure in
@@ -347,7 +348,7 @@ impl HTMLMediaElement {
                     let _ = task_source.queue(
                         task!(media_reached_current_data: move || {
                             let this = this.root();
-                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"));
+                            this.upcast::<EventTarget<TH>>().fire_event(atom!("loadeddata"));
                             this.delay_load_event(false);
                         }),
                         window.upcast(),
@@ -442,7 +443,7 @@ impl HTMLMediaElement {
         // method from below, if microtasks were trait objects, we would be able
         // to put the code directly in this method, without the boilerplate
         // indirections.
-        ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        ScriptThread::<TH>::await_stable_state(Microtask::MediaElement(task));
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
@@ -451,21 +452,21 @@ impl HTMLMediaElement {
         // FIXME(nox): Maybe populate the list of pending text tracks.
 
         // Step 6.
-        enum Mode {
+        enum Mode<THH: TypeHolderTrait> {
             Object,
             Attribute(String),
-            Children(DomRoot<HTMLSourceElement>),
+            Children(DomRoot<HTMLSourceElement<THH>>),
         }
-        fn mode(media: &HTMLMediaElement) -> Option<Mode> {
+        fn mode<THH: TypeHolderTrait>(media: &HTMLMediaElement<THH>) -> Option<Mode<THH>> {
             if media.src_object.get().is_some() {
                 return Some(Mode::Object);
             }
-            if let Some(attr) = media.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
+            if let Some(attr) = media.upcast::<Element<THH>>().get_attribute(&ns!(), &local_name!("src")) {
                 return Some(Mode::Attribute(attr.Value().into()));
             }
-            let source_child_element = media.upcast::<Node>()
+            let source_child_element = media.upcast::<Node<THH>>()
                 .children()
-                .filter_map(DomRoot::downcast::<HTMLSourceElement>)
+                .filter_map(DomRoot::downcast::<HTMLSourceElement<THH>>)
                 .next();
             if let Some(element) = source_child_element {
                 return Some(Mode::Children(element));
@@ -608,7 +609,7 @@ impl HTMLMediaElement {
                 let listener = NetworkListener {
                     context: context,
                     task_source: window.networking_task_source(),
-                    canceller: Some(window.task_canceller(TaskSourceName::Networking))
+                    canceller: Some(window.task_canceller(TaskSourceName::Networking)),
                 };
                 ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
                     listener.notify_fetch(message.to().unwrap());
@@ -656,7 +657,7 @@ impl HTMLMediaElement {
                     // FIXME(nox): Set show poster flag to true.
 
                     // Step 5.
-                    this.upcast::<EventTarget>().fire_event(atom!("error"));
+                    this.upcast::<EventTarget<TH>>().fire_event(atom!("error"));
 
                     // Step 6.
                     // Done after running this closure in
@@ -752,7 +753,7 @@ impl HTMLMediaElement {
 
     /// Appends a promise to the list of pending play promises.
     #[allow(unrooted_must_root)]
-    fn push_pending_play_promise(&self, promise: &Rc<Promise>) {
+    fn push_pending_play_promise(&self, promise: &Rc<Promise<TH>>) {
         self.pending_play_promises.borrow_mut().push(promise.clone());
     }
 
@@ -808,7 +809,7 @@ impl HTMLMediaElement {
     ///
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
     pub fn handle_source_child_insertion(&self) {
-        if self.upcast::<Element>().has_attribute(&local_name!("src")) {
+        if self.upcast::<Element<TH>>().has_attribute(&local_name!("src")) {
             return;
         }
         if self.network_state.get() != NetworkState::Empty {
@@ -818,7 +819,7 @@ impl HTMLMediaElement {
     }
 }
 
-impl HTMLMediaElementMethods for HTMLMediaElement {
+impl<TH: TypeHolderTrait> HTMLMediaElementMethods<TH> for HTMLMediaElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-media-networkstate
     fn NetworkState(&self) -> u16 {
         self.network_state.get() as u16
@@ -841,12 +842,12 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
-    fn GetSrcObject(&self) -> Option<DomRoot<Blob>> {
+    fn GetSrcObject(&self) -> Option<DomRoot<Blob<TH>>> {
         self.src_object.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
-    fn SetSrcObject(&self, value: Option<&Blob>) {
+    fn SetSrcObject(&self, value: Option<&Blob<TH>>) {
         self.src_object.set(value);
         self.media_element_load_algorithm();
     }
@@ -879,14 +880,14 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-error
-    fn GetError(&self) -> Option<DomRoot<MediaError>> {
+    fn GetError(&self) -> Option<DomRoot<MediaError<TH>>> {
         self.error.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-play
     #[allow(unrooted_must_root)]
-    fn Play(&self) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+    fn Play(&self) -> Rc<Promise<TH>> {
+        let promise = Promise::<TH>::new(&self.global());
         self.play(&promise);
         promise
     }
@@ -908,12 +909,12 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 }
 
-impl VirtualMethods for HTMLMediaElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLMediaElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
         match attr.local_name() {
@@ -927,31 +928,31 @@ impl VirtualMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
 
         if context.tree_in_doc {
             let task = MediaElementMicrotask::PauseIfNotInDocumentTask {
                 elem: DomRoot::from_ref(self)
             };
-            ScriptThread::await_stable_state(Microtask::MediaElement(task));
+            ScriptThread::<TH>::await_stable_state(Microtask::MediaElement(task));
         }
     }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum MediaElementMicrotask {
+pub enum MediaElementMicrotask<TH: TypeHolderTrait> {
     ResourceSelectionTask {
-        elem: DomRoot<HTMLMediaElement>,
+        elem: DomRoot<HTMLMediaElement<TH>>,
         generation_id: u32,
         base_url: ServoUrl,
     },
     PauseIfNotInDocumentTask {
-        elem: DomRoot<HTMLMediaElement>,
+        elem: DomRoot<HTMLMediaElement<TH>>,
     }
 }
 
-impl MicrotaskRunnable for MediaElementMicrotask {
+impl<TH: TypeHolderTrait> MicrotaskRunnable for MediaElementMicrotask<TH> {
     fn handler(&self) {
         match self {
             &MediaElementMicrotask::ResourceSelectionTask { ref elem, generation_id, ref base_url } => {
@@ -960,7 +961,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 }
             },
             &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
-                if !elem.upcast::<Node>().is_in_doc() {
+                if !elem.upcast::<Node<TH>>().is_in_doc() {
                     elem.internal_pause_steps();
                 }
             },
@@ -973,9 +974,9 @@ enum Resource {
     Url(ServoUrl),
 }
 
-struct HTMLMediaElementContext {
+struct HTMLMediaElementContext<TH: TypeHolderTrait> {
     /// The element that initiated the request.
-    elem: Trusted<HTMLMediaElement>,
+    elem: Trusted<HTMLMediaElement<TH>>,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -991,7 +992,7 @@ struct HTMLMediaElementContext {
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-impl FetchResponseListener for HTMLMediaElementContext {
+impl<TH: TypeHolderTrait> FetchResponseListener for HTMLMediaElementContext<TH> {
     fn process_request_body(&mut self) {}
 
     fn process_request_eof(&mut self) {}
@@ -1065,11 +1066,11 @@ impl FetchResponseListener for HTMLMediaElementContext {
         else if status.is_ok() {
             elem.change_ready_state(ReadyState::HaveEnoughData);
 
-            elem.upcast::<EventTarget>().fire_event(atom!("progress"));
+            elem.upcast::<EventTarget<TH>>().fire_event(atom!("progress"));
 
             elem.network_state.set(NetworkState::Idle);
 
-            elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
+            elem.upcast::<EventTarget<TH>>().fire_event(atom!("suspend"));
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
@@ -1084,7 +1085,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.delay_load_event(false);
 
             // Step 5
-            elem.upcast::<EventTarget>().fire_event(atom!("error"));
+            elem.upcast::<EventTarget<TH>>().fire_event(atom!("error"));
         } else {
             // => "If the media data cannot be fetched at all..."
             elem.queue_dedicated_media_source_failure_steps();
@@ -1092,15 +1093,15 @@ impl FetchResponseListener for HTMLMediaElementContext {
     }
 }
 
-impl PreInvoke for HTMLMediaElementContext {
+impl<TH: TypeHolderTrait> PreInvoke for HTMLMediaElementContext<TH> {
     fn should_invoke(&self) -> bool {
         //TODO: finish_load needs to run at some point if the generation changes.
         self.elem.root().generation_id.get() == self.generation_id
     }
 }
 
-impl HTMLMediaElementContext {
-    fn new(elem: &HTMLMediaElement) -> HTMLMediaElementContext {
+impl<TH: TypeHolderTrait> HTMLMediaElementContext<TH> {
+    fn new(elem: &HTMLMediaElement<TH>) -> HTMLMediaElementContext<TH> {
         HTMLMediaElementContext {
             elem: Trusted::new(elem),
             data: vec![],
@@ -1112,7 +1113,7 @@ impl HTMLMediaElementContext {
         }
     }
 
-    fn check_metadata(&mut self, elem: &HTMLMediaElement) {
+    fn check_metadata(&mut self, elem: &HTMLMediaElement<TH>) {
         if audio_video_metadata::get_format_from_slice(&self.data).is_ok() {
             // Step 6.
             elem.change_ready_state(ReadyState::HaveMetadata);

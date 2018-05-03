@@ -26,13 +26,14 @@ use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use style_traits::ParsingMode;
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLStyleElement {
-    htmlelement: HTMLElement,
+pub struct HTMLStyleElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     #[ignore_malloc_size_of = "Arc"]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
+    cssom_stylesheet: MutNullableDom<CSSStyleSheet<TH>>,
     /// <https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts>
     parser_inserted: Cell<bool>,
     in_stack_of_open_elements: Cell<bool>,
@@ -41,11 +42,11 @@ pub struct HTMLStyleElement {
     line_number: u64,
 }
 
-impl HTMLStyleElement {
+impl<TH: TypeHolderTrait> HTMLStyleElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document,
-                     creator: ElementCreator) -> HTMLStyleElement {
+                     document: &Document<TH>,
+                     creator: ElementCreator) -> HTMLStyleElement<TH> {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DomRefCell::new(None),
@@ -61,16 +62,16 @@ impl HTMLStyleElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document,
-               creator: ElementCreator) -> DomRoot<HTMLStyleElement> {
-        Node::reflect_node(Box::new(HTMLStyleElement::new_inherited(local_name, prefix, document, creator)),
+               document: &Document<TH>,
+               creator: ElementCreator) -> DomRoot<HTMLStyleElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLStyleElement::new_inherited(local_name, prefix, document, creator)),
                            document,
                            HTMLStyleElementBinding::Wrap)
     }
 
     pub fn parse_own_css(&self) {
-        let node = self.upcast::<Node>();
-        let element = self.upcast::<Element>();
+        let node = self.upcast::<Node<TH>>();
+        let element = self.upcast::<Element<TH>>();
         assert!(node.is_in_doc());
 
         let window = window_from_node(node);
@@ -137,11 +138,11 @@ impl HTMLStyleElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet<TH>>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
-                                   self.upcast::<Element>(),
+                                   self.upcast::<Element<TH>>(),
                                    "text/css".into(),
                                    None, // todo handle location
                                    None, // todo handle title
@@ -151,12 +152,12 @@ impl HTMLStyleElement {
     }
 }
 
-impl VirtualMethods for HTMLStyleElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLStyleElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation<TH>) {
         self.super_type().unwrap().children_changed(mutation);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
@@ -164,7 +165,7 @@ impl VirtualMethods for HTMLStyleElement {
         // "The element is not on the stack of open elements of an HTML parser or XML parser,
         // and one of its child nodes is modified by a script."
         // TODO: Handle Text child contents being mutated.
-        if self.upcast::<Node>().is_in_doc() && !self.in_stack_of_open_elements.get() {
+        if self.upcast::<Node<TH>>().is_in_doc() && !self.in_stack_of_open_elements.get() {
             self.parse_own_css();
         }
     }
@@ -188,12 +189,12 @@ impl VirtualMethods for HTMLStyleElement {
         // Handles the case when:
         // "The element is popped off the stack of open elements of an HTML parser or XML parser."
         self.in_stack_of_open_elements.set(false);
-        if self.upcast::<Node>().is_in_doc() {
+        if self.upcast::<Node<TH>>().is_in_doc() {
             self.parse_own_css();
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);
         }
@@ -206,7 +207,7 @@ impl VirtualMethods for HTMLStyleElement {
     }
 }
 
-impl StylesheetOwner for HTMLStyleElement {
+impl<TH: TypeHolderTrait> StylesheetOwner for HTMLStyleElement<TH> {
     fn increment_pending_loads_count(&self) {
         self.pending_loads.set(self.pending_loads.get() + 1)
     }
@@ -243,9 +244,9 @@ impl StylesheetOwner for HTMLStyleElement {
 }
 
 
-impl HTMLStyleElementMethods for HTMLStyleElement {
+impl<TH: TypeHolderTrait> HTMLStyleElementMethods<TH> for HTMLStyleElement<TH> {
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
-    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
+    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet<TH>>> {
         self.get_cssom_stylesheet().map(DomRoot::upcast)
     }
 }

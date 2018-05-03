@@ -11,30 +11,31 @@ use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
+use typeholder::TypeHolderTrait;
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
-pub struct WorkerLocation {
-    reflector_: Reflector,
+pub struct WorkerLocation<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     url: ServoUrl,
 }
 
-impl WorkerLocation {
-    fn new_inherited(url: ServoUrl) -> WorkerLocation {
+impl<TH: TypeHolderTrait> WorkerLocation<TH> {
+    fn new_inherited(url: ServoUrl) -> WorkerLocation<TH> {
         WorkerLocation {
             reflector_: Reflector::new(),
             url: url,
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
+    pub fn new(global: &WorkerGlobalScope<TH>, url: ServoUrl) -> DomRoot<WorkerLocation<TH>> {
         reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)),
                            global,
                            WorkerLocationBinding::Wrap)
     }
 }
 
-impl WorkerLocationMethods for WorkerLocation {
+impl<TH: TypeHolderTrait> WorkerLocationMethods for WorkerLocation<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hash
     fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url)

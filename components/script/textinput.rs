@@ -11,8 +11,10 @@ use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::default::Default;
+use std::marker::PhantomData;
 use std::ops::Range;
 use std::usize;
+use typeholder::TypeHolderTrait;
 use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -77,7 +79,7 @@ pub struct SelectionState {
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct TextInput<T: ClipboardProvider> {
+pub struct TextInput<T: ClipboardProvider, TH: TypeHolderTrait> {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
 
@@ -100,6 +102,7 @@ pub struct TextInput<T: ClipboardProvider> {
     /// <https://html.spec.whatwg.org/multipage/#attr-fe-maxlength>
     max_length: Option<usize>,
     min_length: Option<usize>,
+    _p: PhantomData<TH>,
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -172,12 +175,12 @@ fn len_of_first_n_code_units(text: &str, n: usize) -> usize {
     utf8_len
 }
 
-impl<T: ClipboardProvider> TextInput<T> {
+impl<T: ClipboardProvider, TH: TypeHolderTrait> TextInput<T, TH> {
     /// Instantiate a new text input control
     pub fn new(lines: Lines, initial: DOMString,
                clipboard_provider: T, max_length: Option<usize>,
                min_length: Option<usize>,
-               selection_direction: SelectionDirection) -> TextInput<T> {
+               selection_direction: SelectionDirection) -> TextInput<T, TH> {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
@@ -187,6 +190,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             max_length: max_length,
             min_length: min_length,
             selection_direction: selection_direction,
+            _p: Default::default(),
         };
         i.set_content(initial);
         i
@@ -679,7 +683,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
-    pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
+    pub fn handle_keydown(&mut self, event: &KeyboardEvent<TH>) -> KeyReaction {
         if let Some(key) = event.get_key() {
             self.handle_keydown_aux(event.printable(), key, event.get_key_modifiers())
         } else {

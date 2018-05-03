@@ -13,21 +13,22 @@ use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
+use typeholder::TypeHolderTrait;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
  #[dom_struct]
-pub struct TestRunner {
-    reflector_: Reflector,
+pub struct TestRunner<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
 }
 
-impl TestRunner {
-    pub fn new_inherited() -> TestRunner {
+impl<TH: TypeHolderTrait> TestRunner<TH> {
+    pub fn new_inherited() -> TestRunner<TH> {
         TestRunner {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<TestRunner<TH>> {
         reflect_dom_object(Box::new(TestRunner::new_inherited()),
                            global,
                            TestRunnerBinding::Wrap)
@@ -38,7 +39,7 @@ impl TestRunner {
     }
 }
 
-impl TestRunnerMethods for TestRunner {
+impl<TH: TypeHolderTrait> TestRunnerMethods for TestRunner<TH> {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();

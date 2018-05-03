@@ -24,6 +24,7 @@ gfx_traits = {path = "../gfx_traits"}
 histogram = "0.6.8"
 html5ever = "0.22"
 ipc-channel = "0.10"
+jstraceable_derive = {path = "../jstraceable_derive"}
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}
 lazy_static = "1"
@@ -31,7 +32,9 @@ libc = "0.2"
 log = "0.4"
 time = "0.1.17"
 malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 metrics = {path = "../metrics"}
+mozjs = { version = "0.7", features = ["promises"]}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 parking_lot = "0.6"
@@ -41,6 +44,7 @@ rayon = "1"
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
+script_servoparser = {path = "../script_servoparser"}
 selectors = { path = "../selectors" }
 serde_json = "1.0"
 servo_allocator = {path = "../allocator"}

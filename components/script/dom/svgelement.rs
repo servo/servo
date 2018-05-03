@@ -9,16 +9,17 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::element_state::ElementState;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct SVGElement {
-    element: Element,
+pub struct SVGElement<TH: TypeHolderTrait> {
+    element: Element<TH>,
 }
 
-impl SVGElement {
+impl<TH: TypeHolderTrait> SVGElement<TH> {
     pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
-                                    prefix: Option<Prefix>, document: &Document)
-                                    -> SVGElement {
+                                    prefix: Option<Prefix>, document: &Document<TH>)
+                                    -> SVGElement<TH> {
         SVGElement {
             element:
                 Element::new_inherited_with_state(state, tag_name, ns!(svg), prefix, document),
@@ -26,8 +27,8 @@ impl SVGElement {
     }
 }
 
-impl VirtualMethods for SVGElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<Element>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for SVGElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<Element<TH>>() as &VirtualMethods<TH>)
     }
 }

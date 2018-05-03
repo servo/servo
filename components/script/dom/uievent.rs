@@ -16,17 +16,18 @@ use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
+use typeholder::TypeHolderTrait;
 
 // https://w3c.github.io/uievents/#interface-uievent
 #[dom_struct]
-pub struct UIEvent {
-    event: Event,
-    view: MutNullableDom<Window>,
+pub struct UIEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
+    view: MutNullableDom<Window<TH>>,
     detail: Cell<i32>
 }
 
-impl UIEvent {
-    pub fn new_inherited() -> UIEvent {
+impl<TH: TypeHolderTrait> UIEvent<TH> {
+    pub fn new_inherited() -> UIEvent<TH> {
         UIEvent {
             event: Event::new_inherited(),
             view: Default::default(),
@@ -34,26 +35,26 @@ impl UIEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
+    pub fn new_uninitialized(window: &Window<TH>) -> DomRoot<UIEvent<TH>> {
         reflect_dom_object(Box::new(UIEvent::new_inherited()),
                            window,
                            UIEventBinding::Wrap)
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                type_: DOMString,
                can_bubble: EventBubbles,
                cancelable: EventCancelable,
-               view: Option<&Window>,
-               detail: i32) -> DomRoot<UIEvent> {
+               view: Option<&Window<TH>>,
+               detail: i32) -> DomRoot<UIEvent<TH>> {
         let ev = UIEvent::new_uninitialized(window);
         ev.InitUIEvent(type_, bool::from(can_bubble), bool::from(cancelable), view, detail);
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<DomRoot<UIEvent>> {
+                       init: &UIEventBinding::UIEventInit<TH>) -> Fallible<DomRoot<UIEvent<TH>>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let event = UIEvent::new(window,
@@ -64,9 +65,9 @@ impl UIEvent {
     }
 }
 
-impl UIEventMethods for UIEvent {
+impl<TH: TypeHolderTrait> UIEventMethods<TH> for UIEvent<TH> {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
-    fn GetView(&self) -> Option<DomRoot<Window>> {
+    fn GetView(&self) -> Option<DomRoot<Window<TH>>> {
         self.view.get()
     }
 
@@ -80,9 +81,9 @@ impl UIEventMethods for UIEvent {
                    type_: DOMString,
                    can_bubble: bool,
                    cancelable: bool,
-                   view: Option<&Window>,
+                   view: Option<&Window<TH>>,
                    detail: i32) {
-        let event = self.upcast::<Event>();
+        let event = self.upcast::<Event<TH>>();
         if event.dispatching() {
             return;
         }

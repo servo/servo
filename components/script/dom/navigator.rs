@@ -20,21 +20,22 @@ use dom::vr::VR;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct Navigator {
-    reflector_: Reflector,
-    bluetooth: MutNullableDom<Bluetooth>,
-    plugins: MutNullableDom<PluginArray>,
-    mime_types: MutNullableDom<MimeTypeArray>,
-    service_worker: MutNullableDom<ServiceWorkerContainer>,
-    vr: MutNullableDom<VR>,
-    gamepads: MutNullableDom<GamepadList>,
-    permissions: MutNullableDom<Permissions>,
+pub struct Navigator<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    bluetooth: MutNullableDom<Bluetooth<TH>>,
+    plugins: MutNullableDom<PluginArray<TH>>,
+    mime_types: MutNullableDom<MimeTypeArray<TH>>,
+    service_worker: MutNullableDom<ServiceWorkerContainer<TH>>,
+    vr: MutNullableDom<VR<TH>>,
+    gamepads: MutNullableDom<GamepadList<TH>>,
+    permissions: MutNullableDom<Permissions<TH>>,
 }
 
-impl Navigator {
-    fn new_inherited() -> Navigator {
+impl<TH: TypeHolderTrait> Navigator<TH> {
+    fn new_inherited() -> Navigator<TH> {
         Navigator {
             reflector_: Reflector::new(),
             bluetooth: Default::default(),
@@ -47,14 +48,14 @@ impl Navigator {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Navigator> {
+    pub fn new(window: &Window<TH>) -> DomRoot<Navigator<TH>> {
         reflect_dom_object(Box::new(Navigator::new_inherited()),
                            window,
                            NavigatorBinding::Wrap)
     }
 }
 
-impl NavigatorMethods for Navigator {
+impl<TH: TypeHolderTrait> NavigatorMethods<TH> for Navigator<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-product
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()
@@ -91,7 +92,7 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
-    fn Bluetooth(&self) -> DomRoot<Bluetooth> {
+    fn Bluetooth(&self) -> DomRoot<Bluetooth<TH>> {
         self.bluetooth.or_init(|| Bluetooth::new(&self.global()))
     }
 
@@ -101,12 +102,12 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
-    fn Plugins(&self) -> DomRoot<PluginArray> {
+    fn Plugins(&self) -> DomRoot<PluginArray<TH>> {
         self.plugins.or_init(|| PluginArray::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
-    fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
+    fn MimeTypes(&self) -> DomRoot<MimeTypeArray<TH>> {
         self.mime_types.or_init(|| MimeTypeArray::new(&self.global()))
     }
 
@@ -116,7 +117,7 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
-    fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
+    fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer<TH>> {
         self.service_worker.or_init(|| {
             ServiceWorkerContainer::new(&self.global())
         })
@@ -128,7 +129,7 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://www.w3.org/TR/gamepad/#navigator-interface-extension
-    fn GetGamepads(&self) -> DomRoot<GamepadList> {
+    fn GetGamepads(&self) -> DomRoot<GamepadList<TH>> {
         let root = self.gamepads.or_init(|| {
             GamepadList::new(&self.global(), &[])
         });
@@ -139,19 +140,19 @@ impl NavigatorMethods for Navigator {
         root
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
-    fn Permissions(&self) -> DomRoot<Permissions> {
+    fn Permissions(&self) -> DomRoot<Permissions<TH>> {
         self.permissions.or_init(|| Permissions::new(&self.global()))
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
     #[allow(unrooted_must_root)]
-    fn GetVRDisplays(&self) -> Rc<Promise> {
+    fn GetVRDisplays(&self) -> Rc<Promise<TH>> {
         self.Vr().GetDisplays()
     }
 }
 
-impl Navigator {
-    pub fn Vr(&self) -> DomRoot<VR> {
+impl<TH: TypeHolderTrait> Navigator<TH> {
+    pub fn Vr(&self) -> DomRoot<VR<TH>> {
         self.vr.or_init(|| VR::new(&self.global()))
     }
 }

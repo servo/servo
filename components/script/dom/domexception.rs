@@ -10,6 +10,7 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[repr(u16)]
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
@@ -39,27 +40,27 @@ pub enum DOMErrorName {
 }
 
 #[dom_struct]
-pub struct DOMException {
-    reflector_: Reflector,
+pub struct DOMException<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     code: DOMErrorName,
 }
 
-impl DOMException {
-    fn new_inherited(code: DOMErrorName) -> DOMException {
+impl<TH: TypeHolderTrait> DOMException<TH> {
+    fn new_inherited(code: DOMErrorName) -> DOMException<TH> {
         DOMException {
             reflector_: Reflector::new(),
             code: code,
         }
     }
 
-    pub fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
+    pub fn new(global: &GlobalScope<TH>, code: DOMErrorName) -> DomRoot<DOMException<TH>> {
         reflect_dom_object(Box::new(DOMException::new_inherited(code)),
                            global,
                            DOMExceptionBinding::Wrap)
     }
 }
 
-impl DOMExceptionMethods for DOMException {
+impl<TH: TypeHolderTrait> DOMExceptionMethods for DOMException<TH> {
     // https://heycam.github.io/webidl/#dfn-DOMException
     fn Code(&self) -> u16 {
         self.code as u16

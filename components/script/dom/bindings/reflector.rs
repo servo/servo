@@ -10,15 +10,17 @@ use dom::globalscope::GlobalScope;
 use js::jsapi::{JSContext, JSObject, Heap};
 use js::rust::HandleObject;
 use std::default::Default;
+use std::marker::PhantomData;
+use typeholder::TypeHolderTrait;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T, U>(
+pub fn reflect_dom_object<T, U, TH: TypeHolderTrait>(
         obj: Box<T>,
         global: &U,
-        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> DomRoot<T>)
+        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope<TH>, Box<T>) -> DomRoot<T>)
         -> DomRoot<T>
-    where T: DomObject, U: DerivedFrom<GlobalScope>
+    where T: DomObject, U: DerivedFrom<GlobalScope<TH>>
 {
     let global_scope = global.upcast();
     unsafe {
@@ -31,19 +33,20 @@ pub fn reflect_dom_object<T, U>(
 #[derive(MallocSizeOf)]
 #[must_root]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
-pub struct Reflector {
+pub struct Reflector<TH: TypeHolderTrait> {
     #[ignore_malloc_size_of = "defined and measured in rust-mozjs"]
     object: Heap<*mut JSObject>,
+    _p: PhantomData<TH>,
 }
 
 #[allow(unrooted_must_root)]
-impl PartialEq for Reflector {
-    fn eq(&self, other: &Reflector) -> bool {
+impl<TH: TypeHolderTrait> PartialEq for Reflector<TH> {
+    fn eq(&self, other: &Reflector<TH>) -> bool {
         self.object.get() == other.object.get()
     }
 }
 
-impl Reflector {
+impl<TH: TypeHolderTrait> Reflector<TH> {
     /// Get the reflector.
     #[inline]
     pub fn get_jsobject(&self) -> HandleObject {
@@ -66,25 +69,28 @@ impl Reflector {
     }
 
     /// Create an uninitialized `Reflector`.
-    pub fn new() -> Reflector {
+    pub fn new() -> Reflector<TH> {
         Reflector {
             object: Heap::default(),
+            _p: Default::default(),
         }
     }
 }
 
 /// A trait to provide access to the `Reflector` for a DOM object.
 pub trait DomObject: 'static {
+    type TypeHolder: TypeHolderTrait;
     /// Returns the receiver's reflector.
-    fn reflector(&self) -> &Reflector;
+    fn reflector(&self) -> &Reflector<Self::TypeHolder>;
 
     /// Returns the global scope of the realm that the DomObject was created in.
-    fn global(&self) -> DomRoot<GlobalScope> where Self: Sized {
-        GlobalScope::from_reflector(self)
+    fn global(&self) -> DomRoot<GlobalScope<Self::TypeHolder>> where Self: Sized {
+        GlobalScope::<Self::TypeHolder>::from_reflector(self)
     }
 }
 
-impl DomObject for Reflector {
+impl<TH: TypeHolderTrait> DomObject for Reflector<TH> {
+    type TypeHolder = TH;
     fn reflector(&self) -> &Self {
         self
     }
@@ -96,7 +102,7 @@ pub trait MutDomObject: DomObject {
     fn init_reflector(&mut self, obj: *mut JSObject);
 }
 
-impl MutDomObject for Reflector {
+impl<TH: TypeHolderTrait> MutDomObject for Reflector<TH> {
     fn init_reflector(&mut self, obj: *mut JSObject) {
         self.set_jsobject(obj)
     }

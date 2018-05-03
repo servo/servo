@@ -16,25 +16,25 @@ use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
-
+use typeholder::TypeHolderTrait;
 // check-tidy: no specs after this line
 
 #[dom_struct]
-pub struct TestWorkletGlobalScope {
+pub struct TestWorkletGlobalScope<TH: TypeHolderTrait> {
     // The worklet global for this object
-    worklet_global: WorkletGlobalScope,
+    worklet_global: WorkletGlobalScope<TH>,
     // The key/value pairs
     lookup_table: DomRefCell<HashMap<String, String>>,
 }
 
-impl TestWorkletGlobalScope {
+impl<TH: TypeHolderTrait> TestWorkletGlobalScope<TH> {
     #[allow(unsafe_code)]
     pub fn new(runtime: &Runtime,
                pipeline_id: PipelineId,
                base_url: ServoUrl,
                executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
-               -> DomRoot<TestWorkletGlobalScope>
+               -> DomRoot<TestWorkletGlobalScope<TH>>
     {
         debug!("Creating test worklet global scope for pipeline {}.", pipeline_id);
         let global = Box::new(TestWorkletGlobalScope {
@@ -55,7 +55,7 @@ impl TestWorkletGlobalScope {
     }
 }
 
-impl TestWorkletGlobalScopeMethods for TestWorkletGlobalScope {
+impl<TH: TypeHolderTrait> TestWorkletGlobalScopeMethods for TestWorkletGlobalScope<TH> {
     fn RegisterKeyValue(&self, key: DOMString, value: DOMString) {
         debug!("Registering test worklet key/value {}/{}.", key, value);
         self.lookup_table.borrow_mut().insert(String::from(key), String::from(value));

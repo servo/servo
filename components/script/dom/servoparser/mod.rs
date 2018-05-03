@@ -9,12 +9,16 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementM
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoParserBinding;
+use dom::bindings::conversions::IDLInterface;
+use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, MutDomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use dom::bindings::root::StableTraceObject;
 use dom::bindings::settings_stack::is_execution_stack_empty;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
@@ -33,11 +37,18 @@ use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use html5ever::buffer_queue::BufferQueue;
+use html5ever::serialize::{Serializer, Serialize, TraversalScope};
+use html5ever::serialize::AttrRef;
+use html5ever::serialize::TraversalScope::IncludeNode;
 use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
+use html5ever::tokenizer::Tokenizer as HtmlTokenizer;
 use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
+use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
+use js::jsapi::JSTracer;
+use malloc_size_of::MallocSizeOf;
 use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
@@ -49,55 +60,103 @@ use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
+use std::io;
+use std::marker::PhantomData;
+use std::marker::Sized;
 use std::mem;
 use style::context::QuirksMode as ServoQuirksMode;
+use typeholder::TypeHolderTrait;
+use xml5ever::tokenizer::XmlTokenizer;
+use xml5ever::tree_builder::{Tracer as XmlTracer, XmlTreeBuilder};
 
-mod async_html;
-mod html;
-mod xml;
+pub trait ServoParser<TH: TypeHolderTrait>: MutDomObject + MallocSizeOf + JSTraceable + IDLInterface + 'static {
+    fn new_inherited(
+        document: &Document<TH>,
+        tokenizer: Tokenizer<TH>,
+        last_chunk_state: LastChunkState,
+        kind: ParserKind
+    ) -> Self where Self: Sized;
 
-#[dom_struct]
-/// The parser maintains two input streams: one for input from script through
-/// document.write(), and one for input from network.
-///
-/// There is no concrete representation of the insertion point, instead it
-/// always points to just before the next character from the network input,
-/// with all of the script input before itself.
-///
-/// ```text
-///     ... script input ... | ... network input ...
-///                          ^
-///                 insertion point
-/// ```
-pub struct ServoParser {
-    reflector: Reflector,
-    /// The document associated with this parser.
-    document: Dom<Document>,
-    /// Input received from network.
-    #[ignore_malloc_size_of = "Defined in html5ever"]
-    network_input: DomRefCell<BufferQueue>,
-    /// Part of an UTF-8 code point spanning input chunks
-    #[ignore_malloc_size_of = "Defined in html5ever"]
-    incomplete_utf8: DomRefCell<Option<IncompleteUtf8>>,
-    /// Input received from script. Used only to support document.write().
-    #[ignore_malloc_size_of = "Defined in html5ever"]
-    script_input: DomRefCell<BufferQueue>,
-    /// The tokenizer of this parser.
-    tokenizer: DomRefCell<Tokenizer>,
-    /// Whether to expect any further input from the associated network request.
-    last_chunk_received: Cell<bool>,
-    /// Whether this parser should avoid passing any further data to the tokenizer.
-    suspended: Cell<bool>,
-    /// <https://html.spec.whatwg.org/multipage/#script-nesting-level>
-    script_nesting_level: Cell<usize>,
-    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
-    aborted: Cell<bool>,
-    /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
-    script_created_parser: bool,
+    fn tokenize<F>(&self, mut feed: F)
+        where F: FnMut(&mut Tokenizer<TH>) -> Result<(), DomRoot<HTMLScriptElement<TH>>>;
+
+    fn new(document: &Document<TH>,
+            tokenizer: Tokenizer<TH>,
+            last_chunk_state: LastChunkState,
+            kind: ParserKind) -> DomRoot<Self> where Self: Sized;
+
+    fn push_bytes_input_chunk(&self, chunk: Vec<u8>);
+
+    fn do_parse_sync(&self);
+
+    fn parse_string_chunk(&self, input: String);
+
+    fn finish(&self);
+
+    fn parser_is_not_active(&self) -> bool;
+
+    fn script_nesting_level(&self) -> usize;
+
+    fn is_script_created(&self) -> bool;
+
+    /// Corresponds to the latter part of the "Otherwise" branch of the 'An end
+    /// tag whose tag name is "script"' of
+    /// <https://html.spec.whatwg.org/multipage/#parsing-main-incdata>
+    ///
+    /// This first moves everything from the script input to the beginning of
+    /// the network input, effectively resetting the insertion point to just
+    /// before the next character to be consumed.
+    ///
+    ///
+    /// ```text
+    ///     | ... script input ... network input ...
+    ///     ^
+    ///     insertion point
+    /// ```
+    fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement<TH>, result: ScriptResult);
+
+    fn can_write(&self) -> bool;
+
+    /// Steps 6-8 of https://html.spec.whatwg.org/multipage/#document.write()
+    fn write(&self, text: Vec<DOMString>);
+
+    // Steps 4-6 of https://html.spec.whatwg.org/multipage/#dom-document-close
+    fn close(&self);
+
+    // https://html.spec.whatwg.org/multipage/#abort-a-parser
+    fn abort(&self);
+
+    // https://html.spec.whatwg.org/multipage/#active-parser
+    fn is_active(&self) -> bool;
+
+    fn parse_html_document(document: &Document<TH>, input: DOMString, url: ServoUrl);
+
+    fn parse_html_fragment(context: &Element<TH>, input: DOMString)
+        -> Box<Iterator<Item=DomRoot<Node<TH>>>> where Self: Sized;
+
+    fn parse_html_script_input(document: &Document<TH>, url: ServoUrl, type_: &str);
+
+    fn parse_xml_document(document: &Document<TH>, input: DOMString, url: ServoUrl);
+
+    fn push_string_input_chunk(&self, chunk: String);
+
+    fn parse_sync(&self);
+
+    fn get_aborted(&self) -> Cell<bool>;
+
+    fn get_document(&self) -> &Dom<Document<TH>>;
+
+    fn get_tokenizer(&self) -> &DomRefCell<Tokenizer<TH>>;
+
+    fn get_last_chunk_received(&self) -> Cell<bool>;
+
+    fn get_suspended(&self) -> Cell<bool>;
+
+    fn parse_bytes_chunk(&self, input: Vec<u8>);
 }
 
 #[derive(PartialEq)]
-enum LastChunkState {
+pub enum LastChunkState {
     Received,
     NotReceived,
 }
@@ -122,405 +181,18 @@ impl ElementAttribute {
     }
 }
 
-impl ServoParser {
-    pub fn parser_is_not_active(&self) -> bool {
-        self.can_write() || self.tokenizer.try_borrow_mut().is_ok()
-    }
-
-    pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = if PREFS.get("dom.servoparser.async_html_tokenizer.enabled").as_boolean().unwrap() {
-            ServoParser::new(document,
-                             Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
-                             LastChunkState::NotReceived,
-                             ParserKind::Normal)
-        } else {
-            ServoParser::new(document,
-                             Tokenizer::Html(self::html::Tokenizer::new(document, url, None, ParsingAlgorithm::Normal)),
-                             LastChunkState::NotReceived,
-                             ParserKind::Normal)
-        };
-        parser.parse_string_chunk(String::from(input));
-    }
-
-    // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
-    pub fn parse_html_fragment(context: &Element, input: DOMString) -> impl Iterator<Item=DomRoot<Node>> {
-        let context_node = context.upcast::<Node>();
-        let context_document = context_node.owner_doc();
-        let window = context_document.window();
-        let url = context_document.url();
-
-        // Step 1.
-        let loader = DocumentLoader::new_with_threads(context_document.loader().resource_threads().clone(),
-                                                      Some(url.clone()));
-        let document = Document::new(window,
-                                     HasBrowsingContext::No,
-                                     Some(url.clone()),
-                                     context_document.origin().clone(),
-                                     IsHTMLDocument::HTMLDocument,
-                                     None,
-                                     None,
-                                     DocumentActivity::Inactive,
-                                     DocumentSource::FromParser,
-                                     loader,
-                                     None,
-                                     None,
-                                     Default::default());
-
-        // Step 2.
-        document.set_quirks_mode(context_document.quirks_mode());
-
-        // Step 11.
-        let form = context_node.inclusive_ancestors()
-            .find(|element| element.is::<HTMLFormElement>());
-
-        let fragment_context = FragmentContext {
-            context_elem: context_node,
-            form_elem: form.r(),
-        };
-
-        let parser = ServoParser::new(&document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(&document,
-                                                                                 url,
-                                                                                 Some(fragment_context),
-                                                                                 ParsingAlgorithm::Fragment)),
-                                      LastChunkState::Received,
-                                      ParserKind::Normal);
-        parser.parse_string_chunk(String::from(input));
-
-        // Step 14.
-        let root_element = document.GetDocumentElement().expect("no document element");
-        FragmentParsingResult {
-            inner: root_element.upcast::<Node>().children(),
-        }
-    }
-
-    pub fn parse_html_script_input(document: &Document, url: ServoUrl, type_: &str) {
-        let parser = ServoParser::new(
-            document,
-            Tokenizer::Html(self::html::Tokenizer::new(
-                document,
-                url,
-                None,
-                ParsingAlgorithm::Normal,
-            )),
-            LastChunkState::NotReceived,
-            ParserKind::ScriptCreated,
-        );
-        document.set_current_parser(Some(&parser));
-        if !type_.eq_ignore_ascii_case("text/html") {
-            parser.parse_string_chunk("<pre>\n".to_owned());
-            parser.tokenizer.borrow_mut().set_plaintext_state();
-        }
-    }
-
-    pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = ServoParser::new(document,
-                                      Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
-                                      LastChunkState::NotReceived,
-                                      ParserKind::Normal);
-        parser.parse_string_chunk(String::from(input));
-    }
-
-    pub fn script_nesting_level(&self) -> usize {
-        self.script_nesting_level.get()
-    }
-
-    pub fn is_script_created(&self) -> bool {
-        self.script_created_parser
-    }
-
-    /// Corresponds to the latter part of the "Otherwise" branch of the 'An end
-    /// tag whose tag name is "script"' of
-    /// <https://html.spec.whatwg.org/multipage/#parsing-main-incdata>
-    ///
-    /// This first moves everything from the script input to the beginning of
-    /// the network input, effectively resetting the insertion point to just
-    /// before the next character to be consumed.
-    ///
-    ///
-    /// ```text
-    ///     | ... script input ... network input ...
-    ///     ^
-    ///     insertion point
-    /// ```
-    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement, result: ScriptResult) {
-        assert!(self.suspended.get());
-        self.suspended.set(false);
-
-        mem::swap(&mut *self.script_input.borrow_mut(),
-                  &mut *self.network_input.borrow_mut());
-        while let Some(chunk) = self.script_input.borrow_mut().pop_front() {
-            self.network_input.borrow_mut().push_back(chunk);
-        }
-
-        let script_nesting_level = self.script_nesting_level.get();
-        assert_eq!(script_nesting_level, 0);
-
-        self.script_nesting_level.set(script_nesting_level + 1);
-        script.execute(result);
-        self.script_nesting_level.set(script_nesting_level);
-
-        if !self.suspended.get() {
-            self.parse_sync();
-        }
-    }
-
-    pub fn can_write(&self) -> bool {
-        self.script_created_parser || self.script_nesting_level.get() > 0
-    }
-
-    /// Steps 6-8 of https://html.spec.whatwg.org/multipage/#document.write()
-    pub fn write(&self, text: Vec<DOMString>) {
-        assert!(self.can_write());
-
-        if self.document.has_pending_parsing_blocking_script() {
-            // There is already a pending parsing blocking script so the
-            // parser is suspended, we just append everything to the
-            // script input and abort these steps.
-            for chunk in text {
-                self.script_input.borrow_mut().push_back(String::from(chunk).into());
-            }
-            return;
-        }
-
-        // There is no pending parsing blocking script, so all previous calls
-        // to document.write() should have seen their entire input tokenized
-        // and process, with nothing pushed to the parser script input.
-        assert!(self.script_input.borrow().is_empty());
-
-        let mut input = BufferQueue::new();
-        for chunk in text {
-            input.push_back(String::from(chunk).into());
-        }
-
-        self.tokenize(|tokenizer| tokenizer.feed(&mut input));
-
-        if self.suspended.get() {
-            // Parser got suspended, insert remaining input at end of
-            // script input, following anything written by scripts executed
-            // reentrantly during this call.
-            while let Some(chunk) = input.pop_front() {
-                self.script_input.borrow_mut().push_back(chunk);
-            }
-            return;
-        }
-
-        assert!(input.is_empty());
-    }
-
-    // Steps 4-6 of https://html.spec.whatwg.org/multipage/#dom-document-close
-    pub fn close(&self) {
-        assert!(self.script_created_parser);
-
-        // Step 4.
-        self.last_chunk_received.set(true);
-
-        if self.suspended.get() {
-            // Step 5.
-            return;
-        }
-
-        // Step 6.
-        self.parse_sync();
-    }
-
-    // https://html.spec.whatwg.org/multipage/#abort-a-parser
-    pub fn abort(&self) {
-        assert!(!self.aborted.get());
-        self.aborted.set(true);
-
-        // Step 1.
-        *self.script_input.borrow_mut() = BufferQueue::new();
-        *self.network_input.borrow_mut() = BufferQueue::new();
-
-        // Step 2.
-        self.document.set_ready_state(DocumentReadyState::Interactive);
-
-        // Step 3.
-        self.tokenizer.borrow_mut().end();
-        self.document.set_current_parser(None);
-
-        // Step 4.
-        self.document.set_ready_state(DocumentReadyState::Interactive);
-    }
-
-    // https://html.spec.whatwg.org/multipage/#active-parser
-    pub fn is_active(&self) -> bool {
-        self.script_nesting_level() > 0 && !self.aborted.get()
-    }
-
-    #[allow(unrooted_must_root)]
-    fn new_inherited(document: &Document,
-                     tokenizer: Tokenizer,
-                     last_chunk_state: LastChunkState,
-                     kind: ParserKind)
-                     -> Self {
-        ServoParser {
-            reflector: Reflector::new(),
-            document: Dom::from_ref(document),
-            incomplete_utf8: DomRefCell::new(None),
-            network_input: DomRefCell::new(BufferQueue::new()),
-            script_input: DomRefCell::new(BufferQueue::new()),
-            tokenizer: DomRefCell::new(tokenizer),
-            last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
-            suspended: Default::default(),
-            script_nesting_level: Default::default(),
-            aborted: Default::default(),
-            script_created_parser: kind == ParserKind::ScriptCreated,
-        }
-    }
-
-    #[allow(unrooted_must_root)]
-    fn new(document: &Document,
-           tokenizer: Tokenizer,
-           last_chunk_state: LastChunkState,
-           kind: ParserKind)
-           -> DomRoot<Self> {
-        reflect_dom_object(Box::new(ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind)),
-                           document.window(),
-                           ServoParserBinding::Wrap)
-    }
-
-    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
-        let mut chunk = ByteTendril::from(&*chunk);
-        let mut network_input = self.network_input.borrow_mut();
-        let mut incomplete_utf8 = self.incomplete_utf8.borrow_mut();
-
-        if let Some(mut incomplete) = incomplete_utf8.take() {
-            let result = incomplete.try_complete(chunk, |s| network_input.push_back(s));
-            match result {
-                Err(()) => {
-                    *incomplete_utf8 = Some(incomplete);
-                    return
-                }
-                Ok(remaining) => {
-                    chunk = remaining
-                }
-            }
-        }
-
-        *incomplete_utf8 = chunk.decode_utf8_lossy(|s| network_input.push_back(s));
-    }
-
-    fn push_string_input_chunk(&self, chunk: String) {
-        self.network_input.borrow_mut().push_back(chunk.into());
-    }
-
-    fn parse_sync(&self) {
-        let metadata = TimerMetadata {
-            url: self.document.url().as_str().into(),
-            iframe: TimerMetadataFrameType::RootWindow,
-            incremental: TimerMetadataReflowType::FirstReflow,
-        };
-        let profiler_category = self.tokenizer.borrow().profiler_category();
-        profile(profiler_category,
-                Some(metadata),
-                self.document.window().upcast::<GlobalScope>().time_profiler_chan().clone(),
-                || self.do_parse_sync())
-    }
-
-    fn do_parse_sync(&self) {
-        assert!(self.script_input.borrow().is_empty());
-
-        // This parser will continue to parse while there is either pending input or
-        // the parser remains unsuspended.
-
-        if self.last_chunk_received.get() {
-            if let Some(_) = self.incomplete_utf8.borrow_mut().take() {
-                self.network_input.borrow_mut().push_back(StrTendril::from("\u{FFFD}"))
-            }
-        }
-        self.tokenize(|tokenizer| tokenizer.feed(&mut *self.network_input.borrow_mut()));
-
-        if self.suspended.get() {
-            return;
-        }
-
-        assert!(self.network_input.borrow().is_empty());
-
-        if self.last_chunk_received.get() {
-            self.finish();
-        }
-    }
-
-    fn parse_string_chunk(&self, input: String) {
-        self.document.set_current_parser(Some(self));
-        self.push_string_input_chunk(input);
-        if !self.suspended.get() {
-            self.parse_sync();
-        }
-    }
-
-    fn parse_bytes_chunk(&self, input: Vec<u8>) {
-        self.document.set_current_parser(Some(self));
-        self.push_bytes_input_chunk(input);
-        if !self.suspended.get() {
-            self.parse_sync();
-        }
-    }
-
-    fn tokenize<F>(&self, mut feed: F)
-        where F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
-    {
-        loop {
-            assert!(!self.suspended.get());
-            assert!(!self.aborted.get());
-
-            self.document.reflow_if_reflow_timer_expired();
-            let script = match feed(&mut *self.tokenizer.borrow_mut()) {
-                Ok(()) => return,
-                Err(script) => script,
-            };
-
-            let script_nesting_level = self.script_nesting_level.get();
-
-            self.script_nesting_level.set(script_nesting_level + 1);
-            script.prepare();
-            self.script_nesting_level.set(script_nesting_level);
-
-            if self.document.has_pending_parsing_blocking_script() {
-                self.suspended.set(true);
-                return;
-            }
-            if self.aborted.get() {
-                return;
-            }
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#the-end
-    fn finish(&self) {
-        assert!(!self.suspended.get());
-        assert!(self.last_chunk_received.get());
-        assert!(self.script_input.borrow().is_empty());
-        assert!(self.network_input.borrow().is_empty());
-        assert!(self.incomplete_utf8.borrow().is_none());
-
-        // Step 1.
-        self.document.set_ready_state(DocumentReadyState::Interactive);
-
-        // Step 2.
-        self.tokenizer.borrow_mut().end();
-        self.document.set_current_parser(None);
-
-        // Steps 3-12 are in another castle, namely finish_load.
-        let url = self.tokenizer.borrow().url().clone();
-        self.document.finish_load(LoadType::PageSource(url));
-    }
+pub struct FragmentParsingResult<I, TH: TypeHolderTrait>
+    where I: Iterator<Item=DomRoot<Node<TH>>>
+{
+    pub inner: I,
 }
 
-struct FragmentParsingResult<I>
-    where I: Iterator<Item=DomRoot<Node>>
+impl<I, TH: TypeHolderTrait> Iterator for FragmentParsingResult<I, TH>
+    where I: Iterator<Item=DomRoot<Node<TH>>>
 {
-    inner: I,
-}
+    type Item = DomRoot<Node<TH>>;
 
-impl<I> Iterator for FragmentParsingResult<I>
-    where I: Iterator<Item=DomRoot<Node>>
-{
-    type Item = DomRoot<Node>;
-
-    fn next(&mut self) -> Option<DomRoot<Node>> {
+    fn next(&mut self) -> Option<DomRoot<Node<TH>>> {
         let next = self.inner.next()?;
         next.remove_self();
         Some(next)
@@ -532,21 +204,171 @@ impl<I> Iterator for FragmentParsingResult<I>
 }
 
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]
-enum ParserKind {
+pub enum ParserKind {
     Normal,
     ScriptCreated,
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
-enum Tokenizer {
-    Html(self::html::Tokenizer),
-    AsyncHtml(self::async_html::Tokenizer),
-    Xml(self::xml::Tokenizer),
+pub trait TokenizerTrait<TH: TypeHolderTrait>: MallocSizeOf + JSTraceable + 'static {
+    fn new(document: &Document<TH>,
+            url: ServoUrl,
+            fragment_context: Option<FragmentContext<TH>>,
+            parsing_algorithm: ParsingAlgorithm) -> Self;
+
+    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement<TH>>>;
+
+    fn end(&mut self);
+
+    fn url(&self) -> &ServoUrl;
+
+    fn set_plaintext_state(&mut self);
 }
 
-impl Tokenizer {
-    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+#[derive(JSTraceable, MallocSizeOf)]
+#[must_root]
+pub enum Tokenizer<TH: TypeHolderTrait> {
+    Html(TH::HtmlTokenizer),
+    AsyncHtml(TH::AsyncHtmlTokenizer),
+    Xml(TH::XmlTokenizer),
+}
+
+enum SerializationCommand<TH: TypeHolderTrait> {
+    OpenElement(DomRoot<Element<TH>>),
+    CloseElement(DomRoot<Element<TH>>),
+    SerializeNonelement(DomRoot<Node<TH>>),
+}
+
+struct SerializationIterator<TH: TypeHolderTrait> {
+    stack: Vec<SerializationCommand<TH>>,
+}
+
+fn rev_children_iter<TH: TypeHolderTrait>(n: &Node<TH>) -> impl Iterator<Item=DomRoot<Node<TH>>>{
+    match n.downcast::<HTMLTemplateElement<TH>>() {
+        Some(t) => t.Content().upcast::<Node<TH>>().rev_children(),
+        None => n.rev_children(),
+    }
+}
+
+impl<TH: TypeHolderTrait> SerializationIterator<TH> {
+    fn new(node: &Node<TH>, skip_first: bool) -> SerializationIterator<TH> {
+        let mut ret = SerializationIterator {
+            stack: vec![],
+        };
+        if skip_first {
+            for c in rev_children_iter(node) {
+                ret.push_node(&*c);
+            }
+        } else {
+            ret.push_node(node);
+        }
+        ret
+    }
+
+    fn push_node(&mut self, n: &Node<TH>) {
+        match n.downcast::<Element<TH>>() {
+            Some(e) => self.stack.push(SerializationCommand::OpenElement(DomRoot::from_ref(e))),
+            None => self.stack.push(SerializationCommand::SerializeNonelement(DomRoot::from_ref(n))),
+        }
+    }
+}
+
+impl<TH: TypeHolderTrait> Iterator for SerializationIterator<TH> {
+    type Item = SerializationCommand<TH>;
+
+    fn next(&mut self) -> Option<SerializationCommand<TH>> {
+        let res = self.stack.pop();
+
+        if let Some(SerializationCommand::OpenElement(ref e)) = res {
+            self.stack.push(SerializationCommand::CloseElement(e.clone()));
+            for c in rev_children_iter(&*e.upcast::<Node<TH>>()) {
+                self.push_node(&c);
+            }
+        }
+
+        res
+    }
+}
+
+fn start_element<S: Serializer, TH: TypeHolderTrait>(node: &Element<TH>, serializer: &mut S) -> io::Result<()> {
+    let name = QualName::new(None, node.namespace().clone(),
+                             node.local_name().clone());
+    let attrs = node.attrs().iter().map(|attr| {
+        let qname = QualName::new(None, attr.namespace().clone(),
+                                  attr.local_name().clone());
+        let value = attr.value().clone();
+        (qname, value)
+    }).collect::<Vec<_>>();
+    let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
+        let ar: AttrRef = (&qname, &**value);
+        ar
+    });
+    serializer.start_elem(name, attr_refs)?;
+    Ok(())
+}
+
+fn end_element<S: Serializer, TH: TypeHolderTrait>(node: &Element<TH>, serializer: &mut S) -> io::Result<()> {
+    let name = QualName::new(None, node.namespace().clone(),
+                             node.local_name().clone());
+    serializer.end_elem(name)
+}
+
+
+impl<'a, TH: TypeHolderTrait> Serialize for &'a Node<TH> {
+    fn serialize<S: Serializer>(&self, serializer: &mut S,
+                                traversal_scope: TraversalScope) -> io::Result<()> {
+        let node = *self;
+
+
+        let iter = SerializationIterator::new(node, traversal_scope != IncludeNode);
+
+        for cmd in iter {
+            match cmd {
+                SerializationCommand::OpenElement(n) => {
+                    start_element(&n, serializer)?;
+                }
+
+                SerializationCommand::CloseElement(n) => {
+                    end_element(&&n, serializer)?;
+                }
+
+                SerializationCommand::SerializeNonelement(n) => {
+                    match n.type_id() {
+                        NodeTypeId::DocumentType => {
+                            let doctype = n.downcast::<DocumentType<TH>>().unwrap();
+                            serializer.write_doctype(&doctype.name())?;
+                        },
+
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                            let cdata = n.downcast::<CharacterData<TH>>().unwrap();
+                            serializer.write_text(&cdata.data())?;
+                        },
+
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                            let cdata = n.downcast::<CharacterData<TH>>().unwrap();
+                            serializer.write_comment(&cdata.data())?;
+                        },
+
+                        NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                            let pi = n.downcast::<ProcessingInstruction<TH>>().unwrap();
+                            let data = pi.upcast::<CharacterData<TH>>().data();
+                            serializer.write_processing_instruction(&pi.target(), &data)?;
+                        },
+
+                        NodeTypeId::DocumentFragment => {}
+
+                        NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
+                        NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl<TH: TypeHolderTrait> Tokenizer<TH> {
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement<TH>>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
             Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.feed(input),
@@ -554,7 +376,7 @@ impl Tokenizer {
         }
     }
 
-    fn end(&mut self) {
+    pub fn end(&mut self) {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.end(),
             Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.end(),
@@ -562,7 +384,7 @@ impl Tokenizer {
         }
     }
 
-    fn url(&self) -> &ServoUrl {
+    pub fn url(&self) -> &ServoUrl {
         match *self {
             Tokenizer::Html(ref tokenizer) => tokenizer.url(),
             Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.url(),
@@ -570,7 +392,7 @@ impl Tokenizer {
         }
     }
 
-    fn set_plaintext_state(&mut self) {
+    pub fn set_plaintext_state(&mut self) {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.set_plaintext_state(),
@@ -578,7 +400,7 @@ impl Tokenizer {
         }
     }
 
-    fn profiler_category(&self) -> ProfilerCategory {
+    pub fn profiler_category(&self) -> ProfilerCategory {
         match *self {
             Tokenizer::Html(_) => ProfilerCategory::ScriptParseHTML,
             Tokenizer::AsyncHtml(_) => ProfilerCategory::ScriptParseHTML,
@@ -590,9 +412,9 @@ impl Tokenizer {
 /// The context required for asynchronously fetching a document
 /// and parsing it progressively.
 #[derive(JSTraceable)]
-pub struct ParserContext {
+pub struct ParserContext<TH: TypeHolderTrait> {
     /// The parser that initiated the request.
-    parser: Option<Trusted<ServoParser>>,
+    parser: Option<Trusted<TH::ServoParser>>,
     /// Is this a synthesized document
     is_synthesized_document: bool,
     /// The pipeline associated with this document.
@@ -601,8 +423,8 @@ pub struct ParserContext {
     url: ServoUrl,
 }
 
-impl ParserContext {
-    pub fn new(id: PipelineId, url: ServoUrl) -> ParserContext {
+impl<TH: TypeHolderTrait> ParserContext<TH> {
+    pub fn new(id: PipelineId, url: ServoUrl) -> ParserContext<TH> {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
@@ -612,7 +434,7 @@ impl ParserContext {
     }
 }
 
-impl FetchResponseListener for ParserContext {
+impl<TH: TypeHolderTrait> FetchResponseListener for ParserContext<TH> {
     fn process_request_body(&mut self) {}
 
     fn process_request_eof(&mut self) {}
@@ -644,11 +466,11 @@ impl FetchResponseListener for ParserContext {
             Err(_) => None,
         };
         let content_type = metadata.clone().and_then(|meta| meta.content_type).map(Serde::into_inner);
-        let parser = match ScriptThread::page_headers_available(&self.id, metadata) {
+        let parser: DomRoot<TH::ServoParser> = match ScriptThread::<TH>::page_headers_available(&self.id, metadata) {
             Some(parser) => parser,
             None => return,
         };
-        if parser.aborted.get() {
+        if parser.get_aborted().get() {
             return;
         }
 
@@ -661,11 +483,11 @@ impl FetchResponseListener for ParserContext {
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
 
-                let doc = &parser.document;
-                let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
+                let doc = parser.get_document();
+                let doc_body = DomRoot::upcast::<Node<TH>>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(local_name!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
-                doc_body.AppendChild(&DomRoot::upcast::<Node>(img)).expect("Appending failed");
+                doc_body.AppendChild(&DomRoot::upcast::<Node<TH>>(img)).expect("Appending failed");
 
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
@@ -673,7 +495,8 @@ impl FetchResponseListener for ParserContext {
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
-                parser.tokenizer.borrow_mut().set_plaintext_state();
+                let token = parser.get_tokenizer();
+                token.borrow_mut().set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {
                 // Handle text/html
@@ -720,7 +543,7 @@ impl FetchResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
-        if parser.aborted.get() {
+        if parser.get_aborted().get() {
             return;
         }
         parser.parse_bytes_chunk(payload);
@@ -731,7 +554,7 @@ impl FetchResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
-        if parser.aborted.get() {
+        if parser.get_aborted().get() {
             return;
         }
 
@@ -740,34 +563,38 @@ impl FetchResponseListener for ParserContext {
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
-        parser.last_chunk_received.set(true);
-        if !parser.suspended.get() {
+        parser.get_last_chunk_received().set(true);
+        if !parser.get_suspended().get() {
             parser.parse_sync();
         }
     }
 }
 
-impl PreInvoke for ParserContext {}
+impl<TH: TypeHolderTrait> PreInvoke for ParserContext<TH> {}
 
-pub struct FragmentContext<'a> {
-    pub context_elem: &'a Node,
-    pub form_elem: Option<&'a Node>,
+pub struct FragmentContext<'a, TH: TypeHolderTrait> {
+    pub context_elem: &'a Node<TH>,
+    pub form_elem: Option<&'a Node<TH>>,
 }
 
 #[allow(unrooted_must_root)]
-fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<Node>>) {
+pub fn insert<TH: TypeHolderTrait>(
+    parent: &Node<TH>,
+    reference_child: Option<&Node<TH>>,
+    child: NodeOrText<Dom<Node<TH>>>
+) {
     match child {
         NodeOrText::AppendNode(n) => {
             parent.InsertBefore(&n, reference_child).unwrap();
         },
         NodeOrText::AppendText(t) => {
             let text = reference_child
-                .and_then(Node::GetPreviousSibling)
+                .and_then(Node::<TH>::GetPreviousSibling)
                 .or_else(|| parent.GetLastChild())
-                .and_then(DomRoot::downcast::<Text>);
+                .and_then(DomRoot::downcast::<Text<TH>>);
 
             if let Some(text) = text {
-                text.upcast::<CharacterData>().append_data(&t);
+                text.upcast::<CharacterData<TH>>().append_data(&t);
             } else {
                 let text = Text::new(String::from(t).into(), &parent.owner_doc());
                 parent.InsertBefore(text.upcast(), reference_child).unwrap();
@@ -778,50 +605,50 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<N
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
-pub struct Sink {
-    base_url: ServoUrl,
-    document: Dom<Document>,
-    current_line: u64,
-    script: MutNullableDom<HTMLScriptElement>,
-    parsing_algorithm: ParsingAlgorithm,
+pub struct Sink<TH: TypeHolderTrait> {
+    pub base_url: ServoUrl,
+    pub document: Dom<Document<TH>>,
+    pub current_line: u64,
+    pub script: MutNullableDom<HTMLScriptElement<TH>>,
+    pub parsing_algorithm: ParsingAlgorithm,
 }
 
-impl Sink {
-    fn same_tree(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
-        let x = x.downcast::<Element>().expect("Element node expected");
-        let y = y.downcast::<Element>().expect("Element node expected");
+impl<TH: TypeHolderTrait> Sink<TH> {
+    fn same_tree(&self, x: &Dom<Node<TH>>, y: &Dom<Node<TH>>) -> bool {
+        let x = x.downcast::<Element<TH>>().expect("Element node expected");
+        let y = y.downcast::<Element<TH>>().expect("Element node expected");
 
         x.is_in_same_home_subtree(y)
     }
 
-    fn has_parent_node(&self, node: &Dom<Node>) -> bool {
+    fn has_parent_node(&self, node: &Dom<Node<TH>>) -> bool {
          node.GetParentNode().is_some()
     }
 }
 
 #[allow(unrooted_must_root)]  // FIXME: really?
-impl TreeSink for Sink {
+impl<TH: TypeHolderTrait> TreeSink for Sink<TH> {
     type Output = Self;
     fn finish(self) -> Self { self }
 
-    type Handle = Dom<Node>;
+    type Handle = Dom<Node<TH>>;
 
-    fn get_document(&mut self) -> Dom<Node> {
+    fn get_document(&mut self) -> Dom<Node<TH>> {
         Dom::from_ref(self.document.upcast())
     }
 
-    fn get_template_contents(&mut self, target: &Dom<Node>) -> Dom<Node> {
-        let template = target.downcast::<HTMLTemplateElement>()
+    fn get_template_contents(&mut self, target: &Dom<Node<TH>>) -> Dom<Node<TH>> {
+        let template = target.downcast::<HTMLTemplateElement<TH>>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
         Dom::from_ref(template.Content().upcast())
     }
 
-    fn same_node(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
+    fn same_node(&self, x: &Dom<Node<TH>>, y: &Dom<Node<TH>>) -> bool {
         x == y
     }
 
-    fn elem_name<'a>(&self, target: &'a Dom<Node>) -> ExpandedName<'a> {
-        let elem = target.downcast::<Element>()
+    fn elem_name<'a>(&self, target: &'a Dom<Node<TH>>) -> ExpandedName<'a> {
+        let elem = target.downcast::<Element<TH>>()
             .expect("tried to get name of non-Element in HTML parsing");
         ExpandedName {
             ns: elem.namespace(),
@@ -830,7 +657,7 @@ impl TreeSink for Sink {
     }
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
-            -> Dom<Node> {
+            -> Dom<Node<TH>> {
         let attrs = attrs
             .into_iter()
             .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
@@ -845,12 +672,12 @@ impl TreeSink for Sink {
         Dom::from_ref(element.upcast())
     }
 
-    fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
+    fn create_comment(&mut self, text: StrTendril) -> Dom<Node<TH>> {
         let comment = Comment::new(DOMString::from(String::from(text)), &*self.document);
         Dom::from_ref(comment.upcast())
     }
 
-    fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Dom<Node> {
+    fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Dom<Node<TH>> {
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
             DOMString::from(String::from(target)), DOMString::from(String::from(data)),
@@ -858,7 +685,12 @@ impl TreeSink for Sink {
         Dom::from_ref(pi.upcast())
     }
 
-    fn associate_with_form(&mut self, target: &Dom<Node>, form: &Dom<Node>, nodes: (&Dom<Node>, Option<&Dom<Node>>)) {
+    fn associate_with_form(
+        &mut self,
+        target: &Dom<Node<TH>>,
+        form: &Dom<Node<TH>>,
+        nodes: (&Dom<Node<TH>>, Option<&Dom<Node<TH>>>)
+    ) {
         let (element, prev_element) = nodes;
         let tree_node = prev_element.map_or(element, |prev| {
             if self.has_parent_node(element) { element } else { prev }
@@ -868,10 +700,10 @@ impl TreeSink for Sink {
         }
 
         let node = target;
-        let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
+        let form = DomRoot::downcast::<HTMLFormElement<TH>>(DomRoot::from_ref(&**form))
             .expect("Owner must be a form element");
 
-        let elem = node.downcast::<Element>();
+        let elem = node.downcast::<Element<TH>>();
         let control = elem.and_then(|e| e.as_maybe_form_control());
 
         if let Some(control) = control {
@@ -883,8 +715,8 @@ impl TreeSink for Sink {
     }
 
     fn append_before_sibling(&mut self,
-            sibling: &Dom<Node>,
-            new_node: NodeOrText<Dom<Node>>) {
+            sibling: &Dom<Node<TH>>,
+            new_node: NodeOrText<Dom<Node<TH>>>) {
         let parent = sibling.GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
@@ -904,15 +736,15 @@ impl TreeSink for Sink {
         self.document.set_quirks_mode(mode);
     }
 
-    fn append(&mut self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
+    fn append(&mut self, parent: &Dom<Node<TH>>, child: NodeOrText<Dom<Node<TH>>>) {
         insert(&parent, None, child);
     }
 
     fn append_based_on_parent_node(
         &mut self,
-        elem: &Dom<Node>,
-        prev_elem: &Dom<Node>,
-        child: NodeOrText<Dom<Node>>,
+        elem: &Dom<Node<TH>>,
+        prev_elem: &Dom<Node<TH>>,
+        child: NodeOrText<Dom<Node<TH>>>,
     ) {
         if self.has_parent_node(elem) {
             self.append_before_sibling(elem, child);
@@ -927,29 +759,29 @@ impl TreeSink for Sink {
         let doctype = DocumentType::new(
             DOMString::from(String::from(name)), Some(DOMString::from(String::from(public_id))),
             Some(DOMString::from(String::from(system_id))), doc);
-        doc.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
+        doc.upcast::<Node<TH>>().AppendChild(doctype.upcast()).expect("Appending failed");
     }
 
-    fn add_attrs_if_missing(&mut self, target: &Dom<Node>, attrs: Vec<Attribute>) {
-        let elem = target.downcast::<Element>()
+    fn add_attrs_if_missing(&mut self, target: &Dom<Node<TH>>, attrs: Vec<Attribute>) {
+        let elem = target.downcast::<Element<TH>>()
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
         }
     }
 
-    fn remove_from_parent(&mut self, target: &Dom<Node>) {
+    fn remove_from_parent(&mut self, target: &Dom<Node<TH>>) {
         if let Some(ref parent) = target.GetParentNode() {
             parent.RemoveChild(&*target).unwrap();
         }
     }
 
-    fn mark_script_already_started(&mut self, node: &Dom<Node>) {
-        let script = node.downcast::<HTMLScriptElement>();
+    fn mark_script_already_started(&mut self, node: &Dom<Node<TH>>) {
+        let script = node.downcast::<HTMLScriptElement<TH>>();
         script.map(|script| script.set_already_started(true));
     }
 
-    fn complete_script(&mut self, node: &Dom<Node>) -> NextParserState {
+    fn complete_script(&mut self, node: &Dom<Node<TH>>) -> NextParserState {
         if let Some(script) = node.downcast() {
             self.script.set(Some(script));
             NextParserState::Suspend
@@ -958,7 +790,7 @@ impl TreeSink for Sink {
         }
     }
 
-    fn reparent_children(&mut self, node: &Dom<Node>, new_parent: &Dom<Node>) {
+    fn reparent_children(&mut self, node: &Dom<Node<TH>>, new_parent: &Dom<Node<TH>>) {
         while let Some(ref child) = node.GetFirstChild() {
             new_parent.AppendChild(&child).unwrap();
         }
@@ -966,8 +798,8 @@ impl TreeSink for Sink {
 
     /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
     /// Specifically, the <annotation-xml> cases.
-    fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
-        let elem = handle.downcast::<Element>().unwrap();
+    fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node<TH>>) -> bool {
+        let elem = handle.downcast::<Element<TH>>().unwrap();
         elem.get_attribute(&ns!(), &local_name!("encoding")).map_or(false, |attr| {
             attr.value().eq_ignore_ascii_case("text/html")
                 || attr.value().eq_ignore_ascii_case("application/xhtml+xml")
@@ -978,20 +810,20 @@ impl TreeSink for Sink {
         self.current_line = line_number;
     }
 
-    fn pop(&mut self, node: &Dom<Node>) {
+    fn pop(&mut self, node: &Dom<Node<TH>>) {
         let node = DomRoot::from_ref(&**node);
         vtable_for(&node).pop();
     }
 }
 
 /// https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
-fn create_element_for_token(
+pub fn create_element_for_token<TH: TypeHolderTrait>(
     name: QualName,
     attrs: Vec<ElementAttribute>,
-    document: &Document,
+    document: &Document<TH>,
     creator: ElementCreator,
     parsing_algorithm: ParsingAlgorithm,
-) -> DomRoot<Element> {
+) -> DomRoot<Element<TH>> {
     // Step 3.
     let is = attrs.iter()
         .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
@@ -1009,10 +841,10 @@ fn create_element_for_token(
         document.increment_throw_on_dynamic_markup_insertion_counter();
         // Step 6.2
         if is_execution_stack_empty() {
-            document.window().upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+            document.window().upcast::<GlobalScope<TH>>().perform_a_microtask_checkpoint();
         }
         // Step 6.3
-        ScriptThread::push_new_element_queue()
+        ScriptThread::<TH>::push_new_element_queue()
     }
 
     // Step 7.
@@ -1031,7 +863,7 @@ fn create_element_for_token(
     // Step 9.
     if will_execute_script {
         // Steps 9.1 - 9.2.
-        ScriptThread::pop_current_element_queue();
+        ScriptThread::<TH>::pop_current_element_queue();
         // Step 9.3.
         document.decrement_throw_on_dynamic_markup_insertion_counter();
     }
@@ -1043,4 +875,46 @@ fn create_element_for_token(
 
     // Step 13.
     element
+}
+
+#[allow(unsafe_code)]
+unsafe impl<TH: TypeHolderTrait> JSTraceable for HtmlTokenizer<TreeBuilder<Dom<Node<TH>>, Sink<TH>>> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        struct Tracer<THH: TypeHolderTrait + 'static>(*mut JSTracer, PhantomData<THH>);
+        let tracer = Tracer(trc, Default::default());
+
+        impl<THH: TypeHolderTrait> HtmlTracer for Tracer<THH> {
+            type Handle = Dom<Node<THH>>;
+            #[allow(unrooted_must_root)]
+            fn trace_handle(&self, node: &Dom<Node<THH>>) {
+                unsafe { node.trace(self.0); }
+            }
+        }
+
+        let tree_builder = &self.sink;
+        tree_builder.trace_handles(&tracer);
+        tree_builder.sink.trace(trc);
+    }
+}
+
+
+
+#[allow(unsafe_code)]
+unsafe impl<TH: TypeHolderTrait> JSTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node<TH>>, Sink<TH>>> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        struct Tracer<THH: TypeHolderTrait + 'static>(*mut JSTracer, PhantomData<THH>);
+        let tracer = Tracer(trc, Default::default());
+
+        impl<THH: TypeHolderTrait> XmlTracer for Tracer<THH> {
+            type Handle = Dom<Node<THH>>;
+            #[allow(unrooted_must_root)]
+            fn trace_handle(&self, node: &Dom<Node<THH>>) {
+                unsafe { node.trace(self.0); }
+            }
+        }
+
+        let tree_builder = &self.sink;
+        tree_builder.trace_handles(&tracer);
+        tree_builder.sink.trace(trc);
+    }
 }

@@ -23,9 +23,12 @@ use js::jsapi::TransferableOwnership;
 use js::rust::{Handle, HandleValue, MutableHandleValue};
 use js::rust::wrappers::{JS_WriteStructuredClone, JS_ReadStructuredClone};
 use libc::size_t;
+use std::marker::PhantomData;
 use std::os::raw;
 use std::ptr;
 use std::slice;
+use typeholder::TypeHolderTrait;
+
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.
@@ -103,21 +106,21 @@ impl StructuredCloneReader {
     }
 }
 
-unsafe fn read_blob(cx: *mut JSContext,
+unsafe fn read_blob<TH: TypeHolderTrait>(cx: *mut JSContext,
                     r: *mut JSStructuredCloneReader,
-                    sc_holder: &mut StructuredCloneHolder)
+                    sc_holder: &mut StructuredCloneHolder<TH>)
                     -> *mut JSObject {
     let structured_reader = StructuredCloneReader { r: r };
     let blob_buffer = structured_reader.read_bytes();
     let type_str = structured_reader.read_str();
-    let target_global = GlobalScope::from_context(cx);
+    let target_global = GlobalScope::<TH>::from_context(cx);
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
     let js_object = blob.reflector().get_jsobject().get();
     sc_holder.blob = Some(blob);
     js_object
 }
 
-unsafe fn write_blob(blob: DomRoot<Blob>,
+unsafe fn write_blob<TH: TypeHolderTrait>(blob: DomRoot<Blob<TH>>,
                      w: *mut JSStructuredCloneWriter)
                      -> Result<(), ()> {
     let structured_writer = StructuredCloneWriter { w: w };
@@ -128,7 +131,7 @@ unsafe fn write_blob(blob: DomRoot<Blob>,
     return Ok(())
 }
 
-unsafe extern "C" fn read_callback(cx: *mut JSContext,
+unsafe extern "C" fn read_callback<TH: TypeHolderTrait>(cx: *mut JSContext,
                                    r: *mut JSStructuredCloneReader,
                                    tag: u32,
                                    _data: u32,
@@ -137,17 +140,17 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
     assert!(tag < StructuredCloneTags::Max as u32, "tag should be lower than StructuredCloneTags::Max");
     assert!(tag > StructuredCloneTags::Min as u32, "tag should be higher than StructuredCloneTags::Min");
     if tag == StructuredCloneTags::DomBlob as u32 {
-        return read_blob(cx, r, &mut *(closure as *mut StructuredCloneHolder))
+        return read_blob::<TH>(cx, r, &mut *(closure as *mut StructuredCloneHolder<TH>))
     }
     return ptr::null_mut()
 }
 
-unsafe extern "C" fn write_callback(_cx: *mut JSContext,
+unsafe extern "C" fn write_callback<TH: TypeHolderTrait>(_cx: *mut JSContext,
                                     w: *mut JSStructuredCloneWriter,
                                     obj: RawHandleObject,
                                     _closure: *mut raw::c_void)
                                     -> bool {
-    if let Ok(blob) = root_from_handleobject::<Blob>(Handle::from_raw(obj)) {
+    if let Ok(blob) = root_from_handleobject::<Blob<TH>>(Handle::from_raw(obj)) {
         return write_blob(blob, w).is_ok()
     }
     return false
@@ -185,32 +188,41 @@ unsafe extern "C" fn free_transfer_callback(_tag: u32,
 unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {
 }
 
-static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
-    read: Some(read_callback),
-    write: Some(write_callback),
+static mut STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
+    read: None,
+    write: None,
     reportError: Some(report_error_callback),
     readTransfer: Some(read_transfer_callback),
     writeTransfer: Some(write_transfer_callback),
     freeTransfer: Some(free_transfer_callback),
 };
 
-struct StructuredCloneHolder {
-    blob: Option<DomRoot<Blob>>
+struct StructuredCloneHolder<TH: TypeHolderTrait> {
+    blob: Option<DomRoot<Blob<TH>>>
 }
 
 /// A buffer for a structured clone.
-pub enum StructuredCloneData {
+pub enum StructuredCloneData<TH: TypeHolderTrait> {
     /// A non-serializable (default) variant
     Struct(*mut u64, size_t),
     /// A variant that can be serialized
-    Vector(Vec<u8>)
+    Vector(Vec<u8>),
+    _p(PhantomData<TH>),
 }
 
-impl StructuredCloneData {
+unsafe fn init_structured_clone<TH: TypeHolderTrait>() {
+  STRUCTURED_CLONE_CALLBACKS.read = Some(read_callback::<TH>);
+  STRUCTURED_CLONE_CALLBACKS.write = Some(write_callback::<TH>);
+}
+
+impl<TH: TypeHolderTrait> StructuredCloneData<TH> {
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
-    pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
+    pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData<TH>> {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
+        unsafe {
+          init_structured_clone::<TH>();
+        }
         let result = unsafe {
             JS_WriteStructuredClone(cx,
                                     message,
@@ -237,22 +249,26 @@ impl StructuredCloneData {
                     slice::from_raw_parts(data as *mut u8, nbytes).to_vec()
                 }
             }
-            StructuredCloneData::Vector(msg) => msg
+            StructuredCloneData::Vector(msg) => msg,
+            StructuredCloneData::_p(_) => return vec![],
         }
     }
 
     /// Reads a structured clone.
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
-    fn read_clone(global: &GlobalScope,
+    fn read_clone(global: &GlobalScope<TH>,
                   data: *mut u64,
                   nbytes: size_t,
                   rval: MutableHandleValue) {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-        let mut sc_holder = StructuredCloneHolder { blob: None };
+        let mut sc_holder: StructuredCloneHolder<TH> = StructuredCloneHolder { blob: None };
         let sc_holder_ptr = &mut sc_holder as *mut _;
+        unsafe {
+          init_structured_clone::<TH>();
+        }
         unsafe {
             assert!(JS_ReadStructuredClone(cx,
                                            data,
@@ -265,16 +281,17 @@ impl StructuredCloneData {
     }
 
     /// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
-    pub fn read(self, global: &GlobalScope, rval: MutableHandleValue) {
+    pub fn read(self, global: &GlobalScope<TH>, rval: MutableHandleValue) {
         match self {
             StructuredCloneData::Vector(mut vec_msg) => {
                 let nbytes = vec_msg.len();
                 let data = vec_msg.as_mut_ptr() as *mut u64;
                 StructuredCloneData::read_clone(global, data, nbytes, rval);
             }
-            StructuredCloneData::Struct(data, nbytes) => StructuredCloneData::read_clone(global, data, nbytes, rval)
+            StructuredCloneData::Struct(data, nbytes) => StructuredCloneData::read_clone(global, data, nbytes, rval),
+            StructuredCloneData::_p(_) => return,
         }
     }
 }
 
-unsafe impl Send for StructuredCloneData {}
+unsafe impl<TH: TypeHolderTrait> Send for StructuredCloneData<TH> {}

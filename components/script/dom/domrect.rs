@@ -11,36 +11,37 @@ use dom::bindings::root::DomRoot;
 use dom::domrectreadonly::DOMRectReadOnly;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct DOMRect {
-    rect: DOMRectReadOnly,
+pub struct DOMRect<TH: TypeHolderTrait> {
+    rect: DOMRectReadOnly<TH>,
 }
 
-impl DOMRect {
-    fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRect {
+impl<TH: TypeHolderTrait> DOMRect<TH> {
+    fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRect<TH> {
         DOMRect {
             rect: DOMRectReadOnly::new_inherited(x, y, width, height),
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
+    pub fn new(global: &GlobalScope<TH>, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect<TH>> {
         reflect_dom_object(Box::new(DOMRect::new_inherited(x, y, width, height)),
                            global,
                            DOMRectBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        x: f64,
                        y: f64,
                        width: f64,
                        height: f64)
-                       -> Fallible<DomRoot<DOMRect>> {
+                       -> Fallible<DomRoot<DOMRect<TH>>> {
         Ok(DOMRect::new(global, x, y, width, height))
     }
 }
 
-impl DOMRectMethods for DOMRect {
+impl<TH: TypeHolderTrait> DOMRectMethods for DOMRect<TH> {
     // https://drafts.fxtf.org/geometry/#dom-domrect-x
     fn X(&self) -> f64 {
         self.rect.X()

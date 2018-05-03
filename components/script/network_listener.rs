@@ -7,16 +7,17 @@ use std::sync::{Arc, Mutex};
 use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
+use typeholder::TypeHolderTrait;
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
 /// a target thread, where they are invoked on the provided context object.
-pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
+pub struct NetworkListener<Listener: PreInvoke + Send + 'static, TH: TypeHolderTrait> {
     pub context: Arc<Mutex<Listener>>,
-    pub task_source: NetworkingTaskSource,
+    pub task_source: NetworkingTaskSource<TH>,
     pub canceller: Option<TaskCanceller>,
 }
 
-impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
+impl<Listener: PreInvoke + Send + 'static, TH: TypeHolderTrait> NetworkListener<Listener, TH> {
     pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
         let task = ListenerTask {
             context: self.context.clone(),
@@ -34,7 +35,7 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
 }
 
 // helps type inference
-impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
+impl<Listener: FetchResponseListener + PreInvoke + Send + 'static, TH: TypeHolderTrait> NetworkListener<Listener, TH> {
     pub fn notify_fetch(&self, action: FetchResponseMsg) {
         self.notify(action);
     }

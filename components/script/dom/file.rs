@@ -16,18 +16,19 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use net_traits::filemanager_thread::SelectedFile;
 use time;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct File {
-    blob: Blob,
+pub struct File<TH: TypeHolderTrait> {
+    blob: Blob<TH>,
     name: DOMString,
     modified: i64,
 }
 
-impl File {
+impl<TH: TypeHolderTrait> File<TH> {
     #[allow(unrooted_must_root)]
-    fn new_inherited(blob_impl: BlobImpl, name: DOMString,
-                     modified: Option<i64>, type_string: &str) -> File {
+    fn new_inherited(blob_impl: BlobImpl<TH>, name: DOMString,
+                     modified: Option<i64>, type_string: &str) -> File<TH> {
         File {
             blob: Blob::new_inherited(blob_impl, type_string.to_owned()),
             name: name,
@@ -43,15 +44,15 @@ impl File {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, blob_impl: BlobImpl,
-               name: DOMString, modified: Option<i64>, typeString: &str) -> DomRoot<File> {
+    pub fn new(global: &GlobalScope<TH>, blob_impl: BlobImpl<TH>,
+               name: DOMString, modified: Option<i64>, typeString: &str) -> DomRoot<File<TH>> {
         reflect_dom_object(Box::new(File::new_inherited(blob_impl, name, modified, typeString)),
                            global,
                            FileBinding::Wrap)
     }
 
     // Construct from selected file message from file manager thread
-    pub fn new_from_selected(window: &Window, selected: SelectedFile) -> DomRoot<File> {
+    pub fn new_from_selected(window: &Window<TH>, selected: SelectedFile) -> DomRoot<File<TH>> {
         let name = DOMString::from(selected.filename.to_str().expect("File name encoding error"));
 
         File::new(window.upcast(), BlobImpl::new_from_file(selected.id, selected.filename, selected.size),
@@ -59,11 +60,11 @@ impl File {
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
-    pub fn Constructor(global: &GlobalScope,
-                       fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
+    pub fn Constructor(global: &GlobalScope<TH>,
+                       fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString<TH>>,
                        filename: DOMString,
                        filePropertyBag: &FileBinding::FilePropertyBag)
-                       -> Fallible<DomRoot<File>> {
+                       -> Fallible<DomRoot<File<TH>>> {
         let bytes: Vec<u8> = match blob_parts_to_bytes(fileBits) {
             Ok(bytes) => bytes,
             Err(_) => return Err(Error::InvalidCharacter),
@@ -88,7 +89,7 @@ impl File {
     }
 }
 
-impl FileMethods for File {
+impl<TH: TypeHolderTrait> FileMethods for File<TH> {
     // https://w3c.github.io/FileAPI/#dfn-name
     fn Name(&self) -> DOMString {
         self.name.clone()

@@ -20,9 +20,11 @@ use js::jsval::PrivateValue;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::cell::{Cell, UnsafeCell};
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut, Drop};
 use std::ptr;
+use typeholder::TypeHolderTrait;
 
 /// The index of the slot wherein a pointer to the weak holder cell is
 /// stored for weak-referenceable bindings. We use slot 1 for holding it,

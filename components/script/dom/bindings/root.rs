@@ -44,6 +44,7 @@ use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 use style::thread_state;
+use typeholder::TypeHolderTrait;
 
 /// A rooted value.
 #[allow(unrooted_must_root)]
@@ -90,14 +91,14 @@ where
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
         #[allow(unrooted_must_root)]
-        struct ReflectorStackRoot(Reflector);
-        unsafe impl JSTraceable for ReflectorStackRoot {
+        struct ReflectorStackRoot<TH: TypeHolderTrait>(Reflector<TH>);
+        unsafe impl<TH: TypeHolderTrait> JSTraceable for ReflectorStackRoot<TH> {
             unsafe fn trace(&self, tracer: *mut JSTracer) {
                 trace_reflector(tracer, "on stack", &self.0);
             }
         }
         unsafe {
-            &*(self.reflector() as *const Reflector as *const ReflectorStackRoot)
+            &*(self.reflector() as *const Reflector<T::TypeHolder> as *const ReflectorStackRoot<T::TypeHolder>)
         }
     }
 }
@@ -473,14 +474,14 @@ impl <T> Clone for LayoutDom<T> {
     }
 }
 
-impl LayoutDom<Node> {
+impl<TH: TypeHolderTrait> LayoutDom<Node<TH>> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
-    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutDom<Node> {
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutDom<Node<TH>> {
         debug_assert!(thread_state::get().is_layout());
         let TrustedNodeAddress(addr) = inner;
         LayoutDom {
-            ptr: ptr::NonNull::new_unchecked(addr as *const Node as *mut Node),
+            ptr: ptr::NonNull::new_unchecked(addr as *const Node<TH> as *mut Node<TH>),
         }
     }
 }

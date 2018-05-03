@@ -11,26 +11,32 @@ use dom::globalscope::GlobalScope;
 use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use std::fmt;
+use std::marker::PhantomData;
 use std::result::Result;
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
 
 #[derive(JSTraceable)]
-pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
+pub struct PerformanceTimelineTaskSource<TH: TypeHolderTrait>(
+    pub Box<ScriptChan + Send + 'static>,
+    pub PipelineId,
+    pub PhantomData<TH>
+);
 
-impl Clone for PerformanceTimelineTaskSource {
-    fn clone(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.0.clone(), self.1.clone())
+impl<TH: TypeHolderTrait> Clone for PerformanceTimelineTaskSource<TH> {
+    fn clone(&self) -> PerformanceTimelineTaskSource<TH> {
+        PerformanceTimelineTaskSource(self.0.clone(), self.1.clone(), Default::default())
     }
 }
 
-impl fmt::Debug for PerformanceTimelineTaskSource {
+impl<TH: TypeHolderTrait> fmt::Debug for PerformanceTimelineTaskSource<TH> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "PerformanceTimelineTaskSource(...)")
     }
 }
 
-impl TaskSource for PerformanceTimelineTaskSource {
+impl<TH: TypeHolderTrait> TaskSource for PerformanceTimelineTaskSource<TH> {
     const NAME: TaskSourceName = TaskSourceName::PerformanceTimeline;
 
     fn queue_with_canceller<T>(
@@ -50,8 +56,8 @@ impl TaskSource for PerformanceTimelineTaskSource {
     }
 }
 
-impl PerformanceTimelineTaskSource {
-    pub fn queue_notification(&self, global: &GlobalScope) {
+impl<TH: TypeHolderTrait> PerformanceTimelineTaskSource<TH> {
+    pub fn queue_notification(&self, global: &GlobalScope<TH>) {
         let owner = Trusted::new(&*global.performance());
         // FIXME(nox): Why are errors silenced here?
         let _ = self.queue(

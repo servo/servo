@@ -13,21 +13,22 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRules as StyleCssRules;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSConditionRule {
-    cssgroupingrule: CSSGroupingRule,
+pub struct CSSConditionRule<TH: TypeHolderTrait> {
+    cssgroupingrule: CSSGroupingRule<TH>,
 }
 
-impl CSSConditionRule {
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
-                         rules: Arc<Locked<StyleCssRules>>) -> CSSConditionRule {
+impl<TH: TypeHolderTrait> CSSConditionRule<TH> {
+    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet<TH>,
+                         rules: Arc<Locked<StyleCssRules>>) -> CSSConditionRule<TH> {
         CSSConditionRule {
             cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet, rules),
         }
     }
 
-    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+    pub fn parent_stylesheet(&self) -> &CSSStyleSheet<TH> {
         self.cssgroupingrule.parent_stylesheet()
     }
 
@@ -36,12 +37,12 @@ impl CSSConditionRule {
     }
 }
 
-impl CSSConditionRuleMethods for CSSConditionRule {
+impl<TH: TypeHolderTrait> CSSConditionRuleMethods for CSSConditionRule<TH> {
     /// <https://drafts.csswg.org/css-conditional-3/#dom-cssconditionrule-conditiontext>
     fn ConditionText(&self) -> DOMString {
-        if let Some(rule) = self.downcast::<CSSMediaRule>() {
+        if let Some(rule) = self.downcast::<CSSMediaRule<TH>>() {
             rule.get_condition_text()
-        } else if let Some(rule) = self.downcast::<CSSSupportsRule>() {
+        } else if let Some(rule) = self.downcast::<CSSSupportsRule<TH>>() {
             rule.get_condition_text()
         } else {
             unreachable!()
@@ -50,9 +51,9 @@ impl CSSConditionRuleMethods for CSSConditionRule {
 
     /// <https://drafts.csswg.org/css-conditional-3/#dom-cssconditionrule-conditiontext>
     fn SetConditionText(&self, text: DOMString) {
-        if let Some(rule) = self.downcast::<CSSMediaRule>() {
+        if let Some(rule) = self.downcast::<CSSMediaRule<TH>>() {
             rule.set_condition_text(text)
-        } else if let Some(rule) = self.downcast::<CSSSupportsRule>() {
+        } else if let Some(rule) = self.downcast::<CSSSupportsRule<TH>>() {
             rule.set_condition_text(text)
         } else {
             unreachable!()

@@ -11,21 +11,22 @@ use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CompositionEvent {
-    uievent: UIEvent,
+pub struct CompositionEvent<TH: TypeHolderTrait> {
+    uievent: UIEvent<TH>,
     data: DOMString,
 }
 
-impl CompositionEvent {
-    pub fn new(window: &Window,
+impl<TH: TypeHolderTrait> CompositionEvent<TH> {
+    pub fn new(window: &Window<TH>,
                type_: DOMString,
                can_bubble: bool,
                cancelable: bool,
-               view: Option<&Window>,
+               view: Option<&Window<TH>>,
                detail: i32,
-               data: DOMString) -> DomRoot<CompositionEvent> {
+               data: DOMString) -> DomRoot<Self> {
         let ev = reflect_dom_object(Box::new(CompositionEvent {
                                         uievent: UIEvent::new_inherited(),
                                         data: data,
@@ -36,10 +37,10 @@ impl CompositionEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
-                       init: &CompositionEventBinding::CompositionEventInit)
-                       -> Fallible<DomRoot<CompositionEvent>> {
+                       init: &CompositionEventBinding::CompositionEventInit<TH>)
+                       -> Fallible<DomRoot<Self>> {
         let event = CompositionEvent::new(window,
                                     type_,
                                     init.parent.parent.bubbles,
@@ -51,7 +52,7 @@ impl CompositionEvent {
     }
 }
 
-impl CompositionEventMethods for CompositionEvent {
+impl<TH: TypeHolderTrait> CompositionEventMethods for CompositionEvent<TH> {
     // https://w3c.github.io/uievents/#dom-compositionevent-data
     fn Data(&self) -> DOMString {
         self.data.clone()

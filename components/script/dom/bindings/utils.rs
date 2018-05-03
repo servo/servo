@@ -41,9 +41,11 @@ use js::rust::wrappers::JS_SetProperty;
 use libc;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::ffi::CString;
+use std::marker::PhantomData;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
+use typeholder::TypeHolderTrait;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -64,9 +66,9 @@ pub struct GlobalStaticData {
 
 impl GlobalStaticData {
     /// Creates a new GlobalStaticData.
-    pub fn new() -> GlobalStaticData {
+    pub fn new<TH: TypeHolderTrait>() -> GlobalStaticData {
         GlobalStaticData {
-            windowproxy_handler: windowproxy::new_window_proxy_handler(),
+            windowproxy_handler: windowproxy::new_window_proxy_handler::<TH>(),
         }
     }
 }
@@ -328,7 +330,7 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 }
 
 /// Enumerate lazy properties of a global object.
-pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: RawHandleObject) -> bool {
+pub unsafe extern "C" fn enumerate_global<TH: TypeHolderTrait>(cx: *mut JSContext, obj: RawHandleObject) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
     if !JS_EnumerateStandardClasses(cx, obj) {
         return false;
@@ -340,7 +342,7 @@ pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: RawHandleObje
 }
 
 /// Resolve a lazy global property, for interface objects and named constructors.
-pub unsafe extern "C" fn resolve_global(
+pub unsafe extern "C" fn resolve_global<TH: TypeHolderTrait>(
         cx: *mut JSContext,
         obj: RawHandleObject,
         id: RawHandleId,

@@ -29,26 +29,27 @@ use profile_traits::ipc;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
-pub struct BluetoothDevice {
-    eventtarget: EventTarget,
+pub struct BluetoothDevice<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     id: DOMString,
     name: Option<DOMString>,
-    gatt: MutNullableDom<BluetoothRemoteGATTServer>,
-    context: Dom<Bluetooth>,
-    attribute_instance_map: (DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
-                             DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic>>>,
-                             DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor>>>),
+    gatt: MutNullableDom<BluetoothRemoteGATTServer<TH>>,
+    context: Dom<Bluetooth<TH>>,
+    attribute_instance_map: (DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTService<TH>>>>,
+                             DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic<TH>>>>,
+                             DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor<TH>>>>),
     watching_advertisements: Cell<bool>,
 }
 
-impl BluetoothDevice {
+impl<TH: TypeHolderTrait> BluetoothDevice<TH> {
     pub fn new_inherited(id: DOMString,
                          name: Option<DOMString>,
-                         context: &Bluetooth)
-                         -> BluetoothDevice {
+                         context: &Bluetooth<TH>)
+                         -> BluetoothDevice<TH> {
         BluetoothDevice {
             eventtarget: EventTarget::new_inherited(),
             id: id,
@@ -62,30 +63,30 @@ impl BluetoothDevice {
         }
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(global: &GlobalScope<TH>,
                id: DOMString,
                name: Option<DOMString>,
-               context: &Bluetooth)
-               -> DomRoot<BluetoothDevice> {
+               context: &Bluetooth<TH>)
+               -> DomRoot<BluetoothDevice<TH>> {
         reflect_dom_object(Box::new(BluetoothDevice::new_inherited(id, name, context)),
                            global,
                            BluetoothDeviceBinding::Wrap)
     }
 
-    pub fn get_gatt(&self) -> DomRoot<BluetoothRemoteGATTServer> {
+    pub fn get_gatt(&self) -> DomRoot<BluetoothRemoteGATTServer<TH>> {
         self.gatt.or_init(|| {
             BluetoothRemoteGATTServer::new(&self.global(), self)
         })
     }
 
-    fn get_context(&self) -> DomRoot<Bluetooth> {
+    fn get_context(&self) -> DomRoot<Bluetooth<TH>> {
         DomRoot::from_ref(&self.context)
     }
 
     pub fn get_or_create_service(&self,
                                  service: &BluetoothServiceMsg,
-                                 server: &BluetoothRemoteGATTServer)
-                                 -> DomRoot<BluetoothRemoteGATTService> {
+                                 server: &BluetoothRemoteGATTServer<TH>)
+                                 -> DomRoot<BluetoothRemoteGATTService<TH>> {
         let (ref service_map_ref, _, _) = self.attribute_instance_map;
         let mut service_map = service_map_ref.borrow_mut();
         if let Some(existing_service) = service_map.get(&service.instance_id) {
@@ -102,8 +103,8 @@ impl BluetoothDevice {
 
     pub fn get_or_create_characteristic(&self,
                                         characteristic: &BluetoothCharacteristicMsg,
-                                        service: &BluetoothRemoteGATTService)
-                                        -> DomRoot<BluetoothRemoteGATTCharacteristic> {
+                                        service: &BluetoothRemoteGATTService<TH>)
+                                        -> DomRoot<BluetoothRemoteGATTCharacteristic<TH>> {
         let (_, ref characteristic_map_ref, _) = self.attribute_instance_map;
         let mut characteristic_map = characteristic_map_ref.borrow_mut();
         if let Some(existing_characteristic) = characteristic_map.get(&characteristic.instance_id) {
@@ -138,8 +139,8 @@ impl BluetoothDevice {
 
     pub fn get_or_create_descriptor(&self,
                                     descriptor: &BluetoothDescriptorMsg,
-                                    characteristic: &BluetoothRemoteGATTCharacteristic)
-                                    -> DomRoot<BluetoothRemoteGATTDescriptor> {
+                                    characteristic: &BluetoothRemoteGATTCharacteristic<TH>)
+                                    -> DomRoot<BluetoothRemoteGATTDescriptor<TH>> {
         let (_, _, ref descriptor_map_ref) = self.attribute_instance_map;
         let mut descriptor_map = descriptor_map_ref.borrow_mut();
         if let Some(existing_descriptor) = descriptor_map.get(&descriptor.instance_id) {
@@ -184,7 +185,7 @@ impl BluetoothDevice {
                      BluetoothRequest::SetRepresentedToNull(service_ids, characteristic_ids, descriptor_ids));
 
         // Step 8.
-        self.upcast::<EventTarget>().fire_bubbling_event(atom!("gattserverdisconnected"));
+        self.upcast::<EventTarget<TH>>().fire_bubbling_event(atom!("gattserverdisconnected"));
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection
@@ -212,7 +213,7 @@ impl BluetoothDevice {
     }
 }
 
-impl BluetoothDeviceMethods for BluetoothDevice {
+impl<TH: TypeHolderTrait> BluetoothDeviceMethods<TH> for BluetoothDevice<TH> {
      // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id
     fn Id(&self) -> DOMString {
         self.id.clone()
@@ -224,7 +225,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
-    fn GetGatt(&self) -> Option<DomRoot<BluetoothRemoteGATTServer>> {
+    fn GetGatt(&self) -> Option<DomRoot<BluetoothRemoteGATTServer<TH>>> {
         // Step 1.
         if self.global().as_window().bluetooth_extra_permission_data()
                .allowed_devices_contains_id(self.id.clone()) && !self.is_represented_device_null() {
@@ -236,8 +237,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
-    fn WatchAdvertisements(&self) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn WatchAdvertisements(&self) -> Rc<Promise<TH>> {
+        let p = Promise::<TH>::new(&self.global());
         let sender = response_async(&p, self);
         // TODO: Step 1.
         // Note: Steps 2 - 3 are implemented in components/bluetooth/lib.rs in watch_advertisements function
@@ -263,8 +264,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     event_handler!(gattserverdisconnected, GetOngattserverdisconnected, SetOngattserverdisconnected);
 }
 
-impl AsyncBluetoothListener for BluetoothDevice {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+impl<TH: TypeHolderTrait> AsyncBluetoothListener<TH> for BluetoothDevice<TH> {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise<TH>>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
             BluetoothResponse::WatchAdvertisements(_result) => {

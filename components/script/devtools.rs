@@ -30,11 +30,15 @@ use script_thread::Documents;
 use std::ffi::CStr;
 use std::str;
 use style::properties::longhands::{margin_bottom, margin_left, margin_right, margin_top};
+use typeholder::TypeHolderTrait;
 use uuid::Uuid;
 
-
 #[allow(unsafe_code)]
-pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
+pub fn handle_evaluate_js<TH: TypeHolderTrait>(
+    global: &GlobalScope<TH>,
+    eval: String,
+    reply: IpcSender<EvaluateJSReply>
+) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = global.get_cx();
@@ -73,31 +77,35 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(documents: &Documents, pipeline: PipelineId, reply: IpcSender<Option<NodeInfo>>) {
+pub fn handle_get_root_node<TH: TypeHolderTrait>(
+    documents: &Documents<TH>,
+    pipeline: PipelineId,
+    reply: IpcSender<Option<NodeInfo>>
+) {
     let info = documents.find_document(pipeline)
-        .map(|document| document.upcast::<Node>().summarize());
+        .map(|document| document.upcast::<Node<TH>>().summarize());
     reply.send(info).unwrap();
 }
 
-pub fn handle_get_document_element(documents: &Documents,
+pub fn handle_get_document_element<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                    pipeline: PipelineId,
                                    reply: IpcSender<Option<NodeInfo>>) {
     let info = documents.find_document(pipeline)
         .and_then(|document| document.GetDocumentElement())
-        .map(|element| element.upcast::<Node>().summarize());
+        .map(|element| element.upcast::<Node<TH>>().summarize());
     reply.send(info).unwrap();
 }
 
-fn find_node_by_unique_id(documents: &Documents,
+fn find_node_by_unique_id<TH: TypeHolderTrait>(documents: &Documents<TH>,
                           pipeline: PipelineId,
                           node_id: &str)
-                          -> Option<DomRoot<Node>> {
+                          -> Option<DomRoot<Node<TH>>> {
     documents.find_document(pipeline).and_then(|document|
-        document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
+        document.upcast::<Node<TH>>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
     )
 }
 
-pub fn handle_get_children(documents: &Documents,
+pub fn handle_get_children<TH: TypeHolderTrait>(documents: &Documents<TH>,
                            pipeline: PipelineId,
                            node_id: String,
                            reply: IpcSender<Option<Vec<NodeInfo>>>) {
@@ -113,7 +121,7 @@ pub fn handle_get_children(documents: &Documents,
     };
 }
 
-pub fn handle_get_layout(documents: &Documents,
+pub fn handle_get_layout<TH: TypeHolderTrait>(documents: &Documents<TH>,
                          pipeline: PipelineId,
                          node_id: String,
                          reply: IpcSender<Option<ComputedNodeLayout>>) {
@@ -122,13 +130,13 @@ pub fn handle_get_layout(documents: &Documents,
         Some(found_node) => found_node
     };
 
-    let elem = node.downcast::<Element>().expect("should be getting layout of element");
+    let elem = node.downcast::<Element<TH>>().expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
     let window = window_from_node(&*node);
-    let elem = node.downcast::<Element>().expect("should be getting layout of element");
+    let elem = node.downcast::<Element<TH>>().expect("should be getting layout of element");
     let computed_style = window.GetComputedStyle(elem, None);
 
     reply.send(Some(ComputedNodeLayout {
@@ -154,7 +162,7 @@ pub fn handle_get_layout(documents: &Documents,
     })).unwrap();
 }
 
-fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
+fn determine_auto_margins<TH: TypeHolderTrait>(window: &Window<TH>, node: &Node<TH>) -> AutoMargins {
     let style = window.style_query(node.to_trusted_node_address()).unwrap();
     let margin = style.get_margin();
     AutoMargins {
@@ -207,7 +215,7 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     reply.send(messages).unwrap();
 }
 
-pub fn handle_modify_attribute(documents: &Documents,
+pub fn handle_modify_attribute<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                pipeline: PipelineId,
                                node_id: String,
                                modifications: Vec<Modification>) {
@@ -216,7 +224,7 @@ pub fn handle_modify_attribute(documents: &Documents,
         Some(found_node) => found_node
     };
 
-    let elem = node.downcast::<Element>().expect("should be getting layout of element");
+    let elem = node.downcast::<Element<TH>>().expect("should be getting layout of element");
 
     for modification in modifications {
         match modification.newValue {
@@ -229,11 +237,11 @@ pub fn handle_modify_attribute(documents: &Documents,
     }
 }
 
-pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications: bool) {
+pub fn handle_wants_live_notifications<TH: TypeHolderTrait>(global: &GlobalScope<TH>, send_notifications: bool) {
     global.set_devtools_wants_updates(send_notifications);
 }
 
-pub fn handle_set_timeline_markers(documents: &Documents,
+pub fn handle_set_timeline_markers<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                    pipeline: PipelineId,
                                    marker_types: Vec<TimelineMarkerType>,
                                    reply: IpcSender<Option<TimelineMarker>>) {
@@ -243,7 +251,7 @@ pub fn handle_set_timeline_markers(documents: &Documents,
     }
 }
 
-pub fn handle_drop_timeline_markers(documents: &Documents,
+pub fn handle_drop_timeline_markers<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                     pipeline: PipelineId,
                                     marker_types: Vec<TimelineMarkerType>) {
     if let Some(window) = documents.find_window(pipeline) {
@@ -251,7 +259,7 @@ pub fn handle_drop_timeline_markers(documents: &Documents,
     }
 }
 
-pub fn handle_request_animation_frame(documents: &Documents,
+pub fn handle_request_animation_frame<TH: TypeHolderTrait>(documents: &Documents<TH>,
                                       id: PipelineId,
                                       actor_name: String) {
     if let Some(doc) = documents.find_document(id) {
@@ -259,7 +267,7 @@ pub fn handle_request_animation_frame(documents: &Documents,
     }
 }
 
-pub fn handle_reload(documents: &Documents,
+pub fn handle_reload<TH: TypeHolderTrait>(documents: &Documents<TH>,
                      id: PipelineId) {
     if let Some(win) = documents.find_window(id) {
         win.Location().reload_without_origin_check();
