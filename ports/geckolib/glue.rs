@@ -4520,7 +4520,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
     raw_data: RawServoStyleSetBorrowed,
     computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut
 ) {
-    use std::mem;
     use style::properties::LonghandIdSet;
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
@@ -4581,10 +4580,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
                 // This is safe since we immediately write to the uninitialized values.
                 unsafe { animation_values.set_len((property_index + 1) as u32) };
                 animation_values[property_index].mProperty = property.to_nscsspropertyid();
-                // We only make sure we have enough space for this variable,
-                // but didn't construct a default value for StyleAnimationValue,
-                // so we should zero it to avoid getting undefined behaviors.
-                animation_values[property_index].mValue.mGecko = unsafe { mem::zeroed() };
                 match value {
                     Some(v) => {
                         animation_values[property_index].mValue.mServo.set_arc_leaky(Arc::new(v));
