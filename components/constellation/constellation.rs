@@ -1110,9 +1110,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got focus message");
                 self.handle_focus_msg(source_pipeline_id);
             }
-            FromScriptMsg::ForwardEvent(destination_pipeline_id, event) => {
-                self.forward_event(destination_pipeline_id, event);
-            }
             FromScriptMsg::GetClipboardContents(sender) => {
                 let contents = match self.clipboard_ctx {
                     Some(ref mut ctx) => match ctx.get_contents() {
