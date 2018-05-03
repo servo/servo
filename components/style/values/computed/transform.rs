@@ -251,11 +251,11 @@ impl ToAnimatedZero for TransformOperation {
             generic::TransformOperation::Rotate(_) => {
                 Ok(generic::TransformOperation::Rotate(Angle::zero()))
             },
-            generic::TransformOperation::Perspective(..) |
+            generic::TransformOperation::Perspective(ref l) => {
+                Ok(generic::TransformOperation::Perspective(l.to_animated_zero()?))
+            },
             generic::TransformOperation::AccumulateMatrix { .. } |
             generic::TransformOperation::InterpolateMatrix { .. } => {
-                // Perspective: We convert a perspective function into an equivalent
-                //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
                 // AccumulateMatrix/InterpolateMatrix: We do interpolation on
                 //     AccumulateMatrix/InterpolateMatrix by reading it as a ComputedMatrix
                 //     (with layout information), and then do matrix interpolation.
