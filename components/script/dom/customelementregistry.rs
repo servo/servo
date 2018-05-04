@@ -31,7 +31,7 @@ use js::glue::UnwrapObject;
 use js::jsapi::{Heap, IsCallable, IsConstructor, HandleValueArray};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::{HandleObject, MutableHandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use js::rust::wrappers::{JS_GetProperty, Construct1, JS_SameValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
@@ -607,7 +607,7 @@ impl CustomElementReaction {
             CustomElementReaction::Upgrade(ref definition) => upgrade_element(definition.clone(), element),
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 // We're rooted, so it's safe to hand out a handle to objects in Heap
-                let arguments = arguments.iter().map(|arg| unsafe { arg.handle() }).collect();
+                let arguments = arguments.iter().map(|arg| unsafe { HandleValue::from_raw(arg.handle()) }).collect();
                 let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
             }
         }
