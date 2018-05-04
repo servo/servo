@@ -346,6 +346,13 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                     warn!("Sending CloseBrowser message to constellation failed ({}).", e);
                 }
             }
+
+            WindowEvent::PanicBrowser(ctx, e) => {
+                let msg = ConstellationMsg::PanicBrowser(ctx, e);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending CloseBrowser message to constellation failed ({}).", e);
+                }
+            }
         }
     }
 

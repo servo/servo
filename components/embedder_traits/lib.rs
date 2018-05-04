@@ -81,7 +81,7 @@ pub enum EmbedderMsg {
     /// Resize the window to size
     ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
     // Show an alert message.
-    Alert(TopLevelBrowsingContextId, String, IpcSender<bool>),
+    Alert(TopLevelBrowsingContextId, String, IpcSender<()>),
     /// Wether or not to follow a link
     AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.

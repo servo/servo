@@ -535,7 +535,7 @@ impl WindowMethods for Window {
         self.send_to_constellation(ScriptMsg::ForwardToEmbedder(EmbedderMsg::Alert(top_level_browsing_context_id,
                                                                                    s.to_string(),
                                                                                    sender)));
-        let _alert_dismissed = receiver.recv().unwrap();
+        receiver.recv().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
