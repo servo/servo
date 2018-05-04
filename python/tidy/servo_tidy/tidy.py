@@ -398,7 +398,8 @@ def check_toml(file_name, lines):
     for idx, line in enumerate(lines):
         if idx == 0 and "[workspace]" in line:
             raise StopIteration
-        if line.find("*") != -1:
+        line_without_comment, _, _ = line.partition("#")
+        if line_without_comment.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
         for license_line in licenses_toml:
             ok_licensed |= (license_line in line)
