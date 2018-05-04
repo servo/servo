@@ -700,6 +700,8 @@ pub enum ConstellationMsg {
     NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
     /// Close a top level browsing context.
     CloseBrowser(TopLevelBrowsingContextId),
+    /// Panic a top level browsing context.
+    PanicBrowser(TopLevelBrowsingContextId, String),
     /// Make browser visible.
     SelectBrowser(TopLevelBrowsingContextId),
     /// Forward an event to the script task of the given pipeline.

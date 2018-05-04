@@ -977,6 +977,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got CloseBrowser message");
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             }
+            // Panic a top level browsing context.
+            FromCompositorMsg::PanicBrowser(top_level_browsing_context_id, error) => {
+                debug!("constellation got PanicBrowser message");
+                self.handle_panic(top_level_browsing_context_id, error, None);
+            }
             // Send frame tree to WebRender. Make it visible.
             FromCompositorMsg::SelectBrowser(top_level_browsing_context_id) => {
                 self.send_frame_tree(top_level_browsing_context_id);

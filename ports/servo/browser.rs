@@ -259,8 +259,12 @@ impl Browser {
                 EmbedderMsg::ResizeTo(_browser_id, size) => {
                     self.window.set_inner_size(size);
                 }
-                EmbedderMsg::Alert(_browser_id, message, sender) => {
-                    display_alert_dialog(message.to_owned(), sender);
+                EmbedderMsg::Alert(browser_id, message, sender) => {
+                    display_alert_dialog(message.to_owned());
+                    if let Err(e) = sender.send(()) {
+                        let reason = format!("Failed to send Alert response: {}", e);
+                        self.event_queue.push(WindowEvent::PanicBrowser(browser_id, reason));
+                    }
                 }
                 EmbedderMsg::AllowNavigation(_browser_id, _url, response_chan) => {
                     if let Err(e) = response_chan.send(true) {
@@ -318,23 +322,17 @@ impl Browser {
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn display_alert_dialog(message: String, sender: IpcSender<bool>) {
-    thread::Builder::new().name("display alert dialog".to_owned()).spawn(move || {
-        if !opts::get().headless {
+fn display_alert_dialog(message: String) {
+    if !opts::get().headless {
+        let _ = thread::Builder::new().name("display alert dialog".to_owned()).spawn(move || {
             tinyfiledialogs::message_box_ok("Alert!", &message, MessageBoxIcon::Warning);
-            if let Err(_) = sender.send(true) {
-                // TODO: the equivalent of constellation.handle_send_error.
-            };
-        }
-    }).expect("Thread spawning failed");
+        }).unwrap().join();
+    }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn display_alert_dialog(_message: &str, sender: IpcSender<bool>) {
+fn display_alert_dialog(_message: &str) {
     // tinyfiledialogs not supported on Android
-    if let Err(_) = sender.send(true) {
-        // TODO: the equivalent of constellation.handle_send_error.
-    };
 }
 
 #[cfg(target_os = "linux")]
@@ -374,13 +372,13 @@ fn platform_get_selected_devices(devices: Vec<String>, sender: IpcSender<Option<
 fn platform_get_selected_files(patterns: Vec<FilterPattern>,
                                multiple_files: bool,
                                sender: IpcSender<Option<Vec<String>>>) {
-    let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
-    let mut filters = vec![];
-    for p in patterns {
-        let s = "*.".to_string() + &p.0;
-        filters.push(s)
-    }
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
+        let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
+        let mut filters = vec![];
+        for p in patterns {
+            let s = "*.".to_string() + &p.0;
+            filters.push(s)
+        }
         let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
         let filter_opt = if filters.len() > 0 { Some((filter_ref, "")) } else { None };
 
