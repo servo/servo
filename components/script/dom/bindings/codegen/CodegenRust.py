@@ -361,7 +361,7 @@ class CGMethodCall(CGThing):
                 for i in range(0, distinguishingIndex)]
 
             # Select the right overload from our set.
-            distinguishingArg = "args.get(%d)" % distinguishingIndex
+            distinguishingArg = "HandleValue::from_raw(args.get(%d))" % distinguishingIndex
 
             def pickFirstSignature(condition, filterLambda):
                 sigs = filter(filterLambda, possibleSignatures)
@@ -1284,7 +1284,7 @@ class CGArgumentConverter(CGThing):
         }
 
         replacementVariables = {
-            "val": string.Template("${args}.get(${index})").substitute(replacer),
+            "val": string.Template("HandleValue::from_raw(${args}.get(${index}))").substitute(replacer),
         }
 
         info = getJSToNativeConversionInfo(
@@ -1328,7 +1328,7 @@ class CGArgumentConverter(CGThing):
         else:
             assert argument.optional
             variadicConversion = {
-                "val": string.Template("${args}.get(variadicArg)").substitute(replacer),
+                "val": string.Template("HandleValue::from_raw(${args}.get(variadicArg))").substitute(replacer),
             }
             innerConverter = [instantiateJSToNativeConversionTemplate(
                 template, variadicConversion, declType, "slot")]
@@ -3365,7 +3365,7 @@ class CGPerSignatureCall(CGThing):
         return 'infallible' not in self.extendedAttributes
 
     def wrap_return_value(self):
-        return wrapForType('args.rval()')
+        return wrapForType('MutableHandleValue::from_raw(args.rval())')
 
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())
@@ -3516,7 +3516,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                                       self.descriptor, self.method),
                          pre="let this = &*this;\n"
                              "let args = &*args;\n"
-                             "let argc = args._base.argc_;\n")
+                             "let argc = args.argc_;\n")
 
     @staticmethod
     def makeNativeName(descriptor, method):
@@ -3675,7 +3675,7 @@ if !v.is_object() {
     return false;
 }
 rooted!(in(cx) let target_obj = v.to_object());
-JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, args.get(0))
+JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, HandleValue::from_raw(args.get(0)))
 """ % (str_to_const_array(attrName), attrName, str_to_const_array(forwardToAttrName)))
 
 
@@ -3693,7 +3693,7 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in name)
         return CGGeneric("""\
 JS_DefineProperty(cx, obj, %s as *const u8 as *const libc::c_char,
-                  args.get(0), JSPROP_ENUMERATE, None, None)""" % name)
+                  HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE, None, None)""" % name)
 
 
 class CGMemberJITInfo(CGThing):
@@ -5514,7 +5514,7 @@ if !JS_WrapObject(cx, element.handle_mut()) {
 
 JS_SetPrototype(cx, element.handle(), prototype.handle());
 
-(result).to_jsval(cx, args.rval());
+(result).to_jsval(cx, MutableHandleValue::from_raw(args.rval()));
 return true;
 """ % self.descriptor.name)
         else:
