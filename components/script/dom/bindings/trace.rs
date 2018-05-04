@@ -798,7 +798,7 @@ impl<T> RootedTraceableBox<Heap<T>>
         T: GCMethods + Copy,
 {
     pub fn handle(&self) -> Handle<T> {
-        unsafe { (*self.ptr).handle() }
+        unsafe { Handle::from_raw((*self.ptr).handle()) }
     }
 }
 

@@ -139,14 +139,16 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.36.0"
+version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cexpr 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "clang-sys 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "env_logger 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "peeking_take_while 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1623,7 +1625,7 @@ dependencies = [
  "hashglobe 0.1.0",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
  "serde 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1802,22 +1804,24 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs_sys 0.50.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs_sys 0.51.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "mozjs_sys"
-version = "0.50.1"
+version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "bindgen 0.36.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2498,7 +2502,7 @@ dependencies = [
  "mime_guess 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozangle 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
  "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2980,7 +2984,7 @@ dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "arrayvec 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "bindgen 0.36.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bindgen 0.36.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3742,7 +3746,7 @@ dependencies = [
 "checksum base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "96434f987501f0ed4eb336a411e0631ecd1afa11574fe148587adc4ff96143c9"
 "checksum binary-space-partition 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88ceb0d16c4fd0e42876e298d7d3ce3780dd9ebdcbe4199816a32c77e08597ff"
 "checksum bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bda13183df33055cbb84b847becce220d392df502ebe7a4a78d7021771ed94d0"
-"checksum bindgen 0.36.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cc7003ec1f7f5579901b5805f401a0defa450b14497c3cba4fbc0496f85ba429"
+"checksum bindgen 0.36.1 (registry+https://github.com/rust-lang/crates.io-index)" = "acc8fa644dc2b6f6c2d391ccea460da1ad9bf2271c4e9ffaad88d2dd727a7295"
 "checksum bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4efd02e230a02e18f92fc2735f44597385ed02ad8f831e7c1c1156ee5e1ab3a5"
 "checksum bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f5cde24d1b2e2216a726368b2363a273739c91f4e3eb4e0dd12d672d396ad989"
 "checksum bitreader 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "80b13e2ab064ff3aa0bdbf1eff533f9822dc37899821f5f98c67f263eab51707"
@@ -3874,8 +3878,8 @@ dependencies = [
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
 "checksum mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
 "checksum mozangle 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "1f0583e6792917f498bb3a7440f777a59353102063445ab7f5e9d1dc4ed593aa"
-"checksum mozjs 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "469f86d1ce125f1a9960e9f5f924388e47b58ac6bf7525f8f98fdc1160decf58"
-"checksum mozjs_sys 0.50.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e61a792a125b1364c5ec50255ed8343ce02dc56098f8868dd209d472c8de006a"
+"checksum mozjs 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "478c4ff5ec867ef7cb818457df9ff35f1e55935119eef93388d2024d77a7f055"
+"checksum mozjs_sys 0.51.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f1fb20d8a33211897865f9b4e39091b93be3009c0f7416b9cc0ce0c564a63cfe"
 "checksum mp3-metadata 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4ab5f1d2693586420208d1200ce5a51cd44726f055b635176188137aff42c7de"
 "checksum mp4parse 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f821e3799bc0fd16d9b861fb02fa7ee1b5fba29f45ad591dade105c48ca9a1a0"
 "checksum net2 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)" = "bc01404e7568680f1259aa5729539f221cb1e6d047a0d9053cab4be8a73b5d67"

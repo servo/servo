@@ -485,6 +485,8 @@ class CommandBase(object):
             env["OPENSSL_LIBS"] = "libsslMD:libcryptoMD"
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(package_dir("moztools"), "bin")
+            # Link LLVM
+            env["LIBCLANG_PATH"] = path.join(package_dir("llvm"), "lib")
 
         if is_windows():
             if not os.environ.get("NATIVE_WIN32_PYTHON"):
