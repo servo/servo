@@ -1654,7 +1654,7 @@ impl Document {
         );
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
-        self.salvageable.set(has_listeners);
+        self.salvageable.set(!has_listeners);
         let mut can_unload = true;
         // TODO: Step 8 send a message to embedder to prompt user.
         // Step 9
@@ -1715,7 +1715,7 @@ impl Document {
             );
             self.fired_unload.set(true);
             // Step 9
-            self.salvageable.set(has_listeners);
+            self.salvageable.set(!has_listeners);
         }
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
 
