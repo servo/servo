@@ -191,7 +191,8 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
     // This should check every CSS property, as enumerated in the fields of
     // http://doc.servo.org/style/properties/struct.ComputedValues.html
 
-    restyle_damage_rebuild_and_reflow!(
+    // This uses short-circuiting boolean OR for its side effects and ignores the result.
+    let _ = restyle_damage_rebuild_and_reflow!(
         old,
         new,
         damage,

@@ -25,7 +25,7 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
     other.into_iter()
          .map(|e| e.data)
          .zip(path)
-         .all(|(nm, p)| &*nm.as_interned_str() == *p)
+         .all(|(nm, p)| nm.as_interned_str().with(|nm| nm == *p))
 }
 
 pub fn in_derive_expn(span: Span) -> bool {
