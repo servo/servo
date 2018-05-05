@@ -12,6 +12,8 @@ use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use crate::context::{SharedStyleContext, StyleContext};
 use crate::data::ElementData;
 use crate::dom::TElement;
+#[cfg(feature = "servo")]
+use crate::dom::{OpaqueNode, TNode};
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::ComputedValues;
@@ -436,22 +438,35 @@ trait PrivateMatchMethods: TElement {
         _important_rules_changed: bool,
     ) {
         use crate::animation;
-        use crate::dom::TNode;
 
-        let mut possibly_expired_animations = vec![];
+        let this_opaque = self.as_node().opaque();
+        let mut running_and_expired_transitions = vec![];
         let shared_context = context.shared;
-        if let Some(ref mut old) = *old_values {
-            // FIXME(emilio, #20116): This makes no sense.
-            self.update_animations_for_cascade(
+        if let Some(ref mut old_values) = *old_values {
+            // We apply the expired transitions and animations to the old style
+            // here, because we later compare the old style to the new style in
+            // `start_transitions_if_applicable`. If the styles differ then it will
+            // cause the expired transition to restart.
+            //
+            // TODO(mrobinson): We should really be following spec behavior and calculate
+            // after-change-style and before-change-style here.
+            Self::collect_and_update_style_for_expired_transitions(
                 shared_context,
-                old,
-                &mut possibly_expired_animations,
+                this_opaque,
+                old_values,
+                &mut running_and_expired_transitions,
+            );
+
+            Self::update_style_for_animations_and_collect_running_transitions(
+                shared_context,
+                this_opaque,
+                old_values,
+                &mut running_and_expired_transitions,
                 &context.thread_local.font_metrics_provider,
             );
         }
 
         let new_animations_sender = &context.thread_local.new_animations_sender;
-        let this_opaque = self.as_node().opaque();
         // Trigger any present animations if necessary.
         animation::maybe_start_animations(
             *self,
@@ -461,16 +476,16 @@ trait PrivateMatchMethods: TElement {
             &new_values,
         );
 
-        // Trigger transitions if necessary. This will reset `new_values` back
-        // to its old value if it did trigger a transition.
-        if let Some(ref values) = *old_values {
+        // Trigger transitions if necessary. This will set `new_values` to
+        // the starting value of the transition if it did trigger a transition.
+        if let Some(ref values) = old_values {
             animation::start_transitions_if_applicable(
                 new_animations_sender,
                 this_opaque,
                 &values,
                 new_values,
                 &shared_context.timer,
-                &possibly_expired_animations,
+                &running_and_expired_transitions,
             );
         }
     }
@@ -588,46 +603,48 @@ trait PrivateMatchMethods: TElement {
         ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
     }
 
-    // FIXME(emilio, #20116): It's not clear to me that the name of this method
-    // represents anything of what it does.
-    //
-    // Also, this function gets the old style, for some reason I don't really
-    // get, but the functions called (mainly update_style_for_animation) expects
-    // the new style, wtf?
     #[cfg(feature = "servo")]
-    fn update_animations_for_cascade(
-        &self,
+    fn collect_and_update_style_for_expired_transitions(
         context: &SharedStyleContext,
+        node: OpaqueNode,
         style: &mut Arc<ComputedValues>,
-        possibly_expired_animations: &mut Vec<crate::animation::PropertyAnimation>,
+        expired_transitions: &mut Vec<crate::animation::PropertyAnimation>,
+    ) {
+        use crate::animation::Animation;
+
+        let mut all_expired_animations = context.expired_animations.write();
+        if let Some(animations) = all_expired_animations.remove(&node) {
+            debug!("removing expired animations for {:?}", node);
+            for animation in animations {
+                debug!("Updating expired animation {:?}", animation);
+                // TODO: support animation-fill-mode
+                if let Animation::Transition(_, _, frame) = animation {
+                    frame.property_animation.update(Arc::make_mut(style), 1.0);
+                    expired_transitions.push(frame.property_animation);
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "servo")]
+    fn update_style_for_animations_and_collect_running_transitions(
+        context: &SharedStyleContext,
+        node: OpaqueNode,
+        style: &mut Arc<ComputedValues>,
+        running_transitions: &mut Vec<crate::animation::PropertyAnimation>,
         font_metrics: &dyn crate::font_metrics::FontMetricsProvider,
     ) {
         use crate::animation::{self, Animation, AnimationUpdate};
-        use crate::dom::TNode;
 
-        // Finish any expired transitions.
-        let this_opaque = self.as_node().opaque();
-        animation::complete_expired_transitions(
-            this_opaque,
-            style,
-            context,
-            possibly_expired_animations,
-        );
-
-        // Merge any running animations into the current style, and cancel them.
-        let had_running_animations = context
-            .running_animations
-            .read()
-            .get(&this_opaque)
-            .is_some();
+        let had_running_animations = context.running_animations.read().get(&node).is_some();
         if !had_running_animations {
             return;
         }
 
         let mut all_running_animations = context.running_animations.write();
-        for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
+        for mut running_animation in all_running_animations.get_mut(&node).unwrap() {
             if let Animation::Transition(_, _, ref frame) = *running_animation {
-                possibly_expired_animations.push(frame.property_animation.clone());
+                running_transitions.push(frame.property_animation.clone());
                 continue;
             }
 
