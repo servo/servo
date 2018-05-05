@@ -7,7 +7,7 @@ use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
 use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
-use style::values::{CustomIdent, RGBA};
+use style::values::RGBA;
 use style::values::specified::{BorderStyle, BorderSideWidth, Color};
 use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::NoCalcLength;
@@ -888,33 +888,6 @@ mod shorthand_serialization {
             let shadow = parse(|c, e, i| Ok(parse_property_declaration_list(c, e, i)), shadow_css).unwrap();
 
             assert_eq!(shadow.to_css_string(), shadow_css);
-        }
-    }
-
-    mod counter_increment {
-        pub use super::*;
-        pub use style::properties::longhands::counter_increment::SpecifiedValue as CounterIncrement;
-        use style::values::specified::Integer;
-
-        #[test]
-        fn counter_increment_with_properties_should_serialize_correctly() {
-            let mut properties = Vec::new();
-
-            properties.push((CustomIdent("counter1".into()), Integer::new(1)));
-            properties.push((CustomIdent("counter2".into()), Integer::new(-4)));
-
-            let counter_increment = CounterIncrement::new(properties);
-            let counter_increment_css = "counter1 1 counter2 -4";
-
-            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
-        }
-
-        #[test]
-        fn counter_increment_without_properties_should_serialize_correctly() {
-            let counter_increment = CounterIncrement::new(Vec::new());
-            let counter_increment_css = "none";
-
-            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
         }
     }
 }
