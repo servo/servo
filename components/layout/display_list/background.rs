@@ -813,10 +813,7 @@ pub fn build_image_border_details(
     }
 }
 
-fn calculate_border_image_outset_side(
-    outset: LengthOrNumber,
-    border_width: Au,
-) -> Au {
+fn calculate_border_image_outset_side(outset: LengthOrNumber, border_width: Au) -> Au {
     match outset {
         Either::First(length) => length.into(),
         Either::Second(factor) => border_width.scale_by(factor),

@@ -1253,10 +1253,8 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let border_radius = build_border_radius(bounds, border_style_struct);
         let border_widths = border.to_physical(style.writing_mode);
-        let outset = calculate_border_image_outset(
-            border_style_struct.border_image_outset,
-            border_widths
-        );
+        let outset =
+            calculate_border_image_outset(border_style_struct.border_image_outset, border_widths);
         let outset_layout = SideOffsets2D::new(
             outset.top.to_f32_px(),
             outset.right.to_f32_px(),
@@ -1285,36 +1283,34 @@ impl FragmentDisplayListBuilding for Fragment {
                 },
                 radius: border_radius,
             })),
-            Either::Second(Image::Gradient(ref gradient)) => {
-                Some(match gradient.kind {
-                    GradientKind::Linear(angle_or_corner) => {
-                        BorderDetails::Gradient(GradientBorder {
-                            gradient: convert_linear_gradient(
-                                bounds.size,
-                                &gradient.items[..],
-                                angle_or_corner,
-                                gradient.repeating,
-                            ),
-                            outset: outset_layout,
-                        })
-                    },
-                    GradientKind::Radial(shape, center, _angle) => {
-                        BorderDetails::RadialGradient(RadialGradientBorder {
-                            gradient: convert_radial_gradient(
-                                bounds.size,
-                                &gradient.items[..],
-                                shape,
-                                center,
-                                gradient.repeating,
-                            ),
-                            outset: outset_layout,
-                        })
-                    },
-                })
-            },
+            Either::Second(Image::Gradient(ref gradient)) => Some(match gradient.kind {
+                GradientKind::Linear(angle_or_corner) => BorderDetails::Gradient(GradientBorder {
+                    gradient: convert_linear_gradient(
+                        bounds.size,
+                        &gradient.items[..],
+                        angle_or_corner,
+                        gradient.repeating,
+                    ),
+                    outset: outset_layout,
+                }),
+                GradientKind::Radial(shape, center, _angle) => {
+                    BorderDetails::RadialGradient(RadialGradientBorder {
+                        gradient: convert_radial_gradient(
+                            bounds.size,
+                            &gradient.items[..],
+                            shape,
+                            center,
+                            gradient.repeating,
+                        ),
+                        outset: outset_layout,
+                    })
+                },
+            }),
             Either::Second(Image::PaintWorklet(ref paint_worklet)) => {
                 self.get_webrender_image_for_paint_worklet(state, style, paint_worklet, size)
-                    .and_then(|image| build_image_border_details(image, border_style_struct, outset_layout))
+                    .and_then(|image| {
+                        build_image_border_details(image, border_style_struct, outset_layout)
+                    })
             },
             Either::Second(Image::Rect(..)) => {
                 // TODO: Handle border-image with `-moz-image-rect`.
@@ -1333,7 +1329,9 @@ impl FragmentDisplayListBuilding for Fragment {
                         UsePlaceholder::No,
                     )
                 })
-                .and_then(|image| build_image_border_details(image, border_style_struct, outset_layout)),
+                .and_then(|image| {
+                    build_image_border_details(image, border_style_struct, outset_layout)
+                }),
         };
         if let Some(details) = details {
             state.add_display_item(DisplayItem::Border(Box::new(BorderDisplayItem {
@@ -1838,8 +1836,10 @@ impl FragmentDisplayListBuilding for Fragment {
                             let ipc_renderer = ipc_renderer.lock().unwrap();
                             let (sender, receiver) = ipc::channel().unwrap();
                             ipc_renderer
-                                .send(CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender),
-                                canvas_fragment_info.canvas_id.clone()))
+                                .send(CanvasMsg::FromLayout(
+                                    FromLayoutMsg::SendData(sender),
+                                    canvas_fragment_info.canvas_id.clone(),
+                                ))
                                 .unwrap();
                             receiver.recv().unwrap().image_key
                         },
@@ -2327,9 +2327,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
 
         if let Some(clip) = state.containing_block_clip_stack.last().cloned() {
-            state
-                .containing_block_clip_stack
-                .push(transform_clip(clip));
+            state.containing_block_clip_stack.push(transform_clip(clip));
             preserved_state.containing_block_clips_pushed += 1;
         }
     }
@@ -2999,7 +2997,13 @@ impl ComputedValuesCursorUtility for ComputedValues {
             &self.get_pointing().cursor,
         ) {
             (PointerEvents::None, _) => None,
-            (PointerEvents::Auto, &Cursor { keyword: CursorKind::Auto, .. }) => Some(default_cursor),
+            (
+                PointerEvents::Auto,
+                &Cursor {
+                    keyword: CursorKind::Auto,
+                    ..
+                },
+            ) => Some(default_cursor),
             (PointerEvents::Auto, &Cursor { keyword, .. }) => Some(keyword),
         }
     }
