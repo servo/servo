@@ -16,6 +16,7 @@ use properties::longhands::animation_direction::computed_value::single_value::T 
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
+use std::fmt;
 use std::sync::mpsc::Sender;
 use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use timer::Timer;
@@ -52,7 +53,7 @@ pub enum KeyframesRunningState {
 /// duration, the current and maximum iteration count, and the state (either
 /// playing or paused).
 // TODO: unify the use of f32/f64 in this file.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct KeyframesAnimationState {
     /// The time this animation started at.
     pub started_at: f64,
@@ -180,6 +181,22 @@ impl KeyframesAnimationState {
             KeyframesRunningState::Paused(..) => true,
             KeyframesRunningState::Running => false,
         }
+    }
+}
+
+impl fmt::Debug for KeyframesAnimationState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("KeyframesAnimationState")
+            .field("started_at", &self.started_at)
+            .field("duration", &self.duration)
+            .field("delay", &self.delay)
+            .field("iteration_state", &self.iteration_state)
+            .field("running_state", &self.running_state)
+            .field("direction", &self.direction)
+            .field("current_direction", &self.current_direction)
+            .field("expired", &self.expired)
+            .field("cascade_style", &())
+            .finish()
     }
 }
 
