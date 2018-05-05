@@ -544,10 +544,9 @@ where
 
     let box_style = new_style.get_box();
     for (i, name) in box_style.animation_name_iter().enumerate() {
-        let name = if let Some(atom) = name.as_atom() {
-            atom
-        } else {
-            continue;
+        let name = match name.as_atom() {
+            Some(atom) => atom,
+            None => continue,
         };
 
         debug!("maybe_start_animations: name={}", name);
@@ -556,61 +555,65 @@ where
             continue;
         }
 
-        if let Some(anim) = context.stylist.get_animation(name, element) {
-            debug!("maybe_start_animations: animation {} found", name);
+        let anim = match context.stylist.get_animation(name, element) {
+            Some(animation) => animation,
+            None => continue,
+        };
 
-            // If this animation doesn't have any keyframe, we can just continue
-            // without submitting it to the compositor, since both the first and
-            // the second keyframes would be synthetised from the computed
-            // values.
-            if anim.steps.is_empty() {
-                continue;
-            }
+        debug!("maybe_start_animations: animation {} found", name);
 
-            let delay = box_style.animation_delay_mod(i).seconds();
-            let now = context.timer.seconds();
-            let animation_start = now + delay as f64;
-            let duration = box_style.animation_duration_mod(i).seconds();
-            let iteration_state = match box_style.animation_iteration_count_mod(i) {
-                AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
-                AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0.0, n),
-            };
-
-            let animation_direction = box_style.animation_direction_mod(i);
-
-            let initial_direction = match animation_direction {
-                AnimationDirection::Normal | AnimationDirection::Alternate => {
-                    AnimationDirection::Normal
-                },
-                AnimationDirection::Reverse | AnimationDirection::AlternateReverse => {
-                    AnimationDirection::Reverse
-                },
-            };
-
-            let running_state = match box_style.animation_play_state_mod(i) {
-                AnimationPlayState::Paused => KeyframesRunningState::Paused(0.),
-                AnimationPlayState::Running => KeyframesRunningState::Running,
-            };
-
-            new_animations_sender
-                .send(Animation::Keyframes(
-                    node,
-                    anim.clone(),
-                    name.clone(),
-                    KeyframesAnimationState {
-                        started_at: animation_start,
-                        duration: duration as f64,
-                        delay: delay as f64,
-                        iteration_state: iteration_state,
-                        running_state: running_state,
-                        direction: animation_direction,
-                        current_direction: initial_direction,
-                        expired: false,
-                        cascade_style: new_style.clone(),
-                    },
-                )).unwrap();
-            had_animations = true;
+        // If this animation doesn't have any keyframe, we can just continue
+        // without submitting it to the compositor, since both the first and
+        // the second keyframes would be synthetised from the computed
+        // values.
+        if anim.steps.is_empty() {
+            continue;
         }
+
+        let delay = box_style.animation_delay_mod(i).seconds();
+        let now = context.timer.seconds();
+        let animation_start = now + delay as f64;
+        let duration = box_style.animation_duration_mod(i).seconds();
+        let iteration_state = match box_style.animation_iteration_count_mod(i) {
+            AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
+            AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0.0, n),
+        };
+
+        let animation_direction = box_style.animation_direction_mod(i);
+
+        let initial_direction = match animation_direction {
+            AnimationDirection::Normal | AnimationDirection::Alternate => {
+                AnimationDirection::Normal
+            },
+            AnimationDirection::Reverse | AnimationDirection::AlternateReverse => {
+                AnimationDirection::Reverse
+            },
+        };
+
+        let running_state = match box_style.animation_play_state_mod(i) {
+            AnimationPlayState::Paused => KeyframesRunningState::Paused(0.),
+            AnimationPlayState::Running => KeyframesRunningState::Running,
+        };
+
+        new_animations_sender
+            .send(Animation::Keyframes(
+                node,
+                anim.clone(),
+                name.clone(),
+                KeyframesAnimationState {
+                    started_at: animation_start,
+                    duration: duration as f64,
+                    delay: delay as f64,
+                    iteration_state,
+                    running_state,
+                    direction: animation_direction,
+                    current_direction: initial_direction,
+                    expired: false,
+                    cascade_style: new_style.clone(),
+                },
+            ))
+            .unwrap();
+        had_animations = true;
     }
 
     had_animations
