@@ -17,8 +17,9 @@ use context::LayoutContext;
 use display_list::ToLayout;
 use display_list::background::{build_border_radius, build_image_border_details};
 use display_list::background::{calculate_border_image_outset, calculate_inner_border_radii};
-use display_list::background::{compute_background_placement, convert_linear_gradient};
-use display_list::background::{convert_radial_gradient, get_cyclic, simple_normal_border};
+use display_list::background::{compute_background_clip, compute_background_placement};
+use display_list::background::{convert_linear_gradient, convert_radial_gradient, get_cyclic};
+use display_list::background::simple_normal_border;
 use display_list::items::{BaseDisplayItem, BorderDetails, BorderDisplayItem, BLUR_INFLATION_FACTOR};
 use display_list::items::{BoxShadowDisplayItem, ClipScrollNode};
 use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
@@ -52,7 +53,6 @@ use std::default::Default;
 use std::f32;
 use std::mem;
 use std::sync::Arc;
-use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::border_style::T as BorderStyle;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::pointer_events::T as PointerEvents;
@@ -840,33 +840,19 @@ impl FragmentDisplayListBuilding for Fragment {
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a fragment".
 
-        // 'background-clip' determines the area within which the background is painted.
-        // http://dev.w3.org/csswg/css-backgrounds-3/#the-background-clip
-        let mut bounds = *absolute_bounds;
-
         // Quote from CSS Backgrounds and Borders Module Level 3:
         //
         // > The background color is clipped according to the background-clip value associated
         // > with the bottom-most background image layer.
         let last_background_image_index = background.background_image.0.len() - 1;
-        let color_clip = get_cyclic(&background.background_clip.0, last_background_image_index);
-
-        // Adjust the clipping region as necessary to account for `border-radius`.
-        let mut border_radii = build_border_radius(absolute_bounds, style.get_border());
-
-        match color_clip {
-            BackgroundClip::BorderBox => {},
-            BackgroundClip::PaddingBox => {
-                let border = style.logical_border_width().to_physical(style.writing_mode);
-                bounds = bounds.inner_rect(border);
-                border_radii = calculate_inner_border_radii(border_radii, border);
-            },
-            BackgroundClip::ContentBox => {
-                let border_padding = self.border_padding.to_physical(style.writing_mode);
-                bounds = bounds.inner_rect(border_padding);
-                border_radii = calculate_inner_border_radii(border_radii, border_padding);
-            },
-        }
+        let color_clip = *get_cyclic(&background.background_clip.0, last_background_image_index);
+        let (bounds, border_radii) = compute_background_clip(
+            color_clip,
+            *absolute_bounds,
+            style.logical_border_width().to_physical(style.writing_mode),
+            self.border_padding.to_physical(self.style.writing_mode),
+            build_border_radius(absolute_bounds, style.get_border()),
+        );
 
         state.clipping_and_scrolling_scope(|state| {
             if !border_radii.is_zero() {
@@ -988,7 +974,7 @@ impl FragmentDisplayListBuilding for Fragment {
             absolute_bounds,
             Some(image),
             style.logical_border_width().to_physical(style.writing_mode),
-            self.border_padding.to_physical(style.writing_mode),
+            self.border_padding.to_physical(self.style.writing_mode),
             build_border_radius(&absolute_bounds, style.get_border()),
             index,
         );
@@ -1095,7 +1081,7 @@ impl FragmentDisplayListBuilding for Fragment {
             absolute_bounds,
             None,
             style.logical_border_width().to_physical(style.writing_mode),
-            self.border_padding.to_physical(style.writing_mode),
+            self.border_padding.to_physical(self.style.writing_mode),
             build_border_radius(&absolute_bounds, style.get_border()),
             index,
         );
