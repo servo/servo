@@ -272,27 +272,27 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
         }
         self.traversal.list_item.truncate_to_level(self.level);
 
-        for &(ref counter_name, value) in &*fragment.style().get_counters().counter_reset {
-            let counter_name = &*counter_name.0;
+        for pair in &*fragment.style().get_counters().counter_reset {
+            let counter_name = &*pair.name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
-                 counter.reset(self.level, value);
+                 counter.reset(self.level, pair.value);
                  continue
             }
 
             let mut counter = Counter::new();
-            counter.reset(self.level, value);
+            counter.reset(self.level, pair.value);
             self.traversal.counters.insert(counter_name.to_owned(), counter);
         }
 
-        for &(ref counter_name, value) in &*fragment.style().get_counters().counter_increment {
-            let counter_name = &*counter_name.0;
+        for pair in &*fragment.style().get_counters().counter_increment {
+            let counter_name = &*pair.name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
-                counter.increment(self.level, value);
+                counter.increment(self.level, pair.value);
                 continue
             }
 
             let mut counter = Counter::new();
-            counter.increment(self.level, value);
+            counter.increment(self.level, pair.value);
             self.traversal.counters.insert(counter_name.to_owned(), counter);
         }
 

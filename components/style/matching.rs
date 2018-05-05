@@ -425,6 +425,7 @@ trait PrivateMatchMethods: TElement {
         let this_opaque = self.as_node().opaque();
         // Trigger any present animations if necessary.
         animation::maybe_start_animations(
+            *self,
             &shared_context,
             new_animations_sender,
             this_opaque,

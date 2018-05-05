@@ -17,7 +17,7 @@ use properties::longhands::animation_play_state::computed_value::single_value::T
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
 use std::sync::mpsc::Sender;
-use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
+use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
 use values::computed::transform::TimingFunction;
@@ -194,7 +194,9 @@ pub enum Animation {
     Transition(OpaqueNode, f64, AnimationFrame, bool),
     /// A keyframes animation is identified by a name, and can have a
     /// node-dependent state (i.e. iteration count, etc.).
-    Keyframes(OpaqueNode, Atom, KeyframesAnimationState),
+    ///
+    /// TODO(emilio): The animation object could be refcounted.
+    Keyframes(OpaqueNode, KeyframesAnimation, Atom, KeyframesAnimationState),
 }
 
 impl Animation {
@@ -204,7 +206,7 @@ impl Animation {
         debug_assert!(!self.is_expired());
         match *self {
             Animation::Transition(_, _, _, ref mut expired) => *expired = true,
-            Animation::Keyframes(_, _, ref mut state) => state.expired = true,
+            Animation::Keyframes(_, _, _, ref mut state) => state.expired = true,
         }
     }
 
@@ -213,7 +215,7 @@ impl Animation {
     pub fn is_expired(&self) -> bool {
         match *self {
             Animation::Transition(_, _, _, expired) => expired,
-            Animation::Keyframes(_, _, ref state) => state.expired,
+            Animation::Keyframes(_, _, _, ref state) => state.expired,
         }
     }
 
@@ -222,7 +224,7 @@ impl Animation {
     pub fn node(&self) -> &OpaqueNode {
         match *self {
             Animation::Transition(ref node, _, _, _) => node,
-            Animation::Keyframes(ref node, _, _) => node,
+            Animation::Keyframes(ref node, _, _, _) => node,
         }
     }
 
@@ -231,7 +233,7 @@ impl Animation {
     pub fn is_paused(&self) -> bool {
         match *self {
             Animation::Transition(..) => false,
-            Animation::Keyframes(_, _, ref state) => state.is_paused(),
+            Animation::Keyframes(_, _, _, ref state) => state.is_paused(),
         }
     }
 
@@ -500,12 +502,16 @@ where
 
 /// Triggers animations for a given node looking at the animation property
 /// values.
-pub fn maybe_start_animations(
+pub fn maybe_start_animations<E>(
+    element: E,
     context: &SharedStyleContext,
     new_animations_sender: &Sender<Animation>,
     node: OpaqueNode,
     new_style: &Arc<ComputedValues>,
-) -> bool {
+) -> bool
+where
+    E: TElement,
+{
     let mut had_animations = false;
 
     let box_style = new_style.get_box();
@@ -522,7 +528,7 @@ pub fn maybe_start_animations(
             continue;
         }
 
-        if let Some(ref anim) = context.stylist.get_animation(name) {
+        if let Some(anim) = context.stylist.get_animation(name, element) {
             debug!("maybe_start_animations: animation {} found", name);
 
             // If this animation doesn't have any keyframe, we can just continue
@@ -561,6 +567,7 @@ pub fn maybe_start_animations(
             new_animations_sender
                 .send(Animation::Keyframes(
                     node,
+                    anim.clone(),
                     name.clone(),
                     KeyframesAnimationState {
                         started_at: animation_start,
@@ -628,7 +635,7 @@ pub fn update_style_for_animation<E>(
                 *style = new_style
             }
         },
-        Animation::Keyframes(_, ref name, ref state) => {
+        Animation::Keyframes(_, ref animation, ref name, ref state) => {
             debug!(
                 "update_style_for_animation: animation found: \"{}\", {:?}",
                 name, state
@@ -639,14 +646,6 @@ pub fn update_style_for_animation<E>(
             let now = match state.running_state {
                 KeyframesRunningState::Running => context.timer.seconds(),
                 KeyframesRunningState::Paused(progress) => started_at + duration * progress,
-            };
-
-            let animation = match context.stylist.get_animation(name) {
-                None => {
-                    warn!("update_style_for_animation: Animation {:?} not found", name);
-                    return;
-                },
-                Some(animation) => animation,
             };
 
             debug_assert!(!animation.steps.is_empty());
