@@ -80,7 +80,7 @@ where
         let mut animations_still_running = vec![];
         for mut running_animation in running_animations.drain(..) {
             let still_running = !running_animation.is_expired() && match running_animation {
-                Animation::Transition(_, started_at, ref frame, _expired) => {
+                Animation::Transition(_, started_at, ref frame) => {
                     now < started_at + frame.duration
                 }
                 Animation::Keyframes(_, _, _, ref mut state) => {
@@ -95,17 +95,18 @@ where
                 continue
             }
 
-            if let Animation::Transition(node, _, ref frame, _) = running_animation {
-                script_chan.send(ConstellationControlMsg::TransitionEnd(node.to_untrusted_node_address(),
-                                                                        frame.property_animation
-                                                                             .property_name().into(),
-                                                                        frame.duration))
-                           .unwrap();
+            if let Animation::Transition(node, _, ref frame) = running_animation {
+                script_chan.send(ConstellationControlMsg::TransitionEnd(
+                    node.to_untrusted_node_address(),
+                    frame.property_animation.property_name().into(),
+                    frame.duration,
+                )).unwrap();
             }
 
-            expired_animations.entry(*key)
-                              .or_insert_with(Vec::new)
-                              .push(running_animation);
+            expired_animations
+                .entry(*key)
+                .or_insert_with(Vec::new)
+                .push(running_animation);
         }
 
         if animations_still_running.is_empty() {
@@ -132,9 +133,10 @@ where
             }
         }
 
-        running_animations.entry(*new_running_animation.node())
-                          .or_insert_with(Vec::new)
-                          .push(new_running_animation)
+        running_animations
+            .entry(*new_running_animation.node())
+            .or_insert_with(Vec::new)
+            .push(new_running_animation)
     }
 
     let animation_state = if running_animations.is_empty() {
@@ -143,9 +145,10 @@ where
         AnimationState::AnimationsPresent
     };
 
-    constellation_chan.send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id,
-                                                                           animation_state))
-                      .unwrap();
+    constellation_chan.send(ConstellationMsg::ChangeRunningAnimationsState(
+        pipeline_id,
+        animation_state,
+    )).unwrap();
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM
