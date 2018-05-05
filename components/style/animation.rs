@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! CSS transitions and animations.
-#![deny(missing_docs)]
 
 use Atom;
 use bezier::Bezier;
@@ -409,7 +408,6 @@ impl PropertyAnimation {
 /// Inserts transitions into the queue of running animations as applicable for
 /// the given style difference. This is called from the layout worker threads.
 /// Returns true if any animations were kicked off and false otherwise.
-#[cfg(feature = "servo")]
 pub fn start_transitions_if_applicable(
     new_animations_sender: &Sender<Animation>,
     opaque_node: OpaqueNode,
@@ -629,6 +627,7 @@ pub fn update_style_for_animation_frame(
 
     true
 }
+
 /// Updates a single animation and associated style based on the current time.
 pub fn update_style_for_animation<E>(
     context: &SharedStyleContext,

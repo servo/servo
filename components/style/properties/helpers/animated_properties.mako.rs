@@ -196,7 +196,6 @@ pub fn nscsspropertyid_is_transitionable(property: nsCSSPropertyID) -> bool {
 
 /// An animated property interpolation between two computed values for that
 /// property.
-#[cfg(feature = "servo")]
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum AnimatedProperty {
@@ -213,7 +212,6 @@ pub enum AnimatedProperty {
     % endfor
 }
 
-#[cfg(feature = "servo")]
 impl AnimatedProperty {
     /// Get the name of this property.
     pub fn name(&self) -> &'static str {
@@ -255,9 +253,12 @@ impl AnimatedProperty {
 
     /// Update `style` with the proper computed style corresponding to this
     /// animation at `progress`.
+    #[cfg_attr(feature = "gecko", allow(unused))]
     pub fn update(&self, style: &mut ComputedValues, progress: f64) {
-        match *self {
-            % for prop in data.longhands:
+        #[cfg(feature = "servo")]
+        {
+            match *self {
+                % for prop in data.longhands:
                 % if prop.animatable:
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
                         // https://drafts.csswg.org/web-animations/#discrete-animation-type
@@ -276,7 +277,8 @@ impl AnimatedProperty {
                         style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value);
                     }
                 % endif
-            % endfor
+                % endfor
+            }
         }
     }
 
