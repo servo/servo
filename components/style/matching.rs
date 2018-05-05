@@ -623,7 +623,7 @@ trait PrivateMatchMethods: TElement {
                 font_metrics,
             );
 
-            if let Animation::Transition(_, _, ref frame, _) = *running_animation {
+            if let Animation::Transition(_, _, ref frame) = *running_animation {
                 possibly_expired_animations.push(frame.property_animation.clone())
             }
         }
