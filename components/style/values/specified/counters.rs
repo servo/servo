@@ -12,8 +12,8 @@ use style_traits::{ParseError, StyleParseErrorKind};
 use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
-use values::generics::counters::CounterPair;
 use values::generics::counters::CounterIncrement as GenericCounterIncrement;
+use values::generics::counters::CounterPair;
 use values::generics::counters::CounterReset as GenericCounterReset;
 #[cfg(feature = "gecko")]
 use values::specified::Attr;
