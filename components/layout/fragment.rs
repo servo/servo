@@ -2465,7 +2465,7 @@ impl Fragment {
 
     /// Given the stacking-context-relative border box, returns the stacking-context-relative
     /// content box.
-    pub fn stacking_relative_content_box(&self, stacking_relative_border_box: &Rect<Au>)
+    pub fn stacking_relative_content_box(&self, stacking_relative_border_box: Rect<Au>)
                                          -> Rect<Au> {
         let border_padding = self.border_padding.to_physical(self.style.writing_mode);
         Rect::new(Point2D::new(stacking_relative_border_box.origin.x + border_padding.left,

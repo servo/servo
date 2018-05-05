@@ -1617,7 +1617,7 @@ impl Flow for InlineFlow {
                                                           .relative_containing_block_mode,
                                                       CoordinateSystem::Parent);
             let stacking_relative_content_box =
-                fragment.stacking_relative_content_box(&stacking_relative_border_box);
+                fragment.stacking_relative_content_box(stacking_relative_border_box);
 
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
