@@ -583,7 +583,7 @@ trait PrivateMatchMethods: TElement {
         possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
         font_metrics: &::font_metrics::FontMetricsProvider,
     ) {
-        use animation::{self, Animation};
+        use animation::{self, Animation, AnimationUpdate};
         use dom::TNode;
 
         // Finish any expired transitions.
@@ -601,7 +601,7 @@ trait PrivateMatchMethods: TElement {
         }
 
         let mut all_running_animations = context.running_animations.write();
-        for running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
+        for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
             // This shouldn't happen frequently, but under some circumstances
             // mainly huge load or debug builds, the constellation might be
             // delayed in sending the `TickAllAnimations` message to layout.
@@ -616,15 +616,25 @@ trait PrivateMatchMethods: TElement {
                 continue;
             }
 
-            animation::update_style_for_animation::<Self>(
+            let update = animation::update_style_for_animation::<Self>(
                 context,
-                running_animation,
+                &mut running_animation,
                 style,
                 font_metrics,
             );
 
-            if let Animation::Transition(_, _, ref frame) = *running_animation {
-                possibly_expired_animations.push(frame.property_animation.clone())
+            match *running_animation {
+                Animation::Transition(_, _, ref frame) => {
+                    possibly_expired_animations.push(frame.property_animation.clone())
+                }
+                Animation::Keyframes(_, _, _, ref mut state) => {
+                    match update {
+                        AnimationUpdate::Regular => {},
+                        AnimationUpdate::AnimationCanceled => {
+                            state.expired = true;
+                        }
+                    }
+                }
             }
         }
     }

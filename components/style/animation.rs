@@ -630,13 +630,31 @@ pub fn update_style_for_animation_frame(
     true
 }
 
+/// Returns the kind of animation update that happened.
+pub enum AnimationUpdate {
+    /// The style was successfully updated, the animation is still running.
+    Regular,
+    /// A style change canceled this animation.
+    AnimationCanceled,
+}
+
 /// Updates a single animation and associated style based on the current time.
+///
+/// FIXME(emilio): This doesn't handle any kind of dynamic change to the
+/// animation or transition properties in any reasonable way.
+///
+/// This should probably be split in two, one from updating animations and
+/// transitions in response to a style change (that is,
+/// consider_starting_transitions + maybe_start_animations, but handling
+/// canceled animations, duration changes, etc, there instead of here), and this
+/// function should be only about the style update in response of a transition.
 pub fn update_style_for_animation<E>(
     context: &SharedStyleContext,
     animation: &Animation,
     style: &mut Arc<ComputedValues>,
     font_metrics_provider: &FontMetricsProvider,
-) where
+) -> AnimationUpdate
+where
     E: TElement,
 {
     debug!("update_style_for_animation: entering");
@@ -652,6 +670,12 @@ pub fn update_style_for_animation<E>(
             if updated_style {
                 *style = new_style
             }
+            // FIXME(emilio): Should check before updating the style that the
+            // transition_property still transitions this, or bail out if not.
+            //
+            // Or doing it in process_animations, only if transition_property
+            // changed somehow (even better).
+            AnimationUpdate::Regular
         },
         Animation::Keyframes(_, ref animation, ref name, ref state) => {
             debug!(
@@ -675,28 +699,18 @@ pub fn update_style_for_animation<E>(
 
             let index = match maybe_index {
                 Some(index) => index,
-                None => {
-                    warn!(
-                        "update_style_for_animation: Animation {:?} not found in style",
-                        name
-                    );
-                    return;
-                },
+                None => return AnimationUpdate::AnimationCanceled,
             };
 
             let total_duration = style.get_box().animation_duration_mod(index).seconds() as f64;
             if total_duration == 0. {
-                debug!(
-                    "update_style_for_animation: zero duration for animation {:?}",
-                    name
-                );
-                return;
+                return AnimationUpdate::AnimationCanceled;
             }
 
             let mut total_progress = (now - started_at) / total_duration;
             if total_progress < 0. {
                 warn!("Negative progress found for animation {:?}", name);
-                return;
+                return AnimationUpdate::Regular;
             }
             if total_progress > 1. {
                 total_progress = 1.;
@@ -748,11 +762,7 @@ pub fn update_style_for_animation<E>(
 
             let target_keyframe = match target_keyframe_position {
                 Some(target) => &animation.steps[target],
-                None => {
-                    warn!("update_style_for_animation: No current keyframe found for animation \"{}\" at progress {}",
-                          name, total_progress);
-                    return;
-                },
+                None => return AnimationUpdate::Regular,
             };
 
             let last_keyframe = &animation.steps[last_keyframe_position];
@@ -836,6 +846,7 @@ pub fn update_style_for_animation<E>(
                 name
             );
             *style = new_style;
+            AnimationUpdate::Regular
         },
     }
 }
