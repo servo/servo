@@ -8,8 +8,8 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use context::QuirksMode;
 use dom::TElement;
 use gecko_bindings::bindings::{self, RawServoStyleSet};
-use gecko_bindings::structs::{self, RawGeckoPresContextOwned, ServoStyleSetSizes, ServoStyleSheet};
-use gecko_bindings::structs::{ServoStyleSheetInner, StyleSheetInfo, nsIDocument};
+use gecko_bindings::structs::{self, RawGeckoPresContextOwned, ServoStyleSetSizes, StyleSheet as DomStyleSheet};
+use gecko_bindings::structs::{StyleSheetInfo, nsIDocument};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use malloc_size_of::MallocSizeOfOps;
@@ -23,7 +23,7 @@ use stylist::Stylist;
 
 /// Little wrapper to a Gecko style sheet.
 #[derive(Debug, Eq, PartialEq)]
-pub struct GeckoStyleSheet(*const ServoStyleSheet);
+pub struct GeckoStyleSheet(*const DomStyleSheet);
 
 impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
     fn to_media_list_key(&self) -> MediaListKey {
@@ -33,30 +33,30 @@ impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
 }
 
 impl GeckoStyleSheet {
-    /// Create a `GeckoStyleSheet` from a raw `ServoStyleSheet` pointer.
+    /// Create a `GeckoStyleSheet` from a raw `DomStyleSheet` pointer.
     #[inline]
-    pub unsafe fn new(s: *const ServoStyleSheet) -> Self {
+    pub unsafe fn new(s: *const DomStyleSheet) -> Self {
         debug_assert!(!s.is_null());
         bindings::Gecko_StyleSheet_AddRef(s);
         Self::from_addrefed(s)
     }
 
-    /// Create a `GeckoStyleSheet` from a raw `ServoStyleSheet` pointer that
+    /// Create a `GeckoStyleSheet` from a raw `DomStyleSheet` pointer that
     /// already holds a strong reference.
     #[inline]
-    pub unsafe fn from_addrefed(s: *const ServoStyleSheet) -> Self {
+    pub unsafe fn from_addrefed(s: *const DomStyleSheet) -> Self {
         debug_assert!(!s.is_null());
         GeckoStyleSheet(s)
     }
 
-    /// Get the raw `ServoStyleSheet` that we're wrapping.
-    pub fn raw(&self) -> &ServoStyleSheet {
+    /// Get the raw `StyleSheet` that we're wrapping.
+    pub fn raw(&self) -> &DomStyleSheet {
         unsafe { &*self.0 }
     }
 
-    fn inner(&self) -> &ServoStyleSheetInner {
+    fn inner(&self) -> &StyleSheetInfo {
         unsafe {
-            &*(self.raw()._base.mInner as *const StyleSheetInfo as *const ServoStyleSheetInner)
+            &*(self.raw().mInner as *const StyleSheetInfo)
         }
     }
 
@@ -98,7 +98,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
         use std::mem;
 
         unsafe {
-            let dom_media_list = self.raw()._base.mMedia.mRawPtr as *const DomMediaList;
+            let dom_media_list = self.raw().mMedia.mRawPtr as *const DomMediaList;
             if dom_media_list.is_null() {
                 return None;
             }

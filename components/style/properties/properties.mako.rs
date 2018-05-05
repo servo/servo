@@ -56,12 +56,6 @@ use style_adjuster::StyleAdjuster;
 
 pub use self::declaration_block::*;
 
-#[cfg(feature = "gecko")]
-#[macro_export]
-macro_rules! property_name {
-    ($s: tt) => { atom!($s) }
-}
-
 <%!
     from data import Method, Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
     import os.path

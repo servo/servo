@@ -37,6 +37,9 @@ use std::fmt::{self, Write};
 /// * if `#[css(skip_if = "function")]` is found on a field, the `ToCss` call
 ///   for that field is skipped if `function` returns true. This function is
 ///   provided the field as an argument;
+/// * `#[css(represents_keyword)]` can be used on bool fields in order to
+///   serialize the field name if the field is true, or nothing otherwise.  It
+///   also collects those keywords for `SpecifiedValueInfo`.
 /// * finally, one can put `#[css(derive_debug)]` on the whole type, to
 ///   implement `Debug` by a single call to `ToCss::to_css`.
 pub trait ToCss {
@@ -229,21 +232,6 @@ where
     #[inline]
     pub fn raw_item(&mut self, item: &str) -> fmt::Result {
         self.write_item(|inner| inner.write_str(item))
-    }
-}
-
-/// A wrapper type that implements `ToCss` by printing its inner field.
-pub struct Verbatim<'a, T>(pub &'a T)
-where
-    T: ?Sized + 'a;
-
-impl<'a, T> ToCss for Verbatim<'a, T>
-where
-    T: AsRef<str> + ?Sized + 'a,
-{
-    #[inline]
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
-        dest.write_str(self.0.as_ref())
     }
 }
 

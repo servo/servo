@@ -73,7 +73,6 @@ use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
-use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
@@ -92,8 +91,8 @@ use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ComputedStyleStrong, RustString};
-use style::gecko_bindings::structs::{ServoStyleSheet, SheetLoadData, SheetLoadDataHolder};
 use style::gecko_bindings::structs::{SheetParsingMode, nsAtom, nsCSSPropertyID};
+use style::gecko_bindings::structs::{StyleSheet as DomStyleSheet, SheetLoadData, SheetLoadDataHolder};
 use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSCounterDesc};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::AtomArray;
@@ -129,7 +128,7 @@ use style::invalidation::element::restyle_hints;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parser::{Parse, ParserContext, self};
 use style::properties::{ComputedValues, DeclarationSource, Importance};
-use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use style::properties::{LonghandId, LonghandIdSet, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
 use style::properties::{SourcePropertyDeclaration, StyleBuilder};
 use style::properties::{parse_one_declaration_into, parse_style_attribute};
@@ -709,31 +708,6 @@ pub extern "C" fn Servo_AnimationValue_Serialize(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_Shorthand_AnimationValues_Serialize(
-    shorthand_property: nsCSSPropertyID,
-    values: RawGeckoServoAnimationValueListBorrowed,
-    buffer: *mut nsAString,
-) {
-    let property_id = get_property_id_from_nscsspropertyid!(shorthand_property, ());
-    let shorthand = match property_id.as_shorthand() {
-        Ok(shorthand) => shorthand,
-        _ => return,
-    };
-
-    // Convert RawServoAnimationValue(s) into a vector of PropertyDeclaration
-    // so that we can use reference of the PropertyDeclaration without worrying
-    // about its lifetime. (longhands_to_css() expects &PropertyDeclaration
-    // iterator.)
-    let declarations: Vec<PropertyDeclaration> =
-        values.iter().map(|v| AnimationValue::as_arc(&&*v.mRawPtr).uncompute()).collect();
-
-    let _ = shorthand.longhands_to_css(
-        declarations.iter(),
-        &mut CssWriter::new(&mut *buffer),
-    );
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_AnimationValue_GetOpacity(
     value: RawServoAnimationValueBorrowed,
 ) -> f32 {
@@ -1194,7 +1168,7 @@ fn mode_to_origin(mode: SheetParsingMode) -> Origin {
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     loader: *mut Loader,
-    stylesheet: *mut ServoStyleSheet,
+    stylesheet: *mut DomStyleSheet,
     load_data: *mut SheetLoadData,
     bytes: *const nsACString,
     mode: SheetParsingMode,
@@ -1263,7 +1237,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8BytesAsync(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1288,7 +1262,7 @@ pub extern "C" fn Servo_AuthorStyles_Drop(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_AuthorStyles_AppendStyleSheet(
     styles: RawServoAuthorStylesBorrowedMut,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
 
@@ -1301,8 +1275,8 @@ pub unsafe extern "C" fn Servo_AuthorStyles_AppendStyleSheet(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_AuthorStyles_InsertStyleSheetBefore(
     styles: RawServoAuthorStylesBorrowedMut,
-    sheet: *const ServoStyleSheet,
-    before_sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
+    before_sheet: *const DomStyleSheet,
 ) {
     let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
 
@@ -1319,7 +1293,7 @@ pub unsafe extern "C" fn Servo_AuthorStyles_InsertStyleSheetBefore(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_AuthorStyles_RemoveStyleSheet(
     styles: RawServoAuthorStylesBorrowedMut,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let styles = AuthorStyles::<GeckoStyleSheet>::from_ffi_mut(styles);
 
@@ -1454,7 +1428,7 @@ pub unsafe extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet,
+    sheet: *const DomStyleSheet,
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1467,8 +1441,8 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet,
-    before_sheet: *const ServoStyleSheet
+    sheet: *const DomStyleSheet,
+    before_sheet: *const DomStyleSheet
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1485,7 +1459,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     raw_data: RawServoStyleSetBorrowed,
-    sheet: *const ServoStyleSheet
+    sheet: *const DomStyleSheet
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -1560,7 +1534,7 @@ pub extern "C" fn Servo_StyleSheet_GetRules(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Clone(
     raw_sheet: RawServoStyleSheetContentsBorrowed,
-    reference_sheet: *const ServoStyleSheet,
+    reference_sheet: *const DomStyleSheet,
 ) -> RawServoStyleSheetContentsStrong {
     use style::shared_lock::{DeepCloneParams, DeepCloneWithLock};
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1681,7 +1655,7 @@ pub extern "C" fn Servo_CssRules_InsertRule(
     index: u32,
     nested: bool,
     loader: *mut Loader,
-    gecko_stylesheet: *mut ServoStyleSheet,
+    gecko_stylesheet: *mut DomStyleSheet,
     rule_type: *mut u16,
 ) -> nsresult {
     let loader = if loader.is_null() {
@@ -2136,16 +2110,16 @@ pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, res
 #[no_mangle]
 pub extern "C" fn Servo_ImportRule_GetSheet(
     rule: RawServoImportRuleBorrowed,
-) -> *const ServoStyleSheet {
+) -> *const DomStyleSheet {
     read_locked_arc(rule, |rule: &ImportRule| {
-        rule.stylesheet.as_sheet().unwrap().raw() as *const ServoStyleSheet
+        rule.stylesheet.as_sheet().unwrap().raw() as *const DomStyleSheet
     })
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ImportRule_SetSheet(
     rule: RawServoImportRuleBorrowed,
-    sheet: *mut ServoStyleSheet,
+    sheet: *mut DomStyleSheet,
 ) {
     write_locked_arc(rule, |rule: &mut ImportRule| {
         let sheet = unsafe { GeckoStyleSheet::new(sheet) };
@@ -3610,6 +3584,20 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_SetProperty(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_DeclarationBlock_SetPropertyToAnimationValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    animation_value: RawServoAnimationValueBorrowed,
+) -> bool {
+    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+        decls.push(
+            AnimationValue::as_arc(&animation_value).uncompute(),
+            Importance::Normal,
+            DeclarationSource::CssOm,
+        )
+    })
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn Servo_DeclarationBlock_SetPropertyById(
     declarations: RawServoDeclarationBlockBorrowed,
     property: nsCSSPropertyID,
@@ -4506,7 +4494,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
     raw_data: RawServoStyleSetBorrowed,
     computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut
 ) {
-    use std::mem;
     use style::properties::LonghandIdSet;
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
@@ -4567,10 +4554,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
                 // This is safe since we immediately write to the uninitialized values.
                 unsafe { animation_values.set_len((property_index + 1) as u32) };
                 animation_values[property_index].mProperty = property.to_nscsspropertyid();
-                // We only make sure we have enough space for this variable,
-                // but didn't construct a default value for StyleAnimationValue,
-                // so we should zero it to avoid getting undefined behaviors.
-                animation_values[property_index].mValue.mGecko = unsafe { mem::zeroed() };
                 match value {
                     Some(v) => {
                         animation_values[property_index].mValue.mServo.set_arc_leaky(Arc::new(v));
@@ -4768,17 +4751,18 @@ fn fill_in_missing_keyframe_values(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_StyleSet_GetKeyframesForName(
     raw_data: RawServoStyleSetBorrowed,
+    element: RawGeckoElementBorrowed,
     name: *mut nsAtom,
     inherited_timing_function: nsTimingFunctionBorrowed,
     keyframes: RawGeckoKeyframeListBorrowedMut,
 ) -> bool {
-    debug_assert!(keyframes.len() == 0,
-                  "keyframes should be initially empty");
+    debug_assert!(keyframes.len() == 0, "keyframes should be initially empty");
 
+    let element = GeckoElement(element);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let name = Atom::from_raw(name);
 
-    let animation = match data.stylist.get_animation(&name) {
+    let animation = match data.stylist.get_animation(&name, element) {
         Some(animation) => animation,
         None => return false,
     };

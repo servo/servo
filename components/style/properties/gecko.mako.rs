@@ -5697,9 +5697,9 @@ clip-path
         ) {
             unsafe {
                 bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko, v.len() as u32);
-                for (i, &(ref name, value)) in v.iter().enumerate() {
-                    self.gecko.m${counter_property}s[i].mCounter.assign(name.0.as_slice());
-                    self.gecko.m${counter_property}s[i].mValue = value;
+                for (i, ref pair) in v.iter().enumerate() {
+                    self.gecko.m${counter_property}s[i].mCounter.assign(pair.name.0.as_slice());
+                    self.gecko.m${counter_property}s[i].mValue = pair.value;
                 }
             }
         }
@@ -5717,12 +5717,16 @@ clip-path
         pub fn clone_counter_${counter_property.lower()}(
             &self
         ) -> longhands::counter_${counter_property.lower()}::computed_value::T {
+            use values::generics::counters::CounterPair;
             use values::CustomIdent;
             use gecko_string_cache::Atom;
 
             longhands::counter_${counter_property.lower()}::computed_value::T::new(
                 self.gecko.m${counter_property}s.iter().map(|ref gecko_counter| {
-                    (CustomIdent(Atom::from(gecko_counter.mCounter.to_string())), gecko_counter.mValue)
+                    CounterPair {
+                        name: CustomIdent(Atom::from(gecko_counter.mCounter.to_string())),
+                        value: gecko_counter.mValue,
+                    }
                 }).collect()
             )
         }

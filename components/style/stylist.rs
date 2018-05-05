@@ -1421,14 +1421,53 @@ impl Stylist {
     }
 
     /// Returns the registered `@keyframes` animation for the specified name.
-    ///
-    /// FIXME(emilio): This needs to account for the element rules.
     #[inline]
-    pub fn get_animation(&self, name: &Atom) -> Option<&KeyframesAnimation> {
-        self.cascade_data
-            .iter_origins()
-            .filter_map(|(d, _)| d.animations.get(name))
-            .next()
+    pub fn get_animation<'a, E>(
+        &'a self,
+        name: &Atom,
+        element: E,
+    ) -> Option<&'a KeyframesAnimation>
+    where
+        E: TElement + 'a,
+    {
+        macro_rules! try_find_in {
+            ($data:expr) => {
+                if let Some(animation) = $data.animations.get(name) {
+                    return Some(animation);
+                }
+            }
+        }
+
+        // NOTE(emilio): We implement basically what Blink does for this case,
+        // which is [1] as of this writing.
+        //
+        // See [2] for the spec discussion about what to do about this. WebKit's
+        // behavior makes a bit more sense off-hand, but it's way more complex
+        // to implement, and it makes value computation having to thread around
+        // the cascade level, which is not great. Also, it breaks if you inherit
+        // animation-name from an element in a different tree.
+        //
+        // See [3] for the bug to implement whatever gets resolved, and related
+        // bugs for a bit more context.
+        //
+        // [1]: https://cs.chromium.org/chromium/src/third_party/blink/renderer/
+        //        core/css/resolver/style_resolver.cc?l=1267&rcl=90f9f8680ebb4a87d177f3b0833372ae4e0c88d8
+        // [2]: https://github.com/w3c/csswg-drafts/issues/1995
+        // [3]: https://bugzil.la/1458189
+        if let Some(shadow) = element.shadow_root() {
+            try_find_in!(shadow.style_data());
+        }
+
+        if let Some(shadow) = element.containing_shadow() {
+            try_find_in!(shadow.style_data());
+        } else {
+            try_find_in!(self.cascade_data.author);
+        }
+
+        try_find_in!(self.cascade_data.user);
+        try_find_in!(self.cascade_data.user_agent.cascade_data);
+
+        None
     }
 
     /// Computes the match results of a given element against the set of
@@ -1517,27 +1556,25 @@ impl Stylist {
         E: TElement,
     {
         use font_metrics::get_metrics_provider_for_product;
-        use std::iter;
 
-        // FIXME(emilio): Why do we even need the rule node? We should probably
-        // just avoid allocating it and calling `apply_declarations` directly,
-        // maybe...
-        let rule_node = self.rule_tree.insert_ordered_rules(iter::once((
-            StyleSource::from_declarations(declarations),
-            CascadeLevel::StyleAttributeNormal,
-        )));
+        let block = declarations.read_with(guards.author);
+        let iter_declarations = || {
+            block.declaration_importance_iter().map(|(declaration, importance)| {
+                debug_assert!(!importance.important());
+                (declaration, CascadeLevel::StyleAttributeNormal)
+            })
+        };
 
-        // This currently ignores visited styles.  It appears to be used for
-        // font styles in <canvas> via Servo_StyleSet_ResolveForDeclarations.
-        // It is unclear if visited styles are meaningful for this case.
         let metrics = get_metrics_provider_for_product();
 
-        // FIXME(emilio): the pseudo bit looks quite dubious!
-        properties::cascade::<E>(
+        // We don't bother inserting these declarations in the rule tree, since
+        // it'd be quite useless and slow.
+        properties::apply_declarations::<E, _, _>(
             &self.device,
             /* pseudo = */ None,
-            &rule_node,
+            self.rule_tree.root(),
             guards,
+            iter_declarations,
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),

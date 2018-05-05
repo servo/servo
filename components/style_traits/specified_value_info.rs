@@ -56,8 +56,6 @@ pub type KeywordsCollectFn<'a> = &'a mut FnMut(&[&'static str]);
 /// * `#[value_info(starts_with_keyword)]` can be used on variants to
 ///   add the name of a non-unit variant (serialized like `ToCss`) into
 ///   `collect_completion_keywords`.
-/// * `#[value_info(represents_keyword)]` can be used on fields into
-///   `collect_completion_keywords`.
 pub trait SpecifiedValueInfo {
     /// Supported CssTypes by the given value type.
     ///

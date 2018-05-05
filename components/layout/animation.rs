@@ -39,14 +39,14 @@ where
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let mut should_push = true;
-        if let Animation::Keyframes(ref node, ref name, ref state) = animation {
+        if let Animation::Keyframes(ref node, _, ref name, ref state) = animation {
             // If the animation was already present in the list for the
             // node, just update its state, else push the new animation to
             // run.
             if let Some(ref mut animations) = running_animations.get_mut(node) {
                 // TODO: This being linear is probably not optimal.
                 for anim in animations.iter_mut() {
-                    if let Animation::Keyframes(_, ref anim_name, ref mut anim_state) = *anim {
+                    if let Animation::Keyframes(_, _, ref anim_name, ref mut anim_state) = *anim {
                         if *name == *anim_name {
                             debug!("update_animation_state: Found other animation {}", name);
                             anim_state.update_from_other(&state, timer);
@@ -83,7 +83,7 @@ where
                 Animation::Transition(_, started_at, ref frame, _expired) => {
                     now < started_at + frame.duration
                 }
-                Animation::Keyframes(_, _, ref mut state) => {
+                Animation::Keyframes(_, _, _, ref mut state) => {
                     // This animation is still running, or we need to keep
                     // iterating.
                     now < state.started_at + state.duration || state.tick()

@@ -196,7 +196,6 @@ pub fn nscsspropertyid_is_transitionable(property: nsCSSPropertyID) -> bool {
 
 /// An animated property interpolation between two computed values for that
 /// property.
-#[cfg(feature = "servo")]
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum AnimatedProperty {
@@ -213,7 +212,6 @@ pub enum AnimatedProperty {
     % endfor
 }
 
-#[cfg(feature = "servo")]
 impl AnimatedProperty {
     /// Get the name of this property.
     pub fn name(&self) -> &'static str {
@@ -255,9 +253,12 @@ impl AnimatedProperty {
 
     /// Update `style` with the proper computed style corresponding to this
     /// animation at `progress`.
+    #[cfg_attr(feature = "gecko", allow(unused))]
     pub fn update(&self, style: &mut ComputedValues, progress: f64) {
-        match *self {
-            % for prop in data.longhands:
+        #[cfg(feature = "servo")]
+        {
+            match *self {
+                % for prop in data.longhands:
                 % if prop.animatable:
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
                         // https://drafts.csswg.org/web-animations/#discrete-animation-type
@@ -276,7 +277,8 @@ impl AnimatedProperty {
                         style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value);
                     }
                 % endif
-            % endfor
+                % endfor
+            }
         }
     }
 
@@ -1291,16 +1293,8 @@ impl Animate for ComputedTransformOperation {
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => {
-                let mut fd_matrix = Matrix3D::identity();
-                let mut td_matrix = Matrix3D::identity();
-                if fd.px() > 0. {
-                    fd_matrix.m34 = -1. / fd.px();
-                }
-                if td.px() > 0. {
-                    td_matrix.m34 = -1. / td.px();
-                }
-                Ok(TransformOperation::Matrix3D(
-                    fd_matrix.animate(&td_matrix, procedure)?,
+                Ok(TransformOperation::Perspective(
+                    fd.animate(td, procedure)?
                 ))
             },
             _ if self.is_translate() && other.is_translate() => {
@@ -2640,16 +2634,7 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => {
-                let mut fd_matrix = Matrix3D::identity();
-                let mut td_matrix = Matrix3D::identity();
-                if fd.px() > 0. {
-                    fd_matrix.m34 = -1. / fd.px();
-                }
-
-                if td.px() > 0. {
-                    td_matrix.m34 = -1. / td.px();
-                }
-                fd_matrix.compute_squared_distance(&td_matrix)
+                fd.compute_squared_distance(td)
             }
             (
                 &TransformOperation::Perspective(ref p),
@@ -2658,6 +2643,8 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 &TransformOperation::Matrix3D(ref m),
                 &TransformOperation::Perspective(ref p),
             ) => {
+                // FIXME(emilio): Is this right? Why interpolating this with
+                // Perspective but not with anything else?
                 let mut p_matrix = Matrix3D::identity();
                 if p.px() > 0. {
                     p_matrix.m34 = -1. / p.px();

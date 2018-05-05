@@ -175,7 +175,7 @@ fn derive_single_field_expr(
                 {
                     let mut iter = #field.iter().peekable();
                     if iter.peek().is_none() {
-                        writer.item(&::style_traits::values::Verbatim(#if_empty))?;
+                        writer.raw_item(#if_empty)?;
                     } else {
                         for item in iter {
                             writer.item(&item)?;
@@ -187,6 +187,15 @@ fn derive_single_field_expr(
         quote! {
             for item in #field.iter() {
                 writer.item(&item)?;
+            }
+        }
+    } else if attrs.represents_keyword {
+        let ident =
+            field.ast().ident.as_ref().expect("Unnamed field with represents_keyword?");
+        let ident = cg::to_css_identifier(ident.as_ref());
+        quote! {
+            if *#field {
+                writer.raw_item(#ident)?;
             }
         }
     } else {
@@ -236,5 +245,6 @@ pub struct CssFieldAttrs {
     pub field_bound: bool,
     pub iterable: bool,
     pub skip: bool,
+    pub represents_keyword: bool,
     pub skip_if: Option<Path>,
 }
