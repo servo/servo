@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLParameter, WebGLProgramId, WebGLResult};
+use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLProgramId, WebGLResult};
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -360,13 +360,6 @@ impl WebGLProgram {
         let (sender, receiver) = webgl_channel().unwrap();
         self.renderer.send(WebGLCommand::GetProgramInfoLog(self.id, sender)).unwrap();
         Ok(receiver.recv().unwrap())
-    }
-
-    /// glGetProgramParameter
-    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.renderer.send(WebGLCommand::GetProgramParameter(self.id, param_id, sender)).unwrap();
-        receiver.recv().unwrap()
     }
 
     pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {

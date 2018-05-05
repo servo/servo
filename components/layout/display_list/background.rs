@@ -32,8 +32,8 @@ use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
-use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode, ImageBorder};
-use webrender_api::{GradientStop, LayoutSize, NinePatchDescriptor, NormalBorder};
+use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode, GradientStop};
+use webrender_api::{LayoutSize, NinePatchBorder, NinePatchBorderSource, NormalBorder};
 
 /// A helper data structure for gradients.
 #[derive(Clone, Copy)]
@@ -791,22 +791,20 @@ pub fn build_image_border_details(
     let corners = &border_style_struct.border_image_slice.offsets;
     let border_image_repeat = &border_style_struct.border_image_repeat;
     if let Some(image_key) = webrender_image.key {
-        Some(BorderDetails::Image(ImageBorder {
-            image_key: image_key,
-            patch: NinePatchDescriptor {
-                width: webrender_image.width,
-                height: webrender_image.height,
-                slice: SideOffsets2D::new(
-                    corners.0.resolve(webrender_image.height),
-                    corners.1.resolve(webrender_image.width),
-                    corners.2.resolve(webrender_image.height),
-                    corners.3.resolve(webrender_image.width),
-                ),
-            },
+        Some(BorderDetails::Image(NinePatchBorder {
+            source: NinePatchBorderSource::Image(image_key),
+            width: webrender_image.width,
+            height: webrender_image.height,
+            slice: SideOffsets2D::new(
+                corners.0.resolve(webrender_image.height),
+                corners.1.resolve(webrender_image.width),
+                corners.2.resolve(webrender_image.height),
+                corners.3.resolve(webrender_image.width),
+            ),
             fill: border_style_struct.border_image_slice.fill,
-            outset: outset,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
+            outset: outset,
         }))
     } else {
         None

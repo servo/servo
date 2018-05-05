@@ -4,8 +4,8 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLParameter, WebGLResult, WebGLSLVersion};
-use canvas_traits::webgl::{WebGLShaderId, WebGLVersion, webgl_channel};
+use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
+use canvas_traits::webgl::{WebGLVersion, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::reflector::reflect_dom_object;
@@ -208,16 +208,6 @@ impl WebGLShader {
     /// glGetShaderInfoLog
     pub fn info_log(&self) -> Option<String> {
         self.info_log.borrow().clone()
-    }
-
-    /// glGetParameter
-    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
-        if self.is_deleted.get() && !self.is_attached() {
-            return Err(WebGLError::InvalidValue);
-        }
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.renderer.send(WebGLCommand::GetShaderParameter(self.id, param_id, sender)).unwrap();
-        receiver.recv().unwrap()
     }
 
     /// Get the shader source

@@ -46,7 +46,7 @@ embedder_traits = {path = "../embedder_traits"}
 encoding_rs = "0.7"
 euclid = "0.17"
 fnv = "1.0"
-gleam = "0.4.34"
+gleam = "0.5"
 half = "1.0"
 html5ever = "0.22"
 hyper = "0.10"
@@ -68,7 +68,7 @@ mozjs = { version = "0.6", features = ["promises"]}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = { version = "0.15", features = ["serde"] }
+offscreen_gl_context = {version = "0.16", features = ["serde"]}
 parking_lot = "0.5"
 phf = "0.7.18"
 profile_traits = {path = "../profile_traits"}

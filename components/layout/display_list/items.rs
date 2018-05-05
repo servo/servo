@@ -24,10 +24,10 @@ use std::f32;
 use std::fmt;
 use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipMode, ColorF};
 use webrender_api::{ComplexClipRegion, ExtendMode, ExternalScrollId, FilterOp, FontInstanceKey};
-use webrender_api::{GlyphInstance, GradientStop, ImageBorder, ImageKey, ImageRendering};
-use webrender_api::{LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
-use webrender_api::{LineStyle, MixBlendMode, NormalBorder, ScrollPolicy, ScrollSensitivity, Shadow};
-use webrender_api::{StickyOffsetBounds, TransformStyle};
+use webrender_api::{GlyphInstance, GradientStop, ImageKey, ImageRendering, LayoutPoint};
+use webrender_api::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D, LineStyle};
+use webrender_api::{MixBlendMode, NinePatchBorder, NormalBorder, ScrollPolicy, ScrollSensitivity};
+use webrender_api::{Shadow, StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
 
@@ -775,7 +775,7 @@ pub struct RadialGradientBorder {
 #[derive(Clone, Serialize)]
 pub enum BorderDetails {
     Normal(NormalBorder),
-    Image(ImageBorder),
+    Image(NinePatchBorder),
     Gradient(GradientBorder),
     RadialGradient(RadialGradientBorder),
 }

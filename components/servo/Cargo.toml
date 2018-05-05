@@ -41,7 +41,7 @@ embedder_traits = {path = "../embedder_traits"}
 env_logger = "0.5"
 euclid = "0.17"
 gfx = {path = "../gfx"}
-gleam = "0.4.34"
+gleam = "0.5"
 ipc-channel = "0.10"
 layout_thread = {path = "../layout_thread"}
 log = "0.4"
