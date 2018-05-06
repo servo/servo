@@ -602,17 +602,8 @@ trait PrivateMatchMethods: TElement {
 
         let mut all_running_animations = context.running_animations.write();
         for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
-            // This shouldn't happen frequently, but under some circumstances
-            // mainly huge load or debug builds, the constellation might be
-            // delayed in sending the `TickAllAnimations` message to layout.
-            //
-            // Thus, we can't assume all the animations have been already
-            // updated by layout, because other restyle due to script might be
-            // triggered by layout before the animation tick.
-            //
-            // See #12171 and the associated PR for an example where this
-            // happened while debugging other release panic.
-            if running_animation.is_expired() {
+            if let Animation::Transition(_, _, ref frame) = *running_animation {
+                possibly_expired_animations.push(frame.property_animation.clone());
                 continue;
             }
 
@@ -624,9 +615,7 @@ trait PrivateMatchMethods: TElement {
             );
 
             match *running_animation {
-                Animation::Transition(_, _, ref frame) => {
-                    possibly_expired_animations.push(frame.property_animation.clone())
-                }
+                Animation::Transition(..) => unreachable!(),
                 Animation::Keyframes(_, _, _, ref mut state) => {
                     match update {
                         AnimationUpdate::Regular => {},

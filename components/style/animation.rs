@@ -438,8 +438,15 @@ pub fn start_transitions_if_applicable(
                 .iter()
                 .any(|animation| animation.has_the_same_end_value_as(&property_animation))
             {
+                debug!(
+                    "Not initiating transition for {}, other transition \
+                     found with the same end value",
+                    property_animation.property_name()
+                );
                 continue;
             }
+
+            debug!("Kicking off transition of {:?}", property_animation);
 
             // Kick off the animation.
             let box_style = new_style.get_box();
@@ -451,7 +458,7 @@ pub fn start_transitions_if_applicable(
                     start_time,
                     AnimationFrame {
                         duration: box_style.transition_duration_mod(i).seconds() as f64,
-                        property_animation: property_animation,
+                        property_animation,
                     },
                 )).unwrap();
 
@@ -657,12 +664,11 @@ pub fn update_style_for_animation<E>(
 where
     E: TElement,
 {
-    debug!("update_style_for_animation: entering");
+    debug!("update_style_for_animation: {:?}", animation);
     debug_assert!(!animation.is_expired());
 
     match *animation {
         Animation::Transition(_, start_time, ref frame) => {
-            debug!("update_style_for_animation: transition found");
             let now = context.timer.seconds();
             let mut new_style = (*style).clone();
             let updated_style =
@@ -678,10 +684,6 @@ where
             AnimationUpdate::Regular
         },
         Animation::Keyframes(_, ref animation, ref name, ref state) => {
-            debug!(
-                "update_style_for_animation: animation found: \"{}\", {:?}",
-                name, state
-            );
             let duration = state.duration;
             let started_at = state.started_at;
 
@@ -715,11 +717,6 @@ where
             if total_progress > 1. {
                 total_progress = 1.;
             }
-
-            debug!(
-                "update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}",
-                name, animation.steps, state, total_progress
-            );
 
             // Get the target and the last keyframe position.
             let last_keyframe_position;
@@ -865,6 +862,7 @@ pub fn complete_expired_transitions(
         had_animations_to_expire = animations_to_expire.is_some();
         if let Some(ref animations) = animations_to_expire {
             for animation in *animations {
+                debug!("Updating expired animation {:?}", animation);
                 // TODO: support animation-fill-mode
                 if let Animation::Transition(_, _, ref frame) = *animation {
                     frame.property_animation.update(Arc::make_mut(style), 1.0);

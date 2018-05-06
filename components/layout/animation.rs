@@ -89,6 +89,8 @@ pub fn update_animation_state<E>(
                 },
             };
 
+            debug!("update_animation_state({:?}): {:?}", still_running, running_animation);
+
             if still_running {
                 animations_still_running.push(running_animation);
                 continue;
