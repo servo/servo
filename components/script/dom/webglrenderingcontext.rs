@@ -1412,13 +1412,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetTexParameter(target, pname, sender));
 
-        match receiver.recv().unwrap() {
-            value if value != 0 => Int32Value(value),
-            _ => {
-                self.webgl_error(InvalidEnum);
-                NullValue()
-            }
-        }
+        Int32Value(receiver.recv().unwrap())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
