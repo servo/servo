@@ -1330,6 +1330,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let unpack = self.texture_unpacking_settings.get();
                 return BooleanValue(unpack.contains(TextureUnpacking::FLIP_Y_AXIS));
             }
+            constants::UNPACK_PREMULTIPLY_ALPHA_WEBGL => {
+                let unpack = self.texture_unpacking_settings.get();
+                return BooleanValue(unpack.contains(TextureUnpacking::PREMULTIPLY_ALPHA));
+            }
             _ => {}
         }
 
