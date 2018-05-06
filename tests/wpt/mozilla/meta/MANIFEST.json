@@ -7423,6 +7423,11 @@
      {}
     ]
    ],
+   "css/background_border_padding_crash.html": [
+    [
+     {}
+    ]
+   ],
    "css/background_clip_ref.html": [
     [
      {}
@@ -60139,6 +60144,10 @@
   "css/background.html": [
    "a85620b9a57b3cb46b7629b7a8fead6417d2dd28",
    "reftest"
+  ],
+  "css/background_border_padding_crash.html": [
+   "2c35c2fb48a5009f41ec918fc22e8a4ac731ecd6",
+   "support"
   ],
   "css/background_clip_a.html": [
    "e2d43d67ea0485e171fc1280498ac68a483e881a",
