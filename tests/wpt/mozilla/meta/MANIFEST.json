@@ -307,6 +307,18 @@
      {}
     ]
    ],
+   "css/background_border_padding_crash.html": [
+    [
+     "/_mozilla/css/background_border_padding_crash.html",
+     [
+      [
+       "/_mozilla/css/background_border_padding_crash-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/background_clip_a.html": [
     [
      "/_mozilla/css/background_clip_a.html",
@@ -7419,6 +7431,11 @@
     ]
    ],
    "css/attr_selector_case_sensitivity_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/background_border_padding_crash-ref.html": [
     [
      {}
     ]
@@ -60138,6 +60155,14 @@
   ],
   "css/background.html": [
    "a85620b9a57b3cb46b7629b7a8fead6417d2dd28",
+   "reftest"
+  ],
+  "css/background_border_padding_crash-ref.html": [
+   "eae17c2be5646f7fa1dc26e5a28a89c527da00e6",
+   "support"
+  ],
+  "css/background_border_padding_crash.html": [
+   "600d0c014aabfe13f09dec11757d5d7740a5ba74",
    "reftest"
   ],
   "css/background_clip_a.html": [
