@@ -78,6 +78,7 @@ timeupdate
 toggle
 transitionend
 url
+unhandledrejection
 waiting
 webglcontextcreationerror
 week
