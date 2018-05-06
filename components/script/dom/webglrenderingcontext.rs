@@ -1311,6 +1311,35 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return Int32Value(constants::UNSIGNED_BYTE as i32);
                 }
             }
+
+            constants::MAX_COMBINED_TEXTURE_IMAGE_UNITS => {
+                return Int32Value(self.limits.max_combined_texture_image_units as i32);
+            }
+            constants::MAX_CUBE_MAP_TEXTURE_SIZE => {
+                return Int32Value(self.limits.max_cube_map_tex_size as i32);
+            }
+            constants::MAX_FRAGMENT_UNIFORM_VECTORS => {
+                return Int32Value(self.limits.max_fragment_uniform_vectors as i32);
+            }
+            constants::MAX_TEXTURE_IMAGE_UNITS => {
+                return Int32Value(self.limits.max_texture_image_units as i32);
+            }
+            constants::MAX_TEXTURE_SIZE => {
+                return Int32Value(self.limits.max_tex_size as i32);
+            }
+            constants::MAX_VARYING_VECTORS => {
+                return Int32Value(self.limits.max_varying_vectors as i32);
+            }
+            constants::MAX_VERTEX_ATTRIBS => {
+                return Int32Value(self.limits.max_vertex_attribs as i32);
+            }
+            constants::MAX_VERTEX_TEXTURE_IMAGE_UNITS => {
+                return Int32Value(self.limits.max_vertex_texture_image_units as i32);
+            }
+            constants::MAX_VERTEX_UNIFORM_VECTORS => {
+                return Int32Value(self.limits.max_vertex_uniform_vectors as i32);
+            }
+
             constants::VERSION => {
                 rooted!(in(cx) let mut rval = UndefinedValue());
                 "WebGL 1.0".to_jsval(cx, rval.handle_mut());
