@@ -1661,8 +1661,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let is_private = load_info.info.is_private || source_pipeline.is_private;
 
-            let window_size = self.browsing_contexts.get(&load_info.info.browsing_context_id)
-                .and_then(|browsing_context| browsing_context.size);
+            let browsing_context_id = load_info.info.browsing_context_id;
+            let window_size = load_info.window_size.map(|size| size.initial_viewport).or_else(||
+                self.browsing_contexts
+                    .get(&browsing_context_id)
+                    .and_then(|browsing_context| browsing_context.size)
+            );
 
             (load_data, window_size, is_private)
         };

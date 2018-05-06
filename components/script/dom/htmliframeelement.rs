@@ -24,6 +24,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::ReflowReason;
 use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
+use euclid::{TypedScale, TypedSize2D};
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
@@ -31,7 +32,7 @@ use profile_traits::ipc as ProfiledIpc;
 use script_layout_interface::message::ReflowGoal;
 use script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
-use script_traits::{NewLayoutInfo, ScriptMsg};
+use script_traits::{NewLayoutInfo, ScriptMsg, WindowSizeData};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
@@ -99,6 +100,7 @@ impl HTMLIFrameElement {
 
     pub fn navigate_or_reload_child_browsing_context(&self,
                                                      mut load_data: Option<LoadData>,
+                                                     window_size: Option<WindowSizeData>,
                                                      nav_type: NavigationType,
                                                      replace: bool) {
         let sandboxed = if self.is_sandboxed() {
@@ -180,7 +182,7 @@ impl HTMLIFrameElement {
                     load_data: load_data.unwrap(),
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
-                    window_size: None,
+                    window_size,
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
@@ -193,6 +195,7 @@ impl HTMLIFrameElement {
                     load_data: load_data,
                     old_pipeline_id: old_pipeline_id,
                     sandbox: sandboxed,
+                    window_size,
                 };
                 global_scope
                   .script_to_constellation_chan()
@@ -203,7 +206,7 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
-    fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
+    fn process_the_iframe_attributes(&self, mode: ProcessingMode, window_size: Option<WindowSizeData>) {
         // TODO: srcdoc
 
         let window = window_from_node(self);
@@ -238,10 +241,15 @@ impl HTMLIFrameElement {
         let pipeline_id = self.pipeline_id();
         // If the initial `about:blank` page is the current page, load with replacement enabled.
         let replace = pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
-        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
+        self.navigate_or_reload_child_browsing_context(
+            Some(load_data),
+            window_size,
+            NavigationType::Regular,
+            replace
+        );
     }
 
-    fn create_nested_browsing_context(&self) {
+    fn create_nested_browsing_context(&self, window_size: WindowSizeData) {
         // Synchronously create a new context and navigate it to about:blank.
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = document_from_node(self);
@@ -254,7 +262,12 @@ impl HTMLIFrameElement {
         self.pending_pipeline_id.set(None);
         self.top_level_browsing_context_id.set(Some(top_level_browsing_context_id));
         self.browsing_context_id.set(Some(browsing_context_id));
-        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::InitialAboutBlank, false);
+        self.navigate_or_reload_child_browsing_context(
+            Some(load_data),
+            Some(window_size),
+            NavigationType::InitialAboutBlank,
+            false
+        );
     }
 
     fn destroy_nested_browsing_context(&self) {
@@ -359,6 +372,41 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         window.reflow(ReflowGoal::Full, ReflowReason::IFrameLoadEvent);
+    }
+
+    fn get_window_size(&self) -> WindowSizeData {
+        // iframes are replaced elements, so they have a default size of 300x150, according to
+        // https://www.w3.org/TR/CSS2/visudet.html#inline-replaced-width
+        let window = window_from_node(self);
+        let width = self.upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("width"))
+            .map(|attr| {
+                let value = attr.value();
+                match *value.as_dimension() {
+                    LengthOrPercentageOrAuto::Auto => 300f32,
+                    LengthOrPercentageOrAuto::Percentage(scale) => {
+                        window.window_size().map(|size| size.initial_viewport.width * scale).unwrap_or(300f32)
+                    }
+                    LengthOrPercentageOrAuto::Length(len) => len.to_f32_px()
+                }
+            }).unwrap_or(300f32);
+        let height = self.upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("height"))
+            .map(|attr| {
+                let value = attr.value();
+                match *value.as_dimension() {
+                    LengthOrPercentageOrAuto::Auto => 150f32,
+                    LengthOrPercentageOrAuto::Percentage(scale) => {
+                        window.window_size().map(|size| size.initial_viewport.height * scale).unwrap_or(150f32)
+                    }
+                    LengthOrPercentageOrAuto::Length(len) => len.to_f32_px()
+                }
+            }).unwrap_or(150f32);
+        WindowSizeData {
+            initial_viewport: TypedSize2D::new(width, height),
+            device_pixel_ratio:
+                window.window_size().map(|size| size.device_pixel_ratio).unwrap_or(TypedScale::new(1.0)),
+        }
     }
 }
 
@@ -521,7 +569,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // the child browsing context to be created.
                 if self.upcast::<Node>().is_in_doc_with_browsing_context() {
                     debug!("iframe src set while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, None);
                 }
             },
             &local_name!("name") => {
@@ -556,8 +604,9 @@ impl VirtualMethods for HTMLIFrameElement {
         if self.upcast::<Node>().is_in_doc_with_browsing_context() {
             debug!("iframe bound to browsing context.");
             debug_assert!(tree_in_doc, "is_in_doc_with_bc, but not tree_in_doc");
-            self.create_nested_browsing_context();
-            self.process_the_iframe_attributes(ProcessingMode::FirstTime);
+            let window_size = self.get_window_size();
+            self.create_nested_browsing_context(window_size);
+            self.process_the_iframe_attributes(ProcessingMode::FirstTime, Some(window_size));
         }
     }
 
