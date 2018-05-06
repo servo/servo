@@ -601,6 +601,8 @@ pub struct IFrameLoadInfoWithData {
     pub old_pipeline_id: Option<PipelineId>,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
+    /// Initial window size of the iframe.
+    pub window_size: Option<WindowSizeData>,
 }
 
 /// Specifies whether the script or layout thread needs to be ticked for animation.

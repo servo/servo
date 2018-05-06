@@ -2422,7 +2422,12 @@ impl ScriptThread {
             Some(browsing_context_id) => {
                 let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
                 if let Some(iframe) = iframe {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
+                    iframe.navigate_or_reload_child_browsing_context(
+                        Some(load_data),
+                        None,
+                        NavigationType::Regular,
+                        replace
+                    );
                 }
             }
             None => {
