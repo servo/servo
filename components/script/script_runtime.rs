@@ -14,13 +14,15 @@ use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
 use dom::globalscope::GlobalScope;
+use dom::promisedebugging::PromiseDebugging;
 use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
-use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
+use js::jsapi::{JSObject, PromiseRejectionHandlingState, RuntimeOptionsRef, SetPreserveWrapperCallback};
+use js::jsapi::{SetEnqueuePromiseJobCallback, SetPromiseRejectionTrackerCallback};
 use js::panic::wrap_panic;
 use js::rust::Runtime as RustRuntime;
 use malloc_size_of::MallocSizeOfOps;
@@ -125,6 +127,27 @@ unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
     }), false)
 }
 
+#[allow(unsafe_code)]
+unsafe extern "C" fn promise_rejection_tracker(
+    cx: *mut JSContext,
+    promise: HandleObject,
+    state: PromiseRejectionHandlingState,
+    _data: *mut c_void
+) {
+    wrap_panic(AssertUnwindSafe(|| {
+        match state {
+            PromiseRejectionHandlingState::Unhandled => {
+                let global = GlobalScope::from_context(cx);
+                PromiseDebugging::AddUncaughtRejection(global, promise);
+            },
+            PromiseRejectionHandlingState::Handled => {
+                // TODO(CYBAI):
+                // Implement PromiseDebugging::AddConsumedRejection(promise)
+            }
+        };
+    }), ());
+}
+
 #[derive(JSTraceable)]
 pub struct Runtime(RustRuntime);
 
@@ -164,6 +187,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     DisableIncrementalGC(runtime.rt());
 
     SetEnqueuePromiseJobCallback(runtime.rt(), Some(enqueue_job), ptr::null_mut());
+    SetPromiseRejectionTrackerCallback(runtime.rt(), Some(promise_rejection_tracker), ptr::null_mut());
 
     set_gc_zeal_options(runtime.rt());
 
