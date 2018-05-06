@@ -1326,6 +1326,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 "WebGL GLSL ES 1.0".to_jsval(cx, rval.handle_mut());
                 return rval.get();
             }
+            constants::UNPACK_FLIP_Y_WEBGL => {
+                let unpack = self.texture_unpacking_settings.get();
+                return BooleanValue(unpack.contains(TextureUnpacking::FLIP_Y_AXIS));
+            }
             _ => {}
         }
 
