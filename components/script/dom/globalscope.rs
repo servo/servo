@@ -27,6 +27,7 @@ use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{Heap, HandleObject};
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JSObject, JS_GetContext};
 use js::jsapi::JS_GetObjectRuntime;
@@ -129,6 +130,23 @@ pub struct GlobalScope {
     /// Vector storing closing references of all workers
     #[ignore_malloc_size_of = "Arc"]
     list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
+
+    /// Storage for watching rejected promises waiting for some client to
+    /// consume their rejection.
+    /// Promises in this list have been rejected in the last turn of the
+    /// event loop without the rejection being handled.
+    /// Note that this can contain nullptrs in place of promises removed because
+    /// they're consumed before it'd be reported.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
+    uncaught_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
+
+    /// Promises in this list have previously been reported as rejected
+    /// (because they were in the above list), but the rejection was handled
+    /// in the last turn of the event loop.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
+    consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 }
 
 impl GlobalScope {
@@ -162,6 +180,8 @@ impl GlobalScope {
             origin,
             microtask_queue,
             list_auto_close_worker: Default::default(),
+            uncaught_rejections: Default::default(),
+            consumed_rejections: Default::default(),
         }
     }
 
@@ -200,6 +220,22 @@ impl GlobalScope {
             assert!(!obj.is_null());
         }
         GlobalScope::from_object(obj)
+    }
+
+    pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
+        self.uncaught_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+    }
+
+    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+        &self.uncaught_rejections
+    }
+
+    pub fn add_consumed_rejection(&self, rejection: HandleObject) {
+        self.consumed_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+    }
+
+    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+        &self.consumed_rejections
     }
 
     #[allow(unsafe_code)]
@@ -520,7 +556,10 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|_| Some(DomRoot::from_ref(self)));
+        self.microtask_queue.checkpoint(
+            |_| Some(DomRoot::from_ref(self)),
+            vec![DomRoot::from_ref(self)]
+        );
     }
 
     /// Enqueue a microtask for subsequent execution.
