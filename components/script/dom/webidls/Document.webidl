@@ -83,7 +83,7 @@ dictionary ElementCreationOptions {
 // [OverrideBuiltins]
 partial /*sealed*/ interface Document {
   // resource metadata management
-  [/*PutForwards=href, */Unforgeable]
+  [PutForwards=href, Unforgeable]
   readonly attribute Location? location;
   [SetterThrows] attribute DOMString domain;
   readonly attribute DOMString referrer;

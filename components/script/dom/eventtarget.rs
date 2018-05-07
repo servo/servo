@@ -187,22 +187,21 @@ impl CompiledEventListener {
 
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
-                            let rv = event.ReturnValue();
-
+                            // Step 5
                             if let Ok(value) = handler.Call_(object,
                                                              event.upcast::<Event>(),
                                                              exception_handle) {
-                                match value {
-                                    Some(value) => {
-                                        if rv.is_empty() {
-                                            event.SetReturnValue(value);
-                                        }
+                                let rv = event.ReturnValue();
+                                if let Some(v) =  value {
+                                    if rv.is_empty() {
+                                        event.SetReturnValue(v);
                                     }
-                                    None => {
-                                        event.upcast::<Event>().PreventDefault();
-                                    }
+                                    event.upcast::<Event>().PreventDefault();
                                 }
                             }
+                        } else {
+                            // Step 5, "Otherwise" clause
+                            let _ = handler.Call_(object, event.upcast::<Event>(), exception_handle);
                         }
                     }
 
@@ -278,6 +277,12 @@ impl EventListeners {
             }
         }).collect()
     }
+
+    fn has_listeners(&self) -> bool {
+        // TODO: add, and take into account, a 'removed' field?
+        // https://dom.spec.whatwg.org/#event-listener-removed
+        self.0.len() > 0
+    }
 }
 
 #[dom_struct]
@@ -302,6 +307,15 @@ impl EventTarget {
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<EventTarget>> {
         Ok(EventTarget::new(global))
+    }
+
+    pub fn has_listeners_for(&self,
+                             type_: &Atom)
+                             -> bool {
+        match self.handlers.borrow().get(type_) {
+            Some(listeners) => listeners.has_listeners(),
+            None => false
+        }
     }
 
     pub fn get_listeners_for(&self,

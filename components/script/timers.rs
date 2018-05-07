@@ -241,7 +241,7 @@ impl OneshotTimers {
     }
 
     pub fn resume(&self) {
-        // Suspend is idempotent: do nothing if the timers are already suspended.
+        // Resume is idempotent: do nothing if the timers are already resumed.
         let additional_offset = match self.suspended_since.get() {
             Some(suspended_since) => precise_time_ms() - suspended_since,
             None => return warn!("Resuming an already resumed timer."),

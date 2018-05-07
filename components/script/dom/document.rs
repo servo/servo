@@ -63,7 +63,8 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, NodeFlags, LayoutNodeHelpers};
+use dom::node::{self, CloneChildrenFlag, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, NodeFlags, LayoutNodeHelpers};
 use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
@@ -348,6 +349,8 @@ pub struct Document {
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
+    ignore_opens_during_unload_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
     /// A rAF request is considered spurious if nothing was actually reflowed.
@@ -375,6 +378,10 @@ pub struct Document {
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
     /// https://html.spec.whatwg.org/multipage/#page-showing
     page_showing: Cell<bool>,
+    /// Whether the document is salvageable.
+    salvageable: Cell<bool>,
+    /// Whether the unload event has already been fired.
+    fired_unload: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -483,6 +490,39 @@ impl Document {
                 self.dirty_all_nodes();
                 self.window().reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
                 self.window().resume();
+                // html.spec.whatwg.org/multipage/#history-traversal
+                // Step 4.6
+                if self.ready_state.get() == DocumentReadyState::Complete {
+                    let document = Trusted::new(self);
+                    self.window.dom_manipulation_task_source().queue(
+                        task!(fire_pageshow_event: move || {
+                            let document = document.root();
+                            let window = document.window();
+                            // Step 4.6.1
+                            if document.page_showing.get() {
+                                return;
+                            }
+                            // Step 4.6.2
+                            document.page_showing.set(true);
+                            // Step 4.6.4
+                            let event = PageTransitionEvent::new(
+                                window,
+                                atom!("pageshow"),
+                                false, // bubbles
+                                false, // cancelable
+                                true, // persisted
+                            );
+                            let event = event.upcast::<Event>();
+                            event.set_trusted(true);
+                            // FIXME(nox): Why are errors silenced here?
+                            let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                                document.upcast(),
+                                &event,
+                            );
+                        }),
+                        self.window.upcast(),
+                    ).unwrap();
+                }
             } else {
                 self.window().suspend();
             }
@@ -1593,6 +1633,113 @@ impl Document {
         ScriptThread::mark_document_with_no_blocked_loads(self);
     }
 
+    // https://html.spec.whatwg.org/multipage/#prompt-to-unload-a-document
+    pub fn prompt_to_unload(&self, recursive_flag: bool) -> bool {
+        // TODO: Step 1, increase the event loop's termination nesting level by 1.
+        // Step 2
+        self.incr_ignore_opens_during_unload_counter();
+        //Step 3-5.
+        let document = Trusted::new(self);
+        let beforeunload_event = BeforeUnloadEvent::new(&self.window,
+                                           atom!("beforeunload"),
+                                           EventBubbles::Bubbles,
+                                           EventCancelable::Cancelable);
+        let event = beforeunload_event.upcast::<Event>();
+        event.set_trusted(true);
+        let event_target = self.window.upcast::<EventTarget>();
+        let has_listeners = event.has_listeners_for(&event_target, &atom!("beforeunload"));
+        event_target.dispatch_event_with_target(
+            document.root().upcast(),
+            &event,
+        );
+        // TODO: Step 6, decrease the event loop's termination nesting level by 1.
+        // Step 7
+        self.salvageable.set(!has_listeners);
+        let mut can_unload = true;
+        // TODO: Step 8 send a message to embedder to prompt user.
+        // Step 9
+        if !recursive_flag {
+            for iframe in self.iter_iframes() {
+                // TODO: handle the case of cross origin iframes.
+                let document = document_from_node(&*iframe);
+                if !document.prompt_to_unload(true) {
+                    self.salvageable.set(document.salvageable());
+                    can_unload = false;
+                    break;
+                }
+            }
+        }
+        // Step 10
+        self.decr_ignore_opens_during_unload_counter();
+        can_unload
+    }
+
+    // https://html.spec.whatwg.org/multipage/#unload-a-document
+    pub fn unload(&self, recursive_flag: bool, recycle: bool) {
+        // TODO: Step 1, increase the event loop's termination nesting level by 1.
+        // Step 2
+        self.incr_ignore_opens_during_unload_counter();
+        let document = Trusted::new(self);
+        // Step 3-6
+        if self.page_showing.get() {
+            self.page_showing.set(false);
+            let event = PageTransitionEvent::new(
+                &self.window,
+                atom!("pagehide"),
+                false, // bubbles
+                false, // cancelable
+                self.salvageable.get(), // persisted
+            );
+            let event = event.upcast::<Event>();
+            event.set_trusted(true);
+            let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+            // TODO Step 6, document visibility steps.
+        }
+        // Step 7
+        if !self.fired_unload.get() {
+            let event = Event::new(
+                &self.window.upcast(),
+                atom!("unload"),
+                EventBubbles::Bubbles,
+                EventCancelable::Cancelable,
+            );
+            event.set_trusted(true);
+            let event_target = self.window.upcast::<EventTarget>();
+            let has_listeners = event.has_listeners_for(&event_target, &atom!("unload"));
+            let _ = event_target.dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+            self.fired_unload.set(true);
+            // Step 9
+            self.salvageable.set(!has_listeners);
+        }
+        // TODO: Step 8, decrease the event loop's termination nesting level by 1.
+
+        // Step 13
+        if !recursive_flag {
+            for iframe in self.iter_iframes() {
+                // TODO: handle the case of cross origin iframes.
+                let document = document_from_node(&*iframe);
+                document.unload(true, recycle);
+                if !document.salvageable() {
+                    self.salvageable.set(false);
+                }
+            }
+        }
+        // Step 10, 14
+        if !self.salvageable.get() {
+            // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
+            let msg = ScriptMsg::DiscardDocument;
+            let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+        }
+        // Step 15, End
+        self.decr_ignore_opens_during_unload_counter();
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
         if self.loader.borrow().is_blocked() {
@@ -2267,6 +2414,7 @@ impl Document {
             target_element: MutNullableDom::new(None),
             last_click_info: DomRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
+            ignore_opens_during_unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
@@ -2276,6 +2424,8 @@ impl Document {
             canceller: canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
+            salvageable: Cell::new(true),
+            fired_unload: Cell::new(false)
         }
     }
 
@@ -2455,6 +2605,10 @@ impl Document {
         self.stylesheets.borrow().len()
     }
 
+    pub fn salvageable(&self) -> bool {
+        self.salvageable.get()
+    }
+
     pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         let stylesheets = self.stylesheets.borrow();
 
@@ -2576,6 +2730,20 @@ impl Document {
     pub fn decr_ignore_destructive_writes_counter(&self) {
         self.ignore_destructive_writes_counter.set(
             self.ignore_destructive_writes_counter.get() - 1);
+    }
+
+    pub fn is_prompting_or_unloading(&self) -> bool {
+        self.ignore_opens_during_unload_counter.get() > 0
+    }
+
+    fn incr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() + 1);
+    }
+
+    fn decr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() - 1);
     }
 
     /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't
