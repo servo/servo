@@ -8,24 +8,34 @@
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::conversions::get_dom_class;
 use dom::bindings::conversions::private_from_object;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::root::trace_roots;
 use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
+use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::promise::Promise;
+use dom::promiserejectionevent::PromiseRejectionEvent;
 use js::glue::CollectServoSizes;
 use js::glue::SetBuildId;
-use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
+use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
+use js::jsapi::{Heap, HandleObject};
 use js::jsapi::{JSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
-use js::jsapi::{JSObject, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
-use js::jsapi::{SetBuildIdOp, BuildIdCharVector};
+use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
+use js::jsapi::{SetBuildIdOp, SetEnqueuePromiseJobCallback, SetPromiseRejectionTrackerCallback};
 use js::jsapi::ContextOptionsRef;
 use js::panic::wrap_panic;
+use js::rust::Handle;
 use js::rust::Runtime as RustRuntime;
+use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use malloc_size_of::MallocSizeOfOps;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use msg::constellation_msg::PipelineId;
@@ -43,7 +53,7 @@ use std::panic::AssertUnwindSafe;
 use std::ptr;
 use style::thread_state::{self, ThreadState};
 use task::TaskBox;
-use task_source::TaskSourceName;
+use task_source::{TaskSource, TaskSourceName};
 use time::{Tm, now};
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -140,6 +150,115 @@ unsafe extern "C" fn enqueue_job(
     )
 }
 
+#[allow(unsafe_code)]
+/// https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation
+unsafe extern "C" fn promise_rejection_tracker(
+    cx: *mut JSContext,
+    promise: HandleObject,
+    state: PromiseRejectionHandlingState,
+    _data: *mut c_void
+) {
+    // TODO: Step 2 - If script's muted errors is true, terminate these steps.
+
+    // Step 3.
+    let global = GlobalScope::from_context(cx);
+
+    wrap_panic(AssertUnwindSafe(|| {
+        match state {
+            // Step 4.
+            PromiseRejectionHandlingState::Unhandled => {
+                global.add_uncaught_rejection(promise);
+            },
+            // Step 5.
+            PromiseRejectionHandlingState::Handled => {
+                // Step 5-1.
+                if global.get_uncaught_rejections().borrow().contains(&Heap::boxed(promise.get())) {
+                    global.remove_uncaught_rejection(promise);
+                    return;
+                }
+
+                // Step 5-2.
+                if !global.get_consumed_rejections().borrow().contains(&Heap::boxed(promise.get())) {
+                    global.add_consumed_rejection(promise);
+                    return;
+                }
+
+                // Step 5-3.
+                global.remove_consumed_rejection(promise);
+
+                // TODO: Step 5-4 - Queue a task to fire `rejectionhandled` event
+            }
+        };
+    }), ());
+}
+
+#[allow(unsafe_code, unrooted_must_root)]
+/// https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises
+pub fn notify_about_rejected_promises(global: &GlobalScope) {
+    unsafe {
+        let cx = global.get_cx();
+
+        // Step 2.
+        if global.get_uncaught_rejections().borrow().len() > 0 {
+            // Step 1.
+            let uncaught_rejections: Vec<TrustedPromise> = global.get_uncaught_rejections()
+                .borrow()
+                .iter()
+                .map(|promise| {
+                    let promise = Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
+
+                    TrustedPromise::new(promise)
+                })
+                .collect();
+
+            // Step 3.
+            global.get_uncaught_rejections().borrow_mut().clear();
+
+            let target = Trusted::new(global.upcast::<EventTarget>());
+
+            // Step 4.
+            global.as_window().dom_manipulation_task_source().queue(
+                task!(unhandled_rejection_event: move || {
+                    let target = target.root();
+                    let cx = target.global().get_cx();
+
+                    for promise in uncaught_rejections {
+                        let promise = promise.root();
+
+                        // Step 4-1.
+                        let promise_is_handled = GetPromiseIsHandled(promise.reflector().get_jsobject());
+                        if promise_is_handled {
+                            continue;
+                        }
+
+                        // Step 4-2.
+                        rooted!(in(cx) let reason = GetPromiseResult(promise.reflector().get_jsobject()));
+
+                        let event = PromiseRejectionEvent::new(
+                            &target.global(),
+                            atom!("unhandledrejection"),
+                            EventBubbles::DoesNotBubble,
+                            EventCancelable::Cancelable,
+                            promise,
+                            reason.handle()
+                        );
+
+                        let event_status = event.upcast::<Event>().fire(&target);
+
+                        // Step 4-3.
+                        if event_status == EventStatus::Canceled {
+                            // TODO: The promise rejection is not handled; we need to add it back to the list.
+                        }
+
+                        // TODO: Step 4-4 - If [[PromiseIsHandled]] is false, add promise to consumed_rejections
+                    }
+                }),
+                global.upcast(),
+            ).unwrap();
+        }
+    }
+}
+
 #[derive(JSTraceable)]
 pub struct Runtime(RustRuntime);
 
@@ -182,6 +301,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     DisableIncrementalGC(cx);
 
     SetEnqueuePromiseJobCallback(cx, Some(enqueue_job), ptr::null_mut());
+    SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
 
     set_gc_zeal_options(cx);
 
