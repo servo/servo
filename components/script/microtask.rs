@@ -15,6 +15,7 @@ use dom::htmlimageelement::ImageElementMicrotask;
 use dom::htmlmediaelement::MediaElementMicrotask;
 use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
+use script_runtime::notify_about_rejected_promises;
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::mem;
@@ -59,7 +60,7 @@ impl MicrotaskQueue {
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
-    pub fn checkpoint<F>(&self, target_provider: F)
+    pub fn checkpoint<F>(&self, target_provider: F, globalscopes: Vec<DomRoot<GlobalScope>>)
         where F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>
     {
         if self.performing_a_microtask_checkpoint.get() {
@@ -69,7 +70,7 @@ impl MicrotaskQueue {
         // Step 1
         self.performing_a_microtask_checkpoint.set(true);
 
-        // Steps 2-7
+        // Steps 2
         while !self.microtask_queue.borrow().is_empty() {
             rooted_vec!(let mut pending_queue);
             mem::swap(
@@ -99,9 +100,14 @@ impl MicrotaskQueue {
             }
         }
 
-        //TODO: Step 8 - notify about rejected promises
+        // Step 3
+        for global in globalscopes.into_iter() {
+            notify_about_rejected_promises(&global);
+        }
 
-        // Step 9
+        // TODO: Step 4 - Cleanup Indexed Database transactions.
+
+        // Step 5
         self.performing_a_microtask_checkpoint.set(false);
     }
 }
