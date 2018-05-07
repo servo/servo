@@ -2692,7 +2692,14 @@ impl ScriptThread {
     }
 
     fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|id| self.documents.borrow().find_global(id))
+        let documents = self.documents.borrow();
+
+        self.microtask_queue.checkpoint(
+            |id| documents.find_global(id),
+            documents.iter()
+                     .map(|(_id, document)| document.global())
+                     .collect()
+        )
     }
 }
 
