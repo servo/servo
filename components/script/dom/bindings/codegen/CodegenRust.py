@@ -6201,7 +6201,7 @@ class CGDictionary(CGThing):
                                          descriptorProvider,
                                          isMember="Dictionary",
                                          defaultValue=member.defaultValue,
-                                         exceptionCode="return Err(());"))
+                                         exceptionCode="return Err(());\n"))
             for member in dictionary.members]
 
     def define(self):
