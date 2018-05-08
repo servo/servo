@@ -222,7 +222,6 @@ impl ResourceChannelManager {
                    http_state: &Arc<HttpState>) -> bool {
         match msg {
             CoreResourceMsg::Fetch(req_init, channels) => {
-                println!("processing fetch msg at: {}", precise_time_ns());
                 match channels {
                     FetchChannels::ResponseMsg(sender, cancel_chan) =>
                         self.resource_manager.fetch(req_init, None, sender, http_state, cancel_chan),
@@ -231,7 +230,6 @@ impl ResourceChannelManager {
                 }
             }
             CoreResourceMsg::FetchRedirect(req_init, res_init, sender, cancel_chan) => {
-                println!("processing fetch msg at: {}", precise_time_ns());
                 self.resource_manager.fetch(req_init, Some(res_init), sender, http_state, cancel_chan);
             }
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
@@ -412,7 +410,6 @@ impl CoreResourceManager {
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
 
-        println!("spawning fetch thread for {}", req_init.url);
         debug!("spawning fetch thread for {}", req_init.url);
         thread::Builder::new().name(format!("fetch thread for {}", req_init.url)).spawn(move || {
             let mut request = Request::from_init(req_init);
@@ -428,8 +425,6 @@ impl CoreResourceManager {
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
             };
 
-            // get your measurements heeere then see what you're missing
-            println!("start time: {}", precise_time_ns());
             match res_init_ {
                 Some(res_init) => {
                     let response = Response::from_init(res_init);
@@ -440,14 +435,11 @@ impl CoreResourceManager {
                                         &mut sender,
                                         &mut None,
                                         &context);
-                    println!("redirects: {}", request.redirect_count);
                 },
                 None => {
                     fetch(&mut request, &mut sender, &context);
-                    println!("zero redirects? {}", request.redirect_count);
                 },
             };
-            println!("done at {}\n", precise_time_ns());
         }).expect("Thread spawning failed");
     }
 

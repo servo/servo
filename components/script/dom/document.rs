@@ -3929,7 +3929,6 @@ impl DocumentMethods for Document {
 
         // Step 10.
         // TODO: prompt to unload.
-        println!("prompt for unload");
 
         window_from_node(self).set_navigation_start();
 
