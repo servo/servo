@@ -2474,6 +2474,12 @@ impl Fragment {
                               stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
+    /// Returns true if this fragment establishes a reference frame.
+    pub fn establishes_reference_frame(&self) -> bool {
+           !self.style().get_box().transform.0.is_empty() ||
+           self.style().get_box().perspective != Perspective::None
+    }
+
     /// Returns true if this fragment has a filter, transform, or perspective property set.
     pub fn has_filter_transform_or_perspective(&self) -> bool {
            !self.style().get_box().transform.0.is_empty() ||
