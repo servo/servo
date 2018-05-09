@@ -5629,7 +5629,7 @@ class CGInterfaceTrait(CGThing):
 
         if methods:
             self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
-                                    pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,
+                                    pre="#[must_root] pub trait %sMethods {\n" % descriptor.interface.identifier.name,
                                     post="}")
         else:
             self.cgRoot = CGGeneric("")

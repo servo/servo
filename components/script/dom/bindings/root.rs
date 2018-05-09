@@ -126,7 +126,7 @@ where
 }
 
 /// A rooted reference to a DOM object.
-pub type DomRoot<T> = Root<Dom<T>>;
+pub type DomRoot<#[must_root] T> = Root<Dom<T>>;
 
 impl<T: Castable> DomRoot<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.

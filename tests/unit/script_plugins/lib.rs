@@ -7,7 +7,6 @@ pub mod unrooted_must_root {
     ```
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     #[derive(Clone, Debug)]  // derive should not be checked
     #[must_root] struct Foo(i32);
@@ -71,7 +70,6 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
     struct Bar<#[must_root] T>(T);
@@ -89,7 +87,6 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     fn foo<T>() { }
     fn bar<#[must_root] U>() { foo::<U>(); }
@@ -103,7 +100,6 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     fn foo<#[must_root] T>() { }
     fn bar<#[must_root] U>() {
@@ -235,7 +231,6 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
     struct SomeContainer<T>(T);
@@ -259,7 +254,6 @@ pub mod unrooted_must_root {
     ```
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     #[must_root] struct Foo(i32);
     #[allow_unrooted_interior] struct SomeContainer<T>(T);
@@ -280,11 +274,35 @@ pub mod unrooted_must_root {
     */
     pub fn allowing_unrooted_interior() {}
 
+    /**
+    ```
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+
+    #[must_root] struct Foo(i32);
+
+    #[must_root] //-- this is needed!
+    trait Bar {
+        fn extract(&self) -> i32;
+    }
+
+    impl Bar for Foo {
+        fn extract(&self) -> i32 { self.0 }
+    }
+
+    fn test() {
+        Foo(3).extract();
+    }
+
+    fn main() {}
+    ```
+    */
+    pub fn allow_impl_for_must_root() {}
+
     /* *
     ```
     #![feature(plugin)]
     #![plugin(script_plugins)]
-    #![feature(generic_param_attrs)]
 
     #[derive(Default)]
     #[must_root] struct Foo(i32);
