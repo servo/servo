@@ -4108,10 +4108,6 @@ fn static_assert() {
                 unsafe {
                     Gecko_SetListStyleImageImageValue(&mut self.gecko, url.image_value.get());
                 }
-                // We don't need to record this struct as uncacheable, like when setting
-                // background-image to a url() value, since only properties in reset structs
-                // are re-used from the applicable declaration cache, and the List struct
-                // is an inherited struct.
             }
         }
     }
@@ -5266,7 +5262,7 @@ clip-path
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Pointing"
+<%self:impl_trait style_struct_name="InheritedUI"
                   skip_longhands="cursor caret-color">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         use style_traits::cursor::CursorKind;
@@ -5326,11 +5322,6 @@ clip-path
                 );
             }
 
-            // We don't need to record this struct as uncacheable, like when setting
-            // background-image to a url() value, since only properties in reset structs
-            // are re-used from the applicable declaration cache, and the Pointing struct
-            // is an inherited struct.
-
             match v.images[i].hotspot {
                 Some((x, y)) => {
                     self.gecko.mCursorImages[i].mHaveHotspot = true;
@@ -5356,7 +5347,7 @@ clip-path
     }
 
     pub fn clone_cursor(&self) -> longhands::cursor::computed_value::T {
-        use values::computed::pointing::CursorImage;
+        use values::computed::ui::CursorImage;
         use style_traits::cursor::CursorKind;
         use values::specified::url::SpecifiedImageUrl;
 

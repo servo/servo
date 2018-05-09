@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Generic values for pointing properties.
+//! Generic values for UI properties.
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
