@@ -78,7 +78,7 @@ pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle, TextOve
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
-pub use self::ui::{CaretColor, Cursor, MozForceBrokenImageIcon};
+pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
 

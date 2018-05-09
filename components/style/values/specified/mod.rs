@@ -75,7 +75,7 @@ pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpa
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
-pub use self::ui::{CaretColor, Cursor, MozForceBrokenImageIcon};
+pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;

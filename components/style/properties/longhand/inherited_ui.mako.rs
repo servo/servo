@@ -43,8 +43,8 @@ ${helpers.single_keyword("-moz-user-focus",
 
 ${helpers.predefined_type(
     "caret-color",
-    "CaretColor",
-    "generics::ui::CaretColor::Auto",
+    "ColorOrAuto",
+    "Either::Second(Auto)",
     spec="https://drafts.csswg.org/css-ui/#caret-color",
     animation_value_type="AnimatedCaretColor",
     ignored_when_colors_disabled=True,
