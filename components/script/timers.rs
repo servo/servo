@@ -75,7 +75,7 @@ pub enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers) {
+    fn invoke<#[must_root] T: DomObject>(self, this: &T, js_timers: &JsTimers) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
@@ -483,7 +483,7 @@ fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers) {
+    pub fn invoke<#[must_root] T: DomObject>(self, this: &T, timers: &JsTimers) {
         // step 4.1 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
@@ -502,7 +502,7 @@ impl JsTimerTask {
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments = self.collect_heap_args(arguments);
-                let _ = function.Call_(this, arguments, Report);
+                let _ = function.Call_(this, arguments, Report);  // TODO this is of type T, I can't locate where function is defined (somewhere in bind gen?)
             },
         };
 

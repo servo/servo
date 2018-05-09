@@ -309,20 +309,20 @@ impl<'root, T: RootedReference<'root> + 'root> RootedReference<'root> for Option
 /// on the stack, the `Dom<T>` can point to freed memory.
 ///
 /// This should only be used as a field in other DOM objects.
-#[must_root]
-pub struct Dom<T> {
+// #[must_root]
+pub struct Dom<#[must_root] T> {
     ptr: ptr::NonNull<T>,
 }
 
 // Dom<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
 // For now, we choose not to follow any such pointers.
-impl<T> MallocSizeOf for Dom<T> {
+impl<#[must_root] T> MallocSizeOf for Dom<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
     }
 }
 
-impl<T> Dom<T> {
+impl<#[must_root] T> Dom<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.
     pub unsafe fn to_layout(&self) -> LayoutDom<T> {
         debug_assert!(thread_state::get().is_layout());
@@ -332,7 +332,7 @@ impl<T> Dom<T> {
     }
 }
 
-impl<T: DomObject> Dom<T> {
+impl<#[must_root] T: DomObject> Dom<T> {
     /// Create a Dom<T> from a &T
     #[allow(unrooted_must_root)]
     pub fn from_ref(obj: &T) -> Dom<T> {
@@ -546,11 +546,11 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
 /// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutNullableDom<T: DomObject> {
+pub struct MutNullableDom<#[must_root] T: DomObject> {
     ptr: UnsafeCell<Option<Dom<T>>>,
 }
 
-impl<T: DomObject> MutNullableDom<T> {
+impl<#[must_root] T: DomObject> MutNullableDom<T> {
     /// Create a new `MutNullableDom`.
     pub fn new(initial: Option<&T>) -> MutNullableDom<T> {
         debug_assert!(thread_state::get().is_script());
@@ -608,7 +608,7 @@ impl<T: DomObject> MutNullableDom<T> {
     }
 }
 
-impl<T: DomObject> PartialEq for MutNullableDom<T> {
+impl<#[must_root] T: DomObject> PartialEq for MutNullableDom<T> {
     fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.ptr.get() == *other.ptr.get()
@@ -616,7 +616,7 @@ impl<T: DomObject> PartialEq for MutNullableDom<T> {
     }
 }
 
-impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
+impl<'a, #[must_root] T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe {
             *self.ptr.get() == other.map(Dom::from_ref)
@@ -624,7 +624,7 @@ impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
     }
 }
 
-impl<T: DomObject> Default for MutNullableDom<T> {
+impl<#[must_root] T: DomObject> Default for MutNullableDom<T> {
     #[allow(unrooted_must_root)]
     fn default() -> MutNullableDom<T> {
         debug_assert!(thread_state::get().is_script());
@@ -634,7 +634,7 @@ impl<T: DomObject> Default for MutNullableDom<T> {
     }
 }
 
-impl<T: DomObject> MallocSizeOf for MutNullableDom<T> {
+impl<#[must_root] T: DomObject> MallocSizeOf for MutNullableDom<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // See comment on MallocSizeOf for Dom<T>.
         0

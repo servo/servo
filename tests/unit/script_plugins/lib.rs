@@ -299,6 +299,31 @@ pub mod unrooted_must_root {
     */
     pub fn allow_impl_for_must_root() {}
 
+    /* * // don't remember what exactly i wanted to check
+    ```
+    #![feature(plugin)]
+    #![plugin(script_plugins)]
+
+    #[must_root] struct Foo(i32);
+
+    #[must_root] //-- this is needed!
+    trait Bar {
+        fn new_method(&self);// { }
+    }
+
+    impl<T> Bar for Box<T> {
+        fn new_method(&self) { }
+    }
+
+    fn new_sth() {
+        Box::new(Foo(3)).new_method();
+    }
+
+    fn main() {}
+    ```
+    */
+    //pub fn sth_allow_impl_for_must_root() {}
+
     /* *
     ```
     #![feature(plugin)]

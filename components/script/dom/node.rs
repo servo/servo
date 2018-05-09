@@ -2488,11 +2488,11 @@ impl NodeMethods for Node {
     }
 }
 
-pub fn document_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Document> {
+pub fn document_from_node<#[must_root] T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Document> {
     derived.upcast().owner_doc()
 }
 
-pub fn window_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Window> {
+pub fn window_from_node<#[must_root] T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Window> {
     let document = document_from_node(derived);
     DomRoot::from_ref(document.window())
 }

@@ -193,7 +193,7 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
         ret
     }
 
-    fn has_unrooted_generic_substs(&self, did: hir::def_id::DefId, substs: &ty::subst::Substs) -> bool {
+    fn has_unrooted_generic_substs(&self, did: hir::def_id::DefId, substs: &ty::subst::Substs, st: &mut String) -> bool {
         let cx = self.late_cx;
 
         if cx.tcx.has_attr(did, "allow_unrooted_interior") {
@@ -202,6 +202,11 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
         // TODO we'll see what's necessary and what is not
         else if match_def_path(cx, did, &["core", "cell", "Ref"])
              || match_def_path(cx, did, &["core", "cell", "RefMut"])
+             || match_def_path(cx, did, &["core", "mem", "size_of"])  // -- is ok?
+             || match_def_path(cx, did, &["malloc_size_of", "MallocSizeOf"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "option", "{{impl}}"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "option", "Option"])  // -- is ok? looks like misuse
+             || match_def_path(cx, did, &["core", "ops", "deref", "Deref"])  // -- is ok? or only the deref method?
              || match_def_path(cx, did, &["core", "slice", "Iter"])
              || match_def_path(cx, did, &["std", "collections", "hash", "map", "Entry"])
              || match_def_path(cx, did, &["std", "collections", "hash", "map", "OccupiedEntry"])
@@ -210,6 +215,10 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
              || match_def_path(cx, did, &["std", "collections", "hash", "set", "Iter"]) {
             return false;
         }
+
+        let def_path = get_def_path(cx, did);
+        st.push_str(&def_path.join("::"));
+        st.push_str(&"\n");
 
         let generics = cx.tcx.generics_of(did);
         for ty_param_def in &generics.types {
@@ -221,12 +230,15 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
 
             let arg_ty = substs.type_at(ty_param_def.index as usize);
             if self.is_unrooted_ty(arg_ty, false) {
+                st.push_str(&" > ");
+                st.push_str(&arg_ty.to_string());
                 return true;
             }
         }
 
+        st.push_str(&" par$$ ");
         match generics.parent {
-            Some(p_did) => self.has_unrooted_generic_substs(p_did, substs),
+            Some(p_did) => self.has_unrooted_generic_substs(p_did, substs, st),
             None => false,
         }
     }
@@ -251,11 +263,14 @@ impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
         let cx = ur_cx.late_cx;
         match decl.ty.sty {
             ty::TyAdt(adt_def, substs) => {
+                let mut type_info = String::new();
                 if adt_def.is_box() && self.in_new_function {
                     // Boxes of unrooted types are allowed in new functions.
                 }
-                else if ur_cx.has_unrooted_generic_substs(adt_def.did, substs) {
-                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, "ADT generic type must be rooted.")
+                else if ur_cx.has_unrooted_generic_substs(adt_def.did, substs, &mut type_info) {
+                    let mut msg = "ADT generic type must be rooted.\n".to_string();
+                    msg.push_str(&type_info);
+                    cx.span_lint(UNROOTED_MUST_ROOT, decl.source_info.span, &msg);
                 }
             },
             _ => {},
@@ -270,16 +285,19 @@ impl<'a, 'b, 'tcx> MirVisitor<'tcx> for MirFnVisitor<'a, 'b, 'tcx> {
         match constant.ty.sty {
             ty::TyFnDef(callee_def_id, callee_substs) => {
                 let def_path = get_def_path(cx, callee_def_id);
+                let mut type_info = String::new();
                 // TODO remove following commented code
                 // cx.span_lint(UNROOTED_MUST_ROOT, constant.span, &def_path.join("::")); // tmp auxiliary call
                 if self.in_new_function && (// match_def_path(cx, callee_def_id, &["alloc", "boxed", "{{impl}}", "new"]) ||
                   def_path.last().unwrap().starts_with("new_") || def_path.last().unwrap() == "new") {
                       // "new"-like (constructors) functions are allowed
                 }
-                else if ur_cx.has_unrooted_generic_substs(callee_def_id, callee_substs) {
+                else if ur_cx.has_unrooted_generic_substs(callee_def_id, callee_substs, &mut type_info) {
                     // TODO tmp code - delete later
-                    let mut msg = "Callee generic type must be rooted.".to_string();
-                    msg.push_str(&def_path.join("::"));
+                    let mut msg = "Callee generic type must be rooted.\n".to_string();
+                    //msg.push_str(&def_path.join("::"));
+                    //msg.push_str(&"\n");
+                    msg.push_str(&type_info);
                     cx.span_lint(UNROOTED_MUST_ROOT, constant.span, &msg);
                     //cx.span_lint(UNROOTED_MUST_ROOT, constant.span, "Callee generic type must be rooted.")
                 }

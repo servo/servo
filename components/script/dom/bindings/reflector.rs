@@ -13,7 +13,7 @@ use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T, U>(
+pub fn reflect_dom_object<#[must_root] T, #[must_root] U>(
         obj: Box<T>,
         global: &U,
         wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> DomRoot<T>)
@@ -74,6 +74,7 @@ impl Reflector {
 }
 
 /// A trait to provide access to the `Reflector` for a DOM object.
+#[must_root]
 pub trait DomObject: 'static {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
@@ -91,6 +92,7 @@ impl DomObject for Reflector {
 }
 
 /// A trait to initialize the `Reflector` for a DOM object.
+#[must_root]
 pub trait MutDomObject: DomObject {
     /// Initializes the Reflector
     fn init_reflector(&mut self, obj: *mut JSObject);

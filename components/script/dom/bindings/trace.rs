@@ -118,6 +118,7 @@ use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::WebVRGamepadHand;
 
 /// A trait to allow tracing (only) DOM objects.
+#[must_root]
 pub unsafe trait JSTraceable {
     /// Trace `self`.
     unsafe fn trace(&self, trc: *mut JSTracer);

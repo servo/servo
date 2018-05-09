@@ -13,9 +13,10 @@ use std::mem;
 
 /// A trait to hold the cast functions of IDL interfaces that either derive
 /// or are derived from other interfaces.
+#[must_root]
 pub trait Castable: IDLInterface + DomObject + Sized {
     /// Check whether a DOM object implements one of its deriving interfaces.
-    fn is<T>(&self) -> bool
+    fn is<#[must_root] T>(&self) -> bool
         where T: DerivedFrom<Self>
     {
         let class = unsafe { get_dom_class(self.reflector().get_jsobject().get()).unwrap() };
@@ -23,7 +24,7 @@ pub trait Castable: IDLInterface + DomObject + Sized {
     }
 
     /// Cast a DOM object upwards to one of the interfaces it derives from.
-    fn upcast<T>(&self) -> &T
+    fn upcast<#[must_root] T>(&self) -> &T
         where T: Castable,
               Self: DerivedFrom<T>
     {
@@ -31,7 +32,7 @@ pub trait Castable: IDLInterface + DomObject + Sized {
     }
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
-    fn downcast<T>(&self) -> Option<&T>
+    fn downcast<#[must_root] T>(&self) -> Option<&T>
         where T: DerivedFrom<Self>
     {
         if self.is::<T>() {
