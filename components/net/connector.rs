@@ -12,7 +12,6 @@ use openssl::ssl::{SslConnectorBuilder, SslMethod};
 use openssl::x509;
 use std::io;
 use std::net::TcpStream;
-use time::precise_time_ns;
 
 pub struct HttpsConnector {
     ssl: OpensslClient,
@@ -30,7 +29,7 @@ impl NetworkConnector for HttpsConnector {
     type Stream = HttpsStream<<OpensslClient as SslClient>::Stream>;
 
     fn connect(&self, host: &str, port: u16, scheme: &str) -> HyperResult<Self::Stream> {
-        println!("connect start: {}", precise_time_ns());
+        // TODO connect_start
         if scheme != "http" && scheme != "https" {
             return Err(HyperError::Io(io::Error::new(io::ErrorKind::InvalidInput,
                                                      "Invalid scheme for Http")));
@@ -45,10 +44,10 @@ impl NetworkConnector for HttpsConnector {
         } else {
             // Do not perform host replacement on the host that is used
             // for verifying any SSL certificate encountered.
-            println!("secure connect start {}", precise_time_ns());
+            //TODO secure_connection_start
             self.ssl.wrap_client(stream, host).map(HttpsStream::Https)
         };
-        println!("connect end at {}", precise_time_ns());
+        //TODO connect_end
         res
     }
 }

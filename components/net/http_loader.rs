@@ -50,8 +50,7 @@ use std::str::FromStr;
 use std::sync::RwLock;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
-use time::{self, precise_time_ns};
-use time::Tm;
+use time::{self, Tm};
 use unicase::UniCase;
 use uuid;
 
@@ -420,10 +419,10 @@ fn obtain_response(connector: &Pool<Connector>,
             info!("{:?}", data);
         }
 
-        // TODO avada: connect start and connect end are supposed to be the tcp step, not request/response
+        // this is not the same connect_start as used in PerformanceResourceTiming
         let connect_start = precise_time_ms();
 
-        println!("request start is {}", precise_time_ns());
+        // TODO request_start
         let request = HyperRequest::with_connector(method.clone(),
                                                    url.clone().into_url(),
                                                    &*connector);
@@ -448,8 +447,7 @@ fn obtain_response(connector: &Pool<Connector>,
             }
         }
 
-        // TODO avada: responsestart should be time immediately after receiving first byte of response
-        println!("response start is {}", precise_time_ns());
+        // TODO response_start: should be time immediately after receiving first byte of response
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error))
@@ -460,7 +458,7 @@ fn obtain_response(connector: &Pool<Connector>,
             },
             Err(e) => return Err(NetworkError::Internal(e.description().to_owned())),
         };
-        println!("response end is {}", precise_time_ns());
+        // TODO response_end
 
         let send_end = precise_time_ms();
 
@@ -568,6 +566,10 @@ pub fn http_fetch(request: &mut Request,
         }
 
         // Substep 3
+        // TODO maybe set fetch_start (if this is the last resource)
+        // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
+        //   attributes to this as well
+        // TODO maybe set redirect start if this resource initiates the redirect
         let mut fetch_result = http_network_or_cache_fetch(
             request, authentication_fetch_flag, cors_flag, done_chan, context);
 
@@ -612,6 +614,8 @@ pub fn http_fetch(request: &mut Request,
             }
         };
     }
+    // TODO redirect_end: last byte of response of last redirect
+
     // set back to default
     response.return_internal = true;
     // Step 6
@@ -713,6 +717,7 @@ fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<
     }
 }
 
+//TODO transfer_size, encoded_body_size, decoded_body_size
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
 fn http_network_or_cache_fetch(request: &mut Request,
                                authentication_fetch_flag: bool,
@@ -878,7 +883,6 @@ fn http_network_or_cache_fetch(request: &mut Request,
     let mut revalidating_flag = false;
 
     // Step 21
-    println!("querying cache at {}", precise_time_ns());
     if let Ok(http_cache) = context.state.http_cache.read() {
         if let Some(response_from_cache) = http_cache.construct_response(&http_request, done_chan) {
             let response_headers = response_from_cache.response.headers.clone();

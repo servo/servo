@@ -337,6 +337,8 @@ pub struct Document {
     top_level_dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
+    unload_event_start: Cell<u64>,
+    unload_event_end: Cell<u64>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
     https_state: Cell<HttpsState>,
     /// The document's origin.
@@ -2116,6 +2118,14 @@ impl Document {
         self.load_event_end.get()
     }
 
+    pub fn get_unload_event_start(&self) -> u64 {
+        self.unload_event_start.get()
+    }
+
+    pub fn get_unload_event_end(&self) -> u64 {
+        self.unload_event_end.get()
+    }
+
     pub fn start_tti(&self) {
         if self.get_interactive_metrics().needs_tti() {
             self.tti_window.borrow_mut().start_window();
@@ -2429,6 +2439,8 @@ impl Document {
             top_level_dom_complete: Cell::new(Default::default()),
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
+            unload_event_start: Cell::new(Default::default()),
+            unload_event_end: Cell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             origin: origin,
             referrer: referrer,
@@ -3929,11 +3941,12 @@ impl DocumentMethods for Document {
 
         // Step 10.
         // TODO: prompt to unload.
+        // TODO: set unload_event_start and unload_event_end
 
         window_from_node(self).set_navigation_start();
 
         // Step 11.
-        // TODO: unload.
+        // TODO
 
         // Step 12.
         self.abort();

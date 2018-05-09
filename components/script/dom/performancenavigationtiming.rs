@@ -52,14 +52,13 @@ impl PerformanceNavigationTiming {
 impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
     // https://w3c.github.io/navigation-timing/
     fn UnloadEventStart(&self) -> DOMHighResTimeStamp {
-        // TODO
-        Finite::wrap(Default::default())
+        Finite::wrap(self.document.get_unload_event_start() as f64)
+
     }
 
     // https://w3c.github.io/navigation-timing/
     fn UnloadEventEnd(&self) -> DOMHighResTimeStamp {
-        // TODO
-        Finite::wrap(Default::default())
+        Finite::wrap(self.document.get_unload_event_end() as f64)
     }
 
     // https://w3c.github.io/navigation-timing/
