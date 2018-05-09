@@ -14,6 +14,9 @@ promise_test(t => {
     assert_false(r.headers.has("device-memory-received"), "device-memory-received");
     assert_false(r.headers.has("dpr-received"), "dpr-received");
     assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_false(r.headers.has("rtt-received"), "rtt-received");
+    assert_false(r.headers.has("downlink-received"), "downlink-received");
+    assert_false(r.headers.has("ect-received"), "ect-received");
   });
 }, "Accept-CH header test");
 

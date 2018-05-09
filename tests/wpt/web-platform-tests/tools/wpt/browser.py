@@ -205,7 +205,11 @@ class Firefox(Browser):
                 # can get if we have an application.ini file
                 tag = "tip"
 
-        return "%s/raw-file/%s/testing/profiles/prefs_general.js" % (repo, tag)
+        if int(version.split(".")[0]) < 61:
+            path = "prefs_general.js"
+        else:
+            path = "common/user.js"
+        return "%s/raw-file/%s/testing/profiles/%s" % (repo, tag, path)
 
     def install_prefs(self, binary, dest=None):
         version, channel = self.get_version_number(binary)
@@ -216,7 +220,7 @@ class Firefox(Browser):
         dest = os.path.join(dest, "profiles")
         if not os.path.exists(dest):
             os.makedirs(dest)
-        prefs_file = os.path.join(dest, "prefs_general.js")
+        prefs_file = os.path.join(dest, "user.js")
         cache_file = os.path.join(dest,
                                   "%s-%s.cache" % (version, channel)
                                   if channel != "nightly"

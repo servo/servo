@@ -10,12 +10,12 @@ from mozlog import get_default_logger, handlers, proxy
 
 from wptlogging import LogLevelRewriter
 from wptserve.handlers import StringHandler
+from wptserve import sslutils
 
 here = os.path.split(__file__)[0]
 repo_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir, os.pardir))
 
 serve = None
-sslutils = None
 
 
 def do_delayed_imports(logger, test_paths):
@@ -30,11 +30,6 @@ def do_delayed_imports(logger, test_paths):
         from tools.serve import serve
     except ImportError:
         failed.append("serve")
-
-    try:
-        import sslutils
-    except ImportError:
-        failed.append("sslutils")
 
     if failed:
         logger.critical(
@@ -134,13 +129,9 @@ class TestEnvironment(object):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     def load_config(self):
-        default_config_path = os.path.join(serve_path(self.test_paths), "config.default.json")
         override_path = os.path.join(serve_path(self.test_paths), "config.json")
 
-        with open(default_config_path) as f:
-            default_config = json.load(f)
-
-        config = serve.Config(override_ssl_env=self.ssl_env, **default_config)
+        config = serve.Config(override_ssl_env=self.ssl_env)
 
         config.ports = {
             "http": [8000, 8001],

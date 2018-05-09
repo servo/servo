@@ -57,8 +57,8 @@ window.onload = function() {
       fails[fails.length] = 'dataTransfer.files[0].size '+e.dataTransfer.files[0].size+' instead of '+filesize1+' or '+filesize2;
     }
     /*
-    if( !e.dataTransfer.files[0].lastModifiedDate ) {
-      fails[fails.length] = 'no dataTransfer.files[0].lastModifiedDate';
+    if( !e.dataTransfer.files[0].lastModified ) {
+      fails[fails.length] = 'no dataTransfer.files[0].lastModified';
     }
     */
     if( !window.FileReader ) {

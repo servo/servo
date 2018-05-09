@@ -116,6 +116,7 @@ dictionary FocusOptions {
 HTMLElement includes GlobalEventHandlers;
 HTMLElement includes DocumentAndElementEventHandlers;
 HTMLElement includes ElementContentEditable;
+HTMLElement includes HTMLOrSVGElement;
 
 // Note: intentionally not [HTMLConstructor]
 interface HTMLUnknownElement : HTMLElement { };
@@ -128,8 +129,6 @@ interface mixin HTMLOrSVGElement {
   void focus(optional FocusOptions options);
   void blur();
 };
-HTMLElement includes HTMLOrSVGElement;
-SVGElement includes HTMLOrSVGElement;
 
 [Exposed=Window,
  OverrideBuiltins]

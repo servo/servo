@@ -96,10 +96,8 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 def check_environ(product):
     if product not in ("firefox", "servo"):
-        config = serve.load_config(os.path.join(wpt_root, "config.default.json"),
-                                   os.path.join(wpt_root, "config.json"))
-        expected_hosts = (set(config["domains"].itervalues()) ^
-                          set(config["not_domains"].itervalues()))
+        config = serve.load_config(os.path.join(wpt_root, "config.json"))
+        expected_hosts = set(config.all_domains_set)
         missing_hosts = set(expected_hosts)
         if platform.uname()[0] != "Windows":
             hosts_path = "/etc/hosts"
@@ -120,9 +118,9 @@ def check_environ(product):
                 else:
                     message = """Missing hosts file configuration. Run
 
-python wpt make-hosts-file >> %s
+python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -Encoding ascii -Append
 
-from a shell with Administrator privileges.""" % hosts_path
+in PowerShell with Administrator privileges.""" % hosts_path
                 raise WptrunError(message)
 
 
